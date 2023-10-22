@@ -1,0 +1,85 @@
+Unit-testing our Tabbing:
+	
+	TAB Cases:
+		[TIP1] insert point in non-white
+			- PASS, no adverse visuals
+		
+		[TIP2] insert point in white
+			- PASS w/CURSOR BUG, should move with spaces added
+			- POSS-FIX: change insert to be cursor-1?
+		
+		[Group TSE1-4] --- 1st char (left-most) of selection is whitespace ---
+			[TSE1] Selection is all white (and DOES span a tab-stop)
+				- PASS w/CURSOR BUG, should move to left edge of text
+				- no poss fix until we can place cursor
+			
+			[TSE2] Selection starts in white, ends in non-white (and whitespace DOES span a tab-stop)
+				- PASS w/CURSOR BUG, should move to left edge of text
+				- no poss fix until we can place cursor
+			
+			[TSE3] Selection is all white (and does NOT span a tab-stop)
+				- PASS w/CURSOR BUG, should move to left edge of text
+				- no poss fix until we can place cursor
+			
+			[TSE4] Selection starts in white, ends in non-white (and whitespace does NOT span a tab-stop)
+				- PASS w/CURSOR BUG, should move to left edge of text
+				- no poss fix until we can place cursor
+			
+		[Group TSE5,6] --- 1st char of selection is NOT whitespace ---
+			[TSE5] selection all non-white
+				- PASS w/CURSOR BUG, should move to left edge of text
+				- no poss fix until we can place cursor
+			
+			[TSE6] selection starts in non-white, ends in white
+				- PASS w/CURSOR BUG, should move to left edge of text
+				- no poss fix until we can place cursor
+			
+		[Group TML1 - TML4] --- multiple line selection ---
+			[TML1] multiple full lines
+				- PASS w/CURSOR BUG
+				
+			[TML2] multiple full lines w/partial last line
+				- PASS w/CURSOR BUG
+			
+			[TML3] multiple full lines w/partial first and last lines
+				- PASS w/CURSOR BUG
+			
+			[TML4] two lines: partial first and last lines
+				- PASS w/CURSOR BUG
+			
+		
+	Shift+Tab Cases:
+		[UIP1] insert point in non-white
+			- PASS,  w/CURSOR BUG, should move to left edge of text
+		
+		[UIP2] insert point in white
+			- PASS,  w/CURSOR BUG, should move to left edge of text
+			- NOTE: cursor ONLY bad when not in text removed!
+		
+		[Group USE1, USE2] --- 1st char (left-most) of selection is whitespace ---
+			[USE1] selection all white
+				- PASS,  w/CURSOR BUG, should move to left edge of text
+				- NOTE: cursor ONLY bad when not in text removed!
+			
+			[USE2] selection start in white end in non-white
+				- PASS,  w/CURSOR BUG, should move to left edge of text
+			
+		[Group USE3, USE4] --- 1st char (left-most) of selection is NOT whitespace ---
+			[USE3] selection all non-white
+				- PASS,  w/CURSOR BUG, should move to left edge of text
+			
+			[USE4] selection start in non-white end in white
+				- PASS,  w/CURSOR BUG, should move to left edge of text
+			
+		[Group UML1 - UML4] --- multiple line selection ---
+			[UML1] multiple full lines
+				- PASS,  w/CURSOR BUG, should move to left edge of text
+			
+			[UML2] multiple full lines w/partial last line
+				- PASS,  w/CURSOR BUG, should move to left edge of text
+			
+			[UML3] multiple full lines w/partial first and last lines
+				- PASS,  w/CURSOR BUG, should move to left edge of text
+			
+			[UML4] two lines: partial first and last lines
+				- PASS,  w/CURSOR BUG, should move to left edge of text
