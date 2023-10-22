@@ -17,11 +17,11 @@ Setting up this feature is pretty easy. You will need to:
 
 ### Light Mode
 
-![Examples](./spin2/images/vscode-light-bgColoring.png)
+![Examples](./DOCs/vscode-light-bgColoring.png)
 
 ### Dark Mode
 
-![Examples](./spin2/images/vscode-dark-bgColoring.png)
+![Examples](./DOCs/vscode-dark-bgColoring.png)
 
 
 #### Enable in Settings 
