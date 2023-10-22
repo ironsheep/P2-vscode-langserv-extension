@@ -1,0 +1,87 @@
+name: 🐛 Bug Report
+description: Report an issue you are experiencing with the Spin2 Language Server VScode Extension.
+labels:
+  - bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        #### Read this first
+        - Provide as many details as possible.
+
+  - type: checkboxes
+    attributes:
+      label: and have you...
+      description: Have you accomplished the following before submitting this issue?
+      options:
+        - label: I updated to the latest spin2 version available
+          required: true
+        - label: I have restarted VSCode and the problem still exists
+          required: true
+
+  - type: input
+    id: affectedRelease
+    validations:
+      required: true
+    attributes:
+      label: Version of Spin2 Language Server VScode Extension with the issue
+      description: Please specify which version of Spin2 Language Server VScode Extension you are using, and if this is a regression, what is the last known version that worked?
+      placeholder: |
+        Failing in v1.4.1, last worked in v1.4.0
+
+  - type: dropdown
+    id: regression
+    validations:
+      required: true
+    attributes:
+      label: Is this a regression?
+      multiple: false
+      options:
+        - Yes. This used to work, but now it doesn't.
+        - No or unsure. This never worked, or I haven't tried before.
+
+  - type: textarea
+    id: environment
+    validations:
+      required: true
+    attributes:
+      label: Hardware, Operating System, Operating System version, VSCode version
+      description: |
+        Provide details about the machine/software you are running on,
+        which operating system this is on, and what VSCode version you are using.
+        If possible try to replicate the issue in other installations and include your findings here.
+      placeholder: |
+        Hardware: Mac Pro
+        OS Ver: macOS Monterey v12.6.6
+        VSCode Ver: 1.79.1 (Fm Code->About)
+      value: |
+        Hardware:
+        OS Ver:
+        VSCode Ver:
+
+  - type: textarea
+    id: problem
+    validations:
+      required: true
+    attributes:
+      label: Description of problem
+      description: |
+        Explain what the issue is, and how things should look/behave. If possible provide a screenshot with a description.
+      placeholder: |
+        Please describe the issue you are experiencing.
+        (If possible provide a screenshot, or a link to a video, showing the issue)
+
+  - type: textarea
+    id: additionalInfo
+    validations:
+      required: false
+    attributes:
+      label: Additional information
+      description: |
+        Is there anything else that you think might help us identify the problem?
+        (If possible attach your source file (.spin/.spin2) exhibiting the problem you are describing.)
+
+  - type: markdown
+    attributes:
+      value: "Thank you for taking the time to report this issue! By doing so you are helping us make the Spin2 Language Server VScode Extension better."
