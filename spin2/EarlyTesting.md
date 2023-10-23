@@ -22,7 +22,6 @@ Additional pages:
 - [TOP Level README](../README.md) - Back to the top page of this repo
 
 
-
 ## [S-] Setup
 
 There are a couple of steps to remove the older Spin2 extension versionn, install the new, and enable the "**Error Lens**" extension. Once you do this you are ready to run VScode as you normally do.
