@@ -57,11 +57,21 @@ I find the new features fun to use. Here's a brief summary:
 
 - **Syntax and Semantic Highlighting** works as before
 - **Issues found** with code are highlighted in red but also now have **problem descriptions**
-- **Declared objects** in your code are now parsed and references to **constants** and **methods** within them are validated! An error is presented for any reference not found in the included file.
+- **Declared objects** in your code are now parsed and references to **constants** and **methods** within them are validated! An error is presented for any reference not found in the included file. This includes local constant overrides on the object declaration line.
 - **Files** listed in your code (declared objects or included data files) are **checked to see if they exist**. An error is presented if they are not present in the same directory.
-- **Hover help** is presented for all data or method names in your code along with all spin built-in methods, smart pin constants or streamer constants
-- **Signature help** is presented as you type a method signature. It is presented when you first type the "(" open parenthesis.
+- **Hover help** is presented for all data or method names in your code along with all spin built-in methods, smart pin constants or streamer constants, if you are hovering over an external object reverence to a constant or method the help text is brought in from that external file
+- **Signature help** is presented as you type a method signature. It is presented when you first type the "(" open parenthesis. Likewise signature help for a method from an included object the help text is brought in from the external file.
+- **Multiple files open** in editor. Open the top level file in your project. Open an included object file to the right.  Changes you make in the object file will immediately cause changes in the top-level file to the left if you are adjusting the public interface.
 - **Porting Help**: moving P1 code to P2 or moving P2 code to P1... when you rename the file to spin or .spin2 then the highlighter can generate warnings when P1 code is present in a P2 file and vice versa.
+- **Object Public interface documentation generation** via keystroke [Ctrl+Alt+d], doc opens on right side of editor
+- **Doc-Comment Generation** for PUB and PRI methods via keystroke [Ctrl+Alt+c] - Ctrl+Alt+( c )omment.<BR>(Comment is inserted immediately below the PUB or PRI line.)
+- **Editor Screen Coloring** support per section à la Parallax Propeller Tool
+- **Custom tabbing Tab-stop support** per section à la Parallax Propeller Tool
+- **Tab Sets You can choose between** Propeller Tool, IronSheep, and User1 (adjust in settings to make your favorite set)
+- File navigation from **Outline View**
+- File navigation from **Object Hierarchy View**
+- **Editor insert Mode support** à la Parallax Propeller Tool [Insert, Overtype and Align]
+- Provides **rich companion themes** for use with non-color backgrounds or with colored backgrounds as well as Syntax only theme (mostly used during semantic highlighting development
 
 ### [T1] What are we trying to learn with your early testing?
 
