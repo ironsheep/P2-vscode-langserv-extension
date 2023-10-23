@@ -9,9 +9,27 @@ Hi everyone and thank you for being willing to exercide this new version and pro
 
 Let get you quickly running the new extension.
 
+## Table of Contents
+
+On this Page:
+
+- [Set up](#s--setup) - remove old extension(s), install new, select theme
+- [Testing](#t--testing) - review your existing code using the new VSCode, report (via email) anything that needs to be fixed
+- [Reference](#reference) - help with settings or themes or even reverting to the prior version
+
+Additional pages:
+
+- [TOP Level README](../README.md) - Back to the top page of this repo
+
+
+
 ## [S-] Setup
 
 There are a couple of steps to remove the older Spin2 extension versionn, install the new, and enable the "**Error Lens**" extension. Once you do this you are ready to run VScode as you normally do.
+
+### [S0] Shutdown all VSCode instances
+
+We are updating the extensions. So let's first shutdown all VSCode instances then switch them out.
 
 ### [S1] Remove any existing Spin2 extensions
 
@@ -47,9 +65,22 @@ When you DO have error Lens installed and enabled then your error messages are a
 ![w/Error Lens](./DOCs/images/withErrorLens.png)
 **FIGURE 3**: Code with errors, but now errors are also shown in the code on the exact line
 
+### [S4] Select your preferred theme
+
+If you don't use Propeller Tool like background coloring then select one of:
+
+
+1. **Spin2 Ironsheep Light** - Light Mode no backround coloring
+1. **Spin2 Ironsheep Dark** - Dark Mode no backround coloring
+
+If, instead you do use Propeller Tool background coloring then select one of these (and also enable backgroudn coloring in settings [See: Help with settings](#r2-help-with-settings)):
+
+1. **Spin2 Ironsheep Light for background Color** - Light Mode use with **Propeller Tool** coloring 
+2. **Spin2 Ironsheep Dark for background Color** - Dark Mode use with **Propeller Tool** coloring 
+
+To activate a theme, open the Color Theme Selector, navigate to **Code** > **Settings** > **Theme** > **Color Theme** and then arrow down to the desired theme.
+
 ## [T-] Testing
-
-
 
 You are ready to use VScode as you did before. The difference is that you will be seeing the output from the new language-server-based-extension when you edit .spin or .spin2 files.
 
@@ -139,8 +170,6 @@ The Spin2 extension provides **5 themes**. 2 for light mode and 3 for dark mode.
 1. **Spin2 Ironsheep Dark** - Dark Mode no backround coloring
 2. **Spin2 Ironsheep Dark for background Color** - Dark Mode use with **Propeller Tool** coloring 
 3. **Spin2 Ironsheep Syntax (only)** - this turns off all Semantic Highlighting leaving only the **Syntax highlighting**.
-
-
 
 
 ## License
