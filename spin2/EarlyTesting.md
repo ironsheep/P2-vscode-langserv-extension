@@ -46,6 +46,15 @@ Within the directory where is now lives, unzipped, run:
 code --install-extension spin2-2.0.0.vsix
 ```
 
+oh, yes, please ignore the warning that we always get:
+
+```bash
+Installing extensions…
+(node:13248) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues.
+Please use the Buffer.alloc(), Buffer.allocUnsafe() or BufferFrom() methods instead.
+(Use ‘Code –trace-deprecation …’ to show where the warning was created)
+```
+
 It should now be installed
 
 ### [S3] Setup extensions we use
