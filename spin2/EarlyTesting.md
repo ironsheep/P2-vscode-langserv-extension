@@ -71,6 +71,11 @@ This editor is a highlighter for "formal" Spin/Pasm for the P1 and Spin2/P2asm f
 
 If something does not seem to be correct then I wnat to know so I can make it more correct.
 
+#### NOTE: Don't bother reporting these...
+
+There is at least one known issue with the current parser:
+
+- It does NOT yet handle line-continuations.  The subsequent lines are just not highlighted.  This will be fixed in an upcoming release.
 
 ### [T2] Reporting things you find
 
