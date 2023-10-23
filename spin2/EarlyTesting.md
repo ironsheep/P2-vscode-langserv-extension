@@ -45,7 +45,7 @@ When you DON'T have error Lens installed (or it is disabled) Your errors (highli
 When you DO have error Lens installed and enabled then your error messages are additionally shown on the line which contains the error:
 
 ![w/Error Lens](./DOCs/images/withErrorLens.png)
-**FIGURE 2**: Code with errors, but now errors are also shown in the code on the exact line
+**FIGURE 3**: Code with errors, but now errors are also shown in the code on the exact line
 
 ## [T-] Testing
 
