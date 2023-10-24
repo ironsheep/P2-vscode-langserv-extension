@@ -13,6 +13,12 @@ Please download and test using the latest in this list!
 |spin2-2.0.1.vsix.zip | 23 Oct | added missing baground themes
 |<PRE>[spin2-2.0.2.vsix.zip](spin2-2.0.2.vsix.zip)</PRE> | 24 Oct | semantic highlight fixes, enum recognition fixes, backgroudn coloring fixes
 
+Table: Click on link above to see:
+
+![Download Pointer](../DOCs/images/downloadLocator.png)
+**FIGURE 1** - then press download raw file button!
+
+--
 
 ## License
 
