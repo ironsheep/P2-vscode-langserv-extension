@@ -13,7 +13,7 @@ Let get you quickly running the new extension.
 
 On this Page:
 
-- [Set up](#s--setup) - remove old extension(s), install new, select theme
+- [Set up](#s--setup) - remove old extension(s), install new (get latest from [Ext Builds](./EarlyTesting/README.md)) , select theme
 - [Testing](#t--testing) - review your existing code using the new VSCode, report (via email) anything that needs to be fixed
 - [Reference](#reference) - help with settings or themes or even reverting to the prior version
 
@@ -38,11 +38,11 @@ We are updating the extensions. So let's first shutdown all VSCode instances the
 
 ### [S2] Install the new version from the command line
 
-Look for the spin2-2.0.0.vsix.zip I sent you in email.  Download it and unzip it.
+I no longer send them in email.  Get the latest from [Ext Builds](./EarlyTesting/README.md).  Download it and unzip it.
 Within the directory where is now lives, unzipped, run:
 
 ```bash
-code --install-extension spin2-2.0.0.vsix
+code --install-extension spin2-2.0.??.vsix   # use the version of the latest you downloaded
 ```
 
 oh, yes, please ignore the warning that we always get:
