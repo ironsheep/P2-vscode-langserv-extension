@@ -7,11 +7,11 @@
 
 Please download and test using the latest in this list!
 
-| Test Version | Date | Description
-| --- | --- | ---
-spin2-2.0.0.vsix.zip| 22 Oct | initial test version
-spin2-2.0.1.vsix.zip | 23 Oct | added missing baground themes
-<PRE>[spin2-2.0.2.vsix.zip](spin2-2.0.2.vsix.zip)</PRE> | 24 Oct | semantic highlight fixes, enum recognition fixes, backgroudn coloring fixes
+| Test Version | Date | Description |
+| --- | --- | --- |
+|spin2-2.0.0.vsix.zip| 22 Oct | initial test version
+|spin2-2.0.1.vsix.zip | 23 Oct | added missing baground themes
+|<PRE>[spin2-2.0.2.vsix.zip](spin2-2.0.2.vsix.zip)</PRE> | 24 Oct | semantic highlight fixes, enum recognition fixes, backgroudn coloring fixes
 
 
 ## License
