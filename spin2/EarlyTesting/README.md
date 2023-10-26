@@ -15,7 +15,8 @@ To download, click on link, on next page - click on download raw file button.
 | --- | --- | --- |
 |spin2-2.0.0.vsix.zip| 22 Oct | initial test version
 |spin2-2.0.1.vsix.zip | 23 Oct | added missing baground themes
-|<PRE>[spin2-2.0.2.vsix.zip](spin2-2.0.2.vsix.zip)</PRE> | 24 Oct | semantic highlight fixes, enum recognition fixes, backgroudn coloring fixes
+|spin2-2.0.2.vsix.zip | 24 Oct | semantic highlight fixes, enum recognition fixes, backgroudn coloring fixes
+|<PRE>[spin2-2.0.3.vsix.zip](spin2-2.0.3.vsix.zip)</PRE> | 25 Oct | P1 number of parser fixes and new warnings
 
 
 ### Download the latest file
