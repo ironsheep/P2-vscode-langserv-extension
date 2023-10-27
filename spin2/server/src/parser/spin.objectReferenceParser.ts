@@ -5,7 +5,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { Context } from "../context";
 
 //import { semanticConfiguration, reloadSemanticConfiguration } from "./spin2.extension.configuration";
-import { DocumentFindings, RememberedComment, RememberedToken, eSeverity } from "./spin.semantic.findings";
+import { DocumentFindings, RememberedComment, RememberedToken } from "./spin.semantic.findings";
 import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
 import { eParseState } from "./spin.common";
@@ -22,11 +22,6 @@ interface IParsedToken {
   length: number;
   ptTokenType: string;
   ptTokenModifiers: string[];
-}
-
-interface IFilteredStrings {
-  lineNoQuotes: string;
-  lineParts: string[];
 }
 
 export class Spin2ObjectReferenceParser {

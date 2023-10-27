@@ -1,14 +1,11 @@
 "use strict";
 // src/spin2.documentSemanticParser.ts
 
-import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Context, ServerBehaviorConfiguration } from "../context";
 
-//import { semanticConfiguration, reloadSemanticConfiguration } from "./spin2.extension.configuration";
 import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, eSeverity } from "./spin.semantic.findings";
 import { Spin1ParseUtils } from "./spin1.utils";
-//import { DocGenerator } from "./spin.document.generate";
 import { isSpin1File } from "./lang.utils";
 import { eParseState } from "./spin.common";
 import { fileInDirExists } from "../files";
