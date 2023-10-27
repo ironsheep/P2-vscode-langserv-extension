@@ -38,7 +38,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -978,6 +978,7 @@ export class Spin2DocumentSemanticParser {
         // check a valid preprocessor line for a declaration
         if (symbolName != undefined && directive.toLowerCase() == "#define") {
           this._logPreProc("  -- new PreProc Symbol=[" + symbolName + "]");
+          this.semanticFindings.recordDeclarationLine(line, lineNbr);
           this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", ["readonly"]), lineNbr, this._declarationComment());
         }
       }
@@ -1130,6 +1131,7 @@ export class Spin2DocumentSemanticParser {
         const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
         this._logDAT("   -- GetDatDecl fileName=[" + fileName + "]");
+        this.semanticFindings.recordDeclarationLine(line, lineNbr);
         this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, labelModifiers), lineNbr, this._declarationComment(), fileName);
       }
     }
@@ -1166,6 +1168,7 @@ export class Spin2DocumentSemanticParser {
         const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
         this._logDAT("   -- DAT PASM GLBL fileName=[" + fileName + "]");
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+        this.semanticFindings.recordDeclarationLine(line, lineNbr);
         this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, labelModifiers), lineNbr, this._declarationComment(), fileName);
       }
     }
@@ -1231,6 +1234,7 @@ export class Spin2DocumentSemanticParser {
       // remember this object name so we can annotate a call to it
       const filenamePart = lineParts[1].trim().replace(/[\"]/g, "");
       this._logOBJ(`  -- GLBL GetOBJDecl newFileName=[${filenamePart}]`);
+      this.semanticFindings.recordDeclarationLine(line, lineNbr);
       this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", []), lineNbr, this._declarationComment(), filenamePart); // pass filename, too
       this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);
       this._ensureObjectFileExists(filenamePart, lineNbr - 1, line, startingOffset);
@@ -1365,6 +1369,7 @@ export class Spin2DocumentSemanticParser {
         const newName = nameSet[index]; // .replace(/[\[,]/, '');
         if (newName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR("  -- GLBL GetVarDecl newName=[" + newName + "]");
+          this.semanticFindings.recordDeclarationLine(line, lineNbr);
           this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", ["instance"]), lineNbr, this._declarationComment());
         }
       }
@@ -1373,6 +1378,7 @@ export class Spin2DocumentSemanticParser {
         const longVarName = lineParts[index];
         if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR("  -- GLBL GetVarDecl newName=[" + longVarName + "]");
+          this.semanticFindings.recordDeclarationLine(line, lineNbr);
           this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", ["instance"]), lineNbr, this._declarationComment());
         }
       }
@@ -2944,6 +2950,7 @@ export class Spin2DocumentSemanticParser {
                   ptTokenType: "variable",
                   ptTokenModifiers: ["illegalUse"],
                 });
+                this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + constantPart.length, eSeverity.Error, `P2 Spin failed to parse line with [${constantPart}]`);
               }
             }
           } else {
@@ -3815,7 +3822,12 @@ export class Spin2DocumentSemanticParser {
     // could be objectInstance.method or objectInstance#constant or objectInstance.method()
     // but can NOT be ".name"
     // NOTE" '%' is special object constant override mechanism
-    return !possibleRef.startsWith(".") && (possibleRef.includes(".") || possibleRef.includes("#") || possibleRef.includes("%"));
+    // NEW adjust dot check to symbol.symbol
+    const dottedSymbolRegex = /[a-zA-Z0-9_]\.[a-zA-Z_]/;
+    const hashedSymbolRegex = /[a-zA-Z0-9_]\#[a-zA-Z_]/;
+    const hasSymbolDotSymbol: boolean = dottedSymbolRegex.test(possibleRef);
+    const hasSymbolHashSymbol: boolean = hashedSymbolRegex.test(possibleRef);
+    return !possibleRef.startsWith(".") && (hasSymbolDotSymbol || hasSymbolHashSymbol || possibleRef.includes("%"));
   }
 
   private _reportObjectReference(dotReference: string, lineIdx: number, startingOffset: number, line: string, tokenSet: IParsedToken[]): boolean {

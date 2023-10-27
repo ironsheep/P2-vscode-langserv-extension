@@ -19,7 +19,7 @@ import { eBuiltInType } from "../parser/spin.common";
 import { isSpin1File, fileSpecFromURI } from "../parser/lang.utils";
 
 export default class HoverProvider implements Provider {
-  private hoverLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private hoverLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private symbolsFound: DocumentFindings = new DocumentFindings();
@@ -128,19 +128,52 @@ export default class HoverProvider implements Provider {
     this._logMessage(`+ Hvr: definitionLocation() ENTRY`);
     const isPositionInBlockComment: boolean = this.symbolsFound.isLineInBlockComment(position.line);
     const inPasmCodeStatus: boolean = this.symbolsFound.isLineInPasmCode(position.line);
+    const inObjDeclarationStatus: boolean = this.symbolsFound.isLineObjDeclaration(position.line);
     const adjustedPos = this.extensionUtils.adjustWordPosition(document, position, isPositionInBlockComment, inPasmCodeStatus);
     if (!adjustedPos[0]) {
       this._logMessage(`+ Hvr: definitionLocation() EXIT fail`);
       return Promise.resolve(null);
     }
-    const objectRef = adjustedPos[1];
+    const declarationLine: string = DocumentLineAt(document, position).trimEnd();
+    let objectRef = inObjDeclarationStatus ? this._objectNameFromDeclaration(declarationLine) : adjustedPos[1];
+
     const hoverSource: string = adjustedPos[2];
+    if (objectRef === hoverSource) {
+      objectRef = "";
+    }
     const sourcePosition: Position = adjustedPos[3];
     let fileBasename = path.basename(document.uri);
-    this._logMessage(`+ Hvr: hoverSource=[${hoverSource}], adjPos=(${position.line},${position.character}), file=[${fileBasename}], line=[${DocumentLineAt(document, position).trimEnd()}]`);
+    this._logMessage(`+ Hvr: hoverSource=[${hoverSource}], inObjDecl=(${inObjDeclarationStatus}), adjPos=(${position.line},${position.character}), file=[${fileBasename}], line=[${declarationLine}]`);
 
     this._logMessage(`+ Hvr: definitionLocation() EXIT after getting symbol details`);
     return this.getSymbolDetails(document, sourcePosition, objectRef, hoverSource);
+  }
+
+  private _objectNameFromDeclaration(line: string): string {
+    let desiredString: string = "";
+    // parse object declaration forms:
+    // ex:  child1 : "dummy_child" | MULTIplIER = 3, CoUNT = 5
+    //      child1[4] : "dummy_child" | MULTIplIER = 3, CoUNT = 5
+    //      child1[child.MAX_CT] : "dummy_child" | MULTIplIER = 3, CoUNT = 5
+    if (line.includes(":")) {
+      let lineParts: string[] = line.split(":");
+      //this._logMessage(`+ Hvr: _getObjName() :-split lineParts=[${lineParts}](${lineParts.length})`);
+      if (lineParts.length >= 2) {
+        const instanceName = lineParts[0].trim();
+        if (instanceName.includes("[")) {
+          lineParts = instanceName.split("[");
+          //this._logMessage(`+ Hvr: _getObjName() [-split lineParts=[${lineParts}](${lineParts.length})`);
+          if (lineParts.length >= 2) {
+            desiredString = lineParts[0].trim();
+          }
+        } else {
+          desiredString = instanceName;
+        }
+      }
+    }
+    //this._logMessage(`+ Hvr: _getObjName([${line}]) returns [${desiredString}]`);
+
+    return desiredString;
   }
 
   private getSignatureWithoutLocals(line: string): string {
@@ -237,7 +270,9 @@ export default class HoverProvider implements Provider {
           this._logMessage(
             `+ Hvr: token=[${searchWord}], interpRaw=(${tokenFindings.tokenRawInterp}), scope=[${tokenFindings.scope}], interp=[${tokenFindings.interpretation}], adjName=[${tokenFindings.adjustedName}]`
           );
-          this._logMessage(`+ Hvr:    file=[${tokenFindings.relatedFilename}], declCmt=[${tokenFindings.declarationComment}], sig=[${tokenFindings.signature}]`);
+          this._logMessage(
+            `+ Hvr:    file=[${tokenFindings.relatedFilename}], declCmt=[${tokenFindings.declarationComment}], declLine=[${tokenFindings.declarationLine}], sig=[${tokenFindings.signature}]`
+          );
         } else {
           this._logMessage(`+ Hvr: get token failed?!!`);
         }

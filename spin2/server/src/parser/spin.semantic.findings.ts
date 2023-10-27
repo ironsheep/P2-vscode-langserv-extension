@@ -37,15 +37,15 @@ enum eCommentFilter {
 }
 
 export interface IBlockSpan {
-  startLineNbr: number;
-  endLineNbr: number;
+  startLineIdx: number;
+  endLineIdx: number;
   blockType: eBLockType;
   sequenceNbr: number;
 }
 
 export interface IPasmCodeSpan {
-  startLineNbr: number;
-  endLineNbr: number;
+  startLineIdx: number;
+  endLineIdx: number;
   isInline: boolean;
 }
 
@@ -122,7 +122,7 @@ export class DocumentFindings {
   private priorInstanceCount: number = 0;
   private codeBlockSpans: IBlockSpan[] = [];
   // tracking spans of PASM code
-  private pasmStartLine: number = -1;
+  private pasmStartLineIdx: number = -1;
   private pasmCodeSpans: IPasmCodeSpan[] = [];
   private pasmIsInline: boolean = false;
 
@@ -401,11 +401,11 @@ export class DocumentFindings {
       const newBlockSpan: IBlockSpan = {
         blockType: this.priorBlockType,
         sequenceNbr: this.priorInstanceCount,
-        startLineNbr: this.priorBlockStartLineIdx,
-        endLineNbr: currLineIdx - 1, // ends at prior line
+        startLineIdx: this.priorBlockStartLineIdx,
+        endLineIdx: currLineIdx - 1, // ends at prior line
       };
       this.codeBlockSpans.push(newBlockSpan);
-      this._logMessage(`  -- FND-RCD-ADD sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineNbr} - ${newBlockSpan.endLineNbr}]`);
+      this._logMessage(`  -- FND-RCD-ADD sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`);
       this.priorInstanceCount = this.priorBlockType == eCurrBlockType ? this.priorInstanceCount + 1 : 1;
       this.priorBlockStartLineIdx = currLineIdx;
       this.priorBlockType = eCurrBlockType;
@@ -419,10 +419,10 @@ export class DocumentFindings {
       const newBlockSpan: IBlockSpan = {
         blockType: this.priorBlockType,
         sequenceNbr: this.priorInstanceCount,
-        startLineNbr: this.priorBlockStartLineIdx,
-        endLineNbr: finalLineIdx, // ends at the last line of the file
+        startLineIdx: this.priorBlockStartLineIdx,
+        endLineIdx: finalLineIdx, // ends at the last line of the file
       };
-      this._logMessage(`  -- FND-RCD-ADD LAST sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineNbr} - ${newBlockSpan.endLineNbr}]`);
+      this._logMessage(`  -- FND-RCD-ADD LAST sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`);
       this.codeBlockSpans.push(newBlockSpan);
     }
   }
@@ -431,41 +431,59 @@ export class DocumentFindings {
     return this.codeBlockSpans;
   }
 
+  public isLineObjDeclaration(lineNumber: number): boolean {
+    // return T/F where T means the line is within a span of pasm coce
+    const lineIdx: number = lineNumber - 1;
+    let inObjDeclStatus: boolean = false;
+    for (let index = 0; index < this.codeBlockSpans.length; index++) {
+      const possObjSpan: IBlockSpan = this.codeBlockSpans[index];
+      if (possObjSpan.blockType == eBLockType.isObj && lineIdx >= possObjSpan.startLineIdx && lineIdx <= possObjSpan.endLineIdx) {
+        inObjDeclStatus = true;
+        this._logMessage(`  -- FND-OBJ  range=[${possObjSpan.startLineIdx}-${possObjSpan.endLineIdx}] our line is IN OBJ Block`);
+        break;
+      }
+    }
+    if (!inObjDeclStatus) {
+      this._logMessage(`  -- FND-OBJ  lineIdx=[${lineNumber}] NOT in OBJ Block`);
+    }
+    return inObjDeclStatus;
+  }
+
   // -------------------------------------------------------------------------------------
   //  TRACK ranges of pasm code within file
   //
   public recordPasmStart(lineIdx: number, isInline: boolean) {
     // record the start lineIndex and type of pasm block
-    this.pasmStartLine = lineIdx;
+    this.pasmStartLineIdx = lineIdx;
     this.pasmIsInline = isInline;
     this._logMessage(`  -- FND-PASM-NEW START lineIdx=[${lineIdx}], isInline=[${isInline}]`);
   }
 
   public recordPasmEnd(lineIdx: number) {
     // finish the pasm span record and record it
-    if (this.pasmStartLine != -1) {
-      const newSpan: IPasmCodeSpan = { startLineNbr: this.pasmStartLine, endLineNbr: lineIdx, isInline: this.pasmIsInline };
+    if (this.pasmStartLineIdx != -1) {
+      const newSpan: IPasmCodeSpan = { startLineIdx: this.pasmStartLineIdx, endLineIdx: lineIdx, isInline: this.pasmIsInline };
       this.pasmCodeSpans.push(newSpan);
-      this.pasmStartLine = -1; // used this one!
-      this._logMessage(`  -- FND-PASM-ADD RANGE range=[${this.pasmStartLine}-${lineIdx}], isInline=[${this.pasmIsInline}]`);
+      this.pasmStartLineIdx = -1; // used this one!
+      this._logMessage(`  -- FND-PASM-ADD RANGE range=[${this.pasmStartLineIdx}-${lineIdx}], isInline=[${this.pasmIsInline}]`);
     } else {
       this._logMessage(`  -- FND-PASM-BAD notSTART lineIdx=[${lineIdx}] end of pasm range without start!`);
     }
   }
 
-  public isLineInPasmCode(lineNumber: number): boolean {
-    // return T/F where T means the line is within a span of pasm coce
+  public isLineInPasmCode(lineIndex: number): boolean {
+    // return T/F where T means the line is within a span of pasm code
     let inPasmCodeStatus: boolean = false;
     for (let index = 0; index < this.pasmCodeSpans.length; index++) {
       const pasmSpan: IPasmCodeSpan = this.pasmCodeSpans[index];
-      if (lineNumber >= pasmSpan.startLineNbr && lineNumber <= pasmSpan.endLineNbr) {
+      if (lineIndex >= pasmSpan.startLineIdx && lineIndex <= pasmSpan.endLineIdx) {
         inPasmCodeStatus = true;
-        this._logMessage(`  -- FND-PASM  range=[${pasmSpan.startLineNbr}-${pasmSpan.endLineNbr}], isInline=[${pasmSpan.isInline}] our symbol is IN PASM BLOCK`);
+        this._logMessage(`  -- FND-PASM  range=[${pasmSpan.startLineIdx}-${pasmSpan.endLineIdx}], isInline=[${pasmSpan.isInline}] our symbol is IN PASM BLOCK`);
         break;
       }
     }
     if (!inPasmCodeStatus) {
-      this._logMessage(`  -- FND-PASM  lineIdx=[${lineNumber}] NOT in PASM Range`);
+      this._logMessage(`  -- FND-PASM  lineIdx=[${lineIndex}] NOT in PASM Range`);
     }
     return inPasmCodeStatus;
   }
@@ -693,6 +711,7 @@ export class DocumentFindings {
     };
     // do we have a token??
     let declInfo: RememberedTokenDeclarationInfo | undefined = undefined;
+    const desiredTokenKey = tokenName.toLowerCase();
     if (this.isKnownToken(tokenName)) {
       findings.found = true;
       // Check for Global-tokens?
@@ -702,7 +721,7 @@ export class DocumentFindings {
         findings.tokenRawInterp = "Global: " + this._rememberdTokenString(tokenName, findings.token);
         findings.scope = "Global";
         // and get additional info for token
-        declInfo = this.declarationInfoByGlobalTokenName.get(tokenName);
+        declInfo = this.declarationInfoByGlobalTokenName.get(desiredTokenKey);
       } else {
         // Check for Local-tokens?
         findings.token = this.getLocalTokenForLine(tokenName, lineNbr);
@@ -711,7 +730,7 @@ export class DocumentFindings {
           findings.tokenRawInterp = "Local: " + this._rememberdTokenString(tokenName, findings.token);
           findings.scope = "Local";
           // and get additional info for token
-          declInfo = this.declarationInfoByLocalTokenName.get(tokenName);
+          declInfo = this.declarationInfoByLocalTokenName.get(desiredTokenKey);
         } else {
           // Check for Method-Local-tokens?
           findings.token = this.methodLocalPasmTokens.getToken(tokenName);
@@ -724,7 +743,7 @@ export class DocumentFindings {
             findings.tokenRawInterp = "Method-local: " + this._rememberdTokenString(tokenName, findings.token);
             findings.scope = "Local";
             // and get additional info for token
-            declInfo = this.declarationInfoByLocalTokenName.get(tokenName);
+            declInfo = this.declarationInfoByLocalTokenName.get(desiredTokenKey);
           }
         }
       }
@@ -922,7 +941,8 @@ export class DocumentFindings {
       this.globalTokens.setToken(tokenName, token);
       // and remember declataion line# for this token
       const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(declarationLineNumber - 1, declarationComment, reference);
-      this.declarationInfoByGlobalTokenName.set(tokenName, newDescription);
+      const desiredTokenKey: string = tokenName.toLowerCase();
+      this.declarationInfoByGlobalTokenName.set(desiredTokenKey, newDescription);
     }
   }
 
@@ -954,7 +974,8 @@ export class DocumentFindings {
       this._logMessage(`  -- NEW-locTOK ln#${declarationLineNumber} method=[${methodName}], ` + this._rememberdTokenString(tokenName, token) + `, cmt=[${declarationComment}]`);
       this.methodLocalTokens.setTokenForMethod(methodName, tokenName, token);
       // and remember declataion line# for this token
-      this.declarationInfoByLocalTokenName.set(tokenName, new RememberedTokenDeclarationInfo(declarationLineNumber - 1, declarationComment));
+      const desiredTokenKey: string = tokenName.toLowerCase();
+      this.declarationInfoByLocalTokenName.set(desiredTokenKey, new RememberedTokenDeclarationInfo(declarationLineNumber - 1, declarationComment));
     }
   }
 
@@ -1044,7 +1065,8 @@ export class DocumentFindings {
       // set new one!
       this.methodLocalPasmTokens.setTokenForMethod(methodName, tokenName, token);
       // and remember declataion line# for this token
-      this.declarationInfoByLocalTokenName.set(tokenName, new RememberedTokenDeclarationInfo(declarationLineNumber - 1, declarationComment));
+      const desiredTokenKey: string = tokenName.toLowerCase();
+      this.declarationInfoByLocalTokenName.set(desiredTokenKey, new RememberedTokenDeclarationInfo(declarationLineNumber - 1, declarationComment));
       const newToken = this.methodLocalPasmTokens.getTokenForMethod(methodName, tokenName);
       if (newToken) {
         this._logMessage("  -- NEW-lpTOK method=" + methodName + ": " + this._rememberdTokenString(tokenName, newToken));

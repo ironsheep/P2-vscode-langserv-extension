@@ -84,9 +84,13 @@ export class ExtensionUtils {
           const secondWordOffset: number = wordRange.start.character + lineParts[0].length + 2;
           word = position.character >= secondWordOffset ? lineParts[1] : lineParts[0];
         } else {
-          // one dot or more we take only last two items
+          // one dot or more ... we take only last two items, unless user wants just first word
           word = lineParts[lineParts.length - 1];
           objectRef = lineParts[lineParts.length - 2];
+          if (position.character < wordRange.start.character + lineParts[0].length) {
+            word = objectRef;
+            objectRef = "";
+          }
         }
         break;
     }
