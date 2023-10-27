@@ -1,0 +1,44 @@
+' --------------------------------------------------------------------------------------------------
+CON
+' bad parse of long lines [wurfel: p2videodrv.spin2]
+    SCALE = 60
+    CI_COMP_HDTV = ((+64*SCALE/128) & $FF) << 24 + ((-58*SCALE/128) & $FF) << 16 + (( -6*SCALE/128) & $FF) << 8 + 128
+    CY_COMP_HDTV = ((+27*SCALE/128) & $FF) << 24 + ((+92*SCALE/128) & $FF) << 16 + (( +9*SCALE/128) & $FF) << 8 + 80
+    CQ_COMP_HDTV = ((-15*SCALE/128) & $FF) << 24 + ((-49*SCALE/128) & $FF) << 16 + ((+64*SCALE/128) & $FF) << 8 + 128
+
+    ONE_IRE = 255.0 / 180.0
+
+    BLANKING_LEVEL = ONE_IRE*40.0
+    PEDESTAL = 0.0'ONE_IRE*7.5 ' NTSC only, other standards (including NTSC-J) don't have pedestal
+
+     BLANK_LEVEL = round(BLANKING_LEVEL)
+
+   B2W_NTSC = ONE_IRE*100.0 - PEDESTAL
+    YSCALE_NTSC = 127.0*(B2W_NTSC/255.0)
+    IQSCALE_NTSC = YSCALE_NTSC * 1.33
+
+    CY_CVBS_SDTV = (round(0.299*YSCALE_NTSC)&$FF)<<24 + (round(0.587*YSCALE_NTSC)&$FF)<<16 + (round(0.114*YSCALE_NTSC)&$FF)<<8 + round(BLANKING_LEVEL+PEDESTAL)
+    CI_CVBS_SDTV = (round(+0.5959*IQSCALE_NTSC)&$FF)<<24 + (round(-0.2746*IQSCALE_NTSC)&$FF)<<16 + (round(-0.3216*IQSCALE_NTSC)&$FF)<<8 + round(BLANKING_LEVEL)
+
+
+' --------------------------------------------------------------------------------------------------
+PUB line(x1,y1,x2,y2,width,colors) : ihead | tmp '' TODO: Add dedicated line shape type?
+
+PUB line_polygonSimple(polyptr,vcount,width,colors) | i, px, py, px2, py2
+
+  px := long[polyptr][(vcount<<1)-2]
+  py := long[polyptr][(vcount<<1)-1]
+  repeat i from 0 to vcount-1
+    px2 := long[polyptr][(i<<1)]
+    py2 := long[polyptr][(i<<1)+1]
+    line(px,py,px2,py2,width,colors)  ' this crashes!!!
+
+
+PUB line_polygon(polyptr,vcount,width,colors) | i,px,py
+
+  px := long[polyptr][(vcount<<1)-2]
+  py := long[polyptr][(vcount<<1)-1]
+  repeat i from 0 to vcount-1
+    line(px,py,px := long[polyptr][(i<<1)],py := long[polyptr][(i<<1)+1],width,colors)  ' <-- known parse/highligh BUG "line(px" should NOT be white!
+
+' --------------------------------------------------------------------------------------------------

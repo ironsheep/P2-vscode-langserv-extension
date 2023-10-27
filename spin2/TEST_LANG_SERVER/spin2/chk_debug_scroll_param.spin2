@@ -1,0 +1,9 @@
+PUB setup( )
+{{ =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+   Function to initialize driver and display. So, it should reset
+   the display and do whatever is needed to initialize it for
+   operation.
+   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= }}
+
+  ' and initialize the display
+  debug(`bitmap D title 'DisplayEmulation' SIZE 240 240 RGB16 TRACE 0 RATE 57600 SCROLL 0 0)    ' <===  SCROLL is on FEED, not declare! So fix this? or not?

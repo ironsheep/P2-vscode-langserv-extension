@@ -1,0 +1,108 @@
+'' code examples for propeller Tool coloring
+''   a simple test file
+
+' non-doc comment
+'' doc comment too
+
+CON
+' non-doc comment
+'' doc comment too
+		_clkfreq	= 250_000_000	'system clock frequency
+
+CON
+
+
+OBJ
+' non-doc comment
+'' doc comment too
+
+    child1 : "child" | MULTIPLIER = 3, COUNT = 5        ' override child constants
+
+OBJ
+' non-doc comment
+'' doc comment too
+    obj :"filename1"                                     ' just an object use
+    cat: "catfile"                                     ' just an object use
+
+OBJ obj: "filename2"                                     ' just an object use
+
+
+
+VAR
+' non-doc comment
+'' doc comment too
+    LONG   pageNbr
+
+VAR
+' non-doc comment
+'' doc comment too
+    LONG   pageNbr2
+
+
+VAR
+
+
+
+PRI showbmp1(parameter) : returnValue | localVar
+' non-doc comment
+'' doc comment too
+    pageCount := 0
+    pageNbr := 5
+    localVar := 10
+    returnValue := 5
+    showbmp3()
+    showbmp2()
+
+PRI showbmp2(parameter) : returnValue | localVar
+' non-doc comment
+'' doc comment too
+    pageCount := 0
+    pageNbr := 5
+    localVar := 10
+    returnValue := 5
+    showbmp3()
+    showbmp2()
+
+PUB showbmp3(parameter) : returnValue | localVar
+' non-doc comment
+'' doc comment too
+    pageCount := 0
+    pageNbr := 5
+    localVar := 10
+    returnValue := 5
+    showbmp3()
+    showbmp2()
+
+PUB showbmp4(parameter) : returnValue | localVar
+' non-doc comment
+'' doc comment too
+    pageCount := 0
+    pageNbr := 5
+    localVar := 10
+    returnValue := 5
+    showbmp3()
+    showbmp2()
+
+PUB ----  ' BUG!!!  FIXME: better error: not a valid pub/pri method name
+
+
+
+DAT
+' non-doc comment
+'' doc comment too
+
+pageCount       LONG  0
+
+DAT
+' non-doc comment
+'' doc comment too
+
+pageCount2       LONG  0
+
+DAT
+
+
+
+CON {License}
+' non-doc comment
+'' doc comment too

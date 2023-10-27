@@ -1,0 +1,1362 @@
+'This is P2 Syntax Highlighting test code.  It is not meant to be compilable at all times.
+
+A =
+B =
+C =
+D =
+E =
+F =
+
+con
+
+'Code comments...
+ do not continue to next line
+
+A                                                                               'Code comments can be at the end of a line
+B                                                                                  and do not continue to next line
+C
+
+''Doc comments...
+ do not continue to next line
+
+D                                                                               ''Doc comments can be at the end of a line
+E                                                                                  and do not continue to next line
+F
+
+{Multiline code comments...
+ can continue to next line}
+
+  temp = 0                                                                      {Multiline code comments can be at the end of a line
+  temp = 0                                                                         and do continue to next line}
+  tempstr = "hello world"
+
+{{  This
+  {{is
+  a}}
+  test
+}}
+
+obj
+'Code comments...
+ do not continue to next line
+
+  test : asdf  asdf "This asdfasd " adsf "is a test as asdf adsf" asdf "asdf"     'Code comments can be at the end of a line
+                                                                                     and do not continue to next line
+''Doc comments...
+ do not continue to next line
+
+  test2 : "blah"                                                                  ''Doc comments can be at the end of a line
+  test3 : "blahbitty"                                                                and do not continue to next line
+
+{Multiline code comments...
+ can continue to next line}
+
+  = "asdf "asdf"asdf"                                                             {Multiline code comments can be at the end of a line
+                                                                                     and do continue to next line}
+
+
+var
+'Code comments...
+ do not continue to next line
+
+  long i                                                                          'Code comments can be at the end of a line
+                                                                                    and do not continue to next line
+''Doc comments...
+ do not continue to next line
+
+  byte x                                                                          ''Doc comments can be at the end of a line
+  byte y                                                                            and do not continue to next line
+
+{Multiline code comments...
+ can continue to next line}
+
+  word j                                                                          {Multiline code comments can be at the end of a line
+  word j                                                                             and do continue to next line}
+
+{{Multiline doc comments...
+  can continue to next line}}
+
+
+pub tester()
+pub tester() | k, bend_state
+'pri tester()
+'pri tester()
+
+'Code comments...
+ do not continue to next line
+
+  i := PR0                                                                        'Code comments can be at the end of a line
+                                                                                     and do not continue to next line
+
+''Doc comments...
+ do not continue to next line
+
+  j := 5                                                                          ''Doc comments can be at the end of a line
+  k := 6                                                                            and do not continue to next line
+
+
+{Multiline code comments...
+ can continue to next line}
+
+  false true                                                                      {Multiline code comments can be at the end of a line
+  false true                                                                         and do continue to next line}
+
+
+'Conditionals
+  IF
+  IFNOT
+  ELSEIF
+  ELSEIFNOT
+  ELSE
+  CASE
+  CASE_FAST
+  OTHER
+  REPEAT
+  WHILE
+  UNTIL
+  FROM
+  TO
+  STEP
+  NEXT
+  QUIT
+
+'Spin2 Instructions
+  RETURN
+  ABORT
+  LOOKUPZ
+  LOOKUP
+  LOOKDOWNZ
+  LOOKDOWN
+  COGSPIN
+  RECV
+  SEND
+  HUBSET
+  COGINIT
+  COGSTOP
+  COGID
+  COGCHK
+  GETRND
+  GETCT
+  POLLCT
+  WAITCT
+  PINWRITE
+  PINW
+  PINLOW
+  PINL
+  PINHIGH
+  PINH
+  PINTOGGLE
+  PINT
+  PINFLOAT
+  PINF
+  PINREAD
+  PINR
+  PINSTART
+  PINCLEAR
+  WRPIN
+  WXPIN
+  WYPIN
+  AKPIN
+  RDPIN
+  RQPIN
+  ROTXY
+  POLXY
+  XYPOL
+  LOCKNEW
+  LOCKRET
+  LOCKTRY
+  LOCKREL
+  LOCKCHK
+  COGATN
+  POLLATN
+  WAITATN
+  CLKSET
+  REGEXEC
+  REGLOAD
+  CALL
+  GETREGS
+  SETREGS
+  BYTEMOVE
+  BYTEFILL
+  WORDMOVE
+  WORDFILL
+  LONGMOVE
+  LONGFILL
+  STRSIZE
+  STRCOMP
+  WAITUS
+  WAITMS
+  GETMS
+  GETSEC
+  MULDIV64
+  QSIN
+  QCOS
+
+
+  'Spin2 debug statement
+  debug(term udec_byte_array(@bend_state,16))     'Code comment
+  debug(udec_byte_array(@bend_state,16))          {Multiline Code comment
+                                                   continues to next line}
+  debug(udec_byte_array(@bend_state,16))          {{Multiline Code comment
+                                                   continues to next line}}
+
+  debug(udec_byte_array(@bend_state,{16}1))       ''Doc comment
+  debug(udec_byte_array(@bend_state,{{16}}1))     ''Doc comment
+
+  debug(IF(true), "`message 'Hello World!'", dly(250))
+
+  debug(`message 'Hello World!' ` dly(500))
+  debug(`message "Hello World!' ` dly(500))        {trailing apostrophe should be regular}
+  debug(`message 'Hello World!" ` dly(500))        {leading apostrophe should be regular}
+
+  debug(``if(x & 1) message 'Hello World! `udec(x)' 13 `dly(500))
+'    debug(IF(x & 1), "`message 'Hello World! `UDEC_(x)'", 13, dly(500))
+
+  org 0
+
+  'Spin2 inline assembly debug statement
+  debug(udec_byte_array(@bend_state,16))          ''Doc comment
+  debug(udec_byte_array(@bend_state,16))          {Multiline Code comment
+                                                   continues to next line}
+  debug(udec_byte_array(@bend_state,16))          {{Multiline Code comment
+                                                   continues to next line}}
+
+  debug(udec_byte_array(@bend_state,{16}1))       ''Doc comment
+  debug(udec_byte_array(@bend_state,{{16}}1))     ''Doc comment
+
+  debug(IF(true), "`message 'Hello World!'", dly(250))
+
+  debug(`message 'Hello World!' `dly(500))
+  debug(`message "Hello World!' `dly(500))        {trailing apostrophe should be regular}
+  debug(`message 'Hello World!" `dly(500))        {leading apostrophe should be regular}
+
+
+  'Code comments...
+   do not continue to next line
+                                                                                 'Code comments can be at the end of a line
+                                                                                    and do not continue to next line
+  'Doc comments...
+   do not continue to next line
+
+  {Multiline code comments...
+   can continue to next line}
+
+  {{Multiline doc comments...
+   can continue to next line}}
+
+
+  'Assembly Conditionals
+  _RET_                                                                          'Code comments can be at the end of a line
+  IF_NC_AND_NZ                                                                    and do not continue to next line
+  IF_NZ_AND_NC
+  IF_GT                                                                          ''Doc comments can be at the end of a line
+  IF_A                                                                             and do not continue to next line
+  IF_NC_AND_Z
+  IF_Z_AND_NC                                                                    {Multiline code comments can be at the end of a line
+  IF_Z_AND_NC                                                                       and do continue to next line}
+  IF_NC
+  IF_GE                                                                          {{Multiline doc comments can be at the end of a line
+  IF_AE                                                                             and do continue to next line}}
+  IF_AE
+  IF_C_AND_NZ
+  IF_NZ_AND_C
+  IF_NZ
+  IF_NE
+  IF_C_NE_Z
+  IF_Z_NE_C
+  IF_NC_OR_NZ
+  IF_NZ_OR_NC
+  IF_C_AND_Z
+  IF_Z_AND_C
+  IF_C_EQ_Z
+  IF_Z_EQ_C
+  IF_Z
+  IF_E
+  IF_NC_OR_Z
+  IF_Z_OR_NC
+  IF_C
+  IF_LT
+  IF_B
+  IF_C_OR_NZ
+  IF_NZ_OR_C
+  IF_C_OR_Z
+  IF_Z_OR_C
+  IF_LE
+  IF_BE
+  IF_ALWAYS
+  IF_00
+  IF_01
+  IF_10
+  IF_11
+  IF_X0
+  IF_X1
+  IF_0X
+  IF_1X
+  IF_NOT_00
+  IF_NOT_01
+  IF_NOT_10
+  IF_NOT_11
+  IF_SAME
+  IF_DIFF
+  IF_0000
+  IF_0001
+  IF_0010
+  IF_0011
+  IF_0100
+  IF_0101
+  IF_0110
+  IF_0111
+  IF_1000
+  IF_1001
+  IF_1010
+  IF_1011
+  IF_1100
+  IF_1101
+  IF_1110
+  IF_1111
+
+  'Assembly Instructions
+  ROR
+  ROL
+  SHR
+  SHL
+  RCR
+  RCL
+  SAR
+  SAL
+  ADD
+  ADDX
+  ADDS
+  ADDSX
+  SUB
+  SUBX
+  SUBS
+  SUBSX
+  CMP
+  CMPX
+  CMPS
+  CMPSX
+  CMPR
+  CMPM
+  SUBR
+  CMPSUB
+  FGE
+  FLE
+  FGES
+  FLES
+  SUMC
+  SUMNC
+  SUMZ
+  SUMNZ
+  BITL
+  BITH
+  BITC
+  BITNC
+  BITZ
+  BITNZ
+  BITRND
+  BITNOT
+  TESTB
+  TESTBN
+  AND
+  ANDN
+  OR
+  XOR
+  MUXC
+  MUXNC
+  MUXZ
+  MUXNZ
+  MOV
+  NOT
+  ABS
+  NEG
+  NEGC
+  NEGNC
+  NEGZ
+  NEGNZ
+  INCMOD
+  DECMOD
+  ZEROX
+  SIGNX
+  ENCOD
+  ONES
+  TEST
+  TESTN
+  SETNIB
+  GETNIB
+  ROLNIB
+  SETBYTE
+  GETBYTE
+  ROLBYTE
+  SETWORD
+  GETWORD
+  ROLWORD
+  ALTSN
+  ALTGN
+  ALTSB
+  ALTGB
+  ALTSW
+  ALTGW
+  ALTR
+  ALTD
+  ALTS
+  ALTB
+  ALTI
+  SETR
+  SETD
+  SETS
+  DECOD
+  BMASK
+  CRCBIT
+  CRCNIB
+  MUXNITS
+  MUXNIBS
+  MUXQ
+  MOVBYTS
+  MUL
+  MULS
+  SCA
+  SCAS
+  ADDPIX
+  MULPIX
+  BLNPIX
+  MIXPIX
+  ADDCT1
+  ADDCT2
+  ADDCT3
+  WMLONG
+  RQPIN
+  RDPIN
+  RDLUT
+  RDBYTE
+  RDWORD
+  RDLONG
+  CALLPA
+  CALLPB
+  DJZ
+  DJNZ
+  DJF
+  DJNF
+  IJZ
+  IJNZ
+  TJZ
+  TJNZ
+  TJF
+  TJNF
+  TJS
+  TJNS
+  TJV
+  JINT
+  JCT1
+  JCT2
+  JCT3
+  JSE1
+  JSE2
+  JSE3
+  JSE4
+  JPAT
+  JFBW
+  JXMT
+  JXFI
+  JXRO
+  JXRL
+  JATN
+  JQMT
+  JNINT
+  JNCT1
+  JNCT2
+  JNCT3
+  JNSE1
+  JNSE2
+  JNSE3
+  JNSE4
+  JNPAT
+  JNFBW
+  JNXMT
+  JNXFI
+  JNXRO
+  JNXRL
+  JNATN
+  JNQMT
+  SETPAT
+  WRPIN
+  WXPIN
+  WYPIN
+  WRLUT
+  WRBYTE
+  WRWORD
+  WRLONG
+  RDFAST
+  WRFAST
+  FBLOCK
+  XINIT
+  XZERO
+  XCONT
+  REP
+  COGINIT
+  QMUL
+  QDIV
+  QFRAC
+  QSQRT
+  QROTATE
+  QVECTOR
+  HUBSET
+  COGID
+  COGSTOP
+  LOCKNEW
+  LOCKRET
+  LOCKTRY
+  LOCKREL
+  QLOG
+  QEXP
+  RFBYTE
+  RFWORD
+  RFLONG
+  RFVAR
+  RFVARS
+  WFBYTE
+  WFWORD
+  WFLONG
+  GETQX
+  GETQY
+  GETCT
+  GETRND
+  SETDACS
+  SETXFRQ
+  GETXACC
+  WAITX
+  SETSE1
+  SETSE2
+  SETSE3
+  SETSE4
+  POLLINT
+  POLLCT1
+  POLLCT2
+  POLLCT3
+  POLLSE1
+  POLLSE2
+  POLLSE3
+  POLLSE4
+  POLLPAT
+  POLLFBW
+  POLLXMT
+  POLLXFI
+  POLLXRO
+  POLLXRL
+  POLLATN
+  POLLQMT
+  WAITINT
+  WAITCT1
+  WAITCT2
+  WAITCT3
+  WAITSE1
+  WAITSE2
+  WAITSE3
+  WAITSE4
+  WAITPAT
+  WAITFBW
+  WAITXMT
+  WAITXFI
+  WAITXRO
+  WAITXRL
+  WAITATN
+  ALLOWI
+  STALLI
+  TRGINT1
+  TRGINT2
+  TRGINT3
+  NIXINT1
+  NIXINT2
+  NIXINT3
+  SETINT1
+  SETINT2
+  SETINT3
+  SETQ
+  SETQ2
+  PUSH
+  POP
+  JMPREL
+  SKIP
+  SKIPF
+  EXECF
+  GETPTR
+  GETBRK
+  COGBRK
+  BRK
+  SETLUTS
+  SETCY
+  SETCI
+  SETCQ
+  SETCFRQ
+  SETCMOD
+  SETPIV
+  SETPIX
+  COGATN
+  TESTP
+  TESTPN
+  DIRL
+  DIRH
+  DIRC
+  DIRNC
+  DIRZ
+  DIRNZ
+  DIRRND
+  DIRNOT
+  OUTL
+  OUTH
+  OUTC
+  OUTNC
+  OUTZ
+  OUTNZ
+  OUTRND
+  OUTNOT
+  FLTL
+  FLTH
+  FLTC
+  FLTNC
+  FLTZ
+  FLTNZ
+  FLTRND
+  FLTNOT
+  DRVL
+  DRVH
+  DRVC
+  DRVNC
+  DRVZ
+  DRVNZ
+  DRVRND
+  DRVNOT
+  SPLITB
+  MERGEB
+  SPLITW
+  MERGEW
+  SEUSSF
+  SEUSSR
+  RGBSQZ
+  RGBEXP
+  XORO32
+  REV
+  RCZR
+  RCZL
+  WRC
+  WRNC
+  WRZ
+  WRNZ
+  MODCZ
+  MODC
+  MODZ
+  SETSCP
+  GETSCP
+  JMP
+  CALL
+  CALLA
+  CALLB
+  CALLD
+  LOC
+  AUGS
+  AUGD
+  PUSHA
+  PUSHB
+  POPA
+  POPB
+  RET
+  RETA
+  RETB
+  RETI0
+  RETI1
+  RETI2
+  RETI3
+  RESI0
+  RESI1
+  RESI2
+  RESI3
+  XSTOP
+  AKPIN
+  ASMCLK
+  NOP
+
+  'Assembly Effects
+  WC
+  WZ
+  WCZ
+  ANDC
+  ANDZ
+  ORC
+  ORZ
+  XORC
+  XORZ
+
+    false true
+
+    test 0, %01
+    test PR0, "H"
+
+myData    res 1 ADDBITS -1
+          fit 100
+
+
+'Code comments...
+ do not continue to next line
+
+  byte byte 0                                                                     'Code comments can be at the end of a line
+  word byte 0                                                                        and do not continue to next line
+  long byte 0
+
+''Doc comments...
+ do not continue to next line
+
+  byte word 0                                                                     ''Doc comments can be at the end of a line
+  word word 0                                                                         and do not continue to next line
+  long word 0
+
+{Multiline code comments...
+ can continue to next line}
+
+  byte long 0                                                                     {Multiline code comments can be at the end of a line
+  byte long 0                                                                        and do continue to next line}
+  word long 0
+  long long 0, "Hello"
+
+
+'CLKMODE
+'CLKFREQ
+'VARBASE
+'REG
+
+  end
+
+  @
+  @@
+  ~
+  ~~
+  ++
+  --
+  ??
+  !
+  -
+  >>
+  <<
+  &
+  ^
+  |
+  *
+  /
+  +/
+  //
+  +//
+  +
+  -
+  #>
+  <#
+  <
+  +<
+  <=
+  +<=
+  ==
+  <>
+  >=
+  +>=
+  >
+  +>
+  <=>
+  !!
+  &&
+  ^^
+  ||
+  ?
+  :
+  :=
+  ABS
+  ENCOD
+  DECOD
+  BMASK
+  ONES
+  SQRT
+  QLOG
+  QEXP
+  SAR
+  ROR
+  ROL
+  REV
+  ZEROX
+  SIGNX
+  SCA
+  SCAS
+  FRAC
+  ADDBITS
+  ADDPINS
+  NOT
+  AND
+  XOR
+  OR
+
+
+dat
+'dat
+
+'Code comments...
+ do not continue to next line
+
+  byte byte 0                                                                     'Code comments can be at the end of a line
+  word byte 0                                                                        and do not continue to next line
+  long byte 0
+
+''Doc comments...
+ do not continue to next line
+
+  byte word 0                                                                     ''Doc comments can be at the end of a line
+  word word 0                                                                         and do not continue to next line
+  long word 0
+
+{Multiline code comments...
+ can continue to next line}
+
+  byte long 0                                                                     {Multiline code comments can be at the end of a line
+  byte long 0                                                                        and do continue to next line}
+  word long 0
+  long long 0, "hello"
+
+
+start                   orgh $400
+:hello                  test 0, #:hello         wc                                {Multiline-capable code comment}
+                        test PR0, #0 {test}     wz
+                        test 1, #start
+
+
+  'PASM2 debug statement
+  debug(udec_byte_array(@bend_state,16))      'Code comment
+  debug(udec_byte_array(@bend_state,16))      {Multiline Code comment
+                                               continues to next line}
+  debug(udec_byte_array(@bend_state,16))      {{Multiline Code comment
+                                               continues to next line}}
+
+  debug(udec_byte_array(@bend_state,16))      ''Doc comment
+  debug(udec_byte_array(@bend_state,16))      {Multiline Code comment
+                                               continues to next line}
+  debug(udec_byte_array(@bend_state,16))      {{Multiline Code comment
+                                               continues to next line}}
+
+  debug(udec_byte_array(@bend_state,{16}1))   ''Doc comment
+  debug(udec_byte_array(@bend_state,{{16}}1)) ''Doc comment
+
+  debug(IF(true), "`message 'Hello World!'", dly(250))
+
+  debug(`message 'Hello World!' `dly(500))
+  debug(`message "Hello World!' `dly(500))        {trailing apostrophe should be regular}
+  debug(`message 'Hello World!" `dly(500))        {leading apostrophe should be regular}
+
+
+CommentTest   LONG  1 ADDBITS -1, byte PR0 {PR1}, word IJMP3 {{doc comment}}, word $123, $1024
+
+  ORGH
+  ALIGNW
+  ALIGNL
+  ORGF
+
+
+  'Assembly Conditionals
+  _RET_
+  IF_NC_AND_NZ
+  IF_NZ_AND_NC
+  IF_GT
+  IF_A
+  IF_NC_AND_Z
+  IF_Z_AND_NC
+  IF_NC
+  IF_GE
+  IF_AE
+  IF_C_AND_NZ
+  IF_NZ_AND_C
+  IF_NZ
+  IF_NE
+  IF_C_NE_Z
+  IF_Z_NE_C
+  IF_NC_OR_NZ
+  IF_NZ_OR_NC
+  IF_C_AND_Z
+  IF_Z_AND_C
+  IF_C_EQ_Z
+  IF_Z_EQ_C
+  IF_Z
+  IF_E
+  IF_NC_OR_Z
+  IF_Z_OR_NC
+  IF_C
+  IF_LT
+  IF_B
+  IF_C_OR_NZ
+  IF_NZ_OR_C
+  IF_C_OR_Z
+  IF_Z_OR_C
+  IF_LE
+  IF_BE
+  IF_ALWAYS
+  IF_00
+  IF_01
+  IF_10
+  IF_11
+  IF_X0
+  IF_X1
+  IF_0X
+  IF_1X
+  IF_NOT_00
+  IF_NOT_01
+  IF_NOT_10
+  IF_NOT_11
+  IF_SAME
+  IF_DIFF
+  IF_0000
+  IF_0001
+  IF_0010
+  IF_0011
+  IF_0100
+  IF_0101
+  IF_0110
+  IF_0111
+  IF_1000
+  IF_1001
+  IF_1010
+  IF_1011
+  IF_1100
+  IF_1101
+  IF_1110
+  IF_1111
+
+  'Assembly Instructions
+  ROR
+  ROL
+  SHR
+  SHL
+  RCR
+  RCL
+  SAR
+  SAL
+  ADD
+  ADDX
+  ADDS
+  ADDSX
+  SUB
+  SUBX
+  SUBS
+  SUBSX
+  CMP
+  CMPX
+  CMPS
+  CMPSX
+  CMPR
+  CMPM
+  SUBR
+  CMPSUB
+  FGE
+  FLE
+  FGES
+  FLES
+  SUMC
+  SUMNC
+  SUMZ
+  SUMNZ
+  BITL
+  BITH
+  BITC
+  BITNC
+  BITZ
+  BITNZ
+  BITRND
+  BITNOT
+  TESTB
+  TESTBN
+  AND
+  ANDN
+  OR
+  XOR
+  MUXC
+  MUXNC
+  MUXZ
+  MUXNZ
+  MOV
+  NOT
+  ABS
+  NEG
+  NEGC
+  NEGNC
+  NEGZ
+  NEGNZ
+  INCMOD
+  DECMOD
+  ZEROX
+  SIGNX
+  ENCOD
+  ONES
+  TEST
+  TESTN
+  SETNIB
+  GETNIB
+  ROLNIB
+  SETBYTE
+  GETBYTE
+  ROLBYTE
+  SETWORD
+  GETWORD
+  ROLWORD
+  ALTSN
+  ALTGN
+  ALTSB
+  ALTGB
+  ALTSW
+  ALTGW
+  ALTR
+  ALTD
+  ALTS
+  ALTB
+  ALTI
+  SETR
+  SETD
+  SETS
+  DECOD
+  BMASK
+  CRCBIT
+  CRCNIB
+  MUXNITS
+  MUXNIBS
+  MUXQ
+  MOVBYTS
+  MUL
+  MULS
+  SCA
+  SCAS
+  ADDPIX
+  MULPIX
+  BLNPIX
+  MIXPIX
+  ADDCT1
+  ADDCT2
+  ADDCT3
+  WMLONG
+  RQPIN
+  RDPIN
+  RDLUT
+  RDBYTE
+  RDWORD
+  RDLONG
+  CALLPA
+  CALLPB
+  DJZ
+  DJNZ
+  DJF
+  DJNF
+  IJZ
+  IJNZ
+  TJZ
+  TJNZ
+  TJF
+  TJNF
+  TJS
+  TJNS
+  TJV
+  JINT
+  JCT1
+  JCT2
+  JCT3
+  JSE1
+  JSE2
+  JSE3
+  JSE4
+  JPAT
+  JFBW
+  JXMT
+  JXFI
+  JXRO
+  JXRL
+  JATN
+  JQMT
+  JNINT
+  JNCT1
+  JNCT2
+  JNCT3
+  JNSE1
+  JNSE2
+  JNSE3
+  JNSE4
+  JNPAT
+  JNFBW
+  JNXMT
+  JNXFI
+  JNXRO
+  JNXRL
+  JNATN
+  JNQMT
+  SETPAT
+  WRPIN
+  WXPIN
+  WYPIN
+  WRLUT
+  WRBYTE
+  WRWORD
+  WRLONG
+  RDFAST
+  WRFAST
+  FBLOCK
+  XINIT
+  XZERO
+  XCONT
+  REP
+  COGINIT
+  QMUL
+  QDIV
+  QFRAC
+  QSQRT
+  QROTATE
+  QVECTOR
+  HUBSET
+  COGID
+  COGSTOP
+  LOCKNEW
+  LOCKRET
+  LOCKTRY
+  LOCKREL
+  QLOG
+  QEXP
+  RFBYTE
+  RFWORD
+  RFLONG
+  RFVAR
+  RFVARS
+  WFBYTE
+  WFWORD
+  WFLONG
+  GETQX
+  GETQY
+  GETCT
+  GETRND
+  SETDACS
+  SETXFRQ
+  GETXACC
+  WAITX
+  SETSE1
+  SETSE2
+  SETSE3
+  SETSE4
+  POLLINT
+  POLLCT1
+  POLLCT2
+  POLLCT3
+  POLLSE1
+  POLLSE2
+  POLLSE3
+  POLLSE4
+  POLLPAT
+  POLLFBW
+  POLLXMT
+  POLLXFI
+  POLLXRO
+  POLLXRL
+  POLLATN
+  POLLQMT
+  WAITINT
+  WAITCT1
+  WAITCT2
+  WAITCT3
+  WAITSE1
+  WAITSE2
+  WAITSE3
+  WAITSE4
+  WAITPAT
+  WAITFBW
+  WAITXMT
+  WAITXFI
+  WAITXRO
+  WAITXRL
+  WAITATN
+  ALLOWI
+  STALLI
+  TRGINT1
+  TRGINT2
+  TRGINT3
+  NIXINT1
+  NIXINT2
+  NIXINT3
+  SETINT1
+  SETINT2
+  SETINT3
+  SETQ
+  SETQ2
+  PUSH
+  POP
+  JMPREL
+  SKIP
+  SKIPF
+  EXECF
+  GETPTR
+  GETBRK
+  COGBRK
+  BRK
+  SETLUTS
+  SETCY
+  SETCI
+  SETCQ
+  SETCFRQ
+  SETCMOD
+  SETPIV
+  SETPIX
+  COGATN
+  TESTP
+  TESTPN
+  DIRL
+  DIRH
+  DIRC
+  DIRNC
+  DIRZ
+  DIRNZ
+  DIRRND
+  DIRNOT
+  OUTL
+  OUTH
+  OUTC
+  OUTNC
+  OUTZ
+  OUTNZ
+  OUTRND
+  OUTNOT
+  FLTL
+  FLTH
+  FLTC
+  FLTNC
+  FLTZ
+  FLTNZ
+  FLTRND
+  FLTNOT
+  DRVL
+  DRVH
+  DRVC
+  DRVNC
+  DRVZ
+  DRVNZ
+  DRVRND
+  DRVNOT
+  SPLITB
+  MERGEB
+  SPLITW
+  MERGEW
+  SEUSSF
+  SEUSSR
+  RGBSQZ
+  RGBEXP
+  XORO32
+  REV
+  RCZR
+  RCZL
+  WRC
+  WRNC
+  WRZ
+  WRNZ
+  MODCZ
+  MODC
+  MODZ
+  SETSCP
+  GETSCP
+  JMP
+  CALL
+  CALLA
+  CALLB
+  CALLD
+  LOC
+  AUGS
+  AUGD
+  PUSHA
+  PUSHB
+  POPA
+  POPB
+  RET
+  RETA
+  RETB
+  RETI0
+  RETI1
+  RETI2
+  RETI3
+  RESI0
+  RESI1
+  RESI2
+  RESI3
+  XSTOP
+  AKPIN
+  ASMCLK
+  NOP
+
+  'Assembly Effects
+  WC
+  WZ
+  WCZ
+  ANDC
+  ANDZ
+  ORC
+  ORZ
+  XORC
+  XORZ
+
+
+   byte byte 0
+
+dat
+
+con
+con stant
+constant
+ con stant
+
+con
+con stant
+constant
+ con stant
+
+pub main()
+public
+
+ "adsfasdf" asdf "adsf"
+
+pub lic
+ pub lic
+pub
+
+pub main()
+public
+
+ "adsfasdf" asdf "adsf"
+
+pub lic
+ pub lic
+pub
+
+pri main()
+private
+
+ "adsfasdf" asdf "adsf"
+
+pri vate
+ pri vate
+
+pri main()
+private
+
+ "adsfasdf" asdf "adsf"
+
+pri vate
+ pri vate
+pri
+
+dat
+data
+
+ "adsfasdf" asdf "adsf"
+
+dat a
+ dat a
+dat
+
+dat
+data
+
+ "adsfasdf" asdf "adsf"
+
+dat a
+ dat a
+dat

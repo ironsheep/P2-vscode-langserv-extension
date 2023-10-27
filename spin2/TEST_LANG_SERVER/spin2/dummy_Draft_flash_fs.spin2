@@ -1,0 +1,19 @@
+CON
+#0, SUCCESS, E_FILE_NOT_FOUND, E_FILE_MODE, E_FILE_SEEK
+
+LONGS_IN_HEAD_BLOCK = 4
+BYTES_IN_HEAD_BLOCK = 16
+
+pub format()      ' Comment out this line to not erase all files
+
+pub mount()
+
+pub open()
+pub seek()
+
+pub wr_long()
+
+pub Close()
+
+pub rd_long()
+pub error()

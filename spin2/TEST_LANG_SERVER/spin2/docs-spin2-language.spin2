@@ -1,0 +1,315 @@
+'' from page 3 & 4 of spin2 docs v35i
+
+
+' -----------------------------------------------------------------------------
+'' Constants
+' -----------------------------------------------------------------------------
+CON
+    1                       ' Decimal values use digits '0'..'9'
+    -150                    ' Underscores '_' are allowed after the first digit for placeholding
+    3_000_000
+
+    $1B                     ' Hex values start with '$' and use digits '0'..'9' and 'A'..'F'
+    $AA55                   ' Underscores '_' are allowed after the first digit for placeholding
+    $FFFF_FFFF
+
+    %%21                    ' Double binary values start with '%%' and use digits '0'..'3'
+    %%01_23                 ' Underscores '_' are allowed after the first digit for placeholding
+    %%3333_2222_1111_0000
+
+    %0110                   ' Binary values start with '%' and use digits '0' and '1'
+    %1_1111_1000            ' Underscores '_' are allowed after the first digit for placeholding
+    %0001_0010_0011_0100
+
+
+    -1.0                    ' Float values use digits '0'..'9' and have a '.' and/or 'e' in them
+    1_250_000.0             ' Floats are encoded in IEEE-754 single-precision 32-bit format
+    1e9                     ' Underscores '_' are allowed after the first digit for placeholding
+    -1.23456e-7             ' Floats are not part of Spin2, but a library can offer floating-point functions
+
+    "H"                     ' A single character in quotes resolves to a 7-bit ASCII value
+
+
+' -----------------------------------------------------------------------------
+'' Permanent Variables Spin2 Pg 6
+' -----------------------------------------------------------------------------
+
+   CON_NAME = CLKMODE
+   CON_NAME = CLKFREQ
+
+CON
+
+   CON_NAME = CLKMODE
+   CON_NAME = CLKFREQ
+
+PUB something()
+
+   CON_NAME = VARBASE
+   CON_NAME = PR0
+   CON_NAME = PR1
+   CON_NAME = PR2
+   CON_NAME = PR3
+   CON_NAME = PR4
+   CON_NAME = PR5
+   CON_NAME = PR6
+   CON_NAME = PR7
+   CON_NAME = DIRA
+   CON_NAME = DIRB
+   CON_NAME = OUTA
+   CON_NAME = OUTB
+   CON_NAME = INA
+   CON_NAME = INB
+
+DAT
+    org
+
+lblName mov a7,IJMP3
+lblName mov a7,IRET3
+lblName mov a7,IJMP2
+lblName mov a7,IRET2
+lblName mov a7,IJMP1
+lblName mov a7,IRET1
+
+lblName mov a7,PA
+lblName mov a7,PB
+lblName mov a7,PTRA
+lblName mov a7,PTRB
+
+lblName mov a7,DIRA
+lblName mov a7,DIRB
+lblName mov a7,OUTA
+lblName mov a8,OUTB
+lblName mov a7,INA
+lblName mov a7,INB
+    ret
+
+a7   long    0
+a8   res    1
+
+   fit
+
+
+' -----------------------------------------------------------------------------
+'' Pin Fields - Spin2 Pg 7
+' -----------------------------------------------------------------------------
+
+DAT
+
+
+CON PinfieldCon = 50 ADDPINS 3
+BasePin = 5
+ExtraPins = 3
+
+PUB something2() | PinfieldVar
+    PinfieldVar := BasePin ADDPINS ExtraPins
+    PINLOW(%00000_000000)
+    PINLOW(%00000_111111)
+    PINLOW(%00011_100000)
+    PINLOW(%11111_001000)
+    PINLOW(19)
+    PINLOW(49..40)
+    PINLOW(11 ADDPINS 4)
+    PINLOW(PinfieldCon)
+    PINLOW(PinfieldVar)
+
+' -----------------------------------------------------------------------------
+'' Expressions - Spin2 Pg 7
+' -----------------------------------------------------------------------------
+
+VAR
+    long    testVar
+
+PUB another(place, i) : digit | value
+
+    value := BYTE[i++]
+    (digit := value / place // 10) OR place == 1
+    place /= 10
+    "0" + digit
+    PINREAD(17..12)
+
+PUB built_in_Methods1(NewCLKMODE, NewCLKFREQ, CogMask, value) : CogNum | lockNum, Running, LockState, AtnFlag
+
+    HUBSET(Value)
+    CLKSET(NewCLKMODE, NewCLKFREQ)
+    COGSPIN(CogNum, supportMethod(1,2), @stack)
+    COGINIT(CogNum, @driver_entry, @testVar)
+    COGSTOP(CogNum)
+    COGID() : CogNum
+    Running := COGCHK(CogNum)
+    LockNum := LOCKNEW()
+    LOCKRET(LockNum)
+    LockState := LOCKTRY(LockNum)
+    LOCKREL(LockNum)
+    LockState := LOCKCHK(LockNum)
+    COGATN(CogMask)
+    AtnFlag := POLLATN()
+    WAITATN()
+
+'
+PRI supportMethod()
+    ' called routine by COGSPIN
+
+DAT
+
+DAT
+
+    org
+     ' called routine by COGINIT
+driver_entry   mov  ref,#PTRA
+
+    fit 497
+ref     res     1
+stack   byte    0[40]
+
+
+PUB built_in_Methods2(MOde, XVal, Yval) | PinStates
+    '' Pin Methods
+    PINW(PinfieldCon, 0)
+    PINWRITE(PinfieldCon, $22)
+    PINL(PinfieldCon)
+    PINLOW(PinfieldCon)
+    PINH(PinfieldCon)
+    PINHIGH(PinfieldCon)
+    PINT(PinfieldCon)
+    PINTOGGLE(PinfieldCon)
+    PINF(PinfieldCon)
+    PINFLOAT(PinfieldCon)
+    PinStates := PINR(PinfieldCon)
+    PinStates := PINREAD(PinfieldCon)
+    PINSTART(PinfieldCon, Mode, Xval, Yval)
+    PINCLEAR(PinfieldCon)
+
+PUB built_in_Methods3(Tick, Microseconds, milliseconds) | Count, Past, Seconds
+    '' Timing Methods
+    Count := GETCT()
+    Past := POLLCT(Tick)
+    WAITCT(Tick)
+    WAITUS(Microseconds)
+    WAITMS(Milliseconds)
+    Seconds := GETSEC()
+    Milliseconds := GETMS()
+
+PUB built_in_Methods4(RegOrHubAddr, HubAddr)
+    '' PASM interfacing
+    CALL(RegOrHubAddr)
+    REGEXEC(HubAddr)
+    REGLOAD(HubAddr)
+
+PUB built_in_Methods5(x, y, angle32bit, length, angle, twopi, mult1, mult2, divisor) | x, y, rotx, roty, quotient, Rnd
+    '' Math Methods
+    rotx, roty := ROTXY(x, y, angle32bit)
+    x, y := POLXY(length, angle32bit)
+    length, angle32bit := XYPOL(x, y)
+    y := QSIN(length, angle, twopi)
+    x := QCOS(length, angle, twopi)
+    quotient := MULDIV64(mult1,mult2,divisor)
+    Rnd := GETRND()
+
+PUB built_in_Methods6(HubAddr, CogAddr, Dest, Source, count, value)
+    '' Memory Methods
+    GETREGS(HubAddr, CogAddr, Count)    ' <--- why RED???  (caused by duplicate method name!)
+    SETREGS(HubAddr, CogAddr, Count)
+    BYTEMOVE(Dest, Source, Count)
+    WORDMOVE(Dest, Source, Count)
+    LONGMOVE(Dest, Source, Count)
+    BYTEFILL(Dest, Value, Count)
+    WORDFILL(Dest, Value, Count)
+    LONGFILL(Dest, Value, Count)
+
+PUB built_in_Methods7(Addr, AddrA, AddrB) | Size, Match, StringAddress
+    '' String Methods
+    Size := STRSIZE(Addr)
+    Match := STRCOMP(AddrA,AddrB)
+    StringAddress := STRING("Text",9)
+
+Con {test}
+#0,v2,v3
+
+PUB built_in_Methods8(v1,  etc) | Value, Index
+    '' Index ↔ Value Methods
+    Value := LOOKUP(Index: v1, v2..v3, etc)
+    Value := LOOKUPZ(Index: v1, v2..v3, etc)
+    Index := LOOKDOWN(Value: v1, v2..v3, etc)
+    Index := LOOKDOWNZ(Value: v1, v2..v3, etc)
+    index := NAN()
+
+
+' -----------------------------------------------------------------------------
+'' Using Methods - Spin2 Pg 7
+' -----------------------------------------------------------------------------
+
+PUB using_methods1(ToStr, FromStr) | x
+    '' Methods that return single results
+    x := GETRND() +// 100 'Get a random number between 0 and 99
+    BYTEMOVE(ToStr, FromStr, STRSIZE(FromStr) + 1)
+
+PUB using_methods2(ToStr, FromStr, rho1, rho2, theta1, theta2, xin, yin, theta) | x, y
+    '' Methods that return single results
+    x,y := SumPoints(POLXY(rho1,theta1), POLXY(rho2,theta2))
+
+    '' use underscore in lieu of a variable name
+    x,y := ROTXY(xin,yin,theta)     ' use both the x and y results
+    _,y := ROTXY(xin,yin,theta)     ' use only the y result
+    x,_ := ROTXY(xin,yin,theta)     ' use only the x result
+
+DAT
+    mywords   byte 0[4]
+
+PUB mySillySpecialCase()
+
+    BYTE[@mywords][1], BYTE[@mywords][1] := myfuncRet2()
+
+PRI myfuncRet2() : val1, val2
+
+
+'...where...
+PRI SumPoints(x1, y1, x2, y2) : x, y
+    RETURN x1+x2, y1+y2
+
+
+' -----------------------------------------------------------------------------
+'' Abort - Spin2 Pg 12
+' -----------------------------------------------------------------------------
+PRI Sub1() : Error              ' Sub1 calls Sub2 with an ABORT trap
+    Error := \Sub2()            ' \ means call method and trap any ABORT
+    \Sub2()                     ' in this case, the ABORT value is ignored
+
+PRI Sub2()                      ' Sub2 calls Sub3
+    Sub3()                      ' Sub3 never returns here due to the ABORT
+    PINHIGH(0)                  ' PINHIGH never executes
+
+PRI Sub3() | ErrorCode          ' Sub3 ABORTs, returning to Sub1 with ErrorCode
+    ErrorCode := -1
+    ABORT ErrorCode             ' ABORT and return ErrorCode
+    PINLOW(0)                   ' PINLOW never executes
+
+' -----------------------------------------------------------------------------
+'' Using Methods - Spin2 Pg 7
+' -----------------------------------------------------------------------------
+PUB using_methods3(register, index, address, bitfield) | AnyVar
+
+    AnyVar                              ' Hub or permanent register variable
+    HubVar.WORD                         ' Hub variable with BYTE/WORD/LONG size override
+    BYTE[address]                       ' Hub BYTE/WORD/LONG by address
+    REG[HubVar]                       ' Register, 'register' may be symbol declared in ORG section
+
+    AnyVar[index]                       ' Hub or permanent register variable with index
+    HubVar.BYTE[index]                  ' Hub variable with size override and index
+    LONG[address][index]                ' Hub BYTE/WORD/LONG by address with index
+    REG[HubVar][index]                ' Register with index
+
+    AnyVar.[bitfield]                   ' Hub or permanent register variable with bitfield
+    HubVar.LONG.[bitfield]              ' Hub variable with size override and bitfield
+    WORD[address].[bitfield]            ' Hub BYTE/WORD/LONG by address with bitfield
+    REG[HubVar].[bitfield]            ' Register with bitfield
+
+    AnyVar[index].[bitfield]            ' Hub or permanent register variable with index and bitfield
+    HubVar.BYTE[index].[bitfield]       ' Hub variable with size override, index, and bitfield
+    LONG[address][index].[bitfield]     ' Hub BYTE/WORD/LONG by address with index and bitfield
+    REG[HubVar][index].[bitfield]     ' Register with index and bitfield
+
+dat
+    ORGH
+HubVar  long    0
+reg long 1
+    FIT

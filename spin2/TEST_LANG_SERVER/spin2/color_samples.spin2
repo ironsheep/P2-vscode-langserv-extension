@@ -1,0 +1,78 @@
+'' Doc comment
+''
+{{
+  Doc comment
+}}
+CON { clock def section }
+' we are running the P2 at 200MHz
+    CLKFREQ = 200_000_000
+    ' share this value with other objects
+    _clkfreq = CLKFREQ
+
+OBJ
+    color                       : "dummy_isp_hub75_color"
+    digit[color.NBR_DIGITS]     : "dummy_isp_hub75_7seg"
+
+PUB main(bDoNothing) : ok | idx
+{{
+  The main entrypoint of this top-level object
+  (this is text for which we don't want hover text)
+}}
+    if bDoNothing
+        bDoNothing := TRUE ' yep we're doing nothing
+
+    testMethod()
+
+    myMethod1()
+
+    DEBUG("clock frequency: ", udec(CLKFREQ), 13, 10)
+
+    debug(`term logTerm pos 100 460 size 40 10 textsize 16 color green)
+    debug(`plot screen pos 1560 120 size 640 480 backcolor black update)
+
+    ok := coginit(newcog, @pasm_program,0) + 1  'start another cog with a PASM program (another debugger will open)
+
+    repeat        'keep looping while incrementing a variable
+        idx++
+        debug        'break everytime through the loop if "DEBUG" is selected (default)
+
+PUB myMethod1() : bStatus | index, text ' trailing comment
+
+PRI myMethod(param1, param2) : bStatus, neededValue | index
+
+PUB testMethod(param1) : bStatus | index
+'' A simple method to test stuff
+''
+'' @param param1 - a parameter
+'' @returns bStatus - T/F where T means the operation worked
+'
+' Local Variables:
+' @local index - into our array
+'
+    index := 0
+    simpleVar[0] := 12
+    bStatus := param1 + index + 1
+
+VAR
+    LONG  simpleVar[2]  ' array of two longs
+
+DAT
+' Title string for display
+    myString    byte    "test string",0
+    effs        byte    $ff[8]                  ' another comment
+
+DAT
+                org
+' main pasm entry point
+pasm_program    debug                               ' do a DEBUG at the start of the program to open debugger
+.loop           add     pa,#1                       ' select "MAIN" in the debugger to single-step
+                sub     pb,#2                   wc
+    if_c        jmp     #.loop
+                jmp     #pasm_program
+
+.loop2           add     pa,#1                       ' select "MAIN" in the debugger to single-step
+                sub     pb,#2                   wc
+    if_c        jmp     #.loop2                      ' GOOD! Spin1 local names should be RED!!!
+                jmp     #pasm_program
+
+testVariable   long  0[12]                          ' fill with some NOP's to make it easy to see the code above

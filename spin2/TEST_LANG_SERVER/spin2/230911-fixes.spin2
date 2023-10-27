@@ -1,0 +1,54 @@
+'------------------------------------------------------------------------------
+    #0, NO_EVENT, USB_ERROR, DEV_UNKNOWN, KB_READY, M_READY, KBM_READY, GP_READY, ...
+    XINPUT_READY, PS3_READY, DEV_DISCONNECT, DBG_DATA, M_DATA, GP_DATA, ...
+    CMD_SUSPEND, CMD_RESUME, CMD_RESET
+' The CMD_* tokens are asynchronous USB commands available to the user, through
+' the Spin2 usbCommand method of this object. This method will post the cmd
+' token to the host and when the cmd is complete the host will post the CMD_*
+' token to byte[0] of the event long. Byte[1] is typically set to one of the
+' below protocol error codes, with bytes[2..3] available for additional cmd data.
+'------------------------------------------------------------------------------
+' Protocol error codes:
+    #0, ERR_NONE, ERR_CMD, ERR_URX, ERR_SE1, ERR_PACKET, ERR_TAT, ERR_TXN_RETRY, ...
+    ERR_XFER_RETRY, ERR_NAK, ERR_DATAX_SYNC, ERR_CONFIG_FAIL, ERR_TIMEOUT
+
+VAR
+' Parameter block start address passed to the USB cog via COGNEW parameter:    MSB                              LSB
+  long dbgData        ' Can go away if/when FastSpin supports PNut's debug program
+  long initData       ' Byte packed run-time values defined by the client: |err_led_pin| dm_pin |tgl_led_pin|event_pin|
+  long cmdData
+  long cogNum
+
+'' Get object cog number, or -1 if no cog running.
+PUB getCogId() : id
+  id := (cogNum >= 0) ? cogNum : -1    ' <-- FINAL cogNum should be highlighted!
+
+
+PUB tglSuspendResume(curState) : newstate
+  case curState
+    NO_EVENT:    ' Initiate a suspend->resume sequence
+      ifnot (newstate := execCmd(CMD_SUSPEND))
+        newstate := CMD_SUSPEND
+    CMD_SUSPEND:
+      if (newstate := execCmd(CMD_RESUME)) == CMD_RESUME    ' <-- FINAL CMD_RESUME should be highlighted!
+        newstate := NO_EVENT    ' Sequence complete
+
+'' Post a command to the USB cog and wait for the result.
+'' Returns zero if the host cog recognizes the command. If it fails, the error
+'' will be reported to the client via the event repository smart pin, otherwise
+'' ERR_TIMEOUT.
+PUB execCmd(cmd) : result | timeout
+  cmdData := cmd
+  timeout := getsec() + 3     ' Give the cmd up to five seconds to complete
+  repeat
+    if getsec() > timeout
+      result := ERR_TIMEOUT
+      return
+  until cmdData == ERR_NONE   ' Wait until cmd acknowledged by host
+
+' -----------------------------------------------------------------
+
+DAT
+zk_bit31      long  negx  ' <--  oops negx is legit here! (NOT RED!)
+
+' -----------------------------------------------------------------

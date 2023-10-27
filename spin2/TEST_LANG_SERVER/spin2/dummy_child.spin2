@@ -1,0 +1,6 @@
+CON
+
+  MULTIPLIER = 5
+  COUNT = 4
+
+pub start()

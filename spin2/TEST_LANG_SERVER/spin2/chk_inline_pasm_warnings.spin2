@@ -1,0 +1,48 @@
+pub jbin(value, digits, width, pad)
+
+'' check out our inline pasm warnings!!!!
+
+  org
+    ORGH                                  ' illegal should be RED
+  orgf $40
+
+uart_mgr        setq      #4-1          ' nonsensical code for highlight check only
+                rdlong    rxd, ptra
+                ret
+        ALIGNW                      ' illegal ALIGNW should be RED
+        ALIGNL                      ' illegal ALIGNL should be RED
+rxd     byte    0
+text    FILE    "VGA_640x480_text_80x40.txt"      ' illegal 'FILE' should be RED
+textend         ' BUG SHOULD NOT BE RED
+
+
+  fit $20
+
+  end
+
+PUB testingInLinePasm1()
+
+    org
+enter       NOP
+            ret
+    ALIGNL              ' illegal here RED!!
+    ALIGNw              ' illegal here RED!!
+    file    "filename"  ' illegal here RED!!
+    end
+
+PUB testingInLinePasm1()
+
+    org
+    orgf $0
+enter       NOP
+            ret
+    ALIGNL  ' illegal here RED!!
+    ALIGNw  ' illegal here RED!!
+    file    "filename"  ' illegal here RED!!
+    end
+
+PUB testingInLinePasm1()
+
+    org
+        NOP
+    end

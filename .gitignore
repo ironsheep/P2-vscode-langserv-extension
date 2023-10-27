@@ -25,6 +25,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.swp
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -158,4 +159,38 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# macOS stuff
 .DS_Store
+
+
+# npm/node stuff
+node_modules
+
+# .vscode stuff
+.history/
+
+*.vsix
+*.zip
+*.lst
+*.scope
+
+*-REF*
+*.REF*
+*-NEW*
+
+regex-workspace.txt
+alias.sh
+spin2/TEST/_OLD/
+spin2/TEST/spin/f1.txt
+spin2/TEST/JAYS_PORT/
+spin2/TEST/MCP_PORT/
+spin2/TEST/PORT_DEMO/
+
+TEST_PROJECT
+PORT_DEMO
+MCP_PORT
+JAYS_PORT
+
+out/
+*-OFFLINE

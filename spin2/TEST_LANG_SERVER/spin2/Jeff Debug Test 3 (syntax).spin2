@@ -1,0 +1,676 @@
+{This is a syntax test for symbolic and alphabetic operators inside debug statements and tables}
+CON
+  _clkfreq = 180_000_000
+
+
+PUB go() | i, j, k, l
+'PRI go() | i, j, k, l
+
+  'PD__,qD__,RD__,sD__
+  debug(udec(@i), udec(false))
+  debug(udec(@@i))
+  debug(udec(i~))
+  debug(udec(i~~))
+  debug(udec(++i))
+  debug(udec(--i))
+  debug(udec(??i))
+  debug(udec(!i))
+  debug(udec(i >> j))
+  debug(udec(i << j))
+  debug(udec(i & j))
+  debug(udec(i ^ j))
+  debug(udec(i | j))
+  debug(udec(i * j))
+  debug(udec(i / j))
+  debug(udec(i +/ j))
+  debug(udec(i // j))
+  debug(udec(i +// j))
+  debug(udec(i + j))
+  debug(udec(i - j))
+  debug(udec(i #> j))
+  debug(udec(i <# j))
+  debug(udec(i < j))
+  debug(udec(i +< j))
+  debug(udec(i <= j))
+  debug(udec(i <=. j))
+  debug(udec(i +<= j))
+  debug(udec(i == j))
+  debug(udec(i ==. j))
+  debug(udec(i <> j))
+  debug(udec(i <>. j))
+  debug(udec(i >= j))
+  debug(udec(i >=. j))
+  debug(udec(i +>= j))
+  debug(udec(i > j))
+  debug(udec(i +> j))
+  debug(udec(i <=> j))
+  debug(udec(!!j))
+  debug(udec(i && j))
+  debug(udec(i ^^ j))
+  debug(udec(i || j))
+  debug(udec(i <. j))
+  debug(udec(i >. j))
+  debug(udec(i +. j))
+  debug(udec(i -. j))
+  debug(udec(i *. j))
+  debug(udec(i /. j))
+  debug(udec(i ? j : k))
+  debug(udec(i := j))
+  debug(udec(ABS i))
+  debug(udec(FABS i))
+  debug(udec(ENCOD i))
+  debug(udec(DECOD i))
+  debug(udec(BMASK i))
+  debug(udec(ONES i))
+  debug(udec(SQRT i))
+  debug(udec(FSQRT i))
+  debug(udec(QLOG i))
+  debug(udec(QEXP i))
+  debug(udec(i SAR j))
+  debug(udec(i ROR j))
+  debug(udec(i ROL j))
+  debug(udec(i REV j))
+  debug(udec(i ZEROX j))
+  debug(udec(i SIGNX j))
+  debug(udec(i SCA j))
+  debug(udec(i SCAS j))
+  debug(udec(i FRAC j))
+  debug(udec(i ADDBITS j))
+  debug(udec(i ADDPINS j))
+  debug(udec(NOT i))
+  debug(udec(i AND j))
+  debug(udec(i XOR j))
+  debug(udec(i OR j))
+  debug(udec(FLOAT(i)))
+  debug(udec(ROUND(i)))
+  debug(udec(TRUNC(i)))
+  debug(udec(NAN(i)))
+
+  'Comment out this block when DEBUG data buffer is full
+  'PQ__,qQ__,RQ__,sQ__
+  debug(``udec(@i))
+  debug(``udec(@@i))
+  debug(``udec(i~))
+  debug(``udec(i~~))
+  debug(``udec(++i))
+  debug(``udec(--i))
+  debug(``udec(??i))
+  debug(``udec(!i))
+  debug(``udec(i >> j))
+  debug(``udec(i << j))
+  debug(``udec(i & j))
+  debug(``udec(i ^ j))
+  debug(``udec(i | j))
+  debug(``udec(i * j))
+  debug(``udec(i / j))
+  debug(``udec(i +/ j))
+  debug(``udec(i // j))
+  debug(``udec(i +// j))
+  debug(``udec(i + j))
+  debug(``udec(i - j))
+  debug(``udec(i #> j))
+  debug(``udec(i <# j))
+  debug(``udec(i < j))
+  debug(``udec(i +< j))
+  debug(``udec(i <= j))
+  debug(``udec(i <=. j))
+  debug(``udec(i +<= j))
+  debug(``udec(i == j))
+  debug(``udec(i ==. j))
+  debug(``udec(i <> j))
+  debug(``udec(i <>. j))
+  debug(``udec(i >= j))
+  debug(``udec(i >=. j))
+  debug(``udec(i +>= j))
+  debug(``udec(i > j))
+  debug(``udec(i +> j))
+  debug(``udec(i <=> j))
+  debug(``udec(!!j))
+  debug(``udec(i && j))
+  debug(``udec(i ^^ j))
+  debug(``udec(i || j))
+  debug(``udec(i <. j))
+  debug(``udec(i >. j))
+  debug(``udec(i +. j))
+  debug(``udec(i -. j))
+  debug(``udec(i *. j))
+  debug(``udec(i /. j))
+  debug(``udec(i ? j : k))
+  debug(``udec(i := j))
+  debug(``udec(ABS i))
+  debug(``udec(FABS i))
+  debug(``udec(ENCOD i))
+  debug(``udec(DECOD i))
+  debug(``udec(BMASK i))
+  debug(``udec(ONES i))
+  debug(``udec(SQRT i))
+  debug(``udec(FSQRT i))
+  debug(``udec(QLOG i))
+  debug(``udec(QEXP i))
+  debug(``udec(i SAR j))
+  debug(``udec(i ROR j))
+  debug(``udec(i ROL j))
+  debug(``udec(i REV j))
+  debug(``udec(i ZEROX j))
+  debug(``udec(i SIGNX j))
+  debug(``udec(i SCA j))
+  debug(``udec(i SCAS j))
+  debug(``udec(i FRAC j))
+  debug(``udec(i ADDBITS j))
+  debug(``udec(i ADDPINS j))
+  debug(``udec(NOT i))
+  debug(``udec(i AND j))
+  debug(``udec(i XOR j))
+  debug(``udec(i OR j))
+  debug(``udec(FLOAT(i)))
+  debug(``udec(ROUND(i)))
+  debug(``udec(TRUNC(i)))
+  debug(``udec(NAN(i)))
+
+
+
+PUB go2() | i, j, k, l
+'PRI go2() | i, j, k, l
+
+  'PID_,qID_,RID_,sID_
+  org
+  debug(udec(@m))
+'  debug(udec(@@i))       'Not allowed in PASM
+'  debug(udec(i~))        'Not allowed in PASM
+'  debug(udec(i~~))       'Not allowed in PASM
+'  debug(udec(++i))       'Not allowed in PASM
+'  debug(udec(--i))       'Not allowed in PASM
+'  debug(udec(??i))       'Not allowed in PASM
+  debug(udec(#(!i)))
+  debug(udec(i >> j))
+  debug(udec(i << j))
+  debug(udec(i & j))
+  debug(udec(i ^ j))
+  debug(udec(i | j))
+  debug(udec(#(i * j)))
+  debug(udec(i / j))
+  debug(udec(i +/ j))
+  debug(udec(i // j))
+  debug(udec(i +// j))
+  debug(udec(i + j))
+  debug(udec(#(i - j)))
+  debug(udec(i #> j))
+  debug(udec(i <# j))
+  debug(udec(#(i < j)))
+  debug(udec(#(i +< j)))
+  debug(udec(#(i <= j)))
+  debug(udec(#(i <=. j)))
+  debug(udec(#(i +<= j)))
+  debug(udec(i == j))
+  debug(udec(i ==. j))
+  debug(udec(#(i <> j)))
+  debug(udec(#(i <>. j)))
+  debug(udec(i >= j))
+  debug(udec(i >=. j))
+  debug(udec(i +>= j))
+  debug(udec(i > j))
+  debug(udec(i +> j))
+  debug(udec(#(i <=> j)))
+  debug(udec(!!j))
+  debug(udec(#(i && j)))
+  debug(udec(i ^^ j))
+  debug(udec(#(i || j)))
+  debug(udec(#(i <. j)))
+  debug(udec(#(i >. j)))
+  debug(udec(i +. j))
+  debug(udec(#(i -. j)))
+  debug(udec(i *. j))
+  debug(udec(#(i /. j)))
+  debug(udec(i ? j : k))
+'  debug(udec(i := j))    'Not allowed in PASM
+  debug(udec(ABS i))
+  debug(udec(FABS i))
+  debug(udec(ENCOD i))
+  debug(udec(DECOD i))
+  debug(udec(BMASK i))
+  debug(udec(ONES i))
+  debug(udec(SQRT i))
+  debug(udec(#FSQRT i))
+  debug(udec(#QLOG i))
+  debug(udec(QEXP i))
+  debug(udec(i SAR j))
+  debug(udec(i ROR j))
+  debug(udec(i ROL j))
+  debug(udec(i REV j))
+  debug(udec(i ZEROX j))
+  debug(udec(i SIGNX j))
+  debug(udec(i SCA j))
+  debug(udec(i SCAS j))
+  debug(udec(#(i FRAC j)))
+  debug(udec(i ADDBITS j))
+  debug(udec(i ADDPINS j))
+  debug(udec(NOT i))
+  debug(udec(#(i AND j)))
+  debug(udec(i XOR j))
+  debug(udec(#(i OR j)))
+  debug(udec(FLOAT(i)))  'Not allowed in PASM (SHOULD be RED)
+  debug(udec(ROUND(i)))
+  debug(udec(TRUNC(i)))
+  debug(udec(NAN(i)))    'Not allowed in PASM (SHOULD be RED)
+
+
+
+  'Comment out this block when DEBUG data buffer is full
+  'PIQ_,qIQ_,RIQ_,sIQ_
+  debug(``udec(@m))
+'  debug(``udec(@@i))       'Not allowed in PASM
+'  debug(``udec(i~))        'Not allowed in PASM
+'  debug(``udec(i~~))       'Not allowed in PASM
+'  debug(``udec(++i))       'Not allowed in PASM
+'  debug(``udec(--i))       'Not allowed in PASM
+'  debug(``udec(??i))       'Not allowed in PASM
+  debug(``udec(#(!i)))
+  debug(``udec(i >> j))
+  debug(``udec(i << j))
+  debug(``udec(i & j))
+  debug(``udec(i ^ j))
+  debug(``udec(i | j))
+  debug(``udec(#(i * j)))
+  debug(``udec(i / j))
+  debug(``udec(i +/ j))
+  debug(``udec(i // j))
+  debug(``udec(i +// j))
+  debug(``udec(i + j))
+  debug(``udec(#(i - j)))
+  debug(``udec(i #> j))
+  debug(``udec(i <# j))
+  debug(``udec(#(i < j)))
+  debug(``udec(#(i +< j)))
+  debug(``udec(#(i <= j)))
+  debug(``udec(#(i <=. j)))
+  debug(``udec(#(i +<= j)))
+  debug(``udec(i == j))
+  debug(``udec(i ==. j))
+  debug(``udec(#(i <> j)))
+  debug(``udec(#(i <>. j)))
+  debug(``udec(i >= j))
+  debug(``udec(i >=. j))
+  debug(``udec(i +>= j))
+  debug(``udec(i > j))
+  debug(``udec(i +> j))
+  debug(``udec(#(i <=> j)))
+  debug(``udec(!!j))
+  debug(``udec(#(i && j)))
+  debug(``udec(i ^^ j))
+  debug(``udec(#(i || j)))
+  debug(``udec(#(i <. j)))
+  debug(``udec(#(i >. j)))
+  debug(``udec(i +. j))
+  debug(``udec(#(i -. j)))
+  debug(``udec(i *. j))
+  debug(``udec(#(i /. j)))
+  debug(``udec(i ? j : k))
+'  debug(``udec(i := j))    'Not allowed in PASM
+  debug(``udec(ABS i))
+  debug(``udec(FABS i))
+  debug(``udec(ENCOD i))
+  debug(``udec(DECOD i))
+  debug(``udec(BMASK i))
+  debug(``udec(ONES i))
+  debug(``udec(SQRT i))
+  debug(``udec(#FSQRT i))
+  debug(``udec(#QLOG i))
+  debug(``udec(QEXP i))
+  debug(``udec(i SAR j))
+  debug(``udec(i ROR j))
+  debug(``udec(i ROL j))
+  debug(``udec(i REV j))
+  debug(``udec(i ZEROX j))
+  debug(``udec(i SIGNX j))
+  debug(``udec(i SCA j))
+  debug(``udec(i SCAS j))
+  debug(``udec(#(i FRAC j)))
+  debug(``udec(i ADDBITS j))
+  debug(``udec(i ADDPINS j))
+  debug(``udec(NOT i))
+  debug(``udec(#(i AND j)))
+  debug(``udec(i XOR j))
+  debug(``udec(#(i OR j)))
+'  debug(``udec(FLOAT(i)))  'Not allowed in PASM
+  debug(``udec(ROUND(i)))
+  debug(``udec(TRUNC(i)))
+'  debug(``udec(NAN(i)))    'Not allowed in PASM
+
+
+
+  'PIB_,qIB_,RIB_,sIB_
+  long @m
+'  long @@i               'Not allowed in tables
+'  long i~                'Not allowed in tables
+'  long i~~               'Not allowed in tables
+'  long ++i               'Not allowed in tables
+'  long --i               'Not allowed in tables
+'  long ??i               'Not allowed in tables
+  long !m
+  long m >> n
+  long m << n
+  long m & n
+  long m ^ n
+  long m | n
+  long m * n
+  long m / n
+  long m +/ n
+  long m // n
+  long m +// n
+  long m + n
+  long m - n
+  long m #> n
+  long m <# n
+  long m < n
+  long m +< n
+  long m <= n
+  long m <=. n
+  long m +<= n
+  long m == n
+  long m ==. n
+  long m <> n
+  long m <>. n
+  long m >= n
+  long m >=. n
+  long m +>= n
+  long m > n
+  long m +> n
+  long m <=> n
+  long !!n
+  long m && n
+  long m ^^ n
+  long m || n
+  long m <. n
+  long m >. n
+  long m +. n
+  long m -. n
+  long m *. n
+  long m /. n
+  long m ? n : o
+'  long m := n            'Not allowed in tables
+  long ABS m
+  long FABS m
+  long ENCOD m
+  long DECOD m
+  long BMASK m
+  long ONES m
+  long SQRT m
+  long FSQRT m
+  long QLOG m
+  long QEXP m
+  long m SAR n
+  long m ROR n
+  long m ROL n
+  long m REV n
+  long m ZEROX n
+  long m SIGNX n
+  long m SCA n
+  long m SCAS n
+  long m FRAC n
+  long m ADDBITS n
+  long m ADDPINS n
+  long NOT m
+  long m AND n
+  long m XOR n
+  long m OR n
+  long FLOAT(m)
+  long ROUND(a)
+  long TRUNC(a)
+ long NAN(m)            'Not allowed in tables (should be RED)
+  end
+
+CON
+  a = 1.2
+
+DAT
+'DAT
+  m     long 0
+  n     long 0
+  o     long 0
+
+
+' NOTE in DAT section data declaration or debugg() context use operator coloring NOT PASM instru coloring!
+
+  'TD__,uD__
+  debug(udec(@m))
+'  debug(udec(@@i))       'Not allowed in PASM
+'  debug(udec(i~))        'Not allowed in PASM
+'  debug(udec(i~~))       'Not allowed in PASM
+'  debug(udec(++i))       'Not allowed in PASM
+'  debug(udec(--i))       'Not allowed in PASM
+'  debug(udec(??i))       'Not allowed in PASM
+  debug(udec(#(!m)))
+  debug(udec(m >> n))
+  debug(udec(#(m << n)))
+  debug(udec(#(m & n)))
+  debug(udec(m ^ n))
+  debug(udec(#(m | n)))
+  debug(udec(#(m * n)))
+  debug(udec(m / n))
+  debug(udec(m +/ n))
+  debug(udec(#(m // n)))
+  debug(udec(#(m +// n)))
+  debug(udec(#(m + n)))
+  debug(udec(#(m - n)))
+  debug(udec(#(m #> n)))
+  debug(udec(#(m <# n)))
+  debug(udec(#(m < n)))
+  debug(udec(#(m +< n)))
+  debug(udec(#(m <= n)))
+  debug(udec(#(m <=. n)))
+  debug(udec(#(m +<= n)))
+  debug(udec(m == n))
+  debug(udec(m ==. n))
+  debug(udec(#(m <> n)))
+  debug(udec(#(m <>. n)))
+  debug(udec(m >= n))
+  debug(udec(m >=. n))
+  debug(udec(m +>= n))
+  debug(udec(m > n))
+  debug(udec(m +> n))
+  debug(udec(#(m <=> n)))
+  debug(udec(!!n))
+  debug(udec(#(m && n)))
+  debug(udec(m ^^ n))
+  debug(udec(#(m || n)))
+  debug(udec(#(m <. n)))
+  debug(udec(#(m >. n)))
+  debug(udec(#(m +. n)))
+  debug(udec(#(m -. n)))
+  debug(udec(m *. n))
+  debug(udec(#(m /. n)))
+  debug(udec(#(m ? n : o)))
+'  debug(udec(m := j))    'Not allowed in PASM
+  debug(udec(#(ABS m)))
+  debug(udec(#(FABS m)))
+  debug(udec(ENCOD m))
+  debug(udec(DECOD m))
+  debug(udec(BMASK m))
+  debug(udec(ONES m))
+  debug(udec(SQRT m))
+  debug(udec(#FSQRT m))
+  debug(udec(#QLOG m))
+  debug(udec(QEXP m))
+  debug(udec(m SAR n))
+  debug(udec(m ROR n))
+  debug(udec(#(m ROL n)))
+  debug(udec(m REV n))
+  debug(udec(m ZEROX n))
+  debug(udec(m SIGNX n))
+  debug(udec(m SCA n))
+  debug(udec(m SCAS n))
+  debug(udec(#(m FRAC n)))
+  debug(udec(m ADDBITS n))
+  debug(udec(m ADDPINS n))
+  debug(udec(NOT m))
+  debug(udec(#(m AND n)))
+  debug(udec(m XOR n))
+  debug(udec(#(m OR n)))
+'  debug(udec(FLOAT(m)))  'Not allowed in PASM
+  debug(udec(ROUND(a)))
+  debug(udec(TRUNC(a)))
+'  debug(udec(NAN(m)))    'Not allowed in PASM
+
+
+
+  'TQ__,uQ__
+  debug(``udec(@m))
+'  debug(``udec(@@i))       'Not allowed in PASM
+'  debug(``udec(i~))        'Not allowed in PASM
+'  debug(``udec(i~~))       'Not allowed in PASM
+'  debug(``udec(++i))       'Not allowed in PASM
+'  debug(``udec(--i))       'Not allowed in PASM
+'  debug(``udec(??i))       'Not allowed in PASM
+  debug(``udec(#(!m)))
+  debug(``udec(m >> n))
+  debug(``udec(#(m << n)))
+  debug(``udec(#(m & n)))
+  debug(``udec(m ^ n))
+  debug(``udec(#(m | n)))
+  debug(``udec(#(m * n)))
+  debug(``udec(m / n))
+  debug(``udec(m +/ n))
+  debug(``udec(#(m // n)))
+  debug(``udec(#(m +// n)))
+  debug(``udec(#(m + n)))
+  debug(``udec(#(m - n)))
+  debug(``udec(#(m #> n)))
+  debug(``udec(#(m <# n)))
+  debug(``udec(#(m < n)))
+  debug(``udec(#(m +< n)))
+  debug(``udec(#(m <= n)))
+  debug(``udec(#(m <=. n)))
+  debug(``udec(#(m +<= n)))
+  debug(``udec(m == n))
+  debug(``udec(m ==. n))
+  debug(``udec(#(m <> n)))
+  debug(``udec(#(m <>. n)))
+  debug(``udec(m >= n))
+  debug(``udec(m >=. n))
+  debug(``udec(m +>= n))
+  debug(``udec(m > n))
+  debug(``udec(m +> n))
+  debug(``udec(#(m <=> n)))
+  debug(``udec(!!n))
+  debug(``udec(#(m && n)))
+  debug(``udec(m ^^ n))
+  debug(``udec(#(m || n)))
+  debug(``udec(#(m <. n)))
+  debug(``udec(#(m >. n)))
+  debug(``udec(#(m +. n)))
+  debug(``udec(#(m -. n)))
+  debug(``udec(m *. n))
+  debug(``udec(#(m /. n)))
+  debug(``udec(#(m ? n : o)))
+'  debug(``udec(m := j))    'Not allowed in PASM
+  debug(``udec(#(ABS m)))
+  debug(``udec(#(FABS m)))
+  debug(``udec(ENCOD m))
+  debug(``udec(DECOD m))
+  debug(``udec(BMASK m))
+  debug(``udec(ONES m))
+  debug(``udec(SQRT m))
+  debug(``udec(#FSQRT m))
+  debug(``udec(#QLOG m))
+  debug(``udec(QEXP m))
+  debug(``udec(m SAR n))
+  debug(``udec(m ROR n))
+  debug(``udec(#(m ROL n)))
+  debug(``udec(m REV n))
+  debug(``udec(m ZEROX n))
+  debug(``udec(m SIGNX n))
+  debug(``udec(m SCA n))
+  debug(``udec(m SCAS n))
+  debug(``udec(#(m FRAC n)))
+  debug(``udec(m ADDBITS n))
+  debug(``udec(m ADDPINS n))
+  debug(``udec(NOT m))
+  debug(``udec(#(m AND n)))
+  debug(``udec(m XOR n))
+  debug(``udec(#(m OR n)))
+'  debug(``udec(FLOAT(m)))  'Not allowed in PASM
+  debug(``udec(ROUND(a)))
+  debug(``udec(TRUNC(a)))
+'  debug(``udec(NAN(m)))    'Not allowed in PASM
+
+
+
+  'TB__,uB__
+  long @m
+'  long @@i               'Not allowed in tables
+'  long i~                'Not allowed in tables
+'  long i~~               'Not allowed in tables
+'  long ++i               'Not allowed in tables
+'  long --i               'Not allowed in tables
+'  long ??i               'Not allowed in tables
+  long !m
+  long m >> n
+  long m << n
+  long m & n
+  long m ^ n
+  long m | n
+  long m * n
+  long m / n
+  long m +/ n
+  long m // n
+  long m +// n
+  long m + n
+  long m - n
+  long m #> n
+  long m <# n
+  long m < n
+  long m +< n
+  long m <= n
+  long m <=. n
+  long m +<= n
+  long m == n
+  long m ==. n
+  long m <> n
+  long m <>. n
+  long m >= n
+  long m >=. n
+  long m +>= n
+  long m > n
+  long m +> n
+  long m <=> n
+  long !!n
+  long m && n
+  long m ^^ n
+  long m || n
+  long m <. n
+  long m >. n
+  long m +. n
+  long m -. n
+  long m *. n
+  long m /. n
+  long m ? n : o
+'  long m := n            'Not allowed in tables
+  long ABS m
+  long FABS m
+  long ENCOD m
+  long DECOD m
+  long BMASK m
+  long ONES m
+  long SQRT m
+  long FSQRT m
+  long QLOG m
+  long QEXP m
+  long m SAR n
+  long m ROR n
+  long m ROL n
+  long m REV n
+  long m ZEROX n
+  long m SIGNX n
+  long m SCA n
+  long m SCAS n
+  long m FRAC n
+  long m ADDBITS n
+  long m ADDPINS n
+  long NOT m
+  long m AND n
+  long m XOR n
+  long m OR n
+  long FLOAT(m)
+  long ROUND(a)
+  long TRUNC(a)
+  long NAN(m)            ' Not allowed in tables (should be RED)

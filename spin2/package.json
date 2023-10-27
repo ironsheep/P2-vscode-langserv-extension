@@ -1,0 +1,708 @@
+{
+  "name": "spin2",
+  "displayName": "Spin2",
+  "description": "Spin2/Pasm2 Syntax/Semantic Highlighting w/Code Outline and Custom tabbing support",
+  "author": "IronSheep",
+  "license": "MIT",
+  "version": "2.0.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ironsheep/P2-vscode-extensions"
+  },
+  "bugs": {
+    "url": "https://github.com/ironsheep/P2-vscode-extensions/issues"
+  },
+  "publisher": "IronSheepProductionsLLC",
+  "categories": [],
+  "keywords": [
+    "spin",
+    "spin2",
+    "pasm",
+    "pasm2",
+    "propeller",
+    "propeller 2",
+    "propeller v2",
+    "parallax",
+    "parallax.com"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "activationEvents": [],
+  "main": "./client/out/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "spinExtension.generate.doc.comment",
+        "title": "Spin2: Generate and insert documentation comment"
+      },
+      {
+        "command": "spinExtension.generate.documentation.file",
+        "title": "Spin2: Generate documentation file from spin source"
+      },
+      {
+        "command": "spinExtension.indentTabStop",
+        "title": "Spin2: Indent tab stop"
+      },
+      {
+        "command": "spinExtension.outdentTabStop",
+        "title": "Spin2: Outdent tab stop"
+      },
+      {
+        "command": "spinExtension.generate.tabStops.comment",
+        "title": "Spin2: Generate and insert tab stop comment"
+      },
+      {
+        "command": "spinExtension.insertMode.rotate",
+        "title": "Spin2: Rotate through modes: Insert - Overtype - Align"
+      },
+      {
+        "command": "spinExtension.insertMode.toggle",
+        "title": "Spin2: Toggle between modes: Insert - Align"
+      },
+      {
+        "command": "spinExtension.insertMode.deleteLeft",
+        "title": "Spin2: Align mode Delete Left"
+      },
+      {
+        "command": "spinExtension.insertMode.deleteRight",
+        "title": "Spin2: Align mode Delete Right"
+      },
+      {
+        "command": "spinExtension.objectDependencies.refreshEntry",
+        "title": "Spin2: Refresh object dependencies view",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "spinExtension.objectDependencies.activateFile",
+        "title": "Spin2: Open source code for this object",
+        "icon": "$(open-preview)"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "Spin/Spin2 Language Extension Behaviors",
+        "properties": {
+          "spinExtension.ServerBehavior.maxNumberOfReportedIssues": {
+            "scope": "resource",
+            "type": "number",
+            "default": 100,
+            "description": "Controls the maximum number of issues reported by the spin2 server (for each file.)"
+          },
+          "spinExtension.trace.server": {
+            "scope": "window",
+            "type": "string",
+            "enum": [
+              "off",
+              "messages",
+              "verbose"
+            ],
+            "default": "off",
+            "description": "Traces the communication between VSCode client and the spin2 language server."
+          },
+          "spinExtension.ServerBehavior.highlightFlexspinDirectives": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable recognition/validation of FlexSpin preprocessor directives."
+          },
+          "spinExtension.ClientBehavior.colorEditorBackground": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable \"Propeller Tool\" like coloring of editor backgound."
+          },
+          "spinExtension.ClientBehavior.editorBackgroundAlpha": {
+            "type": "number",
+            "default": 80,
+            "minimum": 20,
+            "maximum": 80,
+            "description": "Adjust the Alpha component of the editor backgound color [20%-80%] (default is 80%, Uncheck \"Color Editor Background\" to turn off.)"
+          }
+        }
+      },
+      {
+        "title": "Spin/Spin2 Editor Tabstops",
+        "properties": {
+          "spinExtension.ElasticTabstops.enable": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the use of Spin2 Tabstops along with [Insert|Overtype|Align] insert modes."
+          },
+          "spinExtension.ElasticTabstops.choice": {
+            "type": "string",
+            "default": "PropellerTool",
+            "enum": [
+              "PropellerTool",
+              "IronSheep",
+              "User1"
+            ],
+            "description": "Select the set of Tabstops you wish to use."
+          },
+          "spinExtension.ElasticTabstops.blocks.PropellerTool": {
+            "type": "object",
+            "properties": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "default": {
+              "con": {
+                "tabStops": [
+                  2,
+                  8,
+                  16,
+                  18,
+                  32,
+                  56,
+                  78,
+                  80
+                ]
+              },
+              "var": {
+                "tabStops": [
+                  2,
+                  8,
+                  22,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "obj": {
+                "tabStops": [
+                  2,
+                  8,
+                  16,
+                  18,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "pub": {
+                "tabStops": [
+                  2,
+                  4,
+                  6,
+                  8,
+                  10,
+                  12,
+                  14,
+                  16,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "pri": {
+                "tabStops": [
+                  2,
+                  4,
+                  6,
+                  8,
+                  10,
+                  12,
+                  14,
+                  16,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "dat": {
+                "tabStops": [
+                  8,
+                  14,
+                  24,
+                  32,
+                  48,
+                  56,
+                  80
+                ]
+              }
+            }
+          },
+          "spinExtension.ElasticTabstops.blocks.IronSheep": {
+            "type": "object",
+            "properties": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "default": {
+              "con": {
+                "tabStops": [
+                  4,
+                  8,
+                  16,
+                  20,
+                  32,
+                  44,
+                  56,
+                  68,
+                  80
+                ]
+              },
+              "var": {
+                "tabStops": [
+                  4,
+                  12,
+                  24,
+                  28,
+                  32,
+                  44,
+                  56,
+                  68,
+                  80
+                ]
+              },
+              "obj": {
+                "tabStops": [
+                  4,
+                  8,
+                  16,
+                  20,
+                  32,
+                  44,
+                  56,
+                  68,
+                  80
+                ]
+              },
+              "pub": {
+                "tabStops": [
+                  4,
+                  8,
+                  12,
+                  16,
+                  20,
+                  24,
+                  28,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "pri": {
+                "tabStops": [
+                  4,
+                  8,
+                  12,
+                  16,
+                  20,
+                  24,
+                  28,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "dat": {
+                "tabStops": [
+                  4,
+                  16,
+                  20,
+                  24,
+                  28,
+                  48,
+                  52,
+                  56,
+                  60,
+                  64,
+                  68,
+                  80
+                ]
+              }
+            }
+          },
+          "spinExtension.ElasticTabstops.blocks.User1": {
+            "type": "object",
+            "properties": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "default": {
+              "con": {
+                "tabStops": [
+                  2,
+                  8,
+                  16,
+                  18,
+                  32,
+                  56,
+                  76,
+                  77,
+                  78,
+                  80
+                ]
+              },
+              "var": {
+                "tabStops": [
+                  2,
+                  8,
+                  22,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "obj": {
+                "tabStops": [
+                  2,
+                  8,
+                  16,
+                  18,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "pub": {
+                "tabStops": [
+                  2,
+                  4,
+                  6,
+                  8,
+                  10,
+                  12,
+                  14,
+                  16,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "pri": {
+                "tabStops": [
+                  2,
+                  4,
+                  6,
+                  8,
+                  10,
+                  12,
+                  14,
+                  16,
+                  32,
+                  56,
+                  80
+                ]
+              },
+              "dat": {
+                "tabStops": [
+                  8,
+                  14,
+                  24,
+                  32,
+                  48,
+                  56,
+                  80
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "Spin/Spin2 TabStop Insert Mode Configuration",
+        "properties": {
+          "spinExtension.InsertMode.overtypePaste": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable use of overtype behavior when pasting text while in \"Overtype\" Mode."
+          },
+          "spinExtension.InsertMode.perEditor": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the setting of insert/overtype/align mode \"per editor\"."
+          },
+          "spinExtension.InsertMode.enableAlign": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable  Editor \"Align\" behavior."
+          },
+          "spinExtension.InsertMode.secondaryCursorStyle": {
+            "type": "string",
+            "default": "block",
+            "enum": [
+              "line",
+              "line-thin",
+              "block",
+              "block-outline",
+              "underline",
+              "underline-thin"
+            ],
+            "description": "Select the \"Overtype\" Mode cursor style."
+          },
+          "spinExtension.InsertMode.ternaryCursorStyle": {
+            "type": "string",
+            "default": "underline",
+            "enum": [
+              "line",
+              "line-thin",
+              "block",
+              "block-outline",
+              "underline",
+              "underline-thin"
+            ],
+            "description": "Select the \"Align\" Mode cursor style."
+          },
+          "spinExtension.InsertMode.labelInsertMode": {
+            "type": "string",
+            "default": "Insert",
+            "description": "Label text in the status bar shown during \"Insert\" Mode (may be empty to hide the status.)"
+          },
+          "spinExtension.InsertMode.labelOvertypeMode": {
+            "type": "string",
+            "default": "Overtype",
+            "description": "Label text in the status bar shown during \"Overtype\" Mode (may be empty to hide the status.)"
+          },
+          "spinExtension.InsertMode.labelAlignMode": {
+            "type": "string",
+            "default": "Align",
+            "description": "Label text in the status bar shown during \"Align\" Mode (may be empty to hide the status.)"
+          }
+        }
+      }
+    ],
+    "keybindings": [
+      {
+        "key": "Ctrl+Alt+d",
+        "mac": "Cmd+Alt+d",
+        "command": "spinExtension.generate.documentation.file",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Alt+c",
+        "mac": "Cmd+Alt+c",
+        "command": "spinExtension.generate.doc.comment",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "tab",
+        "command": "spinExtension.indentTabStop",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+      },
+      {
+        "key": "Shift+tab",
+        "command": "spinExtension.outdentTabStop",
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+      },
+      {
+        "key": "Ctrl+Alt+tab",
+        "mac": "Cmd+Alt+tab",
+        "command": "spinExtension.generate.tabStops.comment",
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+      },
+      {
+        "command": "spinExtension.insertMode.rotate",
+        "key": "insert",
+        "mac": "F13",
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+      },
+      {
+        "command": "spinExtension.insertMode.deleteLeft",
+        "key": "backspace",
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+      },
+      {
+        "command": "spinExtension.insertMode.deleteRight",
+        "key": "delete",
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+      },
+      {
+        "command": "spinExtension.insertMode.toggle",
+        "key": "Ctrl+Shift+i",
+        "mac": "Cmd+Shift+i",
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "spinExtension.objectDependencies.refreshEntry",
+          "when": "view == spinExtension.objectDependencies",
+          "group": "navigation"
+        }
+      ]
+    },
+    "themes": [
+      {
+        "label": "Spin2 Ironsheep Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/isp-spin-dark-theme.json"
+      },
+      {
+        "label": "Spin2 Ironsheep Light",
+        "uiTheme": "vs",
+        "path": "./themes/isp-spin-light-theme.json"
+      },
+      {
+        "label": "Spin2 Ironsheep Dark for background Color",
+        "uiTheme": "vs-dark",
+        "path": "./themes/isp-spin-dark-bg-theme.json"
+      },
+      {
+        "label": "Spin2 Ironsheep Light for background Color",
+        "uiTheme": "vs",
+        "path": "./themes/isp-spin-light-bg-theme.json"
+      },
+      {
+        "label": "Spin2 Ironsheep Syntax (only)",
+        "uiTheme": "vs-dark",
+        "path": "./themes/isp-spin-syntax-theme.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "spin2",
+        "scopeName": "source.spin2",
+        "path": "syntaxes/spin2.tmLanguage.json"
+      },
+      {
+        "language": "spin",
+        "scopeName": "source.spin",
+        "path": "syntaxes/spin1.tmLanguage.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "spin2",
+        "aliases": [
+          "spin2",
+          "Spin2",
+          "SPIN2"
+        ],
+        "extensions": [
+          ".spin2"
+        ],
+        "configuration": "./spin2.language-configuration.json"
+      },
+      {
+        "id": "spin",
+        "aliases": [
+          "spin",
+          "Spin",
+          "SPIN"
+        ],
+        "extensions": [
+          ".spin"
+        ],
+        "configuration": "./spin1.language-configuration.json"
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "returnValue",
+        "superType": "parameter",
+        "description": "A parameter type of returnValue."
+      },
+      {
+        "id": "storageType",
+        "superType": "type",
+        "description": "A built-in storage type"
+      },
+      {
+        "id": "displayType",
+        "superType": "enumMember",
+        "description": "A built-in type of debug display"
+      },
+      {
+        "id": "displayName",
+        "superType": "label",
+        "description": "user name for debug display"
+      },
+      {
+        "id": "setupParameter",
+        "superType": "parameter",
+        "description": "A built-in debug display intantiation parameter name"
+      },
+      {
+        "id": "feedParameter",
+        "superType": "parameter",
+        "description": "A built-in debug display feed parameter name"
+      },
+      {
+        "id": "colorName",
+        "superType": "enumMember",
+        "description": "A built-in debug display color name"
+      }
+    ],
+    "semanticTokenModifiers": [
+      {
+        "id": "local",
+        "description": "Annotates a symbol that is declared local to a method"
+      },
+      {
+        "id": "pasmInline",
+        "description": "Annotates a symbol that is declared local to a method and within inline pasm code"
+      },
+      {
+        "id": "instance",
+        "description": "Annotates a variable unique to an instance"
+      },
+      {
+        "id": "missingDeclaration",
+        "description": "Annotates a variable but no declaration found!"
+      },
+      {
+        "id": "illegalUse",
+        "description": "Idenitifes keywords where they shouldn't be!"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "scopes": {
+          "returnValue": [
+            "meta.returntype.spin"
+          ],
+          "storageType": [
+            "storage.type.pasm.spin2"
+          ]
+        }
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "spinExtension.objectDependencies",
+          "name": "Object Dependencies",
+          "icon": "$(type-hierarchy)",
+          "contextualTitle": "Propeller Spin2 Development",
+          "when": "spinExtension.objectDeps.enabled"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "spinExtension.objectDependencies",
+        "contents": "The active editor cannot provide Spin2 object dependencies."
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile && npm run compile:grammar",
+    "compile": "tsc -b",
+    "compile:grammar": "npx js-yaml syntaxes/spin2.tmLanguage.YAML-tmLanguage > syntaxes/spin2.tmLanguage.json && npx js-yaml syntaxes/spin1.tmLanguage.YAML-tmLanguage > syntaxes/spin1.tmLanguage.json ",
+    "watch": "tsc -b -w",
+    "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
+    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+    "pretest": "npm run compile && npm run lint",
+    "test": "sh ./scripts/e2e.sh"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/mocha": "^9.1.0",
+    "@types/node": "^16.18.34",
+    "@typescript-eslint/eslint-plugin": "^5.54.0",
+    "@typescript-eslint/parser": "^5.54.0",
+    "eslint": "^8.35.0",
+    "mocha": "^9.2.1",
+    "typescript": "^5.1.3"
+  }
+}

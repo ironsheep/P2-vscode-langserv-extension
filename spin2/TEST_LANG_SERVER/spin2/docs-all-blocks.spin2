@@ -1,0 +1,61 @@
+'' from page 2 of spin2 docs v35i
+
+CON _clkfreq = 297_000_000  ' set clock frequency
+
+OBJ vga : "dummy_VGA_640x480_text_80x40"  ' instantiate vga object
+
+VAR time, i                         ' declare object-wide variables
+
+DAT
+hall_angles	long	0			'forward-direction table
+    long    0 frac 6	'%001
+
+PUB go()
+'' Start our display
+    vga.start(8)
+
+    SEND := @vga.print
+
+    SEND(4, $004040, 5, $00FFFF)
+
+    time := GETCT()
+
+    i := @text
+    REPEAT @textend-i
+        SEND(byte[i++])
+
+    time := GETCT() - time
+
+    time := MULDIV64(time, 1_000_000, clkfreq)
+
+    SEND(12, "Time elapsed during printing was ", dec(time), " microseconds.") 'print time delta
+
+PRI dec(value) | flag, place, digit         'private method prints decimals, three local variables
+    flag~                                   'reset digit-printed flag
+    place := 1_000_000_000                  'start at the one-billion's place and work downward
+
+    REPEAT
+        IF flag ||= (digit := value / place // 10) || place == 1    'print a digit?
+        SEND("0" + digit)                                           'yes
+            IF LOOKDOWN(place : 1_000_000_000, 1_000_000, 1_000)    'also print a comma?
+                SEND(",")                                           'yes
+    WHILE place /= 10
+
+PUB go_again()
+{{
+    Start our display a 2nd time
+}}
+
+DAT
+
+text FILE "dummy_VGA_640x480_text_80x40.txt"
+textend
+
+CON ' license
+{{
+ -------------------------------------------------------------------------------
+
+   my license text...
+
+ ===============================================================================
+}}

@@ -1,0 +1,26 @@
+' ---------------------------------------------------
+' Parameterization Test
+'
+CON		_clkfreq	= 250_000_000	'system clock frequency
+
+OBJ
+    child1 : "dummy_child" | MULTIplIER = 3, CoUNT = 5        ' override child constants
+    child2 : "dummy_child"                                    ' no override
+
+PUB Main() | testVar
+    child1.stARt(True)
+    child2.start(False)
+
+    testVar := 0
+
+    repeat  ' lock here
+
+
+' ---------------------------------------------------
+' OBJ lines w/o spaces (#15)
+
+OBJ
+
+    render : "dummy_JETp2compat_rendering"    ' This works!
+    render2:"dummy_JETp2compat_rendering"    ' and our comment (BUG not finding filename correctly!) HUH! Syntax only works!
+    ' is a Semantic BUG!!!

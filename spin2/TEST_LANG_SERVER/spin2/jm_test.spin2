@@ -1,0 +1,25 @@
+con
+
+SBUS_RX = 1
+
+obj
+
+    sbus    : "dummy_sbus.spin2"
+
+dat
+
+Defaults    long    0
+
+plotSetup
+    byte    "`plot p"               ' define a new plot window
+    byte    " title 'S.BUS Input'"  ' set windows title
+    byte    " size 500 700"         ' set windows size
+    byte    " backcolor grey"       ' set window background color
+    byte    " pos 1350 125"         ' initial position of window
+    byte    " update"               ' set update mode
+    byte    0
+
+pub setup()
+
+    sbus.start(SBUS_RX, @Defaults)
+    debug(zstr_(@plotSetup))

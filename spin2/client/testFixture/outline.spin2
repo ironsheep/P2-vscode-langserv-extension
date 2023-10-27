@@ -1,0 +1,41 @@
+'' latest findings needing to be fixed
+
+' --------------------------------------------------------------------------------------------------
+CON { app io pins }
+
+    PIN_SERVO_CTRL = 0
+
+VAR ' instance variables
+    long    killCID
+
+PUB Main(): ok | localVar
+
+    debug(`term logTerm pos 100 460 size 40 10 textsize 16 color green)
+
+PRI KillSwitch(): abortCode, bdidKill
+    dira.[PIN_SERVO_CTRL]~~     ' ensure SERVO PIN is output for this COG too
+    debug(`logTerm 'KillSwitch() running on #`(killCID)' 10)    ' <--- "running on #" should NOT be RED!
+
+' --------------------------------------------------------------------------------------------------
+VAR ' instance variables
+    long    position
+
+DAT ' class variables
+
+	'' 8 bytes/character
+	'' 24 instructions: so sysclock >= 3 * pixel clock
+
+	org	LINE_HANDLER    ' <-- this should be colored as constant
+char8_loop
+
+DAT read_args
+              org
+              mov       arg1_, par
+              add       arg1_, #(1*4)
+
+arg1_   res   1
+ma_mtmp3      res 1
+ma_mtmp1      res 1
+ma_adpcm_bufferbase long @adpcm_buffers
+
+adpcm_buffers

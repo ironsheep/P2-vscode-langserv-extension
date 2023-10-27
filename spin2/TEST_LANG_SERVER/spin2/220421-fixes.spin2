@@ -1,0 +1,21 @@
+'' latest findings needing to be fixed
+
+' --------------------------------------------------------------------------------------------------
+CON { app io pins }
+
+    PIN_SPI_SO = 0
+    PIN_SPI_CLK = 1
+    PIN_SPI_CS = 2
+
+    PINS_SPI = PIN_SPI_SO addpins 2
+
+PUB main() | position
+
+    debug(`logic MyLogic pos 30 150 samples 112 'p0=SO' 1 'p1=CLK' 1 'p2=CS' 1)
+    debug(`myLogic trigger %100 $100 holdoff 32)
+
+PRI sendOutputToLA()
+    debug(`myLogic `(pinread(PINS_SPI)))    ' <-- "pinread" should NOT be RED!
+    debug(`myLogic `(outa & %111))          ' <-- "outa" should NOT be RED!
+
+' --------------------------------------------------------------------------------------------------

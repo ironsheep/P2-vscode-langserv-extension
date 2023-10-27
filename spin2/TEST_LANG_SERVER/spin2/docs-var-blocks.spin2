@@ -1,0 +1,27 @@
+'' from page 3 & 4 of spin2 docs v35i
+
+VAR CogNum                  ' The default variable size is LONG (32 bits).
+    CursorMode
+    PosX                    ' The first 15 longs have special bytecodes for faster/smaller code.
+    Posy
+    SendPtr                 ' So, declare your most common variables first, as longs.
+    Avar, Bvar, Cvar
+
+    BYTE StringChr          ' byte variable (8 bits)
+    BYTE StringBuff[64]     ' byte variable array (64 bytes)
+    BYTE a,b,c[1000],d      ' comma-separated declarations
+
+    WORD CurrentCycle       ' word variable (16 bits)
+    WORD Cycles[200]        ' word variable array (200 words)
+
+
+    WORD e,f[5],g,h[10]         ' comma-separated declarations
+
+    LONG Value                  ' long variable
+    LONG Values[15]             ' long variable array (15 longs)
+    LONG i[100],j,k,l           ' comma-separated declarations
+
+    ALIGNW                      ' word-align to hub memory, advances variable pointer as necessary
+
+    ALIGNL                      ' long-align to hub memory, advances variable pointer as necessary
+    BYTE Bitmap[640*480]        ' ..useful for making long-aligned buffers for FIFO-wrapping

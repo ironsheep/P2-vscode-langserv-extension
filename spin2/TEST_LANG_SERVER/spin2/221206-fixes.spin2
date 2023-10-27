@@ -1,0 +1,138 @@
+' Run with DEBUG enabled to view
+
+_clkfreq = 300_000_000                                  ' <---  FIXME:l not colored correctly (TOP defaults to CON (but syntax, how???)
+
+sprites = 128
+
+VAR x[sprites], y[sprites], dx[sprites], dy[sprites], orient[sprites], scale[sprites], opacity[sprites]
+
+PUB go1() | i
+
+  debug(`plot myplot size 384 384 update)
+  debug(`myplot cartesian 1)
+' ^^^^^^^^^^ file is assumed to start with CON - NOT colored correctly
+' -----------------------------------------------------------------
+DAT
+' ADC program setup
+		org	$B0			'put PASM code up high
+
+adc_start	fltl	pins			'set pins to ADC mode
+		wrpin	adc_modes,pins
+		setse1	x
+
+	_ret_	setint1	#event_se1		'enable interrupt on event, return to Spin2
+
+adc_modes	long	p_adc_gio | p_adc		'adc modes, by state
+		long	p_adc_1x  | p_adc
+		long	p_adc_vio | p_adc
+		long	p_adc_1x  | p_adc
+
+pins		res	1	'initially set by Spin2 code to select the pins
+x		res	1
+y		res	1
+
+' -----------------------------------------------------------------
+
+PRI showbmp(letter, image_address, lut_offset, lut_size, image_longs) | i
+  image_address += lut_offset
+  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  image_address += lut_size << 2 - 4
+  repeat image_longs
+    debug(``#(letter) `uhex_(long[image_address += 4]))
+
+' -----------------------------------------------------------------
+
+VAR md, cb, cy, ci, cq, ca, cf, xf, bs, ds, bc, dc, ac, bv, av
+    db, hf, hl, hh, ll, lh, vs, bl, dl, al, pm, px, pl, bm, pn
+PUB start(pal, interlaced, x_total, x_pixels, x_tweak, y_pixels, y_tweak, palette, bitmap, pin) | dotf, dotps, i
+
+
+  debug(udec(pm,px),uhex(#pn_))  ' BAD  Why not coloor #pn_ ???
+
+DAT
+pn_             res     1       'pin(s)
+
+' -----------------------------------------------------------------
+
+CON
+  _clkfreq = 100_000_000
+  debug_main					'single-step through main code <---- BAD debug_main is NOT a constant
+
+  debug_coginit					'single-step through main code <---- BAD debug_main is NOT a constant
+
+' -----------------------------------------------------------------
+DAT
+        long                1e+38, 1e+37, 1e+36, 1e+35, 1e+34, 1e+33, 1e+32, 1e+31
+        long  1e+30, 1e+29, 1e+28, 1e+27, 1e+26, 1e+25, 1e+24, 1e+23, 1e+22, 1e+21
+        long  1e+20, 1e+19, 1e+18, 1e+17, 1e+16, 1e+15, 1e+14, 1e+13, 1e+12, 1e+11
+
+' -----------------------------------------------------------------
+DAT myVar long 1
+DAT init_asm
+              org
+              ' Get pin assignments and use to create
+              ' masks for setting those pins.
+              call      #read_args
+              add ma_mtmp3,ma_adpcm_bufferbase
+
+
+DAT read_args
+              org
+              mov       arg1_, ptra
+              add       arg1_, #(1*4)
+
+arg1_   res   1
+ma_mtmp3      res 1
+ma_mtmp1      res 1
+ma_adpcm_bufferbase long @adpcm_buffers
+
+adpcm_buffers
+' -----------------------------------------------------------------
+DAT
+		org
+
+		setq	dbase_init		'restart cog 0 with interpreter
+		coginit	#hubexec,##launch_spin
+
+dbase_init	long	320_000_000				'$38 - compiler supplies initial dbase value
+'
+' Unaligned data
+'
+		orgh
+
+DAT
+        org
+launch_spin	loc	ptrb,#\$80000		'point to zeroes in empty hub space
+
+' -----------------------------------------------------------------
+CON _clkfreq = 200_000_000
+
+    'debug_main				'uncomment to single-step through everything, even COGINITs
+    'debug_coginit			'uncomment to break on COGINITs
+
+PUB go() | i
+
+  coginit(newcog, @pasm_program,0)	'start another cog with a PASM program (another debugger will open)
+
+  repeat				'keep looping while incrementing a variable
+    i++
+    debug				'break everytime through the loop if "DEBUG" is selected (default)
+
+DAT		org
+
+pasm_program	debug			'do a DEBUG at the start of the program to open debugger
+.loop		add	pa,#1		'select "MAIN" in the debugger to single-step
+		sub	pb,#2
+		jmp	#.loop
+
+		long	0[12]		'fill with some NOP's to make it easy to see the code above
+' -----------------------------------------------------------------
+DAT
+        org
+        ' $1F8..$1F9 = ptra_, ptrb_
+' $1FA..$1FF = direct
+' $200..$3FF = lut
+'
+rdreg		modz	_clr		wz	'force read   BUG: "_clr" is RED
+
+' -----------------------------------------------------------------

@@ -1,0 +1,7 @@
+'' from page 2 of spin2 docs v35i
+
+DAT ORG                         'start PASM at hub $00000 for cog $000
+
+loop    DRVRND  #56 ADDPINS 7    ' write a random pattern to P63..P56
+        WAITX   ##clkfreq_/10     ' wait 1/10th of a second, loop
+        JMP     #loop

@@ -1,0 +1,115 @@
+'' from page 4-5 of spin2 docs v35i
+
+' -----------------------------------------------------------------------------
+'' DAT: Symbols and Data
+' -----------------------------------------------------------------------------
+DAT                                     ' symbols without data take the size of the previous declaration
+
+HexChrs     BYTE    "0123456789ABCDEF"  ' HexChrs is a byte symbol that points to "0"
+symbol0                                 ' symbol0 is a byte symbol that points after "F"
+
+Pattern     WORD     $CCCC,$3333,$AAAA,$5555    'Pattern is word symbol that points to $CCCC
+symbol1                                 ' symbol1 is a word symbol that points after $55555
+
+Billions    LONG    1_000_000_000       ' Billions is a long symbol that points to 1_000_000_000
+symbol2                                 ' symbol2 is a long symbol that points after 1_000_000_000
+
+            org
+DoNothing   NOP                         ' DoNothing is a long symbol that points to a NOP instruction
+symbol3                                 ' symbol3 is a long symbol that points after the NOP instruction
+            fit     457
+
+symbol4 BYTE                            ' symbol4 is a byte symbol that points to $78
+symbol5 WORD                            ' symbol5 is a word symbol that points to $5678
+symbol6 LONG                            ' symbol6 is a long symbol that points to $12345678
+        LONG $12345678                  ' long value $12345678
+
+        BYTE 100[64]                    ' 64 bytes of value 100
+
+        BYTE 10, WORD 500, LONG $FC000  ' BYTE/WORD/LONG overrides allowed for single values
+
+        BYTE FVAR 99, FVARS -99         ' FVAR/FVARS overrides allowed, can be read via RFVAR/RFVARS
+
+FileDat     FILE  "Filename"            ' include binary file, FileDat is a byte symbol that points to file
+            ALIGNW                      ' word-align to hub by emitting a zero byte, if necessary
+            ALIGNL                      ' long-align to hub by emitting 1 to 3 zero bytes, if necessary
+
+' -----------------------------------------------------------------------------
+'' DAT: Data Pointers
+' -----------------------------------------------------------------------------
+DAT
+Str0    BYTE    "Monkeys",0             ' strings with symbols
+Str1    BYTE    "Gorillas",0
+Str2    BYTE    "Chimpanzees",0
+Str3    BYTE    "Humanzees",0
+StrList WORD    @Str0                   ' in Spin2, these are offsets of strings relative to start of object
+        WORD    @Str1                   ' in Spin2, @@StrList[i] or @@WORD[@Str0][i] will return address of Str0..Str3 for i = 0..3
+        WORD    @Str2                   ' in PASM-only programs, these are absolute addresses of strings
+        WORD    @Str3                   ' (use of WORD supposes offsets/addresses are under 64KB)
+
+
+' -----------------------------------------------------------------------------
+'' DAT: Cog-exec
+' -----------------------------------------------------------------------------
+DAT         ORG                 ' begin a cog-exec program (no symbol allowed before ORG)
+                                ' COGINIT(16, @IncPins, 0) will launch this program in a free cog
+IncPins     MOV DIRA,#$FF       ' to Spin2 code, IncPins is the 'MOV' instruction (long)
+Loop        ADD OUTA,#1         ' to Spin2 code, @IncPins is the hub address of the 'MOV' instruction
+            JMP #Loop           ' to PASM code, Loop is the cog address ($001) of the 'ADD' instruction
+
+            ORG                 ' set cog-exec mode, cog address = $000, cog limit = $1F8 (reg, both defaults)
+            ORG $100            ' set cog-exec mode, cog address = $100, cog limit = $1F8 (reg, default limit)
+            ORG $120,$140       ' set cog-exec mode, cog address = $120, cog limit = $140 (reg)
+            ORG $200            ' set cog-exec mode, cog address = $200, cog limit = $400 (LUT, default limit)
+            ORG $300,$380       ' set cog-exec mode, cog address = $300, cog limit = $380 (LUT)
+
+            ADD register,#1          ' in cog-exec mode, instructions force alignment to cog/LUT registers
+
+            ORGF $040           ' fill to cog address $040 with zeros (no symbol allowed before ORGF)
+
+            FIT $020            ' test to make sure cog address has not exceeded $020
+
+x           RES 1               ' reserve 1 register, advance cog address by 1, don't advance hub address
+register    RES 1               ' reserve 1 register, advance cog address by 1, don't advance hub address
+z           RES 1               ' reserve 1 register, advance cog address by 1, don't advance hub address
+buff        RES 16              ' reserve 16 registers, advance cog address by 16, don't advance hub address
+
+
+' -----------------------------------------------------------------------------
+'' DAT: Hub-exec
+' -----------------------------------------------------------------------------
+DAT         ORGH                ' begin a hub-exec program (no symbol allowed before ORGH)
+                                ' COGINIT(32+16, @IncPins, 0) will launch this program in a free cog
+IncPins     MOV     DIRA,#$FF   ' In Spin2, IncPins is the 'MOV' instruction (long)
+Loop        ADD     OUTA,#1     ' In Spin2, @IncPins is the hub address of the 'MOV' instruction
+            JMP     #Loop       ' In PASM, Loop is the hub address ($00404) of the 'ADD' instruction
+
+    ORGH                            ' set hub-exec mode, hub origin = $00400, origin limit
+    ORGH $1000                      ' set hub-exec mode, hub origin = $01000, origin limit
+    ORGH $FC000,$FC800              ' set hub-exec mode, hub origin = $FC000, origin limit
+
+    FIT $2000                       ' test to make sure hub address has not exceeded $2000
+
+
+' -----------------------------------------------------------------------------
+'' DAT: Hub-exec Code differences: Spin2+Pasm Programs
+' -----------------------------------------------------------------------------
+                                ' Hub-exec code must use relative addressing, since it is not located at its place of origin.
+                                ' The LOC instruction can be used to get addresses of data assets within relative hub-exec code.
+                                ' ORGH must specify at least $400, so that pure hub-exec code will be assembled.
+                                ' The default ORGH address of $400 is always appropriate, unless you are writing code which will be
+                                ' moved to its actual ORGH address at runtime, so that it can use absolute addressing.
+
+DAT         ORGH                'set hub-exec mode and set origin to $400
+            ORGH $FC000         'set hub-exec mode and set origin to $FC000
+
+binaryInclu FILE "exampleBinaryData"
+
+' -----------------------------------------------------------------------------
+'' DAT: Hub-exec Code differences: Pasm-Only Programs
+' -----------------------------------------------------------------------------
+                                ' Hub-exec code may use absolute and relative addressing, since origin always matches hub address.
+                                ' ORGH fills hub memory with zeros, up to the specified address.
+
+DAT         ORGH                'set hub-exec mode at current hub address
+            ORGH $400           ' set hub-exec mode and fill hub memory with zeros to $400

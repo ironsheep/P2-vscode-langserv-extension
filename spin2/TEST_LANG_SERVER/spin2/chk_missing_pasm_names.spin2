@@ -1,0 +1,230 @@
+'' latest findings needing to be fixed
+
+' --------------------------------------------------------------------------------------------------
+CON
+    ZK_HLOP = 5
+
+DAT ' ZiKore Z80 LUT resident code
+              org $200
+zk_lutbase
+              '' Opcode table
+              long zk_nextop                            ' $00: NOP
+              long zk_loadimm16 + (%0000_1_111_0<<10)   ' $01: LD BC,imm16
+              long zk_a_and_ptr + (%001110<<10)         ' $02: LD (BC),A
+              long zk_incdec16+(%0000_1_1111_10_1_11100<<10) ' $03: INC BC
+              long zk_incdec8+(%01_11_00_0110_1100_0_10_1111_00<<10) ' $04: INC B
+              long zk_incdec8+(%01_11_00_0110_0011_0_10_1111_00<<10) ' $05: DEC B
+              long zk_loadimm8                          ' $06: LD B,imm8
+              long zk_rolla+(%0_010_110_01_11110_00<<10) ' $07: RLCA
+              long zk_ex_af                             ' $08: EX AF,AF'
+              long zk_math16+(%0010_111_00_1100_00_1110_1_0<<10) ' $09: ADD HL,BC
+              long zk_a_and_ptr + (%000010<<10)         ' $0A: LD A,(BC)
+              long zk_incdec16+(%0000_1_1111_01_1_11100<<10) ' $0B: DEC BC
+              long zk_incdec8+(%01_11_00_0110_1100_0_10_1111_00<<10) ' $0C: INC C
+              long zk_incdec8+(%01_11_00_0110_0011_0_10_1111_00<<10) ' $0D: DEC C
+              long zk_loadimm8                          ' $0E: LD C,imm8
+              long zk_rolla+(%0_010_001_01_11011_00<<10) ' $0F: RRCA
+              long zk_jr + (%01_11_0000_0<<10)          ' $10: DJNZ
+              long zk_loadimm16 + (%0001_1_111_0<<10)   ' $11: LD DE,imm16
+              long zk_a_and_ptr + (%00110 <<10)+1       ' $12: LD (DE),A
+              long zk_incdec16+(%0001_1_1111_10_1_11010<<10) ' $13: INC DE
+              long zk_incdec8+(%01_11_00_0110_1100_0_10_1111_00<<10) ' $14: INC D
+              long zk_incdec8+(%01_11_00_0110_0011_0_10_1111_00<<10) ' $15: DEC D
+              long zk_loadimm8                          ' $16: LD D,imm8
+              long zk_rolla+(%0_010_110_00_11110_00<<10) ' $17: RLA
+              long zk_jr + (%11_11_1111_0<<10)          ' $18: JR
+              long zk_math16+(%0010_111_00_1100_00_1101_1_0<<10) ' $19: ADD HL,DE
+              long zk_a_and_ptr + (%00000 <<10)+1       ' $1A: LD A,(DE)
+              long zk_incdec16+(%0001_1_1111_01_1_11010<<10) ' $1B: DEC DE
+              long zk_incdec8+(%01_11_00_0110_1100_0_10_1111_00<<10) ' $1C: INC E
+              long zk_incdec8+(%01_11_00_0110_0011_0_10_1111_00<<10) ' $1D: DEC E
+              long zk_loadimm8                          ' $1E: LD E,imm8
+              long zk_rolla+(%0_010_001_00_11011_00<<10) ' $1F: RRA
+              long zk_jr + (%01_10_1111_0<<10)          ' $20: JR NZ
+              long zk_loadimm16 + (%0011_1_111_0<<10)   ' $21: LD HL,imm16
+              long zk_ld_abs16 + (%01011_00<<10)        ' $22: LD (imm16),HL
+              long zk_incdec16+(%0011_1_1111_10_1_10110<<10) ' $23: INC HL
+              long zk_incdec8+(%01_11_00_0110_1100_0_10_1111_00<<10) ' $24: INC H
+              long zk_incdec8+(%01_11_00_0110_0011_0_10_1111_00<<10) ' $25: DEC H
+              long zk_loadimm8                          ' $26: LD H,imm8
+              long zk_daa                               ' $27: DAA
+              long zk_jr + (%00_10_1111_0<<10)          ' $28: JR Z
+              long zk_math16+(%0010_111_00_1100_00_1011_1_0<<10) ' $29: ADD HL,HL
+              long zk_ld_abs16 + (%00110_11111_00<<10)  ' $2A: LD HL,(imm16)
+              long zk_incdec16+(%0011_1_1111_01_1_10110<<10) ' $2B: DEC HL
+              long zk_incdec8+(%01_11_00_0110_1100_0_10_1111_00<<10) ' $2C: INC L
+              long zk_incdec8+(%01_11_00_0110_0011_0_10_1111_00<<10) ' $2D: DEC L
+              long zk_loadimm8                          ' $2E: LD L,imm8
+              long zk_cpl                               ' $2F: CPL
+              long zk_jr + (%01_01_1111_0<<10)          ' $30: JR NC
+              long zk_loadimm16 + (%0111_1_111_0<<10)   ' $31: LD SP,imm16
+              long zk_ld_abs + (%001111_00<<10)         ' $32: LD (imm16),A
+              long zk_incdec16+(%0111_1_1111_10_1_01110<<10) ' $33: INC SP
+              long zk_incdec8+(%01_11_00_0110_1100_0_10_1111_00<<10)+ZK_HLOP ' $34: INC (HL)
+              long zk_incdec8+(%01_11_00_0110_0011_0_10_1111_00<<10)+ZK_HLOP ' $35: DEC (HL)
+              long zk_loadimm8 + ZK_HLOP                ' $36: LD (HL),imm8
+              long zk_scf + (%10 << 10)                 ' $37: SCF
+              long zk_jr + (%00_01_1111_0<<10)          ' $38: JR C
+              long zk_math16+(%0010_111_00_1100_00_0111_1_0<<10) ' $39: ADD HL,SP
+              long zk_ld_abs + (  %0011_00<<10)         ' $3A: LD A,(imm16)
+              long zk_incdec16+(%0111_1_1111_01_1_01110<<10)' $3B: DEC SP
+              long zk_incdec8+(%01_11_00_0110_1100_0_10_1111_00<<10) ' $3C: INC A
+              long zk_incdec8+(%01_11_00_0110_0011_0_10_1111_00<<10) ' $3D: DEC A
+              long zk_loadimm8                          ' $3E: LD A,imm8
+              long zk_ccf                               ' $3F: CCF
+              long zk_nextop                            ' $40: LD B,B (NOP)
+              long zk_regmove                           ' $41: LD B,C
+              long zk_regmove                           ' $42: LD B,D
+              long zk_regmove                           ' $43: LD B,E
+              long zk_regmove                           ' $44: LD B,H
+              long zk_regmove                           ' $45: LD B,L
+              long zk_regmove + ZK_HLOP                 ' $46: LD B,(HL)
+              long zk_regmove                           ' $47: LD B,A
+              long zk_regmove                           ' $48: LD C,B
+              long zk_nextop                            ' $49: LD C,C (NOP)
+              long zk_regmove                           ' $4A: LD C,D
+              long zk_regmove                           ' $4B: LD C,E
+              long zk_regmove                           ' $4C: LD C,H
+              long zk_regmove                           ' $4D: LD C,L
+              long zk_regmove + ZK_HLOP                 ' $4E: LD C,(HL)
+              long zk_regmove                           ' $4F: LD C,A
+              long zk_regmove                           ' $50: LD D,B
+              long zk_regmove                           ' $51: LD D,C
+              long zk_nextop                            ' $52: LD D,D (NOP)
+              long zk_regmove                           ' $53: LD D,E
+              long zk_regmove                           ' $54: LD D,H
+              long zk_regmove                           ' $55: LD D,L
+              long zk_regmove + ZK_HLOP                 ' $56: LD D,(HL)
+              long zk_regmove                           ' $57: LD D,A
+              long zk_regmove                           ' $58: LD E,B
+              long zk_regmove                           ' $59: LD E,C
+              long zk_regmove                           ' $5A: LD E,D
+              long zk_nextop                            ' $5B: LD E,E (NOP)
+              long zk_regmove                           ' $5C: LD E,H
+              long zk_regmove                           ' $5D: LD E,L
+              long zk_regmove + ZK_HLOP                 ' $5E: LD E,(HL)
+              long zk_regmove                           ' $5F: LD E,A
+              long zk_regmove                           ' $60: LD H,B
+              long zk_regmove                           ' $61: LD H,C
+              long zk_regmove                           ' $62: LD H,D
+              long zk_regmove                           ' $63: LD H,E
+              long zk_nextop                            ' $64: LD H,H (NOP)
+              long zk_regmove                           ' $65: LD H,L
+              long zk_regmove + ZK_HLOP                 ' $66: LD H,(HL)
+              long zk_regmove                           ' $67: LD H,A
+              long zk_regmove                           ' $68: LD L,B
+              long zk_regmove                           ' $69: LD L,C
+              long zk_regmove                           ' $6A: LD L,D
+              long zk_regmove                           ' $6B: LD L,E
+              long zk_regmove                           ' $6C: LD L,H
+              long zk_nextop                            ' $6D: LD L,L (NOP)
+              long zk_regmove + ZK_HLOP                 ' $6E: LD L,(HL)
+              long zk_regmove                           ' $6F: LD L,A
+              long zk_regmove + ZK_HLOP                 ' $70: LD (HL),B
+              long zk_regmove + ZK_HLOP                 ' $71: LD (HL),C
+              long zk_regmove + ZK_HLOP                 ' $72: LD (HL),D
+              long zk_regmove + ZK_HLOP                 ' $73: LD (HL),E
+              long zk_regmove + ZK_HLOP                 ' $74: LD (HL),H
+              long zk_regmove + ZK_HLOP                 ' $75: LD (HL),L
+              long zk_halt                              ' $76: HALT
+              long zk_regmove + ZK_HLOP                 ' $77: LD (HL),A
+              long zk_regmove                           ' $78: LD A,B
+              long zk_regmove                           ' $79: LD A,C
+              long zk_regmove                           ' $7A: LD A,D
+              long zk_regmove                           ' $7B: LD A,E
+              long zk_regmove                           ' $7C: LD A,H
+              long zk_regmove                           ' $7D: LD A,L
+              long zk_regmove + ZK_HLOP                 ' $7E: LD A,(HL)
+              long zk_nextop                            ' $7F: LD A,A (NOP)
+              long(zk_math8 + (%10_11_00_0000_1100_0_10_001_0<<10) )[6]' $80..$85: ADD A,[BCDEHL]
+              long zk_math8 + (%10_11_00_0000_1100_0_10_001_0<<10) + ZK_HLOP ' $86: ADD A,(HL)
+              long zk_math8 + (%10_11_00_0000_1100_0_10_001_0<<10) ' $87: ADD A,A
+              long(zk_math8 + (%10_11_00_0000_1100_0_01_001_0<<10) )[6]' $88..$8D: ADC A,[BCDEHL]
+              long zk_math8 + (%10_11_00_0000_1100_0_01_001_0<<10) + ZK_HLOP ' $8E: ADC A,(HL)
+              long zk_math8 + (%10_11_00_0000_1100_0_01_001_0<<10) ' $8F: ADC A,A
+              long(zk_math8 + (%10_11_00_0000_0011_0_10_001_0<<10) )[6]' $90..$95: SUB [BCDEHL]
+              long zk_math8 + (%10_11_00_0000_0011_0_10_001_0<<10) + ZK_HLOP ' $96: SUB (HL)
+              long zk_math8 + (%10_11_00_0000_0011_0_10_001_0<<10) ' $97: SUB A
+              long(zk_math8 + (%10_11_00_0000_0011_0_01_001_0<<10) )[6]' $98..$9D: SBC A,[BCDEHL]
+              long zk_math8 + (%10_11_00_0000_0011_0_01_001_0<<10) + ZK_HLOP ' $9E: SBC A,(HL)
+              long zk_math8 + (%10_11_00_0000_0011_0_01_001_0<<10) ' $9F: SBC A,A
+              long(zk_logic + (%000000_110_0<<10))[6]   ' $A0..$A5: AND [BCDEHL]
+              long zk_logic + (%000000_110_0<<10) + ZK_HLOP ' $A6: AND (HL)
+              long zk_logic + (%000000_110_0<<10)       ' $A7: AND A
+              long(zk_logic + (%001000_011_0<<10))[6]   ' $A8..$AD: XOR [BCDEHL]
+              long zk_logic + (%001000_011_0<<10) + ZK_HLOP ' $AE: XOR (HL)
+              long zk_logic + (%001000_011_0<<10)       ' $AF: XOR A
+              long(zk_logic + (%001000_101_0<<10))[6]   ' $B0..$B5: OR [BCDEHL]
+              long zk_logic + (%001000_101_0<<10) + ZK_HLOP ' $B6: OR (HL)
+              long zk_logic + (%001000_101_0<<10)       ' $B7: OR A
+              long(zk_math8 + (%11_00_00_0000_0011_0_10_001_0<<10) )[6]' $B8..$BD: CP [BCDEHL]
+              long zk_math8 + (%11_00_00_0000_0011_0_10_001_0<<10) + ZK_HLOP ' $BE: CP (HL)
+              long zk_math8 + (%11_00_00_0000_0011_0_10_001_0<<10) ' $BF: CP A
+              long zk_condret+(%0101_11_00_01_1110_0<<10) ' $C0: RET NZ
+              long zk_poppair+(%0_0<<10)                  ' $C1: POP BC
+              long zk_jump  + (%0101_11_01_01_1110_10<<10) ' $C2: JP NZ,imm16
+              long zk_jump  + (%0101_11_01_11_1111_10<<10) ' $C3: JP imm16
+              long zk_jump  + (%0000_11_01_01_1110_10<<10) ' $C4: CALL NZ,imm16
+              long zk_pushbc+(%0_1110<<10)              ' $C5: PUSH BC
+              long zk_immmath + (%10_11_00_0000_1100_0_10_00_0<<10) ' $C6: ADD A,imm8
+              long zk_rst                               ' $C7: RST 00h
+              long zk_condret+(%0101_11_00_00_1110_0<<10) ' $C8: RET Z
+              long zk_ret + (%0101_11_00<<10)           ' $C9: RET
+              long zk_jump  + (%0101_11_01_00_1110_10<<10)' $CA: JP Z,imm16
+              long zk_bitprefix + ZK_HLOP               ' $CB: bit op prefix
+              long zk_jump  + (%0000_11_01_00_1110_10<<10)' $CC: CALL Z,imm16
+              long zk_jump  + (%0000_11_01_11_1111_10<<10)' $CD: CALL imm16
+              long zk_immmath + (%10_11_00_0000_1100_0_01_00_0<<10) ' $CE: ADC A,imm8
+              long zk_rst                               ' $CF: RST 08h
+              long zk_condret+(%0101_11_00_01_1101_0<<10) ' $D0: RET NC
+              long zk_poppair+(%01_0<<10)                 ' $D1: POP DE
+              long zk_jump  + (%0101_11_01_01_1101_10<<10)' $D2: JP NC,imm16
+              long zk_immio + (%00_00<<10)                ' $D3: OUT (imm8),A
+              long zk_jump  + (%0000_11_01_01_1101_10<<10)' $D4: CALL NC,imm16
+              long zk_pushde+(%0_110<<10)               ' $D5: PUSH DE
+              long zk_immmath + (%10_11_00_0000_0011_0_10_00_0<<10) ' $D6: SUB imm8
+              long zk_rst                               ' $D7: RST 10h
+              long zk_condret+(%0101_11_00_00_1101_0<<10) ' $D8: RET C
+              long zk_exx                               ' $D9: EXX
+              long zk_jump  + (%0101_11_01_00_1101_10<<10)' $DA: JP C,imm16
+              long zk_immio + (%00_11_00<<10)             ' $DB: IN A,(imm8)
+              long zk_jump  + (%0000_11_01_00_1101_10<<10)' $DC: CALL C,imm16
+              long zk_ixprefix                          ' $DD: IX prefix
+              long zk_immmath + (%10_11_00_0000_0011_0_01_00_0<<10) ' $DE: SBC A,imm8
+              long zk_rst                               ' $DF: RST 18h
+              long zk_condret+(%0101_11_00_01_1011_0<<10) ' $E0: RET PO
+              long zk_poppair+(%0011_0<<10)               ' $E1: POP HL
+              long zk_jump  + (%0101_11_01_01_1011_10<<10)' $E2: JP PO,imm16
+              long zk_ex_hlstk                          ' $E3: EX (SP),HL
+              long zk_jump  + (%0000_11_01_01_1011_10<<10)' $E4: CALL PO,imm16
+              long zk_pushhl+(%0_10<<10)                  ' E5: PUSH HL
+              long zk_immlogic + (%000000_110_1_0<<10)  ' $E6: AND imm8
+              long zk_rst                               ' $E7: RST 20h
+              long zk_condret+(%0101_11_00_00_1011_0<<10) ' $E8: RET PE
+              long zk_jump_indir                          ' $E9: JP (HL)
+              long zk_jump  + (%0101_11_01_00_1011_10<<10)' $EA: JP PE,imm16
+              long zk_ex_dehl                           ' $EB: EX DE,HL
+              long zk_jump  + (%0000_11_01_00_1011_10<<10)' $EC: CALL PE,imm16
+              long zk_extprefix + ZK_HLOP               ' $ED: extension prefix
+              long zk_immlogic + (%001000_011_1_0<<10)  ' $EE: XOR imm8
+              long zk_rst                               ' $EF: RST 28h
+              long zk_condret+(%0101_11_00_01_0111_0<<10) ' $F0: RET P
+              long zk_poppair+(%00_1111_0<<10)            ' $F1: POP AF
+              long zk_jump  + (%0101_11_01_01_0111_10<<10)' $F2: JP P,imm16
+              long zk_irqoff                              ' $F3: DI
+              long zk_jump  + (%0000_11_01_01_0111_10<<10)' $F4: CALL P,imm16
+              long zk_pushaf+(%0_11111_00<<10)            ' $F5: PUSH AF
+              long zk_immlogic + (%001000_101_1_0<<10)  ' $F6: OR imm8
+              long zk_rst                               ' $F7: RST 30h
+              long zk_condret+(%0101_11_00_00_0111_0<<10) ' $F8: RET M
+              long zk_hl_to_sp                            ' $F9: LD SP,(HL)
+              long zk_jump  + (%0101_11_01_00_0111_10<<10)' $FA: JP M,imm16
+              long zk_irqon                               ' $FB: EI
+              long zk_jump  + (%0000_11_01_00_0111_10<<10)' $FC: CALL M,imm16
+              long zk_iyprefix + (%10<<10)              ' $FD: IY prefix
+              long zk_immmath + (%11_00_00_0000_0011_0_10_00_0<<10) ' $FE: CP imm8
+              long zk_rst                               ' $FF: RST 38h
+' --------------------------------------------------------------------------------------------------
+' --------------------------------------------------------------------------------------------------
+' --------------------------------------------------------------------------------------------------
+' --------------------------------------------------------------------------------------------------

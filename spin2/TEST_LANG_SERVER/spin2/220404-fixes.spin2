@@ -1,0 +1,81 @@
+'' latest findings needing to be fixed
+
+OBJ screen : "dummy_VGA_640x480_text_80x40"  ' instantiate vga object
+
+pub test()
+
+        debug("`term temp size 82 50 textsize 10")  ' huh, do we color this or not?  NO!!!
+
+' --------------------------------------------------------------------------------------------------
+
+PRI get24BitBMPColorForRC(nRow, nColumn) : red, green, blue | pixColorAddr
+    if(nRow > screen.MAX_DISPLAY_ROWS - 1)
+        debug("- ERROR bad nRow value [", udec_(nRow), " > ", udec_(screen.MAX_DISPLAY_ROWS - 1), "]")  ' <-- fix this...
+
+    if(nColumn > screen.MAX_DISPLAY_COLUMNS - 1)
+        debug("- ERROR bad nColumn value [", udec_(nColumn), " > ", udec_(screen.MAX_DISPLAY_COLUMNS - 1), "]")
+
+    pixColorAddr := screen.getPixelColorAddr(nRow, nColumn)
+' --------------------------------------------------------------------------------------------------
+
+DAT
+                    org     0       ' COG code
+
+' Dummy ISR routines in case we need them
+isr1
+                    nop
+                    reti1
+isr2
+                    nop
+                    reti2
+isr3
+                    nop
+                    reti3
+
+addrValueMax        long    $0078_0000                                  ' 15 but in upper 5-bits of byte
+'
+rowCtrMax           long    16                                          ' 16 of 8/16/32 rows total
+colCtrMax           long    64                                          ' 64 columns total
+colCtrMaxLngs       long    16                                          ' 64 cols = 16 longs total
+colCtrLatchCt       long    61                                          ' colCtrMax-3 columns total
+
+'screen buffer 1024B of %00bgrbgr where byte is 00{rgb2}{rgb1}
+
+                ALIGNL
+cogBuffer
+                ' COG buffer for shipping subPages of PWM buffer out to panelSet
+                long    0[screen.MAX_COG_BUFFER_SIZE_IN_LONGS]  ' <--- colored in DAT but not DatPasm?!
+endCogBuffer
+
+' --------------------------------------------------------------------------------------------------
+
+PUB dbgMemDump(bfrId, buffer, len) | bytBffr, colIdx, rowIdx, maxCol, maxRow, dispLen
+    '' Dump bytes in hex format to debug() terminal
+    debug("`temp '", zstr_(bfrId), ": bffr=", uhex_long_(buffer), "(", udec_(len), ")' 13")
+    maxCol := len >= 16 ? 15 : len
+    maxRow := (len / 16)
+    if maxRow * 16 < len
+        maxRow++
+    if maxRow == 0
+        maxRow := 1
+
+    bytBffr := buffer
+    waitus(35)
+    'returns
+    dispLen := 0
+    repeat rowIdx from 1 to maxRow
+        if rowIdx < 10
+            debug("`temp ' '")  ' space
+        debug("`temp '  ", uhex_long_(bytBffr), ": '")       ' <-- what happened to uhex_long_()??
+        repeat colIdx from 0 to maxCol
+            debug("`temp '", uhex_byte_(byte[bytBffr+colIdx]), " '")        ' <-- what happened to uhex_byte_()??
+            dispLen++
+            if dispLen >= len
+                quit
+            if colIdx == 7
+                debug("`temp ' '")  ' space
+
+        bytBffr += 16
+        debug("`temp 13")       ' newline
+        waitus(85)  ' 50 too short, 70 less issue, 75 better,
+    waitms(2)

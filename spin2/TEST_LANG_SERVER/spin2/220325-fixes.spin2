@@ -1,0 +1,173 @@
+' code examples that are not highlighting correctly
+
+'  --------------------
+
+CON
+
+  PIN_POT_IN = 0
+  PIN_LED_GRN = 1
+
+PUB senseLoop()
+'' the real main loop
+    dira.[1..0] := %10
+    repeat
+        outa.[PIN_LED_GRN] := ina.[PIN_POT_IN]  ' INA BAD!!! (Why?! syntax highlighting not catching this!?)
+        waitms(10)
+
+'  --------------------
+CON ' new coment type
+    MAXCOGS = 8
+
+DAT
+context long  0[MAXCOGS] ' the printing context pointer per COG
+
+PUB initTextOutput(ctx, display, region, fg, bg, hwcursor, clearscreen) | cogNbr
+    ' init the text region's context data
+    long[ctx][0] := display
+    long[ctx][1] := region
+    long[ctx][2] := ((hwcursor & $ff) << 24) + ((((bg & $f) << 4) | (fg & $f)) << 16)  ' home row,col to 0,0
+    word[ctx][4] := 0
+    word[ctx][6] := 'getActivePixels(display)
+    word[ctx][7] := 0
+    ' init the HW cursor if enabled, and optionally clear the screen
+    if hwcursor
+        setCursorPos(region, (hwcursor - 1) & 1, 0, 0)
+    cogNbr := cogid()
+    context[cogid()] := ctx         ' <----- cogid() should be hightlighted yellow! SYNTAX ISSUE?!
+    if clearscreen
+        clear()
+
+PUB setCursorPos(region, cursid, rowpos, colpos)
+    if (cursid == 0)
+        word[region][13] := ((rowpos & $ff) << 8) + (colpos & $ff)
+    else
+        word[region][15] := ((rowpos & $ff) << 8) + (colpos & $ff)
+' clears text region
+
+PUB clear() | ctx, region, display, cursid
+    if (ctx := context[cogid()])
+        display := long[ctx][0]
+        region  := long[ctx][1]
+        'wordfill(getSource(region), (byte[ctx][10] << 8) + 32, getCurrentRows(display, region)*getCurrentColumns(display, region))
+        word[ctx][4] := 0 ' home the row & column to 0
+        cursid := byte[ctx][11]
+        if cursid ' set HW cursor if enabled
+            setCursorPos(region, (cursid - 1) & 1, 0, 0)
+
+'  --------------------
+
+CON { driver interface Constants}
+
+    #0, DCS_Unknown, DCS_STOPPED, DCS_SPIN_UP, DCS_AT_SPEED, DCS_SPIN_DN, DCS_SLOWING_DN, DCS_SLOW_TO_CHG, DCS_FAULTED
+
+
+pri rampSlow(tgt_incr, inDrv_incr, inDrv_state) : drv_incr, drv_state_
+    drv_incr := inDrv_incr
+    drv_state_ := inDrv_state
+    ' ***  fix debug() statements in inline pasm!
+    org
+.slowDn
+    debug("rampSlow: ", sdec_long(drv_incr), sdec_long(tgt_incr), udec_long(drv_state_), udec_long(ramp_slo_))
+                ' do next DOWN adjustment or set at speed
+                '  (increment > 0, we are not stopped)
+                testb   tgt_incr, #31               wc  ' Q: moving FWD or REV? (CY=REV)
+    if_c        jmp     #.haveSDnRev
+                subs     drv_incr, ramp_slo_             ' FWD: decrease increment (slowing down)
+                debug("  rd: - ", sdec_long(drv_incr))
+                cmps     tgt_incr, drv_incr           wc  ' Q: Did we exceed target?
+    if_nc       jmp     #.nodebug1
+                debug("  rd: CY!")
+.nodebug1
+                jmp     #.lastSDnZero
+.haveSDnRev
+                adds    drv_incr, ramp_slo_             ' REV: increase increment (slowing down)
+                'debug("  rd: + ", sdec_long(drv_incr))
+                cmps    drv_incr, tgt_incr          wc  ' Q: Did we exceed target?
+    if_nc       jmp     #.nodebug2
+                debug("  rd: CY!")              ' FIXdoneME: string should be colored!
+.nodebug2
+.lastSDnZero
+    if_nc        mov     drv_incr, tgt_incr              ' yes, reset to target!
+                cmps    tgt_incr, drv_incr          wz  ' Q: Are we at target? (compare again to handle both cases)
+    if_z        mov     drv_state_, #DCS_AT_SPEED       ' yes, show we got here!
+                ret
+
+ramp_slo_   long    25_000
+    end
+
+'  --------------------
+
+pub start(rxpin, p_defaults) : cog
+  if cog == 0
+    debug("!!ERROR!!  failed to start SBUS Cog")    ' middle of string (start) shouldn't be hightlighted!!!
+
+    driveAtPower(50)
+
+'  --------------------
+
+PUB driveAtPower(power) | limitPwr, motorIncre, correctedPower, motorIsReversed, maxSpeed, motorPower
+'' Control the speed and direction of this motor using the {power, [(-100) to 100]} input.
+'' Turns the motor on at {power}.
+'' AFFECTED BY:  setAcceleration(), setMaxSpeed(), holdAtStop()
+    limitPwr :=  -100 #> power <# 100
+    if limitPwr <> power
+        debug("! WARNING: driveAtPower() power out of range (corrected):", udec_long(power), " - must be [-100 to +100]")
+    debug("driveAtPower() ", sdec_long(limitPwr))
+    if limitPwr < 0
+        ' handle reverse speed
+        if limitPwr < 0 - maxSpeed
+            limitPwr := 0 - maxSpeed    ' cap at max speed in reverse
+    else
+        ' handle forward speed
+        if limitPwr > maxSpeed
+            limitPwr := maxSpeed    ' cap at max speed forward
+    motorPower := limitPwr
+    correctedPower := (motorIsReversed) ? 0 - limitPwr : limitPwr
+
+'  --------------------
+
+VAR
+long channel1[8]
+
+dat
+null  			long 	0,0           ' for channel reset
+
+pub start2() :cog,base | iii
+
+base:=@channel1[0]
+
+repeat iii from 0 to 7
+  long[base+32*iii]:=0
+  long[base+32*iii+4]:=0
+  long[base+32*iii+12]:=0
+  long[base+32*iii+16]:=2
+  word[base+32*iii+20]:=0
+  word[base+32*iii+22]:=8192
+  word[base+32*iii+24]:=400+2*iii
+  word[base+32*iii+26]:=2
+  long [base+32*iii+8]:=@null | $C0000000
+
+cog:=coginit(16,@audio,@channel1)   ' <--- label on OxRG not identified
+waitms(100)
+return cog,base
+
+dat         ' <-- This DAT not syntax colored due to OxRG in comment above!!!
+
+audio       org     0
+            mov     ptrb,#0             ' A tail pointer for the buffer
+'           ...
+
+'  --------------------
+
+DAT         ' <-- dont understand why this DAT not syntax colored...!!!
+val15bit            long $8000
+clipLevelHigh       long $8000000
+clipLevelLow        long-$8000000   ' no whitespace after long!!! (BAD) BUG clipLevelLow is NOT a label!!!
+
+'  --------------------
+
+DAT orgh            $1000       ' <--- WTF??? (red h?)
+  combinedWaveforms   file "CombinedWaveforms.bin"
+
+DAT
+    orgh            $1400       ' <--- WTF??? (red h?)

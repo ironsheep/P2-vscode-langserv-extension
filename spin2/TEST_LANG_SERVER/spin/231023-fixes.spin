@@ -1,0 +1,36 @@
+' --------------------------------------------------------------------------------------------------
+' testing of enum constant per line code
+CON
+
+name1, name2 = 5, name3  ' enums with no start value
+
+varAssign1 = 4
+
+name4 = 5, name5 = 6, name7, name8 = 10           ' assignments with missing '='
+
+varAssign2 = 7
+
+name10 = 5, name11 = 6, name12 = 8, name13 = 10           ' all assignments
+
+'
+' Assembly push/pops
+'
+#0
+pp_pusha	'	PUSHA	D/#	-->	WRLONG	D/#,PTRA++
+pp_pushb	'	PUSHB	D/#	-->	WRLONG	D/#,PTRB++
+pp_popa		'	POPA	D	-->	RDLONG	D,--PTRA
+pp_popb		'	POPB	D	-->	RDLONG	D,--PTRB
+convar1
+
+' note this comment ends it! (or a blank line does)
+
+#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7
+
+#2[3], TV_1a = 4
+TV_2a = 2,
+TV_3a = TV_1a,
+TV_4a
+
+
+
+' --------------------------------------------------------------------------------------------------

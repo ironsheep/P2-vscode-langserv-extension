@@ -1,0 +1,42 @@
+' code examples that are not highlighting correctly
+' Bitmap (2)
+
+CON _clkfreq = 100_000_000
+PUB go10() | i
+    debug(`bitmap a title 'LUT1'  pos 100 100 trace 2 lut1 longs_1bit alt)
+    debug(`bitmap b title 'LUT2'  pos 370 100 trace 2 lut2 longs_2bit alt)
+    debug(`bitmap c title 'LUT4'  pos 100 395 trace 2 lut4 longs_4bit alt)
+    debug(`bitmap d title 'LUT8'  pos 370 395 trace 2 lut8 longs_8bit)
+    debug(`bitmap e title 'RGB8'  pos 100 690 trace 2 rgb8)
+    debug(`bitmap f title 'RGB16' pos 370 690 trace 2 rgb16)
+    debug(`bitmap g title 'RGB24' pos 640 690 trace 2 rgb24)
+    waitms(1000)
+
+    showbmp("a", @image1, $8A, 2, $800)     'send LUT1 image
+    showbmp("b", @image2, $36,   4, $1000)  'send LUT2 image
+    showbmp("c", @image3, $8A,  16, $2000)  'send LUT4 image
+    showbmp("d", @image4, $36, 256, $4000)  'send LUT8 image
+
+    i := @image5 + $36 'send RGB8/RGB16/RGB24 images from the same 24-bpp file
+    repeat $10000
+        debug(`e `uhex_(byte[i+0] >> 6 + byte[i+1] >> 5 << 2 + byte[i+2] >> 5 << 5 ))
+        debug(`f `uhex_(byte[i+0] >> 3 + byte[i+1] >> 2 << 5 + byte[i+2] >> 3 << 11))
+        debug(`g `uhex_(byte[i+0]      + byte[i+1] << 8      + byte[i+2] << 16     ))
+        i += 3
+
+PRI showbmp(letter, image_address, lut_offset, lut_size, image_longs) | i
+  image_address += lut_offset
+  {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
+  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  'debug(` zstr_(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  'debug(`lstr_(letter, 4) lutcolors `uhex_long_array_(image_address, lut_size))
+  image_address += lut_size << 2 - 4
+  repeat image_longs
+    debug(``#(letter) `uhex_(long[image_address += 4]))
+
+DAT
+    image1 file "bird_lut1.bmp"
+    image2 file "bird_lut2.bmp"
+    image3 file "bird_lut4.bmp"
+    image4 file "bird_lut8.bmp"
+    image5 file "bird_rgb24.bmp"

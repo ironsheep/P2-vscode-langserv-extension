@@ -1,0 +1,10 @@
+PUB ShowFiles()
+PUB ShowStats()                   ' should have empty filesystem
+PUB ShowTestEndCounts()
+PUB evaluate(handle, Flash.SUCCESS)
+PUB evaluateFSStats(@"post file write", 1, 1)
+PUB evaluateFileStats(@testfile, 1, Flash.BYTES_IN_HEAD_BLOCK)
+PUB evaluateValue(longValue, @"rd_long", longOffset)
+PUB showError(@"format()", status)
+PUB showFileDetails(@testfile)
+PUB startTest(@"BAD: Read when file doesn't exist")

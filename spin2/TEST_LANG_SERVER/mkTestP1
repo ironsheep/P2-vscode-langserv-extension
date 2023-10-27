@@ -1,0 +1,4 @@
+#/bin/bash
+NOW=`date +%y%m%d-%H%M%S`
+
+(set -x;./mkSpinList.py -f P1-Obex.taskpaper -o f1.taskpaper -r /Users/stephen/Dropbox/PropV2-Shared/P1-Obex/p1/All -v -d)

@@ -1,0 +1,22 @@
+{
+  "name": "spin2-client",
+  "description": "VSCode part of a language server",
+  "author": "IronSheep",
+  "license": "MIT",
+  "version": "0.0.1",
+  "publisher": "IronSheepProductionsLLC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ironsheep/P2-vscode-extensions"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.1",
+    "@vscode/test-electron": "^2.2.3"
+  }
+}

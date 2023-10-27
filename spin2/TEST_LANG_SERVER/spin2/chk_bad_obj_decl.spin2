@@ -1,0 +1,27 @@
+
+CON
+
+VIDEO_BASEPIN = 24
+VIDEO_VSYNC   = 24+4 ' only for VGA
+
+'{ Uncomment for VGA output
+VIDEO_TYPE       = video.VGA
+VIDEO_RESOLUTION = video.RES_1024x768 ' video resolutions. Not all options from p2videodrv work properly. Set to zero for 240p SDTV!
+VIDEO_PAL        = false
+'}
+{ Uncomment for TV output
+VIDEO_TYPE       = video.SVIDEO_CVBS
+VIDEO_RESOLUTION = 0  'Set to zero for 240p SDTV!
+VIDEO_PAL        = false ' use PAL60 instead of NTSC.
+'}
+
+'' SD card
+SD_DO = 58
+SD_CLK = 61
+SD_DI = 59
+SD_SELECT = 60
+
+
+OBJ
+
+  video = "p2videodrv.spin2"

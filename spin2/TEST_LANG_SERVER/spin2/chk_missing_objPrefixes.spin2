@@ -1,0 +1,119 @@
+'' =================================================================================================
+''
+''   File....... UT_read_seek_test.spin2
+''   Purpose.... This object exercises the
+''   Author..... Stephen M Moraco
+''               -- see below for terms of use
+''   E-mail.....stephen@ironsheep.biz
+''   Started.... AUG 2023
+''   Updated.... 26 AUG 2023
+''
+'' =================================================================================================
+
+CON
+
+     _CLKFREQ        = 320_000_000
+
+{
+    ' debug via serial to RPi (using RPi gateway pins)
+    DEBUG_PIN_TX = 57
+    DEBUG_PIN_RX = 56
+    DEBUG_BAUD = 2_000_000
+'}
+
+OBJ
+    Flash : "dummy_Draft_flash_fs"
+    utils : "dummy_UT_utilities"
+
+DAT
+
+testfile        byte "seektest.bin", 0
+
+PUB go() : status, handle, longValue, longOffset
+
+    status := Flash.format()      ' Comment out this line to not erase all files
+    if status < 0
+        utils.showError(@"format()", status)
+        return
+
+    status := Flash.mount()
+    if status < 0
+        utils.showError(@"mount()", status)
+        return
+
+    utils.ShowStats()                   ' should have empty filesystem
+    utils.ShowFiles()
+
+    ' ----------------------------------
+    ' TEST
+    '  open file for read
+    '  ensure returns error (doesn't exist)
+    utils.startTest(@"BAD: Read when file doesn't exist")
+    handle := open(@testfile,"r")
+    evaluate(handle, Flash.E_FILE_NOT_FOUND)                 ' FIXME: this should be RED (not defined in this file!)
+
+    '  open file for write
+    '  ensure returns SUCCESS
+    utils.startTest(@"Open File for write")
+    handle := Flash.open(@testfile,"w")
+    utils.evaluate(handle, Flash.SUCCESS)
+
+    '  attempt seek and verify that seek on write-only file returns error
+    startTest(@"BAD: seek on write-only file")                 ' FIXME: this should be RED (not defined in this file!)
+    status := Flash.seek(handle, 0)
+    utils.evaluate(status, Flash.E_FILE_MODE)
+
+    '  write a fixed length file of longs where value of long is offset into file
+    utils.startTest(@"Write head block full of longs")
+    repeat longValue from 0 to Flash.LONGS_IN_HEAD_BLOCK - 1
+        status := Flash.wr_long(handle, longValue)
+        if status < 0
+            utils.showError(@"wr_long()", status)
+            quit
+    utils.evaluate(status, Flash.SUCCESS)
+
+    '  close file
+    utils.startTest(@"Close written file")
+    status := Flash.Close(handle)
+    utils.evaluate(status, Flash.SUCCESS)
+
+    utils.showFileDetails(@testfile)
+
+    '  get filesystem stats and verify against expectation
+    utils.startTest(@"Ensure expected file system changes")
+    utils.evaluateFSStats(@"post file write", 1, 1)
+
+    '  get single file stats and verify against expectation
+    utils.startTest(@"Ensure expected file stats")
+    utils.evaluateFileStats(@testfile, 1, Flash.BYTES_IN_HEAD_BLOCK)
+
+    '  open file for read
+    utils.startTest(@"Open File for read")
+    handle := Flash.open(@testfile,"r")
+    utils.evaluate(handle, Flash.SUCCESS)
+    '    seek to various locations and read longs validating for correct value
+
+    utils.startTest(@"read 10 longs randomly ensure offset is value of long")
+    repeat 10
+        longOffset := (GETRND() +// Flash.LONGS_IN_HEAD_BLOCK) * 4
+        debug("  Offset: ", udec_(longOffset), " (", udec_(longOffset / 4), " of ", udec_(Flash.LONGS_IN_HEAD_BLOCK), ")")
+        status := Flash.seek(handle, longOffset)
+        if status < 0
+            quit
+        longValue := Flash.rd_long(handle)
+        status := Flash.error()
+        if status < 0
+            quit
+        utils.evaluateValue(longValue, @"rd_long", longOffset)
+    utils.startTest(@"ensure no errors on read")
+    utils.evaluate(status, Flash.SUCCESS)
+
+    '  seek past end of file to verify seek returns error
+    utils.startTest(@"BAD: see beyond end of file")
+    status := Flash.seek(handle, (Flash.LONGS_IN_HEAD_BLOCK + 2) * 4)
+    utils.evaluate(status, Flash.E_FILE_SEEK)
+
+    ShowFiles()                 ' FIXME: this should be RED (not defined in this file!)
+    utils.ShowTestEndCounts()
+
+    debug("* Test Complete")

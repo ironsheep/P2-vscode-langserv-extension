@@ -1,0 +1,7 @@
+VAR
+
+    byte    cmd[4]
+
+pub main()
+    ' ERROR following comment is not classified as comment!!
+    bytefill(@cmd, 0, 4)        ' uint8_t cmd[] := {0x00, 0x03, 0x00, 0x00}

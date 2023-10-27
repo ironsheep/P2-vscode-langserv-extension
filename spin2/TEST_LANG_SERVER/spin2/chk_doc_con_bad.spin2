@@ -1,0 +1,5 @@
+'------------------------------------------------------------------------------
+' Protocol error codes:
+    #0, ERR_NONE, ERR_CMD, ERR_URX, ERR_SE1, ERR_PACKET, ERR_TAT, ERR_TXN_RETRY
+    ERR_XFER_RETRY, ERR_NAK, ERR_DATAX_SYNC, ERR_CONFIG_FAIL, ERR_TIMEOUT  ' <-- should be red, UNKNOWN
+'------------------------------------------------------------------------------

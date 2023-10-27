@@ -1,0 +1,12 @@
+CON
+
+
+#0, HV_1, HV_2, HV_3, HV_4, HV_MAX = HV_4   ' this is legal PNut syntax, please fix  (#8)
+
+#0, HV_1, HV_2, HV_3, HV_4[0], HV_MAX
+
+#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7  ' this is legal PNut syntax, please fix  (#8)
+
+PRI main() | temp
+
+    temp := TV_2    ' <--- BAD... is legal PNut syntax, please fix  (#8) - (failing to add gloval symbols for these!)

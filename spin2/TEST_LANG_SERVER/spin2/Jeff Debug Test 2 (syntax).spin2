@@ -1,0 +1,49 @@
+CON
+  _clkfreq = 180_000_000
+
+  i = 5.0
+  j = -5.0               ' This is properly understood by the compiler as a negative floating point constant value
+  k = -. 5.0             ' This is the same as above for a constant value
+
+PUB go() | l
+
+
+  debug(udec(fsqrt ~~i), fdec(i), " (good)")
+  debug(udec(nan(j)), fdec(j), " (good)")
+  debug(udec(fabs k), fdec(encod k), " (good)")
+
+  l := -i                 ' Bad, this is a runtime integer negation operation on a floating-point formatted value
+  debug(udec(l), fdec(l), " (BAD)")
+
+  l := -. i
+  debug(udec(l), fdec(l), " (good)")
+
+
+ repeat i from 0 to 9
+   debug(udec(i))
+ debug("Loop done")
+
+PUB test() | intVal, floatVal
+
+'{
+-. floatVal       ' = negate
+FABS floatVal      ' = absolute
+floatVal *. floatVal  ' = multiply
+floatVal /. floatVal  ' = divide
+floatVal +. floatVal  ' = add
+floatVal -. floatVal  ' = negate
+floatVal <. floatVal  ' = check for less-than, returns integer 0 or -1
+floatVal <=. floatVal ' = check for less-than-or-equal, returns integer 0 or -1
+floatVal ==. floatVal ' = check for equal, returns integer 0 or -1
+floatVal <>. floatVal ' = check for not-equal, returns integer 0 or -1
+floatVal >=. floatVal ' = check for greater-than-or-equal, returns integer 0 or -1
+floatVal >. floatVal  ' = check for greater-than, returns integer 0 or -1
+floatVal <. floatVal  ' = check for less-than, returns integer 0 or -1
+FLOAT(intVal)  ' = convert integer to float
+ROUND(floatVal)    ' = round float to integer
+TRUNC(floatVal)    ' = truncate float to integer
+NAN(floatVal)      ' = check float for not-a-number, returns integer 0 or -1
+
+' Note that comparisons return integer 0 and -1 which is the same as the constants FALSE and TRUE, respectively,
+' so results are compatible with Boolean conditional statements.
+'}

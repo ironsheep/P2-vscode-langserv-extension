@@ -1,0 +1,257 @@
+' code examples that are not highlighting correctly
+'  SCOPE (0)  - Oscilloscope with 1..8 channels, can trigger on level with hysteresis
+
+PUB oscilloscope() | chanA, chanB, chanC
+'' TASK: display oscilloscope waveforms
+
+    debug(`scope Scope1 pos 100 0 size 800 600 linesize 6)  ' end of line comments
+    debug(`Scope1 'Analog Input' 0 3300 250 0 %1111 red)  ' WARNING (if no comment here semantic highlight is BAD!!!)
+    debug(`Scope1 'Digital Output' 0 3300 250 300 %1111 green) ' end of line comments
+    debug(`Scope1 samples 16 trigger -1)
+    debug(`term Term1 pos 914 71 size 30 1 textsize 20 color red) ' end of line comments
+    debug(`term Term2 pos 914 0 size 30 1 textsize 20 color green)
+
+    repeat
+        'chanA := analog[CHAN_A_IDX].read()
+        'chanB := analog[CHAN_B_IDX].read()
+
+        debug(`Term1 0) ' end of line comments
+        debug(`Term2 0)
+        debug(`Term1 'Pin 0 = ' '`(chanA)' ' *0.001V')
+        debug(`Term2 'Pin 1 = ' '`(chanB)' ' *0.001V') ' end of line comments
+        debug(`Scope1 `(chanA) `(chanB))
+        waitms(20)
+
+
+' EXAMPLEs from Spin2 doc (chips examples)
+
+' -----------------
+'  SCOPE (1)  - Oscilloscope with 1..8 channels, can trigger on level with hysteresis
+
+CON _clkfreq = 10_000_000
+PUB go() | i
+  debug(`SCOPE MyScope2 SIZE 254 84 SAMPLES 128)
+  debug(`MyScope2 'Sawtooth' 0 63 64 10 %1111) ' add comment
+  repeat
+    debug(`MyScope2 `(i & 63))
+    i++         ' BUG!!!  i not colored!?
+    waitms(50)
+
+' -----------------
+'  SCOPE (2)
+
+CON _clkfreq = 100_000_000
+
+PUB go2() | a, af, b, bf
+  debug(`SCOPE MyScope)
+  debug(`MyScope 'FreqA' -1000 1000 100 136 15 MAGENTA)
+  debug(`MyScope 'FreqB' -1000 1000 100 20 15 ORANGE)
+  debug(`MyScope TRIGGER 0 HOLDOFF 2)
+  repeat
+    a := qsin(1000, af++, 200)
+    b := qsin(1000, bf++, 99)
+    debug(`MyScope `(a,b))
+    waitus(200)
+
+' -----------------
+' TERM (1)
+CON _clkfreq = 10_000_000
+
+PUB go3() | i
+  debug(`TERM MyTerm SIZE 9 1 TEXTSIZE 40)
+  repeat
+    repeat i from 50 to 60
+      debug(`MyTerm 1 'Temp = `(i)')
+      waitms(500)
+
+' -----------------
+' LOGIC (1)
+
+CON _clkfreq = 10_000_000
+PUB go4() | i
+  debug(`LOGIC MyLogic SAMPLES 32 'Low' 3 'Mid' 2 'High')
+  debug(`MyLogic TRIGGER $07 $04 HOLDOFF 2)
+  repeat
+    debug(`MyLogic `(i & 63))
+    i++
+    waitms(25)
+
+' -----------------
+' LOGIC (2)
+
+CON _clkfreq  = 333_333_333  'go really fast, 3ns clock period
+    rxpin = 24
+    txpin = rxpin + 1
+    samps = 32
+    bufflongs = samps / 16
+    xmode = $D0800000 + rxpin << 17 + samps   'streamer mode
+
+VAR     buff[bufflongs]
+
+PUB go5() | i, buffaddr
+
+  debug(`logic Serial samples `(samps) spacing 12 'TX' 'IN' longs_2bit)
+  debug(`Serial trigger %10 %10 22)
+  buffaddr := @buff
+
+repeat
+    org
+        wrpin   ##+1<<28, #rxpin        ' rxpin inputs txpin at rxpin+1
+
+        wrpin   #%01_11110_0, #txpin    ' set async tx mode for txpin
+        wxpin   ##1<<16+8-1, #txpin     ' set baud=sysclock/1 and size=8
+        dirh    #txpin                  ' enable smart pin
+
+        wrfast  #0, buffaddr            ' set write-fast at buff
+        xinit   ##xmode, #0             ' start capturing 2-bit samples
+
+        wypin   i, #txpin               ' transmit serial byte
+        waitxfi                         ' wait for streamer capture done
+    end
+
+    debug(`Serial `uhex_long_array_(@buff, bufflongs))
+    i++
+    waitms(20)
+
+
+' -----------------
+' FFT
+
+CON _clkfreq = 100_000_000
+PUB go6() | i, j, k
+  ' Set up FFT
+  debug(`FFT MyFFT SIZE 250 200 SAMPLES 2048 0 127 RATE 256 LOGSCALE COLOR YELLOW 4 YELLOW 5)
+  debug(`MyFFT 'FFT' 0 1000 180 10 15 YELLOW 12)
+  ' Set up SCOPE
+  debug(`scope MyScope POS 300 0 SIZE 255 200 COLOR CYAN 4 CYAN 5)
+  debug(`MyScope 'Sine' -1000 1000 180 10 15 CYAN 12)
+  debug(`MyScope TRIGGER 0)
+  repeat
+    j += 1550 + qsin(1300, i++, 31_000)
+    k := qsin(1000, j, 50_000)
+    debug(`MyFFT MyScope `(k))
+    waitus(100)
+
+' -----------------
+' Spectro
+
+CON _clkfreq = 100_000_000
+PUB go7() | i, j, k
+  ' Set up SPECTRO
+  debug(`SPECTRO MySpectro SAMPLES 2048 0 236 RANGE 1000 LUMA8X GREEN)
+  ' Set up SCOPE
+  debug(`SCOPE MyScope POS 280 SIZE 150 200 COLOR GREEN 15 GREEN 12)
+  debug(`MyScope 'Sine' -1000 1000 180 10 0 GREEN 6)
+  debug(`MyScope TRIGGER 0)
+  repeat
+    j += 2850 + qsin(2500, i++, 30_000)
+    k := qsin(1000, j, 50_000)
+    debug(`MySpectro MyScope `(k))
+    waitus(100)
+
+' -----------------
+' Plot
+
+CON _clkfreq = 10_000_000
+PUB go8(): i, j, k
+  debug(`plot myplot size 400 480 backcolor white update)
+  debug(`myplot origin 200 200 polar -64 -16)
+  k~
+  repeat
+    debug(`myplot clear)
+    debug(`myplot set 240 0 cyan 3 text 24 3 'Hub RAM Interface')
+    debug(`myplot set 210 0 text 11 3 'Cogs can r/w 32 bits per clock')
+    if k & 8    'move RAMs or draw spokes?
+      j++
+    else
+      repeat i from 0 to 7
+        debug(`myplot grey 12 set 83 `(i*8) line 150 `(i*8) 15)
+    debug(`myplot set 0 0 cyan 4 circle 121 yellow 7 circle 117 3)
+    debug(`myplot set 20 0 white text 10 'Address LSBs')
+    debug(`myplot set 0 0 text 12 1 '8 Hub RAMs')
+    debug(`myplot set 20 32 text 10 '16K x 32' )
+    repeat i from 0 to 7    'draw RAMs and cogs
+      debug(`myplot cyan 6 set 83 `(i*8-j) circle 43 text 14 '`(i)')
+      debug(`myplot cyan 4 set 83 `(i*8-j) circle 45 3)
+      debug(`myplot orange 6 set 150 `(i*8) circle 61 text 13 'Cog`(i)')
+      debug(`myplot orange 4 set 150 `(i*8) circle 63 3)
+    debug(`myplot update `dly(30))
+    k++
+
+' -----------------
+' Bitmap
+
+CON _clkfreq = 10_000_000
+PUB go9() | i
+  debug(`bitmap MyBitmap SIZE 32 16 DOTSIZE 8 LUT2 LONGS_2BIT)
+  debug(`MyBitmap TRACE 14 LUTCOLORS WHITE RED BLUE YELLOW 6)
+  repeat
+    debug(`MyBitmap `uhex_(flag[i++ & $1F]) `dly(100))
+
+DAT
+flag    long %%3333333333333330
+        long %%0010101022222220
+        long %%0010101020202020
+        long %%0010101022222220
+        long %%0010101022020220
+        long %%0010101022222220
+        long %%0010101020202020
+        long %%0010101022222220
+        long %%0010101022020220
+        long %%0010101022222220
+        long %%0010101020202020
+        long %%0010101022222220
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0010101010101010
+        long %%0000000000000000
+        long %%0000000000000000
+        long %%0000000000000000
+        long %%0000000000000000
+        long %%0000000000000000
+
+' -----------------
+' Bitmap (2)
+
+CON _clkfreq = 100_000_000
+PUB go10() | i
+    debug(`bitmap a title 'LUT1'  pos 100 100 trace 2 lut1 longs_1bit alt)
+    debug(`bitmap b title 'LUT2'  pos 370 100 trace 2 lut2 longs_2bit alt)
+    debug(`bitmap c title 'LUT4'  pos 100 395 trace 2 lut4 longs_4bit alt)
+    debug(`bitmap d title 'LUT8'  pos 370 395 trace 2 lut8 longs_8bit)
+    debug(`bitmap e title 'RGB8'  pos 100 690 trace 2 rgb8)
+    debug(`bitmap f title 'RGB16' pos 370 690 trace 2 rgb16)
+    debug(`bitmap g title 'RGB24' pos 640 690 trace 2 rgb24)
+    waitms(1000)
+
+    i := @image5 + $36 'send RGB8/RGB16/RGB24 images from the same 24-bpp file
+    repeat $10000
+        debug(`e `uhex_(byte[i+0] >> 6 + byte[i+1] >> 5 << 2 + byte[i+2] >> 5 << 5 ))
+        debug(`f `uhex_(byte[i+0] >> 3 + byte[i+1] >> 2 << 5 + byte[i+2] >> 3 << 11))
+        debug(`g `uhex_(byte[i+0]      + byte[i+1] << 8      + byte[i+2] << 16     ))
+        i += 3
+
+PRI showbmp(letter, image_address, lut_offset, lut_size, image_longs) | i
+  image_address += lut_offset
+  {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
+  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  'debug(` zstr_(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  'debug(`lstr_(letter, 4) lutcolors `uhex_long_array_(image_address, lut_size))
+  image_address += lut_size << 2 - 4
+  repeat image_longs
+    debug(``#(letter) `uhex_(long[image_address += 4]))
+
+DAT
+image5  BYTE 0,0,0 ' dummy for file content - so we can highlight correctly

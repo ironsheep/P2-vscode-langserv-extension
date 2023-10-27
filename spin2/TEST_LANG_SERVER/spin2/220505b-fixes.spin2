@@ -1,0 +1,40 @@
+' --------------------------------------------------------------------------------------------------
+
+CON
+    PIN_BUTTON = 2
+
+
+    IDLEB       = 4
+    IDLEF        = decod(IDLEB)             ' Set when USB in idle state  BUG!!! decod should be recognized
+
+PUB SAR_ADC_Demo() : value | i, daclevel
+    debug(`term terminal pos 100 438 color cyan size 55 6 textsize 14)
+
+    repeat
+        debug(`terminal 0)
+        daclevel~   ' reset to zero
+        repeat i from 0 to 7
+            repeat until ina.[PIN_BUTTON] == 1  ' wait for BTN press
+            waitms(20)
+            repeat until ina.[PIN_BUTTON] == 0  ' wait for BTN release
+            debug(`terminal 1, 'Bit # =`(i)', 10)   ' <=== waaaa   i var found within 'terminal' BUG!!!
+
+' --------------------------------------------------------------------------------------------------
+
+CON
+    PIN_8BIT_ADC = 2
+
+PUB ADC_DSP_DAC_Demo() | ADCvalue, timer
+    debug(`term terminal pos 100 438 color blue size 20 2 textsize 24)
+    wrpin(PIN_8BIT_ADC, P_LEVEL_A)
+
+    repeat
+        timer := getct()
+        timer := timer + clkfreq / 100  ' 100ms from now...
+        ADCvalue := SAR_ADC()
+        debug(`terminal 1, 'ADCvalue = `(ADCvalue)   ', 10)     ' <==  whaaa  indexing off on match! (not in string please! string should be darkRED)
+        debug(`terminal 'ADCvalue = `(ADCvalue)   ', 10)   ' <==  whaaa  indexing off on match! (not in string please! string should be darkRED)
+
+PRI SAR_ADC() : retValue
+
+' --------------------------------------------------------------------------------------------------

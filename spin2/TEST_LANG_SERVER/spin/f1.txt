@@ -1,0 +1,4259 @@
+[Trace - 7:13:26 PM] Sending request 'initialize - (0)'.
+Params: {
+    "processId": 60809,
+    "clientInfo": {
+        "name": "Visual Studio Code",
+        "version": "1.83.1"
+    },
+    "locale": "en",
+    "rootPath": "/Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/Spin2-LSP-000/TEST_LANG_SERVER",
+    "rootUri": "file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER",
+    "capabilities": {
+        "workspace": {
+            "applyEdit": true,
+            "workspaceEdit": {
+                "documentChanges": true,
+                "resourceOperations": [
+                    "create",
+                    "rename",
+                    "delete"
+                ],
+                "failureHandling": "textOnlyTransactional",
+                "normalizesLineEndings": true,
+                "changeAnnotationSupport": {
+                    "groupsOnLabel": true
+                }
+            },
+            "configuration": true,
+            "didChangeWatchedFiles": {
+                "dynamicRegistration": true,
+                "relativePatternSupport": true
+            },
+            "symbol": {
+                "dynamicRegistration": true,
+                "symbolKind": {
+                    "valueSet": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        12,
+                        13,
+                        14,
+                        15,
+                        16,
+                        17,
+                        18,
+                        19,
+                        20,
+                        21,
+                        22,
+                        23,
+                        24,
+                        25,
+                        26
+                    ]
+                },
+                "tagSupport": {
+                    "valueSet": [
+                        1
+                    ]
+                },
+                "resolveSupport": {
+                    "properties": [
+                        "location.range"
+                    ]
+                }
+            },
+            "codeLens": {
+                "refreshSupport": true
+            },
+            "executeCommand": {
+                "dynamicRegistration": true
+            },
+            "didChangeConfiguration": {
+                "dynamicRegistration": true
+            },
+            "workspaceFolders": true,
+            "semanticTokens": {
+                "refreshSupport": true
+            },
+            "fileOperations": {
+                "dynamicRegistration": true,
+                "didCreate": true,
+                "didRename": true,
+                "didDelete": true,
+                "willCreate": true,
+                "willRename": true,
+                "willDelete": true
+            },
+            "inlineValue": {
+                "refreshSupport": true
+            },
+            "inlayHint": {
+                "refreshSupport": true
+            },
+            "diagnostics": {
+                "refreshSupport": true
+            }
+        },
+        "textDocument": {
+            "publishDiagnostics": {
+                "relatedInformation": true,
+                "versionSupport": false,
+                "tagSupport": {
+                    "valueSet": [
+                        1,
+                        2
+                    ]
+                },
+                "codeDescriptionSupport": true,
+                "dataSupport": true
+            },
+            "synchronization": {
+                "dynamicRegistration": true,
+                "willSave": true,
+                "willSaveWaitUntil": true,
+                "didSave": true
+            },
+            "completion": {
+                "dynamicRegistration": true,
+                "contextSupport": true,
+                "completionItem": {
+                    "snippetSupport": true,
+                    "commitCharactersSupport": true,
+                    "documentationFormat": [
+                        "markdown",
+                        "plaintext"
+                    ],
+                    "deprecatedSupport": true,
+                    "preselectSupport": true,
+                    "tagSupport": {
+                        "valueSet": [
+                            1
+                        ]
+                    },
+                    "insertReplaceSupport": true,
+                    "resolveSupport": {
+                        "properties": [
+                            "documentation",
+                            "detail",
+                            "additionalTextEdits"
+                        ]
+                    },
+                    "insertTextModeSupport": {
+                        "valueSet": [
+                            1,
+                            2
+                        ]
+                    },
+                    "labelDetailsSupport": true
+                },
+                "insertTextMode": 2,
+                "completionItemKind": {
+                    "valueSet": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        12,
+                        13,
+                        14,
+                        15,
+                        16,
+                        17,
+                        18,
+                        19,
+                        20,
+                        21,
+                        22,
+                        23,
+                        24,
+                        25
+                    ]
+                },
+                "completionList": {
+                    "itemDefaults": [
+                        "commitCharacters",
+                        "editRange",
+                        "insertTextFormat",
+                        "insertTextMode"
+                    ]
+                }
+            },
+            "hover": {
+                "dynamicRegistration": true,
+                "contentFormat": [
+                    "markdown",
+                    "plaintext"
+                ]
+            },
+            "signatureHelp": {
+                "dynamicRegistration": true,
+                "signatureInformation": {
+                    "documentationFormat": [
+                        "markdown",
+                        "plaintext"
+                    ],
+                    "parameterInformation": {
+                        "labelOffsetSupport": true
+                    },
+                    "activeParameterSupport": true
+                },
+                "contextSupport": true
+            },
+            "definition": {
+                "dynamicRegistration": true,
+                "linkSupport": true
+            },
+            "references": {
+                "dynamicRegistration": true
+            },
+            "documentHighlight": {
+                "dynamicRegistration": true
+            },
+            "documentSymbol": {
+                "dynamicRegistration": true,
+                "symbolKind": {
+                    "valueSet": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        12,
+                        13,
+                        14,
+                        15,
+                        16,
+                        17,
+                        18,
+                        19,
+                        20,
+                        21,
+                        22,
+                        23,
+                        24,
+                        25,
+                        26
+                    ]
+                },
+                "hierarchicalDocumentSymbolSupport": true,
+                "tagSupport": {
+                    "valueSet": [
+                        1
+                    ]
+                },
+                "labelSupport": true
+            },
+            "codeAction": {
+                "dynamicRegistration": true,
+                "isPreferredSupport": true,
+                "disabledSupport": true,
+                "dataSupport": true,
+                "resolveSupport": {
+                    "properties": [
+                        "edit"
+                    ]
+                },
+                "codeActionLiteralSupport": {
+                    "codeActionKind": {
+                        "valueSet": [
+                            "",
+                            "quickfix",
+                            "refactor",
+                            "refactor.extract",
+                            "refactor.inline",
+                            "refactor.rewrite",
+                            "source",
+                            "source.organizeImports"
+                        ]
+                    }
+                },
+                "honorsChangeAnnotations": false
+            },
+            "codeLens": {
+                "dynamicRegistration": true
+            },
+            "formatting": {
+                "dynamicRegistration": true
+            },
+            "rangeFormatting": {
+                "dynamicRegistration": true
+            },
+            "onTypeFormatting": {
+                "dynamicRegistration": true
+            },
+            "rename": {
+                "dynamicRegistration": true,
+                "prepareSupport": true,
+                "prepareSupportDefaultBehavior": 1,
+                "honorsChangeAnnotations": true
+            },
+            "documentLink": {
+                "dynamicRegistration": true,
+                "tooltipSupport": true
+            },
+            "typeDefinition": {
+                "dynamicRegistration": true,
+                "linkSupport": true
+            },
+            "implementation": {
+                "dynamicRegistration": true,
+                "linkSupport": true
+            },
+            "colorProvider": {
+                "dynamicRegistration": true
+            },
+            "foldingRange": {
+                "dynamicRegistration": true,
+                "rangeLimit": 5000,
+                "lineFoldingOnly": true,
+                "foldingRangeKind": {
+                    "valueSet": [
+                        "comment",
+                        "imports",
+                        "region"
+                    ]
+                },
+                "foldingRange": {
+                    "collapsedText": false
+                }
+            },
+            "declaration": {
+                "dynamicRegistration": true,
+                "linkSupport": true
+            },
+            "selectionRange": {
+                "dynamicRegistration": true
+            },
+            "callHierarchy": {
+                "dynamicRegistration": true
+            },
+            "semanticTokens": {
+                "dynamicRegistration": true,
+                "tokenTypes": [
+                    "namespace",
+                    "type",
+                    "class",
+                    "enum",
+                    "interface",
+                    "struct",
+                    "typeParameter",
+                    "parameter",
+                    "variable",
+                    "property",
+                    "enumMember",
+                    "event",
+                    "function",
+                    "method",
+                    "macro",
+                    "keyword",
+                    "modifier",
+                    "comment",
+                    "string",
+                    "number",
+                    "regexp",
+                    "operator",
+                    "decorator"
+                ],
+                "tokenModifiers": [
+                    "declaration",
+                    "definition",
+                    "readonly",
+                    "static",
+                    "deprecated",
+                    "abstract",
+                    "async",
+                    "modification",
+                    "documentation",
+                    "defaultLibrary"
+                ],
+                "formats": [
+                    "relative"
+                ],
+                "requests": {
+                    "range": true,
+                    "full": {
+                        "delta": true
+                    }
+                },
+                "multilineTokenSupport": false,
+                "overlappingTokenSupport": false,
+                "serverCancelSupport": true,
+                "augmentsSyntaxTokens": true
+            },
+            "linkedEditingRange": {
+                "dynamicRegistration": true
+            },
+            "typeHierarchy": {
+                "dynamicRegistration": true
+            },
+            "inlineValue": {
+                "dynamicRegistration": true
+            },
+            "inlayHint": {
+                "dynamicRegistration": true,
+                "resolveSupport": {
+                    "properties": [
+                        "tooltip",
+                        "textEdits",
+                        "label.tooltip",
+                        "label.location",
+                        "label.command"
+                    ]
+                }
+            },
+            "diagnostic": {
+                "dynamicRegistration": true,
+                "relatedDocumentSupport": false
+            }
+        },
+        "window": {
+            "showMessage": {
+                "messageActionItem": {
+                    "additionalPropertiesSupport": true
+                }
+            },
+            "showDocument": {
+                "support": true
+            },
+            "workDoneProgress": true
+        },
+        "general": {
+            "staleRequestSupport": {
+                "cancel": true,
+                "retryOnContentModified": [
+                    "textDocument/semanticTokens/full",
+                    "textDocument/semanticTokens/range",
+                    "textDocument/semanticTokens/full/delta"
+                ]
+            },
+            "regularExpressions": {
+                "engine": "ECMAScript",
+                "version": "ES2020"
+            },
+            "markdown": {
+                "parser": "marked",
+                "version": "1.1.0"
+            },
+            "positionEncodings": [
+                "utf-16"
+            ]
+        },
+        "notebookDocument": {
+            "synchronization": {
+                "dynamicRegistration": true,
+                "executionSummarySupport": true
+            }
+        }
+    },
+    "trace": "verbose",
+    "workspaceFolders": [
+        {
+            "uri": "file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER",
+            "name": "TEST_LANG_SERVER"
+        }
+    ]
+}
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "Spin1 semantic log started."
+}
+
+
+Spin1 semantic log started.
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "CL-TRC: onInitialize() Workspace folders [[{\"uri\":\"file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER\",\"name\":\"TEST_LANG_SERVER\"}]]"
+}
+
+
+CL-TRC: onInitialize() Workspace folders [[{"uri":"file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER","name":"TEST_LANG_SERVER"}]]
+[Trace - 7:13:26 PM] Received response 'initialize - (0)' in 216ms.
+Result: {
+    "capabilities": {
+        "completionProvider": {
+            "triggerCharacters": [
+                "."
+            ],
+            "resolveProvider": true
+        },
+        "semanticTokensProvider": {
+            "full": {
+                "delta": false
+            },
+            "legend": {
+                "tokenTypes": [
+                    "comment",
+                    "string",
+                    "keyword",
+                    "number",
+                    "regexp",
+                    "operator",
+                    "namespace",
+                    "type",
+                    "struct",
+                    "class",
+                    "interface",
+                    "enum",
+                    "typeParameter",
+                    "function",
+                    "method",
+                    "macro",
+                    "variable",
+                    "parameter",
+                    "property",
+                    "label",
+                    "enumMember",
+                    "event",
+                    "returnValue",
+                    "storageType",
+                    "colorName",
+                    "displayType",
+                    "displayName",
+                    "setupParameter",
+                    "feedParameter"
+                ],
+                "tokenModifiers": [
+                    "declaration",
+                    "documentation",
+                    "readonly",
+                    "static",
+                    "abstract",
+                    "deprecated",
+                    "modification",
+                    "async",
+                    "definition",
+                    "defaultLibrary",
+                    "local",
+                    "pasmInline",
+                    "instance",
+                    "missingDeclaration",
+                    "illegalUse"
+                ]
+            }
+        },
+        "documentSymbolProvider": true,
+        "hoverProvider": true,
+        "signatureHelpProvider": {
+            "triggerCharacters": [
+                "(",
+                ","
+            ],
+            "retriggerCharacters": [
+                "(",
+                ","
+            ]
+        },
+        "textDocumentSync": 2,
+        "workspace": {
+            "workspaceFolders": {
+                "supported": true
+            }
+        }
+    }
+}
+
+
+[Trace - 7:13:26 PM] Sending notification 'initialized'.
+Params: {}
+
+
+[Trace - 7:13:26 PM] Sending notification 'textDocument/didOpen'.
+Params: {
+    "textDocument": {
+        "uri": "file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin",
+        "languageId": "spin",
+        "version": 1,
+        "text": "' --------------------------------------------------------------------------------------------------\n' testing of enum constant per line code\nCON\n\nname1, name2 = 5, name3  ' enums with no start value\n\nvarAssign1 = 4\n\nname4 = 5, name5 = 6, name7, name8 = 10           ' assignments with missing '='\n\nvarAssign2 = 7\n\nname10 = 5, name11 = 6, name12 = 8, name13 = 10           ' all assignments\n\n'\n' Assembly push/pops\n'\n#0\npp_pusha\t'\tPUSHA\tD/#\t-->\tWRLONG\tD/#,PTRA++\npp_pushb\t'\tPUSHB\tD/#\t-->\tWRLONG\tD/#,PTRB++\npp_popa\t\t'\tPOPA\tD\t-->\tRDLONG\tD,--PTRA\npp_popb\t\t'\tPOPB\tD\t-->\tRDLONG\tD,--PTRB\nconvar1\n\n' note this comment ends it! (or a blank line does)\n\n#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7\n\n#2[3], TV_1a = 4\nTV_2a = 2,\nTV_3a = TV_1a,\nTV_4a\n\n\n\n' --------------------------------------------------------------------------------------------------\n"
+    }
+}
+
+
+[Trace - 7:13:26 PM] Received request 'client/registerCapability - (0)'.
+Params: {
+    "registrations": [
+        {
+            "id": "a030f12d-16c1-48ed-887b-1e93d53f6c43",
+            "method": "workspace/didChangeConfiguration",
+            "registerOptions": {}
+        }
+    ]
+}
+
+
+[Trace - 7:13:26 PM] Sending response 'client/registerCapability - (0)'. Processing request took 0ms
+No result returned.
+
+
+[Trace - 7:13:26 PM] Received request 'client/registerCapability - (1)'.
+Params: {
+    "registrations": [
+        {
+            "id": "063b5833-c066-4d62-b75f-edc4f30d4fa6",
+            "method": "workspace/didChangeWorkspaceFolders",
+            "registerOptions": {}
+        }
+    ]
+}
+
+
+[Trace - 7:13:26 PM] Sending response 'client/registerCapability - (1)'. Processing request took 0ms
+No result returned.
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DOC-OPEN: parse: [v1:file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin] "
+}
+
+
+TRC: DOC-OPEN: parse: [v1:file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: STATS 1 doc(s) open, 0 processed doc(s), 0 finding(s)"
+}
+
+
+TRC: STATS 1 doc(s) open, 0 processed doc(s), 0 finding(s)
+[Trace - 7:13:26 PM] Received request 'workspace/configuration - (2)'.
+Params: {
+    "items": [
+        {
+            "section": "spinExtension.ServerBehavior"
+        }
+    ]
+}
+
+
+[Trace - 7:13:26 PM] Sending response 'workspace/configuration - (2)'. Processing request took 1ms
+Result: [
+    {
+        "maxNumberOfReportedIssues": 100,
+        "highlightFlexspinDirectives": false
+    }
+]
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(true)"
+}
+
+
+  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(true)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DP.process(file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin"
+}
+
+
+TRC: DP.process(file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DP.process() isInclude=false, skipIncludeScan=false, docFSpec=[/Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin]"
+}
+
+
+TRC: DP.process() isInclude=false, skipIncludeScan=false, docFSpec=[/Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: ADD Findings: ID:1698282806326-231023-fixes.spin"
+}
+
+
+TRC: ADD Findings: ID:1698282806326-231023-fixes.spin
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: ADD ProcessedDocument: file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin"
+}
+
+
+TRC: ADD ProcessedDocument: file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: Object Scan of Spin1 Document: /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin"
+}
+
+
+TRC: Object Scan of Spin1 Document: /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: [ID:1698282806326-231023-fixes.spin] includedFiles=[]"
+}
+
+
+TRC: [ID:1698282806326-231023-fixes.spin] includedFiles=[]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DP.process() [ID:1698282806326-231023-fixes.spin] No included files, just do final parse"
+}
+
+
+TRC: DP.process() [ID:1698282806326-231023-fixes.spin] No included files, just do final parse
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DP._parseDocument() clear() previous findings - leaving include info [ID:1698282806326-231023-fixes.spin]"
+}
+
+
+TRC: DP._parseDocument() clear() previous findings - leaving include info [ID:1698282806326-231023-fixes.spin]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DP._parseDocument() Actual-Parse Spin1 Document: 231023-fixes.spin"
+}
+
+
+TRC: DP._parseDocument() Actual-Parse Spin1 Document: 231023-fixes.spin
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "Spin2 SemanticFindings log started."
+}
+
+
+Spin2 SemanticFindings log started.
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* Config: highlightFlexspinDirectives: [false]"
+}
+
+
+* Config: highlightFlexspinDirectives: [false]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* reportDocumentSemanticTokens(file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin)"
+}
+
+
+* reportDocumentSemanticTokens(file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* ------  into findings=[ID:1698282806326-231023-fixes.spin]"
+}
+
+
+* ------  into findings=[ID:1698282806326-231023-fixes.spin]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "---> Pre SCAN"
+}
+
+
+---> Pre SCAN
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-RCD-BLOCK iblockType=[1], span=[0 - ???]"
+}
+
+
+  -- FND-RCD-BLOCK iblockType=[1], span=[0 - ???]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "** isSectStart line=[CON]"
+}
+
+
+** isSectStart line=[CON]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- found comment [singleLineCommentBlock] lines 1-2"
+}
+
+
+  -- found comment [singleLineCommentBlock] lines 1-2
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-RCD-BLOCK iblockType=[1], span=[2 - ???]"
+}
+
+
+  -- FND-RCD-BLOCK iblockType=[1], span=[2 - ???]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-RCD-ADD sequenceNbr=[1], blockType=[1], span=[0 - 1]"
+}
+
+
+  -- FND-RCD-ADD sequenceNbr=[1], blockType=[1], span=[0 - 1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- scan Ln#3 currState=[1]"
+}
+
+
+- scan Ln#3 currState=[1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#5 GetCONDecl nonCommentConstantLine=[name1, name2 = 5, name3]"
+}
+
+
+  - Ln#5 GetCONDecl nonCommentConstantLine=[name1, name2 = 5, name3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- declNotEnum containsMultiStatements=[true]"
+}
+
+
+  -- declNotEnum containsMultiStatements=[true]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[name1, name2 = 5, name3]"
+}
+
+
+  -- statements=[name1, name2 = 5, name3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name1]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name2 = 5]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name2 = 5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[name2,5](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[name2,5](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[name2]"
+}
+
+
+  -- GLBL GetCONDecl newName=[name2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:5 [name2](variable[readonly])], ln#5, cmt=[' enums with no start value], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:5 [name2](variable[readonly])], ln#5, cmt=[' enums with no start value], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #1:   -- token=[len:5 [name2](variable[readonly])]"
+}
+
+
+* gloTOK #1:   -- token=[len:5 [name2](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name3]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#7 GetCONDecl nonCommentConstantLine=[varAssign1 = 4]"
+}
+
+
+  - Ln#7 GetCONDecl nonCommentConstantLine=[varAssign1 = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- declNotEnum containsMultiStatements=[false]"
+}
+
+
+  -- declNotEnum containsMultiStatements=[false]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[varAssign1 = 4]"
+}
+
+
+  -- statements=[varAssign1 = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[varAssign1 = 4]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[varAssign1 = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[varAssign1,4](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[varAssign1,4](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[varAssign1]"
+}
+
+
+  -- GLBL GetCONDecl newName=[varAssign1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:10 [varAssign1](variable[readonly])], ln#7, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:10 [varAssign1](variable[readonly])], ln#7, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #2:   -- token=[len:10 [varAssign1](variable[readonly])]"
+}
+
+
+* gloTOK #2:   -- token=[len:10 [varAssign1](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#9 GetCONDecl nonCommentConstantLine=[name4 = 5, name5 = 6, name7, name8 = 10]"
+}
+
+
+  - Ln#9 GetCONDecl nonCommentConstantLine=[name4 = 5, name5 = 6, name7, name8 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- declNotEnum containsMultiStatements=[true]"
+}
+
+
+  -- declNotEnum containsMultiStatements=[true]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[name4 = 5, name5 = 6, name7, name8 = 10]"
+}
+
+
+  -- statements=[name4 = 5, name5 = 6, name7, name8 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name4 = 5]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name4 = 5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[name4,5](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[name4,5](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[name4]"
+}
+
+
+  -- GLBL GetCONDecl newName=[name4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:5 [name4](variable[readonly])], ln#9, cmt=[' assignments with missing '='], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:5 [name4](variable[readonly])], ln#9, cmt=[' assignments with missing '='], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #3:   -- token=[len:5 [name4](variable[readonly])]"
+}
+
+
+* gloTOK #3:   -- token=[len:5 [name4](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name5 = 6]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name5 = 6]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[name5,6](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[name5,6](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[name5]"
+}
+
+
+  -- GLBL GetCONDecl newName=[name5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:5 [name5](variable[readonly])], ln#9, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:5 [name5](variable[readonly])], ln#9, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #4:   -- token=[len:5 [name5](variable[readonly])]"
+}
+
+
+* gloTOK #4:   -- token=[len:5 [name5](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name7]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name8 = 10]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name8 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[name8,10](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[name8,10](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[name8]"
+}
+
+
+  -- GLBL GetCONDecl newName=[name8]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:5 [name8](variable[readonly])], ln#9, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:5 [name8](variable[readonly])], ln#9, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #5:   -- token=[len:5 [name8](variable[readonly])]"
+}
+
+
+* gloTOK #5:   -- token=[len:5 [name8](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#11 GetCONDecl nonCommentConstantLine=[varAssign2 = 7]"
+}
+
+
+  - Ln#11 GetCONDecl nonCommentConstantLine=[varAssign2 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- declNotEnum containsMultiStatements=[false]"
+}
+
+
+  -- declNotEnum containsMultiStatements=[false]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[varAssign2 = 7]"
+}
+
+
+  -- statements=[varAssign2 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[varAssign2 = 7]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[varAssign2 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[varAssign2,7](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[varAssign2,7](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[varAssign2]"
+}
+
+
+  -- GLBL GetCONDecl newName=[varAssign2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:10 [varAssign2](variable[readonly])], ln#11, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:10 [varAssign2](variable[readonly])], ln#11, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #6:   -- token=[len:10 [varAssign2](variable[readonly])]"
+}
+
+
+* gloTOK #6:   -- token=[len:10 [varAssign2](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#13 GetCONDecl nonCommentConstantLine=[name10 = 5, name11 = 6, name12 = 8, name13 = 10]"
+}
+
+
+  - Ln#13 GetCONDecl nonCommentConstantLine=[name10 = 5, name11 = 6, name12 = 8, name13 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- declNotEnum containsMultiStatements=[true]"
+}
+
+
+  -- declNotEnum containsMultiStatements=[true]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[name10 = 5, name11 = 6, name12 = 8, name13 = 10]"
+}
+
+
+  -- statements=[name10 = 5, name11 = 6, name12 = 8, name13 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name10 = 5]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name10 = 5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[name10,5](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[name10,5](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[name10]"
+}
+
+
+  -- GLBL GetCONDecl newName=[name10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:6 [name10](variable[readonly])], ln#13, cmt=[' all assignments], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:6 [name10](variable[readonly])], ln#13, cmt=[' all assignments], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #7:   -- token=[len:6 [name10](variable[readonly])]"
+}
+
+
+* gloTOK #7:   -- token=[len:6 [name10](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name11 = 6]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name11 = 6]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[name11,6](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[name11,6](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[name11]"
+}
+
+
+  -- GLBL GetCONDecl newName=[name11]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:6 [name11](variable[readonly])], ln#13, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:6 [name11](variable[readonly])], ln#13, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #8:   -- token=[len:6 [name11](variable[readonly])]"
+}
+
+
+* gloTOK #8:   -- token=[len:6 [name11](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name12 = 8]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name12 = 8]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[name12,8](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[name12,8](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[name12]"
+}
+
+
+  -- GLBL GetCONDecl newName=[name12]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:6 [name12](variable[readonly])], ln#13, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:6 [name12](variable[readonly])], ln#13, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #9:   -- token=[len:6 [name12](variable[readonly])]"
+}
+
+
+* gloTOK #9:   -- token=[len:6 [name12](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[name13 = 10]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[name13 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[name13,10](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[name13,10](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[name13]"
+}
+
+
+  -- GLBL GetCONDecl newName=[name13]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:6 [name13](variable[readonly])], ln#13, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:6 [name13](variable[readonly])], ln#13, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #10:   -- token=[len:6 [name13](variable[readonly])]"
+}
+
+
+* gloTOK #10:   -- token=[len:6 [name13](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- found comment [singleLineCommentBlock] lines 15-17"
+}
+
+
+  -- found comment [singleLineCommentBlock] lines 15-17
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#18 GetCONDecl nonCommentConstantLine=[#0]"
+}
+
+
+  - Ln#18 GetCONDecl nonCommentConstantLine=[#0]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl enumDecl lineParts=[#0](1)"
+}
+
+
+  -- GetCONDecl enumDecl lineParts=[#0](1)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#19 GetCONDecl nonCommentConstantLine=[pp_pusha]"
+}
+
+
+  - Ln#19 GetCONDecl nonCommentConstantLine=[pp_pusha]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl enumDecl lineParts=[pp_pusha](1)"
+}
+
+
+  -- GetCONDecl enumDecl lineParts=[pp_pusha](1)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[pp_pusha]"
+}
+
+
+  -- GLBL enumConstant=[pp_pusha]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:8 [pp_pusha](enumMember[readonly])], ln#19, cmt=['\tPUSHA\tD/#\t-->\tWRLONG\tD/#,PTRA++], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:8 [pp_pusha](enumMember[readonly])], ln#19, cmt=['	PUSHA	D/#	-->	WRLONG	D/#,PTRA++], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #11:   -- token=[len:8 [pp_pusha](enumMember[readonly])]"
+}
+
+
+* gloTOK #11:   -- token=[len:8 [pp_pusha](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#20 GetCONDecl nonCommentConstantLine=[pp_pushb]"
+}
+
+
+  - Ln#20 GetCONDecl nonCommentConstantLine=[pp_pushb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl enumDecl lineParts=[pp_pushb](1)"
+}
+
+
+  -- GetCONDecl enumDecl lineParts=[pp_pushb](1)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[pp_pushb]"
+}
+
+
+  -- GLBL enumConstant=[pp_pushb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:8 [pp_pushb](enumMember[readonly])], ln#20, cmt=['\tPUSHB\tD/#\t-->\tWRLONG\tD/#,PTRB++], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:8 [pp_pushb](enumMember[readonly])], ln#20, cmt=['	PUSHB	D/#	-->	WRLONG	D/#,PTRB++], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #12:   -- token=[len:8 [pp_pushb](enumMember[readonly])]"
+}
+
+
+* gloTOK #12:   -- token=[len:8 [pp_pushb](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#21 GetCONDecl nonCommentConstantLine=[pp_popa]"
+}
+
+
+  - Ln#21 GetCONDecl nonCommentConstantLine=[pp_popa]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl enumDecl lineParts=[pp_popa](1)"
+}
+
+
+  -- GetCONDecl enumDecl lineParts=[pp_popa](1)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[pp_popa]"
+}
+
+
+  -- GLBL enumConstant=[pp_popa]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:7 [pp_popa](enumMember[readonly])], ln#21, cmt=['\tPOPA\tD\t-->\tRDLONG\tD,--PTRA], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:7 [pp_popa](enumMember[readonly])], ln#21, cmt=['	POPA	D	-->	RDLONG	D,--PTRA], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #13:   -- token=[len:7 [pp_popa](enumMember[readonly])]"
+}
+
+
+* gloTOK #13:   -- token=[len:7 [pp_popa](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#22 GetCONDecl nonCommentConstantLine=[pp_popb]"
+}
+
+
+  - Ln#22 GetCONDecl nonCommentConstantLine=[pp_popb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl enumDecl lineParts=[pp_popb](1)"
+}
+
+
+  -- GetCONDecl enumDecl lineParts=[pp_popb](1)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[pp_popb]"
+}
+
+
+  -- GLBL enumConstant=[pp_popb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:7 [pp_popb](enumMember[readonly])], ln#22, cmt=['\tPOPB\tD\t-->\tRDLONG\tD,--PTRB], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:7 [pp_popb](enumMember[readonly])], ln#22, cmt=['	POPB	D	-->	RDLONG	D,--PTRB], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #14:   -- token=[len:7 [pp_popb](enumMember[readonly])]"
+}
+
+
+* gloTOK #14:   -- token=[len:7 [pp_popb](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#23 GetCONDecl nonCommentConstantLine=[convar1]"
+}
+
+
+  - Ln#23 GetCONDecl nonCommentConstantLine=[convar1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl enumDecl lineParts=[convar1](1)"
+}
+
+
+  -- GetCONDecl enumDecl lineParts=[convar1](1)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[convar1]"
+}
+
+
+  -- GLBL enumConstant=[convar1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:7 [convar1](enumMember[readonly])], ln#23, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:7 [convar1](enumMember[readonly])], ln#23, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #15:   -- token=[len:7 [convar1](enumMember[readonly])]"
+}
+
+
+* gloTOK #15:   -- token=[len:7 [convar1](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#27 GetCONDecl nonCommentConstantLine=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]"
+}
+
+
+  - Ln#27 GetCONDecl nonCommentConstantLine=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl enumDecl lineParts=[#2[3],TV_1,=,4,TV_2,=,2,TV_3,=,5,TV_4,=,7](13)"
+}
+
+
+  -- GetCONDecl enumDecl lineParts=[#2[3],TV_1,=,4,TV_2,=,2,TV_3,=,5,TV_4,=,7](13)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_1]"
+}
+
+
+  -- GLBL enumConstant=[TV_1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:4 [TV_1](enumMember[readonly])], ln#27, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:4 [TV_1](enumMember[readonly])], ln#27, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #16:   -- token=[len:4 [TV_1](enumMember[readonly])]"
+}
+
+
+* gloTOK #16:   -- token=[len:4 [TV_1](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_2]"
+}
+
+
+  -- GLBL enumConstant=[TV_2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:4 [TV_2](enumMember[readonly])], ln#27, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:4 [TV_2](enumMember[readonly])], ln#27, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #17:   -- token=[len:4 [TV_2](enumMember[readonly])]"
+}
+
+
+* gloTOK #17:   -- token=[len:4 [TV_2](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_3]"
+}
+
+
+  -- GLBL enumConstant=[TV_3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:4 [TV_3](enumMember[readonly])], ln#27, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:4 [TV_3](enumMember[readonly])], ln#27, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #18:   -- token=[len:4 [TV_3](enumMember[readonly])]"
+}
+
+
+* gloTOK #18:   -- token=[len:4 [TV_3](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_4]"
+}
+
+
+  -- GLBL enumConstant=[TV_4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:4 [TV_4](enumMember[readonly])], ln#27, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:4 [TV_4](enumMember[readonly])], ln#27, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #19:   -- token=[len:4 [TV_4](enumMember[readonly])]"
+}
+
+
+* gloTOK #19:   -- token=[len:4 [TV_4](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#29 GetCONDecl nonCommentConstantLine=[#2[3], TV_1a = 4]"
+}
+
+
+  - Ln#29 GetCONDecl nonCommentConstantLine=[#2[3], TV_1a = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl enumDecl lineParts=[#2[3],TV_1a,=,4](4)"
+}
+
+
+  -- GetCONDecl enumDecl lineParts=[#2[3],TV_1a,=,4](4)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_1a]"
+}
+
+
+  -- GLBL enumConstant=[TV_1a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:5 [TV_1a](enumMember[readonly])], ln#29, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:5 [TV_1a](enumMember[readonly])], ln#29, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #20:   -- token=[len:5 [TV_1a](enumMember[readonly])]"
+}
+
+
+* gloTOK #20:   -- token=[len:5 [TV_1a](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#30 GetCONDecl nonCommentConstantLine=[TV_2a = 2,]"
+}
+
+
+  - Ln#30 GetCONDecl nonCommentConstantLine=[TV_2a = 2,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- declNotEnum containsMultiStatements=[true]"
+}
+
+
+  -- declNotEnum containsMultiStatements=[true]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[TV_2a = 2,]"
+}
+
+
+  -- statements=[TV_2a = 2,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[TV_2a = 2]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[TV_2a = 2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[TV_2a,2](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[TV_2a,2](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[TV_2a]"
+}
+
+
+  -- GLBL GetCONDecl newName=[TV_2a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:5 [TV_2a](variable[readonly])], ln#30, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:5 [TV_2a](variable[readonly])], ln#30, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #21:   -- token=[len:5 [TV_2a](variable[readonly])]"
+}
+
+
+* gloTOK #21:   -- token=[len:5 [TV_2a](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#31 GetCONDecl nonCommentConstantLine=[TV_3a = TV_1a,]"
+}
+
+
+  - Ln#31 GetCONDecl nonCommentConstantLine=[TV_3a = TV_1a,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- declNotEnum containsMultiStatements=[true]"
+}
+
+
+  -- declNotEnum containsMultiStatements=[true]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[TV_3a = TV_1a,]"
+}
+
+
+  -- statements=[TV_3a = TV_1a,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[TV_3a = TV_1a]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[TV_3a = TV_1a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl assign lineParts=[TV_3a,TV_1a](2)"
+}
+
+
+  -- GetCONDecl assign lineParts=[TV_3a,TV_1a](2)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL GetCONDecl newName=[TV_3a]"
+}
+
+
+  -- GLBL GetCONDecl newName=[TV_3a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- NEW-gloTOK  -- token=[len:5 [TV_3a](variable[readonly])], ln#31, cmt=[undefined], ref=[undefined]"
+}
+
+
+  -- NEW-gloTOK  -- token=[len:5 [TV_3a](variable[readonly])], ln#31, cmt=[undefined], ref=[undefined]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK #22:   -- token=[len:5 [TV_3a](variable[readonly])]"
+}
+
+
+* gloTOK #22:   -- token=[len:5 [TV_3a](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  - Ln#32 GetCONDecl nonCommentConstantLine=[TV_4a]"
+}
+
+
+  - Ln#32 GetCONDecl nonCommentConstantLine=[TV_4a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- declNotEnum containsMultiStatements=[false]"
+}
+
+
+  -- declNotEnum containsMultiStatements=[false]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[TV_4a]"
+}
+
+
+  -- statements=[TV_4a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GetCONDecl conDeclarationLine=[TV_4a]"
+}
+
+
+  -- GetCONDecl conDeclarationLine=[TV_4a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-RCD-BLOCK LAST span=[??? - 36]"
+}
+
+
+  -- FND-RCD-BLOCK LAST span=[??? - 36]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-RCD-ADD LAST sequenceNbr=[2], blockType=[1], span=[2 - 36]"
+}
+
+
+  -- FND-RCD-ADD LAST sequenceNbr=[2], blockType=[1], span=[2 - 36]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "--->             <---"
+}
+
+
+--->             <---
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "---> Actual SCAN"
+}
+
+
+---> Actual SCAN
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "** isSectStart line=[CON]"
+}
+
+
+** isSectStart line=[CON]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- Ln#3 currState=[1]"
+}
+
+
+  -- Ln#3 currState=[1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(5):  trimmedLine=[name1, name2 = 5, name3  ' enums with no start value]"
+}
+
+
+- process CON line(5):  trimmedLine=[name1, name2 = 5, name3  ' enums with no start value]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[name1, name2 = 5, name3]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[name1, name2 = 5, name3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[name1, name2 = 5, name3]"
+}
+
+
+  -- statements=[name1, name2 = 5, name3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name1]"
+}
+
+
+  -- conDeclarationLine=[name1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[name1]"
+}
+
+
+  -- GLBL enumConstant=[name1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name2 = 5]"
+}
+
+
+  -- conDeclarationLine=[name2 = 5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[name2]"
+}
+
+
+  -- GLBL lhsConstantName=[name2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [name2] found: true"
+}
+
+
+* gloTOK [name2] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:5 [name2](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:5 [name2](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:5 [name2](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:5 [name2](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[5]"
+}
+
+
+  -- CON assignmentRHSStr=[5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[5]"
+}
+
+
+  -- possNames=[5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name3]"
+}
+
+
+  -- conDeclarationLine=[name3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[name3]"
+}
+
+
+  -- GLBL enumConstant=[name3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#5,ofs:25,len:28 [' enums with no start value](comment[line])]"
+}
+
+
+=> CON:   -- token=[Ln#5,ofs:25,len:28 [' enums with no start value](comment[line])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#5,ofs:0,len:5 [name1](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#5,ofs:0,len:5 [name1](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#5,ofs:7,len:5 [name2](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#5,ofs:7,len:5 [name2](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#5,ofs:18,len:5 [name3](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#5,ofs:18,len:5 [name3](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(7):  trimmedLine=[varAssign1 = 4]"
+}
+
+
+- process CON line(7):  trimmedLine=[varAssign1 = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[varAssign1 = 4]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[varAssign1 = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[varAssign1 = 4]"
+}
+
+
+  -- statements=[varAssign1 = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[varAssign1 = 4]"
+}
+
+
+  -- conDeclarationLine=[varAssign1 = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[varAssign1]"
+}
+
+
+  -- GLBL lhsConstantName=[varAssign1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [varAssign1] found: true"
+}
+
+
+* gloTOK [varAssign1] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:10 [varAssign1](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:10 [varAssign1](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:10 [varAssign1](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:10 [varAssign1](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[4]"
+}
+
+
+  -- CON assignmentRHSStr=[4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[4]"
+}
+
+
+  -- possNames=[4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#7,ofs:0,len:10 [varAssign1](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#7,ofs:0,len:10 [varAssign1](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(9):  trimmedLine=[name4 = 5, name5 = 6, name7, name8 = 10           ' assignments with missing '=']"
+}
+
+
+- process CON line(9):  trimmedLine=[name4 = 5, name5 = 6, name7, name8 = 10           ' assignments with missing '=']
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[name4 = 5, name5 = 6, name7, name8 = 10]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[name4 = 5, name5 = 6, name7, name8 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[name4 = 5, name5 = 6, name7, name8 = 10]"
+}
+
+
+  -- statements=[name4 = 5, name5 = 6, name7, name8 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name4 = 5]"
+}
+
+
+  -- conDeclarationLine=[name4 = 5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[name4]"
+}
+
+
+  -- GLBL lhsConstantName=[name4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [name4] found: true"
+}
+
+
+* gloTOK [name4] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:5 [name4](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:5 [name4](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:5 [name4](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:5 [name4](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[5]"
+}
+
+
+  -- CON assignmentRHSStr=[5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[5]"
+}
+
+
+  -- possNames=[5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name5 = 6]"
+}
+
+
+  -- conDeclarationLine=[name5 = 6]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[name5]"
+}
+
+
+  -- GLBL lhsConstantName=[name5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [name5] found: true"
+}
+
+
+* gloTOK [name5] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:5 [name5](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:5 [name5](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:5 [name5](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:5 [name5](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[6]"
+}
+
+
+  -- CON assignmentRHSStr=[6]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[6]"
+}
+
+
+  -- possNames=[6]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name7]"
+}
+
+
+  -- conDeclarationLine=[name7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[name7]"
+}
+
+
+  -- GLBL enumConstant=[name7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name8 = 10]"
+}
+
+
+  -- conDeclarationLine=[name8 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[name8]"
+}
+
+
+  -- GLBL lhsConstantName=[name8]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [name8] found: true"
+}
+
+
+* gloTOK [name8] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:5 [name8](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:5 [name8](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:5 [name8](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:5 [name8](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[10]"
+}
+
+
+  -- CON assignmentRHSStr=[10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[10]"
+}
+
+
+  -- possNames=[10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#9,ofs:50,len:31 [' assignments with missing '='](comment[line])]"
+}
+
+
+=> CON:   -- token=[Ln#9,ofs:50,len:31 [' assignments with missing '='](comment[line])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#9,ofs:0,len:5 [name4](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#9,ofs:0,len:5 [name4](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#9,ofs:11,len:5 [name5](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#9,ofs:11,len:5 [name5](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#9,ofs:22,len:5 [name7](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#9,ofs:22,len:5 [name7](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#9,ofs:29,len:5 [name8](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#9,ofs:29,len:5 [name8](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(11):  trimmedLine=[varAssign2 = 7]"
+}
+
+
+- process CON line(11):  trimmedLine=[varAssign2 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[varAssign2 = 7]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[varAssign2 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[varAssign2 = 7]"
+}
+
+
+  -- statements=[varAssign2 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[varAssign2 = 7]"
+}
+
+
+  -- conDeclarationLine=[varAssign2 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[varAssign2]"
+}
+
+
+  -- GLBL lhsConstantName=[varAssign2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [varAssign2] found: true"
+}
+
+
+* gloTOK [varAssign2] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:10 [varAssign2](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:10 [varAssign2](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:10 [varAssign2](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:10 [varAssign2](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[7]"
+}
+
+
+  -- CON assignmentRHSStr=[7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[7]"
+}
+
+
+  -- possNames=[7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#11,ofs:0,len:10 [varAssign2](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#11,ofs:0,len:10 [varAssign2](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(13):  trimmedLine=[name10 = 5, name11 = 6, name12 = 8, name13 = 10           ' all assignments]"
+}
+
+
+- process CON line(13):  trimmedLine=[name10 = 5, name11 = 6, name12 = 8, name13 = 10           ' all assignments]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[name10 = 5, name11 = 6, name12 = 8, name13 = 10]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[name10 = 5, name11 = 6, name12 = 8, name13 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[name10 = 5, name11 = 6, name12 = 8, name13 = 10]"
+}
+
+
+  -- statements=[name10 = 5, name11 = 6, name12 = 8, name13 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name10 = 5]"
+}
+
+
+  -- conDeclarationLine=[name10 = 5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[name10]"
+}
+
+
+  -- GLBL lhsConstantName=[name10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [name10] found: true"
+}
+
+
+* gloTOK [name10] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:6 [name10](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:6 [name10](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:6 [name10](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:6 [name10](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[5]"
+}
+
+
+  -- CON assignmentRHSStr=[5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[5]"
+}
+
+
+  -- possNames=[5]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name11 = 6]"
+}
+
+
+  -- conDeclarationLine=[name11 = 6]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[name11]"
+}
+
+
+  -- GLBL lhsConstantName=[name11]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [name11] found: true"
+}
+
+
+* gloTOK [name11] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:6 [name11](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:6 [name11](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:6 [name11](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:6 [name11](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[6]"
+}
+
+
+  -- CON assignmentRHSStr=[6]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[6]"
+}
+
+
+  -- possNames=[6]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name12 = 8]"
+}
+
+
+  -- conDeclarationLine=[name12 = 8]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[name12]"
+}
+
+
+  -- GLBL lhsConstantName=[name12]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [name12] found: true"
+}
+
+
+* gloTOK [name12] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:6 [name12](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:6 [name12](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:6 [name12](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:6 [name12](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[8]"
+}
+
+
+  -- CON assignmentRHSStr=[8]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[8]"
+}
+
+
+  -- possNames=[8]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[name13 = 10]"
+}
+
+
+  -- conDeclarationLine=[name13 = 10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[name13]"
+}
+
+
+  -- GLBL lhsConstantName=[name13]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [name13] found: true"
+}
+
+
+* gloTOK [name13] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:6 [name13](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:6 [name13](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:6 [name13](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:6 [name13](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[10]"
+}
+
+
+  -- CON assignmentRHSStr=[10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[10]"
+}
+
+
+  -- possNames=[10]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#13,ofs:58,len:18 [' all assignments](comment[line])]"
+}
+
+
+=> CON:   -- token=[Ln#13,ofs:58,len:18 [' all assignments](comment[line])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#13,ofs:0,len:6 [name10](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#13,ofs:0,len:6 [name10](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#13,ofs:12,len:6 [name11](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#13,ofs:12,len:6 [name11](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#13,ofs:24,len:6 [name12](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#13,ofs:24,len:6 [name12](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#13,ofs:36,len:6 [name13](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#13,ofs:36,len:6 [name13](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(18):  trimmedLine=[#0]"
+}
+
+
+- process CON line(18):  trimmedLine=[#0]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(true), containsMulti=(false), nonCommentConstantLine=[#0]"
+}
+
+
+- reportConstant haveEnum=(true), containsMulti=(false), nonCommentConstantLine=[#0]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[#0]"
+}
+
+
+  -- statements=[#0]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[#0]"
+}
+
+
+  -- conDeclarationLine=[#0]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(19):  trimmedLine=[pp_pusha\t'\tPUSHA\tD/#\t-->\tWRLONG\tD/#,PTRA++]"
+}
+
+
+- process CON line(19):  trimmedLine=[pp_pusha	'	PUSHA	D/#	-->	WRLONG	D/#,PTRA++]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[pp_pusha]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[pp_pusha]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[pp_pusha]"
+}
+
+
+  -- statements=[pp_pusha]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[pp_pusha]"
+}
+
+
+  -- conDeclarationLine=[pp_pusha]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[pp_pusha]"
+}
+
+
+  -- GLBL enumConstant=[pp_pusha]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#19,ofs:9,len:34 ['\tPUSHA\tD/#\t-->\tWRLONG\tD/#,PTRA++](comment[line])]"
+}
+
+
+=> CON:   -- token=[Ln#19,ofs:9,len:34 ['	PUSHA	D/#	-->	WRLONG	D/#,PTRA++](comment[line])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#19,ofs:0,len:8 [pp_pusha](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#19,ofs:0,len:8 [pp_pusha](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(20):  trimmedLine=[pp_pushb\t'\tPUSHB\tD/#\t-->\tWRLONG\tD/#,PTRB++]"
+}
+
+
+- process CON line(20):  trimmedLine=[pp_pushb	'	PUSHB	D/#	-->	WRLONG	D/#,PTRB++]
+[Trace - 7:13:26 PM] Sending notification '$/setTrace'.
+Params: {
+    "value": "verbose"
+}
+
+
+[Trace - 7:13:26 PM] Sending notification 'workspace/didChangeConfiguration'.
+Params: {
+    "settings": null
+}
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[pp_pushb]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[pp_pushb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[pp_pushb]"
+}
+
+
+  -- statements=[pp_pushb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[pp_pushb]"
+}
+
+
+  -- conDeclarationLine=[pp_pushb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[pp_pushb]"
+}
+
+
+  -- GLBL enumConstant=[pp_pushb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#20,ofs:9,len:34 ['\tPUSHB\tD/#\t-->\tWRLONG\tD/#,PTRB++](comment[line])]"
+}
+
+
+=> CON:   -- token=[Ln#20,ofs:9,len:34 ['	PUSHB	D/#	-->	WRLONG	D/#,PTRB++](comment[line])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#20,ofs:0,len:8 [pp_pushb](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#20,ofs:0,len:8 [pp_pushb](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(21):  trimmedLine=[pp_popa\t\t'\tPOPA\tD\t-->\tRDLONG\tD,--PTRA]"
+}
+
+
+- process CON line(21):  trimmedLine=[pp_popa		'	POPA	D	-->	RDLONG	D,--PTRA]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[pp_popa]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[pp_popa]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[pp_popa]"
+}
+
+
+  -- statements=[pp_popa]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[pp_popa]"
+}
+
+
+  -- conDeclarationLine=[pp_popa]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[pp_popa]"
+}
+
+
+  -- GLBL enumConstant=[pp_popa]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#21,ofs:9,len:29 ['\tPOPA\tD\t-->\tRDLONG\tD,--PTRA](comment[line])]"
+}
+
+
+=> CON:   -- token=[Ln#21,ofs:9,len:29 ['	POPA	D	-->	RDLONG	D,--PTRA](comment[line])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#21,ofs:0,len:7 [pp_popa](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#21,ofs:0,len:7 [pp_popa](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(22):  trimmedLine=[pp_popb\t\t'\tPOPB\tD\t-->\tRDLONG\tD,--PTRB]"
+}
+
+
+- process CON line(22):  trimmedLine=[pp_popb		'	POPB	D	-->	RDLONG	D,--PTRB]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[pp_popb]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[pp_popb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[pp_popb]"
+}
+
+
+  -- statements=[pp_popb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[pp_popb]"
+}
+
+
+  -- conDeclarationLine=[pp_popb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[pp_popb]"
+}
+
+
+  -- GLBL enumConstant=[pp_popb]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#22,ofs:9,len:29 ['\tPOPB\tD\t-->\tRDLONG\tD,--PTRB](comment[line])]"
+}
+
+
+=> CON:   -- token=[Ln#22,ofs:9,len:29 ['	POPB	D	-->	RDLONG	D,--PTRB](comment[line])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#22,ofs:0,len:7 [pp_popb](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#22,ofs:0,len:7 [pp_popb](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(23):  trimmedLine=[convar1]"
+}
+
+
+- process CON line(23):  trimmedLine=[convar1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[convar1]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[convar1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[convar1]"
+}
+
+
+  -- statements=[convar1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[convar1]"
+}
+
+
+  -- conDeclarationLine=[convar1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[convar1]"
+}
+
+
+  -- GLBL enumConstant=[convar1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#23,ofs:0,len:7 [convar1](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#23,ofs:0,len:7 [convar1](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(27):  trimmedLine=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]"
+}
+
+
+- process CON line(27):  trimmedLine=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(true), containsMulti=(true), nonCommentConstantLine=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]"
+}
+
+
+- reportConstant haveEnum=(true), containsMulti=(true), nonCommentConstantLine=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]"
+}
+
+
+  -- statements=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]"
+}
+
+
+  -- conDeclarationLine=[#2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_1]"
+}
+
+
+  -- GLBL enumConstant=[TV_1]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_2]"
+}
+
+
+  -- GLBL enumConstant=[TV_2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_3]"
+}
+
+
+  -- GLBL enumConstant=[TV_3]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_4]"
+}
+
+
+  -- GLBL enumConstant=[TV_4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#27,ofs:7,len:4 [TV_1](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#27,ofs:7,len:4 [TV_1](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#27,ofs:17,len:4 [TV_2](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#27,ofs:17,len:4 [TV_2](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#27,ofs:27,len:4 [TV_3](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#27,ofs:27,len:4 [TV_3](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#27,ofs:37,len:4 [TV_4](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#27,ofs:37,len:4 [TV_4](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(29):  trimmedLine=[#2[3], TV_1a = 4]"
+}
+
+
+- process CON line(29):  trimmedLine=[#2[3], TV_1a = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(true), containsMulti=(true), nonCommentConstantLine=[#2[3], TV_1a = 4]"
+}
+
+
+- reportConstant haveEnum=(true), containsMulti=(true), nonCommentConstantLine=[#2[3], TV_1a = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[#2[3], TV_1a = 4]"
+}
+
+
+  -- statements=[#2[3], TV_1a = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[#2[3], TV_1a = 4]"
+}
+
+
+  -- conDeclarationLine=[#2[3], TV_1a = 4]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_1a]"
+}
+
+
+  -- GLBL enumConstant=[TV_1a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#29,ofs:7,len:5 [TV_1a](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#29,ofs:7,len:5 [TV_1a](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(30):  trimmedLine=[TV_2a = 2,]"
+}
+
+
+- process CON line(30):  trimmedLine=[TV_2a = 2,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[TV_2a = 2,]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[TV_2a = 2,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[TV_2a = 2,]"
+}
+
+
+  -- statements=[TV_2a = 2,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[TV_2a = 2]"
+}
+
+
+  -- conDeclarationLine=[TV_2a = 2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[TV_2a]"
+}
+
+
+  -- GLBL lhsConstantName=[TV_2a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [TV_2a] found: true"
+}
+
+
+* gloTOK [TV_2a] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:5 [TV_2a](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:5 [TV_2a](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:5 [TV_2a](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:5 [TV_2a](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[2]"
+}
+
+
+  -- CON assignmentRHSStr=[2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[2]"
+}
+
+
+  -- possNames=[2]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[]"
+}
+
+
+  -- conDeclarationLine=[]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#30,ofs:0,len:5 [TV_2a](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#30,ofs:0,len:5 [TV_2a](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(31):  trimmedLine=[TV_3a = TV_1a,]"
+}
+
+
+- process CON line(31):  trimmedLine=[TV_3a = TV_1a,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[TV_3a = TV_1a,]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(true), nonCommentConstantLine=[TV_3a = TV_1a,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[TV_3a = TV_1a,]"
+}
+
+
+  -- statements=[TV_3a = TV_1a,]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[TV_3a = TV_1a]"
+}
+
+
+  -- conDeclarationLine=[TV_3a = TV_1a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL lhsConstantName=[TV_3a]"
+}
+
+
+  -- GLBL lhsConstantName=[TV_3a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [TV_3a] found: true"
+}
+
+
+* gloTOK [TV_3a] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:5 [TV_3a](variable[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:5 [TV_3a](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcdl lhs global   -- token=[len:5 [TV_3a](variable[readonly])]"
+}
+
+
+  --  FOUND rcdl lhs global   -- token=[len:5 [TV_3a](variable[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- CON assignmentRHSStr=[TV_1a]"
+}
+
+
+  -- CON assignmentRHSStr=[TV_1a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- possNames=[TV_1a]"
+}
+
+
+  -- possNames=[TV_1a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- namePart=[TV_1a](8)"
+}
+
+
+  -- namePart=[TV_1a](8)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "* gloTOK [TV_1a] found: true"
+}
+
+
+* gloTOK [TV_1a] found: true
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- FND-gloTOK  -- token=[len:5 [TV_1a](enumMember[readonly])]"
+}
+
+
+  -- FND-gloTOK  -- token=[len:5 [TV_1a](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  --  FOUND rcds rhs global   -- token=[len:5 [TV_1a](enumMember[readonly])]"
+}
+
+
+  --  FOUND rcds rhs global   -- token=[len:5 [TV_1a](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[]"
+}
+
+
+  -- conDeclarationLine=[]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#31,ofs:0,len:5 [TV_3a](variable[readonly,declaration])]"
+}
+
+
+=> CON:   -- token=[Ln#31,ofs:0,len:5 [TV_3a](variable[readonly,declaration])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#31,ofs:8,len:5 [TV_1a](enumMember[readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#31,ofs:8,len:5 [TV_1a](enumMember[readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- process CON line(32):  trimmedLine=[TV_4a]"
+}
+
+
+- process CON line(32):  trimmedLine=[TV_4a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[TV_4a]"
+}
+
+
+- reportConstant haveEnum=(false), containsMulti=(false), nonCommentConstantLine=[TV_4a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- statements=[TV_4a]"
+}
+
+
+  -- statements=[TV_4a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- conDeclarationLine=[TV_4a]"
+}
+
+
+  -- conDeclarationLine=[TV_4a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  -- GLBL enumConstant=[TV_4a]"
+}
+
+
+  -- GLBL enumConstant=[TV_4a]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "=> CON:   -- token=[Ln#32,ofs:0,len:5 [TV_4a](enumMember[declaration,readonly])]"
+}
+
+
+=> CON:   -- token=[Ln#32,ofs:0,len:5 [TV_4a](enumMember[declaration,readonly])]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "\n---- Checking 34 tokens. ----"
+}
+
+
+
+---- Checking 34 tokens. ----
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "---- Check DONE ----\n"
+}
+
+
+---- Check DONE ----
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DP.process() DONE processing [ID:1698282806326-231023-fixes.spin]"
+}
+
+
+TRC: DP.process() DONE processing [ID:1698282806326-231023-fixes.spin]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: CHK CFG maxNumberOfReportedIssues=(100)"
+}
+
+
+TRC: CHK CFG maxNumberOfReportedIssues=(100)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "- allDiagnosticMessages(100) - returns 0 messages"
+}
+
+
+- allDiagnosticMessages(100) - returns 0 messages
+[Trace - 7:13:26 PM] Received notification 'textDocument/publishDiagnostics'.
+Params: {
+    "uri": "file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin",
+    "diagnostics": []
+}
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DOC have settings reparse all docs"
+}
+
+
+TRC: DOC have settings reparse all docs
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() change.settings=[null]"
+}
+
+
+TRC: onDidChangeConfiguration() change.settings=[null]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() Client says settings were updated"
+}
+
+
+TRC: onDidChangeConfiguration() Client says settings were updated
+[Trace - 7:13:26 PM] Received request 'workspace/configuration - (3)'.
+Params: {
+    "items": [
+        {
+            "section": "spinExtension.ServerBehavior"
+        }
+    ]
+}
+
+
+[Trace - 7:13:26 PM] Sending response 'workspace/configuration - (3)'. Processing request took 0ms
+Result: [
+    {
+        "maxNumberOfReportedIssues": 100,
+        "highlightFlexspinDirectives": false
+    }
+]
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)"
+}
+
+
+  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: --- but nothing changed, skipping"
+}
+
+
+TRC: --- but nothing changed, skipping
+[Trace - 7:13:26 PM] Sending notification '$/setTrace'.
+Params: {
+    "value": "verbose"
+}
+
+
+[Trace - 7:13:26 PM] Sending notification 'workspace/didChangeConfiguration'.
+Params: {
+    "settings": null
+}
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DOC have settings reparse all docs"
+}
+
+
+TRC: DOC have settings reparse all docs
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() change.settings=[null]"
+}
+
+
+TRC: onDidChangeConfiguration() change.settings=[null]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() Client says settings were updated"
+}
+
+
+TRC: onDidChangeConfiguration() Client says settings were updated
+[Trace - 7:13:26 PM] Received request 'workspace/configuration - (4)'.
+Params: {
+    "items": [
+        {
+            "section": "spinExtension.ServerBehavior"
+        }
+    ]
+}
+
+
+[Trace - 7:13:26 PM] Sending response 'workspace/configuration - (4)'. Processing request took 0ms
+Result: [
+    {
+        "maxNumberOfReportedIssues": 100,
+        "highlightFlexspinDirectives": false
+    }
+]
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)"
+}
+
+
+  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: --- but nothing changed, skipping"
+}
+
+
+TRC: --- but nothing changed, skipping
+[Trace - 7:13:26 PM] Sending notification '$/setTrace'.
+Params: {
+    "value": "verbose"
+}
+
+
+[Trace - 7:13:26 PM] Sending notification 'workspace/didChangeConfiguration'.
+Params: {
+    "settings": null
+}
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DOC have settings reparse all docs"
+}
+
+
+TRC: DOC have settings reparse all docs
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() change.settings=[null]"
+}
+
+
+TRC: onDidChangeConfiguration() change.settings=[null]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() Client says settings were updated"
+}
+
+
+TRC: onDidChangeConfiguration() Client says settings were updated
+[Trace - 7:13:26 PM] Received request 'workspace/configuration - (5)'.
+Params: {
+    "items": [
+        {
+            "section": "spinExtension.ServerBehavior"
+        }
+    ]
+}
+
+
+[Trace - 7:13:26 PM] Sending response 'workspace/configuration - (5)'. Processing request took 0ms
+Result: [
+    {
+        "maxNumberOfReportedIssues": 100,
+        "highlightFlexspinDirectives": false
+    }
+]
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)"
+}
+
+
+  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: --- but nothing changed, skipping"
+}
+
+
+TRC: --- but nothing changed, skipping
+[Trace - 7:13:26 PM] Sending notification '$/setTrace'.
+Params: {
+    "value": "verbose"
+}
+
+
+[Trace - 7:13:26 PM] Sending notification 'workspace/didChangeConfiguration'.
+Params: {
+    "settings": null
+}
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DOC have settings reparse all docs"
+}
+
+
+TRC: DOC have settings reparse all docs
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() change.settings=[null]"
+}
+
+
+TRC: onDidChangeConfiguration() change.settings=[null]
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() Client says settings were updated"
+}
+
+
+TRC: onDidChangeConfiguration() Client says settings were updated
+[Trace - 7:13:26 PM] Received request 'workspace/configuration - (6)'.
+Params: {
+    "items": [
+        {
+            "section": "spinExtension.ServerBehavior"
+        }
+    ]
+}
+
+
+[Trace - 7:13:26 PM] Sending response 'workspace/configuration - (6)'. Processing request took 0ms
+Result: [
+    {
+        "maxNumberOfReportedIssues": 100,
+        "highlightFlexspinDirectives": false
+    }
+]
+
+
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)"
+}
+
+
+  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)
+[Trace - 7:13:26 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: --- but nothing changed, skipping"
+}
+
+
+TRC: --- but nothing changed, skipping
+[Trace - 7:13:27 PM] Sending notification '$/setTrace'.
+Params: {
+    "value": "verbose"
+}
+
+
+[Trace - 7:13:27 PM] Sending notification 'workspace/didChangeConfiguration'.
+Params: {
+    "settings": null
+}
+
+
+[Trace - 7:13:27 PM] Sending request 'textDocument/semanticTokens/full - (1)'.
+Params: {
+    "textDocument": {
+        "uri": "file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin"
+    }
+}
+
+
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DOC have settings reparse all docs"
+}
+
+
+TRC: DOC have settings reparse all docs
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() change.settings=[null]"
+}
+
+
+TRC: onDidChangeConfiguration() change.settings=[null]
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() Client says settings were updated"
+}
+
+
+TRC: onDidChangeConfiguration() Client says settings were updated
+[Trace - 7:13:27 PM] Received request 'workspace/configuration - (7)'.
+Params: {
+    "items": [
+        {
+            "section": "spinExtension.ServerBehavior"
+        }
+    ]
+}
+
+
+[Trace - 7:13:27 PM] Sending response 'workspace/configuration - (7)'. Processing request took 0ms
+Result: [
+    {
+        "maxNumberOfReportedIssues": 100,
+        "highlightFlexspinDirectives": false
+    }
+]
+
+
+[Trace - 7:13:27 PM] Received response 'textDocument/semanticTokens/full - (1)' in 207ms.
+Result: {
+    "resultId": "1698282807254",
+    "data": [
+        4,
+        0,
+        5,
+        20,
+        5,
+        0,
+        7,
+        5,
+        16,
+        5,
+        0,
+        11,
+        5,
+        20,
+        5,
+        0,
+        7,
+        28,
+        0,
+        0,
+        2,
+        0,
+        10,
+        16,
+        5,
+        2,
+        0,
+        5,
+        16,
+        5,
+        0,
+        11,
+        5,
+        16,
+        5,
+        0,
+        11,
+        5,
+        20,
+        5,
+        0,
+        7,
+        5,
+        16,
+        5,
+        0,
+        21,
+        31,
+        0,
+        0,
+        2,
+        0,
+        10,
+        16,
+        5,
+        2,
+        0,
+        6,
+        16,
+        5,
+        0,
+        12,
+        6,
+        16,
+        5,
+        0,
+        12,
+        6,
+        16,
+        5,
+        0,
+        12,
+        6,
+        16,
+        5,
+        0,
+        22,
+        18,
+        0,
+        0,
+        6,
+        0,
+        8,
+        20,
+        5,
+        0,
+        9,
+        34,
+        0,
+        0,
+        1,
+        0,
+        8,
+        20,
+        5,
+        0,
+        9,
+        34,
+        0,
+        0,
+        1,
+        0,
+        7,
+        20,
+        5,
+        0,
+        9,
+        29,
+        0,
+        0,
+        1,
+        0,
+        7,
+        20,
+        5,
+        0,
+        9,
+        29,
+        0,
+        0,
+        1,
+        0,
+        7,
+        20,
+        5,
+        4,
+        7,
+        4,
+        20,
+        5,
+        0,
+        10,
+        4,
+        20,
+        5,
+        0,
+        10,
+        4,
+        20,
+        5,
+        0,
+        10,
+        4,
+        20,
+        5,
+        2,
+        7,
+        5,
+        20,
+        5,
+        1,
+        0,
+        5,
+        16,
+        5,
+        1,
+        0,
+        5,
+        16,
+        5,
+        0,
+        8,
+        5,
+        20,
+        4,
+        1,
+        0,
+        5,
+        20,
+        5
+    ]
+}
+
+
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)"
+}
+
+
+  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: --- but nothing changed, skipping"
+}
+
+
+TRC: --- but nothing changed, skipping
+[Trace - 7:13:27 PM] Sending request 'textDocument/documentSymbol - (2)'.
+Params: {
+    "textDocument": {
+        "uri": "file:///Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode%20Extensions/Spin2-LSP-000/TEST_LANG_SERVER/spin/231023-fixes.spin"
+    }
+}
+
+
+[Trace - 7:13:27 PM] Received response 'textDocument/documentSymbol - (2)' in 1ms.
+Result: [
+    {
+        "name": "CON ",
+        "detail": "",
+        "kind": 8,
+        "range": {
+            "start": {
+                "line": 2,
+                "character": 0
+            },
+            "end": {
+                "line": 2,
+                "character": 2
+            }
+        },
+        "selectionRange": {
+            "start": {
+                "line": 2,
+                "character": 0
+            },
+            "end": {
+                "line": 2,
+                "character": 2
+            }
+        }
+    }
+]
+
+
+[Trace - 7:13:27 PM] Sending notification '$/setTrace'.
+Params: {
+    "value": "verbose"
+}
+
+
+[Trace - 7:13:27 PM] Sending notification 'workspace/didChangeConfiguration'.
+Params: {
+    "settings": null
+}
+
+
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: DOC have settings reparse all docs"
+}
+
+
+TRC: DOC have settings reparse all docs
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() change.settings=[null]"
+}
+
+
+TRC: onDidChangeConfiguration() change.settings=[null]
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: onDidChangeConfiguration() Client says settings were updated"
+}
+
+
+TRC: onDidChangeConfiguration() Client says settings were updated
+[Trace - 7:13:27 PM] Received request 'workspace/configuration - (8)'.
+Params: {
+    "items": [
+        {
+            "section": "spinExtension.ServerBehavior"
+        }
+    ]
+}
+
+
+[Trace - 7:13:27 PM] Sending response 'workspace/configuration - (8)'. Processing request took 0ms
+Result: [
+    {
+        "maxNumberOfReportedIssues": 100,
+        "highlightFlexspinDirectives": false
+    }
+]
+
+
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)"
+}
+
+
+  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(100), highlightFlexspinDirectives=[false], changes=(false)
+[Trace - 7:13:27 PM] Received notification 'window/logMessage'.
+Params: {
+    "type": 4,
+    "message": "TRC: --- but nothing changed, skipping"
+}
+
+
+TRC: --- but nothing changed, skipping

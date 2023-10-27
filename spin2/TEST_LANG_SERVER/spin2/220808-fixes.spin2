@@ -1,0 +1,23 @@
+' --------------------------------------------------------------------------------------------------
+CON
+MA_PCM_ASHIFT = 2
+
+DAT
+
+    org 0
+
+              shl ma_mtmp3,#3 ' 4*8 -> 32 bytes per channel
+              testb ma_mtmp1,#(MA_PCM_ASHIFT^28) wc ' odd blocks go in odd buffers (bit 0 of original poll value)
+        if_c  add ma_mtmp3,#16
+              add ma_mtmp3,ma_adpcm_bufferbase
+
+DAT
+ma_mtmp3      res 1
+ma_mtmp1      res 1
+ma_adpcm_bufferbase long @adpcm_buffers         ' pointer to buffers
+
+' address of buffer
+adpcm_buffers
+              byte 0[2*7*16]
+
+' --------------------------------------------------------------------------------------------------

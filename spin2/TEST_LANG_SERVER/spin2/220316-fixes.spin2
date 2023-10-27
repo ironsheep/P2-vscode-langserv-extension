@@ -1,0 +1,60 @@
+' code examples that are not highlighting correctly
+'
+'  Fix the following until debug() support is added
+PRI showbmp(letter, image_address, lut_offset, lut_size, image_longs) | i,
+  image_address += lut_offset
+  {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
+  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))   ' <-- (lutcolors SHOULD be red!)
+  image_address += lut_size << 2 - 4
+  repeat image_longs
+   {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
+   debug(``#(letter) `uhex_(long[image_address += 4]))
+
+' ---------------------------------------------------
+' from Goertzel_DEBUG_Demo.spin2 (w/PNut)
+CON		_clkfreq	= 250_000_000	'system clock frequency
+
+		gtzl_base	= 16		'must be a multiple of 8
+
+DAT		org
+' org (above) is not colored correctly unless comment follows?!
+		asmclk				'set clock
+
+		setq	#gtzl_base		'launch Goertzel
+		coginit	#16,##@pgm_gtzl
+        ' BUG  'Goertzel' in line following should be string-dk-red!!!!
+		debug(`scope_xy xy size 200 range 1000 samples 200 dotsize 5 'Goertzel' `dly(#200))     ' <----   debug() in DAT pasm allowed!
+
+.loop		debug(`xy `sdec_long_array_(#$00000,#2) `dly(#5))       ' AUGH debug() can have label!!!
+		jmp	 #.loop
+
+DAT		org
+' org is not colored correctly unless comment follows?!
+
+pgm_gtzl	add	ptra,#7			'init ADC pin
+		wrpin	adcmode,ptra
+' Data
+
+adcmode		long	%0000_0000_000_100111_0000000_00_00000_0		'ADC mode
+' ---------------------------------------------------
+CON
+    kFPS_IN_MMPS    = 0.00328084    ' 1 mm/sec = 0.00328084 ft/sec
+
+'  float() and trunc() not colored correctly!
+
+PUB mmps2fps(nDistInMMPS) : nDistInFps | fValue
+'' Convert distance in mm/s to fps
+    ' RULE: 1 mm/sec = 0.00328084 ft/sec
+    fValue := float(nDistInMMPS) *. kFPS_IN_MMPS
+    nDistInFps := trunc(fValue)
+
+
+' ---------------------------------------------------
+CON
+    DBG_GROUPS_CT = 3
+    DBG_MAX_VARS_IN_GROUP = 7
+
+VAR
+    long    pNamesAr[DBG_GROUPS_CT * DBG_MAX_VARS_IN_GROUP]     ' <--- FIXED Coloring!
+    long    pValsAr[DBG_GROUPS_CT*DBG_MAX_VARS_IN_GROUP]
+' ---------------------------------------------------

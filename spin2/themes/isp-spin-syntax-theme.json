@@ -1,0 +1,246 @@
+{
+  "$schema": "vscode://schemas/color-theme",
+  "name": "Spin2 Ironsheep Syntax",
+  "type": "dark",
+  "colors": {
+    "activityBar.background": "#444444",
+    "activityBar.border": "#2F8FBF",
+    "activityBar.foreground": "#888888",
+    "activityBarBadge.foreground": "#FFFFFF",
+    "activityBarBadge.background": "#2F8FBF",
+    "editor.background": "#222222",
+    "editor.foreground": "#aaaaaa", // #3981da
+    "editorError.border": "#BF2F2F",
+    "editorLineNumber.foreground": "#444444",
+    "panel.border": "#2F8FBF",
+    "panelTitle.activeBorder": "#2F8FBF",
+    "panelTitle.activeForeground": "#2F8FBF",
+    "panelTitle.inactiveForeground": "#444444",
+    "sideBar.background": "#222222",
+    "sideBar.border": "#888888",
+    "sideBar.foreground": "#AAAAAA",
+    "sideBarSectionHeader.background": "#444444",
+    "sideBarSectionHeader.foreground": "#000000",
+    "sideBarTitle.foreground": "#AAAAAA",
+    "terminal.ansiBlue": "#2F8FBF",
+    "terminal.ansiBrightBlue": "#007FBF",
+    "terminal.ansiCyan": "#2FBF8F",
+    "terminal.ansiBrightCyan": "#00BF7F",
+    "terminal.ansiGreen": "#8FBF2F",
+    "terminal.ansiBrightGreen": "#7FBF00",
+    "terminal.ansiMagenta": "#8F2FBF",
+    "terminal.ansiBrightMagenta": "#7F00BF",
+    "terminal.ansiRed": "#BF3060",
+    "terminal.ansiBrightRed": "#BF0040",
+    "terminal.ansiYellow": "#BF8F2F",
+    "terminal.ansiBrightYellow": "#BF7F00"
+  },
+  "tokenColors": [
+    {
+      "name": "Documentation Block",
+      "scope": ["comment.block.documentation"],
+      "settings": {
+        "foreground": "#5db55d"
+      }
+    },
+    {
+      "name": "Documentation Line",
+      "scope": ["comment.line.documentation"],
+      "settings": {
+        "foreground": "#5db55d"
+      }
+    },
+    {
+      "name": "Block",
+      "scope": ["comment.block"],
+      "settings": {
+        "foreground": "#538054",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "Comment",
+      "scope": ["comment.line"],
+      "settings": {
+        "foreground": "#538054",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "Immediate",
+      "scope": ["constant.character.escape"],
+      "settings": {
+        "foreground": "#ff4444"
+      }
+    },
+    {
+      "name": "Constant",
+      "scope": ["constant.language"],
+      "settings": {
+        "foreground": "#8a358a"
+      }
+    },
+    {
+      "name": "Variable",
+      "scope": ["variable.language"],
+      "settings": {
+        "foreground": "#8a358a"
+      }
+    },
+    {
+      "name": "Numeric",
+      "scope": ["constant.numeric"],
+      "settings": {
+        "foreground": "#3e9096"
+      }
+    },
+    {
+      "name": "Section",
+      "scope": ["keyword.block"],
+      "settings": {
+        "foreground": "#873d54",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "Invalid",
+      "scope": ["invalid"],
+      "settings": {
+        "foreground": "#ff0000"
+      }
+    },
+    {
+      "name": "Control",
+      "scope": ["keyword.control"],
+      "settings": {
+        "foreground": "#b57bb0" // c586c0, cccc44
+      }
+    },
+    {
+      "name": "Control",
+      "scope": ["keyword.control.include"],
+      "settings": {
+        "foreground": "#c659bd" // c586c0, cccc44
+      }
+    },
+    {
+      "name": "Cog Register",
+      "scope": ["variable.language.cog.register"],
+      "settings": {
+        "foreground": "#9437FF"
+      }
+    },
+    {
+      "name": "Operator",
+      "scope": ["keyword.operator"],
+      "settings": {
+        "foreground": "#b567ae" // aaaa66
+      }
+    },
+    {
+      "name": "Operator",
+      "scope": ["keyword.pasm.operators"],
+      "settings": {
+        "foreground": "#b567ae" // aaaa66
+      }
+    },
+    {
+      "name": "Other",
+      "scope": ["keyword.other"],
+      "settings": {
+        "foreground": "#2f8fbf"
+      }
+    },
+    {
+      "name": "debug functions",
+      "scope": ["support.function.debug.methods"],
+      "settings": {
+        "foreground": "#b96c00"
+      }
+    },
+    {
+      "name": "debug method",
+      "scope": ["support.function.debug"],
+      "settings": {
+        "foreground": "#ffd493"
+      }
+    },
+    {
+      "name": "storage types",
+      "scope": ["storage.type"],
+      "settings": {
+        "foreground": "#468a9d"
+      }
+    },
+    {
+      "name": "Object Variables",
+      "scope": ["entity.name.object"],
+      "settings": {
+        "foreground": "#7A81FF"
+      }
+    },
+    {
+      "name": "Simple Variables",
+      "scope": ["variable.name.readwrite"],
+      "settings": {
+        "foreground": "#7A81FF"
+      }
+    },
+    {
+      "name": "String",
+      "scope": ["string.quoted.double"],
+      "settings": {
+        "foreground": "#ba4343"
+      }
+    },
+    {
+      "name": "Method Return Variable",
+      "scope": ["meta.return-type.spin"],
+      "settings": {
+        "foreground": "#3e8b95"
+      }
+    },
+    {
+      "name": "Filename",
+      "scope": ["meta.object.filename"],
+      "settings": {
+        "foreground": "#eb6077"
+      }
+    },
+    {
+      "name": "spin operators",
+      "scope": ["keyword.spin.operators"],
+      "settings": {
+        "foreground": "#831799"
+      }
+    },
+    {
+      "name": "spin methods",
+      "scope": ["support.function"],
+      "settings": {
+        "foreground": "#c1c07d" // 5D83AC, 6d8ad3
+      }
+    },
+    {
+      "name": "pasm storage modifiers",
+      "scope": ["storage.modifier"],
+      "settings": {
+        "foreground": "#7172ac"
+      }
+    },
+    {
+      "name": "pasm control",
+      "scope": ["keyword.pasm.control"],
+      "settings": {
+        "foreground": "#9b3834"
+      }
+    },
+    {
+      "name": "pasm instructions",
+      "scope": ["keyword.pasm.instruction"],
+      "settings": {
+        "foreground": "#9b3834"
+      }
+    }
+  ]
+}

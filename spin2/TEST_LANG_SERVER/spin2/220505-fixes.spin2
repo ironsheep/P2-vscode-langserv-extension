@@ -1,0 +1,162 @@
+' --------------------------------------------------------------------------------------------------
+OBJ
+
+    serialIF        : "dummy_isp_serial_singleton"                    ' serial I/O
+    serialQueue     : "dummy_isp_queue_serial"                        ' Queued Receive on top of serial I/O
+
+CON
+
+    MAX_LEN_USERMSG = 128
+    WAIT_FOR_STRING = TRUE
+
+DAT
+    userMsgBuffer   BYTE    0[MAX_LEN_USERMSG+1]
+
+PRI handleResponseFor(pStr)
+    serialQueue.getLine(@userMsgBuffer, MAX_LEN_USERMSG, WAIT_FOR_STRING)
+    if not strHasPrefix(@userMsgBuffer, pStr)
+        debug("hrf: unexpected response!")
+        debug("hrf: ERROR: [", zstr_(pStr), "] NOT found in [", zstr_(@userMsgBuffer), "]")
+    else
+        debug("hrf: RX str(", udec_(strsize(pStr)), ")=[", zstr_(pStr), "]") ' <-- missing this strsize should NOT be RED!
+
+PRI strHasPrefix(pTargetStr, pPrefix) : bHasStatus | nIdx
+    bHasStatus := TRUE
+    repeat nIdx from 0 to strsize(pPrefix) - 1
+        if BYTE[pTargetStr][nIdx] <> BYTE[pPrefix][nIdx]
+            bHasStatus := False
+            quit    ' outta here, we have our answer!
+
+' --------------------------------------------------------------------------------------------------
+
+DAT
+    bDbgShoMem  long    FALSE
+
+PRI copyWrappedStr(pUserDest, pSrcStr, lenDest) | nIdx, pSrc, pDest
+    pDest := pUserDest
+    pSrc:= pSrcStr
+    repeat nIdx from 0 to lenDest - 1
+        ' if pointing beyond end, wrap to front!
+        if BYTE[pSrc] == 0
+            quit    ' at string end, quit loop
+        BYTE[pDest++] := BYTE[pSrc++]
+    BYTE[pDest] := 0  ' place final terminator
+    if bDbgShoMem
+        debug("-- cws: str(", udec_(strsize(pSrcStr)), ")=[", zstr_(pUserDest), "]") ' <-- missing this strsize should NOT be RED!
+
+' --------------------------------------------------------------------------------------------------
+
+PUB demo() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
+
+    DEBUG("VGA text demo", 13, 10)
+
+    ' start up the VGA driver
+    DEBUG("screen started", 13, 10)
+    DEBUG("clock frequency: ", udec(CLKFREQ), 13, 10) ' <-- missing this CLKFREQ should NOT be RED!
+
+' --------------------------------------------------------------------------------------------------
+
+CON
+  intensity = 80    '0..128
+
+  FIELD_HANDLER = $300  ' location of pixel subroutine in LUT memory
+  FIELD_HANDLER_END = $3a0
+  LINE_HANDLER = $3a0
+  LINE_HANDLER_END = $3ff
+
+DAT
+
+	'' 8 bytes/character
+	'' 24 instructions: so sysclock >= 3 * pixel clock
+
+	org	LINE_HANDLER    ' <-- this should be colored as constant
+char8_loop
+
+' --------------------------------------------------------------------------------------------------
+
+CON
+
+  PSG_FREQ    = 2_000_000.0              ' Clock frequency input on the emulated AY chip
+  SAMPLE_RATE = round(PSG_FREQ/ 16.0)    ' Sample rate of AYcog (PSG_FREQ/ 16.0 is the HW-accurate value)
+
+  OSC_CORR    = trunc(1.05 * PSG_FREQ * ((PSG_FREQ/ 16.0)/float(SAMPLE_RATE))) '  ' <=== whaaaa ?PSG_FREQ?
+
+' --------------------------------------------------------------------------------------------------
+
+CON
+  BASE = 2
+  SIGN_SHIFT = 31
+  EXP_OFFSET = 127         ' offset for exponent field
+  EXP_SHIFT  = 23          ' shift for reading the exponent field
+  MAX_EXP    = 255
+  EXP_MASK   = MAX_EXP
+  MIN_SIG    = $800_000       ' smallest significand
+  MIN_SIG_BITS = 23
+  MAX_SIG    = BASE*MIN_SIG   ' one more than the largest significand
+  MAX_SIG_DIGITS = 24         ' number of BASE digits in MIN_SIG
+
+  ' some special values
+  NEG_ZERO = $8000_0000
+  F_INF = MAX_EXP << EXP_SHIFT
+  F_NEG_INF = NEG_ZERO | F_INF
+  ONE = (BASE==10) ? ((EXP_OFFSET << EXP_SHIFT) | MIN_SIG) : (EXP_OFFSET<<EXP_SHIFT)  ' <=== whaaa???
+
+' --------------------------------------------------------------------------------------------------
+
+CON
+
+  'Command Buffer
+  CMD_BUF_SIZE    = 256
+
+  'Response/Message Buffer
+  RESP_BUF_SIZE   = 1024
+  RESP_STR_NUM    = 64
+  NO_MORE_DATA_TIMEOUT = 10
+
+  'Response Types
+  RESP_OK              = 0
+  RESP_ERROR           = 1
+  RESP_OVER            = 2
+  RESP_SEND_FAIL       = 3
+  RESP_TIMEOUT         = 4
+  RESP_NOT_FOUND       = 5
+  RESP_SEND_OK         = 6
+  RESP_FOUND_MESSAGE   = 7
+  RESP_SIZE_MATCH      = 8
+
+DAT
+  'Error
+  last_error    long  0
+
+pub error(mod,fc,err) : error_code | s
+    error_code :=  err
+    case err
+      RESP_OK     :
+      RESP_ERROR  :   ' get esp32 error code if any
+                      s := find_string_in_rxbuf(string("ERR CODE:"))
+                      if s
+                        s += 13
+                        byte[s][2] := 0
+                        s := convert_str_to_hex_value(s)
+                      error_code.byte[3] := mod
+                      error_code.byte[2] := fc
+                      error_code.byte[1] := s
+      RESP_OVER..RESP_NOT_FOUND : error_code.byte[3] := mod ' <===  whaaa???
+                                  error_code.byte[2] := fc
+      RESP_SEND_OK..RESP_SIZE_MATCH : error_code :=  0      ' <===  whaaa???
+    last_error := error_code
+
+pub find_string_in_rxbuf(mptr) : result
+    'return find_string(mptr,@rxbuf,rxbytes)
+
+'range 0 - 100000000
+pub convert_str_to_hex_value(s) : h | i, sz, x, y
+    sz := strsize(s)
+    x := 1
+    repeat i from 1 to sz
+      y := byte[s][sz - i] - $30
+      y := y > 9  ?  (y - 7) & $DF : y
+      h := h + (y * x)
+      x := x * 16
+
+' --------------------------------------------------------------------------------------------------

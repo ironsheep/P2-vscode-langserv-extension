@@ -1,0 +1,83 @@
+CON
+ DISK_BUFF = $1000
+
+DAT  { hub data }
+
+    mbox_copy  long    0
+    mbox_command  long    0
+    mbox_status  long    0
+    mbox_command  long    0
+
+    rx long    0
+
+    str_sd_err  byte    "ERROR",0
+    msg00       byte    "",0
+
+    orgh
+_hubTxStr   mov rx,#1
+            ret
+
+_hubTx   mov rx,#1
+            ret
+
+_hubTxCR   mov rx,#1
+            ret
+
+_hubMonitor   mov rx,#1
+            ret
+
+PUB sample_spin()
+    org
+'+-----------------------------------------------------------------------------+
+go_command  mov     priv_bufad,   ##DISK_BUFF         ' ensure correct hub buffer
+            setq    #3-1
+            wrlong  priv_copy,    ##mbox_copy         ' give aux/sector/bufad to SD mailbox
+            wrbyte  priv_command, ##mbox_command      ' give command to SD Driver
+.wait       rdbyte  tmp,          ##mbox_command  wz  ' wait until cleared ie done
+    if_nz   jmp     #.wait                            '
+            rdbyte  priv_status,  ##mbox_status   wz  ' get status
+            setq    #3-1
+            rdlong  priv_copy,    ##mbox_copy         ' get  aux/sector/bufad from SD mailbox
+            wrbyte  #0,           ##mbox_status       ' clear status
+    if_z    RET                                       ' return with "Z"=success
+
+            mov     lmm_p,        ##str_sd_err
+            call    #\_hubTxStr
+            mov     lmm_x,        priv_command
+            call    #\_hubTx
+            call    #\_hubTxCR
+            call    #\_hubMonitor
+            RET                                       ' permit monitor to continue
+'+-----------------------------------------------------------------------------+
+
+'+-----------------------------------------------------------------------------+
+'+ print_msg  Prints a string according to the number in lmm_lc                +
+'+ input:   lmm_lc = msg number to be printed                                  +
+'+ returns: lmm_p  = ptr to next string                                        +
+'+ uses:    lmm_x  = unknown                                                   +
+'+-----------------------------------------------------------------------------+
+print_msg00 mov     lmm_p,      ##@msg00        ' message list in hub
+print_msg   mov     lmm_lp2,    lmm_lc      wz  ' copy message#
+    if_z    jmp     #.found                     ' j if message# =0
+.look       rdbyte  lmm_x,      lmm_p       wz  ' end of string?
+            add     lmm_p,      #1              ' addr++
+    if_nz   jmp     #.look                      ' keep looking
+            djnz    lmm_lp2,    #.look          ' found the right message# ?
+.found      call    #\_hubTxStr                 ' print message#
+            RET                             wcz ' & restore flags
+'+-----------------------------------------------------------------------------+
+tmp  byte   0
+
+lmm_x long    0
+lmm_p long    0
+lmm_lp2 long    0
+lmm_lc long    0
+
+priv_bufad      res 1
+priv_copy       res 1
+priv_command    res 1
+priv_status     res 1
+
+    end
+
+' this is just past last line...

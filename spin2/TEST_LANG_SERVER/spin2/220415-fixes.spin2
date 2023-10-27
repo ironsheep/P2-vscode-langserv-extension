@@ -1,0 +1,60 @@
+'' latest findings needing to be fixed
+
+' --------------------------------------------------------------------------------------------------
+CON { app io pins }
+
+    '  motor h-bridge chip
+    PIN_MOTOR_0 = 0
+    PIN_MOTOR_1 = 1
+
+    PINS_MOTOR_ALL = PIN_MOTOR_0 addpins 1 ' pins 0,1
+
+    ' twin light sensors being a quad encoder
+    PIN_QUAD_ENC0 = 2
+    PIN_QUAD_ENC1 = 3
+
+    PINS_QUAD_ENC = PIN_QUAD_ENC0 addpins 1 ' pins 2,3
+
+CON { app constants }
+
+    MAX_CONTROL_COUNTS = 1000
+    MIN_CONTROL_COUNTS = 450
+
+    MOTOR_OFF = 0
+    MOTOR_ON = MAX_CONTROL_COUNTS
+
+    P_GAIN = 50
+    MIN_MS_TO_MOV = 100   ' DELTA_T
+
+
+PUB Main() | pwmSpecs, offset, encVal, priorEncVal
+
+    debug(`term term4 pos 128 540 size 30 8 textsize 16 color cyan)
+
+    debug(`term4 'p_gain=`(P_GAIN), MINms=`(MIN_MS_TO_MOV)')        ' <--- "MINms=" shouldn't be RED
+
+
+PUB go(target) | encVal, duty, priorEncVal, priorDuty
+    debug(`term term3 pos 128 300 size 30 8 textsize 16 color red)
+
+    repeat 2
+        encVal := rdpin(PIN_QUAD_ENC0)
+        debug(`term3 'enc=`(encVal)' 10)    ' 10 == NewLine
+        debug(`term3 'enc=`(encVal), extra' 10)    ' 10 == NewLine
+        if encVal < target
+            ' rotate clockwise
+            '{
+            priorEncVal := priorDuty := 0
+            wypin(PIN_MOTOR_1, MOTOR_ON)
+            encVal := rdpin(PIN_QUAD_ENC0)
+            debug(`term3 'FwdEnc=`(encVal)' 10)    ' 10 == NewLine
+            repeat
+                duty := MIN_CONTROL_COUNTS #> abs(encVal - target) * P_GAIN <# MAX_CONTROL_COUNTS
+                wypin(PIN_MOTOR_0, MAX_CONTROL_COUNTS - duty)
+                waitms(MIN_MS_TO_MOV)
+                encVal := rdpin(PIN_QUAD_ENC0)
+                if priorEncVal <> encVal or priorDuty <> duty
+                    debug(`term3 'FwdEnc=`(encVal), dty=`(duty), dxy=`(duty)' 10)    ' <--- "dty=" shouldn't be RED
+                    priorEncVal := encVal
+                    priorDuty := duty
+            until encVal >= target

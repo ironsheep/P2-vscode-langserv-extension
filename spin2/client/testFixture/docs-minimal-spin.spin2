@@ -1,0 +1,7 @@
+'' from page 2 of spin2 docs v35i
+
+PUB MinimalSpin2Program()           ' first PUB method executes
+
+    REPEAT
+        PINWRITE(63..56, GETRND())  'write a random pattern to P63..P56
+        WAITMS(100)                 'wait 1/10th of a second, loop

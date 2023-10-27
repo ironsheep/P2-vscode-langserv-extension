@@ -1,0 +1,73 @@
+'' latest findings needing to be fixed
+
+' --------------------------------------------------------------------------------------------------
+PUB main() | c, m, h, fp
+   c := get_config()
+   ' test of single line comment
+   m := get_ctrl_meas()
+   h := get_ctrl_hum()
+
+   fp := @index_html
+
+   debug("BME280 : standby time        : " , ubin_(c.[7..5]))                   ' BAD fix this form of access!!! (SHOULD NOT BE RED)
+   debug("BME280 : IIR filter          : " , ubin_(c.[4..2]))
+   debug("BME280 : temp over sampling  : " , ubin_(m.[7..5]))
+   debug("BME280 : press over sampling : " , ubin_(m.[4..2]))
+   debug("BME280 : mode                : " , ubin_(m.[1..0]))
+   debug("BME280 : hum over sampling   : " , ubin_(h.[2..0]))
+
+pub get_ctrl_hum() : d
+    'read_reg(BME280_CTRL_HUM,@d)
+
+pub get_ctrl_meas() : d
+    ''read_reg(BME280_CTRL_MEAS,@d)
+
+'' 2ndary doc comments
+
+pub get_config() : d
+    'read_reg(BME280_CONFIG,@d)
+
+' --------------------------------------------------------------------------------------------------
+' This gets called when "GET /volts" request occurs
+pub json_A32(sptr) : r | i
+    ' make json array {"volts":["v1","v2",...."v32"]} text string
+    'bytefill(@data_buf,0,DATA_BUF_SIZE)
+    'data_ptr := 0
+    send := @char_add   ' BAD handle coloring of ptr-to-method!
+    send("{",34,string("volts"),34,":","[")
+    repeat i from 0 to 30
+      send(34,sim_volts(),34,44)
+    send(34,sim_volts(),34,"]","}")
+    return @data_buf
+
+pub str_add(s) | sz
+    sz := strsize(s)
+    'bytemove(@data_buf + data_ptr,s,sz)
+    'data_ptr += sz
+
+pub char_add(d)
+    if d > $FF
+      str_add(d)
+      return
+    'data_buf[data_ptr] := d
+    'data_ptr += 1
+
+pri sim_volts() : s | k
+' non doc comment
+' 2nd line
+    s := string("_._")
+    k :=  getct()
+    k := ??k +// 33
+    byte[s]   := k+/10  + $30
+    byte[s+2] := k+//10 + $30
+CON
+  'json buffer
+  DATA_BUF_SIZE = 256
+
+DAT
+
+   index_html_size long  index_html_end - index_html
+   index_html      file  "meters32.html"
+   index_html_end
+   data_buf  byte 0[DATA_BUF_SIZE]
+   data_ptr  long 0

@@ -1,0 +1,458 @@
+Spin/Spin2 files in FOLDER:
+ Root /Users/stephen/Dropbox/PropV2-Shared/P2-Obex/p2:
+ All:
+
+ 001-2:  Acc_Buttons:
+		- Acc_Button_demo.spin2 [1,1]
+		- Bt_Acc_Buttons.spin2 [2,1]
+
+ 002-2:  ads1118:
+		- ADS1118.spin2 [3,1]
+		- ADS1118Demo.spin2 [4,1]
+		- jm_fullduplexserial.spin2 [5,1]
+		- jm_nstr.spin2 [6,1]
+
+ 003-2:  ansi_vgatext:
+		- ansi.spin2 [7,1]
+		- demo.spin2 [8,1]
+		- p1font.spin2 [9,1]
+		- timing1024x768.spin2 [10,1]
+		- timing1280x800.spin2 [11,1]
+		- timing1280x960.spin2 [12,1]
+		- timing640x480.spin2 [13,1]
+		- timing800x600.spin2 [14,1]
+		- unscii-16.spin2 [15,1]
+		- unscii-8.spin2 [16,1]
+		- vga_tile_driver.spin2 [17,1]
+
+ 004-2:  BinFloat:
+		- BinFloat.spin2 [18,1]
+		- demo.spin2 [8,2]
+		- ers_fmt.spin2 [19,1]
+		- SmartSerial.spin2 [20,1]
+
+ 005-2:  cjmj_pin_test_w_led_matrix:
+		- cjmj_pin_test_w_led_matrix.spin2 [21,1]
+
+ 006-2:  cricket_bme280:
+		- bme280_I2C.spin2 [22,1]
+		- demo_bme280.spin2 [23,1]
+		- jm_i2c.spin2 [24,1]
+
+ 007-2:  cricket_esp32_at:
+		- com_dat_fullduplexserial.spin2 [25,1]
+		- demo_led_control.spin2 [26,1]
+		- demo_meters32.spin2 [27,1]
+		- esp_at.spin2 [28,1]
+		- esp_drv.spin2 [29,1]
+		- esp_logon.spin2 [30,1]
+		- esp_tcp.spin2 [31,1]
+		- esp_webserver.spin2 [32,1]
+		- esp_wifi.spin2 [33,1]
+		- get_info.spin2 [34,1]
+
+ 008-2:  DS1302_full:
+		- DS1302_full.spin2 [35,1]
+		- DS1302_full_demo.spin2 [36,1]
+
+ 009-2:  ers_fmt:
+		- ers_fmt.spin2 [19,2]
+		- fmt_demo.spin2 [37,1]
+		- SmartSerial.spin2 [20,2]
+
+ 010-2:  esp32:
+		- esp32_core.spin2 [38,1]
+		- esp32_tcpip.spin2 [39,1]
+		- esp32_tcpip_tl2_beta.spin2 [40,1]
+		- esp32_wifi.spin2 [41,1]
+
+ 011-2:  GraphicsDisplayDriverArch:
+		- Brand_b_x_LCDDrv.spin2 [42,1]
+		- Debug_16b240x240_Drv.spin2 [43,1]
+		- Display_Demo.spin2 [44,1]
+		- Display_Manager.spin2 [45,1]
+		- Font14x11_Dummy.spin2 [46,1]
+		- Font8x8_Aqua.spin2 [47,1]
+		- Font8x8_Atari.spin2 [48,1]
+		- Font8x8_Burnrubber.spin2 [49,1]
+		- Font8x8_Cmd.spin2 [50,1]
+		- Font8x8_Tech.spin2 [51,1]
+		- Font_Header.spin2 [52,1]
+		- Font_Manager.spin2 [53,1]
+		- Graphics.spin2 [54,1]
+		- pasmSMC.spin2 [55,1]
+		- Wave_16b135x240LCDDrv.spin2 [56,1]
+		- Wave_16b240x240LCDDrv.spin2 [57,1]
+		- Wave_16GS128x128OledDrv.spin2 [58,1]
+
+ 012-2:  ili9341:
+		- Demo_ILI9341_XPT2046.spin2 [59,1]
+		- LCD_ILI9341_XPT2046.spin2 [60,1]
+
+ 013-2:  isp_bh1750:
+		- isp_bh1750.spin2 [61,1]
+
+ 014-2:  isp_hub75_matrix:
+		- isp_hub75_color.spin2 [62,1]
+		- isp_hub75_display.spin2 [63,1]
+		- isp_hub75_display_bmp.spin2 [64,1]
+		- isp_hub75_fonts.spin2 [65,1]
+		- isp_hub75_hwGeometry.spin2 [66,1]
+		- isp_hub75_panel.spin2 [67,1]
+		- isp_hub75_rgb3bit.spin2 [68,1]
+		- isp_hub75_screenAccess.spin2 [69,1]
+		- isp_hub75_screenUtils.spin2 [70,1]
+		- isp_hub75_scrollingText.spin2 [71,1]
+
+ 015-2:  isp_pca9685_16ch_pwm_servo:
+		- isp_i2c_pca9685.spin2 [72,1]
+		- isp_i2c_pca9685_servo.spin2 [73,1]
+		- isp_jm_i2c_singleton.spin2 [74,1]
+		- isp_jm_serial_singleton.spin2 [75,1]
+
+ 016-2:  jm_1-wire:
+		- jm_1-wire.spin2 [76,1]
+
+ 017-3:  jm_1-wire_demo:
+		- jm_1-wire.spin2 [76,2]
+		- jm_1-wire_demo.spin2 [77,1]
+		- jm_nstr.spin2 [6,2]
+		- jm_serial.spin2 [78,1]
+
+ 018-2:  jm_apa102C_smart_pixel:
+		- jm_apa102c.spin2 [79,1]
+		- jm_gamma8.spin2 [80,1]
+
+ 019-2:  jm_at24c32:
+		- jm_at24c32.spin2 [81,1]
+
+ 020-2:  jm_click_4-20ma:
+		- jm_click_4-20ma_rx.spin2 [82,1]
+		- jm_click_4-20ma_tx.spin2 [83,1]
+
+ 021-2:  jm_click_dmx-tx:
+		- jm_click_dmx-tx.spin2 [84,1]
+
+ 022-2:  jm_click_relay2:
+		- jm_click_relay2.spin2 [85,1]
+
+ 023-2:  jm_click_rs485:
+		- jm_click_rs485_3v3.spin2 [86,1]
+
+ 024-2:  jm_click_rtc:
+		- jm_click_rtc10.spin2 [87,1]
+
+ 025-2:  jm_click_tempate:
+		- jm_click_template.spin2 [88,1]
+
+ 026-2:  jm_dc_motor:
+		- jm_dc_motor.spin2 [89,1]
+		- jm_dc_motor_demo.spin2 [90,1]
+
+ 027-2:  jm_dhtxx:
+		- jm_dhtxx.spin2 [91,1]
+
+ 028-2:  jm_dmx_tx:
+		- jm_dmx_tx.spin2 [92,1]
+
+ 029-2:  jm_ds3231:
+		- jm_ds3231.spin2 [93,1]
+		- jm_ds3231_demo.spin2 [94,1]
+
+ 030-2:  jm_ez_analog:
+		- jm_ez_analog.spin2 [95,1]
+
+ 031-2:  jm_ez_button:
+		- jm_ez_button.spin2 [96,1]
+
+ 032-2:  jm_ez_max7219:
+		- jm_max7219_ez-fixed.spin2 [97,1]
+		- jm_max7219_ez.spin2 [98,1]
+		- jm_max7219_ez_demo.spin2 [99,1]
+
+ 033-2:  jm_ez_sound:
+		- jm_ez_sound.spin2 [100,1]
+
+ 034-2:  jm_ez_spi:
+		- jm_ez_spi.spin2 [101,1]
+
+ 035-3:  jm_ez_spi_demo:
+		- jm_ez_spi.spin2 [101,2]
+		- jm_ez_spi_demo.spin2 [102,1]
+		- jm_fullduplexserial.spin2 [5,2]
+		- jm_nstr.spin2 [6,3]
+
+ 036-2:  jm_full_duplex_serial:
+		- jm_format_strings_demo.spin2 [103,1]
+		- jm_fullduplexserial.spin2 [5,3]
+		- jm_nstr.spin2 [6,4]
+
+ 037-2:  jm_i2c:
+		- jm_i2c.spin2 [24,2]
+
+ 038-2:  jm_i2c_devices:
+		- jm_i2c.spin2 [24,3]
+		- jm_i2c_devices.spin2 [104,1]
+
+ 039-2:  jm_lcd_pcf8574:
+		- jm_lcd_pcf8574.spin2 [105,1]
+		- jm_pcf8574.spin2 [106,1]
+
+ 040-2:  jm_lpd8806:
+		- jm_lpd8806.spin2 [107,1]
+		- jm_lpd8806_demo.spin2 [108,1]
+
+ 041-2:  jm_max31855-k_thermocouple:
+		- jm_max31855.spin2 [109,1]
+
+ 042-2:  jm_nec_rx:
+		- jm_nec_rx.spin2 [110,1]
+
+ 043-2:  jm_nec_tx:
+		- jm_nec_tx.spin2 [111,1]
+
+ 044-2:  jm_p2es_control:
+		- jm_p2-es_control.spin2 [112,1]
+
+ 045-2:  jm_p2es_matrix:
+		- jm_p2-es_matrix.spin2 [113,1]
+
+ 046-2:  jm_pixy2:
+		- jm_pixy2.spin2 [114,1]
+
+ 047-2:  jm_prng:
+		- jm_prng.spin2 [115,1]
+
+ 048-2:  jm_pwm:
+		- jm_pwm.spin2 [116,1]
+
+ 049-2:  jm_quadrature:
+		- jm_quadrature.spin2 [117,1]
+
+ 050-2:  jm_quiic_twist:
+		- jm_qwiic_twist.spin2 [118,1]
+
+ 051-2:  jm_rgbx_pixel:
+		- jm_gamma8.spin2 [80,2]
+		- jm_rgbx_pixel.spin2 [119,1]
+
+ 052-2:  jm_serial:
+		- jm_nstr.spin2 [6,5]
+		- jm_serial.spin2 [78,2]
+
+ 053-2:  jm_servo:
+		- jm_servo.spin2 [120,1]
+
+ 054-2:  jm_sircs_rx:
+		- jm_sircs_rx.spin2 [121,1]
+
+ 055-2:  jm_sircs_tx:
+		- jm_sircs_tx.spin2 [122,1]
+
+ 056-2:  jm_soft_timer:
+		- jm_soft_timer.spin2 [123,1]
+		- jm_soft_timer_demo.spin2 [124,1]
+
+ 057-2:  jm_tm1638_led_display_driver:
+		- jm_nstr.spin2 [6,6]
+		- jm_tm1638.spin2 [125,1]
+		- jm_tm163x_segs7.spin2 [126,1]
+
+ 058-2:  max7219-dot-matrix-master:
+		- led_control.spin2 [127,1]
+		- led_demo.spin2 [128,1]
+		- led_scroll_demo.spin2 [129,1]
+
+ 059-2:  OPN2cog:
+		- ExampleSpinAPI.spin2 [130,1]
+		- ExampleSSG-EG.spin2 [131,1]
+		- ExampleVGMPlay.spin2 [132,1]
+		- OPN2cog.spin2 [133,1]
+
+ 060-2:  ParkTransformation:
+		- ParkTransformation.spin2 [134,1]
+
+ 061-2:  reSound:
+		- reSound.spin2 [135,1]
+
+ 062-2:  Simple_SpiFlash:
+		- FlashDemo.spin2 [136,1]
+		- jm_nstr.spin2 [6,7]
+		- jm_serial.spin2 [78,3]
+		- SpiFlash.spin2 [137,1]
+
+ 063-2:  SNEcog:
+		- ExamplePlayroutine.spin2 [138,1]
+		- ExampleSnDumpPlay.spin2 [139,1]
+		- SNEcog.spin2 [140,1]
+
+ 064-2:  Stepper:
+		- step_driver2 demo.spin2 [141,1]
+		- Step_driver2_cc.spin2 [142,1]
+		- Step_driver2_sd.spin2 [143,1]
+Stats for FOLDER:
+ Root /Users/stephen/Dropbox/PropV2-Shared/P2-Obex/p2:
+ All:
+	64 directories containing: 
+		143 Unique filenames
+		(154 Unique files where content is diff.)
+Alphabetical list of files with nbr of times found:
+	1x Acc_Button_demo.spin2
+	1x ADS1118.spin2
+	1x ADS1118Demo.spin2
+	1x ansi.spin2
+	1x BinFloat.spin2
+	1x bme280_I2C.spin2
+	1x Brand_b_x_LCDDrv.spin2
+	1x Bt_Acc_Buttons.spin2
+	1x cjmj_pin_test_w_led_matrix.spin2
+	1x com_dat_fullduplexserial.spin2
+	1x Debug_16b240x240_Drv.spin2
+	2x demo.spin2
+	1x demo_bme280.spin2
+	1x Demo_ILI9341_XPT2046.spin2
+	1x demo_led_control.spin2
+	1x demo_meters32.spin2
+	1x Display_Demo.spin2
+	1x Display_Manager.spin2
+	1x DS1302_full.spin2
+	1x DS1302_full_demo.spin2
+	2x ers_fmt.spin2
+	1x esp32_core.spin2
+	1x esp32_tcpip.spin2
+	1x esp32_tcpip_tl2_beta.spin2
+	1x esp32_wifi.spin2
+	1x esp_at.spin2
+	1x esp_drv.spin2
+	1x esp_logon.spin2
+	1x esp_tcp.spin2
+	1x esp_webserver.spin2
+	1x esp_wifi.spin2
+	1x ExamplePlayroutine.spin2
+	1x ExampleSnDumpPlay.spin2
+	1x ExampleSpinAPI.spin2
+	1x ExampleSSG-EG.spin2
+	1x ExampleVGMPlay.spin2
+	1x FlashDemo.spin2
+	1x fmt_demo.spin2
+	1x Font14x11_Dummy.spin2
+	1x Font8x8_Aqua.spin2
+	1x Font8x8_Atari.spin2
+	1x Font8x8_Burnrubber.spin2
+	1x Font8x8_Cmd.spin2
+	1x Font8x8_Tech.spin2
+	1x Font_Header.spin2
+	1x Font_Manager.spin2
+	1x get_info.spin2
+	1x Graphics.spin2
+	1x isp_bh1750.spin2
+	1x isp_hub75_color.spin2
+	1x isp_hub75_display.spin2
+	1x isp_hub75_display_bmp.spin2
+	1x isp_hub75_fonts.spin2
+	1x isp_hub75_hwGeometry.spin2
+	1x isp_hub75_panel.spin2
+	1x isp_hub75_rgb3bit.spin2
+	1x isp_hub75_screenAccess.spin2
+	1x isp_hub75_screenUtils.spin2
+	1x isp_hub75_scrollingText.spin2
+	1x isp_i2c_pca9685.spin2
+	1x isp_i2c_pca9685_servo.spin2
+	1x isp_jm_i2c_singleton.spin2
+	1x isp_jm_serial_singleton.spin2
+	2x jm_1-wire.spin2
+	1x jm_1-wire_demo.spin2
+	1x jm_apa102c.spin2
+	1x jm_at24c32.spin2
+	1x jm_click_4-20ma_rx.spin2
+	1x jm_click_4-20ma_tx.spin2
+	1x jm_click_dmx-tx.spin2
+	1x jm_click_relay2.spin2
+	1x jm_click_rs485_3v3.spin2
+	1x jm_click_rtc10.spin2
+	1x jm_click_template.spin2
+	1x jm_dc_motor.spin2
+	1x jm_dc_motor_demo.spin2
+	1x jm_dhtxx.spin2
+	1x jm_dmx_tx.spin2
+	1x jm_ds3231.spin2
+	1x jm_ds3231_demo.spin2
+	1x jm_ez_analog.spin2
+	1x jm_ez_button.spin2
+	1x jm_ez_sound.spin2
+	2x jm_ez_spi.spin2
+	1x jm_ez_spi_demo.spin2
+	1x jm_format_strings_demo.spin2
+	3x jm_fullduplexserial.spin2
+	2x jm_gamma8.spin2
+	3x jm_i2c.spin2
+	1x jm_i2c_devices.spin2
+	1x jm_lcd_pcf8574.spin2
+	1x jm_lpd8806.spin2
+	1x jm_lpd8806_demo.spin2
+	1x jm_max31855.spin2
+	1x jm_max7219_ez-fixed.spin2
+	1x jm_max7219_ez.spin2
+	1x jm_max7219_ez_demo.spin2
+	1x jm_nec_rx.spin2
+	1x jm_nec_tx.spin2
+	7x jm_nstr.spin2
+	1x jm_p2-es_control.spin2
+	1x jm_p2-es_matrix.spin2
+	1x jm_pcf8574.spin2
+	1x jm_pixy2.spin2
+	1x jm_prng.spin2
+	1x jm_pwm.spin2
+	1x jm_quadrature.spin2
+	1x jm_qwiic_twist.spin2
+	1x jm_rgbx_pixel.spin2
+	3x jm_serial.spin2
+	1x jm_servo.spin2
+	1x jm_sircs_rx.spin2
+	1x jm_sircs_tx.spin2
+	1x jm_soft_timer.spin2
+	1x jm_soft_timer_demo.spin2
+	1x jm_tm1638.spin2
+	1x jm_tm163x_segs7.spin2
+	1x LCD_ILI9341_XPT2046.spin2
+	1x led_control.spin2
+	1x led_demo.spin2
+	1x led_scroll_demo.spin2
+	1x OPN2cog.spin2
+	1x p1font.spin2
+	1x ParkTransformation.spin2
+	1x pasmSMC.spin2
+	1x reSound.spin2
+	2x SmartSerial.spin2
+	1x SNEcog.spin2
+	1x SpiFlash.spin2
+	1x step_driver2 demo.spin2
+	1x Step_driver2_cc.spin2
+	1x Step_driver2_sd.spin2
+	1x timing1024x768.spin2
+	1x timing1280x800.spin2
+	1x timing1280x960.spin2
+	1x timing640x480.spin2
+	1x timing800x600.spin2
+	1x unscii-16.spin2
+	1x unscii-8.spin2
+	1x vga_tile_driver.spin2
+	1x Wave_16b135x240LCDDrv.spin2
+	1x Wave_16b240x240LCDDrv.spin2
+	1x Wave_16GS128x128OledDrv.spin2
+Alphabetical list of files appearing more than once:
+	Files appearing 2 times:
+		demo.spin2  (2 unique versions)
+		ers_fmt.spin2  (1 unique versions)
+		jm_1-wire.spin2  (2 unique versions)
+		jm_ez_spi.spin2  (2 unique versions)
+		jm_gamma8.spin2  (2 unique versions)
+		SmartSerial.spin2  (1 unique versions)
+	Files appearing 3 times:
+		jm_fullduplexserial.spin2  (2 unique versions)
+		jm_i2c.spin2  (3 unique versions)
+		jm_serial.spin2  (2 unique versions)
+	Files appearing 7 times:
+		jm_nstr.spin2  (4 unique versions)
+Identical files with more than one name:
+	-- No files found with more than one name --

@@ -1,0 +1,11 @@
+
+DAT
+    srmfile long    FALSE
+
+' autosave
+pub main()
+    if srmfile and long[$e4] and (getct() - long[$e4]) >= clkfreq*3
+        long[$e4] := 0 'clear first, so if we gat another write while we're busy, it will stiiil be autosaved later
+        flush_sram()
+
+PRI flush_sram()

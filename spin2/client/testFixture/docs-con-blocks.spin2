@@ -1,0 +1,50 @@
+'' from page 3 of spin2 docs v35i
+
+' -----------------------------------------------------------------------------
+'' CON: direct assignments
+' -----------------------------------------------------------------------------
+CON EnableFlow = 8              ' single assignments
+    DisableFlow = 4
+    ColorBurstFreq = 3_579_545
+
+    PWM_base = 8
+    PWM_pins = PWM_base ADDPINS 7
+
+    x = 5, y = -5, z = 1            ' comma-separated assignments
+
+    HalfPi = 1.5707963268           ' single-precision float values
+    QuarPi = HalfPi / 2.0
+    j = ROUND(4000.0 / QuarPi)      ' float to integer
+
+
+' -----------------------------------------------------------------------------
+'' CON: enumerated assignments
+' -----------------------------------------------------------------------------
+CON #0,a,b,c,d          ' a=0, b=1, c=2, d=3 (start=0, step=1)
+    #1,e,f,g,h          ' e=1, f=2, g=3, h=4 (start=1, step=1)
+    #4[2],i,j,k,l       ' i=4, j=6, k=8, l=10 (start=4, step=2)
+    #-1[-1],m,n,p       ' m=-1, n=-2, p=-3 (start=-1, step=-1)
+
+    #16                 ' start=16, step=1
+    q                   ' q=16
+    r[0]                ' r=17 ([0] is a step multiplier)
+    s                   ' s=17
+    t                   ' t=18
+    u[2]                ' u=19 ([2] is a step multiplier)
+    v                   ' v=21
+    w                   ' w=22
+
+CON e0,e1,e2            ' e0=0, e1=1, e2=2
+                        '..enumeration is reset at each CON
+
+
+
+' -----------------------------------------------------------------------------
+'' Cluso99 - snippet seen in Ken's post
+' -----------------------------------------------------------------------------
+CON
+#0,white,red,green,blue
+
+DAT
+' something seen from Cluso99:
+ColorList   word    white, red+green, blue, green, red, red+blue, blue+green, blue/2

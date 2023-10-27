@@ -1,0 +1,10 @@
+#/bin/bash
+NOW=`date +%y%m%d-%H%M%S`
+
+# scan dir and generate list (-o) but also include marks from current tasklist (-f)
+(set -x;./mkSpinList.py -f P2-Obex.taskpaper  -o P2-Obex-${NOW}.taskpaper -r /Users/stephen/Dropbox/PropV2-Shared/P2-Obex/p2/All)
+#exit
+(set -x;./mkSpinList.py -f P1-Obex.taskpaper -o P1-Obex-${NOW}.taskpaper -r /Users/stephen/Dropbox/PropV2-Shared/P1-Obex/p1/All)
+(set -x;./mkSpinList.py -f PNut_v37_files.taskpaper -o PNut_v37_files-${NOW}.taskpaper -r /Users/stephen/Dropbox/PropV2-Shared/P2-withPNut/PNut_v37_files)
+
+(set -x;./mkSpinList.py -f vscode-TEST.taskpaper -o vscode-TEST-${NOW}.taskpaper -r "/Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-extensions/spin2/TEST")

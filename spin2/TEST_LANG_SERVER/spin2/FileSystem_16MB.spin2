@@ -1,0 +1,405 @@
+CON	_CLKFREQ	= 320_000_000
+
+	FIRST_BLOCK	= $FC0
+	LAST_BLOCK	= $FFF
+
+PUB go() | i[10], j
+
+  debug(`bitmap b pos 650 1000 size 8 8 dotsize 19 sparse black rgbi8 rate 64)
+  debug(`scope w pos 1000 1000 size 256 256 samples 64 rate 64)
+  debug(`w 'Wear Levels' 0 1500 256 0 15)
+
+  RandomizeFlash()
+  MountFileSystem()
+  ShowBlockValidMap()
+
+  MakeAFile(@"BMunch#0")
+  MakeAFile(@"BMunch#1")
+  MakeAFile(@"BMunch#2")
+  MakeAFile(@"BMunch#3")
+  MakeAFile(@"BMunch#4")
+  MakeAFile(@"BMunch#5")
+  MakeAFile(@"BMunch#6")
+  MakeAFile(@"BMunch#7")
+  MakeAFile(@"BMunch#8")
+  MakeAFile(@"BMunch#9")
+  MakeAFile(@"BMunch#10")
+  MakeAFile(@"BMunch#11")
+  MakeAFile(@"BMunch#12")
+  MakeAFile(@"BMunch#13")
+  repeat 10000
+    MakeAFile(@"BMunch#14")
+    if not (skipper++ & $F)
+      ShowBlockValidMap()
+      debug(sdec(skipper))
+  MountFileSystem()
+  ShowBlockValidMap()
+  debug(uhex_byte_array(Bp(15), 256))
+  debug(udec(FreeBlocks))
+
+
+PRI MakeAFile(pFilename) | i
+
+  FileWriteOpen(pFilename)
+  repeat 4*(BLOCK_SIZE-8) - (64-4)
+    FileWriteByte(i++)
+  'debug(uhex_long(BlockByte, HeadBlock, HeadCycle, HeadID, FileRewrite))
+  FileWriteClose()
+
+
+PRI ShowBlockValidMap() | i, p
+  repeat i from 0 to BLOCKS-1
+    debug(`b `udec_(lookupz(field[BlockState][i] : $E8, $0F, $9F, $5F)))
+    debug(`w `udec_(BlockWear[i]))
+
+
+PRI RandomizeFlash() | i
+  repeat i from 0 to FLASH_SIZE-1
+    flash[i] := getrnd()
+
+
+'************************
+'*			*
+'*     File System	*
+'*			*
+'************************
+
+CON	BLOCKS		= LAST_BLOCK - FIRST_BLOCK + 1
+	BLOCK_SIZE	= $1000
+	BLOCK_SIZE_EXP	= encod BLOCK_SIZE
+	FLASH_SIZE	= BLOCKS * BLOCK_SIZE
+	CRC_POS		= BLOCK_SIZE - 4
+
+	IdToBlocks_SIZE	= (BLOCKS * 12 + 15) / 16
+	Flags_SIZE	= (BLOCKS * 1 + 7) / 8
+	States_SIZE	= (BLOCKS * 2 + 7) / 8
+
+	sFREE		= %00		'block-status values
+	sTEMP		= %01		'used during mount and to signal immovable work-in-progress blocks
+	sHEAD		= %10
+	sBODY		= %11
+
+
+VAR	byte flash[FLASH_SIZE]				'flash chip
+
+	word IDToBlocks[IdToBlocks_SIZE]		'ID-to-block translation table
+	long IDToBlock					'field pointer
+
+	byte IDValids[Flags_SIZE]			'ID-valid flags
+	long IDValid					'field pointer
+
+	byte BlockStates[States_SIZE]			'block states
+	long BlockState					'field pointer
+
+	byte BlockBuff[BLOCK_SIZE]			'block buffer
+	byte BuffN[BLOCK_SIZE]				'block buffer new
+	long BlockByte					'block byte pointer
+	long FileRewrite				'file-rewrite flag
+	long HeadID					'head ID
+	long HeadBlock					'head block
+	long HeadCycle					'head cycle
+
+	long FreeBlocks					'free-block count
+	long BlockWear[BLOCKS]				'block-wear counts
+	long skipper
+
+PUB MountFileSystem() | i
+
+  IDToBlock  := ^@IDToBlocks.[11..0]			'set field pointers
+  IDValid    := ^@IDValids.[0]
+  BlockState := ^@BlockStates.[1..0]
+
+  bytefill(@IDValids, 0, Flags_SIZE)			'reset flags
+  bytefill(@BlockStates, 0, States_SIZE)
+
+  FreeBlocks := BLOCKS					'all blocks start out free
+
+  repeat i from 0 to BLOCKS - 1				'check blocks and fix any duplicate IDs
+    CheckBlockAndFixAnyDuplicateID(i)			'(recovers from incomplete sector switchover due to power loss)
+
+  repeat i from 0 to BLOCKS - 1				'trace head blocks and cancel any broken files
+    if field[BlockState][i] == sTEMP			'is this a valid block?
+      ReadBlock(i, @BlockBuff, $000, $000)		'read first byte of block
+      ifnot BlockBuff.[1]				'is this also a head block?
+        ifnot TraceFileAndWriteFlags(i, true)		'trace file, set block states to valid head/body
+          TraceFileAndWriteFlags(i, false)		'if error, retrace file, set block states to valid
+
+  repeat i from 0 to BLOCKS - 1				'cancel valid blocks that are not file blocks
+    if field[BlockState][i] == sTEMP			'is this a valid block, but not a file block?
+      ReadBlock(i, @BlockBuff, $000, $003)		'if so, read first long of block to get ID
+      field[IDValid][BlockBuff.long.[19..8]]~		'..cancel ID flag
+      field[BlockState][i] := sFREE   			'..invalidate block status (FIXdoneME: BUG this should NOT see i)
+      CancelBlock(i)					'..cancel block to inhibit future CRC checks
+      FreeBlocks++					'..increment free-block inventory
+
+
+PUB FileWriteOpen(pFilename) : okay | id, i
+
+  if FindFile(pFilename)			'check for existing filename
+    FileRewrite~~				'set file rewrite flag
+    HeadID := BlockBuff.long.[19..8]		'get head ID
+    HeadCycle := NextCycle(BlockBuff.[6..4])	'get next cycle
+  else
+    FileRewrite~				'no old head block, clear file rewrite flag
+    HeadID := GetNewID()			'new head ID
+    HeadCycle := %011				'new cycle
+
+  bytefill(@BlockBuff, $FF, BLOCK_SIZE)		'erase block buffer
+  long[@BlockBuff].[1..0] := %00		'set head/last
+  long[@BlockBuff].[6..4] := HeadCycle		'set cycle
+  long[@BlockBuff].[19..8] := HeadID		'set ID
+  strcopy(@BlockBuff[4], pFilename, $3C)	'set filename
+  BlockByte := $40				'point to start of data in block
+
+
+PUB FileWriteByte(b) : okay | id
+
+  if BlockByte == BLOCK_SIZE - 4		'current block full?
+
+    id := GetNewID()				'get next ID to link to
+
+    long[@BlockBuff].[0]~~			'set more bit
+    long[@BlockBuff].[31..20] := id		'set next ID
+    if not WriteBlock()				'write current block
+      return
+
+    bytefill(@BlockBuff, $FF, BLOCK_SIZE)	'erase block buffer
+    long[@BlockBuff].[7..0] := %1_011_0010	'set !cancel, new cycle, and body/last type
+    long[@BlockBuff].[19..8] := id		'set ID
+    BlockByte := $04				'point to start of data in block
+
+  BlockBuff[BlockByte++] := b			'write byte into block
+  return true
+
+
+PUB FileWriteClose() : okay
+
+  long[@BlockBuff].[0]~				'clear more bit
+  long[@BlockBuff].[31..20] := BlockByte	'cap last block and write it
+  WriteBlock()
+
+  long[Bp(HeadBlock)].[6..4] := HeadCycle	'write cycle to head block (critical last step)
+
+  if FileRewrite				'if file rewrite, strip old file to clean up
+    StripFileByID(HeadID)			'cancels ID flag
+
+  field[IDToBlock][HeadID] := HeadBlock		'set head block
+  field[IDValid][HeadID]~~			'set ID flag
+  field[BlockState][HeadBlock] := sHEAD		'set block status to head
+
+
+PRI WriteBlock() : okay | i, id
+
+  long[@BlockBuff + $FFC] := BlockCRC(@BlockBuff)	'set block CRC
+
+  i := GetNewBlock()
+
+  id := long[@BlockBuff].[19..8]		'get ID
+
+  if id == HeadID				'if head block, don't write the lifecycle, yet
+    BlockBuff.[6..4] := %111			'..it will be written as the last step
+    HeadBlock := i				'..set head block
+    field[BlockState][i] := sTEMP		'..set block status to temp
+  else
+    field[IDToBlock][id] := i			'else, record block by ID
+    field[IDValid][id]~~			'..set ID flag
+    field[BlockState][i] := sBODY		'..set block status to body
+
+  FreeBlocks--
+
+  bytemove(Bp(i), @BlockBuff, BLOCK_SIZE)	'write block
+  BlockWear[i]++
+
+  return true
+
+
+PRI GetNewID() : id | i
+
+  repeat i from 0 to BLOCKS - 1
+    ifnot field[IDValid][i]~~
+      return i
+  return -1
+
+
+PRI NextCycle(CycleIn) : CycleOut
+
+    CycleOut := (CycleIn * %001_001) >> 1 & %111
+
+
+
+PRI GetNewBlock() : NewBlock | FreeBlock, i
+
+  ifnot FreeBlocks				'if no free block exists, return -1
+    return -1
+
+  repeat					'randomly pick an sFREE/sHEAD/sBODY (not sTEMP) block
+    NewBlock := abs getrnd() // BLOCKS
+  until field[BlockState][NewBlock] <> sTEMP
+
+  ifnot field[BlockState][NewBlock]		'if the block is sFREE, flag it as sTEMP and exit
+    field[BlockState][NewBlock] := sTEMP
+    return
+
+  i := abs getrnd() // FreeBlocks		'randomly pick an sFREE block to move the sHEAD/sBODY block to
+  repeat FreeBlock from 0 to BLOCKS - 1
+    ifnot field[BlockState][FreeBlock]
+      ifnot i--
+        quit
+
+  ReadBlock(NewBlock, @BuffN, $000, $FFF)	'read the sHEAD/sBODY block
+  BuffN.[6..4] := NextCycle(BuffN.[6..4])	'advance its lifecycle
+  ProgramBlock(FreeBlock, @BuffN)		'program the sFREE block with the sHEAD/sBODY data
+  ActivateBlock(FreeBlock)			'activate the sFREE block
+  CancelBlock(NewBlock)				'cancel the original sHEAD/sBODY block to complete the move
+
+  field[IDToBlock][BuffN.long.[19..8]] := FreeBlock			'update the ID-to-block table
+  field[BlockState][FreeBlock] := field[BlockState][NewBlock]\sTEMP	'update the blocks' states
+
+  BlockWear[FreeBlock]++
+
+
+PRI CheckBlockAndFixAnyDuplicateID(i) | j, k, id
+
+  ReadBlock(i, @BlockBuff, $000, $000)			'read first byte of block
+
+  k := BlockBuff.[7..3]					'get !cancel and lifecycle of block
+
+  if not lookdown(k: %1_011_0, %1_101_0, %1_110_0)	'is block canceled, lifecycle invalid, or not active?
+    return						'if so, block status remains free, done
+
+  ReadBlock(i, @BlockBuff, $001, $FFF)			'read rest of block
+
+  if long[@BlockBuff + $FFC] <> BlockCRC(@BlockBuff)	'is CRC bad?
+    CancelBlock(i)					'if so, program !cancel bit to inhibit future CRC checks
+    return						'block status remains free, done
+
+  id := BlockBuff.long.[19..8]				'this block is good, get its ID
+
+  if not field[IDValid][id]~~				'set ID flag and if it wasn't already set..
+    field[IDToBlock][id] := i				'..set IDToBlock to this block
+    field[BlockState][i] := sTEMP			'..set valid status for this block
+    FreeBlocks--					'..decrement free-block inventory
+    return						'..done
+
+  j := field[IDToBlock][id]				'ID flag was already set, get other block with same ID
+
+  ReadBlock(j, @BlockBuff, $000, $000)			'read first byte of other block
+
+  k := (k & %0_111_0) << 2 | BlockBuff.[6..4]		'get lifecycles of this block and other block
+
+  if lookdown(k: %011_110, %101_011, %110_101)		'if this block is newer..
+    field[IDToBlock][id] := i				'..set IDToBlock to this block
+    field[BlockState][i] := sTEMP			'..set valid status for this block
+    field[BlockState][j]~				'..set free status for other block
+    CancelBlock(j)					'..cancel other block
+  else
+    CancelBlock(i)					'else, other block is newer and remains valid, so cancel this block
+
+
+PRI TraceFileAndWriteFlags(i, set) : valid
+
+  ReadBlock(i, @BlockBuff, $000, $003)		'read first long of block
+
+  repeat BLOCKS					'limit repeat to BLOCKS in order to return false on block loop
+
+    field[BlockState][i] := set ? BlockBuff.[1] ? sBODY : sHEAD : sTEMP		'set block status
+
+    if not BlockBuff.[0]			'if last block, return true
+      return true
+
+    i := BlockBuff.long.[31..20]		'not last block, get next ID
+
+    if not field[IDValid][i]			'if invalid ID, return false
+      return
+
+    i := field[IDToBlock][i]			'translate ID to block
+
+    ReadBlock(i, @BlockBuff, $000, $003)	'read first long of block
+
+    if not BlockBuff.[1]			'if head (not body) block, return false
+      return
+
+
+PRI StripFileByID(i)
+
+  repeat BLOCKS					'limit repeat to blocks in order to avoid block loop
+
+    field[IDValid][i]~				'clear ID flag
+
+    i := field[IDToBlock][i]			'translate ID to block
+
+    ReadBlock(i, @BlockBuff, $000, $003)	'read first long of block
+
+    CancelBlock(i)				'cancel block
+
+    field[BlockState][i]~			'free status of block
+    FreeBlocks++				'increment free-block inventory
+
+    if not BlockBuff.[0]			'if last block, done
+      return
+
+    i := BlockBuff.long.[31..20]		'get next ID
+
+
+PRI FindFileID(pFilename) : id | i
+
+  repeat i from 0 to BLOCKS - 1			'scan head blocks for filename
+    if field[BlockState][i] == sHEAD		'is this a head block?
+      ReadBlock(i, @BlockBuff, $000, $03F)	'yes, read first long of block
+      if strcomp(pFilename, @BlockBuff[4])	'does it have the filename in it?
+        return BlockBuff.long.[19..8]		'yes, return block ID
+
+  return -1					'done scanning, not found, return -1
+
+
+PRI FindFile(pFilename) : Found | i
+
+  repeat i from 0 to BLOCKS - 1			'scan head blocks for filename
+    if field[BlockState][i] == sHEAD		'is this a head block?
+      ReadBlock(i, @BlockBuff, $000, $03F)	'yes, read first 64 bytes of block
+      if strcomp(pFilename, @BlockBuff[4])	'does the filename match?
+        return True				'yes, return true
+
+
+PRI BlockCRC(ptr) : crc
+
+  return getcrc(ptr, $AD0424F3 rev 31, BLOCK_SIZE-4)
+
+
+'********************
+'* Flash Operations *
+'********************
+
+PRI ReadBlock(Block, BuffAddress, FirstByte, LastByte)
+
+  bytemove(BuffAddress + FirstByte, Bp(Block) + FirstByte, LastByte - FirstByte + 1)
+
+
+PRI ProgramBlock(Block, BuffAddress) | i, j
+
+  '* erase the block
+  '* clear !active in block data
+  '* compute CRC
+  '* set !active in block data
+  '* program the block data
+  '* program the !active bit low
+
+  byte[BuffAddress] &= %11110111			'clear !active bit for CRC
+  long[BuffAddress + $FFC] := BlockCRC(BuffAddress)	'compute and install CRC
+  byte[BuffAddress] |= %00001000			'set !active bit
+  bytemove(Bp(Block), BuffAddress, BLOCK_SIZE)		'program block
+
+
+PRI CancelBlock(Block)
+
+  byte[Bp(Block)] &= %01111111
+
+
+PRI ActivateBlock(Block)
+
+  byte[Bp(Block)] &= %11110111
+
+
+PRI Bp(i) : block_ptr
+
+  return @flash + i << BLOCK_SIZE_EXP

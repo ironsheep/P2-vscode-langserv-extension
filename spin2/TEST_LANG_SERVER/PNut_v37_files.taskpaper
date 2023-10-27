@@ -1,0 +1,113 @@
+Spin/Spin2 files in FOLDER:
+	Root /Users/stephen/Dropbox/PropV2-Shared/P2-withPNut:
+	PNut_v37_files:
+	
+	001-1:  PNut_v37_files:
+		- ADC_to_VGA_millivolts.spin2 [1,1] @done(2022-12-07)
+			- EVENT not recognized: _ret_	setint1	#event_se1 @done(2022-12-07)
+		- blink.spin2 [2,1] @done(2022-12-02)
+		- Chorus.spin2 [3,1] @done(2022-12-02)
+		- Chorus_Crossfade_Pitchbend.spin2 [4,1]
+			- form of debug() not hightlighted correctly (diff string types)  NO FIX
+		- Chorus_Simple_Pitchbend.spin2 [5,1]
+			- form of debug() not hightlighted correctly (diff string types)  NO FIX
+		- clock_setter.spin2 [6,1] @done(2022-12-02)
+		- DEBUG_BITMAP_HSV16_Demo.spin2 [7,1] @done(2022-12-02)
+		- DEBUG_BITMAP_RGB24_Demo.spin2 [8,1] @done(2022-12-07)
+			- RED lutcolors!  @done(2022-12-07)
+		- DEBUG_demo.spin2 [9,1] @done(2022-12-02)
+		- DEBUG_Mouse_and_Keyboard.spin2 [10,1]
+			- CON missing so top lines not hightlighed (?? how to do this in syntax processing? or override in Semantic processing ??)  NO FIX
+		- DEBUG_PLOT_HubRAM.spin2 [11,1]
+			- CON missing so top lines not hightlighed (?? how to do this in syntax processing? or override in Semantic processing ??)  NO FIX
+		- DEBUG_PLOT_Sprites.spin2 [12,1]
+			- CON missing so top lines not hightlighed (?? how to do this in syntax processing? or override in Semantic processing ??)  NO FIX
+		- debugger_clock_frequency_change.spin2 [13,1] @done(2022-12-02)
+		- debugger_demo.spin2 [14,1] @done(2022-12-07)
+			- label on debug line missed! @done(2022-12-07)
+			- .label missed! @done(2022-12-07)
+			- PUB signature missed?! @done(2022-12-07)
+		- debugger_single_step.spin2 [15,1] @done(2022-12-07)
+			- debug_main directive? @done(2022-12-07)
+		- Five_Buttons_One_Pin.spin2 [16,1] @done(2022-12-07)
+			- EVENT not recognized: _ret_   setint3 #event_se1 @done(2022-12-07)
+		- flash_loader.spin2 [17,1] @done(2022-12-02)
+		- floating_point_demo.spin2 [18,1] @done(2022-12-02)
+		- Goertzel_DEBUG_Demo.spin2 [19,1] @done(2022-12-02)
+		- Goertzel_ultrasonic.spin2 [20,1] @done(2022-12-02)
+		- HDMI_Spiral_Demo.spin2 [21,1] @done(2022-12-02)
+		- HDMI_Spiral_Demo_800x480.spin2 [22,1] @done(2022-12-02)
+		- HDTV_1920x1080_text_135x160.spin2 [23,1] @done(2022-12-02)
+		- HDTV_1920x1080_text_240x90.spin2 [24,1] @done(2022-12-02)
+		- headphones.spin2 [25,1]
+			- CON missing so top lines not hightlighed (?? how to do this in syntax processing? or override in Semantic processing ??) NO FIX
+		- hubexec_from_spin2.spin2 [26,1] @done(2022-12-02)
+		- inline_pasm.spin2 [27,1] @done(2022-12-02)
+		- NTSC_256_x_192.spin2 [28,1] @done(2022-12-02)
+		- NTSC_256_x_192_interrupt.spin2 [29,1] @done(2022-12-02)
+		- NTSC_PAL.spin2 [30,1] @done(2022-12-02)
+		- NTSC_PAL_4bpp_interrupt.spin2 [31,1]
+			- debug() messing highlight of variable-label from DAT : debug(udec(pm,px),uhex(#pn_)) NO FIX
+		- NTSC_PAL_4bpp_interrupt_Demo.spin2 [32,1] @done(2022-12-02)
+		- NTSC_PAL_Demo.spin2 [33,1] @done(2022-12-02)
+		- parser.spin2 [34,1]
+			- missing highlight on long and |m name use in DAT table (|m is sometimes white, while long is sometimes red)
+		- Spin2_debugger.spin2 [35,1]
+			- bad float value hightlight!!! @done(2022-12-07)
+			- mocz _clr (_clr not defined!) shouldn't compile!!!
+		- Spin2_interpreter.spin2 [36,1] @done(2022-12-07)
+			- RED hubexec as literal: coginit	#hubexec,##launch_spin @done(2022-12-07)
+		- VGA_1280x1024_text_160x85.spin2 [37,1] @done(2022-12-02)
+		- VGA_640x480_text_80x40.spin2 [38,1] @done(2022-12-02)
+		- vga_text_demo.spin2 [39,1] @done(2022-12-02)
+		
+Stats for FOLDER:
+	Root /Users/stephen/Dropbox/PropV2-Shared/P2-withPNut:
+	PNut_v37_files:
+	1 directories containing: 
+		39 Unique filenames
+		(39 Unique files where content is diff.)
+Alphabetical list of files with nbr of times found:
+	1x ADC_to_VGA_millivolts.spin2
+	1x blink.spin2
+	1x Chorus.spin2
+	1x Chorus_Crossfade_Pitchbend.spin2
+	1x Chorus_Simple_Pitchbend.spin2
+	1x clock_setter.spin2
+	1x DEBUG_BITMAP_HSV16_Demo.spin2
+	1x DEBUG_BITMAP_RGB24_Demo.spin2
+	1x DEBUG_demo.spin2
+	1x DEBUG_Mouse_and_Keyboard.spin2
+	1x DEBUG_PLOT_HubRAM.spin2
+	1x DEBUG_PLOT_Sprites.spin2
+	1x debugger_clock_frequency_change.spin2
+	1x debugger_demo.spin2
+	1x debugger_single_step.spin2
+	1x Five_Buttons_One_Pin.spin2
+	1x flash_loader.spin2
+	1x floating_point_demo.spin2
+	1x Goertzel_DEBUG_Demo.spin2
+	1x Goertzel_ultrasonic.spin2
+	1x HDMI_Spiral_Demo.spin2
+	1x HDMI_Spiral_Demo_800x480.spin2
+	1x HDTV_1920x1080_text_135x160.spin2
+	1x HDTV_1920x1080_text_240x90.spin2
+	1x headphones.spin2
+	1x hubexec_from_spin2.spin2
+	1x inline_pasm.spin2
+	1x NTSC_256_x_192.spin2
+	1x NTSC_256_x_192_interrupt.spin2
+	1x NTSC_PAL.spin2
+	1x NTSC_PAL_4bpp_interrupt.spin2
+	1x NTSC_PAL_4bpp_interrupt_Demo.spin2
+	1x NTSC_PAL_Demo.spin2
+	1x parser.spin2
+	1x Spin2_debugger.spin2
+	1x Spin2_interpreter.spin2
+	1x VGA_1280x1024_text_160x85.spin2
+	1x VGA_640x480_text_80x40.spin2
+	1x vga_text_demo.spin2
+Alphabetical list of files appearing more than once:
+	-- No files appearing more than once --
+Identical files with more than one name:
+	-- No files found with more than one name --

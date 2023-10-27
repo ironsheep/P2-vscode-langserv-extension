@@ -1,0 +1,106 @@
+Spin/Spin2 files in FOLDER:
+ Root /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-extensions/spin2:
+ TEST:
+
+ 001-2:  TEST/spin:
+		- 221206-fixes.spin [1,1]
+		- test_declarations.spin [2,1]
+		- test_notSpin1.spin [3,1]
+		- test_pasm.spin [4,1]
+		- test_spin.spin [5,1]
+
+ 002-2:  TEST/spin2:
+		- 1CogKbM_neoyume.spin2 [6,1]
+		- 220316-fixes.spin2 [7,1]
+		- 220325-fixes.spin2 [8,1]
+		- 220404-fixes.spin2 [9,1]
+		- 220415-fixes.spin2 [10,1]
+		- 220419-fixes.spin2 [11,1]
+		- 220421-fixes.spin2 [12,1]
+		- 220505-fixes.spin2 [13,1]
+		- 220505b-fixes.spin2 [14,1]
+		- 220808-fixes.spin2 [15,1]
+		- 220820-fixes.spin2 [16,1]
+		- 220906-fixes.spin2 [17,1]
+		- 221206-fixes.spin2 [18,1]
+		- debug_coloring_examples.spin2 [19,1]
+		- docs-all-blocks.spin2 [20,1]
+		- docs-con-blocks.spin2 [21,1]
+		- docs-dat-blocks.spin2 [22,1]
+		- docs-minimal-pasm.spin2 [23,1]
+		- docs-minimal-spin.spin2 [24,1]
+		- docs-obj-blocks.spin2 [25,1]
+		- docs-pub-pri-blocks.spin2 [26,1]
+		- docs-spin2-language.spin2 [27,1]
+		- docs-var-blocks.spin2 [28,1]
+		- github_issue_05.spin2 [29,1]
+		- Jeff Debug Test 2 (syntax).spin2 [30,1]
+		- Jeff Debug Test 3 (syntax).spin2 [31,1]
+		- Jeff Test.spin2 [32,1]
+		- Jeff Test2.spin2 [33,1]
+		- jm_fullduplexserial.spin2 [34,1]
+		- jm_test.spin2 [35,1]
+		- neoyume_lower.spin2 [36,1]
+		- practice_tabbing.spin2 [37,1]
+		- test-file-001.spin2 [38,1]
+		- test-file-002.spin2 [39,1]
+		- test-file-003.spin2 [40,1]
+		- test-file-004.spin2 [41,1]
+		- test_inline_pasm.spin2 [42,1]
+		- test_spin2_methods.spin2 [43,1]
+		- user_sample_cluso99.spin2 [44,1]
+Stats for FOLDER:
+ Root /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-extensions/spin2:
+ TEST:
+	2 directories containing: 
+		44 Unique filenames
+		(44 Unique files where content is diff.)
+Alphabetical list of files with nbr of times found:
+	1x 1CogKbM_neoyume.spin2
+	1x 220316-fixes.spin2
+	1x 220325-fixes.spin2
+	1x 220404-fixes.spin2
+	1x 220415-fixes.spin2
+	1x 220419-fixes.spin2
+	1x 220421-fixes.spin2
+	1x 220505-fixes.spin2
+	1x 220505b-fixes.spin2
+	1x 220808-fixes.spin2
+	1x 220820-fixes.spin2
+	1x 220906-fixes.spin2
+	1x 221206-fixes.spin
+	1x 221206-fixes.spin2
+	1x debug_coloring_examples.spin2
+	1x docs-all-blocks.spin2
+	1x docs-con-blocks.spin2
+	1x docs-dat-blocks.spin2
+	1x docs-minimal-pasm.spin2
+	1x docs-minimal-spin.spin2
+	1x docs-obj-blocks.spin2
+	1x docs-pub-pri-blocks.spin2
+	1x docs-spin2-language.spin2
+	1x docs-var-blocks.spin2
+	1x github_issue_05.spin2
+	1x Jeff Debug Test 2 (syntax).spin2
+	1x Jeff Debug Test 3 (syntax).spin2
+	1x Jeff Test.spin2
+	1x Jeff Test2.spin2
+	1x jm_fullduplexserial.spin2
+	1x jm_test.spin2
+	1x neoyume_lower.spin2
+	1x practice_tabbing.spin2
+	1x test-file-001.spin2
+	1x test-file-002.spin2
+	1x test-file-003.spin2
+	1x test-file-004.spin2
+	1x test_declarations.spin
+	1x test_inline_pasm.spin2
+	1x test_notSpin1.spin
+	1x test_pasm.spin
+	1x test_spin.spin
+	1x test_spin2_methods.spin2
+	1x user_sample_cluso99.spin2
+Alphabetical list of files appearing more than once:
+	-- No files appearing more than once --
+Identical files with more than one name:
+	-- No files found with more than one name --

@@ -1,0 +1,246 @@
+'' =================================================================================================
+''
+''   File....... _code_comment_demo.spin2
+''   Purpose.... Demontration of how to document aspects of Spin2
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2022 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... Jun 2023
+''   Updated.... 26 Jun 2023
+''
+'' =================================================================================================
+CON { comment position demo }
+
+' preceeding comment
+NEW_CONSTANT_1 = 5
+
+NEW_CONSTANT_2 = 7                          ' trailing comment
+
+' Enum with values commented:
+'  ENUM_VAL_1  - we have 1 becase
+'  ENUM_VAL_2  - yes, we have 2 too
+'  ENUM_VAL_3  - we have yet anotehr readons for 3
+#0, ENUM_VAL_1, ENUM_VAL_2, ENUM_VAL_3
+
+
+
+CON { timing }
+
+  CLK_FREQ = 270_000_000                                        ' system freq as a constant
+  _clkfreq = CLK_FREQ                                           ' set system clock
+
+' here 2 = 3!
+  VAL2 = ENUM_VAL_3
+
+CON { fixed io pins }
+
+  RX1      = 63  { I }                                          ' Prop programming / debug
+  TX1      = 62  { O }                                          ' Prop programming / debug
+
+  SF_CS    = 61  { O }                                          ' serial flash: Chip Select
+  SF_SCK   = 60  { O }                                          ' serial flash: Serial Clock
+  SF_SDO   = 59  { O }                                          ' serial flash Serial Data Out
+  SF_SDI   = 58  { I }                                          ' serial flash Serial Data In
+
+CON { internal constants }
+
+    kPI             = 3.14159       ' PI approx 3.14159
+    kMM_IN_INCH     = 25.4          ' One inch is equal to 25.4 mm
+
+CON { driver interface Constants}
+
+    '  DCS_STOPPED          - motor is stopped
+    '  DCS_SPIN_UP          - motor is ramping up to speed, then will be at AT_SPEED
+    '  DCS_AT_SPEED         - motor is holding at speed
+    '  DCS_SPIN_DN          - motor is stopping, then will be at STOPPED
+    '  DCS_SLOW_TO_CHG      - motor is slowing down to change direction, then will be SPEEDING_UP
+    '  DCS_FAULTED          - motor faulted (couldn't drive to requested speed)
+    '  DCS_ESTOP            - motor in emergency stop (external stop requested)
+    #0, DCS_Unknown, DCS_STOPPED, DCS_SPIN_UP, DCS_AT_SPEED, DCS_SPIN_DN, DCS_SLOW_TO_CHG, DCS_FAULTED, DCS_ESTOP
+
+    user2 = trunc()   ' <<< SHOULD be RED trunc without ()! or with empty ()'s
+
+OBJ { included objects }
+
+    ' use COG as master Spin cog
+
+    ' use COG for s.bus serial input/decoding
+    sbus    : "jm_sbus_rx"
+    term    : "isp_serial_singleton"                         ' debug terminal output
+
+DAT
+
+' DAT preceeding comment
+sillyVar        long    0       ' trailing but preceeding comment prefered
+sillyVar2       long    0       ' DAT trailing comment
+
+str1        BYTE    0[20+1]       ' trailing but preceeding comment prefered
+str2       BYTE    "simple string 20byte",0       ' DAT trailing comment
+
+VAR
+
+' VAR preceeding comment
+    LONG  forDocExplan1
+    LONG  forDocExplan2         ' VAR trailing comment
+
+PUB null()
+'' This is not a top-level object
+
+PRI extensionTesting()
+
+    ' the following for signature() testing!
+    circInMMforDiaInInch()
+
+    newRampDn()
+
+    strcopy(dest, src, 5)
+    string
+
+    lookup
+    lookdown
+    lookupz
+    lookdownz
+
+    cogstop(6)
+    cogid
+    cogchk
+
+    pinw
+    pinwrite
+    pinr
+    states := pinread ' hmmm remove lines after <br> for signature help???
+
+    zval := rdpin(32)
+    zval := rqpin(32)
+    akpin(32)
+
+    rotx, roty := rotxy(x, y, angle32bit)
+    x, y := polxy(length, angle32bit)
+    length, angle32bit := xypol(x, y)
+    qsin
+    qcos
+    muldiv64
+    getrnd
+    nan
+
+    forDocExplan1 := trunc   ' <<< SHOULD be RED := trunc without ()! or with empty ()'s
+
+    repeat ' forever
+
+
+PUB circInMMforDiaInInch(nDiaInch) : nCircInMM
+'' Return circumference in mm for given diameter in inch
+''
+'' @param nDiaInch - Integer diameter in inches
+'' @returns nCircInMM - Integer diameter in mm
+    ' RULE: circ = 2 * pi * r
+    nCircInMM := circInMMforDiaInInchFloat(float(nDiaInch))
+
+PRI circInMMforDiaInInchFloat(fDiaInch) : nCircInMM | fValue
+' Return circumference in mm for given diameter in inches
+'
+' @param fDiaInch - Float diameter in inches
+' @returns nCircInMM - Integer diameter in mm
+
+' Local Variables:
+' @local fValue - Floating point temporary variable
+' Alg: circ = 2 * pi * r
+    nCircInMM := 0
+   if fDiaInch <> 0.0
+        fValue := fDiaInch *. kPI
+        nCircInMM := trunc(fValue *. kMM_IN_INCH)
+
+pri newRampDn(tgt_incr, inDrv_incr, inDrv_state) : drv_incr, drv_state_ | testVar
+' TEST: Exercise the new pasm code to check functionality
+'
+' @param tgt_incr - the Desired final increment
+' @param inDrv_incr - initial driver increment
+' @param inDrv_state - initial driver state
+' @returns drv_incr - simulated driver increment
+' @returns drv_state_ - simulated driver state
+
+' Local Variables:
+' @local testVar - not used, for highlight testing
+    drv_incr := inDrv_incr
+    drv_state_ := inDrv_state
+    org
+.rampDn
+    debug("rampDn: ", sdec_long(drv_incr), sdec_long(tgt_incr), ": ", udec_long(drv_state_))
+                ' do next UP adjustment or set at-speed
+
+                ' if we don't have it, preset our starting angle (assume motor moved during float!)
+                ' do next UP adjustment or set at-speed
+                cmps    drv_incr, tgt_incr          wz ' Q: Did we match target?
+    if_z        jmp     #.endRDnAtTgt                  ' YES, (Matched) go mark done
+                mov     final_ramp, tgt_incr
+                subs    final_ramp, drv_incr
+                debug(" --- ", sdec_long(final_ramp))
+                ' now are we moving FWD or REV?
+                or      tgt_incr, tgt_incr          wz  ' Q: are we stopping? (if stopping don't use sign of tgt_incr)
+    if_z        testb   drv_incr, #31               wc  ' YES, moving FWD or REV? (bCY=REV)
+    if_nz       testb   tgt_incr, #31               wc  ' NO, moving FWD or REV? (bCY=REV)
+    if_c        jmp     #.haveRDnRev
+.haveRDnFwd
+                neg     final_ramp                        ' change to pos value for compare
+                cmps    final_ramp, ramp_fast_         wc  ' Q: is delta larger than ramp
+    if_nc       subs    drv_incr, ramp_fast_             ' YES, just add ramp value
+    if_c        subs    drv_incr, final_ramp              ' NO, add remaining final delta
+                debug(" --- sub ", sdec_long(drv_incr), udec_long(ramp_fast_))
+                jmp     #.justIncr                      ' increment motor angle, then exit
+.haveRDnRev
+                cmps    final_ramp, ramp_fast_         wc  ' Q: is delta larger than ramp
+    if_nc       adds    drv_incr, ramp_fast_             ' YES, just add ramp value
+    if_c        adds    drv_incr, final_ramp              ' NO, add remaining final delta
+                debug(" --- add ", sdec_long(drv_incr), udec_long(ramp_fast_))
+                jmp     #.justIncr
+.endRDnAtTgt
+                ' AT TARGET now adjust state
+                or      tgt_incr, tgt_incr          wz  ' Q: was our target ZERO? (are we stopping?)
+    if_z        mov     drv_state_, #DCS_STOPPED       ' YES, show we got to desired speed!
+    if_nz       mov     drv_state_, #DCS_AT_SPEED       ' YES, show we got to desired speed!
+                jmp     #.endRqst                       ' motor AT_SPEED, just exit (w/o increment)
+.endRqst
+.justIncr
+                ret
+
+final_ramp      long    0
+end_ramp        long    0
+curr_ramp       long    0
+abs_incr        long    0
+ramp_thresh     LONG    50_000                  ' fm zero - TEST slow ramp to here then fast ramp ( ~1/5 of 0-max )
+ramp_fast_      long    50_000                  ' 50k angle increment: add/sub this every 500 uSec to ramp up to speed, or ramp down to zer
+ramp_slo_       long    12_000                    ' 8k angle decrement: add/sub this every 500 uSec to ramp up from zero (slower initial ramp so we don't fault)
+    end
+
+
+
+DAT { simple dat pasm }
+
+CON { license }
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2023 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+}}

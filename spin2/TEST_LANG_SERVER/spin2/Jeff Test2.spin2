@@ -1,0 +1,31 @@
+'This is P2 Syntax Highlighting test code.  It is not meant to be compilable at all times.
+
+
+con
+
+  temp = 0
+  tempstr = "hello world"
+
+{{  This
+  is
+  a
+  test
+}}
+
+obj
+
+  test : asdf  asdf "This asdfasd " adsf "is a test as asdf adsf" asdf "asdf"
+
+  = "asdf "asdf"asdf"
+
+var
+  long i
+
+{{  This
+  {is
+  a}
+  test of the system
+}}
+
+
+pub main()

@@ -1,0 +1,665 @@
+
+CON
+
+MAX_STRIPS = 4
+
+MAX_WIDTH = 640
+MAX_HEIGHT = 480
+
+INBUFFER_SIZE = 2*1024
+
+'#define MODE_24BPP
+#define MODE_16BPP
+'#define MODE_8BPP
+
+#define _PROFILE_
+
+CON
+
+#ifdef MODE_24BPP
+PIXEL_SIZE = 4
+#elseifdef MODE_16BPP
+PIXEL_SIZE = 2
+#elseifdef MODE_8BPP
+PIXEL_SIZE = 1
+#endif
+
+VECTOR_SIZE = 2*2*PIXEL_SIZE
+
+CODEBOOK_SIZE = 256*VECTOR_SIZE
+
+STRIP_STATE_SIZE = 2*CODEBOOK_SIZE
+
+ID_STRIP_INTRA = $10
+ID_STRIP_INTER = $11
+
+ID_V4_COLOR_FULL    = $20
+ID_V4_COLOR_PARTIAL = $21
+ID_V1_COLOR_FULL    = $22
+ID_V1_COLOR_PARTIAL = $23
+ID_V4_MONO_FULL     = $24
+ID_V4_MONO_PARTIAL  = $25
+ID_V1_MONO_FULL     = $26
+ID_V1_MONO_PARTIAL  = $27
+
+PARTIAL_BIT = 0
+V1SEL_BIT   = 1
+MONO_BIT    = 2
+
+ID_IMAGE_INTRA = $30
+ID_IMAGE_INTER = $31
+ID_IMAGE_V1    = $32
+
+MAX_CODEBOOK = 256*6 + 256/8
+MAX_BLOCKROW = (MAX_WIDTH/4)*4 + ((MAX_WIDTH/4)/4) + 8
+
+HEADBUFFER_SIZE = (((MAX_CODEBOOK #> (MAX_BLOCKROW*2) #> INBUFFER_SIZE) + 63)/64)*64 ' size must be multiple of 64 for block wrapping reasons
+
+#0, name1, name2, name23        ' smm added this as test
+
+VAR
+
+long infunc,rdfunc,wrfunc,syncfunc,cbfunc
+long curframe,prevframe
+byte bufferflag,prev_strips,_pad[2]
+
+#ifdef _PROFILE_
+long vq_cycles,cb_cycles,io_cycles,pftime
+#endif
+
+byte headbuffer[HEADBUFFER_SIZE] ' more than enough to replenish an entire codebook
+
+long blockbuffer1[MAX_WIDTH*PIXEL_SIZE]
+long blockbuffer2[MAX_WIDTH*PIXEL_SIZE]
+
+byte codebook_buffer[MAX_STRIPS*STRIP_STATE_SIZE]
+
+
+PUB init(input_func,memory_rd_func,memory_wr_func,memory_sync_func,callback_func)
+
+  infunc := input_func
+  rdfunc := memory_rd_func
+  wrfunc := memory_wr_func
+  syncfunc := memory_sync_func
+  cbfunc := callback_func
+
+PUB decode_frame(destination,prev_frame) | frameleft,stripcount,stripno,width,height,buffer,x1,x2,word y1,word y2,tmp,frameflags
+
+  prevframe := prev_frame == -1 ? curframe : prev_frame
+  curframe := destination
+
+#ifdef _PROFILE_
+  vq_cycles := cb_cycles := io_cycles := 0
+#endif
+
+  ' read frame header
+  infunc(@headbuffer,10)
+
+  frameflags := headbuffer.byte[0]
+
+  frameleft := (__builtin_bswap32(headbuffer.long[0]) zerox 23) - 10
+  debug(sdec(frameleft))
+
+  if frameleft <= 12
+    abort @"bad header"
+
+  width := __builtin_bswap16(headbuffer.word[2])
+  if width > MAX_WIDTH
+    abort @"too wide"
+  height := __builtin_bswap16(headbuffer.word[3])
+  if height > MAX_HEIGHT
+    abort @"too tall"
+
+  stripcount := __builtin_bswap16(headbuffer.word[4])
+  if stripcount > MAX_STRIPS
+    abort @"too many strips"
+
+  if stripcount == 0
+    '' TODO: Copy frame to new buffer
+    '' TODO TODO TODO remove this shit and copy all space between strips
+    if prevframe <> curframe
+      tmp := 0
+      repeat while height > 0
+        rdfunc(@blockbuffer1,prevframe+tmp,MAX_WIDTH*PIXEL_SIZE*8,true)
+        wrfunc(@blockbuffer1,curframe+tmp,MAX_WIDTH*PIXEL_SIZE*8,true)
+        height -= 8
+        tmp += MAX_WIDTH*PIXEL_SIZE*8
+      syncfunc()
+    return false
+
+  stripno := 0
+  y2 := 0
+  repeat
+
+    debug(udec(stripno,stripcount))
+
+    if frameflags.[0]
+      ' need to copy previous strip's codebook
+      tmp := stripno ? stripno-1 : prev_strips
+      longmove(@codebook_buffer+stripno*STRIP_STATE_SIZE, @codebook_buffer+tmp*STRIP_STATE_SIZE, STRIP_STATE_SIZE/4)
+
+    ' read strip header
+    infunc(@headbuffer,12)
+
+    '
+    y1 := __builtin_bswap16(headbuffer.word[2])
+    tmp := __builtin_bswap16(headbuffer.word[4])
+    if y1 == 0 ' weird special case
+      y1 := y2
+      y2 += tmp
+    else
+      y2 := tmp
+    x1 := __builtin_bswap16(headbuffer.word[3])
+    x2 := __builtin_bswap16(headbuffer.word[5])
+
+    ifnot x1 < x2 && y1 < y2 && x2 <= MAX_WIDTH && y2 <= MAX_HEIGHT
+      debug(sdec(x1,x2,y1,y2))
+      abort @"bad strip position"
+
+    ' get data chunks
+    repeat
+      infunc(@headbuffer,4)
+      tmp := headbuffer.long[0]
+      case tmp & 255
+        ID_V4_COLOR_FULL..ID_V1_MONO_PARTIAL:
+          decode_codebook(stripno,tmp&255,__builtin_bswap32(tmp&!255)-4)
+        ID_IMAGE_INTRA..ID_IMAGE_V1:
+          decode_vectors(stripno,x1,y1,x2-x1,y2-y1,tmp&255,__builtin_bswap32(tmp&!255)-4)
+          quit
+
+
+
+
+  while ++stripno < stripcount
+  prev_strips := stripcount
+
+PRI decode_vectors(stripno,x_offset,y_offset,width,height,chunk_type,size) | datptr, fillptr, blkwidth, blkheight, bits, bit_left, tmp, tmp2, temp, cbbase, startptr, endptr, iptr, blkleft, datptr_old, input_fill, buffer, pixels[12], word realrows, word realrows_next
+
+#ifdef _PROFILE_
+  pftime := getct()
+#endif
+
+  blkwidth := (width+3)>>2
+  'blkheight := (width+3)>>2
+
+  if chunk_type == ID_IMAGE_V1
+    bits := 0
+    bit_left := posx
+  else
+    bit_left := 0
+
+  startptr := @headbuffer
+  datptr := @headbuffer
+  fillptr := @headbuffer
+  endptr := @headbuffer + HEADBUFFER_SIZE
+
+  debug(uhex_long(startptr,endptr))
+
+  input_fill := 0
+
+  cbbase := STRIP_STATE_SIZE*stripno + @codebook_buffer
+
+  debug("Decoding vectors ",uhex_byte(chunk_type),sdec(stripno,x_offset,y_offset,width,height,size))
+
+  if chunk_type == ID_IMAGE_INTER
+    ' Fetch previous frame data for first line
+      realrows := height <# 4
+#ifdef _PROFILE_
+    tmp := getct()
+#endif
+    rdfunc(bufferflag ? @blockbuffer2 : @blockbuffer1,prevframe+(y_offset zerox 15)*MAX_WIDTH*PIXEL_SIZE,realrows*MAX_WIDTH*PIXEL_SIZE,true)
+#ifdef _PROFILE_
+    tmp := getct()-tmp
+    pftime += tmp
+    io_cycles += tmp
+#endif
+
+  repeat
+    blkleft := blkwidth
+    realrows := height <# 4
+    realrows_next := (height-4) <# 4
+    buffer := (bufferflag ? @blockbuffer2 : @blockbuffer1)
+    iptr := buffer + x_offset*PIXEL_SIZE
+    not bufferflag
+    if chunk_type == ID_IMAGE_INTER && height > 4
+      ' Fetch previous frame data for next line asynchronusly
+#ifdef _PROFILE_
+      tmp := getct()
+#endif
+      rdfunc(bufferflag ? @blockbuffer2 : @blockbuffer1,prevframe+((y_offset+4) zerox 15)*MAX_WIDTH*PIXEL_SIZE,realrows_next*MAX_WIDTH*PIXEL_SIZE,true)
+#ifdef _PROFILE_
+      tmp := getct()-tmp
+      pftime += tmp
+      io_cycles+= tmp
+#endif
+
+
+    ifnot size or input_fill
+      debug(uhex_long(datptr,fillptr,endptr),sdec(size,input_fill))
+      abort @"vector chunk too short"
+
+    repeat while size && input_fill < MAX_BLOCKROW
+      ' fill to end or to ring buffer boundary
+      tmp := ((datptr <= fillptr ? endptr : datptr) - fillptr) <# size
+      debug(sdec(size,input_fill,tmp,height),uhex_long(startptr,datptr,fillptr,endptr))
+      'debug("Buffer refill")
+#ifdef _PROFILE_
+      tmp2 := getct()
+#endif
+      infunc(fillptr,tmp)
+#ifdef _PROFILE_
+      tmp2 := getct()-tmp2
+      pftime += tmp2
+#endif
+      'debug(uhex_byte_array(fillptr,32))
+      fillptr += tmp
+      if fillptr == endptr
+        fillptr := startptr
+      input_fill += tmp
+      size -= tmp
+
+    datptr_old := datptr
+
+    'debug("Decoding 4 rows at ",sdec(x_offset,y_offset,blkleft),uhex_long(datptr,iptr))
+
+    org
+              ' I hate everything (re-align FIFO)
+              mov tmp,datptr
+              subr tmp,endptr
+              mov tmp2,tmp
+              subr tmp2,#64
+              and tmp2,#63
+              sub datptr,tmp2
+              rczr tmp2 wcz
+              mov tmp,datptr
+              subr tmp,endptr
+              shr tmp,#6
+              sub tmp,#0 ' DEBUG
+              rdfast tmp,datptr
+              fblock .fifo_blocks,startptr
+        if_z  rfbyte tmp
+        if_c  rfword tmp
+              and tmp2,#15 wz
+        if_nz rep #1,tmp2
+        if_nz rflong tmp
+              ' Self-modify away skip check for intra-coded modes
+              cmp chunk_type,#ID_IMAGE_INTER wz
+        if_nz add .next_block,#4
+        if_nz jmp $+5
+              ' This also means that Z flag is now set in inter coded mode
+
+.blkloop
+              'debug("Block loop ",udec(blkleft),uhex_long(iptr))
+.skipcheck    sub bit_left,#1 wc
+        if_c  call #.replenish_bits
+.skipcheck2   rol bits,#1 wc
+        if_nc jmp #.skip_block
+
+              ' V4 if bit set
+              sub bit_left,#1 wc
+        if_c  call #.replenish_bits
+              rol bits,#1 wc
+        if_nc jmp #.v1
+
+              rep @.v4loop,#2
+#ifdef MODE_24BPP
+              rfbyte tmp
+              mul tmp,#VECTOR_SIZE
+              add tmp,cbbase
+              setq #3
+              rdlong pixels+0,tmp
+              rfbyte tmp
+              mul tmp,#VECTOR_SIZE
+              add tmp,cbbase
+              setq #3
+              rdlong pixels+8,tmp
+              ' 0 1 4 5 x x x x 2 3 6 7
+
+              mov pixels+4,pixels+2
+              mov pixels+5,pixels+3
+              mov pixels+2,pixels+8
+              mov pixels+3,pixels+9
+              mov pixels+8,pixels+4
+              mov pixels+9,pixels+5
+              ' 0 1 2 3 x x x x 4 5 6 7
+
+              setq#3
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              setq#3
+              wrlong pixels+8,iptr
+              add iptr,.stride
+#elseifdef MODE_16BPP
+              rfbyte tmp
+              mul tmp,#VECTOR_SIZE
+              add tmp,cbbase
+              setq #1
+              rdlong pixels+0,tmp
+              rfbyte tmp
+              mul tmp,#VECTOR_SIZE
+              add tmp,cbbase
+              setq #1
+              rdlong pixels+4,tmp
+              ' 01 45 xx xx  23 67
+
+              mov pixels+2,pixels+1
+              mov pixels+1,pixels+4
+              mov pixels+4,pixels+2
+
+              ' 01 23 xx xx 45 67
+
+              setq#1
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              setq#1
+              wrlong pixels+4,iptr
+              add iptr,.stride
+
+#elseifdef MODE_8BPP
+
+              rfbyte tmp
+              mul tmp,#VECTOR_SIZE
+              add tmp,cbbase
+              rdlong pixels+0,tmp
+              rfbyte tmp
+              mul tmp,#VECTOR_SIZE
+              add tmp,cbbase
+              rdlong pixels+2,tmp
+              ' 0145 xxxx  2367
+
+              getword pixels+1,pixels+0,#1
+              setword pixels+0,pixels+2,#1
+              setword pixels+2,pixels+1,#0
+              ' 0123 xxxx  4567
+
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              wrlong pixels+2,iptr
+              add iptr,.stride
+#endif
+.v4loop
+              sub iptr,.stride_nextblock wz ' clear Z flag
+              jmp #.next_block
+.v1
+              rfbyte tmp
+              add tmp,#256
+              mul tmp,#VECTOR_SIZE
+              add tmp,cbbase
+#ifdef MODE_24BPP
+              setq #3
+              rdlong pixels+0,tmp
+              ' he thicc
+              ' 0 1 2 3 x x x x
+              mov pixels+7,pixels+3
+              mov pixels+6,pixels+3
+              mov pixels+5,pixels+2
+              mov pixels+4,pixels+2
+              ' 0 1 2 3 2 2 3 3
+              mov pixels+3,pixels+1
+              mov pixels+2,pixels+1
+              mov pixels+1,pixels+0
+              ' 0 0 1 1 2 2 3 3
+
+              setq#3
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              setq#3
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              setq#3
+              wrlong pixels+4,iptr
+              add iptr,.stride
+              setq#3
+              wrlong pixels+4,iptr
+#elseifdef MODE_16BPP
+              setq #1
+              rdlong pixels+0,tmp
+              ' he thicc
+              ' 01 23 xx xx
+              mov pixels+2,pixels+1
+              mov pixels+1,pixels+0
+              mov pixels+3,pixels+1
+              ' 01 01 23 23
+              movbyts pixels+0,#%%1010
+              movbyts pixels+1,#%%3232
+              movbyts pixels+2,#%%1010
+              movbyts pixels+3,#%%3232
+              ' 00 11 22 33
+              setq#1
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              setq#1
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              setq#1
+              wrlong pixels+2,iptr
+              add iptr,.stride
+              setq#1
+              wrlong pixels+2,iptr
+#elseifdef MODE_8BPP
+              rdlong pixels+0,tmp
+              ' he thicc
+              ' 0123 xxxx
+              mov pixels+1,pixels+0
+              ' 0123 0123
+              movbyts pixels+0,#%%1100
+              movbyts pixels+1,#%%3322
+              ' 0011 2233
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              wrlong pixels+0,iptr
+              add iptr,.stride
+              wrlong pixels+1,iptr
+              add iptr,.stride
+              wrlong pixels+1,iptr
+#endif
+              sub iptr,.stride3 wz ' clear Z flag
+.skip_block
+              add iptr,#4*PIXEL_SIZE ' advance horizontal
+.next_block
+              djnz blkleft,#.blkloop
+              wrz tmp
+        _ret_ getptr datptr
+
+
+.replenish_bits
+              rflong bits
+              movbyts bits,#%%0123
+              'pop tmp ' DEBUG DEBUG
+              'getptr datptr
+        _ret_ add bit_left,#32
+
+        ' TODO: Remove this workaround for flexspin bug
+              mov pixels+0,pixels+1
+              mov pixels+2,pixels+3
+              mov pixels+4,pixels+5
+              mov pixels+6,pixels+7
+              mov pixels+8,pixels+9
+              mov pixels+10,pixels+11
+
+
+.selfmod_clrc modc _clr wc
+.selfmod_setc modc _set wc
+.stride long MAX_WIDTH*PIXEL_SIZE
+.stride3 long MAX_WIDTH*PIXEL_SIZE*3
+.stride_nextblock long MAX_WIDTH*PIXEL_SIZE*4 - 4*PIXEL_SIZE
+.fifo_blocks long HEADBUFFER_SIZE/64
+    end
+
+    ' ???
+    if datptr >= endptr
+      datptr -= HEADBUFFER_SIZE
+
+    'debug(uhex_long(bits,datptr,tmp))
+
+    'debug("Doneski ",uhex_long(datptr,iptr),sdec(x_offset))
+
+    ' if decoding in-place, skip writing unchanged lines
+    ifnot chunk_type == ID_IMAGE_INTER && tmp && prevframe == curframe
+#ifdef _PROFILE_
+      tmp := getct()
+#endif
+      wrfunc(curframe+(y_offset zerox 15)*MAX_WIDTH*PIXEL_SIZE,buffer,realrows*MAX_WIDTH*PIXEL_SIZE,true)
+#ifdef _PROFILE_
+      tmp := getct()-tmp
+      pftime += tmp
+      io_cycles += tmp
+#endif
+
+    tmp := datptr - datptr_old
+    if tmp < 0
+      tmp += HEADBUFFER_SIZE
+    input_fill -= tmp
+    if input_fill < 0
+      debug(sdec(input_fill,tmp,bit_left),uhex_long(datptr,datptr_old,startptr,endptr))
+      abort @"weird buffer error"
+
+    height -= 4
+    y_offset += 4
+  while height > 0
+
+  debug("Too much data? ",sdec(size))
+  repeat while size
+    abort @"data beyond end of strip"
+    tmp := size <# HEADBUFFER_SIZE
+    infunc(@headbuffer,tmp)
+    size -= tmp
+
+#ifdef _PROFILE_
+  vq_cycles += getct() - pftime
+#endif
+
+PRI decode_codebook(stripno,chunk_type,size) | cbptr, datptr, bit_left, bits, pixels[4], i, u, v, tmp, mask, val, datend
+
+  if size >+ HEADBUFFER_SIZE
+    debug(sdec(size),sdec(HEADBUFFER_SIZE))
+    abort @"Codebook chunk too large"
+
+  debug("Decoding codebook ",uhex_byte(chunk_type))
+  infunc(@headbuffer,size)
+
+  ' start profile here so we don't double count FS time
+#ifdef _PROFILE_
+  pftime := getct()
+#endif
+
+  cbptr := STRIP_STATE_SIZE*stripno + @codebook_buffer
+  if chunk_type.[V1SEL_BIT]
+    cbptr += CODEBOOK_SIZE
+
+  if chunk_type.[PARTIAL_BIT]
+    bit_left := 1
+    i := 256/32
+  else
+    bit_left := size +/ (chunk_type.[MONO_BIT]?4:6) + 1
+    i := 1
+    bits := -1
+
+    datptr := @headbuffer
+    datend := datptr + size
+    debug(uhex_long(cbptr))
+  ' Hardcore part
+  org
+              rdfast #0,datptr
+              testb chunk_type,#MONO_BIT wc
+        if_c  mov .get_u,.selfmod_nocolor
+              jmp #.loop_entry
+
+.loop_top
+              rol bits,#1 wc
+        if_nc jmp #.loop_bottom
+
+              rflong pixels+0 ' get Y*4
+#ifndef MODE_8BPP
+              getbyte pixels+1,pixels+0,#1
+              getbyte pixels+2,pixels+0,#2
+              getbyte pixels+3,pixels+0,#3
+              movbyts pixels+0,#%%0000
+              movbyts pixels+1,#%%0000
+              movbyts pixels+2,#%%0000
+              movbyts pixels+3,#%%0000
+
+.get_u        rfbyte u wc
+              bitc mask,#8 addbits 7 ' blue
+        if_c  subr u,#256
+              mov tmp,u
+              shr tmp,#1
+              negnc tmp
+              shl u,#8
+              rfbyte v wc
+              bitc mask,#24 addbits 7 ' red
+        if_c  subr v,#256
+              sumc tmp,v
+              setbyte u,v,#3
+              addpix u,u ' double magnitude
+
+              abs tmp wc
+              fle tmp,#255
+              setbyte u,tmp,#2
+              bitnc mask,#16 addbits 7 ' green
+
+              xor pixels+0,mask
+              xor pixels+1,mask
+              xor pixels+2,mask
+              xor pixels+3,mask
+              addpix pixels+0,u
+              addpix pixels+1,u
+              addpix pixels+2,u
+              addpix pixels+3,u
+              xor pixels+0,mask
+              xor pixels+1,mask
+              xor pixels+2,mask
+              xor pixels+3,mask
+.no_color
+#ifndef MODE_16BPP
+              ' 24bpp
+              setq #3
+              wrlong pixels+0,cbptr
+#else
+              ' 16bpp
+              rgbsqz pixels+0
+              rgbsqz pixels+1
+              rgbsqz pixels+2
+              rgbsqz pixels+3
+              setword pixels+0,pixels+1,#1
+              setword pixels+1,pixels+2,#0
+              setword pixels+1,pixels+3,#1
+              setq #1
+              wrlong pixels+0,cbptr
+#endif
+
+#else
+              ' 8bpp
+.get_u        rfword u
+              wrlong pixels+0,cbptr
+#endif
+
+.loop_bottom
+              add cbptr,#VECTOR_SIZE
+.loop_entry
+              djnz bit_left,#.loop_top
+.replenish_bits
+              rflong bits
+              movbyts bits,#%%0123
+              mov bit_left,#32
+              getptr datptr
+              sub datptr,datend wc
+        _ret_ tjs datptr,#.loop_top
+
+#ifndef MODE_8BPP
+.selfmod_nocolor jmp #\.no_color
+#else
+.selfmod_nocolor nop
+#endif
+
+  end
+  debug(uhex_long(cbptr))
+#ifdef _PROFILE_
+  cb_cycles += getct() - pftime
+#endif
+
+
+#ifdef _PROFILE_
+PUB get_profile() : vq,cb,io
+  return vq_cycles,cb_cycles,io_cycles
+#endif

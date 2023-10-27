@@ -1,0 +1,143 @@
+CON _clkfreq = 100_000_000
+PUB go() | i
+    debug(`bitmap a title 'LUT1'  pos 100 100 trace 2 lut1 longs_1bit alt)
+    debug(`bitmap b title 'LUT2'  pos 370 100 trace 2 lut2 longs_2bit alt)
+    debug(`bitmap c title 'LUT4'  pos 100 395 trace 2 lut4 longs_4bit alt)
+    debug(`bitmap d title 'LUT8'  pos 370 395 trace 2 lut8 longs_8bit)
+    debug(`bitmap e title 'RGB8'  pos 100 690 trace 2 rgb8)
+    debug(`bitmap f title 'RGB16' pos 370 690 trace 2 rgb16)
+    debug(`bitmap g title 'RGB24' pos 640 690 trace 2 rgb24)
+    waitms(1000)
+
+    showbmp("a", @image1, $8A, 2, $800)     'send LUT1 image
+    showbmp("b", @image2, $36,   4, $1000)  'send LUT2 image
+    showbmp("c", @image3, $8A,  16, $2000)  'send LUT4 image
+    showbmp("d", @image4, $36, 256, $4000)  'send LUT8 image
+
+    i := @image5 + $36 'send RGB8/RGB16/RGB24 images from the same 24-bpp file
+    repeat $10000
+        debug(`e `uhex_(byte[i+0] >> 6 + byte[i+1] >> 5 << 2 + byte[i+2] >> 5 << 5 ))
+        debug(`f `uhex_(byte[i+0] >> 3 + byte[i+1] >> 2 << 5 + byte[i+2] >> 3 << 11))
+        debug(`g `uhex_(byte[i+0]      + byte[i+1] << 8      + byte[i+2] << 16     ))
+        i += 3
+
+PRI showbmp(letter, image_address, lut_offset, lut_size, image_longs) | i
+'-+-+-+-+-+-+-+-+---------------+-----------------------+-----------------------+
+  image_address += lut_offset
+  {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
+  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  'debug(` zstr_(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  'debug(`lstr_(letter, 4) lutcolors `uhex_long_array_(image_address, lut_size))
+  image_address += lut_size << 2 - 4
+  repeat image_longs
+    debug(``#(letter) `uhex_(long[image_address += 4]))
+
+CON
+ DISK_BUFF = $1000
+
+DAT  { hub data }
+
+'---+-----------+---+---+---+-------------------+---+---+---+---+---+-----------+
+    mbox_copy       long    0
+    mbox_command    long    0
+    mbox_status     long    0
+    mbox_debug      long    0
+
+    rx              long    0
+
+    str_sd_err      byte    "ERROR",0
+
+    orgh
+'---+-----------+---+---+---+-------------------+---+---+---+---+---+-----------+
+_hubTxStr       mov     rx, #1
+                ret
+
+_hubTx          mov     rx, #1
+                ret
+
+_hubTxCR        mov     rx, #1
+                ret
+.loop
+_hubMonitor     mov     rx, #1
+                djz     #.loop
+        _ret_   jmp     #exit
+
+testValue       long    4551
+exit            ret
+
+PUB sample_spin() | i
+
+    org
+
+'-------+-----+---------+-------+---------------+-------+-----------------------+
+go_command  mov     priv_bufad,   ##DISK_BUFF         ' ensure correct hub buffer
+            setq    #3-1
+            wrlong  priv_copy,    ##mbox_copy         ' give aux/sector/bufad to SD mailbox
+            wrbyte  priv_command, ##mbox_command      ' give command to SD Driver
+.wait       rdbyte  tmp,          ##mbox_command  wz  ' wait until cleared ie done
+    if_nz   jmp     #.wait                            '
+            rdbyte  priv_status,  ##mbox_status   wz  ' get status
+            setq    #3-1
+            rdlong  priv_copy,    ##mbox_copy         ' get  aux/sector/bufad from SD mailbox
+            wrbyte  #0,           ##mbox_status       ' clear status
+    if_z    RET                                       ' return with "Z"=success
+
+            mov     lmm_p,        ##str_sd_err
+            call    #\_hubTxStr
+            mov     lmm_x,        priv_command
+            call    #\_hubTx
+            call    #\_hubTxCR
+            call    #\_hubMonitor
+            RET                                       ' permit monitor to continue
+
+tmp  byte   0
+
+lmm_x long    0
+lmm_p long    0
+lmm_lp2 long    0
+lmm_lc long    0
+
+priv_bufad      res 1
+priv_copy       res 1
+priv_command    res 1
+priv_status     res 1
+
+    end
+
+    ' random code so we can test fallback to PUB/PRI tabs here
+    i := @image5 + $36 'send RGB8/RGB16/RGB24 images from the same 24-bpp file
+    repeat $10000
+        debug(`e `uhex_(byte[i+0] >> 6 + byte[i+1] >> 5 << 2 + byte[i+2] >> 5 << 5 ))
+        debug(`f `uhex_(byte[i+0] >> 3 + byte[i+1] >> 2 << 5 + byte[i+2] >> 3 << 11))
+
+  {{
+    }}
+
+    {
+        {
+        }
+    }       ' <--- BAD!!!
+
+DAT
+
+'---+-----------+---+---+---+-------------------+---+---+---+---+---+-----------+
+audio           org     0
+                mov     ptrb,#0             ' A tail pointer for the buffer
+                rdbyte  priv_status,  ##mbox_status   wz  ' get status
+.blkloop
+                setq    #3-1
+.nextBlock      djnz    blkleft,#.blkloop
+                wrz     tmp
+        _ret_   getptr  datptr
+
+priv_status     res 1
+blkleft         res 1
+datptr          res 1
+tmp             res 1
+
+DAT
+    image1 file "bird_lut1.bmp"
+    image2 file "bird_lut2.bmp"
+    image3 file "bird_lut4.bmp"
+    image4 file "bird_lut8.bmp"
+    image5 file "bird_rgb24.bmp"

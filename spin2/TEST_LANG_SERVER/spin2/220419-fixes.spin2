@@ -1,0 +1,33 @@
+'' latest findings needing to be fixed
+
+' --------------------------------------------------------------------------------------------------
+CON { app io pins }
+
+    PIN_SERVO_CTRL = 0
+
+VAR
+    long    killCID
+
+PUB Main()
+
+    debug(`term logTerm pos 100 460 size 40 10 textsize 16 color green)
+
+PRI KillSwitch()
+    dira.[PIN_SERVO_CTRL]~~     ' ensure SERVO PIN is output for this COG too
+    debug(`logTerm 'KillSwitch() running on #`(killCID)' 10)                    ' <--- "running on #" should NOT be RED!
+
+' --------------------------------------------------------------------------------------------------
+
+PUB Main2()
+    debug(`plot screen pos 1560 120 size 640 480 backcolor black update)
+    repeat
+        debug(`screen update ~dly(100))                                         ' <--- "dly" should NOT be RED!
+
+' --------------------------------------------------------------------------------------------------
+VAR ' instance variables
+    long    position
+
+PUB Main3()
+    debug(`term testTerm pos 100 440 color cyan size 34 1 textsize 20)
+        debug(`testTerm 1 'Pulse Width = `(position) microseconds')             ' <--- "Width" should NOT be RED!
+        debug(`testTerm 1 'Pulse Width = ', '`(position)', ' microseconds  ')   ' <--- "microseconds" should NOT be RED!

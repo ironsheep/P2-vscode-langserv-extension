@@ -1,0 +1,42 @@
+'' latest findings needing to be fixed
+
+' --------------------------------------------------------------------------------------------------
+' REF: https://github.com/ironsheep/P2-vscode-extensions/issues/17
+CON
+
+    NEW_PULLUP = serIO.PU_1K5
+
+OBJ
+
+    serIO : "dummy_jm_serial"         ' jm  serial object
+
+DAT
+
+pullUP   long   serIO.PU_1K5
+
+PUB pullUpValueForEnum(ePullupRqst) : pullup | localVar
+'' ...
+''
+'' @param ePullupRqst -
+'' @returns pullup -
+'
+' Local Variables:
+' @local localVar -
+  case ePullupRqst    ' <--- why RED??? (causeed by mthod names collision)
+    serIO.PU_NONE : pullup := P_HIGH_FLOAT                            ' use external pull-up
+    serIO.PU_1K5  : pullup := P_HIGH_1K5                              ' 1.5k
+    serIO.PU_3K3  : pullup := P_HIGH_1MA                              ' acts like ~3.3k
+    other   : pullup := P_HIGH_15K                              ' 15K
+
+' --------------------------------------------------------------------------------------------------
+' REF: https://github.com/ironsheep/P2-vscode-extensions/issues/18
+
+PRI pullUpValueForEnum2(ePullupRqst) : pullup
+    if ePullupRqst == serIO.PU_NONE
+      pullup := P_HIGH_FLOAT
+    elseif ePullupRqst == serIO.PU_1K5
+      pullup := P_HIGH_1K5
+    elseif ePullupRqst == serIO.PU_3K3
+      pullup := P_HIGH_1MA
+    else
+      pullup := P_HIGH_15K
