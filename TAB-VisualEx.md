@@ -25,8 +25,6 @@ The following examples show selection cases when about to press the TAB key.  Th
 
 ## License
 
-Copyright © 2023 Iron Sheep Productions, LLC.
-
 Licensed under the MIT License.
 
 Follow these links for more information:

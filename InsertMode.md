@@ -244,7 +244,6 @@ e.g.
 
 ## License
 
-Copyright © 2023 Iron Sheep Productions, LLC.<br />
 Licensed under the MIT License. <br>
 <br>
 Follow these links for more information:
