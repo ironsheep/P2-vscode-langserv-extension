@@ -2536,7 +2536,6 @@ export class Spin2DocumentSemanticParser {
             // have complex target name, parse in loop
             const variableNameParts: string[] = variableName.split(/[ \t\[\]\/\*\+\-\(\)\<\>]/);
             this._logSPIN("  -- LHS: [] variableNameParts=[" + variableNameParts + "]");
-            let haveModification: boolean = false;
             for (let index = 0; index < variableNameParts.length; index++) {
               let variableNamePart = variableNameParts[index].replace("@", "");
               // secial case handle datar.[i] which leaves var name as 'darar.'
@@ -2608,7 +2607,7 @@ export class Spin2DocumentSemanticParser {
             let cleanedVariableName: string = variableName.replace(/[ \t\(\)]/, "");
             let nameOffset = line.indexOf(cleanedVariableName, currentOffset);
             if (cleanedVariableName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isStorageType(cleanedVariableName) && !this.parseUtils.isSpinSpecialMethod(cleanedVariableName)) {
-              this._logSPIN("  --  SPIN cleanedVariableName=[" + cleanedVariableName + "](" + (nameOffset + 1) + ")");
+              this._logSPIN("  --  SPIN cleanedVariableName=[" + cleanedVariableName + "], ofs=(" + (nameOffset + 1) + ")");
               // does name contain a namespace reference?
               if (this._isPossibleObjectReference(cleanedVariableName)) {
                 let bHaveObjReference: boolean = this._reportObjectReference(cleanedVariableName, lineIdx, startingOffset, line, tokenSet);
@@ -2702,12 +2701,23 @@ export class Spin2DocumentSemanticParser {
               } else {
                 let referenceDetails: RememberedToken | undefined = undefined;
                 nameOffset = line.indexOf(cleanedVariableName, currentOffset);
+                const haveGlobalToken: boolean = this.semanticFindings.isGlobalToken(cleanedVariableName);
                 if (this.semanticFindings.isLocalToken(cleanedVariableName)) {
                   referenceDetails = this.semanticFindings.getLocalTokenForLine(cleanedVariableName, lineNbr);
                   this._logSPIN(`  --  FOUND local name=[${cleanedVariableName}, referenceDetails=[${referenceDetails}]]`);
-                } else if (this.semanticFindings.isGlobalToken(cleanedVariableName)) {
+                  if (referenceDetails && haveGlobalToken) {
+                    this.semanticFindings.pushDiagnosticMessage(
+                      lineIdx,
+                      nameOffset,
+                      nameOffset + cleanedVariableName.length,
+                      eSeverity.Information,
+                      `P2 Spin local name [${cleanedVariableName}] is hiding global variable of same name`
+                    );
+                  }
+                }
+                if (!referenceDetails && haveGlobalToken) {
                   referenceDetails = this.semanticFindings.getGlobalToken(cleanedVariableName);
-                  this._logSPIN("  --  FOUND globel name=[" + cleanedVariableName + "]");
+                  this._logSPIN("  --  FOUND global name=[" + cleanedVariableName + "]");
                 }
                 if (referenceDetails != undefined) {
                   const modificationArray: string[] = referenceDetails.modifiersWith("modification");
@@ -2841,10 +2851,21 @@ export class Spin2DocumentSemanticParser {
             this._logSPIN(`  --  SPIN RHS   searchString=[${searchString}]`);
             this._logSPIN(`  --  SPIN RHS    nameOffset=(${nameOffset}), offsetInNonStringRHS=(${offsetInNonStringRHS}), currentOffset=(${currentOffset})`);
             let referenceDetails: RememberedToken | undefined = undefined;
+            const haveGlobalToken: boolean = this.semanticFindings.isGlobalToken(namePart);
             if (this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
               this._logSPIN("  --  FOUND local name=[" + namePart + "]");
-            } else if (this.semanticFindings.isGlobalToken(namePart)) {
+              if (referenceDetails && haveGlobalToken) {
+                this.semanticFindings.pushDiagnosticMessage(
+                  lineIdx,
+                  nameOffset,
+                  nameOffset + namePart.length,
+                  eSeverity.Information,
+                  `P2 Spin local name [${namePart}] is hiding global variable of same name`
+                );
+              }
+            }
+            if (!referenceDetails && haveGlobalToken) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
               this._logSPIN("  --  FOUND global name=[" + namePart + "]");
               if (referenceDetails != undefined && referenceDetails?.type == "method") {
