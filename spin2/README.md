@@ -1,14 +1,18 @@
 # VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
 
-Spin/Spin22 Language Server based VSCode Extension
+Spin/Spin2 Language-Server based VSCode Extension
 
-## P1 and P2 Syntax highlighting and Code Navigation for VSCode
+## P1 and P2 Syntax/Semantic Highlighting and Code Navigation for VSCode
 
 This Extension is continually in development. Things may, occasionally, not work correctly. See _Support_, below, for how to report issues.
 
 ## ABOUT
 
 This extension provides support for P1 (spin and pasm) along with P2 (Spin2 and Pasm2), the primary languages for programming P1 [Parallax Propeller 1 or P8X32A](https://www.parallax.com/propeller-1/) and the P2 [Parallax Propeller2 or P2X8C4M64P](https://propeller.parallax.com/p2.html)
+
+We've moved to a **Language Server based extension** so that we can awaken **multi-file behaviors** such as show help from included file in top-level file when hovering or showing signature help. This also applies to upoming features such as go to definition. 
+
+All features provided by this extension support both the Parallax Propeller 1 and Propeller 2 languages: Spin and Pasm.
 
 ## Feature: Syntax Highlighting
 
@@ -65,6 +69,7 @@ Hovers show information about the symbol/object that's below the mouse cursor. T
 
 - Hover over **User** variables, constants, methods, pasm labels and objects to display pop-up information about the item including comments within the code for the item.
 - Hover for **Built-in Spin/Spin2** method names, variables, constants and smart-pin constants to display pop-up documentation about the built-in item.
+- Hover text for methods and constants from included objects are brought in from the external included object.
 
 ## Feature: Help With Method Signatures
 
@@ -72,6 +77,7 @@ Help With Method Signatures displays information about the method that is being 
 
 - Documentation is shown for each parameter as you are entering the parameter value being passed to the method.
 - If your own methods are not yet documented, the this signature help still supports entry of the parameter values as well as reminds you how to add your own documentation for your PUB and PRI methods.
+- When the method being entered is from an included object the help text is brought in from the external included object.
 
 ## Feature: Generate "Object public interface" documentation
 
@@ -169,7 +175,6 @@ PRI pullUpValueForEnum(ePullupRqst) : pullup
 We are working on fixes to the following issues we've seen during our testing. However, they are not major enough to prevent this release.
 
 - The spin2 line-continuation syntax is not yet supported
-- The spin2 object-instance override of constants is not yet fully highlighted correctly
 - We are still working through validating the P1 support against the full P1 obex - this is a work in progress
 - Some line comments are not properly colored
 - Occasionally [byte|word|long] storage types are not properly colored
@@ -181,16 +186,16 @@ _The above appear to be mostly syntax recognizer issues_
 There are some things that currently are limitations which we may or may not address in the future:
 
 - P2 Signature help is not available for send() method pointer - as it has variant forms of paramaters
-- P1 and P2 Signature help is not available for lookup(), lookupz(), lookdown(), lookupdownz() - as these have non-standard signature patterns not supported. Within the parens are found a ':' followed by one or more ','s.
+- P1 and P2 Signature help is not available for lookup(), lookupz(), lookdown(), lookupdownz() as these have non-standard signature patterns not supported. Within the parens are found a ':' followed by one or more ','s.
 
 ## Reporting Issues
 
-An active list of issues is maintained at github. [P2-vscode-extensions/Issues](https://github.com/ironsheep/P2-vscode-extensions/issues). When you want to report something missing, not working right, or even request a new feature please submit an issue. By doing so you will be able to track progress against the request and learn of the new version containing your fix/enhancement when it is available.
+An active list of issues is maintained at github. [P2-vscode-langserv-extension/Issues](https://github.com/ironsheep/P2-vscode-langserv-extension/issues). When you want to report something missing, not working right, or even request a new feature please submit an issue. By doing so you will be able to track progress against the request and learn of the new version containing your fix/enhancement when it is available.
 
 ---
 
 > If you like my work and/or this has helped you in some way then feel free to help me out for a couple of :coffee:'s or :pizza: slices or support my work by contributing at Patreon!
 >
-> [![coffee](https://www.buymeacoffee.com/assets/img/custom_images/black_img.png)](https://www.buymeacoffee.com/ironsheep) &nbsp;&nbsp; -OR- &nbsp;&nbsp; [![Patreon](./DOCs/images/patreon.png)](https://www.patreon.com/IronSheep?fan_landing=true)[Patreon.com/IronSheep](https://www.patreon.com/IronSheep?fan_landing=true)
+> [![coffee](https://www.buymeacoffee.com/assets/img/custom_images/black_img.png)](https://www.buymeacoffee.com/ironsheep) &nbsp;&nbsp; -OR- &nbsp;&nbsp; [![Patreon](./images/patreon.png)](https://www.patreon.com/IronSheep?fan_landing=true)[Patreon.com/IronSheep](https://www.patreon.com/IronSheep?fan_landing=true)
 
 ---

@@ -1,16 +1,16 @@
 {
   "name": "spin2",
   "displayName": "Spin2",
-  "description": "Spin2/Pasm2 Syntax/Semantic Highlighting w/Code Outline and Custom tabbing support",
+  "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ironsheep/P2-vscode-extensions"
+    "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
   },
   "bugs": {
-    "url": "https://github.com/ironsheep/P2-vscode-extensions/issues"
+    "url": "https://github.com/ironsheep/P2-vscode-langserv-extension/issues"
   },
   "publisher": "IronSheepProductionsLLC",
   "categories": [],
@@ -473,13 +473,11 @@
     "keybindings": [
       {
         "key": "Ctrl+Alt+d",
-        "mac": "Cmd+Alt+d",
         "command": "spinExtension.generate.documentation.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+c",
-        "mac": "Cmd+Alt+c",
         "command": "spinExtension.generate.doc.comment",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
@@ -495,7 +493,6 @@
       },
       {
         "key": "Ctrl+Alt+tab",
-        "mac": "Cmd+Alt+tab",
         "command": "spinExtension.generate.tabStops.comment",
         "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
       },
@@ -686,21 +683,27 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && npm run compile:grammar",
+    "vscode:prepublish": "npm run prebuild && npm run esbuild-base -- --minify",
+    "vscode:prepublish-0": "npm run compile && npm run compile:grammar",
+    "esbuild-base": "esbuild ./client/src/extension.ts ./server/src/server.ts  --bundle --outdir=. --entry-names=[dir]/../out/[name] --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run prebuild && npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run prebuild && npm run esbuild-base -- --sourcemap --watch",
+    "prebuild": "npm run compile && npm run compile:grammar",
     "compile": "tsc -b",
     "compile:grammar": "npx js-yaml syntaxes/spin2.tmLanguage.YAML-tmLanguage > syntaxes/spin2.tmLanguage.json && npx js-yaml syntaxes/spin1.tmLanguage.YAML-tmLanguage > syntaxes/spin1.tmLanguage.json ",
     "watch": "tsc -b -w",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
     "pretest": "npm run compile && npm run lint",
+    "test-compile": "tsc -p ./",
     "test": "sh ./scripts/e2e.sh"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/mocha": "^9.1.0",
     "@types/node": "^16.18.34",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
+    "esbuild": "^0.19.5",
     "eslint": "^8.35.0",
     "mocha": "^9.2.1",
     "typescript": "^5.1.3"

@@ -12,16 +12,32 @@ Work to appear in upcoming releases:
 
 Possible next additions:
 
+- Awaken go to Definition feature
+- Awaken code-folding feature
+- ... more features comming too
 - Investigate and possibly add unique coloring for method pointers
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.0.0] 2023-08-??
+## [2.1.0] 2023-10-27
+
+Formal release of Language-server-based P1 and P2 Spin Extension for VScode
+
+
+- Files included by current file are parsed and references to the included objects are validated
+- Documentation from the included object files is shown for Hover Text and Signature help
+- Live parsing on file change allowing changes in one editor window to affect another editor window (e.g., You have a toplevel spin file open and and object spin file open in 2nd window. Changes in object file can immediately affect the toplevel file.)
+- Display of errors found during parse are listed for each file parsed (and with **Error Lens** errors show on affected line)
+- What a file is parsed and errors are found the file entry in the left panel file browser turns light red to highlight that file contains errors
+- Many improvements in parsing / highlighting for both P1 and P2
+
+
+## [2.0.0 - 2.0.4] 2023 Oct 22-26
 
 Convert to Spin and Spin2 Language Server as separate Process (P1 and P2)
 
-- BUGFIX: Outline now recognizes global labels on DAT declaration line
+- Initial builds for alpha testing with key users.
 
 ## [1.9.13] 2023-08-03
 
