@@ -4,7 +4,7 @@
   "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -14,17 +14,7 @@
   },
   "publisher": "IronSheepProductionsLLC",
   "categories": [],
-  "keywords": [
-    "spin",
-    "spin2",
-    "pasm",
-    "pasm2",
-    "propeller",
-    "propeller 2",
-    "propeller v2",
-    "parallax",
-    "parallax.com"
-  ],
+  "keywords": ["spin", "spin2", "pasm", "pasm2", "propeller", "propeller 2", "propeller v2", "parallax", "parallax.com"],
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -92,11 +82,7 @@
           "spinExtension.trace.server": {
             "scope": "window",
             "type": "string",
-            "enum": [
-              "off",
-              "messages",
-              "verbose"
-            ],
+            "enum": ["off", "messages", "verbose"],
             "default": "off",
             "description": "Traces the communication between VSCode client and the spin2 language server."
           },
@@ -130,11 +116,7 @@
           "spinExtension.ElasticTabstops.choice": {
             "type": "string",
             "default": "PropellerTool",
-            "enum": [
-              "PropellerTool",
-              "IronSheep",
-              "User1"
-            ],
+            "enum": ["PropellerTool", "IronSheep", "User1"],
             "description": "Select the set of Tabstops you wish to use."
           },
           "spinExtension.ElasticTabstops.blocks.PropellerTool": {
@@ -148,78 +130,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  78,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 78, 80]
               },
               "var": {
-                "tabStops": [
-                  2,
-                  8,
-                  22,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 22, 32, 56, 80]
               },
               "obj": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 80]
               },
               "pub": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  8,
-                  14,
-                  24,
-                  32,
-                  48,
-                  56,
-                  80
-                ]
+                "tabStops": [8, 14, 24, 32, 48, 56, 80]
               }
             }
           },
@@ -234,87 +160,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  4,
-                  8,
-                  16,
-                  20,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
               },
               "var": {
-                "tabStops": [
-                  4,
-                  12,
-                  24,
-                  28,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 12, 24, 28, 32, 44, 56, 68, 80]
               },
               "obj": {
-                "tabStops": [
-                  4,
-                  8,
-                  16,
-                  20,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
               },
               "pub": {
-                "tabStops": [
-                  4,
-                  8,
-                  12,
-                  16,
-                  20,
-                  24,
-                  28,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  4,
-                  8,
-                  12,
-                  16,
-                  20,
-                  24,
-                  28,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  4,
-                  16,
-                  20,
-                  24,
-                  28,
-                  48,
-                  52,
-                  56,
-                  60,
-                  64,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 16, 20, 24, 28, 48, 52, 56, 60, 64, 68, 80]
               }
             }
           },
@@ -329,80 +190,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  76,
-                  77,
-                  78,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 76, 77, 78, 80]
               },
               "var": {
-                "tabStops": [
-                  2,
-                  8,
-                  22,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 22, 32, 56, 80]
               },
               "obj": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 80]
               },
               "pub": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  8,
-                  14,
-                  24,
-                  32,
-                  48,
-                  56,
-                  80
-                ]
+                "tabStops": [8, 14, 24, 32, 48, 56, 80]
               }
             }
           }
@@ -429,27 +232,13 @@
           "spinExtension.InsertMode.secondaryCursorStyle": {
             "type": "string",
             "default": "block",
-            "enum": [
-              "line",
-              "line-thin",
-              "block",
-              "block-outline",
-              "underline",
-              "underline-thin"
-            ],
+            "enum": ["line", "line-thin", "block", "block-outline", "underline", "underline-thin"],
             "description": "Select the \"Overtype\" Mode cursor style."
           },
           "spinExtension.InsertMode.ternaryCursorStyle": {
             "type": "string",
             "default": "underline",
-            "enum": [
-              "line",
-              "line-thin",
-              "block",
-              "block-outline",
-              "underline",
-              "underline-thin"
-            ],
+            "enum": ["line", "line-thin", "block", "block-outline", "underline", "underline-thin"],
             "description": "Select the \"Align\" Mode cursor style."
           },
           "spinExtension.InsertMode.labelInsertMode": {
@@ -570,26 +359,14 @@
     "languages": [
       {
         "id": "spin2",
-        "aliases": [
-          "spin2",
-          "Spin2",
-          "SPIN2"
-        ],
-        "extensions": [
-          ".spin2"
-        ],
+        "aliases": ["spin2", "Spin2", "SPIN2"],
+        "extensions": [".spin2"],
         "configuration": "./spin2.language-configuration.json"
       },
       {
         "id": "spin",
-        "aliases": [
-          "spin",
-          "Spin",
-          "SPIN"
-        ],
-        "extensions": [
-          ".spin"
-        ],
+        "aliases": ["spin", "Spin", "SPIN"],
+        "extensions": [".spin"],
         "configuration": "./spin1.language-configuration.json"
       }
     ],
@@ -655,12 +432,8 @@
     "semanticTokenScopes": [
       {
         "scopes": {
-          "returnValue": [
-            "meta.returntype.spin"
-          ],
-          "storageType": [
-            "storage.type.pasm.spin2"
-          ]
+          "returnValue": ["meta.returntype.spin"],
+          "storageType": ["storage.type.pasm.spin2"]
         }
       }
     ],
@@ -683,26 +456,21 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run prebuild && npm run esbuild-base -- --minify",
-    "esbuild-base": "esbuild ./client/src/extension.ts ./server/src/server.ts  --bundle --outdir=. --entry-names=[dir]/../out/[name] --external:vscode --format=cjs --platform=node",
-    "esbuild": "npm run prebuild && npm run esbuild-base -- --sourcemap",
-    "esbuild-watch": "npm run prebuild && npm run esbuild-base -- --sourcemap --watch",
-    "prebuild": "npm run compile && npm run compile:grammar",
+    "vscode:prepublish": "npm run compile && npm run compile:grammar",
     "compile": "tsc -b",
     "compile:grammar": "npx js-yaml syntaxes/spin2.tmLanguage.YAML-tmLanguage > syntaxes/spin2.tmLanguage.json && npx js-yaml syntaxes/spin1.tmLanguage.YAML-tmLanguage > syntaxes/spin1.tmLanguage.json ",
     "watch": "tsc -b -w",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
     "pretest": "npm run compile && npm run lint",
-    "test-compile": "tsc -p ./",
     "test": "sh ./scripts/e2e.sh"
   },
+  "dependencies": {},
   "devDependencies": {
     "@types/mocha": "^9.1.0",
     "@types/node": "^16.18.34",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
-    "esbuild": "^0.19.5",
     "eslint": "^8.35.0",
     "mocha": "^9.2.1",
     "typescript": "^5.1.3"

@@ -1,0 +1,107 @@
+#!/bin/bash
+SCRIPT=${0##*/}
+SCRIPT_VERSION="1.0"
+
+PARM=$1
+
+FLAGDIR=./scripts
+MODEFILE=${FLAGDIR}/mode.flg
+
+LIVE_SRC_PKG=${FLAGDIR}/LIVE-package.json
+LIVE_SRC_IGN=${FLAGDIR}/LIVE-.vscodeignore
+TEST_SRC_PKG=${FLAGDIR}/mode.flg
+TEST_SRC_IGN=${FLAGDIR}/mode.flg
+
+DEST_PKG=package.json
+DEST_IGN=.vscodeignore
+
+if [ ! -n "${PARM}" ]; then
+  echo "${SCRIPT}: ERROR: need [live|test|list|detect|check] as param \$1" >&2
+  echo ""
+  ${SCRIPT} list
+  echo ""
+  exit 1
+fi
+
+if [ ! "${PARM}" = "live" ]; then
+  if [ ! "${PARM}" = "test" ]; then
+   if [ ! "${PARM}" = "detect" ]; then
+   if [ ! "${PARM}" = "check" ]; then
+    if [ "${PARM}" = "list" ]; then
+        MODE=`cat ${MODEFILE}`
+        echo "${SCRIPT}: current mode: [${MODE}]"
+        echo ""
+        exit 0
+    else
+        echo "${SCRIPT} ERROR- unknown parameter [${PARM}]" >&2
+        ${SCRIPT}
+        exit 1
+    fi
+  fi
+  fi
+  fi
+fi
+
+if [ "${PARM}" = "check" ]; then
+	# detect which files are updated in main and should be copied locally to use as next
+	LIVE_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
+    LIVE_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
+    LIVE_SRC_MD5_PKG=`md5 -r ${LIVE_SRC_PKG} | cut -f1 -d" "`
+    LIVE_SRC_MD5_IGN=`md5 -r ${LIVE_SRC_IGN} | cut -f1 -d" "`
+    TEST_SRC_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
+    TEST_SRC_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
+	MODE=`cat ${MODEFILE}`
+	if [ "${MODE}" = "live" ]; then
+		if [ ! "${LIVE_MD5_PKG}" = "${LIVE_SRC_MD5_PKG}" ]; then
+			echo " LIVE ${DEST_PKG} is changed"
+		fi
+		if [ ! "${LIVE_MD5_IGN}" = "${LIVE_SRC_MD5_IGN}" ]; then
+			echo " LIVE ${DEST_IGN} is changed"
+		fi
+	else
+		if [ "${LIVE_MD5_PKG}" = "${TEST_SRC_MD5_PKG}" ]; then
+			echo " TEST ${DEST_PKG} is changed"
+		fi
+		if [ "${LIVE_MD5_IGN}" = "${TEST_SRC_MD5_IGN}" ]; then
+			echo " TEST ${DEST_IGN} is changed"
+		fi
+	fi
+    ${FLAGDIR}/${SCRIPT} list
+	exit 0
+fi
+
+if [ "${PARM}" = "detect" ]; then
+	# detect which files are in use
+    LIVE_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
+    LIVE_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
+    LIVE_SRC_MD5_PKG=`md5 -r ${LIVE_SRC_PKG} | cut -f1 -d" "`
+    LIVE_SRC_MD5_IGN=`md5 -r ${LIVE_SRC_IGN} | cut -f1 -d" "`
+    TEST_SRC_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
+    TEST_SRC_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
+    #echo "${DEST_PKG} -> ${LIVE_MD5_PKG}"
+    #echo "${DEST_IGN} -> ${LIVE_MD5_IGN}"
+    #echo "${LIVE_SRC_PKG} -> ${LIVE_SRC_MD5_PKG}"
+    #echo "${LIVE_SRC_IGN} -> ${LIVE_SRC_MD5_IGN}"
+    echo "${SCRIPT}: shows"
+    if [ "${LIVE_MD5_PKG}" = "${LIVE_SRC_MD5_PKG}" ]; then
+        echo " LIVE ${DEST_PKG} is active"
+    fi
+    if [ "${LIVE_MD5_IGN}" = "${LIVE_SRC_MD5_IGN}" ]; then
+        echo " LIVE ${DEST_IGN} is active"
+    fi
+    if [ "${LIVE_MD5_PKG}" = "${TEST_SRC_MD5_PKG}" ]; then
+        echo " TEST ${DEST_PKG} is active"
+    fi
+    if [ "${LIVE_MD5_IGN}" = "${TEST_SRC_MD5_IGN}" ]; then
+        echo " TEST ${DEST_IGN} is active"
+    fi
+    ${FLAGDIR}/${SCRIPT} list
+  exit 0
+fi
+
+
+echo "${SCRIPT}: set to: [${PARM}]"
+echo "${PARM}" >${MODEFILE}
+echo ""
+#${FLAGDIR}/${SCRIPT} list
+exit 0
