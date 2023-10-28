@@ -9,8 +9,8 @@ MODEFILE=${FLAGDIR}/mode.flg
 
 LIVE_SRC_PKG=${FLAGDIR}/LIVE-package.json
 LIVE_SRC_IGN=${FLAGDIR}/LIVE-.vscodeignore
-TEST_SRC_PKG=${FLAGDIR}/mode.flg
-TEST_SRC_IGN=${FLAGDIR}/mode.flg
+TEST_SRC_PKG=${FLAGDIR}/TEST-package.json
+TEST_SRC_IGN=${FLAGDIR}/TEST-.vscodeignore
 
 DEST_PKG=package.json
 DEST_IGN=.vscodeignore
@@ -42,29 +42,46 @@ if [ ! "${PARM}" = "live" ]; then
   fi
 fi
 
+LIVE_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
+LIVE_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
+LIVE_SRC_MD5_PKG=`md5 -r ${LIVE_SRC_PKG} | cut -f1 -d" "`
+LIVE_SRC_MD5_IGN=`md5 -r ${LIVE_SRC_IGN} | cut -f1 -d" "`
+TEST_SRC_MD5_PKG=`md5 -r ${TEST_SRC_PKG} | cut -f1 -d" "`
+TEST_SRC_MD5_IGN=`md5 -r ${TEST_SRC_IGN} | cut -f1 -d" "`
+#echo "${DEST_PKG} -> ${LIVE_MD5_PKG}"
+#echo "${DEST_IGN} -> ${LIVE_MD5_IGN}"
+#echo "${LIVE_SRC_PKG} -> ${LIVE_SRC_MD5_PKG}"
+#echo "${LIVE_SRC_IGN} -> ${LIVE_SRC_MD5_IGN}"
+#echo "${TEST_SRC_PKG} -> ${TEST_SRC_MD5_PKG}"
+#echo "${TEST_SRC_IGN} -> ${TEST_SRC_MD5_IGN}"
+
+
 if [ "${PARM}" = "check" ]; then
 	# detect which files are updated in main and should be copied locally to use as next
-	LIVE_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
-    LIVE_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
-    LIVE_SRC_MD5_PKG=`md5 -r ${LIVE_SRC_PKG} | cut -f1 -d" "`
-    LIVE_SRC_MD5_IGN=`md5 -r ${LIVE_SRC_IGN} | cut -f1 -d" "`
-    TEST_SRC_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
-    TEST_SRC_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
 	MODE=`cat ${MODEFILE}`
+	info="false"
 	if [ "${MODE}" = "live" ]; then
 		if [ ! "${LIVE_MD5_PKG}" = "${LIVE_SRC_MD5_PKG}" ]; then
-			echo " LIVE ${DEST_PKG} is changed"
+			echo " main ${DEST_PKG} and ${LIVE_SRC_PKG} are different"
+			info="true"
 		fi
 		if [ ! "${LIVE_MD5_IGN}" = "${LIVE_SRC_MD5_IGN}" ]; then
-			echo " LIVE ${DEST_IGN} is changed"
+			echo " main ${DEST_IGN} and ${LIVE_SRC_IGN} are different"
+			info="true"
 		fi
-	else
-		if [ "${LIVE_MD5_PKG}" = "${TEST_SRC_MD5_PKG}" ]; then
-			echo " TEST ${DEST_PKG} is changed"
+	fi
+	if [ "${MODE}" = "test" ]; then
+		if [ ! "${LIVE_MD5_PKG}" = "${TEST_SRC_MD5_PKG}" ]; then
+			echo " main ${DEST_PKG} and ${TEST_SRC_PKG} are different"
+			info="true"
 		fi
-		if [ "${LIVE_MD5_IGN}" = "${TEST_SRC_MD5_IGN}" ]; then
-			echo " TEST ${DEST_IGN} is changed"
+		if [ ! "${LIVE_MD5_IGN}" = "${TEST_SRC_MD5_IGN}" ]; then
+			echo " main ${DEST_IGN} and ${TEST_SRC_IGN} are different"
+			info="true"
 		fi
+	fi
+	if [ ! "${info}" = "true" ]; then
+		echo "${SCRIPT}: no files changed"
 	fi
     ${FLAGDIR}/${SCRIPT} list
 	exit 0
@@ -72,16 +89,6 @@ fi
 
 if [ "${PARM}" = "detect" ]; then
 	# detect which files are in use
-    LIVE_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
-    LIVE_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
-    LIVE_SRC_MD5_PKG=`md5 -r ${LIVE_SRC_PKG} | cut -f1 -d" "`
-    LIVE_SRC_MD5_IGN=`md5 -r ${LIVE_SRC_IGN} | cut -f1 -d" "`
-    TEST_SRC_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
-    TEST_SRC_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
-    #echo "${DEST_PKG} -> ${LIVE_MD5_PKG}"
-    #echo "${DEST_IGN} -> ${LIVE_MD5_IGN}"
-    #echo "${LIVE_SRC_PKG} -> ${LIVE_SRC_MD5_PKG}"
-    #echo "${LIVE_SRC_IGN} -> ${LIVE_SRC_MD5_IGN}"
     echo "${SCRIPT}: shows"
     if [ "${LIVE_MD5_PKG}" = "${LIVE_SRC_MD5_PKG}" ]; then
         echo " LIVE ${DEST_PKG} is active"
@@ -103,5 +110,25 @@ fi
 echo "${SCRIPT}: set to: [${PARM}]"
 echo "${PARM}" >${MODEFILE}
 echo ""
-#${FLAGDIR}/${SCRIPT} list
+if [ "${PARM}" = "live" ]; then
+	if [ ! "${LIVE_MD5_PKG}" = "${LIVE_SRC_MD5_PKG}" ]; then
+		(set -x;cp -p ${LIVE_SRC_PKG} ${DEST_PKG})
+	fi
+	if [ ! "${LIVE_MD5_IGN}" = "${LIVE_SRC_MD5_IGN}" ]; then
+		(set -x;cp -p ${LIVE_SRC_IGN} ${DEST_IGN})
+	fi
+    ${FLAGDIR}/${SCRIPT} list
+fi
+
+if [ "${PARM}" = "test" ]; then
+	if [ ! "${TEST_SRC_PKG}" = "${TEST_SRC_MD5_PKG}" ]; then
+		(set -x;cp -p ${TEST_SRC_PKG} ${DEST_PKG})
+	fi
+	if [ ! "${TEST_SRC_IGN}" = "${TEST_SRC_MD5_IGN}" ]; then
+		(set -x;cp -p ${TEST_SRC_IGN} ${DEST_IGN})
+	fi
+    ${FLAGDIR}/${SCRIPT} list
+fi
+
+
 exit 0
