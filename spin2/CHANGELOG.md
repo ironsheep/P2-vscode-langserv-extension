@@ -12,7 +12,6 @@ Work to appear in upcoming releases:
 
 Possible next additions:
 
-- Awaken go to Definition feature
 - Awaken code-folding feature
 - ... more features comming too
 - Investigate and possibly add unique coloring for method pointers
@@ -22,7 +21,9 @@ Possible next additions:
 
 ## [2.2.0] 2023-10-28
 
-- Awaken **Show Definitions of a Symbol feature** supporting go-to definition. (returns one or more matching symbols found in current open find and included objects)
+- Awaken **Show Definitions of a Symbol feature** supporting peek at and go-to definition(s). (returns one or more matching symbols found in current open find and included objects)
+- Enables right-mouse commands "Go to Definition" and "Peek -> Peek Definition"
+- In spin, this works for method names, global variables, parameters, return values, method local variables, and pasm global labels.
 
 ## [2.1.0] 2023-10-27
 

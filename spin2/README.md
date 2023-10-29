@@ -81,7 +81,7 @@ Help With Method Signatures displays information about the method that is being 
 
 ## Feature: Show Definitions of a Symbol
 
-Allow the user to see/go to the definition of variables/methods right where the variables/methods are being used.
+Peek at or go to the definition of variables/methods from where the variables/methods are being used.
 
 - Enables right-mouse commands "Go to Definition" and "Peek -> Peek Definition"
 - In spin this works for method names, global variables, parameters, return values, method local variables and pasm global labels.
