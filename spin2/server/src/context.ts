@@ -2,7 +2,7 @@
 // src/context.ts
 
 import * as lsp from "vscode-languageserver";
-import { ProcessedDocumentByURI, DocumentFindingsByURI, TopDocsByFSpec } from "./DocumentProcessor";
+import { ProcessedDocumentByFSpec, DocumentFindingsByFSpec, TopDocsByFSpec } from "./DocumentProcessor";
 
 //import Parser from "web-tree-sitter";
 //import path from "path";
@@ -18,8 +18,8 @@ export class ServerBehaviorConfiguration {
 
 export interface Context {
   topDocsByFSpec: TopDocsByFSpec;
-  docsByFSpec: ProcessedDocumentByURI;
-  findingsByFSpec: DocumentFindingsByURI;
+  docsByFSpec: ProcessedDocumentByFSpec;
+  findingsByFSpec: DocumentFindingsByFSpec;
   workspaceFolders: lsp.WorkspaceFolder[];
   language: string;
   logger: lsp.Logger;

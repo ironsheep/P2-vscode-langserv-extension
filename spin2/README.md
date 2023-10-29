@@ -10,7 +10,7 @@ This Extension is continually in development. Things may, occasionally, not work
 
 This extension provides support for P1 (spin and pasm) along with P2 (Spin2 and Pasm2), the primary languages for programming P1 [Parallax Propeller 1 or P8X32A](https://www.parallax.com/propeller-1/) and the P2 [Parallax Propeller2 or P2X8C4M64P](https://propeller.parallax.com/p2.html)
 
-We've moved to a **Language Server based extension** so that we can awaken **multi-file behaviors** such as show help from included file in top-level file when hovering or showing signature help. This also applies to upoming features such as go to definition. 
+We've moved to a **Language Server based extension** so that we can awaken **multi-file behaviors** such as show help from included file in top-level file when hovering or showing signature help. This also applies to upoming features such as go to definition.
 
 All features provided by this extension support both the Parallax Propeller 1 and Propeller 2 languages: Spin and Pasm.
 
@@ -78,6 +78,13 @@ Help With Method Signatures displays information about the method that is being 
 - Documentation is shown for each parameter as you are entering the parameter value being passed to the method.
 - If your own methods are not yet documented, the this signature help still supports entry of the parameter values as well as reminds you how to add your own documentation for your PUB and PRI methods.
 - When the method being entered is from an included object the help text is brought in from the external included object.
+
+## Feature: Show Definitions of a Symbol
+
+Allow the user to see/go to the definition of variables/methods right where the variables/methods are being used.
+
+- Enables right-mouse commands "Go to Definition" and "Peek -> Peek Definition"
+- In spin this works for method names, global variables, parameters, return values, method local variables and pasm global labels.
 
 ## Feature: Generate "Object public interface" documentation
 

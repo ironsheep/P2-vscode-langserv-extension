@@ -22,7 +22,7 @@ export default class HoverProvider implements Provider {
   private hoverLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
-  private symbolsFound: DocumentFindings = new DocumentFindings();
+  private symbolsFound: DocumentFindings = new DocumentFindings(); // this gets replaced
   private parseUtils: Spin1ParseUtils | Spin2ParseUtils = new Spin2ParseUtils();
   private extensionUtils: ExtensionUtils;
   private spin1File: boolean = false;

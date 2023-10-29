@@ -20,10 +20,13 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.0] 2023-10-28
+
+- Awaken **Show Definitions of a Symbol feature** supporting go-to definition. (returns one or more matching symbols found in current open find and included objects)
+
 ## [2.1.0] 2023-10-27
 
 Formal release of Language-server-based P1 and P2 Spin Extension for VScode
-
 
 - Files included by current file are parsed and references to the included objects are validated
 - Documentation from the included object files is shown for Hover Text and Signature help
@@ -31,7 +34,6 @@ Formal release of Language-server-based P1 and P2 Spin Extension for VScode
 - Display of errors found during parse are listed for each file parsed (and with **Error Lens** errors show on affected line)
 - What a file is parsed and errors are found the file entry in the left panel file browser turns light red to highlight that file contains errors
 - Many improvements in parsing / highlighting for both P1 and P2
-
 
 ## [2.0.0 - 2.0.4] 2023 Oct 22-26
 

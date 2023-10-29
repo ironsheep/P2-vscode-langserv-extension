@@ -7,7 +7,7 @@ import { Context } from "../context";
 import CompletionProvider from "./CompletionProvider";
 import SemanticTokensProvider from "./SemanticTokensProvider";
 // import ConfiguratonProvider from "./ConfigurationProvider";
-// import DefinitionProvider from "./DefinitionProvider";
+import DefinitionProvider from "./DefinitionProvider";
 // import DocumentFormattingProvider from "./DocumentFormatttingProvider";
 // import DocumentHighlightProvider from "./DocumentHighlightProvider";
 // import DocumentLinkProvider from "./DocumentLinkProvider";
@@ -28,7 +28,7 @@ const providers = [
   CompletionProvider,
   SemanticTokensProvider,
   //   ConfiguratonProvider,
-  //   DefinitionProvider,
+  DefinitionProvider,
   //   DocumentFormattingProvider,
   //   DocumentHighlightProvider,
   //   DocumentLinkProvider,

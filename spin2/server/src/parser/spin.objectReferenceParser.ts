@@ -301,7 +301,7 @@ export class Spin2ObjectReferenceParser {
             }
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON("  -- GLBL enumConstant=[" + enumConstant + "]");
-              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", ["readonly"]), lineNbr, undefined);
+              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, ["readonly"]), undefined);
             }
           }
         }

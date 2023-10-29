@@ -746,7 +746,7 @@ export class Spin1DocumentSemanticParser {
         if (symbolName != undefined && directive.toLowerCase() == "#define") {
           this._logPreProc("  -- new PreProc Symbol=[" + symbolName + "]");
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", ["readonly"]), lineNbr, this._declarationComment());
+          this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", lineNbr - 1, ["readonly"]), this._declarationComment());
         }
       }
     }
@@ -799,7 +799,7 @@ export class Spin1DocumentSemanticParser {
                 this._logCON("  -- GLBL GetCONDecl newName=[" + newName + "]");
                 // remember this object name so we can annotate a call to it
                 this.semanticFindings.recordDeclarationLine(line, lineNbr);
-                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", ["readonly"]), lineNbr, this._declarationComment());
+                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, ["readonly"]), this._declarationComment());
               }
             }
           }
@@ -818,7 +818,7 @@ export class Spin1DocumentSemanticParser {
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON("  -- GLBL enumConstant=[" + enumConstant + "]");
               this.semanticFindings.recordDeclarationLine(line, lineNbr);
-              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", ["readonly"]), lineNbr, this._declarationComment());
+              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, ["readonly"]), this._declarationComment());
             }
           }
         }
@@ -882,7 +882,7 @@ export class Spin1DocumentSemanticParser {
             this._logDAT("  -- GLBL gddcl fileName=[" + fileName + "]");
             this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
             this.semanticFindings.recordDeclarationLine(line, lineNbr);
-            this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, labelModifiers), lineNbr, this._declarationComment(), fileName);
+            this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, lineNbr - 1, labelModifiers), this._declarationComment(), fileName);
           } else if (notOKSpin2Word) {
             this.semanticFindings.pushDiagnosticMessage(lineNbr - 1, nameOffset, nameOffset + newName.length, eSeverity.Information, `Possible use of P2 Spin reserved word [${newName}]`);
           }
@@ -916,9 +916,9 @@ export class Spin1DocumentSemanticParser {
                   // record expectation of object public interface
                   this.semanticFindings.recordDeclarationLine(line, lineNbr);
                   if (bISMethod) {
-                    this.semanticFindings.setGlobalToken(objRef, new RememberedToken("method", []), lineNbr, this._declarationComment(), objName);
+                    this.semanticFindings.setGlobalToken(objRef, new RememberedToken("method", lineNbr - 1, []), this._declarationComment(), objName);
                   } else {
-                    this.semanticFindings.setGlobalToken(objRef, new RememberedToken("variable", ["readonly"]), lineNbr, this._declarationComment(), objName);
+                    this.semanticFindings.setGlobalToken(objRef, new RememberedToken("variable", lineNbr - 1, ["readonly"]), this._declarationComment(), objName);
                   }
                 }
               }
@@ -963,7 +963,7 @@ export class Spin1DocumentSemanticParser {
         this._logPASM("  -- DAT PASM label-ref fileName=[" + fileName + "]");
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
         this.semanticFindings.recordDeclarationLine(line, lineNbr);
-        this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, labelModifiers), lineNbr, this._declarationComment(), fileName);
+        this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, labelModifiers), this._declarationComment(), fileName);
       }
     }
   }
@@ -1026,7 +1026,7 @@ export class Spin1DocumentSemanticParser {
       const filenamePart = lineParts[1].trim().replace(/[\"]/g, "");
       this._logOBJ(`  -- GLBL GetOBJDecl newFileName=[${filenamePart}]`);
       this.semanticFindings.recordDeclarationLine(line, lineNbr);
-      this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", []), lineNbr, this._declarationComment(), filenamePart); // pass filename, too
+      this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", lineNbr - 1, []), this._declarationComment(), filenamePart); // pass filename, too
       this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);
       this._ensureObjectFileExists(filenamePart, lineNbr - 1, line, startingOffset);
     } else if (remainingNonCommentLineStr.length > 0 && !remainingNonCommentLineStr.includes(":")) {
@@ -1081,7 +1081,7 @@ export class Spin1DocumentSemanticParser {
     // record ACTUAL object public/private interface
     // FIXME: post non-blank line after
     this.semanticFindings.recordDeclarationLine(line, lineNbr);
-    this.semanticFindings.setGlobalToken(methodName, new RememberedToken("method", refModifiers), lineNbr, this._declarationComment());
+    this.semanticFindings.setGlobalToken(methodName, new RememberedToken("method", lineNbr - 1, refModifiers), this._declarationComment());
     // reset our list of local variables
     this.semanticFindings.clearLocalPAsmTokensForMethod(methodName);
     this._logSPIN("  -- _getPUB_PRI_Name() exit");
@@ -1116,7 +1116,7 @@ export class Spin1DocumentSemanticParser {
         if (newName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR("  -- GLBL GetVarDecl newName=[" + newName + "]");
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", ["instance"]), lineNbr, this._declarationComment());
+          this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, ["instance"]), this._declarationComment());
         }
       }
     } else if (!hasGoodType && lineParts.length > 0) {
@@ -1125,7 +1125,7 @@ export class Spin1DocumentSemanticParser {
         if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR("  -- GLBL GetVarDecl newName=[" + longVarName + "]");
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", ["instance"]), lineNbr, this._declarationComment());
+          this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, ["instance"]), this._declarationComment());
         }
       }
     }
@@ -1845,7 +1845,7 @@ export class Spin1DocumentSemanticParser {
             ptTokenModifiers: ["declaration", "readonly", "local"],
           });
           // remember so we can ID references
-          this.semanticFindings.setLocalTokenForMethod(methodName, paramName, new RememberedToken("parameter", ["readonly", "local"]), lineNbr, this._declarationComment()); // TOKEN SET in _report()
+          this.semanticFindings.setLocalTokenForMethod(methodName, paramName, new RememberedToken("parameter", lineNbr - 1, ["readonly", "local"]), this._declarationComment()); // TOKEN SET in _report()
           currentOffset = nameOffset + paramName.length;
         }
       }
@@ -1887,7 +1887,7 @@ export class Spin1DocumentSemanticParser {
           ptTokenModifiers: ["declaration", "local"],
         });
         // remember so we can ID references
-        this.semanticFindings.setLocalTokenForMethod(methodName, returnValueName, new RememberedToken("returnValue", ["local"]), lineNbr, this._declarationComment()); // TOKEN SET in _report()
+        this.semanticFindings.setLocalTokenForMethod(methodName, returnValueName, new RememberedToken("returnValue", lineNbr - 1, ["local"]), this._declarationComment()); // TOKEN SET in _report()
         currentOffset = nameOffset + returnValueName.length;
       }
     }
@@ -1990,7 +1990,7 @@ export class Spin1DocumentSemanticParser {
               ptTokenModifiers: ["declaration", "local"],
             });
             // remember so we can ID references
-            this.semanticFindings.setLocalTokenForMethod(methodName, localName, new RememberedToken("variable", ["local"]), lineNbr, this._declarationComment()); // TOKEN SET in _report()
+            this.semanticFindings.setLocalTokenForMethod(methodName, localName, new RememberedToken("variable", lineNbr - 1, ["local"]), this._declarationComment()); // TOKEN SET in _report()
           } else {
             // have modifier!
             if (this.parseUtils.isStorageType(localName)) {

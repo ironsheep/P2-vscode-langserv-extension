@@ -65,8 +65,8 @@ export class ProcessedDocument {
   }
 }
 
-export type ProcessedDocumentByURI = Map<string, ProcessedDocument>;
-export type DocumentFindingsByURI = Map<string, DocumentFindings>;
+export type ProcessedDocumentByFSpec = Map<string, ProcessedDocument>;
+export type DocumentFindingsByFSpec = Map<string, DocumentFindings>;
 export type TopDocsByFSpec = Map<string, string>;
 
 // ----------------------------------------------------------------------------
@@ -203,7 +203,7 @@ export default class DocumentProcessor {
     //
     let tmpFindingsForDocument: DocumentFindings | undefined = this.ctx.findingsByFSpec.get(docFSpec);
     if (!tmpFindingsForDocument) {
-      tmpFindingsForDocument = new DocumentFindings();
+      tmpFindingsForDocument = new DocumentFindings(document.uri);
       tmpFindingsForDocument.setFilename(docFSpec);
       this.ctx.findingsByFSpec.set(docFSpec, tmpFindingsForDocument);
       this.ctx.logger.log(`TRC: ADD Findings: ${tmpFindingsForDocument.instanceName()}`);

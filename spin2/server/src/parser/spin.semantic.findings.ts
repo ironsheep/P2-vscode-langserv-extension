@@ -5,6 +5,7 @@ import { Range, DiagnosticSeverity, SymbolKind, Diagnostic } from "vscode-langua
 import { displayEnumByTypeName } from "./spin2.utils";
 import { eDebugDisplayType } from "./spin.common";
 import { Context } from "../context";
+import { Position } from "vscode-languageserver-textdocument";
 
 // ============================================================================
 //  this file contains objects we use in tracking symbol use and declaration
@@ -34,6 +35,12 @@ enum eCommentFilter {
   docCommentOnly,
   nondocCommentOnly,
   allComments,
+}
+
+export interface ILocationOfToken {
+  uri: string;
+  objectName: string;
+  position: Position; // if more detail desired in future capture and return token offset into line!
 }
 
 export interface IBlockSpan {
@@ -137,8 +144,12 @@ export class DocumentFindings {
   // tracking includes
   private objectFilenameByInstanceName = new Map<string, string>();
   private ctx: Context | undefined;
+  private docUri: string = "--uri-not-set--";
 
-  public constructor() {
+  public constructor(documentUri: string | undefined = undefined) {
+    if (documentUri) {
+      this.docUri = documentUri;
+    }
     if (this.findingsLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
@@ -156,6 +167,11 @@ export class DocumentFindings {
     this.declarationInfoByLocalTokenName = new Map<string, RememberedTokenDeclarationInfo>();
     // and for P2
     this.methodLocalPasmTokens = new NameScopedTokenSet("methPasmTOK");
+  }
+
+  public get uri(): string {
+    // property: URI for doc of these findings
+    return this.docUri;
   }
 
   public setFilename(filespec: string): void {
@@ -378,6 +394,68 @@ export class DocumentFindings {
       this._logMessage(`* getFindingsForNamespace(${this.instanceName()}) ERROR: [out-of-order request?] NO findings for [${namespace}]`);
     }
     return symbolsInNamespace;
+  }
+
+  public getNamespaces(): string[] {
+    // return list of object namespaces found in toplevel
+    const nameSpaceSet: string[] = Array.from(this.objectParseResultByObjectName.keys());
+    return nameSpaceSet;
+  }
+
+  public locationsOfToken(tokenName: string): ILocationOfToken[] {
+    const desiredLocations: ILocationOfToken[] = [];
+    this.appendLocationsOfToken(tokenName, desiredLocations, "top");
+    this._logMessage(`  -- locationsOfToken() id=[${this.instanceId}] returns ${desiredLocations.length} tokens`);
+    return desiredLocations;
+  }
+
+  public appendLocationsOfToken(tokenName: string, locationsSoFar: ILocationOfToken[], objectName: string) {
+    let referenceDetails: RememberedToken | undefined = undefined;
+    const desiredTokenKey: string = tokenName.toLowerCase();
+    let findCount: number = 0;
+    // get global token from this objects
+    if (this.isGlobalToken(tokenName)) {
+      referenceDetails = this.getGlobalToken(tokenName);
+      if (referenceDetails) {
+        const tokenPosition: Position = { line: referenceDetails.lineIndex, character: 0 };
+        const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
+        locationsSoFar.push(tokenRef);
+        findCount++;
+        this._logMessage(`  -- appLoc-Token FOUND global token=[${tokenName}]`);
+      } else {
+        this._logMessage(`  -- appLoc-Token global token=[${tokenName}] has NO lineNbr info!`);
+      }
+    }
+    if (this.isLocalToken(tokenName)) {
+      // get local tokens from this objects
+      const referenceSet: RememberedToken[] = this.getLocalTokens(tokenName);
+      for (let index = 0; index < referenceSet.length; index++) {
+        referenceDetails = referenceSet[index];
+        if (referenceDetails) {
+          const tokenPosition: Position = { line: referenceDetails.lineIndex, character: 0 };
+          const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
+          locationsSoFar.push(tokenRef);
+          findCount++;
+          this._logMessage(`  -- appLoc-Token FOUND local token=[${tokenName}]`);
+        } else {
+          this._logMessage(`  -- appLoc-Token local token=[${tokenName}] has NO lineNbr info!`);
+        }
+      }
+    }
+    const referencedObjects: string[] = this.getNamespaces();
+    // get global/local tokens from all included objects
+    for (let index = 0; index < referencedObjects.length; index++) {
+      const nameSpace = referencedObjects[index];
+      const symbolsFound: DocumentFindings | undefined = this.getFindingsForNamespace(nameSpace);
+
+      if (symbolsFound) {
+        if (this.ctx) {
+          symbolsFound.enableLogging(this.ctx, this.findingsLogEnabled);
+        }
+        symbolsFound.appendLocationsOfToken(tokenName, locationsSoFar, nameSpace);
+      }
+    }
+    this._logMessage(`  -- appendLocationsOfToken() id=[${this.instanceId}] adds ${findCount} tokens`);
   }
 
   // -------------------------------------------------------------------------------------
@@ -657,7 +735,7 @@ export class DocumentFindings {
       const displayInfo: IDebugDisplayInfo = this.getDebugDisplayInfoForUserName(tokenName);
       if (displayInfo.eDisplayType != eDebugDisplayType.Unknown) {
         // we have a debug display type!
-        findings.token = new RememberedToken("debugDisplay", [displayInfo.displayTypeString]);
+        findings.token = new RememberedToken("debugDisplay", displayInfo.lineNbr - 1, [displayInfo.displayTypeString]);
         findings.scope = "Global";
         findings.tokenRawInterp = "Global: " + this._rememberdTokenString(tokenName, findings.token);
         const termType: string = displayInfo.displayTypeString.toUpperCase();
@@ -935,12 +1013,12 @@ export class DocumentFindings {
     this._logMessage(`  `);
   }
 
-  public setGlobalToken(tokenName: string, token: RememberedToken, declarationLineNumber: number, declarationComment: string | undefined, reference?: string | undefined): void {
+  public setGlobalToken(tokenName: string, token: RememberedToken, declarationComment: string | undefined, reference?: string | undefined): void {
     if (!this.isGlobalToken(tokenName)) {
-      this._logMessage("  -- NEW-gloTOK " + this._rememberdTokenString(tokenName, token) + `, ln#${declarationLineNumber}, cmt=[${declarationComment}], ref=[${reference}]`);
+      this._logMessage("  -- NEW-gloTOK " + this._rememberdTokenString(tokenName, token) + `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}], ref=[${reference}]`);
       this.globalTokens.setToken(tokenName, token);
       // and remember declataion line# for this token
-      const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(declarationLineNumber - 1, declarationComment, reference);
+      const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment, reference);
       const desiredTokenKey: string = tokenName.toLowerCase();
       this.declarationInfoByGlobalTokenName.set(desiredTokenKey, newDescription);
     }
@@ -952,10 +1030,25 @@ export class DocumentFindings {
       // let's never return a declaration modifier! (somehow declaration creeps in to our list!??)
       //let modifiersNoDecl: string[] = this._modifiersWithout(desiredToken.modifiers, "declaration");
       let modifiersNoDecl: string[] = desiredToken.modifiersWithout("declaration");
-      desiredToken = new RememberedToken(desiredToken.type, modifiersNoDecl);
+      desiredToken = new RememberedToken(desiredToken.type, desiredToken.lineIndex, modifiersNoDecl);
       this._logMessage("  -- FND-gloTOK " + this._rememberdTokenString(tokenName, desiredToken));
     }
     return desiredToken;
+  }
+
+  public getLocalTokens(tokenName: string): RememberedToken[] {
+    const desiredTokens: RememberedToken[] = [];
+    if (this.isLocalToken(tokenName)) {
+      const methodNameKeys: string[] = this.methodLocalTokens.keys();
+      for (let index = 0; index < methodNameKeys.length; index++) {
+        const methodName = methodNameKeys[index];
+        const tokenForMethod: RememberedToken | undefined = this.getLocalTokenForMethod(tokenName, methodName);
+        if (tokenForMethod) {
+          desiredTokens.push(tokenForMethod);
+        }
+      }
+    }
+    return desiredTokens;
   }
 
   public isLocalToken(tokenName: string): boolean {
@@ -969,13 +1062,13 @@ export class DocumentFindings {
     return foundStatus;
   }
 
-  public setLocalTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationLineNumber: number, declarationComment: string | undefined): void {
+  public setLocalTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
     if (!this.isLocalTokenForMethod(methodName, tokenName)) {
-      this._logMessage(`  -- NEW-locTOK ln#${declarationLineNumber} method=[${methodName}], ` + this._rememberdTokenString(tokenName, token) + `, cmt=[${declarationComment}]`);
+      this._logMessage(`  -- NEW-locTOK ln#${token.lineIndex + 1} method=[${methodName}], ` + this._rememberdTokenString(tokenName, token) + `, cmt=[${declarationComment}]`);
       this.methodLocalTokens.setTokenForMethod(methodName, tokenName, token);
       // and remember declataion line# for this token
       const desiredTokenKey: string = tokenName.toLowerCase();
-      this.declarationInfoByLocalTokenName.set(desiredTokenKey, new RememberedTokenDeclarationInfo(declarationLineNumber - 1, declarationComment));
+      this.declarationInfoByLocalTokenName.set(desiredTokenKey, new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment));
     }
   }
 
@@ -993,6 +1086,11 @@ export class DocumentFindings {
     } else {
       this._logMessage(`  -- FAILED to FND-locTOK no method found for ln#${lineNbr} token=[${tokenName}]`);
     }
+    return desiredToken;
+  }
+
+  private getLocalTokenForMethod(tokenName: string, methodName: string): RememberedToken | undefined {
+    const desiredToken: RememberedToken | undefined = this.methodLocalTokens.getTokenForMethod(methodName, tokenName);
     return desiredToken;
   }
 
@@ -1058,7 +1156,7 @@ export class DocumentFindings {
     return foundStatus;
   }
 
-  public setLocalPAsmTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationLineNumber: number, declarationComment: string | undefined): void {
+  public setLocalPAsmTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
     if (this.hasLocalPAsmTokenForMethod(methodName, tokenName)) {
       // WARNING attempt to set again
     } else {
@@ -1066,7 +1164,7 @@ export class DocumentFindings {
       this.methodLocalPasmTokens.setTokenForMethod(methodName, tokenName, token);
       // and remember declataion line# for this token
       const desiredTokenKey: string = tokenName.toLowerCase();
-      this.declarationInfoByLocalTokenName.set(desiredTokenKey, new RememberedTokenDeclarationInfo(declarationLineNumber - 1, declarationComment));
+      this.declarationInfoByLocalTokenName.set(desiredTokenKey, new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment));
       const newToken = this.methodLocalPasmTokens.getTokenForMethod(methodName, tokenName);
       if (newToken) {
         this._logMessage("  -- NEW-lpTOK method=" + methodName + ": " + this._rememberdTokenString(tokenName, newToken));
@@ -1283,7 +1381,7 @@ export class TokenSet {
       // let's never return a declaration modifier! (somehow "declaration" creeps in to our list!??)
       //let modifiersNoDecl: string[] = this._modifiersWithout(desiredToken.modifiers, "declaration");
       let modifiersNoDecl: string[] = desiredToken.modifiersWithout("declaration");
-      desiredToken = new RememberedToken(desiredToken.type, modifiersNoDecl);
+      desiredToken = new RememberedToken(desiredToken.type, desiredToken._lineIdx, modifiersNoDecl);
     }
     return desiredToken;
   }
@@ -1329,8 +1427,8 @@ export class NameScopedTokenSet {
     return Array.from(this.methodScopedTokenSetByMethodKey.entries());
   }
 
-  public keys() {
-    return this.methodScopedTokenSetByMethodKey.keys();
+  public keys(): string[] {
+    return Array.from(this.methodScopedTokenSetByMethodKey.keys());
   }
 
   public clear(): void {
@@ -1488,17 +1586,25 @@ export class NameScopedTokenSet {
 export class RememberedToken {
   _type: string;
   _modifiers: string[] = [];
-  constructor(type: string, modifiers: string[] | undefined) {
+  _lineIdx: number;
+  constructor(type: string, lineIdx: number, modifiers: string[] | undefined) {
     this._type = type;
+    this._lineIdx = lineIdx;
     if (modifiers != undefined) {
       this._modifiers = modifiers;
     }
   }
+
   get type(): string {
     return this._type;
   }
+
   get modifiers(): string[] {
     return this._modifiers;
+  }
+
+  get lineIndex(): number {
+    return this._lineIdx;
   }
 
   public isPublic(): boolean {
