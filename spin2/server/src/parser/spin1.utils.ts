@@ -35,7 +35,7 @@ export class Spin1ParseUtils {
       if (endDoubleBraceOffset != -1) {
         // remove this comment
         const badElement = nonInlineCommentStr.substr(startDoubleBraceOffset, endDoubleBraceOffset - startDoubleBraceOffset + 1);
-        //this.logMessage('  -- badElement=[' + badElement + ']');
+        //this._logMessage('  -- badElement=[' + badElement + ']');
         nonInlineCommentStr = nonInlineCommentStr.replace(badElement, " ".repeat(badElement.length));
       }
     }
@@ -45,23 +45,23 @@ export class Spin1ParseUtils {
       if (endSingleBraceOffset != -1) {
         // remove this comment
         const badElement = nonInlineCommentStr.substr(startSingleBraceOffset, endSingleBraceOffset - startSingleBraceOffset + 1);
-        //this.logMessage('  -- badElement=[' + badElement + ']');
+        //this._logMessage('  -- badElement=[' + badElement + ']');
         nonInlineCommentStr = nonInlineCommentStr.replace(badElement, " ".repeat(badElement.length));
       }
     }
     //if (nonInlineCommentStr.length != line.length) {
-    //    this.logMessage('  -- NIC line [' + line + ']');
-    //    this.logMessage('  --          [' + nonInlineCommentStr + ']');
+    //    this._logMessage('  -- NIC line [' + line + ']');
+    //    this._logMessage('  --          [' + nonInlineCommentStr + ']');
     //}
     return nonInlineCommentStr;
   }
 
   public getNonCommentLineRemainder(startingOffset: number, line: string): string {
     let nonCommentRHSStr: string = line;
-    //this.logMessage('  -- gnclr ofs=' + startingOffset + '[' + line + '](' + line.length + ')');
+    //this._logMessage('  -- gnclr ofs=' + startingOffset + '[' + line + '](' + line.length + ')');
     // TODO: UNDONE make this into loop to find first ' not in string
     if (line.length - startingOffset > 0) {
-      //this.logMessage('- gnclr startingOffset=[' + startingOffset + '], startingOffset=[' + line + ']');
+      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], startingOffset=[' + line + ']');
       let currentOffset: number = this.skipWhite(line, startingOffset);
       // get line parts - we only care about first one
       let beginCommentOffset: number = line.indexOf("'", currentOffset);
@@ -77,9 +77,9 @@ export class Spin1ParseUtils {
         beginCommentOffset = line.indexOf("{", currentOffset);
       }
       const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset - 1 : line.length - 1;
-      //this.logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
+      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
       nonCommentRHSStr = line.substr(currentOffset, nonCommentEOL - currentOffset + 1).trim();
-      //this.logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
+      //this._logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
 
       const singleLineMultiBeginOffset: number = nonCommentRHSStr.indexOf("{", currentOffset);
       if (singleLineMultiBeginOffset != -1) {
@@ -93,8 +93,8 @@ export class Spin1ParseUtils {
       nonCommentRHSStr = "";
     }
     //if (line.substr(startingOffset).length != nonCommentRHSStr.length) {
-    //    this.logMessage('  -- NCLR line [' + line.substr(startingOffset) + ']');
-    //    this.logMessage('  --           [' + nonCommentRHSStr + ']');
+    //    this._logMessage('  -- NCLR line [' + line.substr(startingOffset) + ']');
+    //    this._logMessage('  --           [' + nonCommentRHSStr + ']');
     //}
     return nonCommentRHSStr;
   }
@@ -114,20 +114,20 @@ export class Spin1ParseUtils {
         }
       }
     }
-    // this.logMessage('  -- iomcp line=[' + line + ']');
-    // this.logMessage('  --       open=(' + openParenOffset + '), close=(' + desiredCloseOffset + ')');
+    // this._logMessage('  -- iomcp line=[' + line + ']');
+    // this._logMessage('  --       open=(' + openParenOffset + '), close=(' + desiredCloseOffset + ')');
     return desiredCloseOffset;
   }
 
   public getNonDocCommentLineRemainder(startingOffset: number, line: string): string {
     let nonDocCommentRHSStr: string = line;
-    //this.logMessage('  -- gnclr ofs=' + startingOffset + '[' + line + '](' + line.length + ')');
+    //this._logMessage('  -- gnclr ofs=' + startingOffset + '[' + line + '](' + line.length + ')');
     // TODO: UNDONE make this into loop to find first ' not in string
     if (line.length - startingOffset > 0) {
       const nonCommentEOL: number = line.length - 1;
-      //this.logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
+      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
       nonDocCommentRHSStr = line.substr(startingOffset, nonCommentEOL - startingOffset + 1).trim();
-      //this.logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
+      //this._logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
 
       const singleLineMultiBeginOffset: number = nonDocCommentRHSStr.indexOf("{", startingOffset);
       if (singleLineMultiBeginOffset != -1) {
@@ -141,21 +141,31 @@ export class Spin1ParseUtils {
       nonDocCommentRHSStr = "";
     }
     //if (line.substr(startingOffset).length != nonCommentRHSStr.length) {
-    //    this.logMessage('  -- NCLR line [' + line.substr(startingOffset) + ']');
-    //    this.logMessage('  --           [' + nonCommentRHSStr + ']');
+    //    this._logMessage('  -- NCLR line [' + line.substr(startingOffset) + ']');
+    //    this._logMessage('  --           [' + nonCommentRHSStr + ']');
     //}
     return nonDocCommentRHSStr;
   }
 
   public getNonWhiteDataInitLineParts(line: string): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
-    let lineParts: string[] | null = nonEqualsLine.match(/[^ \t\,\[\]\(\)\+\-\/\<\>\|\*\@]+/g);
-    return lineParts == null ? [] : lineParts;
+    const lineParts: string[] | null = nonEqualsLine.match(/[^ \t\,\[\]\(\)\+\-\/\<\>\|\&\*\^\@]+/g);
+    let filterParts: string[] = [];
+    if (lineParts != null) {
+      for (let index = 0; index < lineParts.length; index++) {
+        const element = lineParts[index];
+        if (element.length > 0) {
+          filterParts.push(element);
+        }
+      }
+    }
+
+    return filterParts;
   }
 
   public getNonWhiteCONLineParts(line: string): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
-    let lineParts: string[] | null = nonEqualsLine.match(/[^  \t\(\)\*\+\-\/\>\<\=]+/g);
+    let lineParts: string[] | null = nonEqualsLine.match(/[^  \t\(\)\|\*\+\-\/\>\<\=]+/g);
     return lineParts == null ? [] : lineParts;
   }
 
@@ -184,30 +194,45 @@ export class Spin1ParseUtils {
   }
 
   public removeDoubleQuotedStrings(line: string, showDebug: boolean = true): string {
-    //this.logMessage('- RQS line [' + line + ']');
+    //this._logMessage('- RQS line [' + line + ']');
     let trimmedLine: string = line;
-    //this.logMessage('- RQS line [' + line + ']');
+    //this._logMessage('- RQS line [' + line + ']');
     const doubleQuote: string = '"';
     let quoteStartOffset: number = 0; // value doesn't matter
     let didRemove: boolean = false;
     while ((quoteStartOffset = trimmedLine.indexOf(doubleQuote)) != -1) {
       const quoteEndOffset: number = trimmedLine.indexOf(doubleQuote, quoteStartOffset + 1);
-      //this.logMessage('  -- quoteStartOffset=[' + quoteStartOffset + '] quoteEndOffset=[' + quoteEndOffset + ']');
+      //this._logMessage('  -- quoteStartOffset=[' + quoteStartOffset + '] quoteEndOffset=[' + quoteEndOffset + ']');
       if (quoteEndOffset != -1) {
         const badElement = trimmedLine.substr(quoteStartOffset, quoteEndOffset - quoteStartOffset + 1);
-        //this.logMessage('  -- badElement=[' + badElement + ']');
+        //this._logMessage('  -- badElement=[' + badElement + ']');
         trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
         didRemove = showDebug ? true : false;
-        //this.logMessage('-         post[' + trimmedLine + ']');
+        //this._logMessage('-         post[' + trimmedLine + ']');
       } else {
         break; // we don't handle a single double-quote
       }
     }
 
-    //if (didRemove) {
-    //    this.logMessage('  -- RQS line [' + line + ']');
-    //    this.logMessage('  --          [' + trimmedLine + ']');
-    //}
+    // NEW also remove {text} strings
+    const braceStartChar: string = "{";
+    const braceEndChar: string = "}";
+    let braceStartOffset: number = 0; // value doesn't matter
+    while ((braceStartOffset = trimmedLine.indexOf(braceStartChar)) != -1) {
+      const braceEndOffset: number = trimmedLine.indexOf(braceEndChar, braceStartOffset + 1);
+      if (braceEndOffset != -1) {
+        const badElement = trimmedLine.substr(braceStartOffset, braceEndOffset - braceStartOffset + 1);
+        trimmedLine = trimmedLine.replace(badElement, " ".repeat(badElement.length));
+        didRemove = showDebug ? true : false;
+      } else {
+        break; // we don't handle a single brace (of multi-line)
+      }
+    }
+
+    if (didRemove) {
+      this._logMessage("  -- RDQS line [" + line + "]");
+      this._logMessage("  --           [" + trimmedLine + "]");
+    }
 
     return trimmedLine;
   }
@@ -1584,11 +1609,11 @@ export class Spin1ParseUtils {
 
   public getDebugNonWhiteLineParts(line: string): string[] {
     // remove douple and then any single quotes string from display list
-    //this.logMessage('  -- gdnwlp raw-line [' + line + ']');
+    //this._logMessage('  -- gdnwlp raw-line [' + line + ']');
     const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
-    //this.logMessage("  -- gdnwlp nonDblStringLine=[" + nonDblStringLine + "]");
+    //this._logMessage("  -- gdnwlp nonDblStringLine=[" + nonDblStringLine + "]");
     const nonSglStringLine: string = nonDblStringLine; // dummy for the following: this.removeDebugSingleQuotedStrings(nonDblStringLine, false);
-    //this.logMessage("  -- gdnwlp nonSglStringLine=[" + nonSglStringLine + "]");
+    //this._logMessage("  -- gdnwlp nonSglStringLine=[" + nonSglStringLine + "]");
     let lineParts: string[] | null = nonSglStringLine.match(/[^ ,@\[\]\=\.\+\-\*\/\:\#\<\>\|\^\&\t\(\)\!\?\~]+/g);
     //let lineParts: string[] | null = line.match(/[^ ,@\[\]\+\-\*\/\<\>\t\(\)]+/g);
     return lineParts == null ? [] : lineParts;

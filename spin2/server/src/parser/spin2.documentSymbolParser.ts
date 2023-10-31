@@ -360,7 +360,7 @@ export class Spin2DocumentSymbolParser {
           !this.parseUtils.isP2AsmReservedWord(newName) &&
           !this.parseUtils.isSpinBuiltInVariable(newName) &&
           !this.parseUtils.isSpinReservedWord(newName) &&
-          !this.parseUtils.isBuiltinReservedWord(newName) &&
+          !this.parseUtils.isBuiltinStreamerReservedWord(newName) &&
           // add p1asm detect
           !this.parseUtils.isP1AsmInstruction(newName) &&
           !this.parseUtils.isP1AsmVariable(newName) &&

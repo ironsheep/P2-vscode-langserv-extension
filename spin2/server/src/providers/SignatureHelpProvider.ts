@@ -554,7 +554,7 @@ export default class SignatureHelpProvider implements Provider {
       const line = DocumentLineAt(document, desiredLinePosition);
 
       // Stop processing if we're inside a comment
-      if (this.extensionUtils.isPositionInComment(document, position, stringsFound)) {
+      if (this.extensionUtils.isPositionInComment(line, position, stringsFound)) {
         return null;
       }
 
@@ -578,7 +578,7 @@ export default class SignatureHelpProvider implements Provider {
           case ",":
             {
               const commaPos: Position = { line: lineNr, character: char };
-              if (parenBalance === 0 && !this.extensionUtils.isPositionInString(document, commaPos, stringsFound, ticVarsFound)) {
+              if (parenBalance === 0 && !this.extensionUtils.isPositionInString(line, commaPos, stringsFound, ticVarsFound)) {
                 commas.push(commaPos);
               }
             }

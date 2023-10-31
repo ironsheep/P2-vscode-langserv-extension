@@ -972,9 +972,12 @@ export class Spin1DocumentSemanticParser {
     if (fileName) {
       const filenameNoQuotes: string = fileName.replace(/\"/g, "");
       const searchFilename: string = `\"${filenameNoQuotes}`;
+      const hasPathSep: boolean = filenameNoQuotes.includes("/");
       const nameOffset: number = line.indexOf(searchFilename, startingOffset);
       const logCtx: Context | undefined = this.spin1DebugLogEnabled ? this.ctx : undefined;
-      if (!fileInDirExists(this.directory, filenameNoQuotes, logCtx)) {
+      if (hasPathSep) {
+        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + filenameNoQuotes.length, eSeverity.Error, `P1 spin Invalid filename character "/" in [${filenameNoQuotes}]`);
+      } else if (!fileInDirExists(this.directory, filenameNoQuotes, logCtx)) {
         this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + fileName.length, eSeverity.Error, `Missing P1 Data file [${fileName}]`);
       }
     }
@@ -983,20 +986,16 @@ export class Spin1DocumentSemanticParser {
   private _ensureObjectFileExists(fileName: string | undefined, lineIdx: number, line: string, startingOffset: number) {
     if (fileName) {
       const filenameNoQuotes: string = fileName.replace(/\"/g, "");
-      const hasSuffix: boolean = filenameNoQuotes.includes(".spin");
+      const hasSuffix: boolean = filenameNoQuotes.endsWith(".spin");
+      const hasPathSep: boolean = filenameNoQuotes.includes("/");
       const fileWithExt = `${filenameNoQuotes}.spin`;
       const nameOffset: number = line.indexOf(filenameNoQuotes, startingOffset);
       const logCtx: Context | undefined = this.spin1DebugLogEnabled ? this.ctx : undefined;
-      if (hasSuffix) {
-        this.semanticFindings.pushDiagnosticMessage(
-          lineIdx,
-          nameOffset,
-          nameOffset + fileName.length,
-          eSeverity.Error,
-          `Invalid P1 Object filename [${filenameNoQuotes}], file extension is NOT allowed`
-        );
-      } else if (!fileInDirExists(this.directory, fileWithExt, logCtx)) {
-        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + fileName.length, eSeverity.Error, `Missing P1 Object file [${fileName}.spin]`);
+      const checkFilename: string = hasSuffix ? filenameNoQuotes : fileWithExt;
+      if (hasPathSep) {
+        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + filenameNoQuotes.length, eSeverity.Error, `P1 spin Invalid filename character "/" in [${filenameNoQuotes}]`);
+      } else if (!fileInDirExists(this.directory, checkFilename, logCtx)) {
+        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + filenameNoQuotes.length, eSeverity.Error, `Missing P1 Object file [${filenameNoQuotes}]`);
       }
     }
   }
@@ -1483,7 +1482,7 @@ export class Spin1DocumentSemanticParser {
 
       let lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(dataValueInitStr);
       const argumentStartIndex: number = this.parseUtils.isDatStorageType(lineParts[0]) ? 1 : 0;
-      this._logDAT("  -- lineParts=[" + lineParts + "]");
+      this._logDAT(`  -- lineParts=[${lineParts}], argumentStartIndex=[${argumentStartIndex}]`);
 
       // process remainder of line
       if (lineParts.length < 2) {
@@ -3079,6 +3078,7 @@ export class Spin1DocumentSemanticParser {
     }
     return nonCommentLHSStr;
   }
+
   private _tokenString(aToken: IParsedToken, line: string): string {
     let varName: string = line.substr(aToken.startCharacter, aToken.length);
     let desiredInterp: string =

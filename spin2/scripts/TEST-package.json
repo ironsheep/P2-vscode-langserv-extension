@@ -4,7 +4,7 @@
   "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.1.1",
+  "version": "2.2.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -87,6 +87,7 @@
             "scope": "resource",
             "type": "number",
             "default": 100,
+            "minimum": 0,
             "description": "Controls the maximum number of issues reported by the spin2 server (for each file.)"
           },
           "spinExtension.trace.server": {

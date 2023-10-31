@@ -2,9 +2,10 @@
   "name": "spin2",
   "displayName": "Spin2",
   "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
+  "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -13,6 +14,11 @@
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension/issues"
   },
   "publisher": "IronSheepProductionsLLC",
+  "preview": true,
+  "galleryBanner": {
+    "color": "#003060",
+    "theme": "dark"
+  },
   "categories": [],
   "keywords": [
     "spin",

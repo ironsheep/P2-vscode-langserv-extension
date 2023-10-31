@@ -304,13 +304,23 @@ export class Spin2ParseUtils {
 
   public getNonWhiteDataInitLineParts(line: string): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
-    let lineParts: string[] | null = nonEqualsLine.match(/[^ \t\,\[\]\(\)\+\-\/\<\>\|\*\@]+/g);
-    return lineParts == null ? [] : lineParts;
+    const lineParts: string[] | null = nonEqualsLine.match(/[^ \t\,\[\]\(\)\+\-\/\<\>\|\&\*\^\@]+/g);
+    let filterParts: string[] = [];
+    if (lineParts != null) {
+      for (let index = 0; index < lineParts.length; index++) {
+        const element = lineParts[index];
+        if (element.length > 0) {
+          filterParts.push(element);
+        }
+      }
+    }
+
+    return filterParts;
   }
 
   public getNonWhiteCONLineParts(line: string): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
-    let lineParts: string[] | null = nonEqualsLine.match(/[^  \t\(\)\*\+\-\/\>\<\=\&]+/g);
+    let lineParts: string[] | null = nonEqualsLine.match(/[^  \t\(\)\|\*\+\-\/\>\<\=\&]+/g);
     return lineParts == null ? [] : lineParts;
   }
 
@@ -332,7 +342,8 @@ export class Spin2ParseUtils {
       if (beginCommentOffset != -1) {
         // have single quote, is it within quoted string?
         const startDoubleQuoteOffset: number = line.indexOf('"', currentOffset);
-        if (startDoubleQuoteOffset != -1) {
+        const startBraceCommentOffset: number = line.indexOf("{", currentOffset);
+        if (startDoubleQuoteOffset != -1 || startBraceCommentOffset != -1) {
           const nonStringLine: string = this.removeDoubleQuotedStrings(line, false); // false disabled debug output
           beginCommentOffset = nonStringLine.indexOf("'", currentOffset);
         }
@@ -364,30 +375,42 @@ export class Spin2ParseUtils {
   }
 
   public removeDoubleQuotedStrings(line: string, showDebug: boolean = true): string {
-    //this._logMessage('- RQS line [' + line + ']');
+    //this._logMessage("- RQS line [" + line + "]");
     let trimmedLine: string = line;
-    //this._logMessage('- RQS line [' + line + ']');
     const doubleQuote: string = '"';
     let quoteStartOffset: number = 0; // value doesn't matter
     let didRemove: boolean = false;
     while ((quoteStartOffset = trimmedLine.indexOf(doubleQuote)) != -1) {
       const quoteEndOffset: number = trimmedLine.indexOf(doubleQuote, quoteStartOffset + 1);
-      //this._logMessage('  -- quoteStartOffset=[' + quoteStartOffset + '] quoteEndOffset=[' + quoteEndOffset + ']');
       if (quoteEndOffset != -1) {
         const badElement = trimmedLine.substr(quoteStartOffset, quoteEndOffset - quoteStartOffset + 1);
         //this._logMessage('  -- badElement=[' + badElement + ']');
         trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
         didRemove = showDebug ? true : false;
-        //this._logMessage('-         post[' + trimmedLine + ']');
       } else {
         break; // we don't handle a single double-quote
       }
     }
 
-    //if (didRemove) {
-    //    this._logMessage('  -- RQS line [' + line + ']');
-    //    this._logMessage('  --          [' + trimmedLine + ']');
-    //}
+    // NEW also remove {text} strings
+    const braceStartChar: string = "{";
+    const braceEndChar: string = "}";
+    let braceStartOffset: number = 0; // value doesn't matter
+    while ((braceStartOffset = trimmedLine.indexOf(braceStartChar)) != -1) {
+      const braceEndOffset: number = trimmedLine.indexOf(braceEndChar, braceStartOffset + 1);
+      if (braceEndOffset != -1) {
+        const badElement = trimmedLine.substr(braceStartOffset, braceEndOffset - braceStartOffset + 1);
+        trimmedLine = trimmedLine.replace(badElement, " ".repeat(badElement.length));
+        didRemove = showDebug ? true : false;
+      } else {
+        break; // we don't handle a single brace (of multi-line)
+      }
+    }
+
+    if (didRemove) {
+      this._logMessage("  -- RDQS line [" + line + "]");
+      this._logMessage("  --           [" + trimmedLine + "]");
+    }
 
     return trimmedLine;
   }
@@ -535,6 +558,9 @@ export class Spin2ParseUtils {
     } else if (nameKey in this._tableSmartPinNames) {
       desiredDocText.category = "Smart Pin Configuration";
       desiredDocText.description = this._tableSmartPinNames[nameKey];
+    } else if (this.isBuiltinStreamerReservedWord(nameKey)) {
+      desiredDocText.category = "Streamer Mode Configuration";
+      desiredDocText.description = ""; // TODO: add decription table and then fill this in!
     } else if (nameKey in this._tableEventNames) {
       desiredDocText.category = "Event / Interrupt Source";
       desiredDocText.description = this._tableEventNames[nameKey];
@@ -785,7 +811,7 @@ export class Spin2ParseUtils {
     event_xro: "(12) event Streamer NCO-rollover",
   };
 
-  public isBuiltinReservedWord(name: string): boolean {
+  public isBuiltinStreamerReservedWord(name: string): boolean {
     // streamer constants, smart-pin constants
     const builtinNamesOfNote: string[] = [
       // streamer names
@@ -1325,6 +1351,12 @@ export class Spin2ParseUtils {
     if (reservedStatus == false) {
       reservedStatus = nameKey in this._tableSpinFloatConversions;
     }
+    return reservedStatus;
+  }
+
+  public isSpinNumericSymbols(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    let reservedStatus: boolean = nameKey in this._tableSpinNumericSymbols;
     return reservedStatus;
   }
 

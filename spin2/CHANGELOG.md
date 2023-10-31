@@ -19,6 +19,19 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.1] 2023-10-30
+
+General bug fixes for P1 and P2
+
+- Repair filename validation in object includes - make checking the same as PNut/Propeller Tool
+- Ensure no parser Error/Warning/Information messages are returned when **maxNumberOfReportedIssues** is set to zero
+- P1 repair hover detection for object#constant references
+- P2 add basic hover text for Streamer Constants
+- P1/P2 CON enhance parsing of operators used within RHS of assignment
+- P1/P2 enhance parsing when {comment} used within the line being parsed
+- P2 OBJ enhance parsing of object override values
+- P1/P2 PUB/PRI enhance parsing left hand side of assignments
+
 ## [2.2.0] 2023-10-28
 
 - Awaken **Show Definitions of a Symbol feature** supporting peek at and go-to definition(s). (returns one or more matching symbols found in current open find and included objects)

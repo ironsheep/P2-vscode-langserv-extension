@@ -4,15 +4,18 @@
 import * as lsp from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
-export function GetWordRangeAtPosition(lineText: string, position: lsp.Position): lsp.Range {
+export function GetWordRangeAtPosition(lineText: string, position: lsp.Position, isSpin1File: boolean = false): lsp.Range {
   // return rage of word found at position
   let startIndex: number = position.character;
   let endIndex: number = position.character;
-  const wordEndCharacterSet: string = "\"'[]()<> @\t,+-*/=:";
+  const wordEndCharacterSetP1: string = "\"'[]()<> |^&@\t,+-*/\\=";
+  const wordEndCharacterSetP2: string = "\"'[]()<> |^&#@\t,+-*/\\=:";
+  const checkCharSet: string = isSpin1File ? wordEndCharacterSetP1 : wordEndCharacterSetP2;
+
   // back up to start of word, mark start
   let bStartFound: boolean = false;
   for (let index = startIndex; index > 0; index--) {
-    if (wordEndCharacterSet.includes(lineText.charAt(index - 1))) {
+    if (checkCharSet.includes(lineText.charAt(index - 1))) {
       startIndex = index;
       bStartFound = true;
       break;
@@ -21,18 +24,20 @@ export function GetWordRangeAtPosition(lineText: string, position: lsp.Position)
   if (!bStartFound) {
     startIndex = 0;
   }
+
   // go forward to end of word, mark end
   let bEndFound: boolean = false;
   for (let index = endIndex; index < lineText.length - 1; index++) {
-    if (wordEndCharacterSet.includes(lineText.charAt(index + 1))) {
+    if (checkCharSet.includes(lineText.charAt(index + 1))) {
       endIndex = index + 1;
       bEndFound = true;
       break;
     }
   }
   if (!bEndFound) {
-    endIndex = lineText.length - 1;
+    endIndex = lineText.length;
   }
+
   // returning findings
   let wordRange: lsp.Range = { start: { line: position.line, character: startIndex }, end: { line: position.line, character: endIndex } };
   return wordRange;

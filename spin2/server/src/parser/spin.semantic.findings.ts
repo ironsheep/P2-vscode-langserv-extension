@@ -244,32 +244,34 @@ export class DocumentFindings {
   public allDiagnosticMessages(messageCountMax: number): Diagnostic[] {
     const formattedMessages: Diagnostic[] = [];
     // return a list of the messages we have
-    const sortReportsByLineChar = (n1: DiagnosticReport, n2: DiagnosticReport) => {
-      if (n1.location().start.line > n2.location().start.line) {
-        return 1;
+    if (messageCountMax > 0) {
+      const sortReportsByLineChar = (n1: DiagnosticReport, n2: DiagnosticReport) => {
+        if (n1.location().start.line > n2.location().start.line) {
+          return 1;
+        }
+
+        if (n1.location().start.line < n2.location().start.line) {
+          return -1;
+        }
+
+        if (n1.location().start.character > n2.location().start.character) {
+          return 1;
+        }
+
+        if (n1.location().start.character < n2.location().start.character) {
+          return -1;
+        }
+
+        return 0;
+      };
+
+      const sortedReports: DiagnosticReport[] = this.diagnosticMessages.sort(sortReportsByLineChar);
+      const reducedReports = this._deDupeReports(sortedReports, messageCountMax); //sortedReports; //
+      for (let index = 0; index < reducedReports.length; index++) {
+        const report = reducedReports[index];
+        const lspDiag: Diagnostic = Diagnostic.create(report.location(), report.message(), report.severity());
+        formattedMessages.push(lspDiag);
       }
-
-      if (n1.location().start.line < n2.location().start.line) {
-        return -1;
-      }
-
-      if (n1.location().start.character > n2.location().start.character) {
-        return 1;
-      }
-
-      if (n1.location().start.character < n2.location().start.character) {
-        return -1;
-      }
-
-      return 0;
-    };
-
-    const sortedReports: DiagnosticReport[] = this.diagnosticMessages.sort(sortReportsByLineChar);
-    const reducedReports = this._deDupeReports(sortedReports, messageCountMax); //sortedReports; //
-    for (let index = 0; index < reducedReports.length; index++) {
-      const report = reducedReports[index];
-      const lspDiag: Diagnostic = Diagnostic.create(report.location(), report.message(), report.severity());
-      formattedMessages.push(lspDiag);
     }
     this._logMessage(`- allDiagnosticMessages(${messageCountMax}) - returns ${formattedMessages.length} messages`);
     return formattedMessages;
