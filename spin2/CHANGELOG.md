@@ -30,7 +30,7 @@ General bug fixes for P1 and P2
 - P1/P2 CON enhance parsing of operators used within RHS of assignment
 - P1/P2 enhance parsing when {comment} used within the line being parsed
 - P2 OBJ enhance parsing of object override values
-- P1/P2 PUB/PRI enhance parsing left hand side of assignments
+- P1/P2 PUB/PRI enhance parsing left-hand side of assignments
 
 ## [2.2.0] 2023-10-28
 
