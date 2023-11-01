@@ -238,8 +238,17 @@ export class Spin1ParseUtils {
   }
 
   public getNonWhiteLineParts(line: string): string[] {
-    let lineParts: string[] | null = line.match(/[^ \t]+/g);
-    return lineParts == null ? [] : lineParts;
+    const lineParts: string[] | null = line.match(/[^ \t]+/g);
+    let filterParts: string[] = [];
+    if (lineParts != null) {
+      for (let index = 0; index < lineParts.length; index++) {
+        const element = lineParts[index];
+        if (element.length > 0) {
+          filterParts.push(element);
+        }
+      }
+    }
+    return filterParts;
   }
 
   public getNonWhiteNParenLineParts(line: string): string[] {

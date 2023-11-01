@@ -39,7 +39,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -1974,7 +1974,7 @@ export class Spin2DocumentSemanticParser {
     // skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
-    const inLinePAsmRHSStr = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
+    const inLinePAsmRHSStr: string = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
     const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
     currentOffset = line.indexOf(inLinePAsmRHSStr, currentOffset);
     // handle name in 1 column
@@ -1988,7 +1988,6 @@ export class Spin2DocumentSemanticParser {
     }
     // specials for detecting and failing FLexSpin'isms
     //
-    //                 mov     kb_led_states, #NUMLOCK_DEFAULT_STATE ? LED_NUMLKF : 0
     //                 if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
     //                 alts    hdev_port,#hdev_id
     //                 mov     htmp,0-0
@@ -1996,14 +1995,8 @@ export class Spin2DocumentSemanticParser {
     //         if_e    andn    kb_led_states, #LED_NUMLKF
     //                 end
     //
-    const questionPosn: number = line.indexOf("?");
-    const colonPosn: number = line.indexOf(":");
     let bFoundFlexSpin: boolean = false;
-    if (questionPosn != -1 && colonPosn != -1) {
-      // fail FlexSpin ternary operator  test ? valTrue : val2False
-      bFoundFlexSpin = true;
-      this.semanticFindings.pushDiagnosticMessage(lineIdx, currentOffset, currentOffset + inLinePAsmRHSStr.length, eSeverity.Error, `FlexSpin ?: operator not supported in P2 pasm`);
-    } else if (lineParts.length > 1 && lineParts[0].toLowerCase() === "if") {
+    if (lineParts.length > 1 && lineParts[0].toLowerCase() === "if") {
       // fail FlexSpin IF: if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
       bFoundFlexSpin = true;
       this.semanticFindings.pushDiagnosticMessage(lineIdx, currentOffset, currentOffset + inLinePAsmRHSStr.length, eSeverity.Error, `FlexSpin if/end not conditional supported in P2 pasm`);
@@ -2024,21 +2017,22 @@ export class Spin2DocumentSemanticParser {
       return tokenSet;
     }
     let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
+    let nameOffset: number = -1;
     const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-    this._logPASM("  -- reportDATPAsmDecl lineParts=[" + lineParts + "], haveLabel=(" + haveLabel + "), isDataDeclarationLine=(" + isDataDeclarationLine + ")");
+    this._logPASM(`  -- reportDATPAsmDecl lineParts=[${lineParts}], haveLabel=(${haveLabel}), isDataDeclarationLine=(${isDataDeclarationLine})`);
     // TODO: REWRITE this to handle "non-label" line with unknown op-code!
     if (haveLabel) {
       // process label/variable name - starting in column 0
       const labelName: string = lineParts[0];
-      this._logPASM("  -- labelName=[" + labelName + "]");
+      nameOffset = line.indexOf(labelName, currentOffset);
+      this._logPASM(`  -- labelName=[${labelName}], ofs=(${nameOffset})`);
       let referenceDetails: RememberedToken | undefined = undefined;
       if (this.semanticFindings.isGlobalToken(labelName)) {
         referenceDetails = this.semanticFindings.getGlobalToken(labelName);
-        this._logPASM("  --  FOUND global name=[" + labelName + "]");
+        this._logPASM(`  --  FOUND global name=[${labelName}]`);
       }
       if (referenceDetails != undefined) {
-        const nameOffset = line.indexOf(labelName, currentOffset);
-        this._logPASM("  --  DAT PAsm " + referenceDetails.type + "=[" + labelName + "](" + (nameOffset + 1) + ")");
+        this._logPASM(`  --  DAT PAsm ${referenceDetails.type}=[${labelName}](${nameOffset + 1})`);
         const modifiersWDecl: string[] = referenceDetails.modifiersWith("declaration");
         this._recordToken(tokenSet, line, {
           line: lineIdx,
@@ -2050,8 +2044,7 @@ export class Spin2DocumentSemanticParser {
         haveLabel = true;
       } else if (labelName.startsWith(":")) {
         // hrmf... no global type???? this should be a label?
-        this._logPASM("  --  DAT PAsm ERROR Spin1 label=[" + labelName + "](" + (0 + 1) + ")");
-        const nameOffset = line.indexOf(labelName, currentOffset);
+        this._logPASM(`  --  DAT PAsm ERROR Spin1 label=[${labelName}](${0 + 1})`);
         this._recordToken(tokenSet, line, {
           line: lineIdx,
           startCharacter: nameOffset,
@@ -2063,8 +2056,7 @@ export class Spin2DocumentSemanticParser {
         haveLabel = true;
       } else if (labelName.toLowerCase() != "debug" && bIsAlsoDebugLine) {
         // hrmf... no global type???? this should be a label?
-        this._logPASM("  --  DAT PAsm ERROR NOT A label=[" + labelName + "](" + (0 + 1) + ")");
-        const nameOffset = line.indexOf(labelName, currentOffset);
+        this._logPASM(`  --  DAT PAsm ERROR NOT A label=[${labelName}](${0 + 1})`);
         this._recordToken(tokenSet, line, {
           line: lineIdx,
           startCharacter: nameOffset,
@@ -2076,8 +2068,7 @@ export class Spin2DocumentSemanticParser {
         haveLabel = true;
       } else if (this.parseUtils.isP1AsmInstruction(labelName)) {
         // hrmf... no global type???? this should be a label?
-        this._logPASM("  --  DAT P1asm BAD label=[" + labelName + "](" + (0 + 1) + ")");
-        const nameOffset = line.indexOf(labelName, currentOffset);
+        this._logPASM(`  --  DAT P1asm BAD label=[${labelName}](${0 + 1})`);
         this._recordToken(tokenSet, line, {
           line: lineIdx,
           startCharacter: nameOffset,
@@ -2088,6 +2079,7 @@ export class Spin2DocumentSemanticParser {
         this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + labelName.length, eSeverity.Error, "Not a legal P2 pasm label");
         haveLabel = true;
       }
+      currentOffset = nameOffset + labelName.length;
     }
     if (!isDataDeclarationLine) {
       // process assembly code
@@ -2099,7 +2091,7 @@ export class Spin2DocumentSemanticParser {
           argumentOffset++;
           minNonLabelParts++;
         }
-        this._logPASM("  -- DAT PASM !dataDecl lineParts=[" + lineParts + "](" + lineParts.length + "), argumentOffset=(" + argumentOffset + "), minNonLabelParts=(" + minNonLabelParts + ")");
+        this._logPASM(`  -- DAT PASM !dataDecl lineParts=[${lineParts}](${lineParts.length}), argumentOffset=(${argumentOffset}), minNonLabelParts=(${minNonLabelParts})`);
         if (lineParts[argumentOffset].toUpperCase().startsWith("IF_") || lineParts[argumentOffset].toUpperCase().startsWith("_RET_")) {
           // skip our conditional
           argumentOffset++;
@@ -2108,9 +2100,9 @@ export class Spin2DocumentSemanticParser {
         if (lineParts.length > minNonLabelParts) {
           // have at least instruction name
           const likelyInstructionName: string = lineParts[minNonLabelParts - 1];
-          currentOffset = line.indexOf(likelyInstructionName, currentOffset);
-          this._logPASM("  -- DAT PASM likelyInstructionName=[" + likelyInstructionName + "], currentOffset=(" + currentOffset + ")");
-          let nameOffset: number = currentOffset;
+          nameOffset = line.indexOf(likelyInstructionName, currentOffset);
+          this._logPASM(`  -- DAT PASM likelyInstructionName=[${likelyInstructionName}], nameOffset=(${nameOffset})`);
+          currentOffset = nameOffset + likelyInstructionName.length; // move past the instruction
           for (let index = minNonLabelParts; index < lineParts.length; index++) {
             let argumentName = lineParts[index].replace(/[@#]/, "");
             if (argumentName.length < 1) {
