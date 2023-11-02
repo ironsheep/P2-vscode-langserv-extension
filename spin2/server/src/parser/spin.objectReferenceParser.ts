@@ -301,7 +301,8 @@ export class Spin2ObjectReferenceParser {
             }
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON("  -- GLBL enumConstant=[" + enumConstant + "]");
-              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, ["readonly"]), undefined);
+              const nameOffset = line.indexOf(enumConstant, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, nameOffset, ["readonly"]), undefined);
             }
           }
         }

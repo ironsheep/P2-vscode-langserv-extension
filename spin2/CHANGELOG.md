@@ -19,6 +19,13 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.2] 2023-11-2
+
+General bug fixes for P1 and P2 (round 2)
+
+- P2 repair DAT pasm symbol offset calculations so highlights are in correct position
+- P1 & P2 adjusted parameter, return-value, and local variable name collision with global variable to produce error message.
+
 ## [2.2.1] 2023-10-30
 
 General bug fixes for P1 and P2

@@ -32,7 +32,7 @@ export class Spin1DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin1DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin1DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -745,8 +745,9 @@ export class Spin1DocumentSemanticParser {
         // check a valid preprocessor line for a declaration
         if (symbolName != undefined && directive.toLowerCase() == "#define") {
           this._logPreProc("  -- new PreProc Symbol=[" + symbolName + "]");
+          const nameOffset = line.indexOf(symbolName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", lineNbr - 1, ["readonly"]), this._declarationComment());
+          this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
         }
       }
     }
@@ -798,8 +799,9 @@ export class Spin1DocumentSemanticParser {
               if (newName.charAt(0).match(/[a-zA-Z_]/)) {
                 this._logCON("  -- GLBL GetCONDecl newName=[" + newName + "]");
                 // remember this object name so we can annotate a call to it
+                const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
                 this.semanticFindings.recordDeclarationLine(line, lineNbr);
-                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, ["readonly"]), this._declarationComment());
+                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
               }
             }
           }
@@ -817,8 +819,9 @@ export class Spin1DocumentSemanticParser {
             }
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON("  -- GLBL enumConstant=[" + enumConstant + "]");
+              const nameOffset = line.indexOf(enumConstant, currentOffset); // FIXME: UNDONE, do we have to dial this in?
               this.semanticFindings.recordDeclarationLine(line, lineNbr);
-              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, ["readonly"]), this._declarationComment());
+              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
             }
           }
         }
@@ -881,8 +884,9 @@ export class Spin1DocumentSemanticParser {
             const fileName: string | undefined = isNamedDataDeclarationLine && bIsFileLine && lineParts.length > maxParts ? lineParts[maxParts] : undefined;
             this._logDAT("  -- GLBL gddcl fileName=[" + fileName + "]");
             this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+            const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
             this.semanticFindings.recordDeclarationLine(line, lineNbr);
-            this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, lineNbr - 1, labelModifiers), this._declarationComment(), fileName);
+            this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
           } else if (notOKSpin2Word) {
             this.semanticFindings.pushDiagnosticMessage(lineNbr - 1, nameOffset, nameOffset + newName.length, eSeverity.Information, `Possible use of P2 Spin reserved word [${newName}]`);
           }
@@ -915,10 +919,11 @@ export class Spin1DocumentSemanticParser {
                   this._logDAT("   -- GetDatDecl objName=[" + objName + "], objRef=[" + objRef + "]");
                   // record expectation of object public interface
                   this.semanticFindings.recordDeclarationLine(line, lineNbr);
+                  const nameOffset = line.indexOf(objRef, currentOffset); // FIXME: UNDONE, do we have to dial this in?
                   if (bISMethod) {
-                    this.semanticFindings.setGlobalToken(objRef, new RememberedToken("method", lineNbr - 1, []), this._declarationComment(), objName);
+                    this.semanticFindings.setGlobalToken(objRef, new RememberedToken("method", lineNbr - 1, nameOffset, []), this._declarationComment(), objName);
                   } else {
-                    this.semanticFindings.setGlobalToken(objRef, new RememberedToken("variable", lineNbr - 1, ["readonly"]), this._declarationComment(), objName);
+                    this.semanticFindings.setGlobalToken(objRef, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment(), objName);
                   }
                 }
               }
@@ -962,8 +967,9 @@ export class Spin1DocumentSemanticParser {
         const fileName: string | undefined = isFileDeclarationLine && lineParts.length > 2 ? lineParts[2] : undefined;
         this._logPASM("  -- DAT PASM label-ref fileName=[" + fileName + "]");
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+        const nameOffset = line.indexOf(labelName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
         this.semanticFindings.recordDeclarationLine(line, lineNbr);
-        this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, labelModifiers), this._declarationComment(), fileName);
+        this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
       }
     }
   }
@@ -1024,8 +1030,9 @@ export class Spin1DocumentSemanticParser {
       // remember this object name so we can annotate a call to it
       const filenamePart = lineParts[1].trim().replace(/[\"]/g, "");
       this._logOBJ(`  -- GLBL GetOBJDecl newFileName=[${filenamePart}]`);
+      const nameOffset = line.indexOf(instanceNamePart, currentOffset); // FIXME: UNDONE, do we have to dial this in?
       this.semanticFindings.recordDeclarationLine(line, lineNbr);
-      this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", lineNbr - 1, []), this._declarationComment(), filenamePart); // pass filename, too
+      this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", lineNbr - 1, nameOffset, []), this._declarationComment(), filenamePart); // pass filename, too
       this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);
       this._ensureObjectFileExists(filenamePart, lineNbr - 1, line, startingOffset);
     } else if (remainingNonCommentLineStr.length > 0 && !remainingNonCommentLineStr.includes(":")) {
@@ -1072,18 +1079,50 @@ export class Spin1DocumentSemanticParser {
     this._logSPIN("  -- GLBL GetMethodDecl newName=[" + methodName + "](" + methodName.length + "), type=[" + methodType + "], currentOffset=[" + currentOffset + "]");
 
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
-    // mark start of method - we are learning span of lines this method covers
-    this.semanticFindings.startMethod(methodName, lineNbr);
+    let methodExists: boolean = false;
+    const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(methodName);
+    if (referenceDetails && referenceDetails.type === "method") {
+      methodExists = true;
+      this._logSPIN(`  -- _gPUB_PRI_Name() ERROR: have duplicate method [${methodName}]`);
+    }
+    if (!methodExists) {
+      // mark start of method - we are learning span of lines this method covers
+      this.semanticFindings.startMethod(methodName, lineNbr);
 
-    // remember this method name so we can annotate a call to it
-    const refModifiers: string[] = isPrivate ? ["static"] : [];
-    // record ACTUAL object public/private interface
-    // FIXME: post non-blank line after
-    this.semanticFindings.recordDeclarationLine(line, lineNbr);
-    this.semanticFindings.setGlobalToken(methodName, new RememberedToken("method", lineNbr - 1, refModifiers), this._declarationComment());
-    // reset our list of local variables
-    this.semanticFindings.clearLocalPAsmTokensForMethod(methodName);
-    this._logSPIN("  -- _getPUB_PRI_Name() exit");
+      // remember this method name so we can annotate a call to it
+      const refModifiers: string[] = isPrivate ? ["static"] : [];
+      // record ACTUAL object public/private interface
+      // FIXME: post non-blank line after
+      const nameOffset = line.indexOf(methodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+      this.semanticFindings.recordDeclarationLine(line, lineNbr);
+      this.semanticFindings.setGlobalToken(methodName, new RememberedToken("method", lineNbr - 1, nameOffset, refModifiers), this._declarationComment());
+      // reset our list of local variables
+      this.semanticFindings.clearLocalPAsmTokensForMethod(methodName);
+
+      const methodNamewithParens: string = `${methodName}()`;
+      const methodNamewithSpaceParens: string = `${methodName} ()`;
+      const methodPrefix: string = isPrivate ? "PRI" : "PUB";
+      if (line.includes(methodNamewithParens) || line.includes(methodNamewithSpaceParens)) {
+        this.semanticFindings.pushDiagnosticMessage(
+          lineNbr - 1,
+          startNameOffset,
+          startNameOffset + methodName.length,
+          eSeverity.Error,
+          `P1 Spin missing parameter names [${methodPrefix} ${methodName}()]`
+        );
+      }
+    } else {
+      //const declarationLineIdx;number = referenceDetails.
+      const methodPrefix: string = referenceDetails?.modifiers.includes("static") ? "PRI" : "PUB";
+      this.semanticFindings.pushDiagnosticMessage(
+        lineNbr - 1,
+        startNameOffset,
+        startNameOffset + methodName.length,
+        eSeverity.Error,
+        `P1 Spin Duplicate method Declaration: found earlier [${methodPrefix} ${methodName}]`
+      );
+    }
+    this._logSPIN("  -- _gPUB_PRI_Name() exit");
   }
 
   private _getVAR_Declaration(startingOffset: number, lineNbr: number, line: string): void {
@@ -1114,8 +1153,9 @@ export class Spin1DocumentSemanticParser {
         const newName = nameSet[index]; // .replace(/[\[,]/, '');
         if (newName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR("  -- GLBL GetVarDecl newName=[" + newName + "]");
+          const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, ["instance"]), this._declarationComment());
+          this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
         }
       }
     } else if (!hasGoodType && lineParts.length > 0) {
@@ -1123,8 +1163,9 @@ export class Spin1DocumentSemanticParser {
         const longVarName = lineParts[index];
         if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR("  -- GLBL GetVarDecl newName=[" + longVarName + "]");
+          const nameOffset = line.indexOf(longVarName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, ["instance"]), this._declarationComment());
+          this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
         }
       }
     }
@@ -1836,15 +1877,26 @@ export class Spin1DocumentSemanticParser {
           const paramName = parameterNames[index].trim();
           const nameOffset = line.indexOf(paramName, currentOffset);
           this._logSPIN("  -- paramName=[" + paramName + "](" + nameOffset + ")");
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: paramName.length,
-            ptTokenType: "parameter",
-            ptTokenModifiers: ["declaration", "readonly", "local"],
-          });
+          if (this._hidesGlobalVariable(paramName)) {
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: paramName.length,
+              ptTokenType: "parameter",
+              ptTokenModifiers: ["illegalUse"],
+            });
+            this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + paramName.length, eSeverity.Error, `P1 Spin parameter [${paramName}] hides global variable of same name`);
+          } else {
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: paramName.length,
+              ptTokenType: "parameter",
+              ptTokenModifiers: ["declaration", "readonly", "local"],
+            });
+          }
           // remember so we can ID references
-          this.semanticFindings.setLocalTokenForMethod(methodName, paramName, new RememberedToken("parameter", lineNbr - 1, ["readonly", "local"]), this._declarationComment()); // TOKEN SET in _report()
+          this.semanticFindings.setLocalTokenForMethod(methodName, paramName, new RememberedToken("parameter", lineNbr - 1, nameOffset, ["readonly", "local"]), this._declarationComment()); // TOKEN SET in _report()
           currentOffset = nameOffset + paramName.length;
         }
       }
@@ -1878,15 +1930,33 @@ export class Spin1DocumentSemanticParser {
         const returnValueName = returnValueNames[index].trim();
         const nameOffset = line.indexOf(returnValueName, currentOffset);
         this._logSPIN("  -- returnValueName=[" + returnValueName + "](" + nameOffset + ")");
-        this._recordToken(tokenSet, line, {
-          line: lineIdx,
-          startCharacter: nameOffset,
-          length: returnValueName.length,
-          ptTokenType: "returnValue",
-          ptTokenModifiers: ["declaration", "local"],
-        });
+        // check to see if return name is hiding global variable
+        if (this._hidesGlobalVariable(returnValueName)) {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: returnValueName.length,
+            ptTokenType: "returnValue",
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(
+            lineIdx,
+            nameOffset,
+            nameOffset + returnValueName.length,
+            eSeverity.Error,
+            `P1 Spin return [${returnValueName}] hides global variable of same name`
+          );
+        } else {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: returnValueName.length,
+            ptTokenType: "returnValue",
+            ptTokenModifiers: ["declaration", "local"],
+          });
+        }
         // remember so we can ID references
-        this.semanticFindings.setLocalTokenForMethod(methodName, returnValueName, new RememberedToken("returnValue", lineNbr - 1, ["local"]), this._declarationComment()); // TOKEN SET in _report()
+        this.semanticFindings.setLocalTokenForMethod(methodName, returnValueName, new RememberedToken("returnValue", lineNbr - 1, nameOffset, ["local"]), this._declarationComment()); // TOKEN SET in _report()
         currentOffset = nameOffset + returnValueName.length;
       }
     }
@@ -1981,15 +2051,27 @@ export class Spin1DocumentSemanticParser {
           this._logSPIN("  -- localName=[" + localName + "](" + nameOffset + ")");
           if (index == nameParts.length - 1) {
             // have name
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: localName.length,
-              ptTokenType: "variable",
-              ptTokenModifiers: ["declaration", "local"],
-            });
+            // check to see if local name is hiding global variable
+            if (this._hidesGlobalVariable(localName)) {
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: localName.length,
+                ptTokenType: "variable",
+                ptTokenModifiers: ["illegalUse"],
+              });
+              this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + localName.length, eSeverity.Error, `P1 Spin local [${localName}] hides global variable of same name`);
+            } else {
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: localName.length,
+                ptTokenType: "variable",
+                ptTokenModifiers: ["declaration", "local"],
+              });
+            }
             // remember so we can ID references
-            this.semanticFindings.setLocalTokenForMethod(methodName, localName, new RememberedToken("variable", lineNbr - 1, ["local"]), this._declarationComment()); // TOKEN SET in _report()
+            this.semanticFindings.setLocalTokenForMethod(methodName, localName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["local"]), this._declarationComment()); // TOKEN SET in _report()
           } else {
             // have modifier!
             if (this.parseUtils.isStorageType(localName)) {
@@ -2008,6 +2090,15 @@ export class Spin1DocumentSemanticParser {
       }
     }
     return tokenSet;
+  }
+
+  private _hidesGlobalVariable(variableName: string): boolean {
+    let hideStatus: boolean = false;
+    let referenceDetails: RememberedToken | undefined = undefined;
+    if (this.semanticFindings.isGlobalToken(variableName)) {
+      hideStatus = true;
+    }
+    return hideStatus;
   }
 
   private _reportSPIN_Code(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {

@@ -419,7 +419,7 @@ export class DocumentFindings {
     if (this.isGlobalToken(tokenName)) {
       referenceDetails = this.getGlobalToken(tokenName);
       if (referenceDetails) {
-        const tokenPosition: Position = { line: referenceDetails.lineIndex, character: 0 };
+        const tokenPosition: Position = { line: referenceDetails.lineIndex, character: referenceDetails.charIndex };
         const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
         locationsSoFar.push(tokenRef);
         findCount++;
@@ -737,7 +737,8 @@ export class DocumentFindings {
       const displayInfo: IDebugDisplayInfo = this.getDebugDisplayInfoForUserName(tokenName);
       if (displayInfo.eDisplayType != eDebugDisplayType.Unknown) {
         // we have a debug display type!
-        findings.token = new RememberedToken("debugDisplay", displayInfo.lineNbr - 1, [displayInfo.displayTypeString]);
+        const fakeCharOffset: number = 0;
+        findings.token = new RememberedToken("debugDisplay", displayInfo.lineNbr - 1, fakeCharOffset, [displayInfo.displayTypeString]);
         findings.scope = "Global";
         findings.tokenRawInterp = "Global: " + this._rememberdTokenString(tokenName, findings.token);
         const termType: string = displayInfo.displayTypeString.toUpperCase();
@@ -1016,6 +1017,8 @@ export class DocumentFindings {
   }
 
   public setGlobalToken(tokenName: string, token: RememberedToken, declarationComment: string | undefined, reference?: string | undefined): void {
+    // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
+    //   this allows go-to to get to nearest earlier than right-mouse line
     if (!this.isGlobalToken(tokenName)) {
       this._logMessage("  -- NEW-gloTOK " + this._rememberdTokenString(tokenName, token) + `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}], ref=[${reference}]`);
       this.globalTokens.setToken(tokenName, token);
@@ -1032,7 +1035,7 @@ export class DocumentFindings {
       // let's never return a declaration modifier! (somehow declaration creeps in to our list!??)
       //let modifiersNoDecl: string[] = this._modifiersWithout(desiredToken.modifiers, "declaration");
       let modifiersNoDecl: string[] = desiredToken.modifiersWithout("declaration");
-      desiredToken = new RememberedToken(desiredToken.type, desiredToken.lineIndex, modifiersNoDecl);
+      desiredToken = new RememberedToken(desiredToken.type, desiredToken.lineIndex, desiredToken.charIndex, modifiersNoDecl);
       this._logMessage("  -- FND-gloTOK " + this._rememberdTokenString(tokenName, desiredToken));
     }
     return desiredToken;
@@ -1159,6 +1162,8 @@ export class DocumentFindings {
   }
 
   public setLocalPAsmTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
+    // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
+    //   this allows go-to to get to nearest earlier than right-mouse line
     if (this.hasLocalPAsmTokenForMethod(methodName, tokenName)) {
       // WARNING attempt to set again
     } else {
@@ -1383,7 +1388,7 @@ export class TokenSet {
       // let's never return a declaration modifier! (somehow "declaration" creeps in to our list!??)
       //let modifiersNoDecl: string[] = this._modifiersWithout(desiredToken.modifiers, "declaration");
       let modifiersNoDecl: string[] = desiredToken.modifiersWithout("declaration");
-      desiredToken = new RememberedToken(desiredToken.type, desiredToken._lineIdx, modifiersNoDecl);
+      desiredToken = new RememberedToken(desiredToken.type, desiredToken.lineIndex, desiredToken.charIndex, modifiersNoDecl);
     }
     return desiredToken;
   }
@@ -1588,10 +1593,13 @@ export class NameScopedTokenSet {
 export class RememberedToken {
   _type: string;
   _modifiers: string[] = [];
-  _lineIdx: number;
-  constructor(type: string, lineIdx: number, modifiers: string[] | undefined) {
+  private _lineIdx: number;
+  private _charIdx: number;
+
+  constructor(type: string, lineIdx: number, charIdx: number, modifiers: string[] | undefined) {
     this._type = type;
     this._lineIdx = lineIdx;
+    this._charIdx = charIdx;
     if (modifiers != undefined) {
       this._modifiers = modifiers;
     }
@@ -1607,6 +1615,10 @@ export class RememberedToken {
 
   get lineIndex(): number {
     return this._lineIdx;
+  }
+
+  get charIndex(): number {
+    return this._charIdx;
   }
 
   public isPublic(): boolean {

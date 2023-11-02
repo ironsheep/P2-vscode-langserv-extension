@@ -2,6 +2,7 @@
 // src/spin2.documentSemanticParser.ts
 
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { Position } from "vscode-languageserver-types";
 import { Context, ServerBehaviorConfiguration } from "../context";
 
 import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity } from "./spin.semantic.findings";
@@ -9,7 +10,6 @@ import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
 import { eParseState, eDebugDisplayType } from "./spin.common";
 import { fileInDirExists } from "../files";
-import { TypeHierarchyFeature } from "vscode-languageserver/lib/common/typeHierarchy";
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -980,7 +980,7 @@ export class Spin2DocumentSemanticParser {
         if (symbolName != undefined && directive.toLowerCase() == "#define") {
           this._logPreProc("  -- new PreProc Symbol=[" + symbolName + "]");
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", lineNbr - 1, ["readonly"]), this._declarationComment());
+          this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", lineNbr - 1, 0, ["readonly"]), this._declarationComment());
         }
       }
     }
@@ -1029,8 +1029,9 @@ export class Spin2DocumentSemanticParser {
               if (newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
                 this._logCON("  -- GLBL GetCONDecl newName=[" + newName + "]");
                 // remember this object name so we can annotate a call to it
+                const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
                 this.semanticFindings.recordDeclarationLine(line, lineNbr);
-                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, ["readonly"]), this._declarationComment());
+                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
               }
             }
           }
@@ -1059,8 +1060,9 @@ export class Spin2DocumentSemanticParser {
               }
               if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
                 this._logCON(`  -- C GLBL enumConstant=[${enumConstant}]`);
+                const nameOffset = line.indexOf(enumConstant, currentOffset); // FIXME: UNDONE, do we have to dial this in?
                 this.semanticFindings.recordDeclarationLine(line, lineNbr);
-                this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, ["readonly"]), this._declarationComment());
+                this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
               }
             }
           }
@@ -1132,8 +1134,9 @@ export class Spin2DocumentSemanticParser {
         const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
         this._logDAT("   -- GetDatDecl fileName=[" + fileName + "]");
+        const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
         this.semanticFindings.recordDeclarationLine(line, lineNbr);
-        this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, lineNbr - 1, labelModifiers), this._declarationComment(), fileName);
+        this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
       }
     }
   }
@@ -1169,8 +1172,9 @@ export class Spin2DocumentSemanticParser {
         const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
         this._logDAT("   -- DAT PASM GLBL fileName=[" + fileName + "]");
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+        const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
         this.semanticFindings.recordDeclarationLine(line, lineNbr);
-        this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, labelModifiers), this._declarationComment(), fileName);
+        this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
       }
     }
   }
@@ -1235,7 +1239,8 @@ export class Spin2DocumentSemanticParser {
       const filenamePart = lineParts[1].trim().replace(/[\"]/g, "");
       this._logOBJ(`  -- GLBL GetOBJDecl newFileName=[${filenamePart}]`);
       this.semanticFindings.recordDeclarationLine(line, lineNbr);
-      this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", lineNbr - 1, []), this._declarationComment(), filenamePart); // pass filename, too
+      const nameOffset = line.indexOf(instanceNamePart, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+      this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", lineNbr - 1, nameOffset, []), this._declarationComment(), filenamePart); // pass filename, too
       this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);
       this._ensureObjectFileExists(filenamePart, lineNbr - 1, line, startingOffset);
     } else if (remainingNonCommentLineStr.length > 0 && !remainingNonCommentLineStr.includes(":")) {
@@ -1283,14 +1288,14 @@ export class Spin2DocumentSemanticParser {
     let nameLength = currentOffset - startNameOffset;
     const methodName = line.substr(startNameOffset, nameLength).trim();
     const nameType: string = isPrivate ? "private" : "public";
-    this._logSPIN("  - Ln#" + lineNbr + " _getPUB_PRI_Name() newName=[" + methodName + "](" + nameType + ")");
+    this._logSPIN("  - Ln#" + lineNbr + " _gPUB_PRI_Name() newName=[" + methodName + "](" + nameType + ")");
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
     // mark start of method - we are learning span of lines this method covers
     let methodExists: boolean = false;
     const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(methodName);
     if (referenceDetails && referenceDetails.type === "method") {
       methodExists = true;
-      this._logSPIN(`  -- _getPUB_PRI_Name() ERROR: have dupe method [${methodName}]`);
+      this._logSPIN(`  -- _gPUB_PRI_Name() ERROR: have duplicate method [${methodName}]`);
     }
     if (!methodExists) {
       this.semanticFindings.startMethod(methodName, lineNbr);
@@ -1298,8 +1303,9 @@ export class Spin2DocumentSemanticParser {
       // remember this method name so we can annotate a call to it
       const refModifiers: string[] = isPrivate ? ["static"] : [];
       // record ACTUAL object public/private interface
+      const nameOffset = line.indexOf(methodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
       this.semanticFindings.recordDeclarationLine(line, lineNbr);
-      this.semanticFindings.setGlobalToken(methodName, new RememberedToken("method", lineNbr - 1, refModifiers), this._declarationComment());
+      this.semanticFindings.setGlobalToken(methodName, new RememberedToken("method", lineNbr - 1, nameOffset, refModifiers), this._declarationComment());
       // reset our list of local variables
       this.semanticFindings.clearLocalPAsmTokensForMethod(methodName);
     } else {
@@ -1313,7 +1319,7 @@ export class Spin2DocumentSemanticParser {
         `P2 Spin Duplicate method Declaration: found earlier [${methodPrefix} ${methodName}()]`
       );
     }
-    this._logSPIN("  -- _getPUB_PRI_Name() exit");
+    this._logSPIN("  -- _gPUB_PRI_Name() exit");
   }
 
   private _getSPIN_PAsmDeclaration(startingOffset: number, lineNbr: number, line: string): void {
@@ -1323,7 +1329,7 @@ export class Spin2DocumentSemanticParser {
     // get line parts - we only care about first one
     const inLinePAsmRHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(inLinePAsmRHSStr);
-    //this._logPASM('- GetInLinePAsmDecl lineParts=[' + lineParts + ']');
+    this._logPASM(`  - Ln#${lineNbr} GetInLinePAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
     // handle name in 1 column
     let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
     const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
@@ -1337,7 +1343,8 @@ export class Spin2DocumentSemanticParser {
         labelModifiers = ["pasmInline"];
       }
       this._logPASM("  -- Inline PASM labelName=[" + labelName + "(" + labelType + ")[" + labelModifiers + "]]");
-      this.semanticFindings.setLocalPAsmTokenForMethod(this.currentMethodName, labelName, new RememberedToken(labelType, lineNbr - 1, labelModifiers), this._declarationComment());
+      const nameOffset = line.indexOf(this.currentMethodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+      this.semanticFindings.setLocalPAsmTokenForMethod(this.currentMethodName, labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment());
     }
   }
 
@@ -1369,8 +1376,9 @@ export class Spin2DocumentSemanticParser {
         const newName = nameSet[index]; // .replace(/[\[,]/, '');
         if (newName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR("  -- GLBL GetVarDecl newName=[" + newName + "]");
+          const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, ["instance"]), this._declarationComment());
+          this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
         }
       }
     } else if (!hasGoodType && lineParts.length > 0) {
@@ -1378,8 +1386,9 @@ export class Spin2DocumentSemanticParser {
         const longVarName = lineParts[index];
         if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR("  -- GLBL GetVarDecl newName=[" + longVarName + "]");
+          const nameOffset = line.indexOf(longVarName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
           this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, ["instance"]), this._declarationComment());
+          this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
         }
       }
     }
@@ -1774,7 +1783,7 @@ export class Spin2DocumentSemanticParser {
     // get line parts - we only care about first one
     const dataDeclNonCommentStr = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
     let lineParts: string[] = this.parseUtils.getNonWhiteLineParts(dataDeclNonCommentStr);
-    this._logDAT("- rptDataDeclLn lineParts=[" + lineParts + "](" + lineParts.length + ")");
+    this._logDAT(`- rptDataDeclLn lineParts=[${lineParts}](${lineParts.length})`);
     // remember this object name so we can annotate a call to it
     if (lineParts.length > 1) {
       if (this.parseUtils.isStorageType(lineParts[0]) || lineParts[0].toUpperCase() == "FILE" || lineParts[0].toUpperCase() == "ORG") {
@@ -1782,7 +1791,7 @@ export class Spin2DocumentSemanticParser {
         currentOffset = line.indexOf(lineParts[0], currentOffset);
         const allowLocalVarStatus: boolean = false;
         const NOT_DAT_PASM: boolean = false;
-        const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, currentOffset, line, allowLocalVarStatus, this.showDAT, NOT_DAT_PASM);
+        const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showDAT, NOT_DAT_PASM);
         partialTokenSet.forEach((newToken) => {
           tokenSet.push(newToken);
         });
@@ -1822,7 +1831,7 @@ export class Spin2DocumentSemanticParser {
         currentOffset = line.indexOf(lineParts[1], nameOffset + newName.length);
         const allowLocalVarStatus: boolean = false;
         const NOT_DAT_PASM: boolean = false;
-        const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, currentOffset, line, allowLocalVarStatus, this.showDAT, NOT_DAT_PASM);
+        const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showDAT, NOT_DAT_PASM);
         partialTokenSet.forEach((newToken) => {
           tokenSet.push(newToken);
         });
@@ -1868,14 +1877,14 @@ export class Spin2DocumentSemanticParser {
     // process line that starts with storage type (or FILE, or ORG), not name, process rest of line for symbols
     const lineNbr: number = lineIdx + 1;
     const tokenSet: IParsedToken[] = [];
-    //this._logMessage(' DBG _reportDAT_ValueDeclarationCode(#' + lineNbr + ', ofs=' + startingOffset + ')');
-    this._logDAT("- process ValueDeclaration line(" + lineNbr + "): line=[" + line + "]");
+    //this._logMessage(' DBG _rDAT_ValueDeclarationCode(#' + lineNbr + ', ofs=' + startingOffset + ')');
+    this._logDAT(`- process ValueDeclaration line(${lineNbr}): line=[${line} ], startingOffset=(${startingOffset})`);
 
     // process data declaration
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
-    const dataValueInitStr = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
+    const dataValueInitStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     if (dataValueInitStr.length > 1) {
-      this._logMessage("  -- reportDataValueInit dataValueInitStr=[" + dataValueInitStr + "]");
+      this._logMessage(`  -- reportDataValueInit dataValueInitStr=[${dataValueInitStr}], currentOffset=(${currentOffset})`);
       let lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(dataValueInitStr);
       const argumentStartIndex: number = this.parseUtils.isDatStorageType(lineParts[0]) ? 1 : 0;
       this._logMessage("  -- lineParts=[" + lineParts + "]");
@@ -1921,12 +1930,13 @@ export class Spin2DocumentSemanticParser {
             if (allowLocal && this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
               if (showDebug) {
-                this._logMessage("  --  FOUND local name=[" + namePart + "]");
+                this._logMessage(`  --  FOUND local name=[${namePart}], referenceDetails=(${referenceDetails})`);
               }
-            } else if (this.semanticFindings.isGlobalToken(namePart)) {
+            }
+            if (referenceDetails == undefined && this.semanticFindings.isGlobalToken(namePart)) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
               if (showDebug) {
-                this._logMessage("  --  FOUND global name=[" + namePart + "]");
+                this._logMessage(`  --  FOUND global name=[${namePart}], referenceDetails=(${referenceDetails})`);
               }
             }
             if (referenceDetails != undefined) {
@@ -1976,6 +1986,7 @@ export class Spin2DocumentSemanticParser {
     // get line parts - we only care about first one
     const inLinePAsmRHSStr: string = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
     const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
+    this._logPASM(`  --  DAT PAsm lineParts=[${lineParts}](${lineParts.length}), inLinePAsmRHSStr=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length})`);
     currentOffset = line.indexOf(inLinePAsmRHSStr, currentOffset);
     // handle name in 1 column
     const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
@@ -2235,7 +2246,7 @@ export class Spin2DocumentSemanticParser {
       }
       const allowLocalVarStatus: boolean = false;
       const IS_DAT_PASM: boolean = true;
-      const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, currentOffset, line, allowLocalVarStatus, this.showPAsmCode, IS_DAT_PASM);
+      const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showPAsmCode, IS_DAT_PASM);
       partialTokenSet.forEach((newToken) => {
         tokenSet.push(newToken);
       });
@@ -2283,9 +2294,9 @@ export class Spin2DocumentSemanticParser {
 
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
     const spin2MethodName: string = methodName + "(";
-    const spin2MethodNameSpace: string = methodName + " (";
+    const spin2MethodNameWithSpace: string = methodName + " (";
     this._logSPIN("-reportPubPriSig: spin2MethodName=[" + spin2MethodName + "], startNameOffset=(" + startNameOffset + ")");
-    const bHaveSpin2Method: boolean = line.includes(spin2MethodName) || line.includes(spin2MethodNameSpace);
+    const bHaveSpin2Method: boolean = line.includes(spin2MethodName) || line.includes(spin2MethodNameWithSpace);
     if (bHaveSpin2Method) {
       const declModifiers: string[] = isPrivate ? ["declaration", "static"] : ["declaration"];
       this._recordToken(tokenSet, line, {
@@ -2346,15 +2357,27 @@ export class Spin2DocumentSemanticParser {
           paramName = assignmentParts[0].trim();
         }
         this._logSPIN(`  -- paramName=[${paramName}], ofs=(${nameOffset})`);
-        this._recordToken(tokenSet, line, {
-          line: lineIdx,
-          startCharacter: nameOffset,
-          length: paramName.length,
-          ptTokenType: "parameter",
-          ptTokenModifiers: ["declaration", "readonly", "local"],
-        });
+        // check to see if param name is hiding global variable
+        if (this._hidesGlobalVariable(paramName)) {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: paramName.length,
+            ptTokenType: "parameter",
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + paramName.length, eSeverity.Error, `P2 Spin parameter [${paramName}] hides global variable of same name`);
+        } else {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: paramName.length,
+            ptTokenType: "parameter",
+            ptTokenModifiers: ["declaration", "readonly", "local"],
+          });
+        }
         // remember so we can ID references
-        this.semanticFindings.setLocalTokenForMethod(methodName, paramName, new RememberedToken("parameter", lineNbr - 1, ["readonly", "local"]), this._declarationComment()); // TOKEN SET in _report()
+        this.semanticFindings.setLocalTokenForMethod(methodName, paramName, new RememberedToken("parameter", lineNbr - 1, nameOffset, ["readonly", "local"]), this._declarationComment()); // TOKEN SET in _report()
 
         if (hasFlexSpinDefaultValue) {
           this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + paramNameRaw.length, eSeverity.Error, `Parameter default value [${paramNameRaw}] not allowed in P2 Spin`);
@@ -2391,15 +2414,33 @@ export class Spin2DocumentSemanticParser {
         const returnValueName = returnValueNames[index].trim();
         const nameOffset = line.indexOf(returnValueName, currentOffset);
         this._logSPIN("  -- returnValueName=[" + returnValueName + "](" + nameOffset + ")");
-        this._recordToken(tokenSet, line, {
-          line: lineIdx,
-          startCharacter: nameOffset,
-          length: returnValueName.length,
-          ptTokenType: "returnValue",
-          ptTokenModifiers: ["declaration", "local"],
-        });
+        // check to see if return name is hiding global variable
+        if (this._hidesGlobalVariable(returnValueName)) {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: returnValueName.length,
+            ptTokenType: "returnValue",
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(
+            lineIdx,
+            nameOffset,
+            nameOffset + returnValueName.length,
+            eSeverity.Error,
+            `P2 Spin return [${returnValueName}] hides global variable of same name`
+          );
+        } else {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: returnValueName.length,
+            ptTokenType: "returnValue",
+            ptTokenModifiers: ["declaration", "local"],
+          });
+        }
         // remember so we can ID references
-        this.semanticFindings.setLocalTokenForMethod(methodName, returnValueName, new RememberedToken("returnValue", lineNbr - 1, ["local"]), this._declarationComment()); // TOKEN SET in _report()
+        this.semanticFindings.setLocalTokenForMethod(methodName, returnValueName, new RememberedToken("returnValue", lineNbr - 1, nameOffset, ["local"]), this._declarationComment()); // TOKEN SET in _report()
         currentOffset = nameOffset + returnValueName.length;
       }
     }
@@ -2476,15 +2517,33 @@ export class Spin2DocumentSemanticParser {
                   ) {
                     // found new local variable name, register it
                     this._logSPIN("  --  SPIN NEW local varname=[" + namedIndexPart + "](" + (nameOffset + 1) + ")");
-                    this._recordToken(tokenSet, line, {
-                      line: lineIdx,
-                      startCharacter: nameOffset,
-                      length: namedIndexPart.length,
-                      ptTokenType: "variable",
-                      ptTokenModifiers: ["declaration", "local"],
-                    });
+                    // check to see if local name is hiding global variable
+                    if (this._hidesGlobalVariable(namedIndexPart)) {
+                      this._recordToken(tokenSet, line, {
+                        line: lineIdx,
+                        startCharacter: nameOffset,
+                        length: namedIndexPart.length,
+                        ptTokenType: "variable",
+                        ptTokenModifiers: ["illegalUse"],
+                      });
+                      this.semanticFindings.pushDiagnosticMessage(
+                        lineIdx,
+                        nameOffset,
+                        nameOffset + namedIndexPart.length,
+                        eSeverity.Error,
+                        `P2 Spin local [${namedIndexPart}] hides global variable of same name`
+                      );
+                    } else {
+                      this._recordToken(tokenSet, line, {
+                        line: lineIdx,
+                        startCharacter: nameOffset,
+                        length: namedIndexPart.length,
+                        ptTokenType: "variable",
+                        ptTokenModifiers: ["declaration", "local"],
+                      });
+                    }
                     // remember so we can ID references
-                    this.semanticFindings.setLocalTokenForMethod(methodName, namedIndexPart, new RememberedToken("variable", lineNbr - 1, ["local"]), this._declarationComment()); // TOKEN SET in _report()
+                    this.semanticFindings.setLocalTokenForMethod(methodName, namedIndexPart, new RememberedToken("variable", lineNbr - 1, nameOffset, ["local"]), this._declarationComment()); // TOKEN SET in _report()
                   }
                 }
               }
@@ -2495,15 +2554,27 @@ export class Spin2DocumentSemanticParser {
             this._logSPIN("  -- localName=[" + localName + "](" + nameOffset + ")");
             if (index == nameParts.length - 1) {
               // have name
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: localName.length,
-                ptTokenType: "variable",
-                ptTokenModifiers: ["declaration", "local"],
-              });
+              // check to see if local name is hiding global variable
+              if (this._hidesGlobalVariable(localName)) {
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: localName.length,
+                  ptTokenType: "variable",
+                  ptTokenModifiers: ["illegalUse"],
+                });
+                this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + localName.length, eSeverity.Error, `P2 Spin local [${localName}] hides global variable of same name`);
+              } else {
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: localName.length,
+                  ptTokenType: "variable",
+                  ptTokenModifiers: ["declaration", "local"],
+                });
+              }
               // remember so we can ID references
-              this.semanticFindings.setLocalTokenForMethod(methodName, localName, new RememberedToken("variable", lineNbr - 1, ["local"]), this._declarationComment()); // TOKEN SET in _report()
+              this.semanticFindings.setLocalTokenForMethod(methodName, localName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["local"]), this._declarationComment()); // TOKEN SET in _report()
             } else {
               // have modifier!
               if (this.parseUtils.isStorageType(localName)) {
@@ -2530,6 +2601,15 @@ export class Spin2DocumentSemanticParser {
       }
     }
     return tokenSet;
+  }
+
+  private _hidesGlobalVariable(variableName: string): boolean {
+    let hideStatus: boolean = false;
+    let referenceDetails: RememberedToken | undefined = undefined;
+    if (this.semanticFindings.isGlobalToken(variableName)) {
+      hideStatus = true;
+    }
+    return hideStatus;
   }
 
   private _reportSPIN_Code(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
@@ -2764,23 +2844,13 @@ export class Spin2DocumentSemanticParser {
               } else {
                 let referenceDetails: RememberedToken | undefined = undefined;
                 nameOffset = line.indexOf(cleanedVariableName, currentOffset);
-                const haveGlobalToken: boolean = this.semanticFindings.isGlobalToken(cleanedVariableName);
                 if (this.semanticFindings.isLocalToken(cleanedVariableName)) {
                   referenceDetails = this.semanticFindings.getLocalTokenForLine(cleanedVariableName, lineNbr);
                   this._logSPIN(`  --  FOUND local name=[${cleanedVariableName}, referenceDetails=[${referenceDetails}]]`);
-                  if (referenceDetails && haveGlobalToken) {
-                    this.semanticFindings.pushDiagnosticMessage(
-                      lineIdx,
-                      nameOffset,
-                      nameOffset + cleanedVariableName.length,
-                      eSeverity.Information,
-                      `P2 Spin local name [${cleanedVariableName}] is hiding global variable of same name`
-                    );
-                  }
                 }
-                if (!referenceDetails && haveGlobalToken) {
+                if (!referenceDetails && this.semanticFindings.isGlobalToken(cleanedVariableName)) {
                   referenceDetails = this.semanticFindings.getGlobalToken(cleanedVariableName);
-                  this._logSPIN("  --  FOUND global name=[" + cleanedVariableName + "]");
+                  this._logSPIN(`  --  FOUND global name=[${cleanedVariableName}, referenceDetails=[${referenceDetails}]]`);
                 }
                 if (referenceDetails != undefined) {
                   const modificationArray: string[] = referenceDetails.modifiersWith("modification");
@@ -2914,21 +2984,11 @@ export class Spin2DocumentSemanticParser {
             this._logSPIN(`  --  SPIN RHS   searchString=[${searchString}]`);
             this._logSPIN(`  --  SPIN RHS    nameOffset=(${nameOffset}), offsetInNonStringRHS=(${offsetInNonStringRHS}), currentOffset=(${currentOffset})`);
             let referenceDetails: RememberedToken | undefined = undefined;
-            const haveGlobalToken: boolean = this.semanticFindings.isGlobalToken(namePart);
             if (this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
               this._logSPIN("  --  FOUND local name=[" + namePart + "]");
-              if (referenceDetails && haveGlobalToken) {
-                this.semanticFindings.pushDiagnosticMessage(
-                  lineIdx,
-                  nameOffset,
-                  nameOffset + namePart.length,
-                  eSeverity.Information,
-                  `P2 Spin local name [${namePart}] is hiding global variable of same name`
-                );
-              }
             }
-            if (!referenceDetails && haveGlobalToken) {
+            if (!referenceDetails && this.semanticFindings.isGlobalToken(namePart)) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
               this._logSPIN("  --  FOUND global name=[" + namePart + "]");
               if (referenceDetails != undefined && referenceDetails?.type == "method") {
@@ -3256,7 +3316,7 @@ export class Spin2DocumentSemanticParser {
       }
       const allowLocalVarStatus: boolean = true;
       const NOT_DAT_PASM: boolean = false;
-      const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, currentOffset, line, allowLocalVarStatus, this.showPAsmCode, NOT_DAT_PASM);
+      const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showPAsmCode, NOT_DAT_PASM);
       partialTokenSet.forEach((newToken) => {
         tokenSet.push(newToken);
       });
@@ -4579,6 +4639,7 @@ export class Spin2DocumentSemanticParser {
     // skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const nonCommentLHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
+    this._logMessage(`  -- gnwclrc nonCommentLHSStr=[${nonCommentLHSStr}]`);
     // now record the comment if we have one
     const commentRHSStrOffset: number = currentOffset + nonCommentLHSStr.length;
     const commentOffset: number = line.indexOf("'", commentRHSStrOffset);
