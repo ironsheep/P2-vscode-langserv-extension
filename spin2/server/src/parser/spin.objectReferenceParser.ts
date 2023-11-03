@@ -98,7 +98,7 @@ export class Spin2ObjectReferenceParser {
       const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
       const tempComment = line.substring(trimmedNonCommentLine.length + offSet).trim();
       const sectionStatus = this._isSectionStartLine(line);
-      const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+      const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
       // now start our processing
       if (currState == eParseState.inMultiLineComment) {
@@ -219,7 +219,7 @@ export class Spin2ObjectReferenceParser {
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
         if (trimmedLine.length > 0) {
-          const lineParts: string[] = trimmedLine.split(/[ \t]/);
+          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
             //this._logPASM("- (" + (i + 1) + "): pre-scan DAT PASM line trimmedLine=[" + trimmedLine + "]");
             // record end of PASM code NOT inline
@@ -263,7 +263,10 @@ export class Spin2ObjectReferenceParser {
         if (assignmentOffset != -1) {
           // recognize constant name getting initialized via assignment
           // get line parts - we only care about first one
-          const lineParts: string[] = line.substr(currentOffset).split(/[ \t=]/);
+          const lineParts: string[] = line
+            .substr(currentOffset)
+            .split(/[ \t=]/)
+            .filter(Boolean);
           const newName = lineParts[0];
           if (newName.charAt(0).match(/[a-zA-Z_]/)) {
             this._logCON("  -- GLBL GetCONDecl newName=[" + newName + "]");
@@ -273,7 +276,7 @@ export class Spin2ObjectReferenceParser {
           if (containsObjectReferences) {
             const assignmentRHS = nonCommentConstantLine.substring(assignmentOffset + 1).trim();
             this._logCON("  -- GLBL GetCONDecl assignmentRHS=[" + assignmentRHS + "]");
-            const lineParts: string[] = assignmentRHS.split(/[ \t]/);
+            const lineParts: string[] = assignmentRHS.split(/[ \t]/).filter(Boolean);
             this._logCON("  -- GLBL GetCONDecl lineParts=[" + lineParts + "]");
             for (let partIdx = 0; partIdx < lineParts.length; partIdx++) {
               const nameForEval: string = lineParts[partIdx];
@@ -289,7 +292,7 @@ export class Spin2ObjectReferenceParser {
           }
         } else {
           // recognize enum values getting initialized
-          const lineParts: string[] = conDeclarationLine.split(/[ \t,]/);
+          const lineParts: string[] = conDeclarationLine.split(/[ \t,]/).filter(Boolean);
           //this._logCON('  -- lineParts=[' + lineParts + ']');
           for (let index = 0; index < lineParts.length; index++) {
             let enumConstant: string = lineParts[index];
@@ -378,9 +381,9 @@ export class Spin2ObjectReferenceParser {
     let startStatus: boolean = false;
     let inProgressState: eParseState = eParseState.Unknown;
     if (line.length > 2) {
-      const lineParts: string[] = line.split(/[ \t]/);
-      if (lineParts.length > 0) {
-        const sectionName: string = lineParts[0].toUpperCase();
+      const sectionName: string = line.substring(0, 3).toUpperCase();
+      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
+      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
         startStatus = true;
         if (sectionName === "CON") {
           inProgressState = eParseState.inCon;

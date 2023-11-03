@@ -62,7 +62,7 @@ export class Spin1DocumentSymbolParser {
       }
 
       if (line.length > 2) {
-        const lineParts: string[] = linePrefix.split(/[ \t]/);
+        const lineParts: string[] = linePrefix.split(/[ \t]/).filter(Boolean);
         linePrefix = lineParts.length > 0 ? lineParts[0].toUpperCase() : "";
         // the only form of comment we care about here is block comment after section name (e.g., "CON { text }")
         //  NEW and let's add the use of ' comment too
@@ -90,7 +90,7 @@ export class Spin1DocumentSymbolParser {
           this.setContainerSymbol(blockSymbol);
           // HANDLE label declaration on DAT line!
           if (linePrefix == "DAT") {
-            const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+            const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
             let posssibleLabel: string | undefined = undefined;
             if (lineParts.length >= 2) {
               // possibly have label, report it if we do
@@ -149,7 +149,7 @@ export class Spin1DocumentSymbolParser {
             // process pasm (assembly) lines
             if (trimmedLine.length > 0) {
               this._logMessage("    scan inDatPAsm Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
-              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
               if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
                 this._logMessage("  - (" + (i + 1) + "): pre-scan DAT PASM line trimmedLine=[" + trimmedLine + "]");
                 currState = prePasmState;
@@ -221,9 +221,9 @@ export class Spin1DocumentSymbolParser {
     let startStatus: boolean = false;
     let inProgressState: eParseState = eParseState.Unknown;
     if (line.length > 2) {
-      const lineParts: string[] = line.split(/[ \t]/);
-      if (lineParts.length > 0) {
-        const sectionName: string = lineParts[0].toUpperCase();
+      const sectionName: string = line.substring(0, 3).toUpperCase();
+      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
+      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
         startStatus = true;
         if (sectionName === "CON") {
           inProgressState = eParseState.inCon;

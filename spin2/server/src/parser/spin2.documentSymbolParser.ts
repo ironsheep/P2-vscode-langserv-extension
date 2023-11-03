@@ -108,7 +108,7 @@ export class Spin2DocumentSymbolParser {
       }
 
       if (line.length > 2) {
-        const lineParts: string[] = linePrefix.split(/[ \t]/);
+        const lineParts: string[] = linePrefix.split(/[ \t]/).filter(Boolean);
         linePrefix = lineParts.length > 0 ? lineParts[0].toUpperCase() : "";
         // the only form of comment we care about here is block comment after section name (e.g., "CON { text }")
         //  NEW and let's add the use of ' comment too
@@ -161,7 +161,7 @@ export class Spin2DocumentSymbolParser {
           this.setContainerSymbol(blockSymbol);
           // HANDLE label declaration on DAT line!
           if (linePrefix == "DAT") {
-            const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+            const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
             let posssibleLabel: string | undefined = undefined;
             if (lineParts.length >= 2) {
               // possibly have label, report it if we do
@@ -194,7 +194,7 @@ export class Spin2DocumentSymbolParser {
             // process pasm (assembly) lines
             if (trimmedLine.length > 0) {
               this._logMessage("    scan inPAsmInline Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
-              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
               if (lineParts.length > 0 && lineParts[0].toUpperCase() == "END") {
                 currState = prePasmState;
                 this._logMessage("    scan END-InLine Ln#" + (i + 1) + " POP currState=[" + currState + "]");
@@ -208,7 +208,7 @@ export class Spin2DocumentSymbolParser {
             // process pasm (assembly) lines
             if (trimmedLine.length > 0) {
               this._logMessage("    scan inDatPAsm Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
-              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
               if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
                 this._logMessage("  - (" + (i + 1) + "): pre-scan DAT PASM line trimmedLine=[" + trimmedLine + "]");
                 currState = prePasmState;
@@ -240,7 +240,7 @@ export class Spin2DocumentSymbolParser {
             // NOTE: The directives ORGH, ALIGNW, ALIGNL, and FILE are not allowed within in-line PASM code.
             if (trimmedLine.length > 0) {
               this._logMessage("    scan inPub/inPri Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
-              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
               if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "ORG" || lineParts[0].toUpperCase() == "ORGF")) {
                 // Only ORG, not ORGF or ORGH
                 this._logMessage("  - (" + (i + 1) + "): outline PUB/PRI line trimmedLine=[" + trimmedLine + "]");
@@ -297,7 +297,7 @@ export class Spin2DocumentSymbolParser {
     let startStatus: boolean = false;
     let inProgressState: eParseState = eParseState.Unknown;
     if (line.length > 2) {
-      const lineParts: string[] = line.split(/[ \t]/);
+      const lineParts: string[] = line.split(/[ \t]/).filter(Boolean);
       if (lineParts.length > 0) {
         const sectionName: string = lineParts[0].toUpperCase();
         startStatus = true;

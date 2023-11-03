@@ -19,7 +19,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private topLevelFSpec: string = "";
   private topLevelFName: string = "";
 
-  private objTreeDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private objTreeDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private objTreeOutputChannel: vscode.OutputChannel | undefined = undefined;
 
   private isDocument: boolean = false;
@@ -479,21 +479,24 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     let inProgressState: eParseState = eParseState.Unknown;
     if (line.length > 2) {
       const sectionName: string = line.substring(0, 3).toUpperCase();
-      startStatus = true;
-      if (sectionName === "CON") {
-        inProgressState = eParseState.inCon;
-      } else if (sectionName === "DAT") {
-        inProgressState = eParseState.inDat;
-      } else if (sectionName === "OBJ") {
-        inProgressState = eParseState.inObj;
-      } else if (sectionName === "PUB") {
-        inProgressState = eParseState.inPub;
-      } else if (sectionName === "PRI") {
-        inProgressState = eParseState.inPri;
-      } else if (sectionName === "VAR") {
-        inProgressState = eParseState.inVar;
-      } else {
-        startStatus = false;
+      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
+      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
+        startStatus = true;
+        if (sectionName === "CON") {
+          inProgressState = eParseState.inCon;
+        } else if (sectionName === "DAT") {
+          inProgressState = eParseState.inDat;
+        } else if (sectionName === "OBJ") {
+          inProgressState = eParseState.inObj;
+        } else if (sectionName === "PUB") {
+          inProgressState = eParseState.inPub;
+        } else if (sectionName === "PRI") {
+          inProgressState = eParseState.inPri;
+        } else if (sectionName === "VAR") {
+          inProgressState = eParseState.inVar;
+        } else {
+          startStatus = false;
+        }
       }
     }
     if (startStatus && inProgressState == eParseState.inObj) {

@@ -140,11 +140,11 @@ export class Spin1DocumentSemanticParser {
       const line = lines[i];
       const trimmedLine = line.trim();
       const trimmedNonCommentLine = this.parseUtils.getNonCommentLineRemainder(0, line);
-      const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
+      const offSet: number = trimmedNonCommentLine.trim().length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
       const tempComment = line.substring(trimmedNonCommentLine.length + offSet).trim();
       this.rightEdgeComment = tempComment.length > 0 ? tempComment : undefined;
       const sectionStatus = this._isSectionStartLine(line);
-      const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+      const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
       // special blocks of doc-comment and non-doc comment lines handling
       if (bBuildingSingleLineDocCmtBlock && !trimmedLine.startsWith("''")) {
@@ -232,7 +232,7 @@ export class Spin1DocumentSemanticParser {
         // a blank line clears pending single line comments
         this.priorSingleLineComment = undefined;
         continue;
-      } else if (this.parseUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
+      } else if (lineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
         this._getPreProcessor_Declaration(0, i + 1, line);
         // a FlexspinPreprocessorDirective line clears pending single line comments
         this.priorSingleLineComment = undefined;
@@ -418,7 +418,7 @@ export class Spin1DocumentSemanticParser {
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
         if (trimmedLine.length > 0) {
-          const lineParts: string[] = trimmedLine.split(/[ \t]/);
+          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
             this._logPASM("- (" + (i + 1) + "): pre-scan DAT PASM line trimmedLine=[" + trimmedLine + "]");
             // record end of PASM code NOT inline
@@ -456,7 +456,7 @@ export class Spin1DocumentSemanticParser {
       const line = lines[i];
       const trimmedLine = line.trim();
       const sectionStatus = this._isSectionStartLine(line);
-      const lineParts: string[] = trimmedLine.split(/[ \t]/);
+      const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
       // TODO: UNDONE add filter which corrects for syntax inability to mark 'comments when more than one "'" present on line!
       //if (trimmedLine.length > 2 && trimmedLine.includes("'")) {
       //    const partialTokenSet: IParsedToken[] = this._possiblyMarkBrokenSingleLineComment(i, 0, line);
@@ -505,7 +505,7 @@ export class Spin1DocumentSemanticParser {
           currState = priorState;
         }
         //  DO NOTHING Let Syntax highlighting do this
-      } else if (this.parseUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
+      } else if (lineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
         const partialTokenSet: IParsedToken[] = this._reportPreProcessorLine(i, 0, line);
         partialTokenSet.forEach((newToken) => {
           this._logPreProc("=> PreProc: " + this._tokenString(newToken, line));
@@ -708,7 +708,7 @@ export class Spin1DocumentSemanticParser {
             this._logPASM("=> DAT: " + this._tokenString(newToken, line));
             tokenSet.push(newToken);
           });
-          const lineParts: string[] = trimmedLine.split(/[ \t]/);
+          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
             currState = prePAsmState;
             this._logState("- scan Ln#" + (i + 1) + " POP currState=[" + currState + "]");
@@ -719,7 +719,7 @@ export class Spin1DocumentSemanticParser {
         // process a method def'n line
         if (trimmedLine.length > 0) {
           this._logSPIN("- process SPIN2 line(" + (i + 1) + "): trimmedLine=[" + trimmedLine + "]");
-          const lineParts: string[] = trimmedLine.split(/[ \t]/);
+          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           const partialTokenSet: IParsedToken[] = this._reportSPIN_Code(i, 0, line);
           partialTokenSet.forEach((newToken) => {
             this._logSPIN("=> SPIN: " + this._tokenString(newToken, line));
@@ -736,18 +736,20 @@ export class Spin1DocumentSemanticParser {
     if (this.configuration.highlightFlexspinDirectives) {
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-      // get line parts - we only care about first one
-      const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/);
-      this._logPreProc("  - Ln#" + lineNbr + " GetPreProcDecl lineParts=[" + lineParts + "]");
-      const directive: string = lineParts[0];
-      const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
-      if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
-        // check a valid preprocessor line for a declaration
-        if (symbolName != undefined && directive.toLowerCase() == "#define") {
-          this._logPreProc("  -- new PreProc Symbol=[" + symbolName + "]");
-          const nameOffset = line.indexOf(symbolName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-          this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
+      if (nonCommentConstantLine.trim().length > 0) {
+        // get line parts - we only care about first one
+        const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
+        this._logPreProc("  - Ln#" + lineNbr + " GetPreProcDecl lineParts=[" + lineParts + "]");
+        const directive: string = lineParts[0];
+        const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
+        if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
+          // check a valid preprocessor line for a declaration
+          if (symbolName != undefined && directive.toLowerCase() == "#define") {
+            this._logPreProc("  -- new PreProc Symbol=[" + symbolName + "]");
+            const nameOffset = line.indexOf(symbolName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+            this.semanticFindings.recordDeclarationLine(line, lineNbr);
+            this.semanticFindings.setGlobalToken(symbolName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
+          }
         }
       }
     }
@@ -765,7 +767,7 @@ export class Spin1DocumentSemanticParser {
       //skip Past Whitespace
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-      if (nonCommentConstantLine.length == 0) {
+      if (nonCommentConstantLine.trim().length == 0) {
         this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
       } else {
         this._logCON("  - Ln#" + lineNbr + " GetCONDecl nonCommentConstantLine=[" + nonCommentConstantLine + "]");
@@ -1014,9 +1016,10 @@ export class Spin1DocumentSemanticParser {
     //skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const remainingNonCommentLineStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    const remainingOffset: number = line.indexOf(remainingNonCommentLineStr, startingOffset);
+    const trimmedNonCommentLineStr: string = remainingNonCommentLineStr.trim();
+    const remainingOffset: number = trimmedNonCommentLineStr.length > 0 ? line.indexOf(trimmedNonCommentLineStr, startingOffset) : 0;
     //this._logOBJ('- RptObjDecl remainingNonCommentLineStr=[' + remainingNonCommentLineStr + ']');
-    if (remainingNonCommentLineStr.length > 0 && remainingNonCommentLineStr.includes(":")) {
+    if (trimmedNonCommentLineStr.length > 0 && remainingNonCommentLineStr.includes(":")) {
       // get line parts - we only care about first one
       const lineParts: string[] = remainingNonCommentLineStr.split(":").filter(Boolean);
       this._logOBJ("  -- GLBL GetOBJDecl lineParts=[" + lineParts + "]");
@@ -1177,76 +1180,78 @@ export class Spin1DocumentSemanticParser {
     // skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    // get line parts - we only care about first one
-    const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/);
-    this._logPreProc("  - Ln#" + lineIdx + " reportPreProc lineParts=[" + lineParts + "]");
-    const directive: string = lineParts[0];
-    const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
-    if (this.configuration.highlightFlexspinDirectives) {
-      if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
-        // record the directive
+    if (nonCommentConstantLine.trim().length > 0) {
+      // get line parts - we only care about first one
+      const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
+      this._logPreProc("  - Ln#" + lineIdx + " reportPreProc lineParts=[" + lineParts + "]");
+      const directive: string = lineParts[0];
+      const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
+      if (this.configuration.highlightFlexspinDirectives) {
+        if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
+          // record the directive
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: 0,
+            length: directive.length,
+            ptTokenType: "keyword",
+            ptTokenModifiers: ["control", "directive"],
+          });
+          const hasSymbol: boolean =
+            directive.toLowerCase() == "#define" ||
+            directive.toLowerCase() == "#ifdef" ||
+            directive.toLowerCase() == "#ifndef" ||
+            directive.toLowerCase() == "#elseifdef" ||
+            directive.toLowerCase() == "#elseifndef";
+          if (hasSymbol && symbolName != undefined) {
+            const nameOffset = line.indexOf(symbolName, currentOffset);
+            this._logPreProc("  -- GLBL symbolName=[" + symbolName + "]");
+            let referenceDetails: RememberedToken | undefined = undefined;
+            if (this.semanticFindings.isGlobalToken(symbolName)) {
+              referenceDetails = this.semanticFindings.getGlobalToken(symbolName);
+              this._logPreProc("  --  FOUND preProc global " + this._rememberdTokenString(symbolName, referenceDetails));
+            }
+            if (referenceDetails != undefined) {
+              // record a constant declaration!
+              const updatedModificationSet: string[] = directive.toLowerCase() == "#define" ? referenceDetails.modifiersWith("declaration") : referenceDetails.modifiers;
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: symbolName.length,
+                ptTokenType: referenceDetails.type,
+                ptTokenModifiers: updatedModificationSet,
+              });
+            } else if (this.parseUtils.isFlexspinReservedWord(symbolName)) {
+              // record a constant reference
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: symbolName.length,
+                ptTokenType: "variable",
+                ptTokenModifiers: ["readonly"],
+              });
+            } else {
+              // record an unknown name
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: symbolName.length,
+                ptTokenType: "comment",
+                ptTokenModifiers: ["line"],
+              });
+            }
+          }
+        }
+      } else {
+        //  DO NOTHING we don't highlight these (flexspin support not enabled)
         this._recordToken(tokenSet, line, {
           line: lineIdx,
           startCharacter: 0,
-          length: directive.length,
-          ptTokenType: "keyword",
-          ptTokenModifiers: ["control", "directive"],
+          length: lineParts[0].length,
+          ptTokenType: "macro",
+          ptTokenModifiers: ["directive", "illegalUse"],
         });
-        const hasSymbol: boolean =
-          directive.toLowerCase() == "#define" ||
-          directive.toLowerCase() == "#ifdef" ||
-          directive.toLowerCase() == "#ifndef" ||
-          directive.toLowerCase() == "#elseifdef" ||
-          directive.toLowerCase() == "#elseifndef";
-        if (hasSymbol && symbolName != undefined) {
-          const nameOffset = line.indexOf(symbolName, currentOffset);
-          this._logPreProc("  -- GLBL symbolName=[" + symbolName + "]");
-          let referenceDetails: RememberedToken | undefined = undefined;
-          if (this.semanticFindings.isGlobalToken(symbolName)) {
-            referenceDetails = this.semanticFindings.getGlobalToken(symbolName);
-            this._logPreProc("  --  FOUND preProc global " + this._rememberdTokenString(symbolName, referenceDetails));
-          }
-          if (referenceDetails != undefined) {
-            // record a constant declaration!
-            const updatedModificationSet: string[] = directive.toLowerCase() == "#define" ? referenceDetails.modifiersWith("declaration") : referenceDetails.modifiers;
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: symbolName.length,
-              ptTokenType: referenceDetails.type,
-              ptTokenModifiers: updatedModificationSet,
-            });
-          } else if (this.parseUtils.isFlexspinReservedWord(symbolName)) {
-            // record a constant reference
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: symbolName.length,
-              ptTokenType: "variable",
-              ptTokenModifiers: ["readonly"],
-            });
-          } else {
-            // record an unknown name
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: symbolName.length,
-              ptTokenType: "comment",
-              ptTokenModifiers: ["line"],
-            });
-          }
-        }
+        this.semanticFindings.pushDiagnosticMessage(lineIdx, 0, 0 + lineParts[0].length, eSeverity.Error, `P1 Spin - PreProcessor Directive [${lineParts[0]}] not supported!`);
       }
-    } else {
-      //  DO NOTHING we don't highlight these (flexspin support not enabled)
-      this._recordToken(tokenSet, line, {
-        line: lineIdx,
-        startCharacter: 0,
-        length: lineParts[0].length,
-        ptTokenType: "macro",
-        ptTokenModifiers: ["directive", "illegalUse"],
-      });
-      this.semanticFindings.pushDiagnosticMessage(lineIdx, 0, 0 + lineParts[0].length, eSeverity.Error, `P1 Spin - PreProcessor Directive [${lineParts[0]}] not supported!`);
     }
 
     return tokenSet;
@@ -2160,7 +2165,7 @@ export class Spin1DocumentSemanticParser {
             if (variableName.includes("..")) {
               variableName = variableName.replace("..", " ");
             }
-            const variableNameParts: string[] = variableName.split(/[ \t\[\]\/\*\+\-\(\)\<\>]/);
+            const variableNameParts: string[] = variableName.split(/[ \t\[\]\/\*\+\-\(\)\<\>]/).filter(Boolean);
             this._logSPIN(`  -- LHS: [] variableNameParts=[${variableNameParts}]`);
             for (let index = 0; index < variableNameParts.length; index++) {
               let variableNamePart = variableNameParts[index].replace("@", "");
@@ -2611,7 +2616,7 @@ export class Spin1DocumentSemanticParser {
             const arrayOpenOffset: number = line.indexOf("[", currentOffset);
             const arrayCloseOffset: number = line.indexOf("]", currentOffset);
             const arrayReference: string = line.substr(arrayOpenOffset + 1, arrayCloseOffset - arrayOpenOffset - 1);
-            const arrayReferenceParts: string[] = arrayReference.split(/[ \t\/\*\+\<\>]/);
+            const arrayReferenceParts: string[] = arrayReference.split(/[ \t\/\*\+\<\>]/).filter(Boolean);
             this._logVAR(`  --  arrayReferenceParts=[${arrayReferenceParts}}](${arrayReferenceParts.length})`);
             let nameOffset: number = 0;
             let namePart: string = "";
@@ -2700,7 +2705,7 @@ export class Spin1DocumentSemanticParser {
     const isObjectConstantRef: boolean = dotReference.includes("#");
     if (dotReference.includes(".") || isObjectConstantRef) {
       const symbolOffset: number = line.indexOf(dotReference, startingOffset); // walk this past each
-      possibleNameSet = dotReference.split(/[\.#]/);
+      possibleNameSet = dotReference.split(/[\.#]/).filter(Boolean);
       this._logMessage(`  --  rObjRef possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
       const objInstanceName = possibleNameSet[0];
       if (this.semanticFindings.isNameSpace(objInstanceName)) {
@@ -3091,9 +3096,9 @@ export class Spin1DocumentSemanticParser {
     let startStatus: boolean = false;
     let inProgressState: eParseState = eParseState.Unknown;
     if (line.length > 2) {
-      const lineParts: string[] = line.split(/[ \t]/);
-      if (lineParts.length > 0) {
-        const sectionName: string = lineParts[0].toUpperCase();
+      const sectionName: string = line.substring(0, 3).toUpperCase();
+      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
+      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
         startStatus = true;
         if (sectionName === "CON") {
           inProgressState = eParseState.inCon;

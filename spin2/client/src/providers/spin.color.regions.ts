@@ -228,9 +228,10 @@ export class RegionColorizer {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
-      const trimmedNonCommentLine = this.spinCodeUtils.getNonCommentLineRemainder(0, line);
+      const nonCommentLine = this.spinCodeUtils.getNonCommentLineRemainder(0, line);
+      const trimmedNonCommentLine = nonCommentLine.trim();
       const sectionStatus = this._isSectionStartLine(line);
-      const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/);
+      const lineParts: string[] = trimmedNonCommentLine.length > 0 ? trimmedNonCommentLine.split(/[ \t]/).filter(Boolean) : [];
 
       // now start our processing
       if (currState == eParseState.inMultiLineComment) {
@@ -272,9 +273,9 @@ export class RegionColorizer {
         //  DO NOTHING Let Syntax highlighting do this
         continue;
       } else if (trimmedLine.length == 0) {
-        continue;
-      } else if (this.spinCodeUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
-        continue;
+        continue; // no further processing of blank line
+      } else if (trimmedNonCommentLine.length > 0 && this.spinCodeUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
+        continue; // handled flexspin comment do next line
       } else if (trimmedLine.startsWith("{{")) {
         // process multi-line doc comment
         let openingOffset = line.indexOf("{{");
@@ -376,7 +377,7 @@ export class RegionColorizer {
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
         if (trimmedLine.length > 0) {
-          const lineParts: string[] = trimmedLine.split(/[ \t]/);
+          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
             this.logMessage("- (" + (i + 1) + "): pre-scan DAT PASM line trimmedLine=[" + trimmedLine + "]");
             currState = prePAsmState;

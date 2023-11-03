@@ -671,7 +671,7 @@
         },
         {
           "name": "keyword.control.flow.spin2",
-          "match": "(?i)\\b(IF|ELSEIF|ELSEIFNOT|ELSE|IFNOT|CASE|CASE_FAST|OTHER|REPEAT|FROM|TO|STEP|UNTIL|WHILE|NEXT|QUIT|RETURN|ABORT)\\b"
+          "match": "(?i)\\b(IF|ELSEIF|ELSEIFNOT|ELSE|IFNOT|CASE|CASE_FAST|OTHER|REPEAT|WITH|FROM|TO|STEP|UNTIL|WHILE|NEXT|QUIT|RETURN|ABORT)\\b"
         },
         {
           "name": "support.function.hub.spin2",

@@ -500,9 +500,9 @@ export class DocGenerator {
     let startStatus: boolean = false;
     let inProgressState: eParseState = eParseState.Unknown;
     if (line.length > 2) {
-      const lineParts: string[] = line.split(/[ \t]/);
-      if (lineParts.length > 0) {
-        const sectionName: string = lineParts[0].toUpperCase();
+      const sectionName: string = line.substring(0, 3).toUpperCase();
+      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
+      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
         startStatus = true;
         if (sectionName === "CON") {
           inProgressState = eParseState.inCon;

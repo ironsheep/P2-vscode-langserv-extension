@@ -8,8 +8,8 @@ export function GetWordRangeAtPosition(lineText: string, position: lsp.Position,
   // return rage of word found at position
   let startIndex: number = position.character;
   let endIndex: number = position.character;
-  const wordEndCharacterSetP1: string = "\"'[]()<> |^&@\t,+-*/\\=";
-  const wordEndCharacterSetP2: string = "\"'[]()<> |^&#@\t,+-*/\\=:";
+  const wordEndCharacterSetP1: string = "\"'[](){}<> |^&@\t,+-*/\\=";
+  const wordEndCharacterSetP2: string = "\"'[](){}<> |^&#@\t,+-*/\\=:";
   const checkCharSet: string = isSpin1File ? wordEndCharacterSetP1 : wordEndCharacterSetP2;
 
   // back up to start of word, mark start

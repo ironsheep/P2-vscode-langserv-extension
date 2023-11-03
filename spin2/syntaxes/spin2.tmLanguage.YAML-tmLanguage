@@ -364,7 +364,7 @@ repository:
                 match: '(?i)\b(BYTE|WORD|BYTEFIT|WORDFIT|LONG)\b'
             -
                 name: keyword.control.flow.spin2
-                match: '(?i)\b(IF|ELSEIF|ELSEIFNOT|ELSE|IFNOT|CASE|CASE_FAST|OTHER|REPEAT|FROM|TO|STEP|UNTIL|WHILE|NEXT|QUIT|RETURN|ABORT)\b'
+                match: '(?i)\b(IF|ELSEIF|ELSEIFNOT|ELSE|IFNOT|CASE|CASE_FAST|OTHER|REPEAT|WITH|FROM|TO|STEP|UNTIL|WHILE|NEXT|QUIT|RETURN|ABORT)\b'
             -
                 name: support.function.hub.spin2
                 match: '(?i)\b(COG(CHK|ID|INIT|SPIN|STOP)|(HUB|CLK)SET|LOCK(NEW|RET|TRY|REL|CHK)|(COG|POLL|WAIT)ATN)\b'

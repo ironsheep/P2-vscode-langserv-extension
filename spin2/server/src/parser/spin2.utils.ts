@@ -281,7 +281,7 @@ export class Spin2ParseUtils {
     if (line.length - startingOffset > 0) {
       const nonCommentEOL: number = line.length - 1;
       //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
-      nonDocCommentRHSStr = line.substr(startingOffset, nonCommentEOL - startingOffset + 1).trim();
+      nonDocCommentRHSStr = line.substr(startingOffset, nonCommentEOL - startingOffset + 1).trimEnd();
       //this._logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
 
       const singleLineMultiBeginOffset: number = nonDocCommentRHSStr.indexOf("{", startingOffset);
@@ -332,10 +332,8 @@ export class Spin2ParseUtils {
 
   public getNonCommentLineRemainder(startingOffset: number, line: string): string {
     let nonCommentRHSStr: string = line;
-    //this._logMessage('  -- gnclr ofs=' + startingOffset + '[' + line + '](' + line.length + ')');
     // TODO: UNDONE make this into loop to find first ' not in string
     if (line.length - startingOffset > 0) {
-      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], startingOffset=[' + line + ']');
       let currentOffset: number = this.skipWhite(line, startingOffset);
       // get line parts - we only care about first one
       let beginCommentOffset: number = line.indexOf("'", currentOffset);
@@ -348,29 +346,35 @@ export class Spin2ParseUtils {
           beginCommentOffset = nonStringLine.indexOf("'", currentOffset);
         }
       }
-      if (beginCommentOffset === -1) {
-        beginCommentOffset = line.indexOf("{", currentOffset);
-      }
-      const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset - 1 : line.length - 1;
-      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
-      nonCommentRHSStr = line.substr(currentOffset, nonCommentEOL - currentOffset + 1).trim();
-      //this._logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
 
+      // if we have {comment} in line remove it
       const singleLineMultiBeginOffset: number = nonCommentRHSStr.indexOf("{", currentOffset);
       if (singleLineMultiBeginOffset != -1) {
         const singleLineMultiEndOffset: number = nonCommentRHSStr.indexOf("}", singleLineMultiBeginOffset);
         if (singleLineMultiEndOffset != -1) {
-          const oneLineMultiComment: string = nonCommentRHSStr.substr(singleLineMultiBeginOffset, singleLineMultiEndOffset - singleLineMultiBeginOffset + 1);
-          nonCommentRHSStr = nonCommentRHSStr.replace(oneLineMultiComment, "").trim();
+          const oneLineMultiComment: string = nonCommentRHSStr.substring(singleLineMultiBeginOffset, singleLineMultiEndOffset + 1);
+          nonCommentRHSStr = nonCommentRHSStr.replace(oneLineMultiComment, " ".repeat(oneLineMultiComment.length));
         }
       }
+
+      // if no tic comment, do we have brace comment?
+      if (beginCommentOffset == -1) {
+        beginCommentOffset = nonCommentRHSStr.indexOf("{", currentOffset); // TODO: are we really sure this is good?
+      }
+      if (beginCommentOffset != -1) {
+        this._logMessage(`  -- gNCLR ofs=${startingOffset}, line=[${line}](${line.length})`);
+      }
+      const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset : line.length;
+      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
+      nonCommentRHSStr = line.substring(startingOffset, nonCommentEOL).trimEnd();
+      //this._logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
     } else if (line.length - startingOffset == 0) {
       nonCommentRHSStr = "";
     }
-    //if (line.substr(startingOffset).length != nonCommentRHSStr.length) {
-    //    this._logMessage('  -- NCLR line [' + line.substr(startingOffset) + ']');
-    //    this._logMessage('  --           [' + nonCommentRHSStr + ']');
-    //}
+    if (line.substr(startingOffset).length != nonCommentRHSStr.length) {
+      this._logMessage("  -- gNCLR line [" + line.substr(startingOffset) + "]");
+      this._logMessage("  --            [" + nonCommentRHSStr + "]");
+    }
     return nonCommentRHSStr;
   }
 
@@ -1335,6 +1339,7 @@ export class Spin2ParseUtils {
       "else",
       "while",
       "repeat",
+      "with",
       "until",
       "from",
       "to",

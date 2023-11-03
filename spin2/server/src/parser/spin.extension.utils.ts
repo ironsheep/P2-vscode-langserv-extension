@@ -36,7 +36,7 @@ export class ExtensionUtils {
   private ctx: Context;
 
   private spin1ControlFlowKeywords: string[] = ["if", "ifnot", "elseif", "elseifnot", "else", "while", "repeat", "until", "from", "to", "step", "next", "quit", "case", "other", "abort", "return"];
-  private spin2ControlFlowKeywords: string[] = ["if", "ifnot", "elseif", "elseifnot", "else", "case", "case_fast", "repeat", "from", "to", "step", "while", "until", "next", "quit"];
+  private spin2ControlFlowKeywords: string[] = ["if", "ifnot", "elseif", "elseifnot", "else", "case", "case_fast", "repeat", "with", "from", "to", "step", "while", "until", "next", "quit"];
 
   public constructor(ctx: Context, isLogging: boolean) {
     this.ctx = ctx;
@@ -117,8 +117,6 @@ export class ExtensionUtils {
         }
         break;
     }
-    //const word: string = lineParts.length == 1 ? lineParts[0] : "";
-    //const objectRef: string = "";
     this._logMessage(
       `+ sp2Utils: adjustWordPosition() wordRange=[${wordRange?.start.line}:${wordRange?.start.character}-${wordRange?.end.line}:${wordRange?.end.character}], obj=[${objectRef}], word=[${word}]`
     );
