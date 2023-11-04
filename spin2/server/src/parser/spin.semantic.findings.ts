@@ -29,6 +29,14 @@ export enum eSeverity {
   Hint,
 }
 
+export enum eDefinitionType {
+  // should match lsp.DiagnosticSeverity
+  Unknown = 0,
+  LocalLabel,
+  GlobalLabel,
+  NonLabel,
+}
+
 // search comment type: non-doc only, doc-only, or mixed
 enum eCommentFilter {
   Unknown = 0,
@@ -122,6 +130,8 @@ export class DocumentFindings {
   private objectParseResultByObjectName = new Map<string, DocumentFindings>();
   private diagnosticMessages: DiagnosticReport[] = [];
   private declarationLineCache = new Map<Number, string>();
+  private declarationGlobalLabelListCache: number[] = [];
+  private declarationLocalLabelLineCache = new Map<string, number[]>(); // line numbers by localLabelName
 
   // tracking of Spin Code Blocks
   private priorBlockType: eBLockType = eBLockType.Unknown;
@@ -202,6 +212,8 @@ export class DocumentFindings {
     this.methodLocalPasmTokens.clear();
     this.objectFilenameByInstanceName.clear();
     this.declarationLineCache.clear();
+    this.declarationLocalLabelLineCache.clear();
+    this.declarationGlobalLabelListCache = [];
     this.blockComments = [];
     this.fakeComments = [];
     // clear our method-span pieces
@@ -236,6 +248,13 @@ export class DocumentFindings {
     } else {
       this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
     }
+  }
+
+  public finalize() {
+    // end of document reached, do finishing things so data is ready for use
+
+    // (1) let's ensure our list of global labels is in line number order
+    this.declarationGlobalLabelListCache = this.declarationGlobalLabelListCache.sort((n1, n2) => n1 - n2);
   }
 
   // -------------------------------------------------------------------------------------
@@ -404,14 +423,18 @@ export class DocumentFindings {
     return nameSpaceSet;
   }
 
-  public locationsOfToken(tokenName: string): ILocationOfToken[] {
+  public locationsOfToken(tokenName: string, postion: Position): ILocationOfToken[] {
+    // NOTE: position is cursor position in doc at location of request
     const desiredLocations: ILocationOfToken[] = [];
-    this.appendLocationsOfToken(tokenName, desiredLocations, "top");
+    this.appendLocationsOfToken(tokenName, desiredLocations, "top", postion);
     this._logMessage(`  -- locationsOfToken() id=[${this.instanceId}] returns ${desiredLocations.length} tokens`);
     return desiredLocations;
   }
 
-  public appendLocationsOfToken(tokenName: string, locationsSoFar: ILocationOfToken[], objectName: string) {
+  public appendLocationsOfToken(tokenName: string, locationsSoFar: ILocationOfToken[], objectName: string, postion: Position) {
+    // NOTE: position is cursor position in doc at location of request
+    //  we use this to determine if request is scoped to a method
+    //   if it is, we limit responses to findings within the method
     let referenceDetails: RememberedToken | undefined = undefined;
     const desiredTokenKey: string = tokenName.toLowerCase();
     let findCount: number = 0;
@@ -429,18 +452,33 @@ export class DocumentFindings {
       }
     }
     if (this.isLocalToken(tokenName)) {
-      // get local tokens from this objects
-      const referenceSet: RememberedToken[] = this.getLocalTokens(tokenName);
-      for (let index = 0; index < referenceSet.length; index++) {
-        referenceDetails = referenceSet[index];
-        if (referenceDetails) {
-          const tokenPosition: Position = { line: referenceDetails.lineIndex, character: 0 };
-          const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
-          locationsSoFar.push(tokenRef);
-          findCount++;
-          this._logMessage(`  -- appLoc-Token FOUND local token=[${tokenName}]`);
-        } else {
-          this._logMessage(`  -- appLoc-Token local token=[${tokenName}] has NO lineNbr info!`);
+      // get local tokens from this object
+      const localMethodName: string | undefined = this._getMethodNameForLine(postion.line);
+      if (localMethodName) {
+        // get local tokens scoped to method
+        if (this.isLocalTokenForMethod(localMethodName, tokenName)) {
+          const referenceDetails: RememberedToken | undefined = this.getLocalTokenForMethod(tokenName, localMethodName);
+          if (referenceDetails) {
+            const tokenPosition: Position = { line: referenceDetails.lineIndex, character: referenceDetails.charIndex };
+            const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
+            locationsSoFar.push(tokenRef);
+            findCount++;
+          }
+        }
+      } else {
+        // get all local tokens
+        const referenceSet: RememberedToken[] = this.getLocalTokens(tokenName);
+        for (let index = 0; index < referenceSet.length; index++) {
+          referenceDetails = referenceSet[index];
+          if (referenceDetails) {
+            const tokenPosition: Position = { line: referenceDetails.lineIndex, character: referenceDetails.charIndex };
+            const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
+            locationsSoFar.push(tokenRef);
+            findCount++;
+            this._logMessage(`  -- appLoc-Token FOUND local token=[${tokenName}]`);
+          } else {
+            this._logMessage(`  -- appLoc-Token local token=[${tokenName}] has NO lineNbr info!`);
+          }
         }
       }
     }
@@ -454,7 +492,7 @@ export class DocumentFindings {
         if (this.ctx) {
           symbolsFound.enableLogging(this.ctx, this.findingsLogEnabled);
         }
-        symbolsFound.appendLocationsOfToken(tokenName, locationsSoFar, nameSpace);
+        symbolsFound.appendLocationsOfToken(tokenName, locationsSoFar, nameSpace, postion);
       }
     }
     this._logMessage(`  -- appendLocationsOfToken() id=[${this.instanceId}] adds ${findCount} tokens`);
@@ -988,15 +1026,24 @@ export class DocumentFindings {
 
   public isGlobalToken(tokenName: string): boolean {
     const foundStatus: boolean = this.globalTokens.hasToken(tokenName);
+    this._logMessage(`  -- IS-gloTOK [${tokenName}] says ${foundStatus}`);
     return foundStatus;
   }
 
-  public recordDeclarationLine(line: string, lineNbr: number) {
+  public recordDeclarationLine(line: string, lineNbr: number, declType: eDefinitionType = eDefinitionType.NonLabel) {
     // remember our declaration line for later use
     // (first one in, wins)
     const lineIdx: Number = lineNbr - 1;
     if (!this.declarationLineCache.has(lineIdx)) {
       this.declarationLineCache.set(lineIdx, line);
+    }
+    if (declType == eDefinitionType.GlobalLabel) {
+      // mark a global line position
+      if (!this.declarationGlobalLabelListCache.includes(lineNbr)) {
+        this.declarationGlobalLabelListCache.push(lineNbr);
+      }
+    } else if (declType == eDefinitionType.LocalLabel) {
+      // mark one of many local line positions
     }
   }
 
@@ -1026,6 +1073,25 @@ export class DocumentFindings {
       const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment, reference);
       const desiredTokenKey: string = tokenName.toLowerCase();
       this.declarationInfoByGlobalTokenName.set(desiredTokenKey, newDescription);
+
+      // NEW record line numbers for local labels
+      if (tokenName.startsWith(".") || tokenName.startsWith(":")) {
+        this.trackLocalTokenLineNbr(tokenName, token.lineIndex);
+      }
+    }
+  }
+
+  private trackLocalTokenLineNbr(tokenName: string, lineIndex: number) {
+    const tokenNameKey: string = tokenName.toLowerCase();
+    if (!this.declarationLocalLabelLineCache.has(tokenNameKey)) {
+      // first time seeing this token record its line number
+      this.declarationLocalLabelLineCache.set(tokenNameKey, [lineIndex]);
+    } else {
+      // have seen this token before, record another linenumber for it
+      const lineIndexes = this.declarationLocalLabelLineCache.get(tokenNameKey);
+      if (lineIndexes && !lineIndexes.includes(lineIndex)) {
+        lineIndexes.push(lineIndex);
+      }
     }
   }
 
@@ -1164,8 +1230,13 @@ export class DocumentFindings {
   public setLocalPAsmTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
     // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
     //   this allows go-to to get to nearest earlier than right-mouse line
+    const isLocalLabel: boolean = tokenName.startsWith(".") || tokenName.startsWith(":");
     if (this.hasLocalPAsmTokenForMethod(methodName, tokenName)) {
-      // WARNING attempt to set again
+      // locals can appear many times...
+      if (!isLocalLabel) {
+        // WARNING attempt to set again
+        this._logMessage(`  -- ERROR DUPE-lpTOK method=${methodName}: name=${tokenName}`);
+      }
     } else {
       // set new one!
       this.methodLocalPasmTokens.setTokenForMethod(methodName, tokenName, token);
@@ -1177,12 +1248,28 @@ export class DocumentFindings {
         this._logMessage("  -- NEW-lpTOK method=" + methodName + ": " + this._rememberdTokenString(tokenName, newToken));
       }
     }
+    if (isLocalLabel) {
+      // NEW record line numbers for local labels
+      this.trackLocalTokenLineNbr(tokenName, token.lineIndex);
+    }
   }
 
   public getLocalPAsmTokenForMethod(methodName: string, tokenName: string): RememberedToken | undefined {
     let desiredToken: RememberedToken | undefined = this.methodLocalPasmTokens.getTokenForMethod(methodName, tokenName);
     if (desiredToken) {
       this._logMessage("  -- FND-lpTOK method=" + methodName + ": " + this._rememberdTokenString(tokenName, desiredToken));
+    }
+    return desiredToken;
+  }
+
+  public getLocalPAsmTokenForLine(lineNbr: number, tokenName: string): RememberedToken | undefined {
+    const localMethodName: string | undefined = this._getMethodNameForLine(lineNbr);
+    let desiredToken: RememberedToken | undefined = undefined;
+    if (localMethodName) {
+      desiredToken = this.methodLocalPasmTokens.getTokenForMethod(localMethodName, tokenName);
+      if (desiredToken) {
+        this._logMessage("  -- GET-lpTOK method=" + localMethodName + ": " + this._rememberdTokenString(tokenName, desiredToken));
+      }
     }
     return desiredToken;
   }

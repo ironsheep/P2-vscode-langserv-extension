@@ -27,6 +27,7 @@ General bug fixes for P1 and P2 (round 2)
 - P1 & P2 adjusted parameter, return-value, and local variable name collision with global variable to produce error messages.
 - P2 add DRAFT handling of line continuation "..." - limited to OBJ section for now!
 - P2 add "with" to syntax highlighter
+- P2 repair DAT pasm parser so it doesn't leave pasm mode until end of block
 
 ## [2.2.1] 2023-10-30
 

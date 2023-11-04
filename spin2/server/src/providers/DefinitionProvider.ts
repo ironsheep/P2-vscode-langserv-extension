@@ -98,7 +98,7 @@ export default class DefinitionProvider implements Provider {
     }
 
     const definitionResults: Location[] = [];
-    const filteredLocations: ILocationOfToken[] = this.getDefinitions(symbolIdent, symbolsFound);
+    const filteredLocations: ILocationOfToken[] = this.getDefinitions(symbolIdent, symbolsFound, position);
     this._logMessage(`+ Defn: filteredLocations=[${JSON.stringify(filteredLocations)}]`);
     // for each location translate object ref to URI then build a Definition and add it to return list
     for (let index = 0; index < filteredLocations.length; index++) {
@@ -122,12 +122,13 @@ export default class DefinitionProvider implements Provider {
     };
   }
 
-  private getDefinitions(symbolAtCursor: FindingsAtPostion, symbolsFound: DocumentFindings): ILocationOfToken[] {
+  private getDefinitions(symbolAtCursor: FindingsAtPostion, symbolsFound: DocumentFindings, position: Position): ILocationOfToken[] {
     // given symbol at position: for all symbolSets look for name as globle token or local token, return all found
+    // NOTE: position is cursor position in doc at location of request
 
     // set this object
     // for all namespaces in this object search them (recursively)
-    const rawLocations: ILocationOfToken[] = symbolsFound.locationsOfToken(symbolAtCursor.selectedWord);
+    const rawLocations: ILocationOfToken[] = symbolsFound.locationsOfToken(symbolAtCursor.selectedWord, position);
     this._logMessage(`+ Defn: objectReference=(${symbolAtCursor.objectReference}), rawLocations=[${JSON.stringify(rawLocations)}]`);
     const filteredLocations: ILocationOfToken[] = [];
     // for each location

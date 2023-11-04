@@ -4,7 +4,7 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Context, ServerBehaviorConfiguration } from "../context";
 
-import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, eSeverity } from "./spin.semantic.findings";
+import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, eSeverity, eDefinitionType } from "./spin.semantic.findings";
 import { Spin1ParseUtils } from "./spin1.utils";
 import { isSpin1File } from "./lang.utils";
 import { eParseState } from "./spin.common";
@@ -887,7 +887,13 @@ export class Spin1DocumentSemanticParser {
             this._logDAT("  -- GLBL gddcl fileName=[" + fileName + "]");
             this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
             const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-            this.semanticFindings.recordDeclarationLine(line, lineNbr);
+            // LABEL-TODO add record of global, start or local extra line number
+            let declType: eDefinitionType = eDefinitionType.NonLabel;
+            if (!isNamedDataDeclarationLine) {
+              // we have a label which type is it?
+              declType = newName.startsWith(":") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
+            }
+            this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
             this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
           } else if (notOKSpin2Word) {
             this.semanticFindings.pushDiagnosticMessage(lineNbr - 1, nameOffset, nameOffset + newName.length, eSeverity.Information, `Possible use of P2 Spin reserved word [${newName}]`);
@@ -970,7 +976,13 @@ export class Spin1DocumentSemanticParser {
         this._logPASM("  -- DAT PASM label-ref fileName=[" + fileName + "]");
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
         const nameOffset = line.indexOf(labelName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-        this.semanticFindings.recordDeclarationLine(line, lineNbr);
+        // LABEL-TODO add record of global, start or local extra line number
+        let declType: eDefinitionType = eDefinitionType.NonLabel;
+        if (!isDataDeclarationLine) {
+          // we have a label which type is it?
+          declType = labelName.startsWith(":") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
+        }
+        this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
         this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
       }
     }

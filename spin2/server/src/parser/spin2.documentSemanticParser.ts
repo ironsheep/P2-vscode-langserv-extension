@@ -5,7 +5,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { Position } from "vscode-languageserver-types";
 import { Context, ServerBehaviorConfiguration } from "../context";
 
-import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity } from "./spin.semantic.findings";
+import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity, eDefinitionType } from "./spin.semantic.findings";
 import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
 import { eParseState, eDebugDisplayType, ContinuedLines } from "./spin.common";
@@ -516,6 +516,8 @@ export class Spin2DocumentSemanticParser {
     }
     this.semanticFindings.endPossibleMethod(lines.length); // report end if last line of file(+1 since method wants line number!)
     this.semanticFindings.finishFinalBlock(lines.length - 1); // mark end of final block in file
+    this.semanticFindings.finalize();
+
     // --------------------         End of PRE-PARSE             --------------------
     this._logMessage("--->             <---");
     this._logMessage("---> Actual SCAN");
@@ -1200,7 +1202,13 @@ export class Spin2DocumentSemanticParser {
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
         this._logDAT("   -- GetDatDecl fileName=[" + fileName + "]");
         const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-        this.semanticFindings.recordDeclarationLine(line, lineNbr);
+        // LABEL-TODO add record of global, start or local extra line number
+        let declType: eDefinitionType = eDefinitionType.NonLabel;
+        if (!isNamedDataDeclarationLine) {
+          // we have a label which type is it?
+          declType = newName.startsWith(".") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
+        }
+        this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
         this.semanticFindings.setGlobalToken(newName, new RememberedToken(nameType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
       }
     }
@@ -1238,7 +1246,13 @@ export class Spin2DocumentSemanticParser {
         this._logDAT("   -- DAT PASM GLBL fileName=[" + fileName + "]");
         this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
         const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
-        this.semanticFindings.recordDeclarationLine(line, lineNbr);
+        // LABEL-TODO add record of global, start or local extra line number
+        let declType: eDefinitionType = eDefinitionType.NonLabel;
+        if (!isDataDeclarationLine) {
+          // we have a label which type is it?
+          declType = labelName.startsWith(".") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
+        }
+        this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
         this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
       }
     }
@@ -1409,6 +1423,13 @@ export class Spin2DocumentSemanticParser {
       }
       this._logPASM("  -- Inline PASM labelName=[" + labelName + "(" + labelType + ")[" + labelModifiers + "]]");
       const nameOffset = line.indexOf(this.currentMethodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+      // LABEL-TODO add record of global, start or local extra line number
+      let declType: eDefinitionType = eDefinitionType.NonLabel;
+      if (!isDataDeclarationLine) {
+        // we have a label which type is it?
+        declType = labelName.startsWith(".") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
+      }
+      this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
       this.semanticFindings.setLocalPAsmTokenForMethod(this.currentMethodName, labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment());
     }
   }
@@ -1945,7 +1966,7 @@ export class Spin2DocumentSemanticParser {
     const lineNbr: number = lineIdx + 1;
     const tokenSet: IParsedToken[] = [];
     //this._logMessage(' DBG _rDAT_ValueDeclarationCode(#' + lineNbr + ', ofs=' + startingOffset + ')');
-    this._logDAT(`- process ValueDeclaration line(${lineNbr}): line=[${line} ], startingOffset=(${startingOffset})`);
+    this._logDAT(`- process ValueDeclaration line(${lineNbr}): allowLocal=(${allowLocal}), startingOffset=(${startingOffset}),  line=[${line}]`);
 
     // process data declaration
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
@@ -1954,7 +1975,7 @@ export class Spin2DocumentSemanticParser {
       this._logMessage(`  -- reportDataValueInit dataValueInitStr=[${dataValueInitStr}], currentOffset=(${currentOffset})`);
       let lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(dataValueInitStr);
       const argumentStartIndex: number = this.parseUtils.isDatStorageType(lineParts[0]) ? 1 : 0;
-      this._logMessage("  -- lineParts=[" + lineParts + "]");
+      this._logMessage(`  -- lineParts=[${lineParts}](${lineParts.length})`);
       // process remainder of line
       if (lineParts.length < 2) {
         return tokenSet;
@@ -1975,7 +1996,7 @@ export class Spin2DocumentSemanticParser {
           if (possibleName.charAt(0).match(/[a-zA-Z_]/) || (isDatPAsm && possibleName.charAt(0).match(/[a-zA-Z_\.]/))) {
             nameOffset = line.indexOf(possibleName, currentOffset);
             if (showDebug) {
-              this._logMessage("  -- possibleName=[" + possibleName + "]");
+              this._logMessage(`  -- possibleName=[${possibleName}]`);
             }
             // does name contain a namespace reference?
             let possibleNameSet: string[] = [possibleName];
@@ -1985,28 +2006,37 @@ export class Spin2DocumentSemanticParser {
                 currentOffset = nameOffset + possibleName.length;
                 continue;
               }
+            }
+            if (possibleName.includes(".")) {
               possibleNameSet = possibleName.split(".");
             }
             if (showDebug) {
-              this._logMessage("  --  possibleNameSet=[" + possibleNameSet + "]");
+              this._logMessage(`  --  possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
             }
             namePart = possibleNameSet[0];
             const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + "." + possibleNameSet[1];
             nameOffset = line.indexOf(searchString, currentOffset);
+            this._logMessage(`  -- searchString=[${searchString}], nameOffset=(${nameOffset})`);
             let referenceDetails: RememberedToken | undefined = undefined;
-            if (allowLocal && this.semanticFindings.isLocalToken(namePart)) {
+            if (allowLocal) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
               if (showDebug) {
                 this._logMessage(`  --  FOUND local name=[${namePart}], referenceDetails=(${referenceDetails})`);
               }
+              if (!referenceDetails) {
+                referenceDetails = this.semanticFindings.getLocalPAsmTokenForLine(lineNbr, namePart);
+                if (showDebug) {
+                  this._logMessage(`  --  FOUND local pasm name=[${namePart}], referenceDetails=(${referenceDetails})`);
+                }
+              }
             }
-            if (referenceDetails == undefined && this.semanticFindings.isGlobalToken(namePart)) {
+            if (!referenceDetails) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
               if (showDebug) {
                 this._logMessage(`  --  FOUND global name=[${namePart}], referenceDetails=(${referenceDetails})`);
               }
             }
-            if (referenceDetails != undefined) {
+            if (referenceDetails) {
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: nameOffset,
