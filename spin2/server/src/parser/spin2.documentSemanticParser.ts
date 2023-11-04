@@ -1411,8 +1411,9 @@ export class Spin2DocumentSemanticParser {
     this._logPASM(`  - Ln#${lineNbr} GetInLinePAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
     // handle name in 1 column
     let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
+    const isDebug: boolean = lineParts[0].toLowerCase().startsWith("debug");
     const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-    if (haveLabel) {
+    if (haveLabel && !isDebug) {
       const labelName: string = lineParts[0];
       const labelType: string = isDataDeclarationLine ? "variable" : "label";
       var labelModifiers: string[] = [];
