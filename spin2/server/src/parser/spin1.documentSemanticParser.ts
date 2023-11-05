@@ -140,7 +140,7 @@ export class Spin1DocumentSemanticParser {
       const line = lines[i];
       const trimmedLine = line.trim();
       const trimmedNonCommentLine = this.parseUtils.getNonCommentLineRemainder(0, line);
-      const offSet: number = trimmedNonCommentLine.trim().length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
+      const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
       const tempComment = line.substring(trimmedNonCommentLine.length + offSet).trim();
       this.rightEdgeComment = tempComment.length > 0 ? tempComment : undefined;
       const sectionStatus = this._isSectionStartLine(line);
@@ -506,7 +506,7 @@ export class Spin1DocumentSemanticParser {
         }
         //  DO NOTHING Let Syntax highlighting do this
       } else if (lineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
-        const partialTokenSet: IParsedToken[] = this._reportPreProcessorLine(i, 0, line);
+        const partialTokenSet: IParsedToken[] = this._reportFlexspinPreProcessorLine(i, 0, line);
         partialTokenSet.forEach((newToken) => {
           this._logPreProc("=> PreProc: " + this._tokenString(newToken, line));
           tokenSet.push(newToken);
@@ -736,7 +736,7 @@ export class Spin1DocumentSemanticParser {
     if (this.configuration.highlightFlexspinDirectives) {
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-      if (nonCommentConstantLine.trim().length > 0) {
+      if (nonCommentConstantLine.length > 0) {
         // get line parts - we only care about first one
         const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
         this._logPreProc("  - Ln#" + lineNbr + " GetPreProcDecl lineParts=[" + lineParts + "]");
@@ -767,7 +767,7 @@ export class Spin1DocumentSemanticParser {
       //skip Past Whitespace
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-      if (nonCommentConstantLine.trim().length == 0) {
+      if (nonCommentConstantLine.length == 0) {
         this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
       } else {
         this._logCON("  - Ln#" + lineNbr + " GetCONDecl nonCommentConstantLine=[" + nonCommentConstantLine + "]");
@@ -1186,13 +1186,13 @@ export class Spin1DocumentSemanticParser {
     }
   }
 
-  private _reportPreProcessorLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
+  private _reportFlexspinPreProcessorLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
 
     // skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
-    const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    if (nonCommentConstantLine.trim().length > 0) {
+    const nonCommentConstantLine = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
+    if (nonCommentConstantLine.length > 0) {
       // get line parts - we only care about first one
       const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
       this._logPreProc("  - Ln#" + lineIdx + " reportPreProc lineParts=[" + lineParts + "]");
@@ -1533,7 +1533,7 @@ export class Spin1DocumentSemanticParser {
 
     // process data declaration
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
-    const dataValueInitStr = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
+    const dataValueInitStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     this._logDAT("- ln(" + lineNbr + "): dataValueInitStr=[" + dataValueInitStr + "]");
     if (dataValueInitStr.length > 1) {
       this._logDAT("  -- reportDataValueInit dataValueInitStr=[" + dataValueInitStr + "]");

@@ -5,11 +5,12 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { Position } from "vscode-languageserver-types";
 import { Context, ServerBehaviorConfiguration } from "../context";
 
-import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity, eDefinitionType } from "./spin.semantic.findings";
+import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity, eDefinitionType, ITokenDescription } from "./spin.semantic.findings";
 import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
 import { eParseState, eDebugDisplayType, ContinuedLines } from "./spin.common";
 import { fileInDirExists } from "../files";
+//import { PublishDiagnosticsNotification } from "vscode-languageserver";
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -118,6 +119,26 @@ export class Spin2DocumentSemanticParser {
     return desiredComment;
   }
 
+  private _generateComentToken(lineIdx: number, startIdx: number, commentLength: number, bHaveBlockComment: boolean, bHaveDocComment: boolean, line: string): IParsedToken | undefined {
+    //this._logMessage("  -- gNCL-RC commentOffset=(" + commentOffset + "), bHaveDocComment=[" + bHaveDocComment + "], line=[" + line + "]");
+    let desiredToken: IParsedToken | undefined = undefined;
+    if (line.length > 0) {
+      //const commentDocModifiers: string[] = bHaveBlockComment ? ["block", "documentation"] : ["line", "documentation"]; // A NO
+      const commentDocModifiers: string[] = bHaveBlockComment ? ["documentation", "block"] : ["documentation", "line"]; // B NO
+      const commentModifiers: string[] = bHaveBlockComment ? ["block"] : ["line"];
+      desiredToken = {
+        line: lineIdx,
+        startCharacter: startIdx,
+        length: commentLength,
+        ptTokenType: "comment",
+        ptTokenModifiers: bHaveDocComment ? commentDocModifiers : commentModifiers,
+      };
+      const comment: string = line.substring(startIdx, startIdx + commentLength);
+      this._logMessage(`  -- Ln#${lineIdx + 1} genCT Recorded Comment [${comment}](${comment.length}) (${desiredToken.ptTokenType}[${desiredToken.ptTokenModifiers}])`);
+    }
+    return desiredToken;
+  }
+
   private _parseText(text: string): IParsedToken[] {
     // parse our entire file
     const lines = text.split(/\r\n|\r|\n/);
@@ -144,12 +165,19 @@ export class Spin2DocumentSemanticParser {
     let bBuildingSingleLineCmtBlock: boolean = false;
     let bBuildingSingleLineDocCmtBlock: boolean = false;
     this.semanticFindings.recordBlockStart(eBLockType.isCon, 0); // spin file defaults to CON at 1st line
+    const DOC_COMMENT = true;
+    const NONDOC_COMMENT = false;
+    const BLOCK_COMMENT = true;
+    const LINE_COMMENT = false;
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmedLine = line.trim();
-      const trimmedNonCommentLine: string = trimmedLine.length > 0 ? this.parseUtils.getNonCommentLineRemainder(0, line) : "";
+      const lineNbr: number = i + 1;
+      const line: string = lines[i];
+      const trimmedLine: string = line.trim();
+      const trimmedLineNoInlineCmts: string = this.parseUtils.getLineWithoutInlineComments(line);
+      const bHaveLineToProcess: boolean = trimmedLine.length > 0 || trimmedLineNoInlineCmts.length > 0;
+      const trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getNonCommentLineRemainder(0, trimmedLineNoInlineCmts) : "";
       const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
-      const tempComment = line.substring(trimmedNonCommentLine.length + offSet).trim();
+      const tempComment: string = line.substring(trimmedNonCommentLine.length + offSet).trim();
       this.rightEdgeComment = tempComment.length > 0 ? tempComment : undefined;
       const sectionStatus = this._isSectionStartLine(line);
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
@@ -182,30 +210,12 @@ export class Spin2DocumentSemanticParser {
       }
 
       // now start our processing
-      if (currState == eParseState.inMultiLineComment) {
-        // in multi-line non-doc-comment, hunt for end '}' to exit
-        // ALLOW {...} on same line without closing!
-        let nestedOpeningOffset: number = -1;
-        let closingOffset: number = -1;
-        let currOffset: number = 0;
-        let bFoundOpenClosePair: boolean = false;
-        do {
-          nestedOpeningOffset = trimmedLine.indexOf("{", currOffset);
-          if (nestedOpeningOffset != -1) {
-            bFoundOpenClosePair = false;
-            // we have an opening {
-            closingOffset = trimmedLine.indexOf("}", nestedOpeningOffset);
-            if (closingOffset != -1) {
-              // and we have a closing, ignore this see if we have next
-              currOffset = closingOffset + 1;
-              bFoundOpenClosePair = true;
-            } else {
-              currOffset = nestedOpeningOffset + 1;
-            }
-          }
-        } while (nestedOpeningOffset != -1 && bFoundOpenClosePair);
-        closingOffset = trimmedLine.indexOf("}", currOffset);
+      if (currState == eParseState.inMultiLineDocComment) {
+        // in multi-line doc-comment, hunt for end '}}' to exit
+        let closingOffset = trimmedLineNoInlineCmts.indexOf("}}");
+        let commentLen: number = line.length;
         if (closingOffset != -1) {
+          commentLen = closingOffset + 2;
           // have close, comment ended
           // end the comment recording
           currBlockComment?.appendLastLine(i, line);
@@ -220,11 +230,17 @@ export class Spin2DocumentSemanticParser {
           // add line to the comment recording
           currBlockComment?.appendLine(line);
         }
+        // if not closing or closing but not at start of line
+        if (closingOffset > 0 || closingOffset == -1) {
+          // Mark comment line
+          this._recordToken(tokenSet, line, this._generateComentToken(i, 0, commentLen, BLOCK_COMMENT, DOC_COMMENT, line));
+        }
         //  DO NOTHING Let Syntax highlighting do this
         continue;
-      } else if (currState == eParseState.inMultiLineDocComment) {
-        // in multi-line doc-comment, hunt for end '}}' to exit
-        let closingOffset = line.indexOf("}}");
+      } else if (currState == eParseState.inMultiLineComment) {
+        // in multi-line non-doc-comment, hunt for end '}' to exit
+        // ALLOW {...} on same line without closing!
+        let closingOffset = trimmedLineNoInlineCmts.indexOf("}");
         if (closingOffset != -1) {
           // have close, comment ended
           // end the comment recording
@@ -247,7 +263,7 @@ export class Spin2DocumentSemanticParser {
         this.priorSingleLineComment = undefined;
         continue;
       } else if (singleLineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(singleLineParts[0])) {
-        this._getFlexspinPreProcessor_Declaration(0, i + 1, line);
+        this._getFlexspinPreProcessor_Declaration(0, lineNbr, line);
         // a FlexspinPreprocessorDirective line clears pending single line comments
         this.priorSingleLineComment = undefined;
         continue;
@@ -269,9 +285,28 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
+          this._logMessage(`* Ln#${lineNbr} found srt-{{ starting MultiLineDocComment`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineDocComment, i, line);
           //  DO NOTHING Let Syntax highlighting do this
+          // Mark comment line
+          //this._recordToken(tokenSet, line, this._generateComentToken(i, 0, line.length, BLOCK_COMMENT, DOC_COMMENT, line));
+          continue; // only SKIP if we don't have closing marker
+        }
+      } else if (trimmedLine.includes("{{")) {
+        // process multi-line doc comment
+        let openingOffset = line.indexOf("{{");
+        const closingOffset = line.indexOf("}}", openingOffset + 2);
+        if (closingOffset == -1) {
+          // is open of multiline comment without CLOSE
+          priorState = currState;
+          currState = eParseState.inMultiLineDocComment;
+          this._logMessage(`* Ln#${lineNbr} found mid-{{ starting MultiLineDocComment`);
+          // start  NEW comment
+          currBlockComment = new RememberedComment(eCommentType.multiLineDocComment, i, line);
+          //  DO NOTHING Let Syntax highlighting do this
+          // Mark comment line
+          this._recordToken(tokenSet, line, this._generateComentToken(i, openingOffset, line.length - openingOffset, BLOCK_COMMENT, DOC_COMMENT, line));
           continue; // only SKIP if we don't have closing marker
         }
       } else if (trimmedLine.startsWith("{")) {
@@ -281,13 +316,34 @@ export class Spin2DocumentSemanticParser {
         const closingOffset = line.indexOf("}", openingOffset + 1);
         if (closingOffset != -1) {
           // is single line comment, we can have Spin2 Directive in here
-          this._getSpin2_Directive(0, i + 1, line);
+          this._getSpin2_Directive(0, lineNbr, line);
         } else {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
+          this._logMessage(`* Ln#${lineNbr} found srt-{ starting MultiLineComment`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineComment, i, line);
+          // Mark comment line
+          this._recordToken(tokenSet, line, this._generateComentToken(i, 0, line.length, BLOCK_COMMENT, NONDOC_COMMENT, line));
+          //  DO NOTHING Let Syntax highlighting do this
+          continue; // only SKIP if we don't have closing marker
+        }
+      } else if (trimmedLine.includes("{") && !trimmedLine.includes("{{")) {
+        /// FIXME: TODO: this needs to be searching in non-string-containing line
+        // process possible multi-line non-doc comment
+        // do we have a close on this same line?
+        let openingOffset = line.indexOf("{");
+        const closingOffset = line.indexOf("}", openingOffset + 1);
+        if (closingOffset == -1) {
+          // is open of multiline comment
+          priorState = currState;
+          currState = eParseState.inMultiLineComment;
+          this._logMessage(`* Ln#${lineNbr} found mid-{ starting MultiLineComment`);
+          // start  NEW comment
+          currBlockComment = new RememberedComment(eCommentType.multiLineComment, i, line);
+          // Mark comment line
+          //this._recordToken(tokenSet, line, this._generateComentToken(i, openingOffset, line.length - openingOffset, BLOCK_COMMENT, NONDOC_COMMENT, line));
           //  DO NOTHING Let Syntax highlighting do this
           continue; // only SKIP if we don't have closing marker
         }
@@ -346,7 +402,7 @@ export class Spin2DocumentSemanticParser {
         if (currState == eParseState.inDatPAsm) {
           this.semanticFindings.recordPasmEnd(i - 1);
           currState = prePAsmState;
-          this._logState("- scan Ln#" + (i + 1) + " POP currState=[" + currState + "]");
+          this._logState("- scan Ln#" + lineNbr + " POP currState=[" + currState + "]");
         }
 
         currState = sectionStatus.inProgressStatus;
@@ -368,24 +424,24 @@ export class Spin2DocumentSemanticParser {
         }
         this.semanticFindings.recordBlockStart(newBlockType, i); // start new one which ends prior
 
-        this._logState("- scan Ln#" + (i + 1) + " currState=[" + currState + "]");
+        this._logState("- scan Ln#" + lineNbr + " currState=[" + currState + "]");
         // ID the remainder of the line
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
           // process PUB/PRI method signature
           if (trimmedNonCommentLine.length > 3) {
-            this._getPUB_PRI_Name(3, i + 1, line);
+            this._getPUB_PRI_Name(3, lineNbr, line);
             // and record our fake signature for later use by signature help
-            const docComment: RememberedComment = this._generateFakeCommentForSignature(0, i + 1, line);
+            const docComment: RememberedComment = this._generateFakeCommentForSignature(0, lineNbr, line);
             if (docComment._type != eCommentType.Unknown) {
               this.semanticFindings.recordFakeComment(docComment);
             } else {
-              this._logState("- scan Ln#" + (i + 1) + " no FAKE doc comment for this signature");
+              this._logState("- scan Ln#" + lineNbr + " no FAKE doc comment for this signature");
             }
           }
         } else if (currState == eParseState.inCon) {
           // process a constant line
           if (trimmedNonCommentLine.length > 3) {
-            this._getCON_Declaration(3, i + 1, line);
+            this._getCON_Declaration(3, lineNbr, line);
           }
         } else if (currState == eParseState.inDat) {
           // process a class(static) variable line
@@ -393,21 +449,21 @@ export class Spin2DocumentSemanticParser {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
             if (nonStringLine.toUpperCase().includes("ORG")) {
-              this._logPASM("- (" + (i + 1) + "): pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");
+              this._logPASM("- Ln#" + lineNbr + " pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");
               // record start of PASM code NOT inline
               this.semanticFindings.recordPasmStart(i, false);
               prePAsmState = currState;
               currState = eParseState.inDatPAsm;
-              this._getDAT_Declaration(0, i + 1, line); // let's get possible label on this ORG statement
+              this._getDAT_Declaration(0, lineNbr, line); // let's get possible label on this ORG statement
               continue;
             }
           }
-          this._getDAT_Declaration(0, i + 1, line);
+          this._getDAT_Declaration(0, lineNbr, line);
         } else if (currState == eParseState.inObj) {
           // process an "OBJ started" object line (which could be a continued line-set)
           const nonCommentLength: number = parsingContinuedLineSet ? continuedLineSet.line.length : trimmedNonCommentLine.length;
           const lineToParse: string = parsingContinuedLineSet ? continuedLineSet.line : line;
-          const lineNumber: number = parsingContinuedLineSet ? continuedLineSet.lineStartIdx + 1 : i + 1;
+          const lineNumber: number = parsingContinuedLineSet ? continuedLineSet.lineStartIdx + 1 : lineNbr;
           this._logState(`- OBJ scan Ln#${lineNumber} line=[${lineToParse}](${nonCommentLength})`);
           if (nonCommentLength > 3) {
             this._getOBJ_Declaration(3, lineNumber, lineToParse);
@@ -415,7 +471,7 @@ export class Spin2DocumentSemanticParser {
         } else if (currState == eParseState.inVar) {
           // process a instance-variable line
           if (trimmedNonCommentLine.length > 3) {
-            this._getVAR_Declaration(3, i + 1, line);
+            this._getVAR_Declaration(3, lineNbr, line);
           }
         }
         // we processed the block declaration line, now wipe out prior comment
@@ -423,77 +479,77 @@ export class Spin2DocumentSemanticParser {
         continue;
       } else if (currState == eParseState.inCon) {
         // process a constant line
-        if (trimmedLine.length > 0) {
-          this._getCON_Declaration(0, i + 1, line);
+        if (bHaveLineToProcess) {
+          this._getCON_Declaration(0, lineNbr, line);
         }
       } else if (currState == eParseState.inDat) {
         // process a data line
-        if (trimmedLine.length > 0) {
+        if (bHaveLineToProcess) {
           if (trimmedLine.toUpperCase().includes("ORG")) {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedLine);
             if (nonStringLine.toUpperCase().includes("ORG")) {
-              this._logPASM("- (" + (i + 1) + "): pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");
+              this._logPASM("- Ln#" + lineNbr + " pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");
               // record start of PASM code NOT inline
               this.semanticFindings.recordPasmStart(i, false);
               prePAsmState = currState;
               currState = eParseState.inDatPAsm;
-              this._getDAT_Declaration(0, i + 1, line); // let's get possible label on this ORG statement
+              this._getDAT_Declaration(0, lineNbr, line); // let's get possible label on this ORG statement
               continue;
             }
           }
-          this._getDAT_Declaration(0, i + 1, line); // get label from line in DAT BLOCK
+          this._getDAT_Declaration(0, lineNbr, line); // get label from line in DAT BLOCK
         }
       } else if (currState == eParseState.inVar) {
         // process a variable declaration line
-        if (trimmedLine.length > 0) {
-          this._getVAR_Declaration(0, i + 1, line);
+        if (bHaveLineToProcess) {
+          this._getVAR_Declaration(0, lineNbr, line);
         }
       } else if (currState == eParseState.inObj) {
         // process an object line (which could be a continued line-set, which does NOT start on an OBJ line)
         const nonCommentLength: number = parsingContinuedLineSet ? continuedLineSet.line.length : trimmedNonCommentLine.length;
         const lineToParse: string = parsingContinuedLineSet ? continuedLineSet.line : line;
-        const lineNumber: number = parsingContinuedLineSet ? continuedLineSet.lineStartIdx + 1 : i + 1;
+        const lineNumber: number = parsingContinuedLineSet ? continuedLineSet.lineStartIdx + 1 : lineNbr;
         this._logState(`- OBJ scan Ln#${lineNumber} line=[${lineToParse}](${nonCommentLength})`);
         if (nonCommentLength > 0) {
           this._getOBJ_Declaration(0, lineNumber, lineToParse);
         }
       } else if (currState == eParseState.inPAsmInline) {
         // process pasm (assembly) lines
-        if (trimmedLine.length > 0) {
+        if (bHaveLineToProcess) {
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && lineParts[0].toUpperCase() == "END") {
-            this._logPASM("- (" + (i + 1) + "): pre-scan SPIN PASM line trimmedLine=[" + trimmedLine + "]");
+            this._logPASM("- Ln#" + lineNbr + " pre-scan SPIN PASM line trimmedLine=[" + trimmedLine + "]");
             // record start of PASM code inline
             this.semanticFindings.recordPasmEnd(i);
             currState = prePAsmState;
-            this._logState("- scan Ln#" + (i + 1) + " POP currState=[" + currState + "]");
+            this._logState("- scan Ln#" + lineNbr + " POP currState=[" + currState + "]");
             // and ignore rest of this line
           } else {
-            this._getSPIN_PAsmDeclaration(0, i + 1, line);
+            this._getSPIN_PAsmDeclaration(0, lineNbr, line);
             // scan SPIN-Inline-PAsm line for debug() display declaration
-            this._getDebugDisplay_Declaration(0, i + 1, line);
+            this._getDebugDisplay_Declaration(0, lineNbr, line);
           }
         }
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
-        if (trimmedLine.length > 0) {
+        if (bHaveLineToProcess) {
           const isDebugLine: boolean = trimmedNonCommentLine.toLowerCase().includes("debug(");
-          this._getDAT_PAsmDeclaration(0, i + 1, line);
+          this._getDAT_PAsmDeclaration(0, lineNbr, line);
           if (isDebugLine) {
             // scan DAT-PAsm line for debug() display declaration
-            this._getDebugDisplay_Declaration(0, i + 1, line);
+            this._getDebugDisplay_Declaration(0, lineNbr, line);
           }
         }
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
         // Detect start of INLINE PASM - org detect
         // NOTE: The directives ORGH, ALIGNW, ALIGNL, and FILE are not allowed within in-line PASM code.
-        if (trimmedLine.length > 0) {
+        if (bHaveLineToProcess) {
           const isDebugLine: boolean = trimmedNonCommentLine.toLowerCase().includes("debug(");
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && lineParts[0].toUpperCase() == "ORG") {
             // Only ORG, not ORGF or ORGH
-            this._logPASM("- (" + (i + 1) + "): pre-scan PUB/PRI line trimmedLine=[" + trimmedLine + "]");
+            this._logPASM("- Ln#" + lineNbr + " pre-scan PUB/PRI line trimmedLine=[" + trimmedLine + "]");
             // record start of PASM code NOT inline
             this.semanticFindings.recordPasmStart(i, true);
             prePAsmState = currState;
@@ -502,10 +558,10 @@ export class Spin2DocumentSemanticParser {
           } else {
             if (isDebugLine) {
               // scan SPIN2 line for debug() display declaration
-              this._getDebugDisplay_Declaration(0, i + 1, line);
+              this._getDebugDisplay_Declaration(0, lineNbr, line);
             } else {
               // scan SPIN2 line for object constant or method() uses
-              //this._getSpin2ObjectConstantMethodDeclaration(0, i + 1, line);
+              //this._getSpin2ObjectConstantMethodDeclaration(0, lineNbr, line);
             }
           }
         }
@@ -533,60 +589,38 @@ export class Spin2DocumentSemanticParser {
 
     // for each line do...
     for (let i = 0; i < lines.length; i++) {
+      const lineNbr: number = i + 1;
       const line = lines[i];
       const trimmedLine = line.trim();
-      const trimmedNonCommentLine: string = trimmedLine.length > 0 ? this.parseUtils.getNonCommentLineRemainder(0, line) : "";
+      const trimmedLineNoInlineCmts: string = this.parseUtils.getLineWithoutInlineComments(line);
+      const bHaveLineToProcess: boolean = trimmedLine.length > 0 || trimmedLineNoInlineCmts.length > 0;
+      const trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getNonCommentLineRemainder(0, trimmedLineNoInlineCmts) : "";
       const sectionStatus = this._isSectionStartLine(line);
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
-      // TODO: UNDONE add filter which corrects for syntax inability to mark 'comments when more than one "'" present on line!
-      //if (trimmedLine.length > 2 && trimmedLine.includes("'")) {
-      //    const partialTokenSet: IParsedToken[] = this._possiblyMarkBrokenSingleLineComment(i, 0, line);
-      //    partialTokenSet.forEach(newToken => {
-      //        tokenSet.push(newToken);
-      //    });
-      //}
-      if (currState == eParseState.inMultiLineComment) {
-        // in multi-line non-doc-comment, hunt for end '}' to exit
-        // ALLOW {...} on same line without closing!
-        this._logMessage("    hunt for '}' Ln#" + (i + 1) + " trimmedLine=[" + trimmedLine + "]");
-        let nestedOpeningOffset: number = -1;
-        let closingOffset: number = -1;
-        let currOffset: number = 0;
-        let bFoundOpenClosePair: boolean = false;
-        let bFoundNestedOpen: boolean = false;
-        do {
-          nestedOpeningOffset = trimmedLine.indexOf("{", currOffset);
-          if (nestedOpeningOffset != -1) {
-            bFoundOpenClosePair = false;
-            bFoundNestedOpen = true;
-            // we have an opening {
-            closingOffset = trimmedLine.indexOf("}", nestedOpeningOffset);
-            if (closingOffset != -1) {
-              // and we have a closing, ignore this see if we have next
-              currOffset = closingOffset + 1;
-              bFoundOpenClosePair = true;
-              this._logMessage("    skip {...} Ln#" + (i + 1) + " nestedOpeningOffset=(" + nestedOpeningOffset + "), closingOffset=(" + closingOffset + ")");
-            } else {
-              currOffset = nestedOpeningOffset + 1;
-            }
-          }
-        } while (nestedOpeningOffset != -1 && bFoundOpenClosePair);
-        closingOffset = trimmedLine.indexOf("}", currOffset);
-        if (closingOffset != -1) {
-          // have close, comment ended
-          this._logMessage("    FOUND '}' Ln#" + (i + 1) + " trimmedLine=[" + trimmedLine + "]");
-          currState = priorState;
-        }
-        continue;
-      } else if (currState == eParseState.inMultiLineDocComment) {
+      if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
-        let closingOffset = line.indexOf("}}");
+        // ALLOW {cmt}, {{cmt}} on same line without closing!
+        let closingOffset = trimmedLineNoInlineCmts.indexOf("}}");
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
           //  DO NOTHING Let Syntax highlighting do this
         } else {
+          this._logMessage(`* Ln#${lineNbr} SKIP in MultiLineDocComment`);
+          continue; // only SKIP if we don't have closing marker
+        }
+      } else if (currState == eParseState.inMultiLineComment) {
+        // in multi-line non-doc-comment, hunt for end '}' to exit
+        // ALLOW {cmt}, {{cmt}} on same line without closing!
+        let closingOffset: number = -1;
+        closingOffset = trimmedLineNoInlineCmts.indexOf("}");
+        if (closingOffset != -1) {
+          // have close, comment ended
+          currState = priorState;
+          //  DO NOTHING Let Syntax highlighting do this
+        } else {
+          this._logMessage(`* Ln#${lineNbr} SKIP in MultiLineDocComment`);
           continue; // only SKIP if we don't have closing marker
         }
       } else if (singleLineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(singleLineParts[0])) {
@@ -595,7 +629,7 @@ export class Spin2DocumentSemanticParser {
           this._logPreProc("=> PreProc: " + this._tokenString(newToken, line));
           tokenSet.push(newToken);
         });
-        continue;
+        continue; // only SKIP if we have FlexSpin directive
       }
 
       // ----------------------------------------------
@@ -620,11 +654,11 @@ export class Spin2DocumentSemanticParser {
         if (currState == eParseState.inDatPAsm) {
           // end datPasm at next section start
           currState = prePAsmState;
-          this._logState("- scan Ln#" + (i + 1) + " POP currState=[" + currState + "]");
+          this._logState("- scan Ln#" + lineNbr + " POP currState=[" + currState + "]");
         }
         currState = sectionStatus.inProgressStatus;
         this.conEnumInProgress = false; // tell in CON processor we are not in an enum mulit-line declaration
-        this._logState("  -- Ln#" + (i + 1) + " currState=[" + currState + "]");
+        this._logState("  -- Ln#" + lineNbr + " currState=[" + currState + "]");
         // ID the section name
         // DON'T mark the section literal, Syntax highlighting does this well!
 
@@ -669,7 +703,7 @@ export class Spin2DocumentSemanticParser {
                 orgOffset = nonStringLine.toUpperCase().indexOf(orgStr); // ORG, ORGF, ORGH
               }
               if (orgOffset != -1) {
-                this._logPASM("- (" + (i + 1) + "): scan DAT line nonCommentLineRemainder=[" + nonCommentLineRemainder + "]");
+                this._logPASM("- Ln#" + lineNbr + " scan DAT line nonCommentLineRemainder=[" + nonCommentLineRemainder + "]");
 
                 // process remainder of ORG line
                 const nonCommentOffset = line.indexOf(nonCommentLineRemainder, 0);
@@ -733,6 +767,20 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
+          this._logMessage(`* Ln#${lineNbr} found srt-{{ starting MultiLineDocComment`);
+          //  DO NOTHING Let Syntax highlighting do this
+        }
+      } else if (trimmedLine.includes("{{")) {
+        // process multi-line doc comment
+        let openingOffset = line.indexOf("{{");
+        const closingOffset = line.indexOf("}}", openingOffset + 2);
+        if (closingOffset != -1) {
+          // is single line comment, just ignore it Let Syntax highlighting do this
+        } else {
+          // is open of multiline comment
+          priorState = currState;
+          currState = eParseState.inMultiLineDocComment;
+          this._logMessage(`* Ln#${lineNbr} found mid-{{ starting MultiLineDocComment`);
           //  DO NOTHING Let Syntax highlighting do this
         }
       } else if (trimmedLine.startsWith("{")) {
@@ -746,12 +794,27 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
+          this._logMessage(`* Ln#${lineNbr} found srt-{ starting MultiLineComment`);
+          //  DO NOTHING Let Syntax highlighting do this
+        }
+      } else if (trimmedLine.includes("{") && !trimmedLine.includes("{{")) {
+        // process possible multi-line non-doc comment
+        // do we have a close on this same line?
+        let openingOffset = line.indexOf("{");
+        const closingOffset = line.indexOf("}", openingOffset + 1);
+        if (closingOffset != -1) {
+          // is single line comment, just ignore it Let Syntax highlighting do this
+        } else {
+          // is open of multiline comment
+          priorState = currState;
+          currState = eParseState.inMultiLineComment;
+          this._logMessage(`* Ln#${lineNbr} found mid-{ starting MultiLineComment`);
           //  DO NOTHING Let Syntax highlighting do this
         }
       } else if (currState == eParseState.inCon) {
         // process a line in a constant section
-        if (trimmedLine.length > 0) {
-          this._logCON("- process CON line(" + (i + 1) + "):  trimmedLine=[" + trimmedLine + "]");
+        if (bHaveLineToProcess) {
+          this._logCON("- process CON Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           const partialTokenSet: IParsedToken[] = this._reportCON_DeclarationLine(i, 0, line);
           partialTokenSet.forEach((newToken) => {
             this._logCON("=> CON: " + this._tokenString(newToken, line));
@@ -760,8 +823,8 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inDat) {
         // process a line in a data section
-        if (trimmedLine.length > 0) {
-          this._logDAT("- process DAT line(" + (i + 1) + "): trimmedLine=[" + trimmedLine + "]");
+        if (bHaveLineToProcess) {
+          this._logDAT("- process DAT Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
           const nonCommentLineRemainder: string = this.parseUtils.getNonCommentLineRemainder(0, trimmedLine);
           let orgStr: string = "ORGH";
           let orgOffset: number = nonCommentLineRemainder.toUpperCase().indexOf(orgStr); // ORGH
@@ -799,8 +862,8 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inVar) {
         // process a line in a variable data section
-        if (trimmedLine.length > 0) {
-          this._logVAR("- process VAR line(" + (i + 1) + "):  trimmedLine=[" + trimmedLine + "]");
+        if (bHaveLineToProcess) {
+          this._logVAR("- process VAR Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           const partialTokenSet: IParsedToken[] = this._reportVAR_DeclarationLine(i, 0, line);
           partialTokenSet.forEach((newToken) => {
             this._logOBJ("=> VAR: " + this._tokenString(newToken, line));
@@ -816,8 +879,8 @@ export class Spin2DocumentSemanticParser {
             partialTokenSet = this._reportOBJ_DeclarationLineMultiLine(0, continuedLineSet);
           }
         } else {
-          if (trimmedLine.length > 0) {
-            this._logOBJ("- process OBJ line(" + (i + 1) + "):  trimmedLine=[" + trimmedLine + "]");
+          if (bHaveLineToProcess) {
+            this._logOBJ("- process OBJ Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
             partialTokenSet = this._reportOBJ_DeclarationLine(i, 0, line);
           }
         }
@@ -827,8 +890,9 @@ export class Spin2DocumentSemanticParser {
         });
       } else if (currState == eParseState.inDatPAsm) {
         // process DAT section pasm (assembly) lines
-        if (trimmedLine.length > 0) {
-          this._logPASM("- process DAT PASM line(" + (i + 1) + "):  trimmedLine=[" + trimmedLine + "]");
+        this._logPASM(`- check DAT PASM line(${lineNbr}):  trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        if (bHaveLineToProcess) {
+          this._logPASM("- process DAT PASM Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           // in DAT sections we end with next section
           const partialTokenSet: IParsedToken[] = this._reportDAT_PAsmCode(i, 0, line);
           partialTokenSet.forEach((newToken) => {
@@ -838,12 +902,12 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inPAsmInline) {
         // process pasm (assembly) lines
-        if (trimmedLine.length > 0) {
-          this._logPASM("- process SPIN2 PASM line(" + (i + 1) + "):  trimmedLine=[" + trimmedLine + "]");
+        if (bHaveLineToProcess) {
+          this._logPASM("- process SPIN2 PASM Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && lineParts[0].toUpperCase() == "END") {
             currState = prePAsmState;
-            this._logState("- scan Ln#" + (i + 1) + " POP currState=[" + currState + "]");
+            this._logState("- scan Ln#" + lineNbr + " POP currState=[" + currState + "]");
             // and ignore rest of this line
           } else {
             const partialTokenSet: IParsedToken[] = this._reportSPIN_PAsmCode(i, 0, line);
@@ -855,8 +919,8 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
         // process a method def'n line
-        if (trimmedLine.length > 0) {
-          this._logSPIN("- process SPIN2 line(" + (i + 1) + "): trimmedLine=[" + trimmedLine + "]");
+        if (bHaveLineToProcess) {
+          this._logSPIN("- process SPIN2 Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && lineParts[0].toUpperCase() == "ORG") {
             // Only ORG not ORGF, ORGH
@@ -1012,7 +1076,7 @@ export class Spin2DocumentSemanticParser {
     // HAVE {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
     // (only this one so far)
     if (line.toLowerCase().indexOf("{-* vscode-spin2:") != -1) {
-      this._logMessage("- _getSpin2_Directive: ofs:" + startingOffset + ", [" + line + "](" + lineNbr + ")");
+      this._logMessage("- _getSpin2_Directive: ofs:" + startingOffset + ", [" + line + "](" + line.length + ")");
       // have possible directive
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       // get line parts - we only care about first one
@@ -1035,7 +1099,7 @@ export class Spin2DocumentSemanticParser {
     if (this.configuration.highlightFlexspinDirectives) {
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-      if (nonCommentConstantLine.trim().length > 0) {
+      if (nonCommentConstantLine.length > 0) {
         // get line parts - we only care about first one
         const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
         this._logPreProc("  - Ln#" + lineNbr + " GetPreProcDecl lineParts=[" + lineParts + "]");
@@ -1062,7 +1126,7 @@ export class Spin2DocumentSemanticParser {
       //skip Past Whitespace
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-      if (nonCommentConstantLine.trim().length == 0) {
+      if (nonCommentConstantLine.length == 0) {
         this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
       } else {
         this._logCON("  - Ln#" + lineNbr + " GetCONDecl nonCommentConstantLine=[" + nonCommentConstantLine + "]");
@@ -1149,7 +1213,7 @@ export class Spin2DocumentSemanticParser {
     const dataDeclNonCommentStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     const lineParts: string[] = this.parseUtils.getNonWhiteNOperatorLineParts(dataDeclNonCommentStr);
     this._logDAT("  - Ln#" + lineNbr + " GetDatDecl lineParts=[" + lineParts + "](" + lineParts.length + ")");
-    const bHaveDatBlockId: boolean = lineParts[0].toUpperCase() == "DAT";
+    const bHaveDatBlockId: boolean = lineParts.length > 0 && lineParts[0].toUpperCase() == "DAT";
     const minDecodeCount: number = bHaveDatBlockId ? 2 : 1;
     if (lineParts.length >= minDecodeCount) {
       const baseIndex: number = bHaveDatBlockId ? 1 : 0;
@@ -1220,40 +1284,42 @@ export class Spin2DocumentSemanticParser {
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const datPAsmRHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(datPAsmRHSStr);
-    this._logPASM(`  - Ln#${lineNbr} GetDATPAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
-    // handle name in 1 column
-    let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
-    const bIsFileLine: boolean = haveLabel && lineParts.length > 1 && lineParts[1].toLowerCase() == "file";
-    const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-    if (haveLabel) {
-      const labelName: string = lineParts[0];
-      if (
-        !this.parseUtils.isP2AsmReservedSymbols(labelName) &&
-        !this.parseUtils.isP2AsmInstruction(labelName) &&
-        !labelName.toUpperCase().startsWith("IF_") &&
-        !labelName.toUpperCase().startsWith("_RET_") &&
-        !labelName.startsWith(":")
-      ) {
-        // org in first column is not label name, nor is if_ conditional
-        const labelType: string = isDataDeclarationLine ? "variable" : "label";
-        var labelModifiers: string[] = ["declaration"];
-        if (!isDataDeclarationLine && labelName.startsWith(".")) {
-          labelModifiers = ["declaration", "static"];
+    if (datPAsmRHSStr.length > 0) {
+      const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(datPAsmRHSStr);
+      this._logPASM(`  - Ln#${lineNbr} GetDATPAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
+      // handle name in 1 column
+      let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
+      const bIsFileLine: boolean = haveLabel && lineParts.length > 1 && lineParts[1].toLowerCase() == "file";
+      const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
+      if (haveLabel) {
+        const labelName: string = lineParts[0];
+        if (
+          !this.parseUtils.isP2AsmReservedSymbols(labelName) &&
+          !this.parseUtils.isP2AsmInstruction(labelName) &&
+          !labelName.toUpperCase().startsWith("IF_") &&
+          !labelName.toUpperCase().startsWith("_RET_") &&
+          !labelName.startsWith(":")
+        ) {
+          // org in first column is not label name, nor is if_ conditional
+          const labelType: string = isDataDeclarationLine ? "variable" : "label";
+          var labelModifiers: string[] = ["declaration"];
+          if (!isDataDeclarationLine && labelName.startsWith(".")) {
+            labelModifiers = ["declaration", "static"];
+          }
+          this._logPASM("  -- DAT PASM GLBL labelName=[" + labelName + "(" + labelType + ")]");
+          const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
+          this._logDAT("   -- DAT PASM GLBL fileName=[" + fileName + "]");
+          this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+          const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
+          // LABEL-TODO add record of global, start or local extra line number
+          let declType: eDefinitionType = eDefinitionType.NonLabel;
+          if (!isDataDeclarationLine) {
+            // we have a label which type is it?
+            declType = labelName.startsWith(".") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
+          }
+          this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
+          this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
         }
-        this._logPASM("  -- DAT PASM GLBL labelName=[" + labelName + "(" + labelType + ")]");
-        const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
-        this._logDAT("   -- DAT PASM GLBL fileName=[" + fileName + "]");
-        this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
-        const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
-        // LABEL-TODO add record of global, start or local extra line number
-        let declType: eDefinitionType = eDefinitionType.NonLabel;
-        if (!isDataDeclarationLine) {
-          // we have a label which type is it?
-          declType = labelName.startsWith(".") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
-        }
-        this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
-        this.semanticFindings.setGlobalToken(labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment(), fileName);
       }
     }
   }
@@ -1301,7 +1367,7 @@ export class Spin2DocumentSemanticParser {
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const remainingNonCommentLineStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     const remainingOffset: number = line.indexOf(remainingNonCommentLineStr, startingOffset);
-    this._logOBJ(`- GetOBJDecl remainingNonCommentLineStr=[${remainingNonCommentLineStr}]`);
+    this._logOBJ(`- Ln#${lineNbr} GetOBJDecl remainingNonCommentLineStr=[${remainingNonCommentLineStr}]`);
     if (remainingNonCommentLineStr.length > 0 && remainingNonCommentLineStr.includes(":")) {
       // get line parts - we only care about first one
       const overrideParts: string[] = remainingNonCommentLineStr.split("|").filter(Boolean);
@@ -1367,7 +1433,7 @@ export class Spin2DocumentSemanticParser {
     let nameLength = currentOffset - startNameOffset;
     const methodName = line.substr(startNameOffset, nameLength).trim();
     const nameType: string = isPrivate ? "private" : "public";
-    this._logSPIN("  - Ln#" + lineNbr + " _gPUB_PRI_Name() newName=[" + methodName + "](" + nameType + ")");
+    this._logSPIN("- Ln#" + lineNbr + " _gPUB_PRI_Name() newName=[" + methodName + "](" + nameType + ")");
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
     // mark start of method - we are learning span of lines this method covers
     let methodExists: boolean = false;
@@ -1405,33 +1471,36 @@ export class Spin2DocumentSemanticParser {
     // HAVE    next8SLine ' or .nextLine in col 0
     //         nPhysLineIdx        long    0
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
+    this._logPASM(`- Ln#${lineNbr} gSpinInLinePAsmDecl startingOffset=(${startingOffset}), currentOffset=(${currentOffset}), line=[${line}](${line.length})`);
     // get line parts - we only care about first one
     const inLinePAsmRHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(inLinePAsmRHSStr);
-    this._logPASM(`  - Ln#${lineNbr} GetInLinePAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
-    // handle name in 1 column
-    let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
-    const isDebug: boolean = lineParts[0].toLowerCase().startsWith("debug");
-    const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-    if (haveLabel && !isDebug) {
-      const labelName: string = lineParts[0];
-      const labelType: string = isDataDeclarationLine ? "variable" : "label";
-      var labelModifiers: string[] = [];
-      if (!isDataDeclarationLine) {
-        labelModifiers = labelName.startsWith(".") ? ["pasmInline", "static"] : ["pasmInline"];
-      } else {
-        labelModifiers = ["pasmInline"];
+    if (inLinePAsmRHSStr.length > 0) {
+      const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(inLinePAsmRHSStr);
+      this._logPASM(`  -- gSpinInLinePAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
+      // handle name in 1 column
+      let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
+      const isDebug: boolean = lineParts[0].toLowerCase().startsWith("debug");
+      const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
+      if (haveLabel && !isDebug) {
+        const labelName: string = lineParts[0];
+        const labelType: string = isDataDeclarationLine ? "variable" : "label";
+        var labelModifiers: string[] = [];
+        if (!isDataDeclarationLine) {
+          labelModifiers = labelName.startsWith(".") ? ["pasmInline", "static"] : ["pasmInline"];
+        } else {
+          labelModifiers = ["pasmInline"];
+        }
+        this._logPASM("  -- Inline PASM labelName=[" + labelName + "(" + labelType + ")[" + labelModifiers + "]]");
+        const nameOffset = line.indexOf(this.currentMethodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+        // LABEL-TODO add record of global, start or local extra line number
+        let declType: eDefinitionType = eDefinitionType.NonLabel;
+        if (!isDataDeclarationLine) {
+          // we have a label which type is it?
+          declType = labelName.startsWith(".") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
+        }
+        this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
+        this.semanticFindings.setLocalPAsmTokenForMethod(this.currentMethodName, labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment());
       }
-      this._logPASM("  -- Inline PASM labelName=[" + labelName + "(" + labelType + ")[" + labelModifiers + "]]");
-      const nameOffset = line.indexOf(this.currentMethodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-      // LABEL-TODO add record of global, start or local extra line number
-      let declType: eDefinitionType = eDefinitionType.NonLabel;
-      if (!isDataDeclarationLine) {
-        // we have a label which type is it?
-        declType = labelName.startsWith(".") ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
-      }
-      this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
-      this.semanticFindings.setLocalPAsmTokenForMethod(this.currentMethodName, labelName, new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers), this._declarationComment());
     }
   }
 
@@ -1441,41 +1510,43 @@ export class Spin2DocumentSemanticParser {
     //skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const remainingNonCommentLineStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    //this._logVAR("  - Ln#" + lineNbr + " GetVarDecl remainingNonCommentLineStr=[" + remainingNonCommentLineStr + "]");
-    const isMultiDeclaration: boolean = remainingNonCommentLineStr.includes(",");
-    let lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(remainingNonCommentLineStr);
-    const hasGoodType: boolean = this.parseUtils.isStorageType(lineParts[0]);
-    this._logVAR("  - Ln#" + lineNbr + " GetVarDecl lineParts=[" + lineParts + "](" + lineParts.length + ")");
-    let nameSet: string[] = [];
-    if (hasGoodType && lineParts.length > 1) {
-      if (!isMultiDeclaration) {
-        // get line parts - we only care about first one after type
-        nameSet.push(lineParts[0]);
-        nameSet.push(lineParts[1]);
-      } else {
-        // have multiple declarations separated by commas, we care about all after type
-        nameSet = lineParts;
-      }
-      // remember this object name so we can annotate a call to it
-      // NOTE this is an instance-variable!
-      for (let index = 1; index < nameSet.length; index++) {
-        // remove array suffix and comma delim. from name
-        const newName = nameSet[index]; // .replace(/[\[,]/, '');
-        if (newName.charAt(0).match(/[a-zA-Z_]/)) {
-          this._logVAR("  -- GLBL GetVarDecl newName=[" + newName + "]");
-          const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-          this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+    if (remainingNonCommentLineStr.length > 0) {
+      //this._logVAR("  - Ln#" + lineNbr + " GetVarDecl remainingNonCommentLineStr=[" + remainingNonCommentLineStr + "]");
+      const isMultiDeclaration: boolean = remainingNonCommentLineStr.includes(",");
+      let lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(remainingNonCommentLineStr);
+      const hasGoodType: boolean = lineParts.length > 0 && this.parseUtils.isStorageType(lineParts[0]);
+      this._logVAR("  - Ln#" + lineNbr + " GetVarDecl lineParts=[" + lineParts + "](" + lineParts.length + ")");
+      let nameSet: string[] = [];
+      if (hasGoodType && lineParts.length > 1) {
+        if (!isMultiDeclaration) {
+          // get line parts - we only care about first one after type
+          nameSet.push(lineParts[0]);
+          nameSet.push(lineParts[1]);
+        } else {
+          // have multiple declarations separated by commas, we care about all after type
+          nameSet = lineParts;
         }
-      }
-    } else if (!hasGoodType && lineParts.length > 0) {
-      for (let index = 0; index < lineParts.length; index++) {
-        const longVarName = lineParts[index];
-        if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
-          this._logVAR("  -- GLBL GetVarDecl newName=[" + longVarName + "]");
-          const nameOffset = line.indexOf(longVarName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-          this.semanticFindings.recordDeclarationLine(line, lineNbr);
-          this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+        // remember this object name so we can annotate a call to it
+        // NOTE this is an instance-variable!
+        for (let index = 1; index < nameSet.length; index++) {
+          // remove array suffix and comma delim. from name
+          const newName = nameSet[index]; // .replace(/[\[,]/, '');
+          if (newName.charAt(0).match(/[a-zA-Z_]/)) {
+            this._logVAR("  -- GLBL GetVarDecl newName=[" + newName + "]");
+            const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+            this.semanticFindings.recordDeclarationLine(line, lineNbr);
+            this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+          }
+        }
+      } else if (!hasGoodType && lineParts.length > 0) {
+        for (let index = 0; index < lineParts.length; index++) {
+          const longVarName = lineParts[index];
+          if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
+            this._logVAR("  -- GLBL GetVarDecl newName=[" + longVarName + "]");
+            const nameOffset = line.indexOf(longVarName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+            this.semanticFindings.recordDeclarationLine(line, lineNbr);
+            this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+          }
         }
       }
     }
@@ -1514,8 +1585,8 @@ export class Spin2DocumentSemanticParser {
     const lineNbr: number = lineIdx + 1;
     // skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
-    const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    if (nonCommentConstantLine.trim().length > 0) {
+    const nonCommentConstantLine = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
+    if (nonCommentConstantLine.length > 0) {
       // get line parts - we only care about first one
       const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
       this._logPreProc("  - Ln#" + lineNbr + " reportPreProc lineParts=[" + lineParts + "]");
@@ -1972,10 +2043,10 @@ export class Spin2DocumentSemanticParser {
     // process data declaration
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const dataValueInitStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    if (dataValueInitStr.length > 1) {
+    if (dataValueInitStr.length > 0) {
       this._logMessage(`  -- reportDataValueInit dataValueInitStr=[${dataValueInitStr}], currentOffset=(${currentOffset})`);
       let lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(dataValueInitStr);
-      const argumentStartIndex: number = this.parseUtils.isDatStorageType(lineParts[0]) ? 1 : 0;
+      const argumentStartIndex: number = lineParts.length > 0 && this.parseUtils.isDatStorageType(lineParts[0]) ? 1 : 0;
       this._logMessage(`  -- lineParts=[${lineParts}](${lineParts.length})`);
       // process remainder of line
       if (lineParts.length < 2) {
@@ -2083,271 +2154,273 @@ export class Spin2DocumentSemanticParser {
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const inLinePAsmRHSStr: string = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
-    const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
-    this._logPASM(`  --  DAT PAsm lineParts=[${lineParts}](${lineParts.length}), inLinePAsmRHSStr=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length})`);
-    currentOffset = line.indexOf(inLinePAsmRHSStr, currentOffset);
-    // handle name in 1 column
-    const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
-    if (bIsAlsoDebugLine) {
-      const partialTokenSet: IParsedToken[] = this._reportDebugStatement(lineIdx, startingOffset, line);
-      partialTokenSet.forEach((newToken) => {
-        this._logSPIN("=> DATpasm: " + this._tokenString(newToken, line));
-        tokenSet.push(newToken);
-      });
-    }
-    // specials for detecting and failing FLexSpin'isms
-    //
-    //                 if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
-    //                 alts    hdev_port,#hdev_id
-    //                 mov     htmp,0-0
-    //                 cmp     htmp, ##$04D9_0006      wz      ' Holtek Pi keyboard vendor/product
-    //         if_e    andn    kb_led_states, #LED_NUMLKF
-    //                 end
-    //
-    let bFoundFlexSpin: boolean = false;
-    if (lineParts.length > 1 && lineParts[0].toLowerCase() === "if") {
-      // fail FlexSpin IF: if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
-      bFoundFlexSpin = true;
-      this.semanticFindings.pushDiagnosticMessage(lineIdx, currentOffset, currentOffset + inLinePAsmRHSStr.length, eSeverity.Error, `FlexSpin if/end not conditional supported in P2 pasm`);
-    } else if (lineParts.length > 0 && lineParts[0].toLowerCase() === "end") {
-      // fail FlexSpin end:  end
-      bFoundFlexSpin = true;
-      this.semanticFindings.pushDiagnosticMessage(lineIdx, currentOffset, currentOffset + inLinePAsmRHSStr.length, eSeverity.Error, `FlexSpin if/end not conditional supported in P2 pasm`);
-    }
-    if (bFoundFlexSpin) {
-      this._logPASM(`  --  DAT PAsm ERROR FlexSpin statement=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length}), ofs=(${currentOffset})`);
-      this._recordToken(tokenSet, line, {
-        line: lineIdx,
-        startCharacter: currentOffset,
-        length: inLinePAsmRHSStr.length,
-        ptTokenType: "variable", // mark this offender!
-        ptTokenModifiers: ["illegalUse"],
-      });
-      return tokenSet;
-    }
-    let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
-    let nameOffset: number = -1;
-    const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-    this._logPASM(`  -- reportDATPAsmDecl lineParts=[${lineParts}], haveLabel=(${haveLabel}), isDataDeclarationLine=(${isDataDeclarationLine})`);
-    // TODO: REWRITE this to handle "non-label" line with unknown op-code!
-    if (haveLabel) {
-      // process label/variable name - starting in column 0
-      const labelName: string = lineParts[0];
-      nameOffset = line.indexOf(labelName, currentOffset);
-      this._logPASM(`  -- labelName=[${labelName}], ofs=(${nameOffset})`);
-      let referenceDetails: RememberedToken | undefined = undefined;
-      if (this.semanticFindings.isGlobalToken(labelName)) {
-        referenceDetails = this.semanticFindings.getGlobalToken(labelName);
-        this._logPASM(`  --  FOUND global name=[${labelName}]`);
+    if (inLinePAsmRHSStr.length > 0) {
+      const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
+      this._logPASM(`  --  DAT PAsm lineParts=[${lineParts}](${lineParts.length}), inLinePAsmRHSStr=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length})`);
+      currentOffset = line.indexOf(inLinePAsmRHSStr, currentOffset);
+      // handle name in 1 column
+      const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
+      if (bIsAlsoDebugLine) {
+        const partialTokenSet: IParsedToken[] = this._reportDebugStatement(lineIdx, startingOffset, line);
+        partialTokenSet.forEach((newToken) => {
+          this._logSPIN("=> DATpasm: " + this._tokenString(newToken, line));
+          tokenSet.push(newToken);
+        });
       }
-      if (referenceDetails != undefined) {
-        this._logPASM(`  --  DAT PAsm ${referenceDetails.type}=[${labelName}](${nameOffset + 1})`);
-        const modifiersWDecl: string[] = referenceDetails.modifiersWith("declaration");
-        this._recordToken(tokenSet, line, {
-          line: lineIdx,
-          startCharacter: nameOffset,
-          length: labelName.length,
-          ptTokenType: referenceDetails.type,
-          ptTokenModifiers: modifiersWDecl,
-        });
-        haveLabel = true;
-      } else if (labelName.startsWith(":")) {
-        // hrmf... no global type???? this should be a label?
-        this._logPASM(`  --  DAT PAsm ERROR Spin1 label=[${labelName}](${0 + 1})`);
-        this._recordToken(tokenSet, line, {
-          line: lineIdx,
-          startCharacter: nameOffset,
-          length: labelName.length,
-          ptTokenType: "variable", // color this offender!
-          ptTokenModifiers: ["illegalUse"],
-        });
-        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + labelName.length, eSeverity.Error, `P1 pasm local name [${labelName}] not supported in P2 pasm`);
-        haveLabel = true;
-      } else if (labelName.toLowerCase() != "debug" && bIsAlsoDebugLine) {
-        // hrmf... no global type???? this should be a label?
-        this._logPASM(`  --  DAT PAsm ERROR NOT A label=[${labelName}](${0 + 1})`);
-        this._recordToken(tokenSet, line, {
-          line: lineIdx,
-          startCharacter: nameOffset,
-          length: labelName.length,
-          ptTokenType: "variable", // color this offender!
-          ptTokenModifiers: ["illegalUse"],
-        });
-        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + labelName.length, eSeverity.Error, `Not a legal P2 pasm label [${labelName}]`);
-        haveLabel = true;
-      } else if (this.parseUtils.isP1AsmInstruction(labelName)) {
-        // hrmf... no global type???? this should be a label?
-        this._logPASM(`  --  DAT P1asm BAD label=[${labelName}](${0 + 1})`);
-        this._recordToken(tokenSet, line, {
-          line: lineIdx,
-          startCharacter: nameOffset,
-          length: labelName.length,
-          ptTokenType: "variable", // color this offender!
-          ptTokenModifiers: ["illegalUse"],
-        });
-        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + labelName.length, eSeverity.Error, "Not a legal P2 pasm label");
-        haveLabel = true;
+      // specials for detecting and failing FLexSpin'isms
+      //
+      //                 if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
+      //                 alts    hdev_port,#hdev_id
+      //                 mov     htmp,0-0
+      //                 cmp     htmp, ##$04D9_0006      wz      ' Holtek Pi keyboard vendor/product
+      //         if_e    andn    kb_led_states, #LED_NUMLKF
+      //                 end
+      //
+      let bFoundFlexSpin: boolean = false;
+      if (lineParts.length > 1 && lineParts[0].toLowerCase() === "if") {
+        // fail FlexSpin IF: if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
+        bFoundFlexSpin = true;
+        this.semanticFindings.pushDiagnosticMessage(lineIdx, currentOffset, currentOffset + inLinePAsmRHSStr.length, eSeverity.Error, `FlexSpin if/end not conditional supported in P2 pasm`);
+      } else if (lineParts.length > 0 && lineParts[0].toLowerCase() === "end") {
+        // fail FlexSpin end:  end
+        bFoundFlexSpin = true;
+        this.semanticFindings.pushDiagnosticMessage(lineIdx, currentOffset, currentOffset + inLinePAsmRHSStr.length, eSeverity.Error, `FlexSpin if/end not conditional supported in P2 pasm`);
       }
-      currentOffset = nameOffset + labelName.length;
-    }
-    if (!isDataDeclarationLine) {
-      // process assembly code
-      let argumentOffset = 0;
-      if (lineParts.length > 1) {
-        let minNonLabelParts: number = 1;
-        if (haveLabel) {
-          // skip our label
-          argumentOffset++;
-          minNonLabelParts++;
+      if (bFoundFlexSpin) {
+        this._logPASM(`  --  DAT PAsm ERROR FlexSpin statement=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length}), ofs=(${currentOffset})`);
+        this._recordToken(tokenSet, line, {
+          line: lineIdx,
+          startCharacter: currentOffset,
+          length: inLinePAsmRHSStr.length,
+          ptTokenType: "variable", // mark this offender!
+          ptTokenModifiers: ["illegalUse"],
+        });
+        return tokenSet;
+      }
+      let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
+      let nameOffset: number = -1;
+      const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
+      this._logPASM(`  -- reportDATPAsmDecl lineParts=[${lineParts}], haveLabel=(${haveLabel}), isDataDeclarationLine=(${isDataDeclarationLine})`);
+      // TODO: REWRITE this to handle "non-label" line with unknown op-code!
+      if (haveLabel) {
+        // process label/variable name - starting in column 0
+        const labelName: string = lineParts[0];
+        nameOffset = line.indexOf(labelName, currentOffset);
+        this._logPASM(`  -- labelName=[${labelName}], ofs=(${nameOffset})`);
+        let referenceDetails: RememberedToken | undefined = undefined;
+        if (this.semanticFindings.isGlobalToken(labelName)) {
+          referenceDetails = this.semanticFindings.getGlobalToken(labelName);
+          this._logPASM(`  --  FOUND global name=[${labelName}]`);
         }
-        this._logPASM(`  -- DAT PASM !dataDecl lineParts=[${lineParts}](${lineParts.length}), argumentOffset=(${argumentOffset}), minNonLabelParts=(${minNonLabelParts})`);
-        if (lineParts[argumentOffset].toUpperCase().startsWith("IF_") || lineParts[argumentOffset].toUpperCase().startsWith("_RET_")) {
-          // skip our conditional
-          argumentOffset++;
-          minNonLabelParts++;
+        if (referenceDetails != undefined) {
+          this._logPASM(`  --  DAT PAsm ${referenceDetails.type}=[${labelName}](${nameOffset + 1})`);
+          const modifiersWDecl: string[] = referenceDetails.modifiersWith("declaration");
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: labelName.length,
+            ptTokenType: referenceDetails.type,
+            ptTokenModifiers: modifiersWDecl,
+          });
+          haveLabel = true;
+        } else if (labelName.startsWith(":")) {
+          // hrmf... no global type???? this should be a label?
+          this._logPASM(`  --  DAT PAsm ERROR Spin1 label=[${labelName}](${0 + 1})`);
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: labelName.length,
+            ptTokenType: "variable", // color this offender!
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + labelName.length, eSeverity.Error, `P1 pasm local name [${labelName}] not supported in P2 pasm`);
+          haveLabel = true;
+        } else if (labelName.toLowerCase() != "debug" && bIsAlsoDebugLine) {
+          // hrmf... no global type???? this should be a label?
+          this._logPASM(`  --  DAT PAsm ERROR NOT A label=[${labelName}](${0 + 1})`);
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: labelName.length,
+            ptTokenType: "variable", // color this offender!
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + labelName.length, eSeverity.Error, `Not a legal P2 pasm label [${labelName}]`);
+          haveLabel = true;
+        } else if (this.parseUtils.isP1AsmInstruction(labelName)) {
+          // hrmf... no global type???? this should be a label?
+          this._logPASM(`  --  DAT P1asm BAD label=[${labelName}](${0 + 1})`);
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: labelName.length,
+            ptTokenType: "variable", // color this offender!
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + labelName.length, eSeverity.Error, "Not a legal P2 pasm label");
+          haveLabel = true;
         }
-        if (lineParts.length > minNonLabelParts) {
-          // have at least instruction name
-          const likelyInstructionName: string = lineParts[minNonLabelParts - 1];
-          nameOffset = line.indexOf(likelyInstructionName, currentOffset);
-          this._logPASM(`  -- DAT PASM likelyInstructionName=[${likelyInstructionName}], nameOffset=(${nameOffset})`);
-          currentOffset = nameOffset + likelyInstructionName.length; // move past the instruction
-          for (let index = minNonLabelParts; index < lineParts.length; index++) {
-            let argumentName = lineParts[index].replace(/[@#]/, "");
-            if (argumentName.length < 1) {
-              // skip empty operand
-              continue;
-            }
-            if (index == lineParts.length - 1 && this.parseUtils.isP2AsmConditional(argumentName)) {
-              // conditional flag-set spec.
-              this._logPASM("  -- SKIP argumentName=[" + argumentName + "]");
-              continue;
-            }
-            const argHasArrayRereference: boolean = argumentName.includes("[");
-            if (argHasArrayRereference) {
-              const nameParts: string[] = argumentName.split("[");
-              argumentName = nameParts[0];
-            }
-            if (argumentName.charAt(0).match(/[a-zA-Z_\.\:]/)) {
-              // does name contain a namespace reference?
-              this._logPASM(`  -- argumentName=[${argumentName}]`);
-              let possibleNameSet: string[] = [argumentName];
-              if (this._isPossibleObjectReference(argumentName)) {
-                // go register object reference!
-                const bHaveObjReference = this._reportObjectReference(argumentName, lineIdx, currentOffset, line, tokenSet);
-                if (bHaveObjReference) {
-                  currentOffset = currentOffset + argumentName.length;
-                  continue;
-                }
-                if (!argumentName.startsWith(".")) {
-                  possibleNameSet = argumentName.split(".");
-                }
+        currentOffset = nameOffset + labelName.length;
+      }
+      if (!isDataDeclarationLine) {
+        // process assembly code
+        let argumentOffset = 0;
+        if (lineParts.length > 1) {
+          let minNonLabelParts: number = 1;
+          if (haveLabel) {
+            // skip our label
+            argumentOffset++;
+            minNonLabelParts++;
+          }
+          this._logPASM(`  -- DAT PASM !dataDecl lineParts=[${lineParts}](${lineParts.length}), argumentOffset=(${argumentOffset}), minNonLabelParts=(${minNonLabelParts})`);
+          if (lineParts[argumentOffset].toUpperCase().startsWith("IF_") || lineParts[argumentOffset].toUpperCase().startsWith("_RET_")) {
+            // skip our conditional
+            argumentOffset++;
+            minNonLabelParts++;
+          }
+          if (lineParts.length > minNonLabelParts) {
+            // have at least instruction name
+            const likelyInstructionName: string = lineParts[minNonLabelParts - 1];
+            nameOffset = line.indexOf(likelyInstructionName, currentOffset);
+            this._logPASM(`  -- DAT PASM likelyInstructionName=[${likelyInstructionName}], nameOffset=(${nameOffset})`);
+            currentOffset = nameOffset + likelyInstructionName.length; // move past the instruction
+            for (let index = minNonLabelParts; index < lineParts.length; index++) {
+              let argumentName = lineParts[index].replace(/[@#]/, "");
+              if (argumentName.length < 1) {
+                // skip empty operand
+                continue;
               }
-              this._logPASM(`  --  possibleNameSet=[${possibleNameSet}]`);
-              const namePart = possibleNameSet[0];
-              const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : `${possibleNameSet[0]}.${possibleNameSet[1]}`;
-              nameOffset = line.indexOf(searchString, currentOffset);
-              this._logPASM(`  --  DAT PAsm searchString=[${searchString}], ofs=(${nameOffset})`);
-              let referenceDetails: RememberedToken | undefined = undefined;
-              if (this.semanticFindings.isGlobalToken(namePart)) {
-                referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-                this._logPASM(`  --  FOUND global name=[${namePart}]`);
+              if (index == lineParts.length - 1 && this.parseUtils.isP2AsmConditional(argumentName)) {
+                // conditional flag-set spec.
+                this._logPASM("  -- SKIP argumentName=[" + argumentName + "]");
+                continue;
               }
-              if (referenceDetails != undefined) {
-                this._logPASM(`  --  DAT PAsm name=[${namePart}](${nameOffset + 1})`);
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: namePart.length,
-                  ptTokenType: referenceDetails.type,
-                  ptTokenModifiers: referenceDetails.modifiers,
-                });
-              } else {
-                // we use bIsDebugLine in next line so we don't flag debug() arguments!
-                if (
-                  !this.parseUtils.isP2AsmReservedWord(namePart) &&
-                  !this.parseUtils.isP2AsmInstruction(namePart) &&
-                  !this.parseUtils.isP2AsmConditional(namePart) &&
-                  !this.parseUtils.isBinaryOperator(namePart) &&
-                  !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
-                  !this.parseUtils.isCoginitReservedSymbol(namePart) &&
-                  !this.parseUtils.isP2AsmModczOperand(namePart) &&
-                  !this.parseUtils.isDebugMethod(namePart) &&
-                  !this.parseUtils.isStorageType(namePart) &&
-                  !bIsAlsoDebugLine
-                ) {
-                  this._logPASM("  --  DAT PAsm MISSING name=[" + namePart + "](" + (nameOffset + 1) + ")");
+              const argHasArrayRereference: boolean = argumentName.includes("[");
+              if (argHasArrayRereference) {
+                const nameParts: string[] = argumentName.split("[");
+                argumentName = nameParts[0];
+              }
+              if (argumentName.charAt(0).match(/[a-zA-Z_\.\:]/)) {
+                // does name contain a namespace reference?
+                this._logPASM(`  -- argumentName=[${argumentName}]`);
+                let possibleNameSet: string[] = [argumentName];
+                if (this._isPossibleObjectReference(argumentName)) {
+                  // go register object reference!
+                  const bHaveObjReference = this._reportObjectReference(argumentName, lineIdx, currentOffset, line, tokenSet);
+                  if (bHaveObjReference) {
+                    currentOffset = currentOffset + argumentName.length;
+                    continue;
+                  }
+                  if (!argumentName.startsWith(".")) {
+                    possibleNameSet = argumentName.split(".");
+                  }
+                }
+                this._logPASM(`  --  possibleNameSet=[${possibleNameSet}]`);
+                const namePart = possibleNameSet[0];
+                const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : `${possibleNameSet[0]}.${possibleNameSet[1]}`;
+                nameOffset = line.indexOf(searchString, currentOffset);
+                this._logPASM(`  --  DAT PAsm searchString=[${searchString}], ofs=(${nameOffset})`);
+                let referenceDetails: RememberedToken | undefined = undefined;
+                if (this.semanticFindings.isGlobalToken(namePart)) {
+                  referenceDetails = this.semanticFindings.getGlobalToken(namePart);
+                  this._logPASM(`  --  FOUND global name=[${namePart}]`);
+                }
+                if (referenceDetails != undefined) {
+                  this._logPASM(`  --  DAT PAsm name=[${namePart}](${nameOffset + 1})`);
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
                     startCharacter: nameOffset,
                     length: namePart.length,
-                    ptTokenType: "variable",
-                    ptTokenModifiers: ["illegalUse"],
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: referenceDetails.modifiers,
                   });
-                  if (namePart.startsWith(":")) {
-                    this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `P1 pasm local name [${namePart}] not supported in P2 pasm`);
-                  } else if (this.parseUtils.isP1AsmVariable(namePart)) {
-                    this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `P1 pasm variable [${namePart}] not allowed in P2 pasm`);
-                  } else {
-                    this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `Missing P2 pasm name [${namePart}]`);
+                } else {
+                  // we use bIsDebugLine in next line so we don't flag debug() arguments!
+                  if (
+                    !this.parseUtils.isP2AsmReservedWord(namePart) &&
+                    !this.parseUtils.isP2AsmInstruction(namePart) &&
+                    !this.parseUtils.isP2AsmConditional(namePart) &&
+                    !this.parseUtils.isBinaryOperator(namePart) &&
+                    !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
+                    !this.parseUtils.isCoginitReservedSymbol(namePart) &&
+                    !this.parseUtils.isP2AsmModczOperand(namePart) &&
+                    !this.parseUtils.isDebugMethod(namePart) &&
+                    !this.parseUtils.isStorageType(namePart) &&
+                    !bIsAlsoDebugLine
+                  ) {
+                    this._logPASM("  --  DAT PAsm MISSING name=[" + namePart + "](" + (nameOffset + 1) + ")");
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: "variable",
+                      ptTokenModifiers: ["illegalUse"],
+                    });
+                    if (namePart.startsWith(":")) {
+                      this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `P1 pasm local name [${namePart}] not supported in P2 pasm`);
+                    } else if (this.parseUtils.isP1AsmVariable(namePart)) {
+                      this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `P1 pasm variable [${namePart}] not allowed in P2 pasm`);
+                    } else {
+                      this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `Missing P2 pasm name [${namePart}]`);
+                    }
                   }
                 }
+                currentOffset = nameOffset + namePart.length;
               }
-              currentOffset = nameOffset + namePart.length;
+            }
+            if (this.parseUtils.isP1AsmInstruction(likelyInstructionName)) {
+              const nameOffset: number = line.indexOf(likelyInstructionName, 0);
+              this._logPASM("  --  DAT A P1asm BAD instru=[" + likelyInstructionName + "](" + (nameOffset + 1) + ")");
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: likelyInstructionName.length,
+                ptTokenType: "variable",
+                ptTokenModifiers: ["illegalUse"],
+              });
+              this.semanticFindings.pushDiagnosticMessage(
+                lineIdx,
+                nameOffset,
+                nameOffset + likelyInstructionName.length,
+                eSeverity.Error,
+                `P1 pasm instruction [${likelyInstructionName}] not allowed in P2 pasm`
+              );
             }
           }
-          if (this.parseUtils.isP1AsmInstruction(likelyInstructionName)) {
-            const nameOffset: number = line.indexOf(likelyInstructionName, 0);
-            this._logPASM("  --  DAT A P1asm BAD instru=[" + likelyInstructionName + "](" + (nameOffset + 1) + ")");
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: likelyInstructionName.length,
-              ptTokenType: "variable",
-              ptTokenModifiers: ["illegalUse"],
-            });
-            this.semanticFindings.pushDiagnosticMessage(
-              lineIdx,
-              nameOffset,
-              nameOffset + likelyInstructionName.length,
-              eSeverity.Error,
-              `P1 pasm instruction [${likelyInstructionName}] not allowed in P2 pasm`
-            );
-          }
+        } else if (lineParts.length == 1 && this.parseUtils.isP1AsmInstruction(lineParts[0])) {
+          const likelyInstructionName: string = lineParts[0];
+          const nameOffset: number = line.indexOf(likelyInstructionName, 0);
+          this._logPASM("  --  DAT B P1asm BAD instru=[" + likelyInstructionName + "](" + (nameOffset + 1) + ")");
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: likelyInstructionName.length,
+            ptTokenType: "variable",
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(
+            lineIdx,
+            nameOffset,
+            nameOffset + likelyInstructionName.length,
+            eSeverity.Error,
+            `P1 pasm instruction [${likelyInstructionName}] not allowed in P2 pasm`
+          );
         }
-      } else if (lineParts.length == 1 && this.parseUtils.isP1AsmInstruction(lineParts[0])) {
-        const likelyInstructionName: string = lineParts[0];
-        const nameOffset: number = line.indexOf(likelyInstructionName, 0);
-        this._logPASM("  --  DAT B P1asm BAD instru=[" + likelyInstructionName + "](" + (nameOffset + 1) + ")");
-        this._recordToken(tokenSet, line, {
-          line: lineIdx,
-          startCharacter: nameOffset,
-          length: likelyInstructionName.length,
-          ptTokenType: "variable",
-          ptTokenModifiers: ["illegalUse"],
-        });
-        this.semanticFindings.pushDiagnosticMessage(
-          lineIdx,
-          nameOffset,
-          nameOffset + likelyInstructionName.length,
-          eSeverity.Error,
-          `P1 pasm instruction [${likelyInstructionName}] not allowed in P2 pasm`
-        );
-      }
-    } else {
-      // process data declaration
-      if (this.parseUtils.isDatStorageType(lineParts[0])) {
-        currentOffset = line.indexOf(lineParts[0], currentOffset);
       } else {
-        // skip line part 0 length when searching for [1] name
-        currentOffset = line.indexOf(lineParts[1], currentOffset + lineParts[0].length);
+        // process data declaration
+        if (this.parseUtils.isDatStorageType(lineParts[0])) {
+          currentOffset = line.indexOf(lineParts[0], currentOffset);
+        } else {
+          // skip line part 0 length when searching for [1] name
+          currentOffset = line.indexOf(lineParts[1], currentOffset + lineParts[0].length);
+        }
+        const allowLocalVarStatus: boolean = false;
+        const IS_DAT_PASM: boolean = true;
+        const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showPAsmCode, IS_DAT_PASM);
+        partialTokenSet.forEach((newToken) => {
+          tokenSet.push(newToken);
+        });
       }
-      const allowLocalVarStatus: boolean = false;
-      const IS_DAT_PASM: boolean = true;
-      const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showPAsmCode, IS_DAT_PASM);
-      partialTokenSet.forEach((newToken) => {
-        tokenSet.push(newToken);
-      });
     }
     return tokenSet;
   }
@@ -2362,6 +2435,7 @@ export class Spin2DocumentSemanticParser {
     const spineDeclarationLHSStr = this._getNonCommentLineReturnComment(0, lineIdx, line, tokenSet);
     if (spineDeclarationLHSStr) {
     } // we don't use this string, we called this to record our rhs comment!
+
     // -----------------------------------
     //   Method Name
     //
@@ -3228,196 +3302,198 @@ export class Spin2DocumentSemanticParser {
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const inLinePAsmRHSStr = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
-    const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
-    this._logPASM("  -- reportInLinePAsmDecl lineParts=[" + lineParts + "]");
-    const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
-    if (bIsAlsoDebugLine) {
-      const partialTokenSet: IParsedToken[] = this._reportDebugStatement(lineIdx, startingOffset, line);
-      partialTokenSet.forEach((newToken) => {
-        this._logSPIN("=> SPINpasm: " + this._tokenString(newToken, line));
-        tokenSet.push(newToken);
-      });
-    }
-    // handle name in as first part of line...
-    // (process label/variable name (but 'debug' of debug() is NOT a label!))
-    let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]) && lineParts[0].toLowerCase() != "debug";
-    const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-    if (haveLabel) {
-      const labelName: string = lineParts[0];
-      this._logPASM("  -- labelName=[" + labelName + "]");
-      const labelType: string = isDataDeclarationLine ? "variable" : "label";
-      const nameOffset: number = line.indexOf(labelName, currentOffset);
-      var labelModifiers: string[] = ["declaration"];
-      if (!isDataDeclarationLine && labelName.startsWith(".")) {
-        labelModifiers = ["declaration", "static"];
+    if (inLinePAsmRHSStr.length > 0) {
+      const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
+      this._logPASM("  -- reportInLinePAsmDecl lineParts=[" + lineParts + "]");
+      const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
+      if (bIsAlsoDebugLine) {
+        const partialTokenSet: IParsedToken[] = this._reportDebugStatement(lineIdx, startingOffset, line);
+        partialTokenSet.forEach((newToken) => {
+          this._logSPIN("=> SPINpasm: " + this._tokenString(newToken, line));
+          tokenSet.push(newToken);
+        });
       }
-      this._recordToken(tokenSet, line, {
-        line: lineIdx,
-        startCharacter: nameOffset,
-        length: labelName.length,
-        ptTokenType: labelType,
-        ptTokenModifiers: labelModifiers,
-      });
-      haveLabel = true;
-    }
-    if (bIsAlsoDebugLine) {
-      // this line is [{label}] debug() ' comment
-      //  no more to do so exit!
-      return tokenSet;
-    }
-    if (!isDataDeclarationLine) {
-      // process assembly code
-      let argumentOffset = 0;
-      if (lineParts.length > 1) {
-        let minNonLabelParts: number = 1;
-        if (haveLabel) {
-          // skip our label
-          argumentOffset++;
-          minNonLabelParts++;
+      // handle name in as first part of line...
+      // (process label/variable name (but 'debug' of debug() is NOT a label!))
+      let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]) && lineParts[0].toLowerCase() != "debug";
+      const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
+      if (haveLabel) {
+        const labelName: string = lineParts[0];
+        this._logPASM("  -- labelName=[" + labelName + "]");
+        const labelType: string = isDataDeclarationLine ? "variable" : "label";
+        const nameOffset: number = line.indexOf(labelName, currentOffset);
+        var labelModifiers: string[] = ["declaration"];
+        if (!isDataDeclarationLine && labelName.startsWith(".")) {
+          labelModifiers = ["declaration", "static"];
         }
-        if (lineParts[argumentOffset].toUpperCase().startsWith("IF_") || lineParts[argumentOffset].toUpperCase().startsWith("_RET_")) {
-          // skip our conditional
-          argumentOffset++;
-          minNonLabelParts++;
-        }
-        const possibleDirective: string = lineParts[argumentOffset];
-        if (possibleDirective.toUpperCase() == "FILE") {
-          // we have illegal so flag it and abort handling rest of line
-          this._logPASM("  --  SPIN inlinePAsm ERROR[CODE] illegal directive=[" + possibleDirective + "]");
-          const nameOffset: number = line.indexOf(possibleDirective, currentOffset);
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: possibleDirective.length,
-            ptTokenType: "variable",
-            ptTokenModifiers: ["illegalUse"],
-          });
-          this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + possibleDirective.length, eSeverity.Error, `Illegal P2 Spin inline-pasm directive [${possibleDirective}]`);
-        } else {
-          if (lineParts.length > minNonLabelParts) {
-            currentOffset = line.indexOf(lineParts[minNonLabelParts - 1], currentOffset) + lineParts[minNonLabelParts - 1].length + 1;
-            let nameOffset: number = 0;
-            let namePart: string = "";
-            for (let index = minNonLabelParts; index < lineParts.length; index++) {
-              const argumentName = lineParts[index].replace(/[@#]/, "");
-              if (argumentName.length < 1) {
-                // skip empty operand
-                continue;
-              }
-              if (index == lineParts.length - 1 && this.parseUtils.isP2AsmConditional(argumentName)) {
-                // conditional flag-set spec.
-                this._logPASM("  -- SKIP argumentName=[" + argumentName + "]");
-                continue;
-              }
-              const currArgumentLen = argumentName.length;
-              if (argumentName.charAt(0).match(/[a-zA-Z_\.]/)) {
-                // does name contain a namespace reference?
-                this._logPASM("  -- argumentName=[" + argumentName + "]");
-                if (this._isPossibleObjectReference(argumentName)) {
-                  const bHaveObjReference = this._reportObjectReference(argumentName, lineIdx, currentOffset, line, tokenSet);
-                  if (bHaveObjReference) {
-                    currentOffset = currentOffset + argumentName.length;
-                    continue;
+        this._recordToken(tokenSet, line, {
+          line: lineIdx,
+          startCharacter: nameOffset,
+          length: labelName.length,
+          ptTokenType: labelType,
+          ptTokenModifiers: labelModifiers,
+        });
+        haveLabel = true;
+      }
+      if (bIsAlsoDebugLine) {
+        // this line is [{label}] debug() ' comment
+        //  no more to do so exit!
+        return tokenSet;
+      }
+      if (!isDataDeclarationLine) {
+        // process assembly code
+        let argumentOffset = 0;
+        if (lineParts.length > 1) {
+          let minNonLabelParts: number = 1;
+          if (haveLabel) {
+            // skip our label
+            argumentOffset++;
+            minNonLabelParts++;
+          }
+          if (lineParts[argumentOffset].toUpperCase().startsWith("IF_") || lineParts[argumentOffset].toUpperCase().startsWith("_RET_")) {
+            // skip our conditional
+            argumentOffset++;
+            minNonLabelParts++;
+          }
+          const possibleDirective: string = lineParts[argumentOffset];
+          if (possibleDirective.toUpperCase() == "FILE") {
+            // we have illegal so flag it and abort handling rest of line
+            this._logPASM("  --  SPIN inlinePAsm ERROR[CODE] illegal directive=[" + possibleDirective + "]");
+            const nameOffset: number = line.indexOf(possibleDirective, currentOffset);
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: possibleDirective.length,
+              ptTokenType: "variable",
+              ptTokenModifiers: ["illegalUse"],
+            });
+            this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + possibleDirective.length, eSeverity.Error, `Illegal P2 Spin inline-pasm directive [${possibleDirective}]`);
+          } else {
+            if (lineParts.length > minNonLabelParts) {
+              currentOffset = line.indexOf(lineParts[minNonLabelParts - 1], currentOffset) + lineParts[minNonLabelParts - 1].length + 1;
+              let nameOffset: number = 0;
+              let namePart: string = "";
+              for (let index = minNonLabelParts; index < lineParts.length; index++) {
+                const argumentName = lineParts[index].replace(/[@#]/, "");
+                if (argumentName.length < 1) {
+                  // skip empty operand
+                  continue;
+                }
+                if (index == lineParts.length - 1 && this.parseUtils.isP2AsmConditional(argumentName)) {
+                  // conditional flag-set spec.
+                  this._logPASM("  -- SKIP argumentName=[" + argumentName + "]");
+                  continue;
+                }
+                const currArgumentLen = argumentName.length;
+                if (argumentName.charAt(0).match(/[a-zA-Z_\.]/)) {
+                  // does name contain a namespace reference?
+                  this._logPASM("  -- argumentName=[" + argumentName + "]");
+                  if (this._isPossibleObjectReference(argumentName)) {
+                    const bHaveObjReference = this._reportObjectReference(argumentName, lineIdx, currentOffset, line, tokenSet);
+                    if (bHaveObjReference) {
+                      currentOffset = currentOffset + argumentName.length;
+                      continue;
+                    }
                   }
-                }
-                let possibleNameSet: string[] = [argumentName];
-                if (argumentName.includes(".") && !argumentName.startsWith(".")) {
-                  possibleNameSet = argumentName.split(".");
-                }
-                this._logPASM("  --  possibleNameSet=[" + possibleNameSet + "]");
-                namePart = possibleNameSet[0];
-                const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + "." + possibleNameSet[1];
-                nameOffset = line.indexOf(searchString, currentOffset);
-                let referenceDetails: RememberedToken | undefined = undefined;
-                if (this.semanticFindings.hasLocalPAsmTokenForMethod(this.currentMethodName, namePart)) {
-                  referenceDetails = this.semanticFindings.getLocalPAsmTokenForMethod(this.currentMethodName, namePart);
-                  this._logPASM("  --  FOUND local PASM name=[" + namePart + "]");
-                } else if (this.semanticFindings.isLocalToken(namePart)) {
-                  referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
-                  this._logPASM("  --  FOUND local name=[" + namePart + "]");
-                } else if (this.semanticFindings.isGlobalToken(namePart)) {
-                  referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-                  this._logPASM("  --  FOUND global name=[" + namePart + "]");
-                }
-                if (referenceDetails != undefined) {
-                  this._logPASM("  --  SPIN inlinePASM add name=[" + namePart + "]");
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namePart.length,
-                    ptTokenType: referenceDetails.type,
-                    ptTokenModifiers: referenceDetails.modifiers,
-                  });
-                } else {
-                  // we don't have name registered so just mark it
-                  if (namePart != ".") {
-                    // odd special case!
-                    if (
-                      !this.parseUtils.isSpinReservedWord(namePart) &&
-                      !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
-                      !this.parseUtils.isDebugMethod(namePart) &&
-                      !this.parseUtils.isP2AsmModczOperand(namePart)
-                    ) {
-                      this._logPASM("  --  SPIN PAsm MISSING name=[" + namePart + "]");
-                      this._recordToken(tokenSet, line, {
-                        line: lineIdx,
-                        startCharacter: nameOffset,
-                        length: namePart.length,
-                        ptTokenType: "variable",
-                        ptTokenModifiers: ["missingDeclaration"],
-                      });
-                      this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `P2 Spin F pasm missing declaration [${namePart}]`);
-                    } else if (this.parseUtils.isIllegalInlinePAsmDirective(namePart)) {
-                      this._logPASM("  --  SPIN inlinePAsm ERROR[CODE] illegal name=[" + namePart + "]");
-                      this._recordToken(tokenSet, line, {
-                        line: lineIdx,
-                        startCharacter: nameOffset,
-                        length: namePart.length,
-                        ptTokenType: "variable",
-                        ptTokenModifiers: ["illegalUse"],
-                      });
-                      this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + possibleDirective.length, eSeverity.Error, "Illegal P2 Spin inline-pasm name");
+                  let possibleNameSet: string[] = [argumentName];
+                  if (argumentName.includes(".") && !argumentName.startsWith(".")) {
+                    possibleNameSet = argumentName.split(".");
+                  }
+                  this._logPASM("  --  possibleNameSet=[" + possibleNameSet + "]");
+                  namePart = possibleNameSet[0];
+                  const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + "." + possibleNameSet[1];
+                  nameOffset = line.indexOf(searchString, currentOffset);
+                  let referenceDetails: RememberedToken | undefined = undefined;
+                  if (this.semanticFindings.hasLocalPAsmTokenForMethod(this.currentMethodName, namePart)) {
+                    referenceDetails = this.semanticFindings.getLocalPAsmTokenForMethod(this.currentMethodName, namePart);
+                    this._logPASM("  --  FOUND local PASM name=[" + namePart + "]");
+                  } else if (this.semanticFindings.isLocalToken(namePart)) {
+                    referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
+                    this._logPASM("  --  FOUND local name=[" + namePart + "]");
+                  } else if (this.semanticFindings.isGlobalToken(namePart)) {
+                    referenceDetails = this.semanticFindings.getGlobalToken(namePart);
+                    this._logPASM("  --  FOUND global name=[" + namePart + "]");
+                  }
+                  if (referenceDetails != undefined) {
+                    this._logPASM("  --  SPIN inlinePASM add name=[" + namePart + "]");
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: referenceDetails.type,
+                      ptTokenModifiers: referenceDetails.modifiers,
+                    });
+                  } else {
+                    // we don't have name registered so just mark it
+                    if (namePart != ".") {
+                      // odd special case!
+                      if (
+                        !this.parseUtils.isSpinReservedWord(namePart) &&
+                        !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
+                        !this.parseUtils.isDebugMethod(namePart) &&
+                        !this.parseUtils.isP2AsmModczOperand(namePart)
+                      ) {
+                        this._logPASM("  --  SPIN PAsm MISSING name=[" + namePart + "]");
+                        this._recordToken(tokenSet, line, {
+                          line: lineIdx,
+                          startCharacter: nameOffset,
+                          length: namePart.length,
+                          ptTokenType: "variable",
+                          ptTokenModifiers: ["missingDeclaration"],
+                        });
+                        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `P2 Spin F pasm missing declaration [${namePart}]`);
+                      } else if (this.parseUtils.isIllegalInlinePAsmDirective(namePart)) {
+                        this._logPASM("  --  SPIN inlinePAsm ERROR[CODE] illegal name=[" + namePart + "]");
+                        this._recordToken(tokenSet, line, {
+                          line: lineIdx,
+                          startCharacter: nameOffset,
+                          length: namePart.length,
+                          ptTokenType: "variable",
+                          ptTokenModifiers: ["illegalUse"],
+                        });
+                        this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + possibleDirective.length, eSeverity.Error, "Illegal P2 Spin inline-pasm name");
+                      }
                     }
                   }
                 }
+                currentOffset = nameOffset + namePart.length;
               }
-              currentOffset = nameOffset + namePart.length;
+            }
+          }
+        } else {
+          // have only 1 line part is directive or op-code
+          // flag non-opcode or illegal directive
+          const nameOrDirective: string = lineParts[0];
+          // if this symbol is NOT a global token then it could be bad!
+          if (!this.semanticFindings.isKnownToken(nameOrDirective)) {
+            if (this.parseUtils.isIllegalInlinePAsmDirective(nameOrDirective) || !this.parseUtils.isP2AsmInstruction(nameOrDirective)) {
+              this._logPASM("  --  SPIN inline-PAsm MISSING name=[" + nameOrDirective + "]");
+              const nameOffset = line.indexOf(nameOrDirective, currentOffset);
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: nameOrDirective.length,
+                ptTokenType: "variable", // color this offender!
+                ptTokenModifiers: ["illegalUse"],
+              });
+              this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + nameOrDirective.length, eSeverity.Error, "Illegal P2 Spin Directive within inline-pasm");
             }
           }
         }
       } else {
-        // have only 1 line part is directive or op-code
-        // flag non-opcode or illegal directive
-        const nameOrDirective: string = lineParts[0];
-        // if this symbol is NOT a global token then it could be bad!
-        if (!this.semanticFindings.isKnownToken(nameOrDirective)) {
-          if (this.parseUtils.isIllegalInlinePAsmDirective(nameOrDirective) || !this.parseUtils.isP2AsmInstruction(nameOrDirective)) {
-            this._logPASM("  --  SPIN inline-PAsm MISSING name=[" + nameOrDirective + "]");
-            const nameOffset = line.indexOf(nameOrDirective, currentOffset);
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: nameOrDirective.length,
-              ptTokenType: "variable", // color this offender!
-              ptTokenModifiers: ["illegalUse"],
-            });
-            this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + nameOrDirective.length, eSeverity.Error, "Illegal P2 Spin Directive within inline-pasm");
-          }
+        // process data declaration
+        if (this.parseUtils.isDatStorageType(lineParts[0])) {
+          currentOffset = line.indexOf(lineParts[0], currentOffset);
+        } else {
+          currentOffset = line.indexOf(lineParts[1], currentOffset);
         }
+        const allowLocalVarStatus: boolean = true;
+        const NOT_DAT_PASM: boolean = false;
+        const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showPAsmCode, NOT_DAT_PASM);
+        partialTokenSet.forEach((newToken) => {
+          tokenSet.push(newToken);
+        });
       }
-    } else {
-      // process data declaration
-      if (this.parseUtils.isDatStorageType(lineParts[0])) {
-        currentOffset = line.indexOf(lineParts[0], currentOffset);
-      } else {
-        currentOffset = line.indexOf(lineParts[1], currentOffset);
-      }
-      const allowLocalVarStatus: boolean = true;
-      const NOT_DAT_PASM: boolean = false;
-      const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showPAsmCode, NOT_DAT_PASM);
-      partialTokenSet.forEach((newToken) => {
-        tokenSet.push(newToken);
-      });
     }
     return tokenSet;
   }
@@ -4760,12 +4836,14 @@ export class Spin2DocumentSemanticParser {
     return nextString;
   }
 
-  private _recordToken(tokenSet: IParsedToken[], line: string | null, newToken: IParsedToken) {
-    if (newToken.line != -1 && newToken.startCharacter != -1) {
-      tokenSet.push(newToken);
-    } else {
-      const tokenInterp: string = `token(${newToken.line + 1},${newToken.startCharacter})=[len:${newToken.length}](${newToken.ptTokenType}[${newToken.ptTokenModifiers}])]`;
-      this._logMessage(`** ERROR: BAD token nextString=[${tokenInterp}]`);
+  private _recordToken(tokenSet: IParsedToken[], line: string | null, newToken: IParsedToken | undefined) {
+    if (newToken) {
+      if (newToken.line != -1 && newToken.startCharacter != -1) {
+        tokenSet.push(newToken);
+      } else {
+        const tokenInterp: string = `token(${newToken.line + 1},${newToken.startCharacter})=[len:${newToken.length}](${newToken.ptTokenType}[${newToken.ptTokenModifiers}])]`;
+        this._logMessage(`** ERROR: BAD token nextString=[${tokenInterp}]`);
+      }
     }
   }
 
@@ -4935,27 +5013,30 @@ export class Spin2DocumentSemanticParser {
   private _getNonCommentLineReturnComment(startingOffset: number, lineIdx: number, line: string, tokenSet: IParsedToken[]): string {
     // skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
-    const nonCommentLHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    this._logMessage(`  -- gNCL-RC nonCommentLHSStr=[${nonCommentLHSStr}]`);
+    this._logMessage(`  -- Ln#${lineIdx + 1} gNCL-RC startingOffset=(${startingOffset}), line=[${line}](${line.length})`);
+    const nonCommentStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     // now record the comment if we have one
-    const commentRHSStrOffset: number = currentOffset + nonCommentLHSStr.trim().length;
-    const commentOffset: number = line.indexOf("'", commentRHSStrOffset);
-    const bHaveDocComment: boolean = line.indexOf("''", commentOffset) != -1;
-    //this._logMessage("  -- gNCL-RC commentOffset=(" + commentOffset + "), bHaveDocComment=[" + bHaveDocComment + "], line=[" + line + "]");
-    if (commentOffset != -1) {
-      if (!bHaveDocComment) {
-        const newToken: IParsedToken = {
-          line: lineIdx,
-          startCharacter: commentOffset,
-          length: line.length - commentOffset + 1,
-          ptTokenType: "comment",
-          ptTokenModifiers: ["line"],
-        };
-        //this._logMessage("=> CMT: " + this._tokenString(newToken, line));
-        tokenSet.push(newToken);
+    if (line.length != nonCommentStr.length) {
+      this._logMessage(`  -- gNCL-RC nonCommentStr=[${nonCommentStr}](${nonCommentStr.length})`);
+      const filtLine: string = line.replace(line.substring(0, nonCommentStr.length), nonCommentStr);
+      this._logMessage(`  -- gNCL-RC filtLine=[${filtLine}](${filtLine.length})`);
+      const commentRHSStrOffset: number = nonCommentStr.length;
+      const commentOffset: number = this.parseUtils.getTrailingCommentOffset(commentRHSStrOffset, line);
+      const bHaveBlockComment: boolean = filtLine.indexOf("{", commentOffset) != -1 || filtLine.indexOf("}", commentOffset) != -1;
+      const bHaveDocComment: boolean = filtLine.indexOf("''", commentOffset) != -1 || filtLine.indexOf("{{", commentOffset) != -1 || filtLine.indexOf("}}", commentOffset) != -1;
+      this._logMessage(`  -- gNCL-RC commentOffset=(${commentOffset}), bHvBlockComment=(${bHaveBlockComment}), bHvDocComment=(${bHaveDocComment}), filtLine=[${filtLine}](${filtLine.length})`);
+      if (commentOffset != -1) {
+        const newToken: IParsedToken | undefined = this._generateComentToken(lineIdx, commentOffset, line.length - commentOffset + 1, bHaveBlockComment, bHaveDocComment, line);
+        if (newToken) {
+          //this._logMessage("=> CMT: " + this._tokenString(newToken, line));
+          tokenSet.push(newToken);
+          //const comment: string = line.substring(commentOffset);
+          //this._logMessage(`  -- Ln#${lineIdx + 1} gNCL-RC Recorded Comment [${comment}](${comment.length}) (${newToken.ptTokenType}[${newToken.ptTokenModifiers}])`);
+        }
       }
     }
-    return nonCommentLHSStr;
+    this._logMessage(`  -- gNCL-RC nonCommentStr=[${nonCommentStr}](${nonCommentStr.length})`);
+    return nonCommentStr;
   }
 
   private _getNonWhiteSpinLineParts(line: string): IFilteredStrings {

@@ -21,13 +21,20 @@ Possible next additions:
 
 ## [2.2.2] 2023-11-2
 
-General bug fixes for P1 and P2 (round 2)
+General bug fixes for P2 only (round 2)
 
+- P2 add DRAFT handling of line continuation "..." - (support only in OBJ section for now!)
 - P2 repair DAT pasm symbol offset calculations so highlights are in correct position
+- P2 add new built-in keyword "with" to syntax highlighter
+- P2 repair DAT pasm parser so it doesn't leave pasm mode until end of DAT block
+
+General bug fixes for Both P1 and P2 (round 2)
+
 - P1 & P2 adjusted parameter, return-value, and local variable name collision with global variable to produce error messages.
-- P2 add DRAFT handling of line continuation "..." - limited to OBJ section for now!
-- P2 add "with" to syntax highlighter
-- P2 repair DAT pasm parser so it doesn't leave pasm mode until end of block
+- P1 & P2 repair go to def'n for local variables (limit search scope to the current method)
+- P1 & P2 repair go to def'n for local pasm labels (limit search scope to between the enclosing global pasm labels)
+- P1 & P2 increase resolution on go to def'n - was line number only. Is now line number with character offset so now will position cursor at actual symbol within the line (e.g., good for go to enum declaration!)
+- P1 & P2 found and fixed a couple of crash causes
 
 ## [2.2.1] 2023-10-30
 

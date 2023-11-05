@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+(set -x;cd ./out;rm -rf *;cd -)
+(set -x;cd ./client/out;rm -rf *;cd -)
+(set -x;cd ./server/out;rm -rf *;cd -)

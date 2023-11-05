@@ -56,47 +56,122 @@ export class Spin1ParseUtils {
     return nonInlineCommentStr;
   }
 
+  private _removeInlineComments(startingOffset: number, line: string): string {
+    // if we have {comment} in line remove it
+    let cleanedLine: string = line;
+    let didReplace: boolean = false;
+    //   REPLACE {{...}} when found
+    const doubleLineMultiBeginOffset: number = cleanedLine.indexOf("{{", startingOffset);
+    if (doubleLineMultiBeginOffset != -1) {
+      const doubleLineMultiEndOffset: number = cleanedLine.indexOf("}}", doubleLineMultiBeginOffset);
+      if (doubleLineMultiEndOffset != -1) {
+        const oneLineMultiComment: string = cleanedLine.substring(doubleLineMultiBeginOffset, doubleLineMultiEndOffset + 2);
+        cleanedLine = cleanedLine.replace(oneLineMultiComment, " ".repeat(oneLineMultiComment.length));
+        didReplace = true;
+        //this._logMessage(`  -- RInCmt {{cmt}} [${cleanedLine}]`);
+      }
+    }
+    //   REPLACE {...} when found
+    const singleLineMultiBeginOffset: number = cleanedLine.indexOf("{", startingOffset);
+    if (singleLineMultiBeginOffset != -1) {
+      const singleLineMultiEndOffset: number = cleanedLine.indexOf("}", singleLineMultiBeginOffset);
+      if (singleLineMultiEndOffset != -1) {
+        const oneLineMultiComment: string = cleanedLine.substring(singleLineMultiBeginOffset, singleLineMultiEndOffset + 1);
+        cleanedLine = cleanedLine.replace(oneLineMultiComment, " ".repeat(oneLineMultiComment.length));
+        didReplace = true;
+        //this._logMessage(`  -- RInCmt {cmt} [${cleanedLine}]`);
+      }
+    }
+    //   REPLACE ^...}} when NO {{ before it on start of line
+    const doubleLineMultiEndOffset: number = cleanedLine.indexOf("}}", doubleLineMultiBeginOffset);
+    if (doubleLineMultiEndOffset != -1) {
+      const oneLineMultiComment: string = cleanedLine.substring(0, doubleLineMultiEndOffset + 2);
+      cleanedLine = cleanedLine.replace(oneLineMultiComment, " ".repeat(oneLineMultiComment.length));
+      didReplace = true;
+      //this._logMessage(`  -- RInCmt ^cmt}} [${cleanedLine}]`);
+    }
+    //   REPLACE ^...} when NO { before it on start of line
+    const singleLineMultiEndOffset: number = cleanedLine.indexOf("}", singleLineMultiBeginOffset);
+    if (singleLineMultiEndOffset != -1) {
+      const oneLineMultiComment: string = cleanedLine.substring(0, singleLineMultiEndOffset + 1);
+      cleanedLine = cleanedLine.replace(oneLineMultiComment, " ".repeat(oneLineMultiComment.length));
+      didReplace = true;
+      //this._logMessage(`  -- RInCmt ^cmt} [${cleanedLine}]`);
+    }
+
+    if (didReplace) {
+      this._logMessage(`  -- RInCmt line [${line}]`);
+      this._logMessage(`  --             [${cleanedLine}]`);
+    }
+    return cleanedLine;
+  }
+
+  public getTrailingCommentOffset(startingOffset: number, line: string): number {
+    let desiredOffset: number = -1;
+    let braceOffset: number = line.indexOf("{{", startingOffset);
+    if (braceOffset == -1) {
+      braceOffset = line.indexOf("{", startingOffset);
+    }
+    const singleTicOffset: number = line.indexOf("'", startingOffset);
+    if (singleTicOffset == -1) {
+      desiredOffset = braceOffset; // is location or -1
+    } else if (braceOffset == -1) {
+      desiredOffset = singleTicOffset; // is location or -1
+    } else {
+      // have both locations, return earliest in line
+      desiredOffset = singleTicOffset < braceOffset ? singleTicOffset : braceOffset; // is location!
+    }
+    return desiredOffset;
+  }
+
   public getNonCommentLineRemainder(startingOffset: number, line: string): string {
-    let nonCommentRHSStr: string = line;
-    //this._logMessage('  -- gnclr ofs=' + startingOffset + '[' + line + '](' + line.length + ')');
+    // upgraded behaviors:
+    //   remove { to EOL when NOT paired with }
+    //   remove {{ to EOL when NOT paired with }}
+    //   REPLACE ^...} when NO { before it on start of line
+    //   REPLACE ^...}} when NO {{ before it on start of line
+    //   REPLACE {{...}} when found
+    //   REPLACE {...} when found
+    // find comment at end of line and remove there to end of line
+    //  ( where comment is ' or '' or unpaired {{ or { )
+    //   return 0 len line if trim() removes all after removing/replacing comments
+    let lineWithoutTrailingCommentStr: string = "";
     // TODO: UNDONE make this into loop to find first ' not in string
     if (line.length - startingOffset > 0) {
-      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], startingOffset=[' + line + ']');
-      let currentOffset: number = this.skipWhite(line, startingOffset);
       // get line parts - we only care about first one
-      let beginCommentOffset: number = line.indexOf("'", currentOffset);
+      lineWithoutTrailingCommentStr = this._removeInlineComments(startingOffset, line);
+      let beginCommentOffset: number = this.getTrailingCommentOffset(0, lineWithoutTrailingCommentStr);
       if (beginCommentOffset != -1) {
         // have single quote, is it within quoted string?
+        let currentOffset: number = this.skipWhite(line, startingOffset);
+        // if we have quited string hide them for now...
         const startDoubleQuoteOffset: number = line.indexOf('"', currentOffset);
         if (startDoubleQuoteOffset != -1) {
-          const nonStringLine: string = this.removeDoubleQuotedStrings(line, false); // false disabled debug output
-          beginCommentOffset = nonStringLine.indexOf("'", currentOffset);
+          const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr, true); // false disabled debug output
+          beginCommentOffset = this.getTrailingCommentOffset(0, nonStringLine);
         }
       }
-      if (beginCommentOffset === -1) {
-        beginCommentOffset = line.indexOf("{", currentOffset);
-      }
-      const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset - 1 : line.length - 1;
-      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
-      nonCommentRHSStr = line.substr(currentOffset, nonCommentEOL - currentOffset + 1).trim();
-      //this._logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
 
-      const singleLineMultiBeginOffset: number = nonCommentRHSStr.indexOf("{", currentOffset);
-      if (singleLineMultiBeginOffset != -1) {
-        const singleLineMultiEndOffset: number = nonCommentRHSStr.indexOf("}", singleLineMultiBeginOffset);
-        if (singleLineMultiEndOffset != -1) {
-          const oneLineMultiComment: string = nonCommentRHSStr.substr(singleLineMultiBeginOffset, singleLineMultiEndOffset - singleLineMultiBeginOffset + 1);
-          nonCommentRHSStr = nonCommentRHSStr.replace(oneLineMultiComment, "").trim();
-        }
+      // do we have a comment?
+      if (beginCommentOffset != -1) {
+        this._logMessage(` - p2 gNCLR ofs=${startingOffset}, line=[${line}](${line.length})`);
       }
-    } else if (line.length - startingOffset == 0) {
-      nonCommentRHSStr = "";
+      const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset : line.length;
+      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
+      lineWithoutTrailingCommentStr = lineWithoutTrailingCommentStr.substring(0, nonCommentEOL).trimEnd();
+      //this._logMessage('- gnclr lineWithoutTrailingCommentStr=[' + startingOffset + ']');
+      if (lineWithoutTrailingCommentStr.trim().length == 0) {
+        lineWithoutTrailingCommentStr = "";
+        this._logMessage(`  -- gNCLR line forced to EMPTY`);
+      }
+      if (line.substr(startingOffset) !== lineWithoutTrailingCommentStr) {
+        this._logMessage(`  -- gNCLR line [${line}](${line.length})`);
+        this._logMessage(`  --            [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
+      }
+    } else {
+      this._logMessage(` - gNCLR SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
     }
-    //if (line.substr(startingOffset).length != nonCommentRHSStr.length) {
-    //    this._logMessage('  -- NCLR line [' + line.substr(startingOffset) + ']');
-    //    this._logMessage('  --           [' + nonCommentRHSStr + ']');
-    //}
-    return nonCommentRHSStr;
+    return lineWithoutTrailingCommentStr;
   }
 
   public indexOfMatchingCloseParen(line: string, openParenOffset: number): number {
