@@ -19,7 +19,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private topLevelFSpec: string = "";
   private topLevelFName: string = "";
 
-  private objTreeDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private objTreeDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private objTreeOutputChannel: vscode.OutputChannel | undefined = undefined;
 
   private isDocument: boolean = false;
@@ -324,7 +324,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
         continue;
       }
       const nonCommentLineRemainder: string = this.spinCodeUtils.getNonCommentLineRemainder(0, trimmedLine);
-      const sectionStatus = this._isSectionStartLine(nonCommentLineRemainder);
+      const sectionStatus = this.spinCodeUtils.isSectionStartLine(nonCommentLineRemainder);
       if (sectionStatus.isSectionStart) {
         priorState = currState;
         currState = sectionStatus.inProgressStatus;
@@ -419,7 +419,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
           continue;
         }
         const nonCommentLineRemainder: string = this.spinCodeUtils.getNonCommentLineRemainder(0, text);
-        const sectionStatus = this._isSectionStartLine(text);
+        const sectionStatus = this.spinCodeUtils.isSectionStartLine(text);
         if (sectionStatus.isSectionStart) {
           priorState = currState;
           currState = sectionStatus.inProgressStatus;
@@ -468,44 +468,6 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       desiredSpinObj = new SpinObject(spinCodeFileName, objName);
     }
     return desiredSpinObj;
-  }
-
-  private _isSectionStartLine(line: string): {
-    isSectionStart: boolean;
-    inProgressStatus: eParseState;
-  } {
-    // return T/F where T means our string starts a new section!
-    let startStatus: boolean = false;
-    let inProgressState: eParseState = eParseState.Unknown;
-    if (line.length > 2) {
-      const sectionName: string = line.substring(0, 3).toUpperCase();
-      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
-      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
-        startStatus = true;
-        if (sectionName === "CON") {
-          inProgressState = eParseState.inCon;
-        } else if (sectionName === "DAT") {
-          inProgressState = eParseState.inDat;
-        } else if (sectionName === "OBJ") {
-          inProgressState = eParseState.inObj;
-        } else if (sectionName === "PUB") {
-          inProgressState = eParseState.inPub;
-        } else if (sectionName === "PRI") {
-          inProgressState = eParseState.inPri;
-        } else if (sectionName === "VAR") {
-          inProgressState = eParseState.inVar;
-        } else {
-          startStatus = false;
-        }
-      }
-    }
-    if (startStatus && inProgressState == eParseState.inObj) {
-      this.logMessage("** isSectStart line=[" + line + "], enum(" + inProgressState + ")");
-    }
-    return {
-      isSectionStart: startStatus,
-      inProgressStatus: inProgressState,
-    };
   }
 
   private _loadFileAsString(fspec: string): string {

@@ -6,6 +6,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { Context } from "../context";
 import { GetWordRangeAtPosition, DocumentLineAt, PositionIsEqual, PositionIsAfter, PositionTranslate } from "./lsp.textDocument.utils";
 import { isSpin1File } from "./lang.utils";
+import { eParseState } from "./spin.common";
 
 export interface IPairs {
   start: number;
@@ -47,6 +48,44 @@ export class ExtensionUtils {
   //
   // PUBLIC Methods
   //
+  public isSectionStartLine(line: string): {
+    isSectionStart: boolean;
+    inProgressStatus: eParseState;
+  } {
+    // return T/F where T means our string starts a new section!
+    let startStatus: boolean = false;
+    let inProgressState: eParseState = eParseState.Unknown;
+    if (line.length > 2) {
+      const sectionName: string = line.substring(0, 3).toUpperCase();
+      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
+      if (nextChar.charAt(0).match(/[ \t'\{]/)) {
+        startStatus = true;
+        if (sectionName === "CON") {
+          inProgressState = eParseState.inCon;
+        } else if (sectionName === "DAT") {
+          inProgressState = eParseState.inDat;
+        } else if (sectionName === "OBJ") {
+          inProgressState = eParseState.inObj;
+        } else if (sectionName === "PUB") {
+          inProgressState = eParseState.inPub;
+        } else if (sectionName === "PRI") {
+          inProgressState = eParseState.inPri;
+        } else if (sectionName === "VAR") {
+          inProgressState = eParseState.inVar;
+        } else {
+          startStatus = false;
+        }
+      }
+    }
+    if (startStatus) {
+      this._logMessage("** isSectStart line=[" + line + "]");
+    }
+    return {
+      isSectionStart: startStatus,
+      inProgressStatus: inProgressState,
+    };
+  }
+
   public adjustWordPosition(document: TextDocument, position: lsp.Position, isInBlockComment: boolean, inPasmCodeStatus: boolean): [boolean, string, string, lsp.Position] {
     const lineText = DocumentLineAt(document, position).trimEnd();
     const P2_LOCAL_LABEL_PREFIX: string = ".";

@@ -230,7 +230,7 @@ export class RegionColorizer {
       const trimmedLine = line.trim();
       const nonCommentLine = this.spinCodeUtils.getNonCommentLineRemainder(0, line);
       const trimmedNonCommentLine = nonCommentLine.trim();
-      const sectionStatus = this._isSectionStartLine(line);
+      const sectionStatus = this.spinCodeUtils.isSectionStartLine(line);
       const lineParts: string[] = trimmedNonCommentLine.length > 0 ? trimmedNonCommentLine.split(/[ \t]/).filter(Boolean) : [];
 
       // now start our processing
@@ -376,15 +376,6 @@ export class RegionColorizer {
         // process an object declaration line
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
-        if (trimmedLine.length > 0) {
-          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
-          if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
-            this.logMessage("- (" + (i + 1) + "): pre-scan DAT PASM line trimmedLine=[" + trimmedLine + "]");
-            currState = prePAsmState;
-            this.logMessage("- scan Ln#" + (i + 1) + " POP currState=[" + currState + "]");
-            // and ignore rest of this line
-          }
-        }
       }
     }
     blockSpanInformation.finishFinalBlock(lines.length - 1); // mark end of final block in file
@@ -669,44 +660,6 @@ export class RegionColorizer {
       //Write to output window.
       this.coloringOutputChannel.appendLine(message);
     }
-  }
-
-  private _isSectionStartLine(line: string): {
-    isSectionStart: boolean;
-    inProgressStatus: eParseState;
-  } {
-    // return T/F where T means our string starts a new section!
-    let startStatus: boolean = false;
-    let inProgressState: eParseState = eParseState.Unknown;
-    if (line.length > 2) {
-      const sectionName: string = line.substring(0, 3).toUpperCase();
-      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
-      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
-        startStatus = true;
-        if (sectionName === "CON") {
-          inProgressState = eParseState.inCon;
-        } else if (sectionName === "DAT") {
-          inProgressState = eParseState.inDat;
-        } else if (sectionName === "OBJ") {
-          inProgressState = eParseState.inObj;
-        } else if (sectionName === "PUB") {
-          inProgressState = eParseState.inPub;
-        } else if (sectionName === "PRI") {
-          inProgressState = eParseState.inPri;
-        } else if (sectionName === "VAR") {
-          inProgressState = eParseState.inVar;
-        } else {
-          startStatus = false;
-        }
-      }
-    }
-    if (startStatus && inProgressState == eParseState.inObj) {
-      this.logMessage("** isSectStart line=[" + line + "], enum(" + inProgressState + ")");
-    }
-    return {
-      isSectionStart: startStatus,
-      inProgressStatus: inProgressState,
-    };
   }
 
   private colorForBlock(currblockType: eBLockType, sequenceNbr: number): string | undefined {

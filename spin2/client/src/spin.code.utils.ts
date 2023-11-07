@@ -1,5 +1,6 @@
 "use strict";
 // client/src/spin.code.utils.ts
+import * as vscode from "vscode";
 
 export enum eParseState {
   Unknown = 0,
@@ -17,10 +18,65 @@ export enum eParseState {
 }
 
 export class SpinCodeUtils {
+  private debugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private outputChannel: vscode.OutputChannel | undefined = undefined;
+
+  public constructor() {}
+
+  public enableLogging(channel: vscode.OutputChannel, doEnable: boolean = true): void {
+    this.debugLogEnabled = doEnable;
+    this.outputChannel = channel;
+  }
+
+  private _logMessage(message: string): void {
+    if (this.debugLogEnabled) {
+      //Write to output window.
+      this.outputChannel.appendLine(message);
+    }
+  }
+
   public isFlexspinPreprocessorDirective(name: string): boolean {
     const flexspinDirectiveOfNote: string[] = ["#define", "#ifdef", "#ifndef", "#else", "#elseifdef", "#elseifndef", "#endif", "#error", "#include", "#warn", "#undef"];
     const reservedStatus: boolean = flexspinDirectiveOfNote.indexOf(name.toLowerCase()) != -1;
     return reservedStatus;
+  }
+
+  public isSectionStartLine(line: string): {
+    isSectionStart: boolean;
+    inProgressStatus: eParseState;
+  } {
+    // return T/F where T means our string starts a new section!
+    let startStatus: boolean = false;
+    let inProgressState: eParseState = eParseState.Unknown;
+    if (line.length > 2) {
+      const sectionName: string = line.substring(0, 3).toUpperCase();
+      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
+      if (nextChar.charAt(0).match(/[ \t'\{]/)) {
+        startStatus = true;
+        if (sectionName === "CON") {
+          inProgressState = eParseState.inCon;
+        } else if (sectionName === "DAT") {
+          inProgressState = eParseState.inDat;
+        } else if (sectionName === "OBJ") {
+          inProgressState = eParseState.inObj;
+        } else if (sectionName === "PUB") {
+          inProgressState = eParseState.inPub;
+        } else if (sectionName === "PRI") {
+          inProgressState = eParseState.inPri;
+        } else if (sectionName === "VAR") {
+          inProgressState = eParseState.inVar;
+        } else {
+          startStatus = false;
+        }
+      }
+    }
+    if (startStatus) {
+      this._logMessage("** isSectStart line=[" + line + "]");
+    }
+    return {
+      isSectionStart: startStatus,
+      inProgressStatus: inProgressState,
+    };
   }
 
   public getNonCommentLineRemainder(startingOffset: number, line: string): string {

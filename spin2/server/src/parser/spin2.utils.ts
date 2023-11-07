@@ -320,71 +320,34 @@ export class Spin2ParseUtils {
 
   public getNonWhiteCONLineParts(line: string): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
-    let lineParts: string[] | null = nonEqualsLine.match(/[^  \t\(\)\|\*\+\-\/\>\<\=\&]+/g);
-    return lineParts == null ? [] : lineParts;
+    const lineParts: string[] | null = nonEqualsLine.match(/[^  \t\(\)\|\*\+\-\/\>\<\=\&]+/g);
+    let filterParts: string[] = [];
+    if (lineParts != null) {
+      for (let index = 0; index < lineParts.length; index++) {
+        const element = lineParts[index];
+        if (element.length > 0) {
+          filterParts.push(element);
+        }
+      }
+    }
+
+    return filterParts;
   }
 
   public getNonWhitePAsmLineParts(line: string): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
-    let lineParts: string[] | null = nonEqualsLine.match(/[^ \t\,\(\)\[\]\<\>\=\?\!\^\+\*\&\|\-\\\#\@\/]+/g);
-    return lineParts == null ? [] : lineParts;
-  }
-
-  private _removeInlineComments(startingOffset: number, line: string): string {
-    // if we have {comment} in line remove it
-    let cleanedLine: string = line;
-    let didReplace: boolean = false;
-
-    //   REPLACE {{...}} when found, all occurrences
-    //do {
-    const doubleBraceBeginOffset: number = cleanedLine.indexOf("{{", startingOffset);
-    if (doubleBraceBeginOffset != -1) {
-      const doubleBraceEndOffset: number = cleanedLine.indexOf("}}", doubleBraceBeginOffset);
-      if (doubleBraceEndOffset != -1) {
-        const inLineComment: string = cleanedLine.substring(doubleBraceBeginOffset, doubleBraceEndOffset + 2);
-        cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
-        didReplace = true;
-        //this._logMessage(`  -- RInCmt {{cmt}} [${cleanedLine}]`);
+    const lineParts: string[] | null = nonEqualsLine.match(/[^ \t\,\(\)\[\]\<\>\=\?\!\^\+\*\&\|\-\\\#\@\/]+/g);
+    let filterParts: string[] = [];
+    if (lineParts != null) {
+      for (let index = 0; index < lineParts.length; index++) {
+        const element = lineParts[index];
+        if (element.length > 0) {
+          filterParts.push(element);
+        }
       }
     }
-    //} while (cleanedLine.indexOf("{{", startingOffset) != -1);
 
-    //   REPLACE {...} when found, all occurrences
-    //do {
-    const singleBraceBeginOffset: number = cleanedLine.indexOf("{", startingOffset);
-    if (singleBraceBeginOffset != -1) {
-      const singleBraceEndOffset: number = cleanedLine.indexOf("}", singleBraceBeginOffset);
-      if (singleBraceEndOffset != -1) {
-        const inLineComment: string = cleanedLine.substring(singleBraceBeginOffset, singleBraceEndOffset + 1);
-        cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
-        didReplace = true;
-        //this._logMessage(`  -- RInCmt {cmt} [${cleanedLine}]`);
-      }
-    }
-    //} while (cleanedLine.indexOf("{", startingOffset) != -1);
-
-    //   REPLACE ^...}} when NO {{ before it on start of line
-    const doubleBraceEndOffset: number = cleanedLine.indexOf("}}", startingOffset);
-    if (doubleBraceEndOffset != -1) {
-      const inLineComment: string = cleanedLine.substring(0, doubleBraceEndOffset + 2);
-      cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
-      didReplace = true;
-      //this._logMessage(`  -- RInCmt ^cmt}} [${cleanedLine}]`);
-    }
-    //   REPLACE ^...} when NO { before it on start of line
-    const singleBraceEndOffset: number = cleanedLine.indexOf("}", startingOffset);
-    if (singleBraceEndOffset != -1) {
-      const inLineComment: string = cleanedLine.substring(0, singleBraceEndOffset + 1);
-      cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
-      didReplace = true;
-      //this._logMessage(`  -- RInCmt ^cmt} [${cleanedLine}]`);
-    }
-
-    if (didReplace) {
-      this._logMessage(`  -- RInLnCmt line [${line}]`);
-      this._logMessage(`  --               [${cleanedLine}]`);
-    }
-    return cleanedLine;
+    return filterParts;
   }
 
   public getTrailingCommentOffset(startingOffset: number, line: string): number {
@@ -422,11 +385,15 @@ export class Spin2ParseUtils {
     let cleanedLine: string = line;
     let didReplace: boolean = false;
 
+    // if we have quoted string hide them for now...
+    const startDoubleQuoteOffset: number = cleanedLine.indexOf('"');
+    let checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, true) : cleanedLine;
+
     //   REPLACE {{...}} when found, all occurrences
     //do {
-    const doubleBraceBeginOffset: number = cleanedLine.indexOf("{{");
+    const doubleBraceBeginOffset: number = checkLine.indexOf("{{");
     if (doubleBraceBeginOffset != -1) {
-      const doubleBraceEndOffset: number = cleanedLine.indexOf("}}", doubleBraceBeginOffset);
+      const doubleBraceEndOffset: number = checkLine.indexOf("}}", doubleBraceBeginOffset);
       if (doubleBraceEndOffset != -1) {
         const inLineComment: string = cleanedLine.substring(doubleBraceBeginOffset, doubleBraceEndOffset + 2);
         cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
@@ -438,9 +405,9 @@ export class Spin2ParseUtils {
 
     //   REPLACE {...} when found, all occurrences
     //do {
-    const singleBraceBeginOffset: number = cleanedLine.indexOf("{");
+    const singleBraceBeginOffset: number = checkLine.indexOf("{");
     if (singleBraceBeginOffset != -1) {
-      const singleBraceEndOffset: number = cleanedLine.indexOf("}", singleBraceBeginOffset);
+      const singleBraceEndOffset: number = checkLine.indexOf("}", singleBraceBeginOffset);
       if (singleBraceEndOffset != -1) {
         const inLineComment: string = cleanedLine.substring(singleBraceBeginOffset, singleBraceEndOffset + 1);
         cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
@@ -453,6 +420,49 @@ export class Spin2ParseUtils {
     if (didReplace) {
       this._logMessage(`  -- gLWoInLnC line [${line}]`);
       this._logMessage(`  --                [${cleanedLine}]`);
+    }
+    return cleanedLine;
+  }
+
+  private _removeInlineComments(startingOffset: number, line: string): string {
+    // if we have {comment} in line remove it
+    let cleanedLine: string = line;
+    let didReplace: boolean = false;
+
+    if (startingOffset > 0) {
+      const prefixToStart: string = " ".repeat(startingOffset);
+      cleanedLine = `${prefixToStart}${line.substring(startingOffset)}`;
+      didReplace = true;
+    }
+
+    //   REPLACE {{...}} when found
+    //   REPLACE {...} when found
+    cleanedLine = this.getLineWithoutInlineComments(cleanedLine);
+
+    // if we have quoted string hide them for now...
+    const startDoubleQuoteOffset: number = cleanedLine.indexOf('"');
+    let checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, true) : cleanedLine;
+
+    //   REPLACE ^...}} when NO {{ before it on start of line
+    const doubleBraceEndOffset: number = checkLine.indexOf("}}", startingOffset);
+    if (doubleBraceEndOffset != -1) {
+      const inLineComment: string = cleanedLine.substring(0, doubleBraceEndOffset + 2);
+      cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
+      didReplace = true;
+      //this._logMessage(`  -- RInCmt ^cmt}} [${cleanedLine}]`);
+    }
+    //   REPLACE ^...} when NO { before it on start of line
+    const singleBraceEndOffset: number = checkLine.indexOf("}", startingOffset);
+    if (singleBraceEndOffset != -1) {
+      const inLineComment: string = cleanedLine.substring(0, singleBraceEndOffset + 1);
+      cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
+      didReplace = true;
+      //this._logMessage(`  -- RInCmt ^cmt} [${cleanedLine}]`);
+    }
+
+    if (didReplace) {
+      this._logMessage(`  -- RInLnCmt line [${line}]`);
+      this._logMessage(`  --               [${cleanedLine}]`);
     }
     return cleanedLine;
   }

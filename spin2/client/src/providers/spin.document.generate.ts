@@ -273,7 +273,7 @@ export class DocGenerator {
             continue;
           }
 
-          const sectionStatus = this._isSectionStartLine(line.text);
+          const sectionStatus = this.spinCodeUtils.isSectionStartLine(line.text);
           if (sectionStatus.isSectionStart) {
             currState = sectionStatus.inProgressStatus;
           }
@@ -366,7 +366,7 @@ export class DocGenerator {
             continue;
           }
 
-          const sectionStatus = this._isSectionStartLine(line.text);
+          const sectionStatus = this.spinCodeUtils.isSectionStartLine(line.text);
           if (sectionStatus.isSectionStart) {
             currState = sectionStatus.inProgressStatus;
           }
@@ -490,43 +490,5 @@ export class DocGenerator {
         await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.Beside });
       }
     }
-  }
-
-  private _isSectionStartLine(line: string): {
-    isSectionStart: boolean;
-    inProgressStatus: eParseState;
-  } {
-    // return T/F where T means our string starts a new section!
-    let startStatus: boolean = false;
-    let inProgressState: eParseState = eParseState.Unknown;
-    if (line.length > 2) {
-      const sectionName: string = line.substring(0, 3).toUpperCase();
-      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
-      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
-        startStatus = true;
-        if (sectionName === "CON") {
-          inProgressState = eParseState.inCon;
-        } else if (sectionName === "DAT") {
-          inProgressState = eParseState.inDat;
-        } else if (sectionName === "OBJ") {
-          inProgressState = eParseState.inObj;
-        } else if (sectionName === "PUB") {
-          inProgressState = eParseState.inPub;
-        } else if (sectionName === "PRI") {
-          inProgressState = eParseState.inPri;
-        } else if (sectionName === "VAR") {
-          inProgressState = eParseState.inVar;
-        } else {
-          startStatus = false;
-        }
-      }
-    }
-    if (startStatus) {
-      this.logMessage("** isSectStart line=[" + line + "], enum(" + inProgressState + ")");
-    }
-    return {
-      isSectionStart: startStatus,
-      inProgressStatus: inProgressState,
-    };
   }
 }

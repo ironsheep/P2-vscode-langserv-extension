@@ -9,6 +9,7 @@ import { DocumentFindings, RememberedComment, RememberedToken } from "./spin.sem
 import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
 import { eParseState } from "./spin.common";
+import { ExtensionUtils } from "../parser/spin.extension.utils";
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -26,7 +27,7 @@ interface IParsedToken {
 
 export class Spin2ObjectReferenceParser {
   private parseUtils = new Spin2ParseUtils();
-  //private docGenerator: DocGenerator;
+  private extensionUtils: ExtensionUtils;
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
@@ -41,6 +42,7 @@ export class Spin2ObjectReferenceParser {
   private isSpin1Document: boolean = false;
 
   public constructor(protected readonly ctx: Context) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.spin2ObjectLocatorLogEnabled);
     if (this.spin2ObjectLocatorLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
@@ -97,7 +99,7 @@ export class Spin2ObjectReferenceParser {
       const trimmedNonCommentLine = this.parseUtils.getNonCommentLineRemainder(0, line);
       const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
       const tempComment = line.substring(trimmedNonCommentLine.length + offSet).trim();
-      const sectionStatus = this._isSectionStartLine(line);
+      const sectionStatus = this.extensionUtils.isSectionStartLine(line);
       const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
       // now start our processing
@@ -218,16 +220,6 @@ export class Spin2ObjectReferenceParser {
         }
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
-        if (trimmedLine.length > 0) {
-          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
-          if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
-            //this._logPASM("- (" + (i + 1) + "): pre-scan DAT PASM line trimmedLine=[" + trimmedLine + "]");
-            // record end of PASM code NOT inline
-            currState = prePAsmState;
-            //this._logState("- scan Ln#" + (i + 1) + " POP currState=[" + currState + "]");
-            // and ignore rest of this line
-          }
-        }
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
         // scan SPIN2 line for object constant or method() uses
       }
@@ -371,43 +363,5 @@ export class Spin2ObjectReferenceParser {
       //Write to output window.
       this.ctx.logger.log(message);
     }
-  }
-
-  private _isSectionStartLine(line: string): {
-    isSectionStart: boolean;
-    inProgressStatus: eParseState;
-  } {
-    // return T/F where T means our string starts a new section!
-    let startStatus: boolean = false;
-    let inProgressState: eParseState = eParseState.Unknown;
-    if (line.length > 2) {
-      const sectionName: string = line.substring(0, 3).toUpperCase();
-      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
-      if (nextChar.charAt(0).match(/[ \t'\{}]/)) {
-        startStatus = true;
-        if (sectionName === "CON") {
-          inProgressState = eParseState.inCon;
-        } else if (sectionName === "DAT") {
-          inProgressState = eParseState.inDat;
-        } else if (sectionName === "OBJ") {
-          inProgressState = eParseState.inObj;
-        } else if (sectionName === "PUB") {
-          inProgressState = eParseState.inPub;
-        } else if (sectionName === "PRI") {
-          inProgressState = eParseState.inPri;
-        } else if (sectionName === "VAR") {
-          inProgressState = eParseState.inVar;
-        } else {
-          startStatus = false;
-        }
-      }
-    }
-    if (startStatus) {
-      //this._logMessage("** isSectStart line=[" + line + "]");
-    }
-    return {
-      isSectionStart: startStatus,
-      inProgressStatus: inProgressState,
-    };
   }
 }

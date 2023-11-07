@@ -208,14 +208,6 @@ export class Spin2DocumentSymbolParser {
             // process pasm (assembly) lines
             if (trimmedLine.length > 0) {
               this._logMessage("    scan inDatPAsm Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
-              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
-              if (lineParts.length > 0 && lineParts[0].toUpperCase() == "FIT") {
-                this._logMessage("  - (" + (i + 1) + "): pre-scan DAT PASM line trimmedLine=[" + trimmedLine + "]");
-                currState = prePasmState;
-                this._logMessage("    scan END DATPasm Ln#" + (i + 1) + " POP currState=[" + currState + "]");
-                // and ignore rest of this line
-                continue;
-              }
               // didn't leave this state check for new global label
               global_label = this._getOlnDAT_PasmDeclaration(0, line); // let's get possible label on this ORG statement
             }
@@ -383,22 +375,24 @@ export class Spin2DocumentSymbolParser {
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const datPasmRHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    const lineParts: string[] = this.parseUtils.getNonWhiteNParenLineParts(datPasmRHSStr);
-    this._logMessage("- Oln GetDatPasmDecl lineParts=[" + lineParts + "](" + lineParts.length + ")");
-    // handle name in 1 column
-    let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
-    const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-    if (haveLabel && !isDataDeclarationLine && !lineParts[0].startsWith(".") && !lineParts[0].startsWith(":") && !lineParts[0].includes("#")) {
-      const labelName: string = lineParts[0];
-      if (
-        !this.parseUtils.isP2AsmReservedSymbols(labelName) &&
-        !labelName.toUpperCase().startsWith("IF_") &&
-        !labelName.toUpperCase().startsWith("_RET_") &&
-        !labelName.toUpperCase().startsWith("DEBUG")
-      ) {
-        // org in first column is not label name, nor is if_ conditional
-        newGlobalLabel = labelName;
-        this._logMessage("  -- Oln GetDatPasmDecl GLBL newGlobalLabel=[" + newGlobalLabel + "]");
+    if (datPasmRHSStr.length > 0) {
+      const lineParts: string[] = this.parseUtils.getNonWhiteNParenLineParts(datPasmRHSStr);
+      this._logMessage("- Oln GetDatPasmDecl lineParts=[" + lineParts + "](" + lineParts.length + ")");
+      // handle name in 1 column
+      let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
+      const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
+      if (haveLabel && !isDataDeclarationLine && !lineParts[0].startsWith(".") && !lineParts[0].startsWith(":") && !lineParts[0].includes("#")) {
+        const labelName: string = lineParts[0];
+        if (
+          !this.parseUtils.isP2AsmReservedSymbols(labelName) &&
+          !labelName.toUpperCase().startsWith("IF_") &&
+          !labelName.toUpperCase().startsWith("_RET_") &&
+          !labelName.toUpperCase().startsWith("DEBUG")
+        ) {
+          // org in first column is not label name, nor is if_ conditional
+          newGlobalLabel = labelName;
+          this._logMessage("  -- Oln GetDatPasmDecl GLBL newGlobalLabel=[" + newGlobalLabel + "]");
+        }
       }
     }
     return newGlobalLabel;

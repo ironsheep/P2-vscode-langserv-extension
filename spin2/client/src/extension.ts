@@ -23,7 +23,7 @@ import { isSpinOrPasmDocument } from "./spin.vscode.utils";
 
 let client: LanguageClient;
 
-const extensionDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const extensionDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 var extensionOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 var objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
