@@ -847,10 +847,10 @@
     //            #A7BAE7   #D0BBE6        #D0E5FA         #FEF5FA/D3F1D2
     // colors
     "string": "#ba4343", // debug() strings
-    "comment": "#6A9955", // single line non-doc comments
+    "comment": "#538054", // ?? CODE IS CAUSING THIS!  OLD "#6A9955" // single line non-doc comments
     "comment.line": "#538054",
     "comment.block": "#538054",
-    "comment.documentation": "#5db55d",
+    "comment.documentation": "#5db55d", // ?? CODE IS CAUSING THIS!
     "comment.line.documentation": "#5db55d",
     "comment.block.documentation": "#5db55d",
     "label": "#9C775D", // pasm labels
