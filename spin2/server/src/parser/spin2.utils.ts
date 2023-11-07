@@ -2141,6 +2141,7 @@ export class Spin2ParseUtils {
       "pa",
       "pb",
       "clkfreq",
+      "clkmode",
       "_clkfreq",
       "_rcfast",
       "_rcslow",
