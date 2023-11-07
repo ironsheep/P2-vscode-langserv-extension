@@ -1586,12 +1586,12 @@ export class Spin1DocumentSemanticParser {
             if (allowLocal && this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
               if (showDebug) {
-                this._logDAT("  --  FOUND local name=[" + namePart + "]");
+                this._logDAT("  --  FOUND DAT value local name=[" + namePart + "]");
               }
             } else if (this.semanticFindings.isGlobalToken(namePart)) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
               if (showDebug) {
-                this._logDAT("  --  FOUND global name=[" + namePart + "]");
+                this._logDAT("  --  FOUND DAT value global name=[" + namePart + "]");
               }
             }
             if (referenceDetails != undefined) {
@@ -1658,7 +1658,7 @@ export class Spin1DocumentSemanticParser {
         let referenceDetails: RememberedToken | undefined = undefined;
         if (this.semanticFindings.isGlobalToken(labelName)) {
           referenceDetails = this.semanticFindings.getGlobalToken(labelName);
-          this._logPASM(`  --  FOUND global name=[${labelName}] referenceDetails=(${referenceDetails})`);
+          this._logPASM(`  --  FOUND DATpasm global name=[${labelName}] referenceDetails=(${referenceDetails})`);
         }
         if (referenceDetails != undefined) {
           const nameOffset = line.indexOf(labelName, currentOffset);
@@ -1759,7 +1759,7 @@ export class Spin1DocumentSemanticParser {
                 let referenceDetails: RememberedToken | undefined = undefined;
                 if (this.semanticFindings.isGlobalToken(namePart)) {
                   referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-                  this._logPASM("  --  FOUND global name=[" + namePart + "]");
+                  this._logPASM("  --  FOUND DATpasm global name=[" + namePart + "]");
                 }
                 if (referenceDetails != undefined) {
                   this._logPASM("  --  DAT PAsm name=[" + namePart + "](" + (nameOffset + 1) + ")");
@@ -2023,7 +2023,7 @@ export class Spin1DocumentSemanticParser {
                   this._logSPIN("  --  FOUND local name=[" + namedIndexPart + "]");
                 } else if (this.semanticFindings.isGlobalToken(namedIndexPart)) {
                   referenceDetails = this.semanticFindings.getGlobalToken(namedIndexPart);
-                  this._logSPIN("  --  FOUND global name=[" + namedIndexPart + "]");
+                  this._logSPIN("  --  FOUND PUB/PRI global name=[" + namedIndexPart + "]");
                 }
                 if (referenceDetails != undefined) {
                   this._logSPIN("  --  lcl-idx variableName=[" + namedIndexPart + "](" + (nameOffset + 1) + ")");
@@ -2211,10 +2211,10 @@ export class Spin1DocumentSemanticParser {
                   let referenceDetails: RememberedToken | undefined = undefined;
                   if (this.semanticFindings.isLocalToken(variableNamePart)) {
                     referenceDetails = this.semanticFindings.getLocalTokenForLine(variableNamePart, lineNbr);
-                    this._logSPIN(`  --  FOUND local name=[${variableNamePart}]`);
+                    this._logSPIN(`  --  FOUND SPIN local name=[${variableNamePart}]`);
                   } else if (this.semanticFindings.isGlobalToken(variableNamePart)) {
                     referenceDetails = this.semanticFindings.getGlobalToken(variableNamePart);
-                    this._logSPIN(`  --  FOUND global name=[${variableNamePart}]`);
+                    this._logSPIN(`  --  FOUND SPIN global name=[${variableNamePart}]`);
                   }
                   if (referenceDetails != undefined) {
                     const modificationArray: string[] = referenceDetails.modifiersWith("modification");
@@ -2336,7 +2336,6 @@ export class Spin1DocumentSemanticParser {
       // -------------------------------------------
       const rhsOffset: number = assignmentOffset != -1 ? assignmentOffset + 2 : currentOffset;
       const assignmentRHSStr: string = this._getNonCommentLineReturnComment(rhsOffset, lineIdx, line, tokenSet);
-      currentOffset = line.indexOf(assignmentRHSStr, currentOffset);
       const preCleanAssignmentRHSStr = this.parseUtils.getNonInlineCommentLine(assignmentRHSStr).replace("..", "  ");
       this._logSPIN("  -- SPIN assignmentRHSStr=[" + assignmentRHSStr + "]");
       const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(preCleanAssignmentRHSStr);
@@ -2400,10 +2399,10 @@ export class Spin1DocumentSemanticParser {
           let referenceDetails: RememberedToken | undefined = undefined;
           if (this.semanticFindings.isLocalToken(namePart)) {
             referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
-            this._logSPIN("  --  FOUND local name=[" + namePart + "]");
+            this._logSPIN("  --  FOUND spinRHS local name=[" + namePart + "]");
           } else if (this.semanticFindings.isGlobalToken(namePart)) {
             referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-            this._logSPIN("  --  FOUND global name=[" + namePart + "]");
+            this._logSPIN("  --  FOUND spinRHS global name=[" + namePart + "]");
           }
           if (referenceDetails != undefined) {
             this._logSPIN("  --  SPIN RHS name=[" + namePart + "](" + (nameOffset + 1) + ")");
@@ -2521,7 +2520,7 @@ export class Spin1DocumentSemanticParser {
                 const nameOffset = line.indexOf(nameReference, currentOffset);
                 if (referenceDetails != undefined) {
                   //const updatedModificationSet: string[] = this._modifiersWithout(referenceDetails.modifiers, "declaration");
-                  this._logOBJ("  --  FOUND global name=[" + nameReference + "]");
+                  this._logOBJ("  --  FOUND OBJ global name=[" + nameReference + "]");
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
                     startCharacter: nameOffset,
@@ -2649,7 +2648,7 @@ export class Spin1DocumentSemanticParser {
                   const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + "#" + possibleNameSet[1];
                   nameOffset = line.indexOf(searchString, currentOffset);
                   if (referenceDetails != undefined) {
-                    this._logVAR("  --  FOUND global name=[" + namePart + "]");
+                    this._logVAR("  --  FOUND VAR global name=[" + namePart + "]");
                     this._recordToken(tokenSet, line, {
                       line: lineIdx,
                       startCharacter: nameOffset,

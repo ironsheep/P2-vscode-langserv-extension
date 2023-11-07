@@ -1770,11 +1770,12 @@ export class Spin2DocumentSemanticParser {
               const currPossibleLen = possibleName.length;
               if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
                 // does name contain a namespace reference?
+                let nameOffset: number = line.indexOf(possibleName, currentOffset);
                 let possibleNameSet: string[] = [possibleName];
                 if (this._isPossibleObjectReference(possibleName)) {
                   const bHaveObjReference = this._reportObjectReference(possibleName, lineIdx, currentOffset, line, tokenSet);
                   if (bHaveObjReference) {
-                    currentOffset = currentOffset + possibleName.length;
+                    currentOffset = nameOffset + possibleName.length;
                     continue;
                   }
                   possibleNameSet = possibleName.split(".");
@@ -1782,7 +1783,7 @@ export class Spin2DocumentSemanticParser {
                 this._logCON(`  --  possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
                 const namePart: string = possibleNameSet[0];
                 const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + "." + possibleNameSet[1];
-                const nameOffset: number = line.indexOf(searchString, currentOffset); // skip to RHS of assignment
+                nameOffset = line.indexOf(searchString, currentOffset); // skip to RHS of assignment
                 let referenceDetails: RememberedToken | undefined = undefined;
                 this._logCON(`  -- namePart=[${namePart}], ofs=(${nameOffset})`);
                 if (this.semanticFindings.isGlobalToken(namePart)) {

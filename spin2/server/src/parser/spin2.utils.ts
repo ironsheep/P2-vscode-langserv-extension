@@ -320,7 +320,7 @@ export class Spin2ParseUtils {
 
   public getNonWhiteCONLineParts(line: string): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
-    const lineParts: string[] | null = nonEqualsLine.match(/[^  \t\(\)\|\*\+\-\/\>\<\=\&]+/g);
+    const lineParts: string[] | null = nonEqualsLine.match(/[^  \t\(\)\|\?\:\*\+\-\/\>\<\=\&]+/g);
     let filterParts: string[] = [];
     if (lineParts != null) {
       for (let index = 0; index < lineParts.length; index++) {
