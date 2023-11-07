@@ -207,7 +207,7 @@ export class Spin2DocumentSemanticParser {
             currBlockComment = undefined;
           }
           currState = priorState;
-          this._logMessage(`* Ln#${lineNbr} foundMuli end-{{ exit MultiLineDocComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli end-{{ exit MultiLineDocComment`);
         } else {
           // add line to the comment recording
           currBlockComment?.appendLine(line);
@@ -234,7 +234,7 @@ export class Spin2DocumentSemanticParser {
             currBlockComment = undefined;
           }
           currState = priorState;
-          this._logMessage(`* Ln#${lineNbr} foundMuli end-{{ exit MultiLineComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli end-{{ exit MultiLineComment`);
         } else {
           // add line to the comment recording
           currBlockComment?.appendLine(line);
@@ -249,6 +249,20 @@ export class Spin2DocumentSemanticParser {
         this._getFlexspinPreProcessor_Declaration(0, lineNbr, line);
         // a FlexspinPreprocessorDirective line clears pending single line comments
         this.priorSingleLineComment = undefined;
+        continue;
+      } else if (trimmedLine.startsWith("''")) {
+        // process single line doc comment
+        this.priorSingleLineComment = trimmedLine; // record this line
+        // create new single line doc-comment block
+        bBuildingSingleLineDocCmtBlock = true;
+        currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineDocComment, i, line);
+        continue;
+      } else if (trimmedLine.startsWith("'")) {
+        // process single line non-doc comment
+        this.priorSingleLineComment = trimmedLine; // record this line
+        // create new single line non-doc-comment block
+        bBuildingSingleLineCmtBlock = true;
+        currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineComment, i, line);
         continue;
       } else if (trimmedLine.startsWith("{{") && trimmedLineNoInlineCmts.indexOf("{{") != -1) {
         // process multi-line doc comment
@@ -268,7 +282,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment  line=[${line}](${line.length})`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment  line=[${line}](${line.length})`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineDocComment, i, line);
           //  DO NOTHING Let Syntax highlighting do this
@@ -284,7 +298,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment without CLOSE
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli mid-{{ starting MultiLineDocComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli mid-{{ starting MultiLineDocComment`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineDocComment, i, line);
           //  DO NOTHING Let Syntax highlighting do this
@@ -304,7 +318,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment`);
+          // this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineComment, i, line);
           // Mark comment line
@@ -322,7 +336,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli mid-{ starting MultiLineComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli mid-{ starting MultiLineComment`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineComment, i, line);
           // Mark comment line
@@ -343,20 +357,6 @@ export class Spin2DocumentSemanticParser {
         this.priorSingleLineComment = undefined;
         // add to existing single line non-doc-comment block
         currSingleLineBlockComment?.appendLine(line);
-        continue;
-      } else if (trimmedLine.startsWith("''")) {
-        // process single line doc comment
-        this.priorSingleLineComment = trimmedLine; // record this line
-        // create new single line doc-comment block
-        bBuildingSingleLineDocCmtBlock = true;
-        currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineDocComment, i, line);
-        continue;
-      } else if (trimmedLine.startsWith("'")) {
-        // process single line non-doc comment
-        this.priorSingleLineComment = trimmedLine; // record this line
-        // create new single line non-doc-comment block
-        bBuildingSingleLineCmtBlock = true;
-        currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineComment, i, line);
         continue;
       }
 
@@ -588,10 +588,10 @@ export class Spin2DocumentSemanticParser {
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
-          this._logMessage(`* Ln#${lineNbr} foundMuli end-{{ exit MultiLineDocComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli end-{{ exit MultiLineDocComment`);
           //  DO NOTHING Let Syntax highlighting do this
         } else {
-          this._logMessage(`* Ln#${lineNbr} SKIP in MultiLineDocComment`);
+          //this._logMessage(`* Ln#${lineNbr} SKIP in MultiLineDocComment`);
           continue; // only SKIP if we don't have closing marker
         }
       } else if (currState == eParseState.inMultiLineComment) {
@@ -601,10 +601,10 @@ export class Spin2DocumentSemanticParser {
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
-          this._logMessage(`* Ln#${lineNbr} foundMuli end-{{ exit MultiLineComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli end-{{ exit MultiLineComment`);
           //  DO NOTHING Let Syntax highlighting do this
         } else {
-          this._logMessage(`* Ln#${lineNbr} SKIP in MultiLineDocComment`);
+          //this._logMessage(`* Ln#${lineNbr} SKIP in MultiLineDocComment`);
           continue; // only SKIP if we don't have closing marker
         }
       } else if (singleLineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(singleLineParts[0])) {
@@ -751,7 +751,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment`);
           //  DO NOTHING Let Syntax highlighting do this
         }
       } else if (trimmedLineNoInlineCmts.includes("{{")) {
@@ -764,7 +764,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli mid-{{ starting MultiLineDocComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli mid-{{ starting MultiLineDocComment`);
           //  DO NOTHING Let Syntax highlighting do this
         }
       } else if (trimmedLine.startsWith("{") && trimmedLineNoInlineCmts.indexOf("{") != -1) {
@@ -778,7 +778,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment`);
           //  DO NOTHING Let Syntax highlighting do this
         }
       } else if (trimmedLineNoInlineCmts.includes("{") && !trimmedLineNoInlineCmts.includes("{{")) {
@@ -792,7 +792,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli mid-{ starting MultiLineComment`);
+          //this._logMessage(`* Ln#${lineNbr} foundMuli mid-{ starting MultiLineComment`);
           //  DO NOTHING Let Syntax highlighting do this
         }
       } else if (currState == eParseState.inCon) {
@@ -1114,7 +1114,7 @@ export class Spin2DocumentSemanticParser {
       if (nonCommentConstantLine.length == 0) {
         this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
       } else {
-        this._logCON("  - Ln#" + lineNbr + " GetCONDecl nonCommentConstantLine=[" + nonCommentConstantLine + "]");
+        this._logCON(`  -- GetCONDecl nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`);
         const haveEnumDeclaration: boolean = this._isEnumDeclarationLine(lineNbr - 1, 0, nonCommentConstantLine);
         const isAssignment: boolean = nonCommentConstantLine.indexOf("=") != -1;
         if (!haveEnumDeclaration && isAssignment) {
@@ -1122,6 +1122,7 @@ export class Spin2DocumentSemanticParser {
         } else {
           this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
         }
+        this._logCON(`  -- GetCONDecl conEnumInProgress=(${this.conEnumInProgress}), haveEnumDeclaration=(${haveEnumDeclaration})`);
         if (!haveEnumDeclaration && !this.conEnumInProgress) {
           const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(",") != -1;
           this._logCON("  -- declNotEnum containsMultiStatements=[" + containsMultiStatements + "]");
@@ -1694,7 +1695,7 @@ export class Spin2DocumentSemanticParser {
         this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
       }
       const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(",") != -1;
-      this._logCON("- reportConstant haveEnum=(" + haveEnumDeclaration + "), containsMulti=(" + containsMultiStatements + "), nonCommentConstantLine=[" + nonCommentConstantLine + "]");
+      this._logCON(`- reportConstant haveEnum=(${haveEnumDeclaration}), containsMulti=(${containsMultiStatements}), nonCommentConstantLine=[${nonCommentConstantLine}]`);
       let statements: string[] = [nonCommentConstantLine];
       if (!haveEnumDeclaration && !this.conEnumInProgress) {
         if (containsMultiStatements) {
