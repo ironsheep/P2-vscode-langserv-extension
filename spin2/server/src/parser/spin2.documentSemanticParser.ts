@@ -876,7 +876,7 @@ export class Spin2DocumentSemanticParser {
         // process DAT section pasm (assembly) lines
         this._logPASM(`- check DAT PASM line(${lineNbr}):  trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
-          this._logPASM("- process DAT PASM Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
+          //this._logPASM("- process DAT PASM Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           // in DAT sections we end with next section
           const partialTokenSet: IParsedToken[] = this._reportDAT_PAsmCode(i, 0, line);
           partialTokenSet.forEach((newToken) => {
@@ -2021,19 +2021,19 @@ export class Spin2DocumentSemanticParser {
   }
 
   private _reportDAT_ValueDeclarationCode(lineIdx: number, startingOffset: number, line: string, allowLocal: boolean, showDebug: boolean, isDatPAsm: boolean): IParsedToken[] {
-    // process line that starts with storage type (or FILE, or ORG), not name, process rest of line for symbols
+    // process line that starts with possible name then storage type (or FILE, or ORG), if not name, process rest of line for symbols
     const lineNbr: number = lineIdx + 1;
     const tokenSet: IParsedToken[] = [];
     //this._logMessage(' DBG _rDAT_ValueDeclarationCode(#' + lineNbr + ', ofs=' + startingOffset + ')');
-    this._logDAT(`- process ValueDeclaration line(${lineNbr}): allowLocal=(${allowLocal}), startingOffset=(${startingOffset}),  line=[${line}]`);
+    this._logDAT(`- Ln#${lineNbr}: process ValueDeclaration allowLocal=(${allowLocal}), startingOffset=(${startingOffset}),  line=[${line}]`);
 
     // process data declaration
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const dataValueInitStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     if (dataValueInitStr.length > 0) {
-      this._logMessage(`  -- reportDataValueInit dataValueInitStr=[${dataValueInitStr}], currentOffset=(${currentOffset})`);
+      this._logMessage(`  -- reportDataValueInit dataValueInitStr=[${dataValueInitStr}](${dataValueInitStr.length}), currentOffset=(${currentOffset})`);
       let lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(dataValueInitStr);
-      const argumentStartIndex: number = lineParts.length > 0 && this.parseUtils.isDatStorageType(lineParts[0]) ? 1 : 0;
+      let haveStorageType: boolean = false;
       this._logMessage(`  -- lineParts=[${lineParts}](${lineParts.length})`);
       // process remainder of line
       if (lineParts.length < 2) {
@@ -2042,13 +2042,17 @@ export class Spin2DocumentSemanticParser {
       if (lineParts.length > 1) {
         let nameOffset: number = 0;
         let namePart: string = "";
-        for (let index = argumentStartIndex; index < lineParts.length; index++) {
+        for (let index = 0; index < lineParts.length; index++) {
           const possibleName = lineParts[index].replace(/[\(\)\@]/, "");
           //if (showDebug) {
           //    this._logMessage('  -- possibleName=[' + possibleName + ']');
           //}
           const currPossibleLen = possibleName.length;
           if (currPossibleLen < 1) {
+            continue;
+          }
+          if (!haveStorageType && this.parseUtils.isDatStorageType(possibleName)) {
+            haveStorageType = true; // only skip 1st storage type, more is error
             continue;
           }
           // the following allows '.' in names but  only when in DAT PASM code, not spin!
@@ -2075,23 +2079,23 @@ export class Spin2DocumentSemanticParser {
             namePart = possibleNameSet[0];
             const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + "." + possibleNameSet[1];
             nameOffset = line.indexOf(searchString, currentOffset);
-            this._logMessage(`  -- searchString=[${searchString}], nameOffset=(${nameOffset})`);
+            this._logMessage(`  -- searchString=[${searchString}], ofs=(${nameOffset})`);
             let referenceDetails: RememberedToken | undefined = undefined;
             if (allowLocal) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
-              if (showDebug) {
+              if (showDebug && referenceDetails) {
                 this._logMessage(`  --  FOUND local name=[${namePart}], referenceDetails=(${referenceDetails})`);
               }
               if (!referenceDetails) {
                 referenceDetails = this.semanticFindings.getLocalPAsmTokenForLine(lineNbr, namePart);
-                if (showDebug) {
+                if (showDebug && referenceDetails) {
                   this._logMessage(`  --  FOUND local pasm name=[${namePart}], referenceDetails=(${referenceDetails})`);
                 }
               }
             }
             if (!referenceDetails) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-              if (showDebug) {
+              if (showDebug && referenceDetails) {
                 this._logMessage(`  --  FOUND global name=[${namePart}], referenceDetails=(${referenceDetails})`);
               }
             }
@@ -2119,12 +2123,12 @@ export class Spin2DocumentSemanticParser {
                 }
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
-                  startCharacter: currentOffset,
+                  startCharacter: nameOffset,
                   length: namePart.length,
                   ptTokenType: "variable",
                   ptTokenModifiers: ["missingDeclaration"],
                 });
-                this.semanticFindings.pushDiagnosticMessage(lineIdx, currentOffset, currentOffset + namePart.length, eSeverity.Error, `P2 Spin DAT missing declaration [${namePart}]`);
+                this.semanticFindings.pushDiagnosticMessage(lineIdx, nameOffset, nameOffset + namePart.length, eSeverity.Error, `P2 Spin DAT missing declaration [${namePart}]`);
               }
             }
           }
@@ -2138,13 +2142,14 @@ export class Spin2DocumentSemanticParser {
   private _reportDAT_PAsmCode(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     // skip Past Whitespace
+    this._logPASM(`- Ln#${lineIdx + 1} process DAT PASM line=[${line}](${line.length})`);
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const inLinePAsmRHSStr: string = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
     if (inLinePAsmRHSStr.length > 0) {
       const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
       this._logPASM(`  --  DAT PAsm lineParts=[${lineParts}](${lineParts.length}), inLinePAsmRHSStr=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length})`);
-      currentOffset = line.indexOf(inLinePAsmRHSStr, currentOffset);
+      currentOffset = line.indexOf(inLinePAsmRHSStr.trim(), currentOffset);
       // handle name in 1 column
       const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
       if (bIsAlsoDebugLine) {
@@ -2269,8 +2274,8 @@ export class Spin2DocumentSemanticParser {
             currentOffset = nameOffset + likelyInstructionName.length; // move past the instruction
             for (let index = minNonLabelParts; index < lineParts.length; index++) {
               let argumentName = lineParts[index].replace(/[@#]/, "");
-              if (argumentName.length < 1) {
-                // skip empty operand
+              if (argumentName.length < 1 || argumentName === ":") {
+                // skip empty operand or ":" left by splitter
                 continue;
               }
               if (index == lineParts.length - 1 && this.parseUtils.isP2AsmConditional(argumentName)) {
@@ -3995,7 +4000,7 @@ export class Spin2DocumentSemanticParser {
       };
       tokenSet.push(newToken);
     }
-    this._logDEBUG("-- DEBUG line(" + lineIdx + ") debugStatementStr=[" + debugStatementStr + "]");
+    this._logDEBUG("-- DEBUG Ln#" + (lineIdx + 1) + " debugStatementStr=[" + debugStatementStr + "]");
     let lineParts: string[] = this.parseUtils.getDebugNonWhiteLineParts(debugStatementStr);
     this._logDEBUG(" -- rptDbg A lineParts=[" + lineParts + "](" + lineParts.length + ")");
     if (lineParts.length > 0 && lineParts[0].toLowerCase() != "debug") {
@@ -4352,7 +4357,7 @@ export class Spin2DocumentSemanticParser {
         });
       }
     } else {
-      this._logDEBUG("ERROR: _reportDebugStatement() line(" + lineIdx + ") line=[" + line + "] no debug()??");
+      this._logDEBUG("ERROR: _reportDebugStatement() Ln#" + (lineIdx + 1) + " line=[" + line + "] no debug()??");
     }
     return tokenSet;
   }
@@ -4847,7 +4852,7 @@ export class Spin2DocumentSemanticParser {
     let desiredDirective: ISpin2Directive;
     for (let index = 0; index < this.fileDirectives.length; index++) {
       const currDirective: ISpin2Directive = this.fileDirectives[index];
-      this._logMessage("  -- hunt:" + lineNbr + ", ln=" + currDirective.lineNumber + ", typ=" + currDirective.displayType + "(" + currDirective.eDisplayType + ")");
+      this._logMessage("  -- hunt Ln#" + lineNbr + ", ln=" + currDirective.lineNumber + ", typ=" + currDirective.displayType + "(" + currDirective.eDisplayType + ")");
       if (currDirective.lineNumber <= lineNbr) {
         if (currDirective.lineNumber > maxLineBefore) {
           desiredDirective = currDirective;
@@ -4857,7 +4862,7 @@ export class Spin2DocumentSemanticParser {
       }
     }
     if (desiredType != eDebugDisplayType.Unknown) {
-      this._logMessage("  -- directive for line#" + lineNbr + ": " + desiredType);
+      this._logMessage("  -- directive for Ln#" + lineNbr + ": " + desiredType);
     }
     return desiredType;
   }
