@@ -122,28 +122,31 @@ export class Spin1ParseUtils {
       // if we have quoted string hide them for now...
       const startDoubleQuoteOffset: number = cleanedLine.indexOf('"');
       let checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, true) : cleanedLine;
-
-      //   REPLACE ^...}} when NO {{ before it on start of line
+      /*
+      //   REPLACE ^...}} when NO {{ before it on start of line (unless there's an earlier ' comment)
+      const tickOffset: number = checkLine.indexOf("'", startingOffset);
       const doubleBraceEndOffset: number = checkLine.indexOf("}}", startingOffset);
-      if (doubleBraceEndOffset != -1) {
+      let isInComment: boolean = doubleBraceEndOffset != -1 && tickOffset != -1 && tickOffset < doubleBraceEndOffset;
+      if (doubleBraceEndOffset != -1 && !isInComment) {
         const inLineComment: string = cleanedLine.substring(0, doubleBraceEndOffset + 2);
         cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
         didReplace = true;
         //this._logMessage(`  -- RInCmt ^cmt}} [${cleanedLine}]`);
       }
-      //   REPLACE ^...} when NO { before it on start of line
+      //   REPLACE ^...} when NO { before it on start of line (unless there's an earlier ' comment)
       const singleBraceEndOffset: number = checkLine.indexOf("}", startingOffset);
-      if (singleBraceEndOffset != -1) {
+      isInComment = singleBraceEndOffset != -1 && tickOffset != -1 && tickOffset < singleBraceEndOffset;
+      if (singleBraceEndOffset != -1 && !isInComment) {
         const inLineComment: string = cleanedLine.substring(0, singleBraceEndOffset + 1);
         cleanedLine = cleanedLine.replace(inLineComment, " ".repeat(inLineComment.length));
         didReplace = true;
         //this._logMessage(`  -- RInCmt ^cmt} [${cleanedLine}]`);
       }
-
-      if (didReplace) {
-        this._logMessage(`  -- RInLnCmt line [${line}]`);
-        this._logMessage(`  --               [${cleanedLine}]`);
-      }
+*/
+      //if (didReplace) {
+      //  this._logMessage(`  -- RInLnCmt line [${line}]`);
+      //  this._logMessage(`  --               [${cleanedLine}]`);
+      //}
     }
     return cleanedLine;
   }
@@ -176,6 +179,51 @@ export class Spin1ParseUtils {
       }
     }
     return desiredOffset;
+  }
+
+  public getTopParserNonCommentLineRemainder(startingOffset: number, line: string): string {
+    //   REPLACE {{...}} when found
+    //   REPLACE {...} when found
+    // find comment at end of line and remove there to end of line
+    //  ( where comment is ' or '' or unpaired {{ or { )
+    //   return 0 len line if trim() removes all after removing/replacing comments
+    let lineWithoutTrailingCommentStr: string = "";
+    // TODO: UNDONE make this into loop to find first ' not in string
+    if (line.length - startingOffset > 0) {
+      // get line parts - we only care about first one
+      lineWithoutTrailingCommentStr = this._removeInlineComments(startingOffset, line);
+      let beginCommentOffset: number = lineWithoutTrailingCommentStr.indexOf("'");
+      if (beginCommentOffset != -1) {
+        // have single quote, is it within quoted string?
+        let currentOffset: number = this.skipWhite(line, startingOffset);
+        // if we have quited string hide them for now...
+        const startDoubleQuoteOffset: number = line.indexOf('"', currentOffset);
+        if (startDoubleQuoteOffset != -1) {
+          const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr, true); // false disabled debug output
+          beginCommentOffset = nonStringLine.indexOf("'");
+        }
+      }
+
+      // do we have a comment?
+      if (beginCommentOffset != -1) {
+        this._logMessage(` - p1 gNCLR ofs=${startingOffset}, line=[${line}](${line.length})`);
+      }
+      const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset : line.length;
+      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
+      lineWithoutTrailingCommentStr = lineWithoutTrailingCommentStr.substring(0, nonCommentEOL).trimEnd();
+      //this._logMessage('- gnclr lineWithoutTrailingCommentStr=[' + startingOffset + ']');
+      if (lineWithoutTrailingCommentStr.trim().length == 0) {
+        lineWithoutTrailingCommentStr = "";
+        this._logMessage(`  -- gNCLR line forced to EMPTY`);
+      }
+      if (line.substr(startingOffset) !== lineWithoutTrailingCommentStr) {
+        this._logMessage(`  -- gNCLR line [${line}](${line.length})`);
+        this._logMessage(`  --            [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
+      }
+    } else {
+      this._logMessage(` - gNCLR SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
+    }
+    return lineWithoutTrailingCommentStr;
   }
 
   public getNonCommentLineRemainder(startingOffset: number, line: string): string {

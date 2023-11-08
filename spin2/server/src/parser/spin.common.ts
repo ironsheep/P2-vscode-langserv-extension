@@ -75,7 +75,7 @@ export class ContinuedLines {
   }
 
   public clear() {
-    this._logMessage(`  -- CntLn: Clear()`);
+    //this._logMessage(`  -- CntLn: Clear()`);
     this.rawLineIdxs = [];
     this.rawLines = [];
     this.singleLine = "";
