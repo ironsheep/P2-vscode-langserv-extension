@@ -98,10 +98,10 @@ export class Spin1ParseUtils {
         didReplace = true;
       }
 
-      if (didReplace) {
-        this._logMessage(`  -- gLWoInLnC line [${line}]`);
-        this._logMessage(`  --                [${cleanedLine}]`);
-      }
+      //if (didReplace) {
+      //  this._logMessage(`  -- gLWoInLnC line [${line}]`);
+      //  this._logMessage(`  --                [${cleanedLine}]`);
+      //}
     }
     return cleanedLine;
   }
@@ -235,7 +235,7 @@ export class Spin1ParseUtils {
 
       // do we have a comment?
       if (beginCommentOffset != -1) {
-        this._logMessage(` - p1 gNCLR ofs=${startingOffset}, line=[${line}](${line.length})`);
+        this._logMessage(` - p1 gRWoTTC ofs=${startingOffset}, line=[${line}](${line.length})`);
       }
       const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset : line.length;
       //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
@@ -243,14 +243,14 @@ export class Spin1ParseUtils {
       //this._logMessage('- gnclr lineWithoutTrailingCommentStr=[' + startingOffset + ']');
       if (lineWithoutTrailingCommentStr.trim().length == 0) {
         lineWithoutTrailingCommentStr = "";
-        this._logMessage(`  -- gNCLR line forced to EMPTY`);
+        //this._logMessage(`  -- gRWoTTC line forced to EMPTY`);
       }
-      if (line.substr(startingOffset) !== lineWithoutTrailingCommentStr) {
-        this._logMessage(`  -- gNCLR line [${line}](${line.length})`);
-        this._logMessage(`  --            [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
-      }
-    } else {
-      this._logMessage(` - gNCLR SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
+      //if (line.substr(startingOffset) !== lineWithoutTrailingCommentStr) {
+      //  this._logMessage(`  -- gRWoTTC line [${line}](${line.length})`);
+      //  this._logMessage(`  --              [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
+      //}
+      //} else {
+      //this._logMessage(` - gRWoTTC SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
     }
     return lineWithoutTrailingCommentStr;
   }
@@ -442,10 +442,10 @@ export class Spin1ParseUtils {
       }
     }
 
-    if (didRemove) {
-      this._logMessage("  -- RDQS line [" + line + "]");
-      this._logMessage("  --           [" + trimmedLine + "]");
-    }
+    //if (didRemove) {
+    //  this._logMessage("  -- RDQS line [" + line + "]");
+    //  this._logMessage("  --           [" + trimmedLine + "]");
+    //}
 
     return trimmedLine;
   }

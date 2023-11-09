@@ -64,10 +64,15 @@ export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: 
     if (!fileBaseName.toLowerCase().includes(".spin")) {
       matchFilename = `${fileBaseName}.`.toLowerCase();
     }
+    //ctx.logger.log(`TRC: looking for matchFilename=[${matchFilename}]`);
     for (let index = 0; index < fileSpecs.length; index++) {
       const fileSpec: string = fileSpecs[index];
-      if (fileSpec.toLowerCase().includes(matchFilename)) {
+      const pathParts: string[] = fileSpec.split("/");
+      const fileName = pathParts[pathParts.length - 1].toLowerCase();
+      //ctx.logger.log(`TRC: checking fileSpec=[${fileSpec}]`);
+      if (fileName.startsWith(matchFilename)) {
         matchedFiles.push(fileSpec);
+        //ctx.logger.log(`TRC: matched fileSpec=[${fileSpec}]`);
       }
     }
   }

@@ -41,7 +41,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -157,7 +157,7 @@ export class Spin2DocumentSemanticParser {
       const lineWOutInlineComments: string = this.parseUtils.getLineWithoutInlineComments(line);
       const bHaveLineToProcess: boolean = lineWOutInlineComments.length > 0;
       const trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getRemainderWOutTrailingTicComment(0, lineWOutInlineComments).trimStart() : "";
-      this._logMessage(`  -- Ln#${lineNbr} CHK trimmedNonCommentLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
+      //this._logMessage(`  -- Ln#${lineNbr} CHK trimmedNonCommentLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
       const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
       const tempComment: string = line.substring(trimmedNonCommentLine.length + offSet).trim();
       this.rightEdgeComment = tempComment.length > 0 ? tempComment : undefined;
@@ -194,7 +194,7 @@ export class Spin2DocumentSemanticParser {
       // now start our processing
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
-        let closingOffset = trimmedNonCommentLine.indexOf("}}");
+        let closingOffset = lineWOutInlineComments.indexOf("}}");
         let commentLen: number = line.length;
         if (closingOffset != -1) {
           commentLen = closingOffset + 2;
@@ -223,7 +223,7 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {...} on same line without closing!
-        const closingOffset: number = trimmedNonCommentLine.indexOf("}");
+        const closingOffset: number = lineWOutInlineComments.indexOf("}");
         if (closingOffset != -1) {
           // have close, comment ended
           // end the comment recording
@@ -587,7 +587,7 @@ export class Spin2DocumentSemanticParser {
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
         // ALLOW {cmt}, {{cmt}} on same line without closing!
-        let closingOffset = trimmedNonCommentLine.indexOf("}}");
+        let closingOffset = lineWOutInlineComments.indexOf("}}");
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
@@ -600,7 +600,7 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {cmt}, {{cmt}} on same line without closing!
-        const closingOffset: number = trimmedNonCommentLine.indexOf("}");
+        const closingOffset: number = lineWOutInlineComments.indexOf("}");
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;

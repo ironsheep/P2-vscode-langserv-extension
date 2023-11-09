@@ -767,7 +767,9 @@ export class DocumentFindings {
   public getPublicToken(tokenName: string): RememberedToken | undefined {
     // return public token or undefined is not present or token is not public
     let referenceDetails: RememberedToken | undefined = this.getGlobalToken(tokenName);
+    this._logMessage(`  -- gPublToken(${tokenName}) -> (${referenceDetails})`);
     if (referenceDetails && !referenceDetails.isPublic()) {
+      this._logMessage(`  -- gPublToken() -> NOT public, disqualified! (${referenceDetails})`);
       referenceDetails = undefined;
     }
     return referenceDetails;
@@ -1246,9 +1248,9 @@ export class DocumentFindings {
       const spanInfo: IMethodSpan = { startLineNbr: this.currMethodStartLineNbr, endLineNbr: lineNbr };
       if (!this.spanInfoByMethodName.has(this.currMethodName)) {
         this.spanInfoByMethodName.set(this.currMethodName, spanInfo);
-        this._logMessage(`  -- NEW-locTOK method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}]`);
+        this._logMessage(`  -- END-Method method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}]`);
       } else {
-        this._logMessage(`  -- DUPE!! locTOK method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}] IGNORED!`);
+        this._logMessage(`  -- DUPE!! method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}] IGNORED!`);
       }
     }
     // now clear in progress
@@ -1503,17 +1505,18 @@ export class TokenSet {
   }
 
   public rememberdTokenString(tokenName: string, aToken: RememberedToken | undefined): string {
-    let desiredInterp: string = "  -- token=[len:" + tokenName.length + " [" + tokenName + "](undefined)";
+    let desiredInterp: string = `  -- token=[len:${tokenName.length} [${tokenName}](undefined)`;
     if (aToken != undefined) {
-      desiredInterp = "  -- token=[len:" + tokenName.length + " [" + tokenName + "](" + aToken.type + "[" + aToken.modifiers + "])]";
+      desiredInterp = `  -- token=[len:${tokenName.length} [${tokenName}](${aToken.type}[${aToken.modifiers}])]`;
     }
     return desiredInterp;
   }
 
   public hasToken(tokenName: string): boolean {
     let foundStatus: boolean = false;
+    const desiredTokenKey: string = tokenName.toLowerCase();
     if (tokenName.length > 0) {
-      foundStatus = this.rememberedTokenByName.has(tokenName.toLowerCase());
+      foundStatus = this.rememberedTokenByName.has(desiredTokenKey);
     }
     if (foundStatus) {
       this._logMessage(`* ${this.id} [${tokenName}] found: ${foundStatus}`);
@@ -1527,9 +1530,9 @@ export class TokenSet {
       if (!this.hasToken(tokenName)) {
         this.rememberedTokenByName.set(desiredTokenKey, token);
         const currCt: number = this.length();
-        this._logMessage(`* ${this.id} #${currCt}: ` + this.rememberdTokenString(tokenName, token));
+        this._logMessage(`* ${this.id} #${currCt}: ${this.rememberdTokenString(tokenName, token)}`);
       } else {
-        this._logMessage(`* ${this.id} DUPE Token, NOT ADDED! ` + this.rememberdTokenString(tokenName, token));
+        this._logMessage(`* ${this.id} DUPE Token, NOT ADDED! ${this.rememberdTokenString(tokenName, token)}`);
       }
     }
   }

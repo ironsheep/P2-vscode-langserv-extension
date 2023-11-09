@@ -33,7 +33,7 @@ export class Spin1DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin1DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin1DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -180,7 +180,7 @@ export class Spin1DocumentSemanticParser {
       // now start our processing
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
-        let closingOffset = trimmedNonCommentLine.indexOf("}}");
+        let closingOffset = lineWOutInlineComments.indexOf("}}");
         if (closingOffset != -1) {
           // have close, comment ended
           // end the comment recording
@@ -202,7 +202,7 @@ export class Spin1DocumentSemanticParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {...} on same line without closing!
-        const closingOffset: number = trimmedNonCommentLine.indexOf("}");
+        const closingOffset: number = lineWOutInlineComments.indexOf("}");
         if (closingOffset != -1) {
           // have close, comment ended
           // end the comment recording
@@ -488,7 +488,7 @@ export class Spin1DocumentSemanticParser {
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
         // ALLOW {cmt}, {{cmt}} on same line without closing!
-        let closingOffset = trimmedNonCommentLine.indexOf("}}");
+        let closingOffset = lineWOutInlineComments.indexOf("}}");
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
@@ -501,7 +501,7 @@ export class Spin1DocumentSemanticParser {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {...} on same line without closing!
         this._logMessage("    hunt for '}' Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
-        const closingOffset: number = trimmedNonCommentLine.indexOf("}");
+        const closingOffset: number = lineWOutInlineComments.indexOf("}");
         if (closingOffset != -1) {
           // have close, comment ended
           this._logMessage("    FOUND '}' Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
