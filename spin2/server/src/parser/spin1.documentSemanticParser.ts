@@ -33,7 +33,7 @@ export class Spin1DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin1DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin1DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -2420,7 +2420,7 @@ export class Spin1DocumentSemanticParser {
           }
           let refChar: string = "";
           let possibleNameSet: string[] = [possibleName];
-          if (possibleName.includes("#") && !possibleName.startsWith(".")) {
+          if (possibleName.includes(".") && !possibleName.startsWith(".")) {
             refChar = ".";
             possibleNameSet = possibleName.split(".");
             this._logSPIN("  --  . possibleNameSet=[" + possibleNameSet + "]");
