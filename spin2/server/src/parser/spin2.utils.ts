@@ -2001,6 +2001,10 @@ export class Spin2ParseUtils {
       'STRING("Text",13) : StringAddress',
       "Compose a zero-terminated string (quoted characters and values 1..255 allowed), return address of string<br><br>@param `listOfElements` - a comma separated list of elements to be built into a string (quoted characters and values 1..255 allowed)<br>@returns `StringAddress` - address of where string was placed in ram",
     ],
+    lstring: ['LSTRING("Hello",0,"Terve",0) : StringAddress', "Compose a length-headed string (quoted characters and values 0..255), return address of string."],
+    bytes: ["BYTES($80,$09,$77,WORD $1234,LONG -1) : BytesAddress", "Compose a string of bytes, return address of string. WORD/LONG size overrides allowed."],
+    words: ["WORDS(1_000,10_000,50_000,LONG $12345678) : WordsAddress", "Compose a string of words, return address of string. BYTE/LONG size overrides allowed."],
+    longs: ["LONGS(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF) : LongsAddress", "Compose a string of longs, return address of string. BYTE/WORD size overrides allowed."],
   };
 
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {

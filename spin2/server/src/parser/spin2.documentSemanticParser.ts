@@ -504,7 +504,7 @@ export class Spin2DocumentSemanticParser {
         // process pasm (assembly) lines
         if (bHaveLineToProcess) {
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
-          if (lineParts.length > 0 && lineParts[0].toUpperCase() == "END") {
+          if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "END" || lineParts[0].toUpperCase() == "ENDASM")) {
             this._logPASM("- Ln#" + lineNbr + " pre-scan SPIN PASM line trimmedLine=[" + trimmedLine + "]");
             // record start of PASM code inline
             this.semanticFindings.recordPasmEnd(i);
@@ -533,7 +533,7 @@ export class Spin2DocumentSemanticParser {
         if (bHaveLineToProcess) {
           const isDebugLine: boolean = trimmedNonCommentLine.toLowerCase().includes("debug(");
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
-          if (lineParts.length > 0 && lineParts[0].toUpperCase() == "ORG") {
+          if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "ORG" || lineParts[0].toUpperCase() == "ASM")) {
             // Only ORG, not ORGF or ORGH
             this._logPASM("- Ln#" + lineNbr + " pre-scan PUB/PRI line trimmedLine=[" + trimmedLine + "]");
             // record start of PASM code NOT inline
@@ -896,9 +896,27 @@ export class Spin2DocumentSemanticParser {
         if (bHaveLineToProcess) {
           this._logPASM("- process SPIN2 PASM Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
-          if (lineParts.length > 0 && lineParts[0].toUpperCase() == "END") {
+          if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "END" || lineParts[0].toUpperCase() == "ENDASM")) {
             currState = prePAsmState;
             this._logState("- scan Ln#" + lineNbr + " POP currState=[" + currState + "]");
+            if (lineParts[0].toUpperCase() == "ENDASM" && !this.configuration.highlightFlexspinDirectives) {
+              // report this unsupported line (FlexSpin)
+              const nameOffset: number = line.indexOf(lineParts[0]);
+              this._recordToken(tokenSet, line, {
+                line: lineNbr - 1,
+                startCharacter: nameOffset,
+                length: lineParts[0].length,
+                ptTokenType: "macro",
+                ptTokenModifiers: ["directive", "illegalUse"],
+              });
+              this.semanticFindings.pushDiagnosticMessage(
+                lineNbr - 1,
+                nameOffset,
+                nameOffset + lineParts[0].length,
+                eSeverity.Error,
+                `P2 Spin - FlexSpin PreProcessor Directive [${lineParts[0]}] not supported!`
+              );
+            }
             // and ignore rest of this line
           } else {
             const partialTokenSet: IParsedToken[] = this._reportSPIN_PAsmCode(i, 0, line);
@@ -913,10 +931,29 @@ export class Spin2DocumentSemanticParser {
         if (bHaveLineToProcess) {
           this._logSPIN("- process SPIN2 Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
-          if (lineParts.length > 0 && lineParts[0].toUpperCase() == "ORG") {
+          if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "ORG" || lineParts[0].toUpperCase() == "ASM")) {
             // Only ORG not ORGF, ORGH
             prePAsmState = currState;
             currState = eParseState.inPAsmInline;
+            // even tho' we are procisssing it as if we know it we still flag it is FrexSpin NOT Enabled
+            if (lineParts[0].toUpperCase() == "ASM" && !this.configuration.highlightFlexspinDirectives) {
+              // report this unsupported line (FlexSpin)
+              const nameOffset: number = line.indexOf(lineParts[0]);
+              this._recordToken(tokenSet, line, {
+                line: lineNbr - 1,
+                startCharacter: nameOffset,
+                length: lineParts[0].length,
+                ptTokenType: "macro",
+                ptTokenModifiers: ["directive", "illegalUse"],
+              });
+              this.semanticFindings.pushDiagnosticMessage(
+                lineNbr - 1,
+                nameOffset,
+                nameOffset + lineParts[0].length,
+                eSeverity.Error,
+                `P2 Spin - FlexSpin PreProcessor Directive [${lineParts[0]}] not supported!`
+              );
+            }
             // and ignore rest of this line
           } else if (trimmedLine.toLowerCase().startsWith("debug(")) {
             const partialTokenSet: IParsedToken[] = this._reportDebugStatement(i, 0, line);
@@ -1651,7 +1688,7 @@ export class Spin2DocumentSemanticParser {
           ptTokenType: "macro",
           ptTokenModifiers: ["directive", "illegalUse"],
         });
-        this.semanticFindings.pushDiagnosticMessage(lineIdx, 0, 0 + lineParts[0].length, eSeverity.Error, `P2 Spin - PreProcessor Directive [${lineParts[0]}] not supported!`);
+        this.semanticFindings.pushDiagnosticMessage(lineIdx, 0, 0 + lineParts[0].length, eSeverity.Error, `P2 Spin - FlexSpin PreProcessor Directive [${lineParts[0]}] not supported!`);
       }
     }
 
@@ -2178,7 +2215,7 @@ export class Spin2DocumentSemanticParser {
       //                 end
       //
       const checkWord: string | undefined = lineParts.length > 0 ? lineParts[0].toLowerCase() : undefined;
-      if (checkWord && (checkWord === "if" || checkWord === "else" || checkWord === "end")) {
+      if (checkWord && !this.configuration.highlightFlexspinDirectives && (checkWord === "if" || checkWord === "else" || checkWord === "end")) {
         // fail FlexSpin IF: if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
         // fail FlexSpin else:  else
         // fail FlexSpin end:  end

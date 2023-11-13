@@ -510,8 +510,8 @@
     },
     "pasm_language_inline": {
       "name": "meta.block.pasm.language.inline.spin2",
-      "begin": "(?i)\\b(ORG)(\\s+|\\s*$)",
-      "end": "(?i)\\b(END)(\\s+|\\s*$)",
+      "begin": "(?i)\\b(ORG|ASM)(\\s+|\\s*$)",
+      "end": "(?i)\\b(END|ENDASM)(\\s+|\\s*$)",
       "beginCaptures": {
         "1": {
           "name": "storage.modifier.spin2"
@@ -695,7 +695,7 @@
         },
         {
           "name": "support.function.string.spin2",
-          "match": "(?i)\\b(STR(ING|COMP|SIZE|COPY))\\b"
+          "match": "(?i)\\b(LSTRING|BYTES|WORDS|LONGS|STR(ING|COMP|SIZE|COPY))\\b"
         },
         {
           "name": "support.function.special.spin2",
