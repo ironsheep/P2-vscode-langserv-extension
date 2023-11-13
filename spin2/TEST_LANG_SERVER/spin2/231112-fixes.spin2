@@ -1,0 +1,72 @@
+' --------------------------------------------------------------------------------------------------
+' bitfield highlight issues  Ln#32-34
+VAR
+
+byte header_buf[$100]
+
+CON
+
+SEGA_FOURCC = ("S"+"E"<<8+"G"<<16+"A"<<24)
+
+REGION_OVERSEAS_60HZ = %10 '' Americas
+REGION_DOMESTIC_60HZ = %00 '' Japan
+REGION_OVERSEAS_50HZ = %11 '' Europe, Australia
+REGION_DOMESTIC_50HZ = %01 '' Narnia, Gensokyo, Oz, Bielefeld
+
+PREFER_OVERSEAS = true
+
+REGION_PREFERRED = PREFER_OVERSEAS ? REGION_OVERSEAS_60HZ : REGION_DOMESTIC_60HZ
+
+PRI detect_region() : region | chr,tmp, got, i, valid
+
+tmp := @header_buf
+if long[tmp+$00] <> SEGA_FOURCC
+  ' No SEGA header, assume the worst
+  return REGION_PREFERRED
+
+' Try parsing old style first
+got := 0
+valid := true
+repeat i from 0 to 2
+  case chr:=byte[tmp][$F0+i]
+    "J": got.[REGION_DOMESTIC_60HZ] := true
+    "U": got.[REGION_OVERSEAS_60HZ] := true
+    "E": got.[REGION_OVERSEAS_50HZ] := true
+    " ": ' nothing burger
+    other: valid:= false
+
+' --------------------------------------------------------------------------------------------------
+' MISSING detect of FlexSpin inline ASM directives
+' NOTE: maybe flag them as error but then treat as ORG/END pair
+PRI unpack_ansi_font(vram,fontptr,bg,fg) | tmp,tmp2
+bg *= $1111_1111
+repeat (256*8)
+  tmp := byte[fontptr++]
+  asm
+    rev tmp
+    shr tmp,#24
+    mergeb tmp
+    qmul tmp,fg
+    getqx tmp
+    movbyts tmp,#%%1032
+    mov tmp2,bg
+    muxnibs tmp2,tmp
+  endasm
+  long[vram] := tmp2
+  vram+=4
+
+' --------------------------------------------------------------------------------------------------
+' new string methods:
+
+PUB  LEDon()
+
+   DoSETUP(string("Text",13))   'turn on LEDs
+   DoSETUP(lstring("Hello",0,"Terve",0))   'turn on LEDs
+   DoSETUP(bytes($21,$09,$00,$02,$00,$00,$01,$00))   'turn on LEDs
+   DoSETUP(bytes($80,$09,$77,WORD $1234,LONG -1))    'turn on LEDs
+   DoSETUP(words($21,$09,$00,$02,$00,$00,$01,$00))   'turn on LEDs
+   DoSETUP(words(1_000,10_000,50_000,LONG $12345678))    'turn on LEDs
+   DoSETUP(longs($21,$09,$00,$02,$00,$00,$01,$00))   'turn on LEDs
+   DoSETUP(longs(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF))    'turn on LEDs
+
+PRI DoSETUP(pBytes)
