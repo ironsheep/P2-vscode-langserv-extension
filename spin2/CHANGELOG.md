@@ -24,12 +24,12 @@ Possible next additions:
 Update for P2 only
 
 - P2 Add new built-in methods LSTRING(), LONGS(), WORDS() and BYTES() to syntax highlighter
-- P2 Dialed-in behavior when encountering FlexSpin in-line pasm directives (pasm now highlighted but errors generated for the directives)
-- P2 Adjust DOC Generator: don't generate for methods which are commented out!
+- P2 Dialed-in behavior when encountering FlexSpin in-line pasm directives (pasm now highlighted, but errors generated for the directives)
+- P2 Adjust DOC Generator: don't generate for methods that are commented out!
 
 Bug fixes for Both P1 and P2
 
-- P1 & P2 Repair a couple cases of bitfield highlighting
+- P1 & P2 Repair a couple of cases of incorrect bitfield highlighting
 
 ## [2.2.2] 2023-11-8
 
