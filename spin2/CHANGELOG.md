@@ -19,6 +19,18 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.3] 2023-11-12
+
+Update for P2 only
+
+- P2 Add new built-in methods LSTRING(), LONGS(), WORDS() and BYTES() to syntax highlighter
+- P2 Dialed-in behavior when encountering FlexSpin in-line pasm directives (pasm now highlighted but errors generated for the directives)
+- P2 Adjust DOC Generator: don't generate for methods which are commented out!
+
+Bug fixes for Both P1 and P2
+
+- P1 & P2 Repair a couple cases of bitfield highlighting
+
 ## [2.2.2] 2023-11-8
 
 General bug fixes for P2 only (round 2)

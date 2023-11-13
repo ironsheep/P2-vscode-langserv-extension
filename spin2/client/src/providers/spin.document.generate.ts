@@ -243,8 +243,8 @@ export class DocGenerator {
           let line = textEditor.document.lineAt(i);
           const trimmedLine = line.text.trim();
 
-          // skip all {{ --- }} multi-line doc comments
           if (currState == eParseState.inMultiLineDocComment) {
+            // skip all {{ --- }} multi-line doc comments
             // in multi-line doc-comment, hunt for end '}}' to exit
             let closingOffset = line.text.indexOf("}}");
             if (closingOffset != -1) {
@@ -264,8 +264,11 @@ export class DocGenerator {
           } else if (currState == eParseState.inMultiLineComment) {
             // skip all { --- } multi-line non-doc comments
             // in multi-line non-doc-comment, hunt for end '}' to exit
-            let closingOffset = trimmedLine.indexOf("}");
-            if (closingOffset != -1) {
+            const openingOffset = line.text.indexOf("{");
+            let closingOffset = line.text.indexOf("}");
+            if (openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset) {
+              // do nothing with NESTED {cmt} lines
+            } else if (closingOffset != -1) {
               // have close, comment ended
               currState = priorState;
             }
@@ -297,8 +300,8 @@ export class DocGenerator {
           } else if (trimmedLine.startsWith("{")) {
             // process possible multi-line non-doc comment
             // do we have a close on this same line?
-            let openingOffset = trimmedLine.indexOf("{");
-            const closingOffset = trimmedLine.indexOf("}", openingOffset + 1);
+            let openingOffset = line.text.indexOf("{");
+            const closingOffset = line.text.indexOf("}", openingOffset + 1);
             if (closingOffset == -1) {
               // is open of multiline comment
               priorState = currState;
@@ -357,8 +360,11 @@ export class DocGenerator {
             continue;
           } else if (currState == eParseState.inMultiLineComment) {
             // in multi-line non-doc-comment, hunt for end '}' to exit
-            let closingOffset = trimmedLine.indexOf("}");
-            if (closingOffset != -1) {
+            const openingOffset = line.text.indexOf("{");
+            let closingOffset = line.text.indexOf("}");
+            if (openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset) {
+              // do nothing with NESTED {cmt} lines
+            } else if (closingOffset != -1) {
               // have close, comment ended
               currState = priorState;
             }
@@ -389,8 +395,8 @@ export class DocGenerator {
           } else if (trimmedLine.startsWith("{")) {
             // process possible multi-line non-doc comment
             // do we have a close on this same line?
-            let openingOffset = trimmedLine.indexOf("{");
-            const closingOffset = trimmedLine.indexOf("}", openingOffset + 1);
+            let openingOffset = line.text.indexOf("{");
+            const closingOffset = line.text.indexOf("}", openingOffset + 1);
             if (closingOffset == -1) {
               // is open of multiline comment
               priorState = currState;
