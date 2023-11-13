@@ -41,7 +41,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -3012,6 +3012,8 @@ export class Spin2DocumentSemanticParser {
               } else {
                 let referenceDetails: RememberedToken | undefined = undefined;
                 nameOffset = line.indexOf(cleanedVariableName, currentOffset);
+                // handle "got." form of name...
+                cleanedVariableName = cleanedVariableName.endsWith(".") ? cleanedVariableName.slice(0, -1) : cleanedVariableName;
                 if (this.semanticFindings.isLocalToken(cleanedVariableName)) {
                   referenceDetails = this.semanticFindings.getLocalTokenForLine(cleanedVariableName, lineNbr);
                   this._logSPIN(`  --  FOUND local name=[${cleanedVariableName}, referenceDetails=[${referenceDetails}]]`);
