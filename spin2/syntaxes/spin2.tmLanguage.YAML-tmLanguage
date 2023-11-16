@@ -382,7 +382,7 @@ repository:
                 match: '(?i)\b(VARBASE|CLK(MODE|FREQ))\b'
             -
                 name: support.function.string.spin2
-                match: '(?i)\b(LSTRING|BYTES|WORDS|LONGS|STR(ING|COMP|SIZE|COPY))\b'
+                match: '(?i)\b(STR(ING|COMP|SIZE|COPY))\b'
             -
                 name: support.function.special.spin2
                 match: '(?i)\b(SEND|RECV)\b'
