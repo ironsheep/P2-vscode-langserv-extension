@@ -3164,6 +3164,7 @@ export class Spin2ParseUtils {
       "oval",
       "box",
       "obox",
+      "text",
       "textsize",
       "textstyle",
       "textangle",

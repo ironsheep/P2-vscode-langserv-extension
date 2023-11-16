@@ -8,7 +8,7 @@ import { Context, ServerBehaviorConfiguration } from "../context";
 import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity, eDefinitionType, ITokenDescription } from "./spin.semantic.findings";
 import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
-import { eParseState, eDebugDisplayType, ContinuedLines } from "./spin.common";
+import { eParseState, eDebugDisplayType, ContinuedLines, haveDebugLine } from "./spin.common";
 import { fileInDirExists } from "../files";
 //import { PublishDiagnosticsNotification } from "vscode-languageserver";
 import { ExtensionUtils } from "../parser/spin.extension.utils";
@@ -41,7 +41,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -363,24 +363,7 @@ export class Spin2DocumentSemanticParser {
         continue;
       }
 
-      // ----------------------------------------------
-      // gather our multi-line set if line is continued
-      // ----------------------------------------------
-      //
-      const isContinued: boolean = trimmedNonCommentLine.length > 0 ? trimmedNonCommentLine.endsWith("...") : false;
-      if (isContinued || (continuedLineSet.isLoading && trimmedNonCommentLine.length > 0)) {
-        const lineOffset: number = line.indexOf(trimmedNonCommentLine);
-        const lineWithLeadingSpaces: string = line.substring(0, lineOffset + trimmedNonCommentLine.length + 1);
-        continuedLineSet.addLine(lineWithLeadingSpaces, i);
-        if (!continuedLineSet.hasAllLines) {
-          continue; // need to gather next line too
-        }
-      }
-      const parsingContinuedLineSet: boolean = !continuedLineSet.isEmpty;
-      if (parsingContinuedLineSet) {
-        const maxDisplayLen: number = continuedLineSet.line.length > 64 ? 64 : continuedLineSet.line.length;
-      }
-
+      // handle wrap-up before we do continued-line gathering
       if (sectionStatus.isSectionStart) {
         // mark end of method, if we were in a method
         this.semanticFindings.endPossibleMethod(i); // pass prior line number! essentially i+1 (-1)
@@ -409,13 +392,37 @@ export class Spin2DocumentSemanticParser {
           newBlockType = eBLockType.isPri;
         }
         this.semanticFindings.recordBlockStart(newBlockType, i); // start new one which ends prior
+      }
 
+      // ----------------------------------------------
+      // gather our multi-line set if line is continued
+      // ----------------------------------------------
+      //
+      const isContinued: boolean = trimmedNonCommentLine.length > 0 ? trimmedNonCommentLine.endsWith("...") : false;
+      if (isContinued || (continuedLineSet.isLoading && trimmedNonCommentLine.length > 0)) {
+        const lineOffset: number = line.indexOf(trimmedNonCommentLine);
+        const lineWithLeadingSpaces: string = line.substring(0, lineOffset + trimmedNonCommentLine.length + 1);
+        continuedLineSet.addLine(lineWithLeadingSpaces, i);
+        if (!continuedLineSet.hasAllLines) {
+          continue; // need to gather next line too
+        }
+      }
+      const parsingContinuedLineSet: boolean = !continuedLineSet.isEmpty;
+      if (parsingContinuedLineSet) {
+        const maxDisplayLen: number = continuedLineSet.line.length > 64 ? 64 : continuedLineSet.line.length;
+      }
+
+      // only non-continued lines follow this path... continued lines follow the non-section-start path
+      if (sectionStatus.isSectionStart) {
         this._logState("- scan Ln#" + lineNbr + " currState=[" + currState + "]");
         // ID the remainder of the line
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
-          // process PUB/PRI method signature
-          if (trimmedNonCommentLine.length > 3) {
-            this._getPUB_PRI_Name(3, lineNbr, line);
+          // process PUB/PRI method signature (which could be a continued line-set)
+          const nonCommentLength: number = parsingContinuedLineSet ? continuedLineSet.line.length : trimmedNonCommentLine.length;
+          const lineToParse: string = parsingContinuedLineSet ? continuedLineSet.line : line;
+          const lineNumber: number = parsingContinuedLineSet ? continuedLineSet.lineStartIdx + 1 : lineNbr;
+          if (nonCommentLength > 3) {
+            this._getPUB_PRI_Name(3, lineNbr, lineToParse);
             // and record our fake signature for later use by signature help
             const docComment: RememberedComment = this._generateFakeCommentForSignature(0, lineNbr, line);
             if (docComment._type != eCommentType.Unknown) {
@@ -463,6 +470,10 @@ export class Spin2DocumentSemanticParser {
         // we processed the block declaration line, now wipe out prior comment
         this.priorSingleLineComment = undefined; // clear it out...
         continue;
+        //
+        // -------------------------------------------------------------------
+        //   Below here we process continued lines and non-section start lines
+        // -------------------------------------------------------------------
       } else if (currState == eParseState.inCon) {
         // process a constant line
         if (bHaveLineToProcess) {
@@ -520,7 +531,7 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
         if (bHaveLineToProcess) {
-          const isDebugLine: boolean = trimmedNonCommentLine.toLowerCase().includes("debug(");
+          const isDebugLine: boolean = haveDebugLine(trimmedNonCommentLine); // trimmedNonCommentLine.toLowerCase().includes("debug(");
           this._getDAT_PAsmDeclaration(0, lineNbr, line);
           if (isDebugLine) {
             // scan DAT-PAsm line for debug() display declaration
@@ -528,10 +539,15 @@ export class Spin2DocumentSemanticParser {
           }
         }
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
-        // Detect start of INLINE PASM - org detect
         // NOTE: The directives ORGH, ALIGNW, ALIGNL, and FILE are not allowed within in-line PASM code.
-        if (bHaveLineToProcess) {
-          const isDebugLine: boolean = trimmedNonCommentLine.toLowerCase().includes("debug(");
+        if (parsingContinuedLineSet) {
+          // process PUB/PRI method signature (which is a continued line-set)
+          if (continuedLineSet.line.length > 3) {
+            this._getPUB_PRI_Name(3, continuedLineSet.lineStartIdx + 1, continuedLineSet.line);
+          }
+        } else if (bHaveLineToProcess) {
+          // Detect start of INLINE PASM - org detect
+          const isDebugLine: boolean = haveDebugLine(trimmedNonCommentLine); // trimmedNonCommentLine.toLowerCase().includes("debug(");
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "ORG" || lineParts[0].toUpperCase() == "ASM")) {
             // Only ORG, not ORGF or ORGH
@@ -629,6 +645,7 @@ export class Spin2DocumentSemanticParser {
         const lineWithLeadingSpaces: string = line.substring(0, lineOffset + trimmedNonCommentLine.length + 1);
         continuedLineSet.addLine(lineWithLeadingSpaces, i);
         if (!continuedLineSet.hasAllLines) {
+          //this._logState(`  -- scan Ln#${lineNbr} CONT-LINE-BUILDER SKIP [${lineWithLeadingSpaces}]`);
           continue; // need to gather next line too
         }
       }
@@ -639,22 +656,33 @@ export class Spin2DocumentSemanticParser {
 
       if (sectionStatus.isSectionStart) {
         if (currState == eParseState.inDatPAsm) {
-          // end datPasm at next section start
+          // BEFORE STATE CHANGE:
+          //    end datPasm at next section start
           currState = prePAsmState;
-          this._logState("- scan Ln#" + lineNbr + " POP currState=[" + currState + "]");
+          this._logState(`- scan Ln#${lineNbr} POP currState=[${currState}]`);
         }
         currState = sectionStatus.inProgressStatus;
         this.conEnumInProgress = false; // tell in CON processor we are not in an enum mulit-line declaration
-        this._logState("  -- Ln#" + lineNbr + " currState=[" + currState + "]");
+        this._logState(`  -- Ln#${lineNbr} currState=[${currState}]`);
         // ID the section name
         // DON'T mark the section literal, Syntax highlighting does this well!
 
         // ID the remainder of the line
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
-          // process method signature
-          if (line.length > 3) {
-            const partialTokenSet: IParsedToken[] = this._reportPUB_PRI_Signature(i, 3, line);
+          // process SINGLE-LINE method signature
+          let partialTokenSet: IParsedToken[] = [];
+          const lineLength: number = parsingContinuedLineSet ? continuedLineSet.line.length : line.length;
+          this._logState(`- Ln#${lineNbr} check pub/pri sig parsingContinuedLineSet=(${parsingContinuedLineSet}), lineLength=(${lineLength})`);
+          if (lineLength > 3) {
+            if (parsingContinuedLineSet) {
+              partialTokenSet = this._reportPUB_PRI_SignatureMultiLine(3, continuedLineSet);
+            } else {
+              partialTokenSet = this._reportPUB_PRI_Signature(i, 3, line);
+            }
+          }
+          if (partialTokenSet.length > 0) {
             partialTokenSet.forEach((newToken) => {
+              this._logSPIN("=> PUB/PRI: " + this._tokenString(newToken, line));
               tokenSet.push(newToken);
             });
           }
@@ -716,19 +744,17 @@ export class Spin2DocumentSemanticParser {
         } else if (currState == eParseState.inObj) {
           // process a possible object overrides on the OBJ line itself!
           let partialTokenSet: IParsedToken[] = [];
-          if (parsingContinuedLineSet) {
-            if (continuedLineSet.line.length > 3) {
-              partialTokenSet = this._reportOBJ_DeclarationLineMultiLine(3, continuedLineSet);
-            }
-          } else {
-            if (line.length > 3) {
-              partialTokenSet = this._reportOBJ_DeclarationLine(i, 3, line);
-            }
+          if (parsingContinuedLineSet && continuedLineSet.line.length > 3) {
+            partialTokenSet = this._reportOBJ_DeclarationLineMultiLine(3, continuedLineSet);
+          } else if (line.length > 3) {
+            partialTokenSet = this._reportOBJ_DeclarationLine(i, 3, line);
           }
-          partialTokenSet.forEach((newToken) => {
-            this._logOBJ("=> OBJ: " + this._tokenString(newToken, line));
-            tokenSet.push(newToken);
-          });
+          if (partialTokenSet.length > 0) {
+            partialTokenSet.forEach((newToken) => {
+              this._logOBJ("=> OBJ: " + this._tokenString(newToken, line));
+              tokenSet.push(newToken);
+            });
+          }
         } else if (currState == eParseState.inVar) {
           // process a possible constant use on the CON line itself!
           if (line.length > 3) {
@@ -927,8 +953,21 @@ export class Spin2DocumentSemanticParser {
           }
         }
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
-        // process a method def'n line
-        if (bHaveLineToProcess) {
+        // process a MULTI-LINE signature! if present
+        if (parsingContinuedLineSet) {
+          let partialTokenSet: IParsedToken[] = [];
+          //this._logState(`- Ln#${lineNbr} check pub/pri sig parsingContinuedLineSet=(${parsingContinuedLineSet}), lineLength=(${continuedLineSet.line.length})`);
+          if (continuedLineSet.line.length > 3) {
+            partialTokenSet = this._reportPUB_PRI_SignatureMultiLine(3, continuedLineSet);
+          }
+          if (partialTokenSet.length > 0) {
+            partialTokenSet.forEach((newToken) => {
+              this._logSPIN("=> PUB/PRI: " + this._tokenString(newToken, continuedLineSet.lineAt(newToken.line)));
+              tokenSet.push(newToken);
+            });
+          }
+        } else if (bHaveLineToProcess) {
+          // process a method def'n line
           this._logSPIN("- process SPIN2 Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "ORG" || lineParts[0].toUpperCase() == "ASM")) {
@@ -955,7 +994,8 @@ export class Spin2DocumentSemanticParser {
               );
             }
             // and ignore rest of this line
-          } else if (trimmedLine.toLowerCase().startsWith("debug(")) {
+          } else if (haveDebugLine(trimmedLine, true)) {
+            //} else if (trimmedLine.toLowerCase().startsWith("debug(")) {
             const partialTokenSet: IParsedToken[] = this._reportDebugStatement(i, 0, line);
             partialTokenSet.forEach((newToken) => {
               this._logSPIN("=> DEBUG: " + this._tokenString(newToken, line));
@@ -2196,7 +2236,7 @@ export class Spin2DocumentSemanticParser {
       this._logPASM(`  --  DAT PAsm lineParts=[${lineParts}](${lineParts.length}), inLinePAsmRHSStr=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length})`);
       currentOffset = line.indexOf(inLinePAsmRHSStr.trim(), currentOffset);
       // handle name in 1 column
-      const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
+      const bIsAlsoDebugLine: boolean = haveDebugLine(inLinePAsmRHSStr); //  inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
       if (bIsAlsoDebugLine) {
         const partialTokenSet: IParsedToken[] = this._reportDebugStatement(lineIdx, startingOffset, line);
         partialTokenSet.forEach((newToken) => {
@@ -2458,6 +2498,418 @@ export class Spin2DocumentSemanticParser {
     return tokenSet;
   }
 
+  private _reportPUB_PRI_SignatureMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
+    const tokenSet: IParsedToken[] = [];
+    let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
+    // FIXME: TODO: UNDONE - maybe we need to highlight comments which are NOT captured yet in multi-line set
+    const remainingNonCommentLineStr: string = multiLineSet.line;
+    const methodType = remainingNonCommentLineStr.substr(0, 3).toUpperCase();
+    const isPrivate = methodType.indexOf("PRI") != -1;
+    this._logOBJ(
+      `- reportPubPriSigMulti Ln#${
+        multiLineSet.lineStartIdx + 1
+      } currSingleLineOffset=(${currSingleLineOffset}), methodType=[${methodType}], isPrivate=(${isPrivate}), remainingNonCommentLineStr=[${remainingNonCommentLineStr}]`
+    );
+
+    // -----------------------------------
+    //   Method Name
+    //
+    const startNameOffset = currSingleLineOffset;
+    // find open paren - skipping past method name
+    const returnValueSep = remainingNonCommentLineStr.indexOf(":", currSingleLineOffset);
+    const localVarsSep = remainingNonCommentLineStr.indexOf("|", returnValueSep != -1 ? returnValueSep : currSingleLineOffset);
+    currSingleLineOffset = remainingNonCommentLineStr.indexOf("(", startNameOffset); // in spin1 ()'s are optional!
+    const openParenOffset: number = currSingleLineOffset;
+    if (currSingleLineOffset == -1) {
+      currSingleLineOffset = returnValueSep; // ":"
+      if (currSingleLineOffset == -1) {
+        currSingleLineOffset = localVarsSep; // "|"
+        if (currSingleLineOffset == -1) {
+          currSingleLineOffset = remainingNonCommentLineStr.indexOf(" ", startNameOffset);
+          if (currSingleLineOffset == -1) {
+            currSingleLineOffset = remainingNonCommentLineStr.indexOf("'", startNameOffset);
+            if (currSingleLineOffset == -1) {
+              currSingleLineOffset = remainingNonCommentLineStr.length;
+            }
+          }
+        }
+      }
+    }
+    const methodName: string = remainingNonCommentLineStr.substr(startNameOffset, currSingleLineOffset - startNameOffset).trim();
+    const validMethodName: boolean = methodName.charAt(0).match(/[a-zA-Z_]/) != null;
+    if (!validMethodName) {
+      return tokenSet;
+    }
+    currSingleLineOffset = startingOffset; // reset to beginnning of line
+    this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
+    const spin2MethodName: string = methodName + "(";
+    const spin2MethodNameWithSpace: string = methodName + " (";
+    // FIXME: TODO: UNDONE this should be match with name-infWhiteSpace-openParen!
+    this._logSPIN("-reportPubPriSig: spin2MethodName=[" + spin2MethodName + "], startNameOffset=(" + startNameOffset + ")");
+    let bHaveSpin2Method: boolean = false;
+    let symbolPosition: Position = multiLineSet.locateSymbol(spin2MethodName, currSingleLineOffset);
+    bHaveSpin2Method = symbolPosition.character != -1;
+    if (symbolPosition.character == -1) {
+      symbolPosition = multiLineSet.locateSymbol(spin2MethodNameWithSpace, currSingleLineOffset);
+      bHaveSpin2Method = symbolPosition.character != -1;
+    }
+    const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+    if (bHaveSpin2Method) {
+      const declModifiers: string[] = isPrivate ? ["declaration", "static"] : ["declaration"];
+      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+        line: symbolPosition.line,
+        startCharacter: symbolPosition.character,
+        length: methodName.length,
+        ptTokenType: "method",
+        ptTokenModifiers: declModifiers,
+      });
+      this._logSPIN("-reportPubPriSig: methodName=[" + methodName + "], startNameOffset=(" + startNameOffset + ")");
+    } else {
+      // have a P1 style method declaration, flag it!
+      const declModifiers: string[] = isPrivate ? ["declaration", "static", "illegalUse"] : ["declaration", "illegalUse"];
+      symbolPosition = multiLineSet.locateSymbol(methodName, currSingleLineOffset);
+      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+        line: symbolPosition.line,
+        startCharacter: symbolPosition.character,
+        length: methodName.length,
+        ptTokenType: "method",
+        ptTokenModifiers: declModifiers,
+      });
+      const methodPrefix: string = isPrivate ? "PRI" : "PUB";
+      this.semanticFindings.pushDiagnosticMessage(
+        symbolPosition.line,
+        symbolPosition.character,
+        symbolPosition.character + methodName.length,
+        eSeverity.Error,
+        `P1 Spin style declaration [${methodPrefix} ${methodName}] (without paren's) not allowed in P2 Spin`
+      );
+      this._logSPIN("-reportPubPriSig: SPIN1 methodName=[" + methodName + "], startNameOffset=(" + startNameOffset + ")");
+    }
+
+    currSingleLineOffset = nameOffset + methodName.length;
+    // record definition of method
+    // -----------------------------------
+    //   Parameters
+    //
+    // find close paren - so we can study parameters
+    let closeParenOffset: number = -1;
+    if (bHaveSpin2Method) {
+      closeParenOffset = remainingNonCommentLineStr.indexOf(")", currSingleLineOffset);
+    }
+    if (closeParenOffset != -1 && currSingleLineOffset + 1 != closeParenOffset) {
+      // we have parameter(s)!
+      const parameterStr = remainingNonCommentLineStr.substr(currSingleLineOffset + 1, closeParenOffset - currSingleLineOffset - 1).trim();
+      let parameterNames: string[] = [];
+      if (parameterStr.includes(",")) {
+        // we have multiple parameters
+        parameterNames = parameterStr.split(",");
+      } else {
+        // we have one parameter
+        parameterNames = [parameterStr];
+      }
+      for (let index = 0; index < parameterNames.length; index++) {
+        const paramNameRaw: string = parameterNames[index].trim();
+        let paramName: string = paramNameRaw;
+        const hasFlexSpinDefaultValue: boolean = paramName.includes("=");
+        //const nameOffset = remainingNonCommentLineStr.indexOf(paramName, currSingleLineOffset);
+        const symbolPosition: Position = multiLineSet.locateSymbol(paramName, currSingleLineOffset);
+        const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+        if (hasFlexSpinDefaultValue) {
+          const assignmentParts: string[] = paramName.split("=");
+          paramName = assignmentParts[0].trim();
+        }
+        this._logSPIN(`  -- paramName=[${paramName}], ofs=(${nameOffset})`);
+        // check to see if param name is hiding global variable
+        if (this._hidesGlobalVariable(paramName)) {
+          this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+            line: symbolPosition.line,
+            startCharacter: symbolPosition.character,
+            length: paramName.length,
+            ptTokenType: "parameter",
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(
+            symbolPosition.line,
+            symbolPosition.character,
+            symbolPosition.character + paramName.length,
+            eSeverity.Error,
+            `P2 Spin parameter [${paramName}] hides global variable of same name`
+          );
+        } else {
+          this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+            line: symbolPosition.line,
+            startCharacter: symbolPosition.character,
+            length: paramName.length,
+            ptTokenType: "parameter",
+            ptTokenModifiers: ["declaration", "readonly", "local"],
+          });
+        }
+        // remember so we can ID references
+        this.semanticFindings.setLocalTokenForMethod(
+          methodName,
+          paramName,
+          new RememberedToken("parameter", symbolPosition.line, symbolPosition.character, ["readonly", "local"]),
+          this._declarationComment()
+        ); // TOKEN SET in _report()
+
+        if (hasFlexSpinDefaultValue) {
+          this.semanticFindings.pushDiagnosticMessage(
+            symbolPosition.line,
+            symbolPosition.character,
+            symbolPosition.character + paramNameRaw.length,
+            eSeverity.Error,
+            `Parameter default value [${paramNameRaw}] not allowed in P2 Spin`
+          );
+        }
+        currSingleLineOffset = nameOffset + paramName.length;
+      }
+    }
+    // -----------------------------------
+    //   Return Variable(s)
+    //
+    // find return vars
+    let beginCommentOffset = remainingNonCommentLineStr.indexOf("'", currSingleLineOffset);
+    if (beginCommentOffset === -1) {
+      beginCommentOffset = remainingNonCommentLineStr.indexOf("{", currSingleLineOffset);
+    }
+    const nonCommentEOL = beginCommentOffset != -1 ? beginCommentOffset - 1 : remainingNonCommentLineStr.length - 1;
+    const returnVarsEnd = localVarsSep != -1 ? localVarsSep - 1 : nonCommentEOL;
+    let returnValueNames: string[] = [];
+    if (returnValueSep != -1) {
+      // we have return var(s)!
+      // we move currSingleLineOffset along so we don't falsely find short variable names earlier in string!
+      currSingleLineOffset = returnValueSep + 1;
+      const varNameStr = remainingNonCommentLineStr.substr(returnValueSep + 1, returnVarsEnd - returnValueSep).trim();
+      if (varNameStr.indexOf(",")) {
+        // have multiple return value names
+        returnValueNames = varNameStr.split(",");
+      } else {
+        // have a single return value name
+        returnValueNames = [varNameStr];
+      }
+      for (let index = 0; index < returnValueNames.length; index++) {
+        const returnValueName = returnValueNames[index].trim();
+        //const nameOffset = remainingNonCommentLineStr.indexOf(returnValueName, currSingleLineOffset);
+        const symbolPosition: Position = multiLineSet.locateSymbol(returnValueName, currSingleLineOffset);
+        const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+        this._logSPIN(`  -- returnValueName=[${returnValueName}], Ln#${symbolPosition.line + 1} ofs=(${nameOffset})`);
+        // check to see if return name is hiding global variable
+        if (this._hidesGlobalVariable(returnValueName)) {
+          this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+            line: symbolPosition.line,
+            startCharacter: symbolPosition.character,
+            length: returnValueName.length,
+            ptTokenType: "returnValue",
+            ptTokenModifiers: ["illegalUse"],
+          });
+          this.semanticFindings.pushDiagnosticMessage(
+            symbolPosition.line,
+            symbolPosition.character,
+            symbolPosition.character + returnValueName.length,
+            eSeverity.Error,
+            `P2 Spin return [${returnValueName}] hides global variable of same name`
+          );
+        } else {
+          this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+            line: symbolPosition.line,
+            startCharacter: symbolPosition.character,
+            length: returnValueName.length,
+            ptTokenType: "returnValue",
+            ptTokenModifiers: ["declaration", "local"],
+          });
+        }
+        // remember so we can ID references
+        this.semanticFindings.setLocalTokenForMethod(
+          methodName,
+          returnValueName,
+          new RememberedToken("returnValue", symbolPosition.line, symbolPosition.character, ["local"]),
+          this._declarationComment()
+        ); // TOKEN SET in _report()
+
+        currSingleLineOffset = nameOffset + returnValueName.length;
+      }
+    }
+    // -----------------------------------
+    //   Local Variable(s)
+    //
+    // find local vars
+    if (localVarsSep != -1) {
+      // we have local var(s)!
+      const localVarStr = remainingNonCommentLineStr.substr(localVarsSep + 1, nonCommentEOL - localVarsSep).trim();
+      // we move currSingleLineOffset along so we don't falsely find short variable names earlier in string!
+      currSingleLineOffset = localVarsSep;
+      let localVarNames: string[] = [];
+      if (localVarStr.indexOf(",")) {
+        // have multiple return value names
+        localVarNames = localVarStr.split(",");
+      } else {
+        // have a single return value name
+        localVarNames = [localVarStr];
+      }
+      this._logSPIN(`  -- localVarNames=[${localVarNames}](${localVarNames.length})`);
+      for (let index = 0; index < localVarNames.length; index++) {
+        const localVariableName = localVarNames[index].trim();
+        const localVariableOffset = remainingNonCommentLineStr.indexOf(localVariableName, currSingleLineOffset);
+        this._logSPIN("  -- processing localVariableName=[" + localVariableName + "]");
+        let nameParts: string[] = [];
+        if (localVariableName.includes(" ")) {
+          // have name with storage and/or alignment operators
+          nameParts = localVariableName.split(" ");
+        } else {
+          // have single name
+          nameParts = [localVariableName];
+        }
+        this._logSPIN(`  -- nameParts=[${nameParts}](${nameParts.length})`);
+        let symbolPosition: Position = Position.create(-1, -1);
+        let nameOffset: number = 0;
+        for (let index = 0; index < nameParts.length; index++) {
+          let localName = nameParts[index];
+          // have name similar to scratch[12]?
+          if (localName.includes("[") || localName.includes("]")) {
+            // yes remove array suffix
+            const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(localName);
+            let localNameParts: string[] = lineInfo.lineParts;
+            this._logSPIN(`  -- post[] localNameParts=[${localNameParts}](${localNameParts.length})`);
+            localName = localNameParts[0];
+            nameOffset = 0;
+            for (let index = 0; index < localNameParts.length; index++) {
+              const namedIndexPart = localNameParts[index];
+              //nameOffset = remainingNonCommentLineStr.indexOf(namedIndexPart, currSingleLineOffset);
+              if (namedIndexPart.charAt(0).match(/[a-zA-Z_]/)) {
+                symbolPosition = multiLineSet.locateSymbol(namedIndexPart, currSingleLineOffset);
+                nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                this._logSPIN(`  -- checking namedIndexPart=[${localName}], posn={${symbolPosition.line}, ${symbolPosition.character}}, nameOffset=(${nameOffset})`);
+                let referenceDetails: RememberedToken | undefined = undefined;
+                if (this.semanticFindings.isLocalToken(namedIndexPart)) {
+                  referenceDetails = this.semanticFindings.getLocalTokenForLine(namedIndexPart, symbolPosition.line + 1);
+                  this._logSPIN(`  --  FOUND local name=[${namedIndexPart}] found: ${referenceDetails != undefined}`);
+                } else if (this.semanticFindings.isGlobalToken(namedIndexPart)) {
+                  referenceDetails = this.semanticFindings.getGlobalToken(namedIndexPart);
+                  this._logSPIN(`  --  FOUND global name=[${namedIndexPart}] found: ${referenceDetails != undefined}`);
+                }
+                if (referenceDetails != undefined) {
+                  this._logSPIN(`  --  lcl-idx variableName=[${namedIndexPart}], ofs=(${nameOffset})`);
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: namedIndexPart.length,
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: referenceDetails.modifiers,
+                  });
+                } else {
+                  if (
+                    !this.parseUtils.isSpinReservedWord(namedIndexPart) &&
+                    !this.parseUtils.isSpinBuiltinMethod(namedIndexPart) &&
+                    !this.parseUtils.isBuiltinStreamerReservedWord(namedIndexPart) &&
+                    !this.parseUtils.isDebugMethod(namedIndexPart) &&
+                    !this.parseUtils.isDebugControlSymbol(namedIndexPart)
+                  ) {
+                    // found new local variable name, register it
+                    this._logSPIN(`  --  SPIN NEW local varname=[${namedIndexPart}], ofs=(${symbolPosition.character})`);
+                    // check to see if local name is hiding global variable
+                    if (this._hidesGlobalVariable(namedIndexPart)) {
+                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namedIndexPart.length,
+                        ptTokenType: "variable",
+                        ptTokenModifiers: ["illegalUse"],
+                      });
+                      this.semanticFindings.pushDiagnosticMessage(
+                        symbolPosition.line,
+                        symbolPosition.character,
+                        symbolPosition.character + namedIndexPart.length,
+                        eSeverity.Error,
+                        `P2 Spin local [${namedIndexPart}] hides global variable of same name`
+                      );
+                    } else {
+                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namedIndexPart.length,
+                        ptTokenType: "variable",
+                        ptTokenModifiers: ["declaration", "local"],
+                      });
+                    }
+                    // remember so we can ID references
+                    this.semanticFindings.setLocalTokenForMethod(
+                      methodName,
+                      namedIndexPart,
+                      new RememberedToken("variable", symbolPosition.line, symbolPosition.character, ["local"]),
+                      this._declarationComment()
+                    ); // TOKEN SET in _report()
+                  }
+                }
+                currSingleLineOffset = nameOffset + namedIndexPart.length;
+              }
+            }
+          } else {
+            // nameOffset = line.indexOf(localName, localVariableOffset);
+            symbolPosition = multiLineSet.locateSymbol(localName, currSingleLineOffset);
+            nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            this._logSPIN(`  -- localName=[${localName}], posn={${symbolPosition.line}, ${symbolPosition.character}}, nameOffset=(${nameOffset})`);
+            if (index == nameParts.length - 1) {
+              // have name
+              // check to see if local name is hiding global variable
+              if (this._hidesGlobalVariable(localName)) {
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: localName.length,
+                  ptTokenType: "variable",
+                  ptTokenModifiers: ["illegalUse"],
+                });
+                this.semanticFindings.pushDiagnosticMessage(
+                  symbolPosition.line,
+                  symbolPosition.character,
+                  symbolPosition.character + localName.length,
+                  eSeverity.Error,
+                  `P2 Spin local [${localName}] hides global variable of same name`
+                );
+              } else {
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: localName.length,
+                  ptTokenType: "variable",
+                  ptTokenModifiers: ["declaration", "local"],
+                });
+              }
+              // remember so we can ID references
+              this.semanticFindings.setLocalTokenForMethod(
+                methodName,
+                localName,
+                new RememberedToken("variable", symbolPosition.line, symbolPosition.character, ["local"]),
+                this._declarationComment()
+              ); // TOKEN SET in _report()
+            } else {
+              // have modifier!
+              if (this.parseUtils.isStorageType(localName)) {
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: localName.length,
+                  ptTokenType: "storageType",
+                  ptTokenModifiers: [],
+                });
+              } else if (this.parseUtils.isAlignType(localName)) {
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: localName.length,
+                  ptTokenType: "storageType",
+                  ptTokenModifiers: [],
+                });
+              }
+            }
+          }
+          currSingleLineOffset = nameOffset + localName.length;
+        }
+      }
+    }
+    return tokenSet;
+  }
+
   private _reportPUB_PRI_Signature(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     const lineNbr: number = lineIdx + 1;
@@ -2468,6 +2920,7 @@ export class Spin2DocumentSemanticParser {
     const spineDeclarationLHSStr = this._getNonCommentLineReturnComment(0, lineIdx, line, tokenSet);
     if (spineDeclarationLHSStr) {
     } // we don't use this string, we called this to record our rhs comment!
+    this._logSPIN(`- Ln#${lineIdx + 1} reportPubPriSig line=[${line}](${line.length})`);
 
     // -----------------------------------
     //   Method Name
@@ -2500,8 +2953,12 @@ export class Spin2DocumentSemanticParser {
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
     const spin2MethodName: string = methodName + "(";
     const spin2MethodNameWithSpace: string = methodName + " (";
-    this._logSPIN("-reportPubPriSig: spin2MethodName=[" + spin2MethodName + "], startNameOffset=(" + startNameOffset + ")");
+    // FIXME: TODO: UNDONE this should be match with name-infWhiteSpace-openParen!
+    //const myExpression: string = `${methodName}\s\(`;
+    //const methodNameRegEx = new RegExp(myExpression, "i"); // case-insensative method name with arbitrary whitespace before open paren
     const bHaveSpin2Method: boolean = line.includes(spin2MethodName) || line.includes(spin2MethodNameWithSpace);
+    const bHaveSpin2Method2: boolean = false; // methodNameRegEx.test(line);
+    this._logSPIN(`-reportPubPriSig: spin2MethodName=[${spin2MethodName}], startNameOffset=(${startNameOffset}), bHaveSpin2Method=(${bHaveSpin2Method}), bHaveSpin2Method2=(${bHaveSpin2Method2})`);
     if (bHaveSpin2Method) {
       const declModifiers: string[] = isPrivate ? ["declaration", "static"] : ["declaration"];
       this._recordToken(tokenSet, line, {
@@ -3155,7 +3612,7 @@ export class Spin2DocumentSemanticParser {
       const nonStringAssignmentRHSStr: string = lineInfo.lineNoQuotes;
       this._logSPIN("  -- possNames=[" + possNames + "](" + possNames.length + ")");
       const firstName: string = possNames.length > 0 ? possNames[0] : "";
-      const bIsDebugLine: boolean = nonStringAssignmentRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
+      const bIsDebugLine: boolean = haveDebugLine(nonStringAssignmentRHSStr); //  nonStringAssignmentRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
       const assignmentStringOffset = currentOffset;
       this._logSPIN(`  -- assignmentStringOffset=[${assignmentStringOffset}], bIsDebugLine=(${bIsDebugLine})`);
       let offsetInNonStringRHS = 0;
@@ -3341,7 +3798,8 @@ export class Spin2DocumentSemanticParser {
     if (inLinePAsmRHSStr.length > 0) {
       const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
       this._logPASM("  -- reportInLinePAsmDecl lineParts=[" + lineParts + "]");
-      const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
+      //const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
+      const bIsAlsoDebugLine: boolean = haveDebugLine(inLinePAsmRHSStr);
       if (bIsAlsoDebugLine) {
         const partialTokenSet: IParsedToken[] = this._reportDebugStatement(lineIdx, startingOffset, line);
         partialTokenSet.forEach((newToken) => {
@@ -3698,10 +4156,10 @@ export class Spin2DocumentSemanticParser {
   private _reportOBJ_DeclarationLineMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     //skip Past Whitespace
-    let currentOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
+    let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
     // FIXME: TODO: UNDONE - maybe we need to highlight comments which are NOT captured yet in multi-line set
     const remainingNonCommentLineStr: string = multiLineSet.line;
-    this._logOBJ(`- RptObjDecl remainingNonCommentLineStr=[${remainingNonCommentLineStr}], currentOffset=(${currentOffset})`);
+    this._logOBJ(`- RptObjDecl remainingNonCommentLineStr=[${remainingNonCommentLineStr}], currSingleLineOffset=(${currSingleLineOffset})`);
     const bHasOverrides: boolean = remainingNonCommentLineStr.includes("|");
     const overrideParts: string[] = remainingNonCommentLineStr.split("|");
 
@@ -3714,8 +4172,8 @@ export class Spin2DocumentSemanticParser {
       this._logOBJ("  --  OBJ lineParts=[" + lineParts + "]");
       objectName = lineParts[0];
       // object name token must be offset into full line for token
-      //const nameOffset: number = line.indexOf(objectName, currentOffset);
-      const symbolPosition: Position = multiLineSet.locateSymbol(objectName, currentOffset);
+      //const nameOffset: number = line.indexOf(objectName, currSingleLineOffset);
+      const symbolPosition: Position = multiLineSet.locateSymbol(objectName, currSingleLineOffset);
       this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
         line: symbolPosition.line,
         startCharacter: symbolPosition.character,
@@ -3736,14 +4194,14 @@ export class Spin2DocumentSemanticParser {
             let bHaveObjReference: boolean = false;
             if (this._isPossibleObjectReference(elemCountStr)) {
               // go register object reference!
-              const symbolPosition: Position = multiLineSet.locateSymbol(elemCountStr, currentOffset);
+              const symbolPosition: Position = multiLineSet.locateSymbol(elemCountStr, currSingleLineOffset);
               bHaveObjReference = this._reportObjectReference(elemCountStr, symbolPosition.line, symbolPosition.character, multiLineSet.lineAt(symbolPosition.line), tokenSet);
               possibleNameSet = elemCountStr.split(".");
             }
             if (!bHaveObjReference) {
               for (let index = 0; index < possibleNameSet.length; index++) {
                 const nameReference = possibleNameSet[index];
-                const symbolPosition: Position = multiLineSet.locateSymbol(nameReference, currentOffset);
+                const symbolPosition: Position = multiLineSet.locateSymbol(nameReference, currSingleLineOffset);
                 if (this.semanticFindings.isGlobalToken(nameReference)) {
                   const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(nameReference);
                   // Token offsets must be line relative so search entire line...
@@ -3796,7 +4254,7 @@ export class Spin2DocumentSemanticParser {
           }
           const lookupName: string = `${objectName}%${overideName}`;
           this._logOBJ(`  -- OBJ overideName=[${overideName}](${overideName.length}), overideValue=[${overideValue}](${overideValue.length})`);
-          const symbolPosition: Position = multiLineSet.locateSymbol(overideName, currentOffset);
+          const symbolPosition: Position = multiLineSet.locateSymbol(overideName, currSingleLineOffset);
           let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
           let bHaveObjReference: boolean = this._isPossibleObjectReference(lookupName)
             ? this._reportObjectReference(lookupName, symbolPosition.line, symbolPosition.character, multiLineSet.lineAt(symbolPosition.line), tokenSet)
@@ -3818,13 +4276,13 @@ export class Spin2DocumentSemanticParser {
               `P2 Spin H missing declaration [${overideName}]`
             );
           }
-          this._logOBJ(`  -- OBJ CALC currOffset nameOffset=(${nameOffset}) + nameLen=(${overideName.length}) = currentOffset=(${nameOffset + overideName.length})`);
-          currentOffset = nameOffset + overideName.length; // move past this name
+          this._logOBJ(`  -- OBJ CALC currOffset nameOffset=(${nameOffset}) + nameLen=(${overideName.length}) = currSingleLineOffset=(${nameOffset + overideName.length})`);
+          currSingleLineOffset = nameOffset + overideName.length; // move past this name
 
           // process RHS of assignment (overideValue) too!
           if (overideValue.charAt(0).match(/[a-zA-Z_]/)) {
             // process symbol name
-            const symbolPosition: Position = multiLineSet.locateSymbol(overideValue, currentOffset);
+            const symbolPosition: Position = multiLineSet.locateSymbol(overideValue, currSingleLineOffset);
             let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             this._logOBJ(`  -- OBJ overideValue=[${overideValue}], ofs=(${nameOffset})`);
             let bHaveObjReference: boolean = this._isPossibleObjectReference(overideValue)
@@ -3874,7 +4332,7 @@ export class Spin2DocumentSemanticParser {
                 );
               }
             }
-            currentOffset = nameOffset + overideValue.length;
+            currSingleLineOffset = nameOffset + overideValue.length;
           }
         }
       }
@@ -4058,7 +4516,7 @@ export class Spin2DocumentSemanticParser {
       let symbolOffset: number = currentOffset;
       const displayType: string = lineParts.length >= 2 ? lineParts[1] : "";
       if (displayType.startsWith("`")) {
-        this._logDEBUG(' -- rptDbg have "debug("` lineParts=[' + lineParts + "]");
+        this._logDEBUG(` -- rptDbg have "debug("\` lineParts=[${lineParts}](${lineParts.length})`);
         symbolOffset = line.indexOf(displayType, symbolOffset) + 1; // plus 1 to get past back-tic
         const newDisplayType: string = displayType.substring(1, displayType.length);
         let displayTestName: string = lineParts[1] == "`" ? lineParts[1] + lineParts[2] : lineParts[1];

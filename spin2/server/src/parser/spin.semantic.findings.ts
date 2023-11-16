@@ -1236,7 +1236,9 @@ export class DocumentFindings {
   public startMethod(methodName: string, lineNbr: number): void {
     // starting a new method remember the name and assoc the line number
     if (this.currMethodName) {
-      this._logMessage(`  -- FAILED close prior SPAN method=[${methodName}], line#=(${this.currMethodStartLineNbr})`);
+      this._logMessage(`  -- FAILED prior close SPAN Ln#${lineNbr} method=[${methodName}],  PRIOR-method=[${this.currMethodName}]`);
+    } else {
+      this._logMessage(`  -- NEW SPAN Ln#${lineNbr} method=[${methodName}]`);
     }
     this.currMethodName = methodName;
     this.currMethodStartLineNbr = lineNbr;
@@ -1248,9 +1250,9 @@ export class DocumentFindings {
       const spanInfo: IMethodSpan = { startLineNbr: this.currMethodStartLineNbr, endLineNbr: lineNbr };
       if (!this.spanInfoByMethodName.has(this.currMethodName)) {
         this.spanInfoByMethodName.set(this.currMethodName, spanInfo);
-        this._logMessage(`  -- END-Method method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}]`);
+        this._logMessage(`  -- END-Method SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}]`);
       } else {
-        this._logMessage(`  -- DUPE!! method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}] IGNORED!`);
+        this._logMessage(`  -- DUPE!! SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}] IGNORED!`);
       }
     }
     // now clear in progress

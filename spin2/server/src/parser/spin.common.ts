@@ -58,6 +58,12 @@ export interface IBuiltinDescription {
   returns?: string[];
 }
 
+export function haveDebugLine(line: string, startsWith: boolean = false): boolean {
+  const debugStatementOpenRegEx = /debug\s*\(/i; // case-insensative debug() but allowing whitespace before '('
+  const debugStatementOpenStartRegEx = /^debug\s*\(/i; // case-insensative debug() at start of line but allowing whitespace before '('
+  return startsWith ? debugStatementOpenStartRegEx.test(line) : debugStatementOpenRegEx.test(line);
+}
+
 export class ContinuedLines {
   private rawLines: string[] = [];
   private rawLineIdxs: number[] = [];
@@ -102,9 +108,9 @@ export class ContinuedLines {
       for (let index = 0; index < this.rawLines.length; index++) {
         const element = this.rawLines[index];
         if (element) {
-          this._logMessage(`  -- CntLn: (dbg) Ln#${this.rawLineIdxs[index]}} rawLines[${index}]=[${element}](${element.length})`);
+          this._logMessage(`  -- CntLn: (dbg) Ln#${this.rawLineIdxs[index] + 1}} rawLines[${index}]=[${element}](${element.length})`);
         } else {
-          this._logMessage(`  -- CntLn: (dbg) Ln#${this.rawLineIdxs[index]}} rawLines[${index}]=[${element}] UNDEFINED!!!`);
+          this._logMessage(`  -- CntLn: (dbg) Ln#${this.rawLineIdxs[index] + 1}} rawLines[${index}]=[${element}] UNDEFINED!!!`);
         }
       }
     }
@@ -145,9 +151,10 @@ export class ContinuedLines {
       const currlineIdx = this.rawLineIdxs[index];
       if (currlineIdx == desiredLineIdx) {
         desiredLine = this.rawLines[index];
+        break;
       }
     }
-    this._logMessage(`  -- CntLn: lineAt(${desiredLineIdx}) -> line=[${desiredLine}]`);
+    //this._logMessage(`  -- CntLn: Ln#(${desiredLineIdx + 1}) -> line=[${desiredLine}]`);
     return desiredLine;
   }
 
@@ -156,15 +163,21 @@ export class ContinuedLines {
     if (symbolPosition.line != -1 && symbolPosition.character != -1) {
       // work our way to the offset
       desiredOffset = 0;
+      let bFoundLine: boolean = false;
+      let foundLineWhiteSpaceLength: number = 0;
       for (let index = 0; index < this.rawLines.length; index++) {
         const currLine = this.rawLines[index];
         const currIdx = this.rawLineIdxs[index];
+        const isLineContinued: boolean = currLine.endsWith("...");
+        const currLineLength: number = isLineContinued ? this._lengthWithoutContinuation(currLine) + 1 : currLine.length; // +1 is for concatenating " "
+        foundLineWhiteSpaceLength = this._skipWhite(currLine, 0);
         if (currIdx == symbolPosition.line) {
+          bFoundLine = true;
           break;
         }
-        desiredOffset += this._lengthWithoutContinuation(currLine) + 1; // +1 is for concatenating " "
+        desiredOffset += currLineLength;
       }
-      desiredOffset += symbolPosition.character;
+      desiredOffset += symbolPosition.character - foundLineWhiteSpaceLength;
     }
     this._logMessage(`  -- CntLn: offsetIntoLineForPosition([line=(${symbolPosition.line}), char=(${symbolPosition.character})]) -> (${desiredOffset})`);
     if (desiredOffset == -1) {
@@ -173,54 +186,72 @@ export class ContinuedLines {
     return desiredOffset;
   }
 
-  private _lengthWithoutContinuation(line: string): number {
-    let desiredLength: number = line.length;
-    if (line.endsWith("...")) {
-      const tempLine: string = line.slice(0, -3).trimEnd();
-      desiredLength = tempLine.length;
-    }
-    return desiredLength;
-  }
-
   public locateSymbol(symbolName: string, offset: number): Position {
     // locate raw line containing symbol (the symbol will NOT span lines)
     let rawIdx: number = 0;
     let remainingOffset: number = offset;
     // subtract earlier line lengths from remainder to locate line our symbol is on
+    this._logMessage(`  -- CntLn: locateSymbol([${symbolName}], ofs=(${offset})) - rawLines=(${this.rawLines.length}), Lines=[${this.lineStartIdx + 1}-${this.lineStartIdx + this.rawLines.length}]`);
     for (let index = 0; index < this.rawLines.length; index++) {
-      const continuedLine: string = this.rawLines[index];
-      const isLineContinued: boolean = continuedLine.endsWith("...");
-      const currLineLength: number = this._lengthWithoutContinuation(continuedLine);
-      this._logMessage(
-        `  -- CntLn: locateSymbol() - checking rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued}) continuedLine=[${continuedLine}](${continuedLine.length})`
-      );
+      const rawPossContLine: string = this.rawLines[index];
+      const isLineContinued: boolean = rawPossContLine.endsWith("...");
+      const currLineLength: number = isLineContinued ? this._lengthWithoutContinuation(rawPossContLine) + 1 : rawPossContLine.length;
+      //this._logMessage(
+      //  `  -- CntLn: locateSymbol() - CHECKING rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued}) continuedLine=[${rawPossContLine}](${rawPossContLine.length})`
+      //);
       // if our offset is not in this line -or- the remainder of this line is not long enough to contain our symbol
-      if (remainingOffset > currLineLength || currLineLength - remainingOffset < symbolName.length) {
+      if (remainingOffset > currLineLength) {
         rawIdx++;
-        remainingOffset -= currLineLength;
+        remainingOffset -= currLineLength + 1;
+        //this._logMessage(`  -- CntLn: locateSymbol() - NOT-LINE rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`);
+      } else if (currLineLength - remainingOffset < symbolName.length) {
+        rawIdx++;
+        remainingOffset = 0;
+        //this._logMessage(`  -- CntLn: locateSymbol() - NOT-FIT rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`);
       } else {
+        //this._logMessage(`  -- CntLn: locateSymbol() - THIS-LINE rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`);
         break; // symbol is in this line
       }
-      this._logMessage(
-        `  -- CntLn: locateSymbol() - after rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued}) continuedLine=[${continuedLine}](${continuedLine.length})`
-      );
     }
 
     let desiredLocation: Position = Position.create(this.rawLineIdxs[rawIdx], -1);
     if (rawIdx > this.rawLines.length - 1) {
       this._logMessage(`  -- CntLn: ERROR locateSymbol([${symbolName}], ofs=(${offset})) - math when off of end of lineSet`);
     } else {
-      const symbolOffset: number = this.rawLines[rawIdx].indexOf(symbolName);
       const lineIdx: number = this.rawLineIdxs[rawIdx];
+      const searchLine: string = this.rawLines[rawIdx];
+      const leadingWhiteLength: number = this._skipWhite(searchLine, 0);
+      const symbolOffset: number = this.rawLines[rawIdx].indexOf(symbolName, leadingWhiteLength + remainingOffset);
+      //this._logMessage(`  -- CntLn: lineIdx=(${lineIdx}),  leadingWhiteLength=(${leadingWhiteLength}), remainingOffset=(${remainingOffset}), searchLine=[${searchLine}](${searchLine.length})`);
       desiredLocation = Position.create(lineIdx, symbolOffset);
       this._logMessage(`  -- CntLn: locateSymbol([${symbolName}], ofs=(${offset})) -> Posn=[line=(${lineIdx}), char=(${symbolOffset})]`);
       if (symbolOffset != -1) {
-        this._logMessage(`     in Ln#${lineIdx + 1} [${this.rawLines[rawIdx]}]`);
+        this._logMessage(`     in Ln#${lineIdx + 1} [${this.rawLines[rawIdx] + 1}]`);
       } else {
         this._logMessage(`     ERROR NOT found! [${symbolName}] NOT in line=[${this.rawLines[rawIdx]}] ??`);
       }
     }
     return desiredLocation;
+  }
+
+  private _skipWhite(line: string, currentOffset: number): number {
+    let firstNonWhiteIndex: number = currentOffset;
+    for (let index = currentOffset; index < line.length; index++) {
+      if (line.substr(index, 1) != " " && line.substr(index, 1) != "\t") {
+        firstNonWhiteIndex = index;
+        break;
+      }
+    }
+    return firstNonWhiteIndex;
+  }
+
+  private _lengthWithoutContinuation(line: string): number {
+    let desiredLength: number = line.length;
+    if (line.endsWith("...")) {
+      const tempLine: string = line.slice(0, -3).trimEnd(); // remove trailing spaces so we only have 1 between ea. after lines joined
+      desiredLength = tempLine.trim().length; // and don't count leading white-space
+    }
+    return desiredLength;
   }
 
   private _finishLine() {

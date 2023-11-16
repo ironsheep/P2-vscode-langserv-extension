@@ -1,0 +1,60 @@
+' --------------------------------------------------------------------------------------------------
+' goto .lcd is wrong in earliest case!  WHY???
+
+DAT
+        org
+vislineH40_hdmi
+              testb cmod_val,#30 wc ' LCD?
+        if_c  jmp #.lcd
+              rep #3,#320
+              rflong pa
+              andn pa,#$FF
+              xcont hdmi_command,pa
+              ret
+
+.lcd
+              rep #4,#320
+              rflong pa
+              and pa,lcdmask
+              shr pa,#8
+              xcont lcd6_command,pa
+              ret
+
+
+vislineH32_hdmi
+              testb cmod_val,#30 wc ' LCD?
+        if_c  jmp #.lcd
+              xcont pillar_command,#0
+              xcont pillar_command,#0
+              rep #3,#256
+              rflong pa
+              andn pa,#$FF
+              xcont hdmi_command,pa
+              xcont pillar_command,#0
+              xcont pillar_command,#0
+              ret
+
+.lcd
+              rep #1,#3
+              xcont pillar_command,#0
+
+              rep #4,#256
+              rflong pa
+              and pa,lcdmask
+              shr pa,#8
+              xcont lcd6_command,pa
+
+              rep #1,#3
+              xcont pillar_command,#0
+
+              ret
+
+
+pillar_command long X_DACS_3_2_1_0|X_IMM_1X32_4DAC8 + 32
+hdmi_command   long X_DACS_3_2_1_0|X_IMM_1X32_4DAC8 + 2
+lcd6_command    long X_DACS_3_2_1_0|X_IMM_4X8_1DAC8 + 3
+
+lcdmask long $FCFCFC00
+
+cmod_val                res 1
+' --------------------------------------------------------------------------------------------------

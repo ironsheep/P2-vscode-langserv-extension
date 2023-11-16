@@ -1151,6 +1151,7 @@ export class Spin1DocumentSemanticParser {
 
       const methodNamewithParens: string = `${methodName}()`;
       const methodNamewithSpaceParens: string = `${methodName} ()`;
+      // FIXME: TODO: UNDONE this should be match with name-infWhiteSpace-openParen!
       const methodPrefix: string = isPrivate ? "PRI" : "PUB";
       if (line.includes(methodNamewithParens) || line.includes(methodNamewithSpaceParens)) {
         this.semanticFindings.pushDiagnosticMessage(

@@ -4,7 +4,7 @@
 import { ClientCapabilities, Connection, ServerCapabilities } from "vscode-languageserver";
 import { Context } from "../context";
 
-import CompletionProvider from "./CompletionProvider";
+//import CompletionProvider from "./CompletionProvider";
 import SemanticTokensProvider from "./SemanticTokensProvider";
 // import ConfiguratonProvider from "./ConfigurationProvider";
 import DefinitionProvider from "./DefinitionProvider";
@@ -25,7 +25,7 @@ export interface Provider {
   register(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities;
 }
 const providers = [
-  CompletionProvider,
+  //CompletionProvider,
   SemanticTokensProvider,
   //   ConfiguratonProvider,
   DefinitionProvider,
