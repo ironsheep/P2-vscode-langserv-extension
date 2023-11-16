@@ -41,7 +41,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -1378,8 +1378,10 @@ export class Spin2DocumentSemanticParser {
           }
           this._logPASM("  -- DAT PASM GLBL labelName=[" + labelName + "(" + labelType + ")]");
           const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
-          this._logDAT("   -- DAT PASM GLBL fileName=[" + fileName + "]");
-          this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+          if (fileName) {
+            this._logDAT("   -- DAT PASM GLBL fileName=[" + fileName + "]");
+            this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+          }
           const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
           // LABEL-TODO add record of global, start or local extra line number
           let declType: eDefinitionType = eDefinitionType.NonLabel;

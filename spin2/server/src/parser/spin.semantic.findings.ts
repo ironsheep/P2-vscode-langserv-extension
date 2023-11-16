@@ -1063,9 +1063,11 @@ export class DocumentFindings {
     let tokenDeclLines: number[] | undefined = this.declarationLocalLabelLineCache.get(tokenKey);
     if (tokenDeclLines) {
       if (tokenDeclLines.length > 1) {
+        //this._logMessage(`  -- gBLLPFP local=[${tokenDeclLines}](${tokenDeclLines.length})`);
         const currentLine: number = position.line;
         let lineAbove: number = -1; // toward top of file
         let lineBelow: number = -1; // toward bottom of file
+        //this._logMessage(`  -- gBLLPFP global=[${this.declarationGlobalLabelListCache}](${this.declarationGlobalLabelListCache.length})`);
         for (let index = 0; index < this.declarationGlobalLabelListCache.length; index++) {
           const globalLine: number = this.declarationGlobalLabelListCache[index];
           if (globalLine < currentLine) {
@@ -1079,9 +1081,24 @@ export class DocumentFindings {
 
         for (let index = 0; index < tokenDeclLines.length; index++) {
           const declLineIdx: number = tokenDeclLines[index];
-          if (declLineIdx > lineAbove && declLineIdx < lineBelow) {
-            localLabelPosn = { line: declLineIdx, character: 0 };
-            break;
+          if (lineAbove != -1 && lineBelow != -1) {
+            // bounded above and below
+            if (declLineIdx > lineAbove && declLineIdx < lineBelow) {
+              localLabelPosn = { line: declLineIdx, character: 0 };
+              break;
+            }
+          } else if (lineBelow != -1) {
+            // bounded above,  nothing below
+            if (declLineIdx < lineBelow) {
+              localLabelPosn = { line: declLineIdx, character: 0 };
+              break;
+            }
+          } else {
+            // bounded below,  nothing above
+            if (declLineIdx > lineAbove) {
+              localLabelPosn = { line: declLineIdx, character: 0 };
+              break;
+            }
           }
         }
       } else {
@@ -1132,6 +1149,7 @@ export class DocumentFindings {
   public setGlobalToken(tokenName: string, token: RememberedToken, declarationComment: string | undefined, reference?: string | undefined): void {
     // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
     //   this allows go-to to get to nearest earlier than right-mouse line
+    const isLocalLabel: boolean = tokenName.startsWith(".") || tokenName.startsWith(":");
     if (!this.isGlobalToken(tokenName)) {
       this._logMessage("  -- NEW-gloTOK " + this._rememberdTokenString(tokenName, token) + `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}], ref=[${reference}]`);
       this.globalTokens.setToken(tokenName, token);
@@ -1139,11 +1157,10 @@ export class DocumentFindings {
       const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment, reference);
       const desiredTokenKey: string = tokenName.toLowerCase();
       this.declarationInfoByGlobalTokenName.set(desiredTokenKey, newDescription);
-
-      // NEW record line numbers for local labels
-      if (tokenName.startsWith(".") || tokenName.startsWith(":")) {
-        this.trackLocalTokenLineNbr(tokenName, token.lineIndex);
-      }
+    }
+    // NEW record line numbers for local labels
+    if (isLocalLabel) {
+      this.trackLocalTokenLineNbr(tokenName, token.lineIndex);
     }
   }
 

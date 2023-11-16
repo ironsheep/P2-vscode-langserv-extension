@@ -19,6 +19,15 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.4] 2023-11-16
+
+Update for P2 only
+
+- Add line-continuation "..." processing to PUB/PRI declarations
+- Repair broken cases where local pasm label go-to went to incorrect instance
+- Remove BYTES(), WORDS(), LONGS(), LSTRING() methods for now until we get new language version directive
+- Repair debug() statement single-quoted string parsing
+
 ## [2.2.3] 2023-11-12
 
 Update for P2 only
