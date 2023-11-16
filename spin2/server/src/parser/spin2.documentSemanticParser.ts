@@ -41,7 +41,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -392,6 +392,7 @@ export class Spin2DocumentSemanticParser {
           newBlockType = eBLockType.isPri;
         }
         this.semanticFindings.recordBlockStart(newBlockType, i); // start new one which ends prior
+        this._logState("- scan Ln#" + lineNbr + " currState=[" + currState + "]");
       }
 
       // ----------------------------------------------
@@ -414,15 +415,11 @@ export class Spin2DocumentSemanticParser {
 
       // only non-continued lines follow this path... continued lines follow the non-section-start path
       if (sectionStatus.isSectionStart) {
-        this._logState("- scan Ln#" + lineNbr + " currState=[" + currState + "]");
         // ID the remainder of the line
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
-          // process PUB/PRI method signature (which could be a continued line-set)
-          const nonCommentLength: number = parsingContinuedLineSet ? continuedLineSet.line.length : trimmedNonCommentLine.length;
-          const lineToParse: string = parsingContinuedLineSet ? continuedLineSet.line : line;
-          const lineNumber: number = parsingContinuedLineSet ? continuedLineSet.lineStartIdx + 1 : lineNbr;
-          if (nonCommentLength > 3) {
-            this._getPUB_PRI_Name(3, lineNbr, lineToParse);
+          // process PUB/PRI method signature (which is NOT a continued line-set)
+          if (trimmedNonCommentLine.length > 3) {
+            this._getPUB_PRI_Name(3, lineNbr, line);
             // and record our fake signature for later use by signature help
             const docComment: RememberedComment = this._generateFakeCommentForSignature(0, lineNbr, line);
             if (docComment._type != eCommentType.Unknown) {
@@ -542,7 +539,8 @@ export class Spin2DocumentSemanticParser {
         // NOTE: The directives ORGH, ALIGNW, ALIGNL, and FILE are not allowed within in-line PASM code.
         if (parsingContinuedLineSet) {
           // process PUB/PRI method signature (which is a continued line-set)
-          if (continuedLineSet.line.length > 3) {
+          const sectionStatus = this.extensionUtils.isSectionStartLine(continuedLineSet.line);
+          if (sectionStatus.isSectionStart) {
             this._getPUB_PRI_Name(3, continuedLineSet.lineStartIdx + 1, continuedLineSet.line);
           }
         } else if (bHaveLineToProcess) {
@@ -635,6 +633,20 @@ export class Spin2DocumentSemanticParser {
         continue; // only SKIP if we have FlexSpin directive
       }
 
+      if (sectionStatus.isSectionStart) {
+        if (currState == eParseState.inDatPAsm) {
+          // BEFORE STATE CHANGE:
+          //    end datPasm at next section start
+          currState = prePAsmState;
+          this._logState(`- scan Ln#${lineNbr} POP currState=[${currState}]`);
+        }
+        currState = sectionStatus.inProgressStatus;
+        this.conEnumInProgress = false; // tell in CON processor we are not in an enum mulit-line declaration
+        this._logState(`  -- Ln#${lineNbr} currState=[${currState}]`);
+        // ID the section name
+        // DON'T mark the section literal, Syntax highlighting does this well!
+      }
+
       // ----------------------------------------------
       // gather our multi-line set if line is continued
       // ----------------------------------------------
@@ -655,19 +667,7 @@ export class Spin2DocumentSemanticParser {
       }
 
       if (sectionStatus.isSectionStart) {
-        if (currState == eParseState.inDatPAsm) {
-          // BEFORE STATE CHANGE:
-          //    end datPasm at next section start
-          currState = prePAsmState;
-          this._logState(`- scan Ln#${lineNbr} POP currState=[${currState}]`);
-        }
-        currState = sectionStatus.inProgressStatus;
-        this.conEnumInProgress = false; // tell in CON processor we are not in an enum mulit-line declaration
-        this._logState(`  -- Ln#${lineNbr} currState=[${currState}]`);
-        // ID the section name
-        // DON'T mark the section literal, Syntax highlighting does this well!
-
-        // ID the remainder of the line
+        // ID the remainder of the line - single, non-continued line only
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
           // process SINGLE-LINE method signature
           let partialTokenSet: IParsedToken[] = [];
@@ -955,9 +955,10 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
         // process a MULTI-LINE signature! if present
         if (parsingContinuedLineSet) {
+          const sectionStatus = this.extensionUtils.isSectionStartLine(continuedLineSet.line);
           let partialTokenSet: IParsedToken[] = [];
           //this._logState(`- Ln#${lineNbr} check pub/pri sig parsingContinuedLineSet=(${parsingContinuedLineSet}), lineLength=(${continuedLineSet.line.length})`);
-          if (continuedLineSet.line.length > 3) {
+          if (sectionStatus.isSectionStart) {
             partialTokenSet = this._reportPUB_PRI_SignatureMultiLine(3, continuedLineSet);
           }
           if (partialTokenSet.length > 0) {
@@ -3653,11 +3654,19 @@ export class Spin2DocumentSemanticParser {
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
-              this._logSPIN("  --  FOUND local name=[" + namePart + "]");
+              if (referenceDetails) {
+                this._logSPIN(`  --  FOUND Local name=[${namePart}], referenceDetails=(${referenceDetails})`);
+              } else {
+                this._logSPIN(`  --  EXISTS Local name=[${namePart}], BUT referenceDetails=(${referenceDetails})`);
+              }
             }
             if (!referenceDetails && this.semanticFindings.isGlobalToken(namePart)) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-              this._logSPIN("  --  FOUND global name=[" + namePart + "]");
+              if (referenceDetails) {
+                this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${referenceDetails})`);
+              } else {
+                this._logSPIN(`  --  EXISTS Global name=[${namePart}], BUT referenceDetails=(${referenceDetails})`);
+              }
               if (referenceDetails != undefined && referenceDetails?.type == "method") {
                 const methodCallNoSpace = `${namePart}(`;
                 const methodCallSpace = `${namePart} (`;
