@@ -43,7 +43,6 @@ The **P1 Forum Thread** containing discussion of [this VSCode support](https://f
 ### Up next
 We are working on the next updates:
 
-- Go to Definition support
 - Code folding support
 - Improve Hover support (more doc details such as pasm code help)
 
