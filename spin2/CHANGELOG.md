@@ -19,6 +19,12 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.5] 2023-11-17
+
+Update for P1 and P2
+
+- Fixed documentation parsing (Signature help, Hover text). Earlier changes broke this.
+
 ## [2.2.4] 2023-11-16
 
 Update for P1 and P2

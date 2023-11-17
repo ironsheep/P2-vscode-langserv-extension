@@ -87,7 +87,7 @@ export default class SignatureHelpProvider implements Provider {
     }
     const callerPos = this.previousTokenPosition(document, theCall.openParen);
     try {
-      const defInfo: IDefinitionInfo | null = this.definitionLocation(document, callerPos);
+      const defInfo: IDefinitionInfo | null = this.definitionLocation(document, callerPos, theCall.openParen);
       if (defInfo == null) {
         // The definition was not found
         this._logMessage(`+ Sig: defInfo NOT found`);
@@ -123,7 +123,7 @@ export default class SignatureHelpProvider implements Provider {
         const sigScope: string = isPrivate ? "private" : "public";
         //sig = this.signatureWithOutLocals(`(object ${sigScope} method) ` + nonCommentDecl);
         sig = defInfo.declarationlines[0];
-        const methDescr: string = this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, "\n");
+        const methDescr: string = this._removeCustomMethod(this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, "\n"));
         si = SignatureInformation.create(sig, methDescr);
         if (si) {
           si.parameters = this.getParametersAndReturnTypeFromDoc(defInfo.doc);
@@ -155,6 +155,18 @@ export default class SignatureHelpProvider implements Provider {
     }
   }
 
+  private _removeCustomMethod(lineWNewlines: string): string {
+    const lines: string[] = lineWNewlines.split("\n");
+    const filtLines: string[] = [];
+    for (let index = 0; index < lines.length; index++) {
+      const element = lines[index];
+      if (!element.includes("Custom Method")) {
+        filtLines.push(element);
+      }
+    }
+    return filtLines.join("\n");
+  }
+
   private signatureWithOutLocals(signature: string): string {
     let trimmedSignature: string = signature;
     const localIndicaPosn: number = trimmedSignature.indexOf("|");
@@ -183,23 +195,23 @@ export default class SignatureHelpProvider implements Provider {
     return parameterDetails;
   }
 
-  private definitionLocation(document: TextDocument, position: Position): IDefinitionInfo | null {
+  private definitionLocation(document: TextDocument, wordPosition: Position, cursorPosition: Position): IDefinitionInfo | null {
     this._logMessage(`+ Sig: definitionLocation() ENTRY`);
-    const isPositionInBlockComment: boolean = this.symbolsFound.isLineInBlockComment(position.line);
-    const inPasmCodeStatus: boolean = this.symbolsFound.isLineInPasmCode(position.line);
-    const adjustedPos = this.extensionUtils.adjustWordPosition(document, position, isPositionInBlockComment, inPasmCodeStatus);
+    const isPositionInBlockComment: boolean = this.symbolsFound.isLineInBlockComment(wordPosition.line);
+    const inPasmCodeStatus: boolean = this.symbolsFound.isLineInPasmCode(wordPosition.line);
+    const adjustedPos = this.extensionUtils.adjustWordPosition(document, wordPosition, cursorPosition, isPositionInBlockComment, inPasmCodeStatus);
     if (!adjustedPos[0]) {
       this._logMessage(`+ Sig: definitionLocation() EXIT fail`);
       return null;
     }
     const objectRef = adjustedPos[1];
     const searchWord = adjustedPos[2];
-    position = adjustedPos[3];
+    wordPosition = adjustedPos[3];
     let fileBasename = path.basename(document.uri);
-    this._logMessage(`+ Sig: searchWord=[${searchWord}], adjPos=(${position.line},${position.character}), file=[${fileBasename}], line=[${DocumentLineAt(document, position)}]`);
+    this._logMessage(`+ Sig: searchWord=[${searchWord}], adjPos=(${wordPosition.line},${wordPosition.character}), file=[${fileBasename}], line=[${DocumentLineAt(document, wordPosition)}]`);
 
     this._logMessage(`+ Sig: definitionLocation() EXIT after getting symbol details`);
-    return this.getSymbolDetails(document, position, objectRef, searchWord);
+    return this.getSymbolDetails(document, wordPosition, objectRef, searchWord);
   }
 
   private getSymbolDetails(document: TextDocument, position: Position, objRef: string, searchWord: string): IDefinitionInfo | null {
@@ -245,11 +257,12 @@ export default class SignatureHelpProvider implements Provider {
       }
       cursorCharPosn--;
     } while (cursorCharPosn > 0);
+
     const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith("pub") || sourceLine.toLowerCase().startsWith("pri");
     const isPrivate: boolean = sourceLine.toLowerCase().startsWith("pri");
     // spin1 doesn't support debug()
     const isDebugLine: boolean = this.spin1File == false && sourceLine.toLowerCase().startsWith("debug(");
-    this._logMessage(`+ Sig: getSymbolDetails() isSignatureLine=[${isSignatureLine}], isDebugLine=[${isDebugLine}]`);
+    this._logMessage(`+ Sig: getSymbolDetails() isSignatureLine=(${isSignatureLine}), isDebugLine=(${isDebugLine}), isObjectReference=(${isObjectReference})`);
 
     let bFoundSomething: boolean = false; // we've no answer
     let builtInFindings: IBuiltinDescription = isDebugLine ? this.parseUtils.docTextForDebugBuiltIn(searchWord) : this.parseUtils.docTextForBuiltIn(searchWord);
@@ -326,7 +339,7 @@ export default class SignatureHelpProvider implements Provider {
       let mdLines: string[] = [];
       if (typeString.includes("method")) {
         //if (!isSignatureLine) {
-        mdLines.push(`Custom Method: User defined<br>`);
+        mdLines.push(`Custom Method: User defined<br>`); // this is removed later
         //}
       }
       if (
@@ -523,6 +536,7 @@ export default class SignatureHelpProvider implements Provider {
   }
 
   private previousTokenPosition(document: TextDocument, position: Position): Position {
+    const origPosition: Position = position;
     while (position.character > 0) {
       const lineText = DocumentLineAt(document, position);
       let wordRange: Range | undefined = GetWordRangeAtPosition(lineText, position);
@@ -533,7 +547,7 @@ export default class SignatureHelpProvider implements Provider {
         position = PositionTranslate(position, 0, -1);
       }
     }
-    this._logMessage(`+ Sig: previousTokenPosition() = [lin=${position.line}, char=${position.character}]`);
+    this._logMessage(`+ Sig: previousTokenPosition([${origPosition.line}, ${origPosition.character}]) => [${position.line}, ${position.character}]`);
     return position;
   }
 
@@ -566,6 +580,7 @@ export default class SignatureHelpProvider implements Provider {
           case "(":
             parenBalance--;
             if (parenBalance < 0) {
+              this._logMessage(`+ Sig: walkBTBOC() = open[line=${lineNr}, char=${char}]`);
               return {
                 openParen: { line: lineNr, character: char },
                 commas,

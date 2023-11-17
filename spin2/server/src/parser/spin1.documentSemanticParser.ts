@@ -231,18 +231,34 @@ export class Spin1DocumentSemanticParser {
         this.priorSingleLineComment = undefined;
         continue;
       } else if (trimmedLine.startsWith("''")) {
-        // process single line doc comment
-        this.priorSingleLineComment = trimmedLine; // record this line
-        // create new single line doc-comment block
-        bBuildingSingleLineDocCmtBlock = true;
-        currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineDocComment, i, line);
+        if (bBuildingSingleLineDocCmtBlock) {
+          // process single line doc comment which follows one of same
+          // we no longer have a prior single line comment
+          this.priorSingleLineComment = undefined;
+          // add to existing single line doc-comment block
+          currSingleLineBlockComment?.appendLine(line);
+        } else {
+          // process a first single line doc comment
+          this.priorSingleLineComment = trimmedLine; // record this line
+          // create new single line doc-comment block
+          bBuildingSingleLineDocCmtBlock = true;
+          currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineDocComment, i, line);
+        }
         continue;
       } else if (trimmedLine.startsWith("'")) {
-        // process single line non-doc comment
-        this.priorSingleLineComment = trimmedLine; // record this line
-        // create new single line non-doc-comment block
-        bBuildingSingleLineCmtBlock = true;
-        currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineComment, i, line);
+        if (bBuildingSingleLineCmtBlock) {
+          // process single line non-doc comment which follows one of same
+          // we no longer have a prior single line comment
+          this.priorSingleLineComment = undefined;
+          // add to existing single line non-doc-comment block
+          currSingleLineBlockComment?.appendLine(line);
+        } else {
+          // process a first single line non-doc comment
+          this.priorSingleLineComment = trimmedLine; // record this line
+          // create new single line non-doc-comment block
+          bBuildingSingleLineCmtBlock = true;
+          currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineComment, i, line);
+        }
         continue;
       } else if (trimmedNonCommentLine.startsWith("{{")) {
         // process multi-line doc comment
@@ -317,20 +333,6 @@ export class Spin1DocumentSemanticParser {
           //  DO NOTHING Let Syntax highlighting do this
           continue; // only SKIP if we don't have closing marker
         }
-      } else if (bBuildingSingleLineDocCmtBlock && trimmedLine.startsWith("''")) {
-        // process single line doc comment which follows one of same
-        // we no longer have a prior single line comment
-        this.priorSingleLineComment = undefined;
-        // add to existing single line doc-comment block
-        currSingleLineBlockComment?.appendLine(line);
-        continue;
-      } else if (bBuildingSingleLineCmtBlock && trimmedLine.startsWith("'")) {
-        // process single line non-doc comment which follows one of same
-        // we no longer have a prior single line comment
-        this.priorSingleLineComment = undefined;
-        // add to existing single line non-doc-comment block
-        currSingleLineBlockComment?.appendLine(line);
-        continue;
       } else if (sectionStatus.isSectionStart) {
         // mark end of method, if we were in a method
         this.semanticFindings.endPossibleMethod(i); // pass prior line number! essentially i+1 (-1)

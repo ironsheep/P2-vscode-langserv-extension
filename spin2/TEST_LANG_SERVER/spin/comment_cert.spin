@@ -1,0 +1,101 @@
+con { fixed io pins }
+
+  LIB_VERSION = 140                                             ' 1.4.0
+
+  SF_CS    = 61  { O }                                          ' flash chip select
+  SF_SCLK  = 60  { O }                                          ' flash clock
+  SF_MOSI  = 59  { O }                                          ' flash data in
+  SF_MISO  = 58  { I }                                          ' flash data out
+
+' SK_* ENUM values (parameter to seek() method)
+' SK_FILE_START: seek using position from start of file
+' SK_CURRENT_POSN: seek where position is relative to current seek location in file
+  #0, SK_Unknown, SK_FILE_START, SK_CURRENT_POSN
+
+  E_BAD_HANDLE     = -1                                         ' Error: Handle in invalid
+  E_NO_HANDLE      = -2                                         ' Error: Out of available handles
+  E_FILE_NOT_FOUND = -3                                         ' Error: File not present
+
+  FIRST_BLOCK      = $080                                       ' Physical address of first block in this flash file system
+  LAST_BLOCK       = $FFF                                       ' Physical address of last block in this flash file system
+  MAX_FILES_OPEN   = 2                                          ' Maximum number of files that can be open at one time
+
+  BLOCKS           = LAST_BLOCK - FIRST_BLOCK+1                 ' Number of blocks in flash allocated to this file system
+  ID_TO_BLOCKS_SZ  = (BLOCKS * 12 + 15) / 16                    ' 12-bit fields in WORD array (rounded to full WORD)
+  FLAGS_SIZE       = (BLOCKS * 1 + 7) / 8                       ' 1-bit fields in BYTE array (rounded to full BYTE)
+  STATES_SIZE      = (BLOCKS * 2 + 7) / 8                       ' 2-bit fields in BYTE array (rounded to full BYTE)
+
+
+  B_FREE           = %00                                        ' Block is not in use (free)
+  B_TEMP           = %01                                        ' Block is being put to use
+  B_HEAD           = %10                                        ' Block is head of a file (contains filename)
+  B_BODY           = %11                                        ' BLock is body of file (any blocks after head)
+
+dat { pre-initialized: driver state tracking tables }
+
+' physically: 3/4 of a word (12 bits) for every valid block ID, 12 bits per ID
+' logically: a "BLOCKS"-sized array of 12-bit variables, 1 for ea. block ID - indexed by block ID
+' contains block_address in ea. 12 bit field
+IDToBlocks    WORD      0[ID_TO_BLOCKS_SZ]                                      'ID-to-block translation table
+IDToBlock     LONG      0                                                       '(field pointer to 12-bit variables)
+
+' physically: 1 byte for every 8 valid block IDs, 1 bit per block ID
+' logically: a "BLOCKS"-sized array of single bit variables, 1 for ea. block ID - indexed by block ID
+' contains [0,1] in ea. 1 bit field, where 1 means ID is valid
+IDValids      BYTE      0[FLAGS_SIZE]                                           'ID-valid flags
+IDValid       LONG      0                                                       '(field pointer to 1-bit variables)
+
+' physically: 1 byte for every 4 valid block IDs, 2 bits per block ID
+' logically: a "BLOCKS"-sized array of 2-bit variables, 1 for ea. block ID - indexed by block ID
+' contains a Block-State value in ea. 2 bit field [B_FREE, B_TEMP, B_HEAD, B_BODY]
+BlockStates   BYTE      0[STATES_SIZE]                                          'block states
+BlockState    LONG      0                                                       '(field pointer to 2-bit variables)
+
+
+hStatus         BYTE    0[MAX_FILES_OPEN]                                         'handle: status [H_READ, H_WRITE, H_REPLACE]
+
+pub null
+
+'' This is not an application
+''  (invoke format() or mount() to use the flash file system)
+
+
+pub version : result
+
+'' Returns flash file system library version as integer
+'' -- e.g., version 120 is 1.2.0 (major, minor, bugfix)
+
+  return LIB_VERSION
+
+pri get_file_head_signature(p_filename) : foundSignature | nameCrc, block_address, BYTE header[8 + FILENAME_SIZE]
+
+' Look up file by name and return the block state bits of the files' head block (or 0 if file not found)
+'
+' @param p_filename - address of a zstring containing the filename
+' @returns foundSignature - the block state bits of the head block (or 0 if file not found)
+
+' Local Variables:
+' @local block_address - the block offset within the file system
+' @local BYTE header[FILENAME_SIZE] - a temp buffer the block's filename is read into for compare
+
+  nameCrc := calc_crc32(p_filename, strsize(p_filename)+1)                      'get CRC of filename
+  repeat block_address from 0 to BLOCKS - 1                                     'scan head blocks for filename
+      flash_read_block(block_address, @nameCrc, $000, $007)                  'yes, read first 4+4+128 bytes of block
+
+
+pri calc_crc32(p_buffer, length) : crc
+' Calculate and return the CRC for this buffer of length bytes
+'
+' @param p_buffer - the address of the buffer
+' @returns crc - the calculated CRC for the buffer of length bytes
+
+  'return getcrc(p_buffer, $AD0424F3 rev 31, length)  'compute CRC of a buffered block
+
+pri flash_read_block(block_address, p_buffer, firstByte, lastByte)
+
+' Return byte(s) read from physical block into memory at p_buffer
+'
+' @param block_address - the block offset within the file system
+' @param p_buffer - memory location in which to place the data
+' @param firstByte - address of first byte to read
+' @param lastByte - address of last byte to read

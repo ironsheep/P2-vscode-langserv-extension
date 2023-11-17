@@ -168,6 +168,7 @@ export class Spin2DocumentSemanticParser {
       // NOTE: comment mid-line set a pending state so next line uses the new state
 
       // special blocks of doc-comment and non-doc comment lines handling
+      // if we have comment in progress but not another comment line, close comment being built!
       if (bBuildingSingleLineDocCmtBlock && !trimmedLine.startsWith("''")) {
         // process single line doc-comment
         bBuildingSingleLineDocCmtBlock = false;
@@ -206,8 +207,8 @@ export class Spin2DocumentSemanticParser {
           currBlockComment?.appendLastLine(i, line);
           // record new comment
           if (currBlockComment) {
+            this._logMessage(`  -- found comment ${currBlockComment.spanString()}`);
             this.semanticFindings.recordComment(currBlockComment);
-            this._logMessage("  -- found comment " + currBlockComment.spanString());
             currBlockComment = undefined;
           }
           currState = priorState;
@@ -235,8 +236,8 @@ export class Spin2DocumentSemanticParser {
           currBlockComment?.appendLastLine(i, line);
           // record new comment
           if (currBlockComment) {
+            this._logMessage(`  -- found comment ${currBlockComment.spanString()}`);
             this.semanticFindings.recordComment(currBlockComment);
-            this._logMessage("  -- found comment " + currBlockComment.spanString());
             currBlockComment = undefined;
           }
           currState = priorState;
@@ -257,18 +258,34 @@ export class Spin2DocumentSemanticParser {
         this.priorSingleLineComment = undefined;
         continue;
       } else if (trimmedLine.startsWith("''")) {
-        // process single line doc comment
-        this.priorSingleLineComment = trimmedLine; // record this line
-        // create new single line doc-comment block
-        bBuildingSingleLineDocCmtBlock = true;
-        currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineDocComment, i, line);
+        if (bBuildingSingleLineDocCmtBlock) {
+          // process single line doc comment which follows one of same
+          // we no longer have a prior single line comment
+          this.priorSingleLineComment = undefined;
+          // add to existing single line doc-comment block
+          currSingleLineBlockComment?.appendLine(line);
+        } else {
+          // process a first single line doc comment
+          this.priorSingleLineComment = trimmedLine; // record this line
+          // create new single line doc-comment block
+          bBuildingSingleLineDocCmtBlock = true;
+          currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineDocComment, i, line);
+        }
         continue;
       } else if (trimmedLine.startsWith("'")) {
-        // process single line non-doc comment
-        this.priorSingleLineComment = trimmedLine; // record this line
-        // create new single line non-doc-comment block
-        bBuildingSingleLineCmtBlock = true;
-        currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineComment, i, line);
+        if (bBuildingSingleLineCmtBlock) {
+          // process single line non-doc comment which follows one of same
+          // we no longer have a prior single line comment
+          this.priorSingleLineComment = undefined;
+          // add to existing single line non-doc-comment block
+          currSingleLineBlockComment?.appendLine(line);
+        } else {
+          // process a first single line non-doc comment
+          this.priorSingleLineComment = trimmedLine; // record this line
+          // create new single line non-doc-comment block
+          bBuildingSingleLineCmtBlock = true;
+          currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineComment, i, line);
+        }
         continue;
       } else if (trimmedNonCommentLine.startsWith("{{")) {
         // TODO: the second if clause confuses me... why did I do this?
@@ -281,8 +298,8 @@ export class Spin2DocumentSemanticParser {
           let oneLineComment = new RememberedComment(eCommentType.multiLineDocComment, i, line);
           oneLineComment.closeAsSingleLine();
           if (!oneLineComment.isBlankLine) {
+            this._logMessage(`  -- found comment ${oneLineComment.spanString()}`);
             this.semanticFindings.recordComment(oneLineComment);
-            this._logMessage("  -- found comment " + oneLineComment.spanString());
           }
           currBlockComment = undefined; // just making sure...
         } else {
@@ -352,22 +369,7 @@ export class Spin2DocumentSemanticParser {
           //  DO NOTHING Let Syntax highlighting do this
           //continue; // DON'T SKIP, process rest of line
         }
-      } else if (bBuildingSingleLineDocCmtBlock && trimmedLine.startsWith("''")) {
-        // process single line doc comment which follows one of same
-        // we no longer have a prior single line comment
-        this.priorSingleLineComment = undefined;
-        // add to existing single line doc-comment block
-        currSingleLineBlockComment?.appendLine(line);
-        continue;
-      } else if (bBuildingSingleLineCmtBlock && trimmedLine.startsWith("'")) {
-        // process single line non-doc comment which follows one of same
-        // we no longer have a prior single line comment
-        this.priorSingleLineComment = undefined;
-        // add to existing single line non-doc-comment block
-        currSingleLineBlockComment?.appendLine(line);
-        continue;
       }
-
       // handle wrap-up before we do continued-line gathering
       if (sectionStatus.isSectionStart) {
         // mark end of method, if we were in a method
@@ -1070,7 +1072,7 @@ export class Spin2DocumentSemanticParser {
             lineCount++; // count this line, too
           }
         }
-        tmpDesiredComment.closeAsSingleLineBlock(lineNbr + lineCount - 1);
+        tmpDesiredComment.closeAsSingleLineBlock(lineNbr + lineCount - 1); // FIXME: lineNbr - 1?
         if (lineCount > 1) {
           desiredComment = tmpDesiredComment; // only return this if we have params!
           this._logSPIN("=> SPIN: generated signature comment: sig=[" + line + "]");

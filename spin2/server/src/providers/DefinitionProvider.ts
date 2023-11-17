@@ -152,7 +152,8 @@ export default class DefinitionProvider implements Provider {
     const isPositionInBlockComment: boolean = symbolsFound.isLineInBlockComment(position.line);
     const inPasmCodeStatus: boolean = symbolsFound.isLineInPasmCode(position.line);
     const inObjDeclarationStatus: boolean = symbolsFound.isLineObjDeclaration(position.line);
-    const adjustedPos = this.extensionUtils.adjustWordPosition(document, position, isPositionInBlockComment, inPasmCodeStatus);
+    // NOTE: document and cursor position are the same for now
+    const adjustedPos = this.extensionUtils.adjustWordPosition(document, position, position, isPositionInBlockComment, inPasmCodeStatus);
     if (!adjustedPos[0]) {
       this._logMessage(`+ Defn: definitionLocation() EXIT fail`);
       return undefined;

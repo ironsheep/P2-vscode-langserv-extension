@@ -86,14 +86,20 @@ export class ExtensionUtils {
     };
   }
 
-  public adjustWordPosition(document: TextDocument, position: lsp.Position, isInBlockComment: boolean, inPasmCodeStatus: boolean): [boolean, string, string, lsp.Position] {
-    const lineText = DocumentLineAt(document, position).trimEnd();
+  public adjustWordPosition(
+    document: TextDocument,
+    wordPosition: lsp.Position,
+    cursorPosition: lsp.Position,
+    isInBlockComment: boolean,
+    inPasmCodeStatus: boolean
+  ): [boolean, string, string, lsp.Position] {
+    const lineText = DocumentLineAt(document, wordPosition).trimEnd();
     const P2_LOCAL_LABEL_PREFIX: string = ".";
     const P1_LOCAL_LABEL_PREFIX: string = ":";
     const spin1File: boolean = isSpin1File(document.uri);
     const localPasmLablePrefix: string = spin1File ? P1_LOCAL_LABEL_PREFIX : P2_LOCAL_LABEL_PREFIX;
     const spinControlFlowKeywords: string[] = spin1File ? this.spin1ControlFlowKeywords : this.spin2ControlFlowKeywords;
-    let wordRange: lsp.Range | undefined = GetWordRangeAtPosition(lineText, position, spin1File);
+    let wordRange: lsp.Range | undefined = GetWordRangeAtPosition(lineText, wordPosition, spin1File);
     if (inPasmCodeStatus) {
       // do fixup for Spin2 pasm local labels
       if (wordRange?.start.character > 0 && lineText.charAt(wordRange.start.character - 1) == localPasmLablePrefix) {
@@ -102,7 +108,7 @@ export class ExtensionUtils {
       }
     }
     const tmpWord: string = wordRange ? document.getText(wordRange) : ""; // trim() shouldn't be needed!!!
-    this._logMessage(`+ sp2Utils: adjustWordPosition() orig tmpWord=[${tmpWord}](${tmpWord.length}), isInBlockComment=(${isInBlockComment})`);
+    this._logMessage(`+ sp2Utils: adjustWordPosition([${wordPosition.line},${wordPosition.character}]) orig tmpWord=[${tmpWord}](${tmpWord.length}), isInBlockComment=(${isInBlockComment})`);
     let lineParts: string[] = [tmpWord];
     let rangeDots: boolean = false;
     if (!tmpWord.charAt(0).match(/[a-zA-Z_]/) && !tmpWord.startsWith(localPasmLablePrefix)) {
@@ -144,15 +150,18 @@ export class ExtensionUtils {
         if (rangeDots) {
           // use position to determine which word to return
           const secondWordOffset: number = wordRange.start.character + lineParts[0].length + 2;
-          word = position.character >= secondWordOffset ? lineParts[1] : lineParts[0];
+          word = cursorPosition.character >= secondWordOffset ? lineParts[1] : lineParts[0];
         } else {
           // one dot or more ... we take only last two items, unless user wants just first word
           word = lineParts[lineParts.length - 1];
           objectRef = lineParts[lineParts.length - 2];
-          if (position.character < wordRange.start.character + lineParts[0].length) {
+          this._logMessage(`+ sp2Utils: adjustWordPosition() cursor=(${cursorPosition.character}), start=(${wordRange.start.character}), obj=[${objectRef}](${objectRef.length}), word=[${word}]`);
+          // if our cursor is in the object name part then return object name as our word
+          if (cursorPosition.character < wordRange.start.character + objectRef.length + 1) {
             word = objectRef;
             objectRef = "";
           }
+          this._logMessage(`+ sp2Utils: adjustWordPosition() obj=[${objectRef}], word=[${word}]`);
         }
         break;
     }
@@ -164,21 +173,21 @@ export class ExtensionUtils {
     const stringsFound: IPairs[] = this.getStringPairOffsets(lineText);
     const ticVarsFound: IPairs[] = this.getPairOffsetsOfTicVarWraps(lineText);
     //const stringsFound: IPairs[] = [];
-    let bPositionInComment: boolean = this.isPositionInComment(lineText, position, stringsFound);
+    let bPositionInComment: boolean = this.isPositionInComment(lineText, wordPosition, stringsFound);
     if (!bPositionInComment) {
       bPositionInComment = isInBlockComment;
       this._logMessage(`+ sp2Utils: adjustWordPosition() (post-block): bPositionInComment=${bPositionInComment}`);
     }
-    if (!wordRange || this.isPositionInString(lineText, position, stringsFound, ticVarsFound) || bPositionInComment || word.match(/^\d+.?\d+$/) || spinControlFlowKeywords.indexOf(word) > 0) {
+    if (!wordRange || this.isPositionInString(lineText, wordPosition, stringsFound, ticVarsFound) || bPositionInComment || word.match(/^\d+.?\d+$/) || spinControlFlowKeywords.indexOf(word) > 0) {
       this._logMessage(`+ sp2Utils: adjustWordPosition() EXIT false`);
       return [false, null!, null!, null!];
     }
-    if (PositionIsEqual(position, wordRange.end) && PositionIsAfter(position, wordRange.start)) {
-      position = PositionTranslate(position, 0, -1);
+    if (PositionIsEqual(wordPosition, wordRange.end) && PositionIsAfter(wordPosition, wordRange.start)) {
+      wordPosition = PositionTranslate(wordPosition, 0, -1);
     }
 
     this._logMessage(`+ sp2Utils: adjustWordPosition() EXIT true`);
-    return [true, objectRef, word, position];
+    return [true, objectRef, word, wordPosition];
   }
 
   public isPositionInString(lineText: string, position: lsp.Position, stringsInLine: IPairs[], ticVarsInLine: IPairs[]): boolean {

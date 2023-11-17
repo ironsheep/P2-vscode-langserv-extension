@@ -129,7 +129,8 @@ export default class HoverProvider implements Provider {
     const isPositionInBlockComment: boolean = this.symbolsFound.isLineInBlockComment(position.line);
     const inPasmCodeStatus: boolean = this.symbolsFound.isLineInPasmCode(position.line);
     const inObjDeclarationStatus: boolean = this.symbolsFound.isLineObjDeclaration(position.line);
-    const adjustedPos = this.extensionUtils.adjustWordPosition(document, position, isPositionInBlockComment, inPasmCodeStatus);
+    // NOTE: document and cursor position are the same for now
+    const adjustedPos = this.extensionUtils.adjustWordPosition(document, position, position, isPositionInBlockComment, inPasmCodeStatus);
     if (!adjustedPos[0]) {
       this._logMessage(`+ Hvr: definitionLocation() EXIT fail`);
       return Promise.resolve(null);
@@ -327,7 +328,7 @@ export default class HoverProvider implements Provider {
         let mdLines: string[] = [];
         if (isMethod) {
           //if (!isSignatureLine) {
-          mdLines.push(`Custom Method: User defined<br>`);
+          // TODO: remove NOT USING THIS  mdLines.push(`Custom Method: User defined<br>`);
           //}
         }
         if (

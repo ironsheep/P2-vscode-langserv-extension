@@ -689,11 +689,11 @@ export class DocumentFindings {
     return inCommentStatus;
   }
 
-  public isLineInFakeComment(lineNumber: number): boolean {
+  public isLineInFakeComment(lineIdx: number): boolean {
     let inCommentStatus: boolean = false;
     if (this.fakeComments.length > 0) {
       for (let fakeComment of this.fakeComments) {
-        if (fakeComment.includesLine(lineNumber)) {
+        if (fakeComment.includesLine(lineIdx)) {
           inCommentStatus = true;
           break;
         }
@@ -702,12 +702,18 @@ export class DocumentFindings {
     return inCommentStatus;
   }
 
-  public blockCommentMDFromLine(lineNumber: number, eFilter: eCommentFilter): string | undefined {
+  private logBlockComment(comment: RememberedComment) {
+    const decription: string[] = comment.desribeComment();
+    this._logMessage(`${decription.join("\n")}`);
+  }
+
+  public blockCommentMDFromLine(lineIdx: number, eFilter: eCommentFilter): string | undefined {
     let desiredComment: string | undefined = undefined;
     if (this.blockComments.length > 0) {
       for (let blockComment of this.blockComments) {
         // only one will match...
-        if (blockComment.includesLine(lineNumber)) {
+        this.logBlockComment(blockComment);
+        if (blockComment.includesLine(lineIdx)) {
           const canUseThisComment: boolean = this._isUsableComment(blockComment.isDocComment, eFilter);
           if (canUseThisComment) {
             desiredComment = blockComment.commentAsMarkDown();
@@ -716,15 +722,15 @@ export class DocumentFindings {
         }
       }
     }
-    this._logMessage(`* blockCommentMDFromLine(Ln#${lineNumber}) -> [${desiredComment}]`);
+    this._logMessage(`* blockCommentMDFromLine(Ln#${lineIdx + 1}) -> [${desiredComment}]`);
     return desiredComment;
   }
 
-  public fakeCommentMDFromLine(lineNumber: number, eFilter: eCommentFilter): string | undefined {
+  public fakeCommentMDFromLine(lineIdx: number, eFilter: eCommentFilter): string | undefined {
     let desiredComment: string | undefined = undefined;
     if (this.fakeComments.length > 0) {
       for (let fakeComment of this.fakeComments) {
-        if (fakeComment.includesLine(lineNumber)) {
+        if (fakeComment.includesLine(lineIdx)) {
           const canUseThisComment: boolean = this._isUsableComment(fakeComment.isDocComment, eFilter);
           if (canUseThisComment) {
             desiredComment = fakeComment.commentAsMarkDown();
@@ -1007,9 +1013,9 @@ export class DocumentFindings {
         const bIsPublic: boolean = findings.token.modifiers.includes("static") ? false : true;
         if (bIsMethod) {
           const commentType: eCommentFilter = bIsPublic ? eCommentFilter.docCommentOnly : eCommentFilter.nondocCommentOnly;
-          const nonBlankLineNbr: number = this._locateNonBlankLineAfter(findings.declarationLineIdx + 1);
+          const nonBlankLineIdx: number = this._locateNonBlankLineAfter(findings.declarationLineIdx + 1); // +1 is line after signature
           findings.signature = findings.declarationLine;
-          findings.declarationComment = this.blockCommentMDFromLine(nonBlankLineNbr, commentType);
+          findings.declarationComment = this.blockCommentMDFromLine(nonBlankLineIdx, commentType);
           this._logMessage(
             `  -- FND-xxxTOK lnIdx:${findings.declarationLineIdx} findings.signature=[${findings.signature}], findings.declarationComment=[${findings.declarationComment}], declInfo.comment=[${findings.relatedFilename}]`
           );
@@ -1023,7 +1029,7 @@ export class DocumentFindings {
           const haveDeclParams: boolean = findings.declarationComment && findings.declarationComment?.includes("@param") ? true : false;
           this._logMessage(`  -- FND-xxxTOK haveDeclParams=(${haveDeclParams})`);
           if (!haveDeclParams) {
-            let fakeComment: string | undefined = this.fakeCommentMDFromLine(nonBlankLineNbr, commentType);
+            let fakeComment: string | undefined = this.fakeCommentMDFromLine(nonBlankLineIdx, commentType);
             if (fakeComment) {
               if (findings.declarationComment) {
                 findings.declarationComment = findings.declarationComment + "<br><br>" + fakeComment;
@@ -1908,10 +1914,10 @@ export enum eCommentType {
 export class RememberedComment {
   _type: eCommentType = eCommentType.Unknown;
   _lines: string[] = [];
-  _1stLine: number = 0;
-  _lastLine: number = 0;
-  constructor(type: eCommentType, lineNumber: number, firstLine: string) {
-    this._1stLine = lineNumber;
+  _1stLineIdx: number = 0;
+  _lastLineIdx: number = 0;
+  constructor(type: eCommentType, lineIdx: number, firstLine: string) {
+    this._1stLineIdx = lineIdx;
     this._type = type;
     // remove comment from first line
     let trimmedLine: string = firstLine;
@@ -1989,12 +1995,12 @@ export class RememberedComment {
   }
 
   public get firstLine() {
-    return this._1stLine;
+    return this._1stLineIdx;
   }
 
   public span(): Range {
     // return the recorded line indexes (start,end) - span of the comment block
-    return { start: { line: this._1stLine, character: 0 }, end: { line: this._lastLine, character: 0 } };
+    return { start: { line: this._1stLineIdx, character: 0 }, end: { line: this._lastLineIdx, character: 0 } };
   }
 
   public appendLine(line: string) {
@@ -2002,9 +2008,9 @@ export class RememberedComment {
     this._lines.push(line);
   }
 
-  public appendLastLine(lineNumber: number, line: string) {
+  public appendLastLine(lineIdx: number, line: string) {
     // remove comment from last line then save remainder and line number
-    this._lastLine = lineNumber;
+    this._lastLineIdx = lineIdx;
     let trimmedLine: string = line;
     let matchLocn: number = 0;
     if (this._type == eCommentType.multiLineDocComment) {
@@ -2043,9 +2049,9 @@ export class RememberedComment {
     this._clearLinesIfAllBlank();
   }
 
-  public closeAsSingleLineBlock(lineNumber: number) {
+  public closeAsSingleLineBlock(lineIdx: number) {
     // block of single line comments, remove comment-end from the line then save remainder if any
-    this._lastLine = lineNumber;
+    this._lastLineIdx = lineIdx;
     for (let idx = 0; idx < this._lines.length; idx++) {
       let trimmedLine = this._lines[idx].trim();
       if (trimmedLine.startsWith("''")) {
@@ -2060,7 +2066,7 @@ export class RememberedComment {
 
   public closeAsSingleLine() {
     // only single line, remove comment-end from the line then save remainder if any
-    this._lastLine = this._1stLine;
+    this._lastLineIdx = this._1stLineIdx;
     let trimmedLine: string = this._lines[0];
     let matchLocn: number = 0;
     if (this._type == eCommentType.multiLineDocComment) {
@@ -2112,8 +2118,21 @@ export class RememberedComment {
     } else if (this._type == eCommentType.multiLineDocComment) {
       typeString = "multiLineDocCommentBlock";
     }
-    const interpString: string = `[${typeString}] lines ${startLine}-${endLine}`;
+    const lineRef: string = startLine == endLine ? `Ln#${startLine}` : `Ln#${startLine}-${endLine}`;
+    const interpString: string = `[${typeString}] ${lineRef}`;
     return interpString;
+  }
+
+  public desribeComment(): string[] {
+    const decriptionLines: string[] = [];
+    decriptionLines.push("-" + this.spanString());
+    decriptionLines.push(" /-- --- ---");
+    for (let index = 0; index < this._lines.length; index++) {
+      const line = this._lines[index];
+      decriptionLines.push(line);
+    }
+    decriptionLines.push(" \\-- --- ---");
+    return decriptionLines;
   }
 
   private _clearLinesIfAllBlank() {
