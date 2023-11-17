@@ -181,7 +181,7 @@ PRI pullUpValueForEnum(ePullupRqst) : pullup
 
 We are working on fixes to the following issues we've seen during our testing. However, they are not major enough to prevent this release.
 
-- The spin2 line-continuation syntax is not yet supported
+- The spin2 line-continuation syntax is supported only in OBJ block and on PUB/PRI declaration lines for now.  More support coming!
 - We are still working through validating the P1 support against the full P1 obex - this is a work in progress
 - Some line comments are not properly colored
 - Occasionally [byte|word|long] storage types are not properly colored
