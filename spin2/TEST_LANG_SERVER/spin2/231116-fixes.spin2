@@ -1,0 +1,79 @@
+
+pinbase		=	48
+
+left		=	pinbase+6
+right		=	pinbase+7
+
+freql		=	220.0		'left frequency
+freqr		=	220.2		'right frequency
+
+volume		=	$7F		'$0000..$7FFF volume
+
+_clkfreq	=	256_000_000
+
+
+' --------------------
+' FILE: Five_Buttons_One_Pin.spin2  PNut distrib.
+
+CON sch_x = 110
+    sch_y = 120
+    gra_x = 300
+    gra_y = 16
+
+VAR stack[30], clocks, sample, states
+
+PUB go() | i, x, y, m, n
+' lines 172-...
+    debug(`plot p title 'Five Buttons on a Single Pin' size 430 600 backcolor white update)
+    debug(`p set `(sch_x,sch_y-60) blue text 'clocks: `(clocks))   ' <--- untermnated string not highlighted
+    debug(`p set `(sch_x,sch_y-80) text 'sample: `(sample))
+    debug(`p set `(sch_x,sch_y-100) text 'states: `ubin_byte_(n))
+    debug(`p update `dly(20))
+
+
+
+' --------------------
+' FILE: DEBUG_PLOT_Sprites.spin2  PNut distrib.
+
+PUB go2() | i
+
+  debug(`plot myplot size 384 384 update)
+  debug(`myplot cartesian 1)
+
+  'load 32 sprites
+  repeat i from 0 to 31
+    debug(`myplot spritedef `(i) 16 16 `uhex_byte_array_(@Mario0 + i * 256, 256) `uhex_long_array_(@MarioColors, 52))
+
+DAT
+
+Mario0 byte {
+}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+}$00,$19,$11,$09,$11,$19,$11,$09,$19,$11,$09,$09,$09,$09,$19,$00,{
+}$00,$00,$19,$11,$11,$11,$09,$19,$19,$19,$11,$11,$11,$19,$00,$00
+
+MarioColors byte {
+}$00,$00,$00,$19,$19,$11,$11,$09,$09,$19,$19,$19,$19,$00,$00,$00,{
+}$00,$00,$19,$19,$19,$19,$11,$11,$11,$11,$11,$19,$00,$00,$00,$00
+
+
+' --------------------
+'*************
+'*  MIDI In  *
+'*************
+CON
+
+		midi_pin	= 16		'feed MIDI serial data into this pin
+
+
+DAT		org
+
+midi_pasm	wrpin	#%11111_0, #midi_pin	'init midi pin
+		wxpin	.rxmode, #midi_pin
+		dirh	#midi_pin
+
+' HRMF .var names are allowed...
+.rxmode		long	(clkfreq_/31250) << 16 + 8-1	'32,150 baud 8-N-1  <--- allow .names!!! NOT RED!
+
+.state		res	1
+.x		res	1
+.y		res	1

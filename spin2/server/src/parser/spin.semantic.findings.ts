@@ -439,13 +439,13 @@ export class DocumentFindings {
     let referenceDetails: RememberedToken | undefined = undefined;
     const desiredTokenKey: string = tokenName.toLowerCase();
     let findCount: number = 0;
-    const isLocalLabel: boolean = tokenName.startsWith(".") || tokenName.startsWith(":");
+    const isPossibleLocalLabel: boolean = tokenName.startsWith(".") || tokenName.startsWith(":");
     // get global token from this objects
     let tokenPosition: Position = { line: -1, character: -1 };
     if (this.isGlobalToken(tokenName)) {
       referenceDetails = this.getGlobalToken(tokenName);
       if (referenceDetails) {
-        if (isLocalLabel) {
+        if (isPossibleLocalLabel && referenceDetails.type === "label") {
           tokenPosition = this._getBestLocalLabelPostionForPosition(postion, tokenName);
         } else {
           tokenPosition = { line: referenceDetails.lineIndex, character: referenceDetails.charIndex };
@@ -475,7 +475,7 @@ export class DocumentFindings {
           }
         }
         if (referenceDetails) {
-          if (isLocalLabel) {
+          if (isPossibleLocalLabel && referenceDetails.type === "label") {
             tokenPosition = this._getBestLocalLabelPostionForPosition(postion, tokenName);
           } else {
             tokenPosition = { line: referenceDetails.lineIndex, character: referenceDetails.charIndex };
@@ -1149,7 +1149,7 @@ export class DocumentFindings {
   public setGlobalToken(tokenName: string, token: RememberedToken, declarationComment: string | undefined, reference?: string | undefined): void {
     // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
     //   this allows go-to to get to nearest earlier than right-mouse line
-    const isLocalLabel: boolean = tokenName.startsWith(".") || tokenName.startsWith(":");
+    const isLocalLabel: boolean = (tokenName.startsWith(".") || tokenName.startsWith(":")) && token.type === "label";
     if (!this.isGlobalToken(tokenName)) {
       this._logMessage("  -- NEW-gloTOK " + this._rememberdTokenString(tokenName, token) + `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}], ref=[${reference}]`);
       this.globalTokens.setToken(tokenName, token);
@@ -1317,7 +1317,7 @@ export class DocumentFindings {
   public setLocalPAsmTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
     // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
     //   this allows go-to to get to nearest earlier than right-mouse line
-    const isLocalLabel: boolean = tokenName.startsWith(".") || tokenName.startsWith(":");
+    const isLocalLabel: boolean = (tokenName.startsWith(".") || tokenName.startsWith(":")) && token.type === "label";
     if (this.hasLocalPAsmTokenForMethod(methodName, tokenName)) {
       // locals can appear many times...
       if (!isLocalLabel) {

@@ -21,6 +21,11 @@ Possible next additions:
 
 ## [2.2.4] 2023-11-16
 
+Update for P1 and P2
+
+- Adds proper CON highlighting as top-most default code block
+- Removed demo completion provider. It never should have been active!
+
 Update for P2 only
 
 - Add line-continuation "..." processing to PUB/PRI declarations

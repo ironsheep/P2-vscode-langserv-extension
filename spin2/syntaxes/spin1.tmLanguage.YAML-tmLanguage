@@ -27,6 +27,7 @@ repository:
     block:
         name: meta.block.spin
         patterns:
+            - include: "#constant_top_block"
             - include: "#constant_block"
             - include: "#variable_block"
             - include: "#object_block"
@@ -70,6 +71,33 @@ repository:
         beginCaptures:
             "0":
                 name: keyword.block.con.spin
+        patterns:
+                - include: "#comment"
+                - include: "#number"
+                - include: "#constants"
+                - include: "#clock_constants"
+                - include: "#clock_constants_settable"
+                - include: "#spin_float_conversions"
+                - include: "#allocation_constants"
+                - match: \b((\w|_)+)\s*(=)\s*(.*)$
+                  captures:
+                        "1":
+                            name: entity.name.constant.spin
+                        "3":
+                            name: keyword.equ.operator.assignment.spin
+                        "4":
+                            patterns:
+                                - include: "#number"
+                                - include: "#string"
+                                - include: "#comment"
+                                - include: "#number"
+                                - include: "#constants"
+                                - include: "#clock_constants"
+                                - include: "#spin_float_conversions"
+                                - include: "#allocation_constants"
+    constant_top_block:
+        name: meta.block.constant.spin
+        end: (?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT))\b
         patterns:
                 - include: "#comment"
                 - include: "#number"

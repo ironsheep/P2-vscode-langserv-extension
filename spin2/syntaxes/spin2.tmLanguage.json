@@ -42,6 +42,9 @@
       "name": "meta.block.spin2",
       "patterns": [
         {
+          "include": "#constant_top_block"
+        },
+        {
           "include": "#constant_block"
         },
         {
@@ -112,6 +115,45 @@
           "name": "keyword.block.con.spin2"
         }
       },
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#configuration"
+        },
+        {
+          "include": "#configuration"
+        },
+        {
+          "include": "#constants"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "include": "#debug_constants"
+        },
+        {
+          "include": "#spin2_float_conversions"
+        },
+        {
+          "include": "#spin2_field_operations"
+        },
+        {
+          "include": "#spin2_unary_operators"
+        },
+        {
+          "include": "#spin2_binary_operators"
+        }
+      ]
+    },
+    "constant_top_block": {
+      "name": "meta.block.constant.spin2",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)(\\s+|\\s*$))",
       "patterns": [
         {
           "include": "#comment"

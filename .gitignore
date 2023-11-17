@@ -182,7 +182,6 @@ node_modules
 regex-workspace.txt
 alias.sh
 spin2/TEST/_OLD/
-spin2/TEST/spin/f1.txt
 spin2/TEST/JAYS_PORT/
 spin2/TEST/MCP_PORT/
 spin2/TEST/PORT_DEMO/
@@ -195,3 +194,6 @@ JAYS_PORT
 out/
 *-OFFLINE
 spin2/scripts/mode.flg
+f1.txt
+filt-*.log
+spin2/TEST_LANG_SERVER/spin2/USB_Packet_Driver.spin2

@@ -5,7 +5,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { Position } from "vscode-languageserver-types";
 import { Context, ServerBehaviorConfiguration } from "../context";
 
-import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity, eDefinitionType, ITokenDescription } from "./spin.semantic.findings";
+import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity, eDefinitionType } from "./spin.semantic.findings";
 import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
 import { eParseState, eDebugDisplayType, ContinuedLines, haveDebugLine } from "./spin.common";
@@ -41,7 +41,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -125,6 +125,7 @@ export class Spin2DocumentSemanticParser {
     const lines = text.split(/\r\n|\r|\n/);
     let currState: eParseState = eParseState.inCon; // compiler defaults to CON at start
     let priorState: eParseState = currState;
+    let pendingState: eParseState = eParseState.Unknown;
     let prePAsmState: eParseState = currState;
 
     // track block comments
@@ -156,6 +157,7 @@ export class Spin2DocumentSemanticParser {
       const trimmedLine: string = line.trim();
       const lineWOutInlineComments: string = this.parseUtils.getLineWithoutInlineComments(line);
       const bHaveLineToProcess: boolean = lineWOutInlineComments.length > 0;
+      this._logMessage(`  -- Ln#${lineNbr} bHaveLineToProcess=(${bHaveLineToProcess}), lineWOutInlineComments=[${lineWOutInlineComments}](${lineWOutInlineComments.length})`);
       const trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getRemainderWOutTrailingTicComment(0, lineWOutInlineComments).trimStart() : "";
       //this._logMessage(`  -- Ln#${lineNbr} CHK trimmedNonCommentLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
       const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
@@ -163,6 +165,7 @@ export class Spin2DocumentSemanticParser {
       this.rightEdgeComment = tempComment.length > 0 ? tempComment : undefined;
       const sectionStatus = this.extensionUtils.isSectionStartLine(line);
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+      // NOTE: comment mid-line set a pending state so next line uses the new state
 
       // special blocks of doc-comment and non-doc comment lines handling
       if (bBuildingSingleLineDocCmtBlock && !trimmedLine.startsWith("''")) {
@@ -209,17 +212,19 @@ export class Spin2DocumentSemanticParser {
           }
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment`);
+          // if closing but not at start of line
+          if (closingOffset > 0) {
+            // Mark comment line
+            this._recordToken(tokenSet, line, this._generateComentToken(i, 0, commentLen, BLOCK_COMMENT, DOC_COMMENT, line));
+          }
         } else {
           // add line to the comment recording
           currBlockComment?.appendLine(line);
-        }
-        // if not closing or closing but not at start of line
-        if (closingOffset > 0 || closingOffset == -1) {
-          // Mark comment line
+          // if not closing
           this._recordToken(tokenSet, line, this._generateComentToken(i, 0, commentLen, BLOCK_COMMENT, DOC_COMMENT, line));
+          continue; // nothing more to do with this line, skip to next
         }
-        //  DO NOTHING Let Syntax highlighting do this
-        continue;
+        //  fall THRU let rest of line be processed
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {...} on same line without closing!
@@ -239,9 +244,9 @@ export class Spin2DocumentSemanticParser {
         } else {
           // add line to the comment recording
           currBlockComment?.appendLine(line);
+          continue; // nothing more to do with this line, skip to next
         }
-        //  DO NOTHING Let Syntax highlighting do this
-        continue;
+        //  fall THRU let rest of line be processed
       } else if (trimmedLine.length == 0) {
         // a blank line clears pending single line comments
         this.priorSingleLineComment = undefined;
@@ -320,16 +325,16 @@ export class Spin2DocumentSemanticParser {
         if (closingOffset == -1) {
           // is open of multiline comment without CLOSE
           priorState = currState;
-          currState = eParseState.inMultiLineDocComment;
+          pendingState = eParseState.inMultiLineDocComment;
           this._logMessage(`* Ln#${lineNbr} foundMuli mid-{{ starting MultiLineDocComment`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineDocComment, i, line);
           //  DO NOTHING Let Syntax highlighting do this
           // Mark comment line
           this._recordToken(tokenSet, line, this._generateComentToken(i, openingOffset, line.length - openingOffset, BLOCK_COMMENT, DOC_COMMENT, line));
-          continue; // only SKIP if we don't have closing marker
+          //continue; // DON'T SKIP, process rest of line
         }
-      } else if (trimmedNonCommentLine.includes("{")) {
+      } else if (trimmedNonCommentLine.includes("{") && !trimmedNonCommentLine.includes("{{")) {
         /// FIXME: TODO: this needs to be searching in non-string-containing line
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
@@ -338,14 +343,14 @@ export class Spin2DocumentSemanticParser {
         if (closingOffset == -1) {
           // is open of multiline comment (with NO closing)
           priorState = currState;
-          currState = eParseState.inMultiLineComment;
+          pendingState = eParseState.inMultiLineComment;
           this._logMessage(`* Ln#${lineNbr} foundMuli mid-{ starting MultiLineComment`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineComment, i, line);
           // Mark comment line
           //this._recordToken(tokenSet, line, this._generateComentToken(i, openingOffset, line.length - openingOffset, BLOCK_COMMENT, NONDOC_COMMENT, line));
           //  DO NOTHING Let Syntax highlighting do this
-          continue; // only SKIP if we don't have closing marker
+          //continue; // DON'T SKIP, process rest of line
         }
       } else if (bBuildingSingleLineDocCmtBlock && trimmedLine.startsWith("''")) {
         // process single line doc comment which follows one of same
@@ -435,6 +440,7 @@ export class Spin2DocumentSemanticParser {
           }
         } else if (currState == eParseState.inDat) {
           // process a class(static) variable line
+          this._logPASM(`- process DAT SECTION Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
           if (trimmedNonCommentLine.length > 6 && trimmedNonCommentLine.toUpperCase().includes("ORG")) {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
@@ -467,23 +473,28 @@ export class Spin2DocumentSemanticParser {
         // we processed the block declaration line, now wipe out prior comment
         this.priorSingleLineComment = undefined; // clear it out...
         continue;
-        //
-        // -------------------------------------------------------------------
-        //   Below here we process continued lines and non-section start lines
-        // -------------------------------------------------------------------
-      } else if (currState == eParseState.inCon) {
+      }
+
+      //
+      // -------------------------------------------------------------------
+      //   Below here we process continued lines and non-section start lines
+      // -------------------------------------------------------------------
+      this._logPASM(`- NON SECTION START Pass1 Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+
+      if (currState == eParseState.inCon) {
         // process a constant line
         if (bHaveLineToProcess) {
           this._getCON_Declaration(0, lineNbr, line);
         }
       } else if (currState == eParseState.inDat) {
         // process a data line
+        this._logPASM(`- check DAT Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
           if (trimmedLine.toUpperCase().includes("ORG")) {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedLine);
             if (nonStringLine.toUpperCase().includes("ORG")) {
-              this._logPASM("- Ln#" + lineNbr + " pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");
+              this._logPASM(`- Ln#${lineNbr} pre-scan DAT line trimmedLine=[${trimmedLine}] now Dat PASM`);
               // record start of PASM code NOT inline
               this.semanticFindings.recordPasmStart(i, false);
               prePAsmState = currState;
@@ -527,9 +538,10 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
+        this._logPASM(`- check DAT PASM Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
-          const isDebugLine: boolean = haveDebugLine(trimmedNonCommentLine); // trimmedNonCommentLine.toLowerCase().includes("debug(");
           this._getDAT_PAsmDeclaration(0, lineNbr, line);
+          const isDebugLine: boolean = haveDebugLine(trimmedNonCommentLine); // trimmedNonCommentLine.toLowerCase().includes("debug(");
           if (isDebugLine) {
             // scan DAT-PAsm line for debug() display declaration
             this._getDebugDisplay_Declaration(0, lineNbr, line);
@@ -569,6 +581,11 @@ export class Spin2DocumentSemanticParser {
       // we processed statements in this line, now clear prior comment associated with this line
       this.priorSingleLineComment = undefined; // clear it out...
       continuedLineSet.clear(); // end of processing this multi-line set
+      if (pendingState != eParseState.Unknown) {
+        currState = pendingState;
+        // only once...
+        pendingState = eParseState.Unknown;
+      }
     }
     this.semanticFindings.endPossibleMethod(lines.length); // report end if last line of file(+1 since method wants line number!)
     this.semanticFindings.finishFinalBlock(lines.length - 1); // mark end of final block in file
@@ -594,6 +611,7 @@ export class Spin2DocumentSemanticParser {
       const trimmedLine = line.trim();
       const lineWOutInlineComments: string = this.parseUtils.getLineWithoutInlineComments(line);
       const bHaveLineToProcess: boolean = lineWOutInlineComments.length > 0;
+      this._logMessage(`  -- Ln#${lineNbr} bHaveLineToProcess=(${bHaveLineToProcess}), lineWOutInlineComments=[${lineWOutInlineComments}](${lineWOutInlineComments.length})`);
       const trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getRemainderWOutTrailingTicComment(0, lineWOutInlineComments).trimStart() : "";
       const sectionStatus = this.extensionUtils.isSectionStartLine(line);
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
@@ -699,6 +717,7 @@ export class Spin2DocumentSemanticParser {
           }
         } else if (currState == eParseState.inDat) {
           // process a possible constant use on the DAT line itself!
+          this._logPASM(`- process DAT SECTION Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
           if (line.length > 3) {
             if (trimmedLine.length > 6) {
               const nonCommentLineRemainder: string = this.parseUtils.getNonCommentLineRemainder(0, trimmedLine);
@@ -764,7 +783,11 @@ export class Spin2DocumentSemanticParser {
             });
           }
         }
-      } else if (trimmedLine.startsWith("''")) {
+        continue;
+      }
+
+      // NOT in section start...
+      if (trimmedLine.startsWith("''")) {
         // process single line doc comment
         //  DO NOTHING Let Syntax highlighting do this
       } else if (trimmedLine.startsWith("'")) {
@@ -808,12 +831,12 @@ export class Spin2DocumentSemanticParser {
         } else {
           // is open of multiline comment
           priorState = currState;
-          currState = eParseState.inMultiLineDocComment;
+          pendingState = eParseState.inMultiLineDocComment;
           this._logMessage(`* Ln#${lineNbr} foundMuli mid-{{ starting MultiLineDocComment`);
           //  DO NOTHING Let Syntax highlighting do this
         }
         // don't continue there might be some text to process before the {{
-      } else if (trimmedNonCommentLine.includes("{")) {
+      } else if (trimmedNonCommentLine.includes("{") && !trimmedNonCommentLine.includes("{{")) {
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
         let openingOffset = trimmedNonCommentLine.indexOf("{");
@@ -823,12 +846,16 @@ export class Spin2DocumentSemanticParser {
         } else {
           // is open of multiline comment
           priorState = currState;
-          currState = eParseState.inMultiLineComment;
+          pendingState = eParseState.inMultiLineComment;
           this._logMessage(`* Ln#${lineNbr} foundMuli mid-{ starting MultiLineComment`);
           //  DO NOTHING Let Syntax highlighting do this
         }
-        // don't continue there might be some text to process before the {{
-      } else if (currState == eParseState.inCon) {
+        // don't continue there might be some text to process before the {
+      }
+
+      this._logPASM(`- NON SECTION START Pass2 Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+
+      if (currState == eParseState.inCon) {
         // process a line in a constant section
         if (bHaveLineToProcess) {
           this._logCON("- process CON Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
@@ -840,8 +867,8 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inDat) {
         // process a line in a data section
+        this._logPASM(`- process DAT Ln#${lineNbr}  trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
-          this._logDAT("- process DAT Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
           const nonCommentLineRemainder: string = this.parseUtils.getNonCommentLineRemainder(0, trimmedLine);
           let orgStr: string = "ORGH";
           let orgOffset: number = nonCommentLineRemainder.toUpperCase().indexOf(orgStr); // ORGH
@@ -907,7 +934,7 @@ export class Spin2DocumentSemanticParser {
         });
       } else if (currState == eParseState.inDatPAsm) {
         // process DAT section pasm (assembly) lines
-        this._logPASM(`- check DAT PASM line(${lineNbr}):  trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        this._logPASM(`- process DAT PASM Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
           //this._logPASM("- process DAT PASM Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           // in DAT sections we end with next section
@@ -1012,6 +1039,11 @@ export class Spin2DocumentSemanticParser {
         }
       }
       continuedLineSet.clear(); // end of processing this multi-line set
+      if (pendingState != eParseState.Unknown) {
+        currState = pendingState;
+        // only once...
+        pendingState = eParseState.Unknown;
+      }
     }
     this._checkTokenSet(tokenSet);
     return tokenSet;
@@ -2158,7 +2190,7 @@ export class Spin2DocumentSemanticParser {
                 continue;
               }
             }
-            if (possibleName.includes(".")) {
+            if (possibleName.includes(".") && !possibleName.startsWith(".")) {
               possibleNameSet = possibleName.split(".");
             }
             if (showDebug) {

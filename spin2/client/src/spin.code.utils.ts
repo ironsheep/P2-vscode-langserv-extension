@@ -41,6 +41,47 @@ export class SpinCodeUtils {
     return reservedStatus;
   }
 
+  public nameForParseState(state: eParseState): string {
+    let desiredInterp: string = "?unknown?";
+    switch (state) {
+      case eParseState.inCon:
+        desiredInterp = "CON";
+        break;
+      case eParseState.inDat:
+        desiredInterp = "DAT";
+        break;
+      case eParseState.inDatPAsm:
+        desiredInterp = "DATpasm";
+        break;
+      case eParseState.inObj:
+        desiredInterp = "OBJ";
+        break;
+      case eParseState.inPri:
+        desiredInterp = "PRI";
+        break;
+      case eParseState.inPub:
+        desiredInterp = "PUB";
+        break;
+      case eParseState.inMultiLineComment:
+        desiredInterp = "mlCmt";
+        break;
+      case eParseState.inMultiLineDocComment:
+        desiredInterp = "mlDocCmt";
+        break;
+      case eParseState.inPAsmInline:
+        desiredInterp = "Pasm-in-line";
+        break;
+      case eParseState.inVar:
+        desiredInterp = "VAR";
+        break;
+
+      default:
+        desiredInterp = "?unk-case?";
+        break;
+    }
+    return desiredInterp;
+  }
+
   public isSectionStartLine(line: string): {
     isSectionStart: boolean;
     inProgressStatus: eParseState;
