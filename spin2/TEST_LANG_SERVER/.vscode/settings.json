@@ -1,3 +1,14 @@
 {
-  "cSpell.enableFiletypes": ["!plaintext", "!python"]
+  "cSpell.enableFiletypes": ["!plaintext", "!python"],
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.history": true,
+    "**/*.taskpaper": true
+  },
+  "explorerExclude.backup": {}
 }

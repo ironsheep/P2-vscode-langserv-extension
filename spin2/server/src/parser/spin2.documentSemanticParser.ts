@@ -869,10 +869,12 @@ export class Spin2DocumentSemanticParser {
         if (parsingContinuedLineSet && continuedLineSet.line.length > 0) {
           const lineOffset: number = continuedSectionStatus.isSectionStart ? 3 : 0;
           partialTokenSet = this._reportCON_DeclarationLineMultiLine(lineOffset, continuedLineSet);
+          partialTokenSet.forEach((newToken) => {
+            this._logCON("=> CON: " + this._tokenString(newToken, continuedLineSet.lineAt(newToken.line)));
+            tokenSet.push(newToken);
+          });
         } else if (bHaveLineToProcess) {
           partialTokenSet = this._reportCON_DeclarationLine(i, 0, line);
-        }
-        if (partialTokenSet.length > 0) {
           partialTokenSet.forEach((newToken) => {
             this._logCON("=> CON: " + this._tokenString(newToken, line));
             tokenSet.push(newToken);
@@ -2175,7 +2177,6 @@ export class Spin2DocumentSemanticParser {
         const lineParts: string[] = nonCommentConstantLine.split(",").filter(Boolean);
         this._logCON(`  -- enum lineParts=[${lineParts}](${lineParts.length})`);
         let nameOffset: number = 0;
-        let nameLen: number = 0;
         for (let index = 0; index < lineParts.length; index++) {
           let enumConstant = lineParts[index].trim();
           // our enum name can have a step offset: name[step]
@@ -2184,18 +2185,17 @@ export class Spin2DocumentSemanticParser {
             const enumNameParts: string[] = enumConstant.split("[");
             enumConstant = enumNameParts[0];
           }
-          nameLen = enumConstant.length;
           if (enumConstant.includes("=")) {
+            // process LHS of '='
             const enumAssignmentParts: string[] = enumConstant.split("=");
             enumConstant = enumAssignmentParts[0].trim();
             const enumExistingName: string = enumAssignmentParts[1].trim();
-            nameLen = enumExistingName.length; // len changed assign again...
             if (enumExistingName.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON("  -- A GLBL enumExistingName=[" + enumExistingName + "]");
               // our enum name can have a step offset
               //nameOffset = line.indexOf(enumExistingName, currSingleLineOffset);
               const symbolPosition: Position = multiLineSet.locateSymbol(enumExistingName, currSingleLineOffset);
-              const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+              nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: nameOffset,
@@ -2203,43 +2203,46 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: "enumMember",
                 ptTokenModifiers: ["readonly"],
               });
-            } else {
-              nameLen = enumConstant.length; // len changed assign again...
             }
+            currSingleLineOffset = nameOffset + enumExistingName.length;
           }
-          const symbolPosition: Position = multiLineSet.locateSymbol(enumConstant, currSingleLineOffset);
-          const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-          if (enumConstant.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isDebugInvocation(enumConstant) && !this.parseUtils.isP1AsmVariable(enumConstant)) {
-            this._logCON("  -- B GLBL enumConstant=[" + enumConstant + "]");
-            // our enum name can have a step offset
-            //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: enumConstant.length,
-              ptTokenType: "enumMember",
-              ptTokenModifiers: ["declaration", "readonly"],
-            });
-          } else if (this.parseUtils.isP1AsmVariable(enumConstant)) {
-            // our SPIN1 name
-            this._logCON("  -- B GLBL bad SPIN1=[" + enumConstant + "]");
-            //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: enumConstant.length,
-              ptTokenType: "variable",
-              ptTokenModifiers: ["illegalUse"],
-            });
-            this.semanticFindings.pushDiagnosticMessage(
-              symbolPosition.line,
-              symbolPosition.character,
-              symbolPosition.character + enumConstant.length,
-              eSeverity.Error,
-              `P1 Spin constant [${enumConstant}] not allowed in P2 Spin`
-            );
+          if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
+            const symbolPosition: Position = multiLineSet.locateSymbol(enumConstant, currSingleLineOffset);
+            nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            if (!this.parseUtils.isDebugInvocation(enumConstant) && !this.parseUtils.isP1AsmVariable(enumConstant)) {
+              this._logCON("  -- B GLBLMulti enumConstant=[" + enumConstant + "]");
+              // our enum name can have a step offset
+              //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: enumConstant.length,
+                ptTokenType: "enumMember",
+                ptTokenModifiers: ["declaration", "readonly"],
+              });
+            } else if (this.parseUtils.isP1AsmVariable(enumConstant)) {
+              // our SPIN1 name
+              this._logCON("  -- B GLBL bad SPIN1=[" + enumConstant + "]");
+              //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: enumConstant.length,
+                ptTokenType: "variable",
+                ptTokenModifiers: ["illegalUse"],
+              });
+              this.semanticFindings.pushDiagnosticMessage(
+                symbolPosition.line,
+                symbolPosition.character,
+                symbolPosition.character + enumConstant.length,
+                eSeverity.Error,
+                `P1 Spin constant [${enumConstant}] not allowed in P2 Spin`
+              );
+            }
+            currSingleLineOffset = nameOffset + enumConstant.length;
+          } else {
+            currSingleLineOffset + enumConstant.length; // skip over things like "#0 enum start"
           }
-          currSingleLineOffset = nameOffset + nameLen;
         }
       }
     } else {
