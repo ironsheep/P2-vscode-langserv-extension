@@ -1,0 +1,151 @@
+' --------------------
+'  from flash fs (new from chip)
+	'Block states
+	sFREE			= %00		'sFREE indicates block is unused
+	sTEMP			= %01		'sTEMP used during mount and to later signal immovable work-in-progress blocks
+	sHEAD			= %10		'sHEAD is the first block of a file and contains the filename and initial data
+	sBODY			= %11		'sBODY blocks trail the head block and contain data
+
+VAR	long BlockState				'field pointers
+	long IDValid
+	long IDToBlock
+
+
+PRI DeleteChainFromID(ID, EndID, Mode, KeepFirstIDValid) | Block, Header
+
+' Mode	Deletes to...
+'---------------------------------
+' 0	last block (EndID ignored)
+' 1	block whose ThisID = EndID
+' 2	block whose NextID = EndID
+
+  repeat						'trace block chain and cancel IDs, block states, and blocks
+    ifnot KeepFirstIDValid~				'keep first block ID valid?
+      field[IDValid][ID]~				'clear ID valid flag
+    Block := field[IDToBlock][ID]			'translate ID to block
+    field[BlockState][Block] := sFREE			'set block state to sFREE
+    CancelBlock(Block)					'cancel block
+    ReadBlock(Block, @Header, $000, $003)		'read block header
+    ID := Header.[31..20]				'get ID of next block
+  while lookupz(Mode: Header.[0],		...	'mode 0: delete to last block  <-- fix this highlight!
+  		      Header.[19..8] <> EndID,	...	'mode 1: delete to ThisID = EndID
+		      ID <> EndID)			'mode 2: delete to NextID = EndID
+
+
+PRI CancelBlock(Block)
+
+PRI ReadBlock(Block, BuffAddress, FirstByte, LastByte)
+
+' --------------------
+'  from USB Driver (Chips)
+PRI DisassembleHID(Ptr, Len) | i, prev_i, b, bcode, v, indent, s, UsagePage, UsageString, u
+
+  debug("HID Descriptor")
+
+  repeat
+    prev_i := i
+    b := byte[Ptr + i++]    'get bytecode
+
+    case b & %11        'get value
+      0: v := 0
+      1: v := byte[Ptr + i++] signx 7
+      2: v := word[Ptr + i\(i+2)] signx 15
+      3: v := long[Ptr + i\(i+4)]
+
+    if bcode := lookdown(b & %1111_11_00 : ...
+    %1000_00_00, ...    '1  INPUT           tags (main)
+    %1001_00_00, ...    '2  OUTPUT
+    %1010_00_00, ...    '3  COLLECTION
+    %1011_00_00, ...    '4  FEATURE
+    %1100_00_00, ...    '5  END_COLLECTION
+    %0000_01_00, ...    '6  USAGE_PAGE      tags (global)
+    %0001_01_00, ...    '7  LOGICAL_MINIMUM
+    %0010_01_00, ...    '8  LOGICAL_MAXIMUM
+    %0011_01_00, ...    '9  PHYSICAL_MINIMUM
+    %0100_01_00, ...    '10 PHYSICAL_MAXIMUM
+    %0101_01_00, ...    '11 UNIT_EXPONENT
+    %0110_01_00, ...    '12 UNIT
+    %0111_01_00, ...    '13 REPORT_SIZE
+    %1000_01_00, ...    '14 REPORT_ID
+    %1001_01_00, ...    '15 REPORT_COUNT
+    %1010_01_00, ...    '16 PUSH
+    %1011_01_00, ...    '17 POP
+    %0000_10_00, ...    '18 USAGE           tags (local)
+    %0001_10_00, ...    '19 USAGE_MINIMUM
+    %0010_10_00, ...    '20 USAGE_MAXIMUM
+    %0011_10_00, ...    '21 DESIGNATOR_INDEX
+    %0100_10_00, ...    '22 DESIGNATOR_MINIMUM
+    %0101_10_00, ...    '23 DESIGNATOR_MAXIMUM
+    %0110_10_00, ...    '24 STRING_INDEX
+    %0111_10_00, ...    '25 STRING_MINIMUM
+    %1000_10_00, ...    '26 STRING_MAXIMUM
+    %1010_10_00)        '27 DELIMETER
+
+      s := lookup(bcode : ...
+    @"INPUT", ...
+    @"OUTPUT", ...
+    @"COLLECTION", ...
+    @"FEATURE", ...
+    @"END_COLLECTION", ...
+    @"USAGE_PAGE", ...
+    @"LOGICAL_MINIMUM", ...
+    @"LOGICAL_MAXIMUM", ...
+    @"PHYSICAL_MINIMUM", ...
+    @"PHYSICAL_MAXIMUM", ...
+    @"UNIT_EXPONENT", ...
+    @"UNIT", ...
+    @"REPORT_SIZE", ...
+    @"REPORT_ID", ...
+    @"REPORT_COUNT", ...
+    @"PUSH", ...
+    @"POP", ...
+    @"USAGE", ...
+    @"USAGE_MINIMUM", ...
+    @"USAGE_MAXIMUM", ...
+    @"DESIGNATOR_INDEX", ...
+    @"DESIGNATOR_MINIMUM", ...
+    @"DESIGNATOR_MAXIMUM", ...
+    @"STRING_INDEX", ...
+    @"STRING_MINIMUM", ...
+    @"STRING_MAXIMUM", ...
+    @"DELIMETER")
+
+      UsageString := @" "   'get known USAGE string
+
+      if bcode == 6     'remember usage page
+    UsagePage := v
+    if u := lookdown(v: $01, $08, $09)
+      UsageString := lookup(u: @"Generic Desktop", @"LED", @"Button")
+
+      if bcode == 18        'get known USAGE string
+    case UsagePage
+      $01:          '$01 = Generic Desktop Page
+        if u := lookdown(v: $01, $02, $06, $30, $31, $38)
+          UsageString := lookup(u: @"Pointer", @"Mouse", @"Keyboard", @"X", @"Y", @"Wheel")
+      $08:          '$08 = LED Page
+        if u := lookdown(v: $01, $02, $03)
+          UsageString := lookup(u: @"Num Lock", @"Caps Lock", @"Scroll Lock")
+
+      if bcode == 5 'outdent if END_COLLECTION
+    indent -= 2
+
+      call(#WaitFrame)
+      debug("  ", uhex_word_(prev_i), "- ", ...
+        uhex_byte_array_(Ptr + prev_i, i - prev_i), " ", ...
+        lstr_(@"                        ", 20 - (i - prev_i) * 4 + indent), " ", ...
+        zstr_(s), " (", sdec_(v), ")         ", zstr_(UsageString))
+
+      if bcode == 3 'indent if COLLECTION
+    indent += 2
+
+    else
+      debug("UNKNOWN (", uhex_(v), ")")
+
+  until i >= Len
+  waitms(3000)
+
+DAT
+        org
+WaitFrame _ret_ djnz    FrameFlag,#$        'wait for start-of-frame (FrameFlag = 1)
+
+FrameFlag   res 1

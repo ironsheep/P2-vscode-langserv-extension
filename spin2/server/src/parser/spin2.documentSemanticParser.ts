@@ -41,7 +41,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -407,6 +407,7 @@ export class Spin2DocumentSemanticParser {
       // ----------------------------------------------
       //
       const isContinued: boolean = trimmedNonCommentLine.length > 0 ? trimmedNonCommentLine.endsWith("...") : false;
+      let continuedSectionStatus = { isSectionStart: false, inProgressStatus: eParseState.Unknown };
       if (isContinued || (continuedLineSet.isLoading && trimmedNonCommentLine.length > 0)) {
         const lineOffset: number = line.indexOf(trimmedNonCommentLine);
         const lineWithLeadingSpaces: string = line.substring(0, lineOffset + trimmedNonCommentLine.length + 1);
@@ -414,13 +415,15 @@ export class Spin2DocumentSemanticParser {
         if (!continuedLineSet.hasAllLines) {
           continue; // need to gather next line too
         }
+        // now determine if this continued line set is a section start
+        continuedSectionStatus = this.extensionUtils.isSectionStartLine(continuedLineSet.line);
       }
       const parsingContinuedLineSet: boolean = !continuedLineSet.isEmpty;
       if (parsingContinuedLineSet) {
         const maxDisplayLen: number = continuedLineSet.line.length > 64 ? 64 : continuedLineSet.line.length;
       }
 
-      // only non-continued lines follow this path... continued lines follow the non-section-start path
+      // only non-continued lines follow this path (start-section)... continued lines follow the non-section-start path
       if (sectionStatus.isSectionStart) {
         // ID the remainder of the line
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
@@ -482,10 +485,15 @@ export class Spin2DocumentSemanticParser {
       //   Below here we process continued lines and non-section start lines
       // -------------------------------------------------------------------
       this._logPASM(`- NON SECTION START Pass1 Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+      this._logPASM(`-    parsingContinuedLineSet=(${parsingContinuedLineSet})`);
 
       if (currState == eParseState.inCon) {
-        // process a constant line
-        if (bHaveLineToProcess) {
+        const nonCommentLength: number = parsingContinuedLineSet ? continuedLineSet.line.length : trimmedNonCommentLine.length;
+        // process a constant non-continued line
+        if (parsingContinuedLineSet && continuedLineSet.line.length > 0) {
+          const lineOffset: number = continuedSectionStatus.isSectionStart ? 3 : 0;
+          this._getCON_DeclarationMultiLine(lineOffset, continuedLineSet);
+        } else if (bHaveLineToProcess) {
           this._getCON_Declaration(0, lineNbr, line);
         }
       } else if (currState == eParseState.inDat) {
@@ -551,19 +559,18 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
         // NOTE: The directives ORGH, ALIGNW, ALIGNL, and FILE are not allowed within in-line PASM code.
-        if (parsingContinuedLineSet) {
+        if (parsingContinuedLineSet && continuedSectionStatus.isSectionStart) {
           // process PUB/PRI method signature (which is a continued line-set)
-          const sectionStatus = this.extensionUtils.isSectionStartLine(continuedLineSet.line);
-          if (sectionStatus.isSectionStart) {
-            this._getPUB_PRI_Name(3, continuedLineSet.lineStartIdx + 1, continuedLineSet.line);
-          }
-        } else if (bHaveLineToProcess) {
+          this._getPUB_PRI_Name(3, continuedLineSet.lineStartIdx + 1, continuedLineSet.line);
+        } else {
+          // NOT a PUB/PRI line...
           // Detect start of INLINE PASM - org detect
-          const isDebugLine: boolean = haveDebugLine(trimmedNonCommentLine); // trimmedNonCommentLine.toLowerCase().includes("debug(");
-          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
+          const trimmedLineToParse: string = parsingContinuedLineSet ? continuedLineSet.line : trimmedNonCommentLine;
+          const isDebugLine: boolean = haveDebugLine(trimmedLineToParse); // trimmedNonCommentLine.toLowerCase().includes("debug(");
+          const lineParts: string[] = trimmedLineToParse.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "ORG" || lineParts[0].toUpperCase() == "ASM")) {
             // Only ORG, not ORGF or ORGH
-            this._logPASM("- Ln#" + lineNbr + " pre-scan PUB/PRI line trimmedLine=[" + trimmedLine + "]");
+            this._logPASM(`- Ln#${lineNbr} pre-scan PUB/PRI line trimmedLine=[${trimmedLineToParse}]`);
             // record start of PASM code NOT inline
             this.semanticFindings.recordPasmStart(i, true);
             prePAsmState = currState;
@@ -572,7 +579,8 @@ export class Spin2DocumentSemanticParser {
           } else {
             if (isDebugLine) {
               // scan SPIN2 line for debug() display declaration
-              this._getDebugDisplay_Declaration(0, lineNbr, line);
+              // TODO: need to fix this? was non-trimmed line being passed (was line)
+              this._getDebugDisplay_Declaration(0, lineNbr, trimmedLineToParse);
             } else {
               // scan SPIN2 line for object constant or method() uses
               //this._getSpin2ObjectConstantMethodDeclaration(0, lineNbr, line);
@@ -672,6 +680,7 @@ export class Spin2DocumentSemanticParser {
       // ----------------------------------------------
       //
       const isContinued: boolean = trimmedNonCommentLine.length > 0 ? trimmedNonCommentLine.endsWith("...") : false;
+      let continuedSectionStatus = { isSectionStart: false, inProgressStatus: eParseState.Unknown };
       if (isContinued || (continuedLineSet.isLoading && trimmedNonCommentLine.length > 0)) {
         const lineOffset: number = line.indexOf(trimmedNonCommentLine);
         const lineWithLeadingSpaces: string = line.substring(0, lineOffset + trimmedNonCommentLine.length + 1);
@@ -680,6 +689,8 @@ export class Spin2DocumentSemanticParser {
           //this._logState(`  -- scan Ln#${lineNbr} CONT-LINE-BUILDER SKIP [${lineWithLeadingSpaces}]`);
           continue; // need to gather next line too
         }
+        // now determine if this continued line set is a section start
+        continuedSectionStatus = this.extensionUtils.isSectionStartLine(continuedLineSet.line);
       }
       const parsingContinuedLineSet: boolean = !continuedLineSet.isEmpty;
       if (parsingContinuedLineSet) {
@@ -691,14 +702,8 @@ export class Spin2DocumentSemanticParser {
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
           // process SINGLE-LINE method signature
           let partialTokenSet: IParsedToken[] = [];
-          const lineLength: number = parsingContinuedLineSet ? continuedLineSet.line.length : line.length;
-          this._logState(`- Ln#${lineNbr} check pub/pri sig parsingContinuedLineSet=(${parsingContinuedLineSet}), lineLength=(${lineLength})`);
-          if (lineLength > 3) {
-            if (parsingContinuedLineSet) {
-              partialTokenSet = this._reportPUB_PRI_SignatureMultiLine(3, continuedLineSet);
-            } else {
-              partialTokenSet = this._reportPUB_PRI_Signature(i, 3, line);
-            }
+          if (trimmedLine.length > 3) {
+            partialTokenSet = this._reportPUB_PRI_Signature(i, 3, line);
           }
           if (partialTokenSet.length > 0) {
             partialTokenSet.forEach((newToken) => {
@@ -708,14 +713,17 @@ export class Spin2DocumentSemanticParser {
           }
         } else if (currState == eParseState.inCon) {
           // process a possible constant use on the CON line itself!
-          if (line.length > 3) {
-            const partialTokenSet: IParsedToken[] = this._reportCON_DeclarationLine(i, 3, line);
+          let partialTokenSet: IParsedToken[] = [];
+          if (trimmedLine.length > 3) {
+            partialTokenSet = this._reportCON_DeclarationLine(i, 3, line);
+          } else {
+            this.conEnumInProgress = false; // so we can tell in CON processor when to allow isolated names
+          }
+          if (partialTokenSet.length > 0) {
             partialTokenSet.forEach((newToken) => {
               this._logCON("=> CON: " + this._tokenString(newToken, line));
               tokenSet.push(newToken);
             });
-          } else {
-            this.conEnumInProgress = false; // so we can tell in CON processor when to allow isolated names
           }
         } else if (currState == eParseState.inDat) {
           // process a possible constant use on the DAT line itself!
@@ -765,9 +773,7 @@ export class Spin2DocumentSemanticParser {
         } else if (currState == eParseState.inObj) {
           // process a possible object overrides on the OBJ line itself!
           let partialTokenSet: IParsedToken[] = [];
-          if (parsingContinuedLineSet && continuedLineSet.line.length > 3) {
-            partialTokenSet = this._reportOBJ_DeclarationLineMultiLine(3, continuedLineSet);
-          } else if (line.length > 3) {
+          if (line.length > 3) {
             partialTokenSet = this._reportOBJ_DeclarationLine(i, 3, line);
           }
           if (partialTokenSet.length > 0) {
@@ -859,9 +865,14 @@ export class Spin2DocumentSemanticParser {
 
       if (currState == eParseState.inCon) {
         // process a line in a constant section
-        if (bHaveLineToProcess) {
-          this._logCON("- process CON Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
-          const partialTokenSet: IParsedToken[] = this._reportCON_DeclarationLine(i, 0, line);
+        let partialTokenSet: IParsedToken[] = [];
+        if (parsingContinuedLineSet && continuedLineSet.line.length > 0) {
+          const lineOffset: number = continuedSectionStatus.isSectionStart ? 3 : 0;
+          partialTokenSet = this._reportCON_DeclarationLineMultiLine(lineOffset, continuedLineSet);
+        } else if (bHaveLineToProcess) {
+          partialTokenSet = this._reportCON_DeclarationLine(i, 0, line);
+        }
+        if (partialTokenSet.length > 0) {
           partialTokenSet.forEach((newToken) => {
             this._logCON("=> CON: " + this._tokenString(newToken, line));
             tokenSet.push(newToken);
@@ -919,16 +930,15 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inObj) {
         // process a line in an object section
         let partialTokenSet: IParsedToken[] = [];
-        if (parsingContinuedLineSet) {
-          if (continuedLineSet.line.length > 3) {
-            this._logOBJ("- process OBJ line(" + (continuedLineSet.lineStartIdx + 1) + "):  trimmedLine=[" + trimmedLine + "]");
-            partialTokenSet = this._reportOBJ_DeclarationLineMultiLine(0, continuedLineSet);
-          }
-        } else {
-          if (bHaveLineToProcess) {
-            this._logOBJ("- process OBJ Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
-            partialTokenSet = this._reportOBJ_DeclarationLine(i, 0, line);
-          }
+        if (parsingContinuedLineSet && continuedLineSet.line.length > 0) {
+          // process decl on OBJ line and not on OBJ line
+          const lineOffset: number = continuedSectionStatus.isSectionStart ? 3 : 0;
+          this._logOBJ(`- process OBJ Ln#${continuedLineSet.lineStartIdx + 1} line=[${continuedLineSet.line}](${continuedLineSet.line.length})`);
+          partialTokenSet = this._reportOBJ_DeclarationLineMultiLine(lineOffset, continuedLineSet);
+        } else if (bHaveLineToProcess) {
+          // this is NOT on OBJ line
+          this._logOBJ(`- process OBJ Ln#${lineNbr} line=[${line}](${line.length})`);
+          partialTokenSet = this._reportOBJ_DeclarationLine(i, 0, line);
         }
         partialTokenSet.forEach((newToken) => {
           this._logOBJ("=> OBJ: " + this._tokenString(newToken, line));
@@ -983,16 +993,56 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
         // process a MULTI-LINE signature! if present
-        if (parsingContinuedLineSet) {
-          const sectionStatus = this.extensionUtils.isSectionStartLine(continuedLineSet.line);
+        if (parsingContinuedLineSet && continuedSectionStatus.isSectionStart) {
           let partialTokenSet: IParsedToken[] = [];
           //this._logState(`- Ln#${lineNbr} check pub/pri sig parsingContinuedLineSet=(${parsingContinuedLineSet}), lineLength=(${continuedLineSet.line.length})`);
-          if (sectionStatus.isSectionStart) {
-            partialTokenSet = this._reportPUB_PRI_SignatureMultiLine(3, continuedLineSet);
-          }
+          partialTokenSet = this._reportPUB_PRI_SignatureMultiLine(3, continuedLineSet);
           if (partialTokenSet.length > 0) {
             partialTokenSet.forEach((newToken) => {
               this._logSPIN("=> PUB/PRI: " + this._tokenString(newToken, continuedLineSet.lineAt(newToken.line)));
+              tokenSet.push(newToken);
+            });
+          }
+        } else if (parsingContinuedLineSet) {
+          // process MULTI-LINE spin statement NOT PUB/PRI line!
+          this._logSPIN("- process SPIN2 Ln#" + lineNbr + " trimmedLine=[" + continuedLineSet.line + "]");
+          const lineParts: string[] = continuedLineSet.line.split(/[ \t]/).filter(Boolean);
+          if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "ORG" || lineParts[0].toUpperCase() == "ASM")) {
+            // Only ORG not ORGF, ORGH
+            prePAsmState = currState;
+            currState = eParseState.inPAsmInline;
+            // even tho' we are processsing it as if we know it we still flag it is FrexSpin NOT Enabled
+            if (lineParts[0].toUpperCase() == "ASM" && !this.configuration.highlightFlexspinDirectives) {
+              // report this unsupported line (FlexSpin)
+              const symbolPosition: Position = continuedLineSet.locateSymbol(lineParts[0], 0);
+              const nameOffset = continuedLineSet.offsetIntoLineForPosition(symbolPosition);
+              this._recordToken(tokenSet, continuedLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: lineParts[0].length,
+                ptTokenType: "macro",
+                ptTokenModifiers: ["directive", "illegalUse"],
+              });
+              this.semanticFindings.pushDiagnosticMessage(
+                symbolPosition.line,
+                symbolPosition.character,
+                symbolPosition.character + lineParts[0].length,
+                eSeverity.Error,
+                `P2 Spin - FlexSpin PreProcessor Directive [${lineParts[0]}] not supported!`
+              );
+            }
+            // and ignore rest of this line
+          } else if (haveDebugLine(trimmedLine, true)) {
+            //} else if (trimmedLine.toLowerCase().startsWith("debug(")) {
+            const partialTokenSet: IParsedToken[] = this._reportDebugStatementMultiLine(0, continuedLineSet);
+            partialTokenSet.forEach((newToken) => {
+              this._logSPIN("=> DEBUG: " + this._tokenString(newToken, line));
+              tokenSet.push(newToken);
+            });
+          } else {
+            const partialTokenSet: IParsedToken[] = this._reportSPIN_CodeMultiLine(0, continuedLineSet);
+            partialTokenSet.forEach((newToken) => {
+              this._logSPIN("=> SPIN: " + this._tokenString(newToken, line));
               tokenSet.push(newToken);
             });
           }
@@ -1004,7 +1054,7 @@ export class Spin2DocumentSemanticParser {
             // Only ORG not ORGF, ORGH
             prePAsmState = currState;
             currState = eParseState.inPAsmInline;
-            // even tho' we are procisssing it as if we know it we still flag it is FrexSpin NOT Enabled
+            // even tho' we are processsing it as if we know it we still flag it is FrexSpin NOT Enabled
             if (lineParts[0].toUpperCase() == "ASM" && !this.configuration.highlightFlexspinDirectives) {
               // report this unsupported line (FlexSpin)
               const nameOffset: number = line.indexOf(lineParts[0]);
@@ -1217,6 +1267,102 @@ export class Spin2DocumentSemanticParser {
           }
         }
       }
+    }
+  }
+
+  private _getCON_DeclarationMultiLine(startingOffset: number, multiLineSet: ContinuedLines): void {
+    // HAVE    DIGIT_NO_VALUE = -2   ' digit value when NOT [0-9]
+    //  -or-   _clkfreq = CLK_FREQ   ' set system clock
+    // NEW: multi line enums with no punctuation, ends at blank line (uses this.conEnumInProgress)
+    //
+    this._logCON(`  - Ln#${multiLineSet.lineStartIdx + 1} GetCONDeclMulti startingOffset=(${startingOffset}), line=[${multiLineSet.line}](${multiLineSet.line.length})`);
+    if (multiLineSet.line.substring(startingOffset).length > 1) {
+      //skip Past Whitespace
+      //let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
+      let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
+      const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currSingleLineOffset, multiLineSet.line);
+      if (nonCommentConstantLine.length == 0) {
+        this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
+      } else {
+        this._logCON(`  -- GetCONDeclMulti nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`);
+        const haveEnumDeclaration: boolean = this._isEnumDeclarationLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
+        const isAssignment: boolean = nonCommentConstantLine.indexOf("=") != -1;
+        if (!haveEnumDeclaration && isAssignment) {
+          this.conEnumInProgress = false;
+        } else {
+          this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
+        }
+        this._logCON(`  -- GetCONDeclMulti conEnumInProgress=(${this.conEnumInProgress}), haveEnumDeclaration=(${haveEnumDeclaration})`);
+        if (!haveEnumDeclaration && !this.conEnumInProgress) {
+          const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(",") != -1;
+          this._logCON("  -- declNotEnumMulti containsMultiStatements=[" + containsMultiStatements + "]");
+          let statements: string[] = [nonCommentConstantLine];
+          if (containsMultiStatements) {
+            statements = nonCommentConstantLine.split(",").filter(Boolean);
+          }
+          this._logCON(`  -- statements=[${statements}](${statements.length})`);
+
+          for (let index = 0; index < statements.length; index++) {
+            const conDeclarationLine: string = statements[index].trim();
+            this._logCON("  -- GetCONDeclMulti conDeclarationLine=[" + conDeclarationLine + "]");
+            currSingleLineOffset = multiLineSet.line.indexOf(conDeclarationLine, 0);
+            const assignmentOffset: number = conDeclarationLine.indexOf("=");
+            if (assignmentOffset != -1) {
+              // recognize constant name getting initialized via assignment
+              // get line parts - we only care about first one
+              const lineParts: string[] = conDeclarationLine.split(/[ \t=]/).filter(Boolean);
+              this._logCON("  -- GetCONDeclMulti assign lineParts=[" + lineParts + "](" + lineParts.length + ")");
+              const newName = lineParts[0];
+              if (newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
+                this._logCON("  -- GLBL GetCONDeclMulti newName=[" + newName + "]");
+                // remember this object name so we can annotate a call to it
+                //const nameOffset = line.indexOf(newName, currSingleLineOffset); // FIXME: UNDONE, do we have to dial this in?
+                const symbolPosition: Position = multiLineSet.locateSymbol(newName, currSingleLineOffset);
+                const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                this.semanticFindings.recordDeclarationLine(multiLineSet.lineAt(symbolPosition.line), symbolPosition.line);
+                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", symbolPosition.line + 1, symbolPosition.character, ["readonly"]), this._declarationComment());
+              }
+            }
+          }
+        } else {
+          // recognize enum values getting initialized
+          // FIXME: broken: how to handle enum declaration statements??
+          // this works: #0, HV_1, HV_2, HV_3, HV_4, HV_MAX = HV_4
+          // this doesn't: #2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7
+          const lineParts: string[] = nonCommentConstantLine.split(/[ \t,]/).filter(Boolean);
+          this._logCON(`  -- GetCONDeclMulti enumDecl lineParts=[${lineParts}](${lineParts.length})`);
+          //this._logCON('  -- lineParts=[' + lineParts + ']');
+          let nameOffset: number = 0;
+          for (let index = 0; index < lineParts.length; index++) {
+            let enumConstant: string = lineParts[index];
+            // use parseUtils.isDebugInvocation to filter out use of debug invocation command from constant def'
+            if (this.parseUtils.isDebugInvocation(enumConstant)) {
+              continue; // yep this is not a constant
+            } else if (this.parseUtils.isP1AsmVariable(enumConstant)) {
+              this._logCON(`  -- GetCONDeclMulti PASM1 skipped=[${enumConstant}]`);
+              continue; // yep this is not a constant
+            } else {
+              // our enum name can have a step offset
+              if (enumConstant.includes("[")) {
+                // it does, isolate name from offset
+                const enumNameParts: string[] = enumConstant.split("[");
+                enumConstant = enumNameParts[0];
+              }
+              if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
+                this._logCON(`  -- C GetCONDeclMulti enumConstant=[${enumConstant}]`);
+                //const nameOffset = line.indexOf(enumConstant, currSingleLineOffset); // FIXME: UNDONE, do we have to dial this in?
+                const symbolPosition: Position = multiLineSet.locateSymbol(enumConstant, currSingleLineOffset);
+                nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                this.semanticFindings.recordDeclarationLine(multiLineSet.lineAt(symbolPosition.line), symbolPosition.line + 1);
+                this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", symbolPosition.line, symbolPosition.character, ["readonly"]), this._declarationComment());
+              }
+            }
+            currSingleLineOffset = nameOffset + enumConstant.length;
+          }
+        }
+      }
+    } else {
+      this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
     }
   }
 
@@ -1801,6 +1947,305 @@ export class Spin2DocumentSemanticParser {
     }
     this._logCON(`  -- isEnumDeclarationLine() = (${enumDeclStatus}): nonCommentConstantLine=[${nonCommentConstantLine}]`);
     return enumDeclStatus;
+  }
+
+  private _reportCON_DeclarationLineMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
+    const tokenSet: IParsedToken[] = [];
+    // skip Past Whitespace
+    let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
+    const nonCommentConstantLine = multiLineSet.line;
+    if (nonCommentConstantLine.length > 0) {
+      const haveEnumDeclaration: boolean = this._isEnumDeclarationLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
+      const isAssignment: boolean = nonCommentConstantLine.indexOf("=") != -1;
+      if (!haveEnumDeclaration && isAssignment) {
+        this.conEnumInProgress = false;
+      } else {
+        this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
+      }
+      const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(",") != -1;
+      this._logCON(
+        `- Ln#${multiLineSet.lineStartIdx + 1} rptCDLMulti haveEnum=(${haveEnumDeclaration}), containsMulti=(${containsMultiStatements}), nonCommentConstantLine=[${nonCommentConstantLine}]`
+      );
+      let statements: string[] = [nonCommentConstantLine];
+      if (!haveEnumDeclaration && !this.conEnumInProgress) {
+        if (containsMultiStatements) {
+          statements = nonCommentConstantLine.split(",").filter(Boolean);
+        }
+        this._logCON(`  -- assignments statements=[${statements}](${statements.length})`);
+        for (let index = 0; index < statements.length; index++) {
+          const conDeclarationLine: string = statements[index].trim();
+          this._logCON("  -- conDeclarationLine=[" + conDeclarationLine + "]");
+          //currSingleLineOffset = line.indexOf(conDeclarationLine, currSingleLineOffset);
+          const symbolPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, currSingleLineOffset);
+          // locate key indicators of line style
+          const isAssignment: boolean = conDeclarationLine.indexOf("=") != -1;
+          if (!isAssignment) {
+            if (!this.parseUtils.isDebugInvocation(conDeclarationLine)) {
+              this.semanticFindings.pushDiagnosticMessage(
+                symbolPosition.line,
+                symbolPosition.character,
+                symbolPosition.character + conDeclarationLine.length,
+                eSeverity.Error,
+                `P2 Spin Syntax: Missing '=' part of assignment [${conDeclarationLine}]`
+              );
+            }
+          } else {
+            // -------------------------------------------
+            // have line assigning value to new constant
+            // -------------------------------------------
+            // process LHS
+            const assignmentParts: string[] = conDeclarationLine.split("=");
+            const lhsConstantName = assignmentParts[0].trim();
+            //const nameOffset = line.indexOf(lhsConstantName, currSingleLineOffset);
+            let symbolPosition: Position = multiLineSet.locateSymbol(lhsConstantName, currSingleLineOffset);
+            let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            this._logCON(`  -- GLBLMulti assign lhsConstantName=[${lhsConstantName}]`);
+            let referenceDetails: RememberedToken | undefined = undefined;
+            if (this.semanticFindings.isGlobalToken(lhsConstantName)) {
+              referenceDetails = this.semanticFindings.getGlobalToken(lhsConstantName);
+              this._logCON(`  --  FOUND rcdl lhs global ${this._rememberdTokenString(lhsConstantName, referenceDetails)}`);
+            }
+            if (referenceDetails != undefined) {
+              // this is a constant declaration!
+              const modifiersWDecl: string[] = referenceDetails.modifiersWith("declaration");
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: lhsConstantName.length,
+                ptTokenType: referenceDetails.type,
+                ptTokenModifiers: modifiersWDecl,
+              });
+            } else {
+              this._logCON("  --  CON ERROR[CODE] missed recording declaration! name=[" + lhsConstantName + "]");
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: lhsConstantName.length,
+                ptTokenType: "variable",
+                ptTokenModifiers: ["illegalUse"],
+              });
+              if (this.parseUtils.isP1AsmVariable(lhsConstantName)) {
+                this.semanticFindings.pushDiagnosticMessage(
+                  symbolPosition.line,
+                  symbolPosition.character,
+                  symbolPosition.character + lhsConstantName.length,
+                  eSeverity.Error,
+                  `P1 pasm variable [${lhsConstantName}] not allowed in P2 spin`
+                );
+              } else {
+                this.semanticFindings.pushDiagnosticMessage(
+                  symbolPosition.line,
+                  symbolPosition.character,
+                  symbolPosition.character + lhsConstantName.length,
+                  eSeverity.Error,
+                  `Missing Variable Declaration [${lhsConstantName}]`
+                );
+              }
+            }
+            // remove front LHS of assignment and process remainder
+            // process RHS
+            const fistEqualOffset: number = conDeclarationLine.indexOf("=");
+            const assignmentRHSStr = conDeclarationLine.substring(fistEqualOffset + 1).trim();
+            currSingleLineOffset = multiLineSet.line.indexOf(assignmentRHSStr, fistEqualOffset); // skip to RHS of assignment
+            this._logCON(`  -- GLBLMulti assignmentRHSStr=[${assignmentRHSStr}], ofs=(${currSingleLineOffset})`);
+            const possNames: string[] = this.parseUtils.getNonWhiteCONLineParts(assignmentRHSStr);
+            this._logCON(`  -- possNames=[${possNames}](${possNames.length})`);
+            for (let index = 0; index < possNames.length; index++) {
+              const possibleName = possNames[index];
+              const currPossibleLen = possibleName.length;
+              if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
+                // does name contain a namespace reference?
+                //let nameOffset: number = line.indexOf(possibleName, currSingleLineOffset);
+                let symbolPosition: Position = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
+                let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                let possibleNameSet: string[] = [possibleName];
+                if (this._isPossibleObjectReference(possibleName)) {
+                  const bHaveObjReference = this._reportObjectReference(possibleName, symbolPosition.line, symbolPosition.character, multiLineSet.lineAt(symbolPosition.line), tokenSet);
+                  if (bHaveObjReference) {
+                    currSingleLineOffset = nameOffset + possibleName.length;
+                    continue;
+                  }
+                  possibleNameSet = possibleName.split(".");
+                }
+                this._logCON(`  --  possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
+                const namePart: string = possibleNameSet[0];
+                const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + "." + possibleNameSet[1];
+                //nameOffset = line.indexOf(searchString, currSingleLineOffset); // skip to RHS of assignment
+                symbolPosition = multiLineSet.locateSymbol(searchString, currSingleLineOffset);
+                nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                let referenceDetails: RememberedToken | undefined = undefined;
+                this._logCON(`  -- namePart=[${namePart}], ofs=(${nameOffset})`);
+                if (this.semanticFindings.isGlobalToken(namePart)) {
+                  referenceDetails = this.semanticFindings.getGlobalToken(namePart);
+                  this._logCON(`  --  FOUND rcds rhs global ${this._rememberdTokenString(namePart, referenceDetails)}`);
+                }
+                if (referenceDetails != undefined) {
+                  // this is a constant reference!
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: namePart.length,
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: referenceDetails.modifiers,
+                  });
+                } else {
+                  if (this.parseUtils.isFloatConversion(namePart) && (assignmentRHSStr.indexOf(namePart + "(") == -1 || assignmentRHSStr.indexOf(namePart + "()") != -1)) {
+                    this._logCON("  --  CON MISSING parens=[" + namePart + "]");
+                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: namePart.length,
+                      ptTokenType: "method",
+                      ptTokenModifiers: ["builtin", "missingDeclaration"],
+                    });
+                    this.semanticFindings.pushDiagnosticMessage(
+                      symbolPosition.line,
+                      symbolPosition.character,
+                      symbolPosition.character + namePart.length,
+                      eSeverity.Error,
+                      `P2 Spin CON missing parens [${namePart}]`
+                    );
+                  } else if (
+                    !this.parseUtils.isSpinReservedWord(namePart) &&
+                    !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
+                    !this.parseUtils.isDebugMethod(namePart) &&
+                    !this.parseUtils.isDebugControlSymbol(namePart) &&
+                    !this.parseUtils.isUnaryOperator(namePart)
+                  ) {
+                    this._logCON("  --  CON MISSING name=[" + namePart + "]");
+                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: namePart.length,
+                      ptTokenType: "variable",
+                      ptTokenModifiers: ["illegalUse"],
+                    });
+                    if (this.parseUtils.isP1AsmVariable(namePart)) {
+                      this.semanticFindings.pushDiagnosticMessage(
+                        symbolPosition.line,
+                        symbolPosition.character,
+                        symbolPosition.character + namePart.length,
+                        eSeverity.Error,
+                        `P1 pasm variable [${namePart}] in not allowed P2 spin`
+                      );
+                    } else {
+                      this.semanticFindings.pushDiagnosticMessage(
+                        symbolPosition.line,
+                        symbolPosition.character,
+                        symbolPosition.character + namePart.length,
+                        eSeverity.Error,
+                        `Missing Constant Declaration [${namePart}]`
+                      );
+                    }
+                  } else {
+                    if (
+                      !this.parseUtils.isP2AsmReservedWord(namePart) &&
+                      !this.parseUtils.isUnaryOperator(namePart) &&
+                      !this.parseUtils.isBinaryOperator(namePart) &&
+                      !this.parseUtils.isSpinNumericSymbols(namePart)
+                    ) {
+                      this._logCON("  --  CON MISSING declaration=[" + namePart + "]");
+                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namePart.length,
+                        ptTokenType: "variable",
+                        ptTokenModifiers: ["missingDeclaration"],
+                      });
+                      this.semanticFindings.pushDiagnosticMessage(
+                        symbolPosition.line,
+                        symbolPosition.character,
+                        symbolPosition.character + namePart.length,
+                        eSeverity.Error,
+                        `P2 Spin CON missing Declaration [${namePart}]`
+                      );
+                    }
+                  }
+                }
+                currSingleLineOffset = nameOffset + namePart.length; // skip past this name
+              }
+            }
+          }
+        }
+      } else {
+        // -------------------------------------------------
+        // have line creating one or more of enum constants
+        // -------------------------------------------------
+        // recognize enum values getting initialized
+        const lineParts: string[] = nonCommentConstantLine.split(",").filter(Boolean);
+        this._logCON(`  -- enum lineParts=[${lineParts}](${lineParts.length})`);
+        let nameOffset: number = 0;
+        let nameLen: number = 0;
+        for (let index = 0; index < lineParts.length; index++) {
+          let enumConstant = lineParts[index].trim();
+          // our enum name can have a step offset: name[step]
+          if (enumConstant.includes("[")) {
+            // it does, isolate name from offset
+            const enumNameParts: string[] = enumConstant.split("[");
+            enumConstant = enumNameParts[0];
+          }
+          nameLen = enumConstant.length;
+          if (enumConstant.includes("=")) {
+            const enumAssignmentParts: string[] = enumConstant.split("=");
+            enumConstant = enumAssignmentParts[0].trim();
+            const enumExistingName: string = enumAssignmentParts[1].trim();
+            nameLen = enumExistingName.length; // len changed assign again...
+            if (enumExistingName.charAt(0).match(/[a-zA-Z_]/)) {
+              this._logCON("  -- A GLBL enumExistingName=[" + enumExistingName + "]");
+              // our enum name can have a step offset
+              //nameOffset = line.indexOf(enumExistingName, currSingleLineOffset);
+              const symbolPosition: Position = multiLineSet.locateSymbol(enumExistingName, currSingleLineOffset);
+              const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: nameOffset,
+                length: enumExistingName.length,
+                ptTokenType: "enumMember",
+                ptTokenModifiers: ["readonly"],
+              });
+            } else {
+              nameLen = enumConstant.length; // len changed assign again...
+            }
+          }
+          const symbolPosition: Position = multiLineSet.locateSymbol(enumConstant, currSingleLineOffset);
+          const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+          if (enumConstant.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isDebugInvocation(enumConstant) && !this.parseUtils.isP1AsmVariable(enumConstant)) {
+            this._logCON("  -- B GLBL enumConstant=[" + enumConstant + "]");
+            // our enum name can have a step offset
+            //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: symbolPosition.character,
+              length: enumConstant.length,
+              ptTokenType: "enumMember",
+              ptTokenModifiers: ["declaration", "readonly"],
+            });
+          } else if (this.parseUtils.isP1AsmVariable(enumConstant)) {
+            // our SPIN1 name
+            this._logCON("  -- B GLBL bad SPIN1=[" + enumConstant + "]");
+            //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: symbolPosition.character,
+              length: enumConstant.length,
+              ptTokenType: "variable",
+              ptTokenModifiers: ["illegalUse"],
+            });
+            this.semanticFindings.pushDiagnosticMessage(
+              symbolPosition.line,
+              symbolPosition.character,
+              symbolPosition.character + enumConstant.length,
+              eSeverity.Error,
+              `P1 Spin constant [${enumConstant}] not allowed in P2 Spin`
+            );
+          }
+          currSingleLineOffset = nameOffset + nameLen;
+        }
+      }
+    } else {
+      this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
+    }
+    return tokenSet;
   }
 
   private _reportCON_DeclarationLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
@@ -3311,6 +3756,11 @@ export class Spin2DocumentSemanticParser {
     return hideStatus;
   }
 
+  private _reportSPIN_CodeMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
+    const tokenSet: IParsedToken[] = [];
+    return tokenSet;
+  }
+
   private _reportSPIN_Code(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     const lineNbr: number = lineIdx + 1;
@@ -4517,6 +4967,11 @@ export class Spin2DocumentSemanticParser {
         }
       }
     }
+    return tokenSet;
+  }
+
+  private _reportDebugStatementMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
+    const tokenSet: IParsedToken[] = [];
     return tokenSet;
   }
 

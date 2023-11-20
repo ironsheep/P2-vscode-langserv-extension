@@ -19,6 +19,12 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.6] 2023-11-20
+
+Update P2 Only
+
+- Awaken CON section line continuation "..." processing
+
 ## [2.2.5] 2023-11-17
 
 Update for P1 and P2
