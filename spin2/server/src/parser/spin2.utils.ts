@@ -109,15 +109,12 @@ export class Spin2ParseUtils {
     //  Ex #5:   debug(`scope_xy xy size 200 range 1000 samples 200 dotsize 5 'Goertzel' `dly(#200))
     //  Ex #6:   debug(`logic MyLogic pos 30 150 samples 112 'p0=SO' 1 'p1=CLK' 1 'p2=CS' 1)
     //  Ex #7:   debug(`testTerm 1 'Pulse Width = ', '`(position)', ' microseconds  ')
+    //  Ex #8:   debug(`term3 'FwdEnc=`(encVal), dty=`(duty), dxy=`(duty)' 10)    ' more than 1 `() within a single 'xxxx' string
     // NOTE: allowed `() specs: Decimal: `(var), Hex: `$(var), Binary: `%(var), Characters: `#(var)
     //this._logMessage(`- RQS line [${line}]`);
     let trimmedLine: string = line;
-
     const chrSingleQuote: string = "'";
-    const chrBackTic: string = "`";
-    const chrOpenParen: string = "(";
     const chrCloseParen: string = ")";
-    const firstOpenParenOffset: number = trimmedLine.indexOf(chrOpenParen, 0);
     // skip past tic-open pairs and their closes
     let nextTicEscape: number = this._nextTicEscape(trimmedLine, 0);
     let quoteStartOffset: number = trimmedLine.indexOf(chrSingleQuote, 0);
@@ -152,100 +149,63 @@ export class Spin2ParseUtils {
       }
       this._logMessage(`  -- RdsQS quoteStartOffset=(${quoteStartOffset}), nextTicEscape=(${nextTicEscape}), quoteEndOffset=(${quoteEndOffset}): stringNoTicEscape=(${stringNoTicEscape})`);
       if (stringNoTicEscape) {
+        // ----------------------------------------
         // have string with no tic escape, remove it
+        //
         badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
         trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
         this._logMessage(`  -- RdsQS A trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         // FIXME: TODO: splice instead of search / replace (will work in face of dupe strings)
       } else {
+        // ----------------------------------------
         // have string to first escape, remove it
+        //
         // remove front
         badElement = trimmedLine.substring(quoteStartOffset, nextTicEscape); // no +1 leave tic there
         trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
         this._logMessage(`  -- RdsQS B trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
-        const closeParenOffset: number = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
+        let closeParenOffset: number = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
         if (closeParenOffset == -1) {
           badParse = true;
-          this._logMessage(`  -- RdsQS FAILED to locate close paren of \`() clause`);
+          this._logMessage(`  -- RdsQS FAILED A to locate close paren of \`() clause`);
           break;
         }
+
+        // do we have another tic-escape inside this string?
+        nextTicEscape = this._nextTicEscape(trimmedLine, closeParenOffset + 1);
+        while (nextTicEscape != -1 && nextTicEscape < quoteEndOffset) {
+          // yes remove string from `() to `()...
+          badElement = trimmedLine.substring(closeParenOffset + 1, nextTicEscape);
+          trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
+          this._logMessage(`  -- RdsQS C trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+
+          closeParenOffset = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
+          if (closeParenOffset == -1) {
+            this._logMessage(`  -- RdsQS FAILED B to locate close paren of \`() clause`);
+            break;
+          }
+          // locate a next tic-escape, if it's in our same string we'll continue in this loop
+          nextTicEscape = this._nextTicEscape(trimmedLine, closeParenOffset + 1);
+        }
+        // if our tic-escape loop bailed we need to as well
+        if (closeParenOffset == -1) {
+          badParse = true;
+          this._logMessage(`  -- RdsQS FAILED C to locate close paren of \`() clause`);
+          break;
+        }
+        // ----------------------------------------
+        // have string from last escape to end quote
         badElement = trimmedLine.substring(closeParenOffset + 1, quoteEndOffset + 1);
         trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
-        this._logMessage(`  -- RdsQS C trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        this._logMessage(`  -- RdsQS D trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+
         // if we have `( followed by ) then skip this close, look for next
         nextTicEscape = this._nextTicEscape(trimmedLine, closeParenOffset + 1);
       }
       // see if we have another pair...
       quoteStartOffset = trimmedLine.indexOf(chrSingleQuote, quoteEndOffset + 1);
     }
-
-    /*
-    //this._logMessage(` END TicEscapeLOOP quoteStartOffset=(${quoteStartOffset}), lastCloseParenOffset=(${lastCloseParenOffset})`);
-    if (!badParse) {
-      while (quoteStartOffset != -1) {
-        let badElement: string = "";
-        let quoteEndOffset: number = trimmedLine.indexOf(chrSingleQuote, quoteStartOffset + 1);
-        if (quoteEndOffset == -1) {
-          break; // abort if NOT in quoted string
-        }
-        // process this string
-        nextTicEscape = this._nextTicEscape(trimmedLine, 0);
-        if (nextTicEscape != -1 && nextTicEscape < quoteEndOffset) {
-          // have ticEscapes within this string...
-          // have single-quoted string, work our way thru it blocking any string parts that are not a TicEscaped variable
-          // while we have ticEscapes do
-          //  - remove string from curr to tic-escape
-          //  done
-          // remove string from last tick escape to end or entire string
-          while (nextTicEscape != -1 && nextTicEscape < quoteEndOffset) {
-            // bad token is left edge of string up to ticEscape
-            badElement = trimmedLine.substr(quoteStartOffset, nextTicEscape - quoteStartOffset);
-            // '#'' the bad element
-            //this._logMessage(`  -- RdsQS nextTicEscape=[${nextTicEscape}], quoteEndOffset=[${quoteEndOffset}], badElement=[${badElement}]`);
-            trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
-            didRemove = showDebug ? true : false;
-            //this._logMessage("  -- RdsQS post[" + trimmedLine + "]");
-
-            // do we have another ticEscape
-            ticEscapeCloseParenOffset = trimmedLine.indexOf(chrCloseParen, nextTicEscape + 1);
-            if (ticEscapeCloseParenOffset == -1) {
-              badParse = true;
-              break; // error abort loop!
-            }
-            nextTicEscape = this._nextTicEscape(trimmedLine, ticEscapeCloseParenOffset + 1);
-            quoteStartOffset = ticEscapeCloseParenOffset + 1; // move start of string to end of current ticEscape
-            if (nextTicEscape > quoteEndOffset) {
-              nextTicEscape = -1; // mark no more in this quoted string
-            }
-          }
-          if (!badParse) {
-            // mark out entire string or just part after last ticEscape
-            badElement = trimmedLine.substr(quoteStartOffset, quoteEndOffset - quoteStartOffset + 1);
-            //this._logMessage(`  -- RdsQS nextTicEscape=[${nextTicEscape}], quoteEndOffset=[${quoteEndOffset}], badElement=[${badElement}]`);
-            trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
-            didRemove = showDebug ? true : false;
-            //this._logMessage("  -- RdsQS post[" + trimmedLine + "]");
-          } else {
-            break; // bad parse
-          }
-        } else {
-          // no ticEscapes in this string
-          badElement = trimmedLine.substr(quoteStartOffset, quoteEndOffset - quoteStartOffset);
-          // '#'' the bad element
-          //this._logMessage(`  -- RdsQS quoteStartOffset=[${quoteStartOffset}], quoteEndOffset=[${quoteEndOffset}], badElement=[${badElement}]`);
-          trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
-          didRemove = showDebug ? true : false;
-        }
-        quoteStartOffset = trimmedLine.indexOf(chrSingleQuote, quoteEndOffset + 1);
-      }
-
-      if (didRemove) {
-        this._logMessage("  -- RdsQS line [" + line + "]");
-        this._logMessage("  --            [" + trimmedLine + "]");
-      }
-    }
-	*/
 
     return trimmedLine;
   }
