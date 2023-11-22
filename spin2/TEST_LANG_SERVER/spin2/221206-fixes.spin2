@@ -1,6 +1,6 @@
 ' Run with DEBUG enabled to view
 
-_clkfreq = 300_000_000                                  ' <---  FIXME:l not colored correctly (TOP defaults to CON (but syntax, how???)
+_clkfreq = 300_000_000
 
 sprites = 128
 

@@ -31,6 +31,7 @@ PRI DeleteChainFromID(ID, EndID, Mode, KeepFirstIDValid) | Block, Header
   		      Header.[19..8] <> EndID,	...	'mode 1: delete to ThisID = EndID
 		      ID <> EndID)			'mode 2: delete to NextID = EndID
 
+  while lookupz(Mode: Header.[0], Header.[19..8] <> EndID, ID <> EndID)			'mode 2: delete to NextID = EndID
 
 PRI CancelBlock(Block)
 

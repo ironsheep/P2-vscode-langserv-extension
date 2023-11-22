@@ -3836,10 +3836,10 @@ export class Spin2DocumentSemanticParser {
               if (variableNamePart.endsWith(".")) {
                 variableNamePart = variableNamePart.substr(0, variableNamePart.length - 1);
               }
-              //const nameOffset = line.indexOf(variableNamePart, currSingleLineOffset);
-              symbolPosition = multiLineSet.locateSymbol(variableNamePart, currSingleLineOffset);
-              let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
               if (variableNamePart.charAt(0).match(/[a-zA-Z_]/)) {
+                //const nameOffset = line.indexOf(variableNamePart, currSingleLineOffset);
+                symbolPosition = multiLineSet.locateSymbol(variableNamePart, currSingleLineOffset);
+                let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
                 if (this._isPossibleObjectReference(variableNamePart)) {
                   // go register object reference!
                   const bHaveObjReference = this._reportObjectReference(variableNamePart, symbolPosition.line, symbolPosition.character, multiLineSet.lineAt(symbolPosition.line), tokenSet);
@@ -4144,6 +4144,7 @@ export class Spin2DocumentSemanticParser {
       this._logSPIN(`  -- assignmentStringOffset=[${assignmentStringOffset}], bIsDebugLine=(${bIsDebugLine})`);
       let offsetInNonStringRHS = 0;
       let currNameLength: number = 0;
+      this._logSPIN(`  --  SPIN Multi loop start currSingleLineOffset=(${currSingleLineOffset})`);
       for (let index = 0; index < possNames.length; index++) {
         let possibleName = possNames[index];
         // special code to handle case of var.[bitfield] leaving name a 'var.'
@@ -4176,27 +4177,17 @@ export class Spin2DocumentSemanticParser {
           if (!bHaveObjReference) {
             const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + "." + possibleNameSet[1];
             //nameOffset = nonStringAssignmentRHSStr.indexOf(searchString, offsetInNonStringRHS) + assignmentStringOffset; // so we don't match in in strings...
-            symbolPosition = multiLineSet.locateSymbol(searchString, currSingleLineOffset);
-            nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             this._logSPIN(`  --  SPIN RHS  nonStringAssignmentRHSStr=[${nonStringAssignmentRHSStr}]`);
             this._logSPIN(`  --  SPIN RHS   searchString=[${searchString}]`);
             this._logSPIN(`  --  SPIN RHS    nameOffset=(${nameOffset}), offsetInNonStringRHS=(${offsetInNonStringRHS}), currSingleLineOffset=(${currSingleLineOffset})`);
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, symbolPosition.line + 1);
-              if (referenceDetails) {
-                this._logSPIN(`  --  FOUND Local name=[${namePart}], referenceDetails=(${referenceDetails})`);
-              } else {
-                this._logSPIN(`  --  EXISTS Local name=[${namePart}], BUT referenceDetails=(${referenceDetails})`);
-              }
+              this._logSPIN(`  --  FOUND Local name=[${namePart}], referenceDetails=(${referenceDetails})`);
             }
             if (!referenceDetails && this.semanticFindings.isGlobalToken(namePart)) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-              if (referenceDetails) {
-                this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${referenceDetails})`);
-              } else {
-                this._logSPIN(`  --  EXISTS Global name=[${namePart}], BUT referenceDetails=(${referenceDetails})`);
-              }
+              this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${referenceDetails})`);
               if (referenceDetails != undefined && referenceDetails?.type == "method") {
                 const methodCallNoSpace = `${namePart}(`;
                 const methodCallSpace = `${namePart} (`;
@@ -4357,8 +4348,8 @@ export class Spin2DocumentSemanticParser {
           });
         }
         offsetInNonStringRHS += currNameLength + 1;
-        currSingleLineOffset += currNameLength + 1;
-        //this._logSPIN(`  --  SPIN  ADVANCE by name part len - offsetInNonStringRHS: (${priorInNonStringRHS}) -> (${offsetInNonStringRHS}), currentOffset: (${priorOffset}) -> (${currentOffset})`);
+        currSingleLineOffset = nameOffset > 0 ? nameOffset + currNameLength : currSingleLineOffset + currNameLength;
+        this._logSPIN(`  --  SPIN Multi loop currSingleLineOffset=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), currNameLength=(${currNameLength})`);
       }
     }
     return tokenSet;
@@ -4721,11 +4712,11 @@ export class Spin2DocumentSemanticParser {
         let nameOffset: number = 0;
         currNameLength = possibleName.length;
         if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
-          this._logSPIN("  -- possibleName=[" + possibleName + "]");
+          this._logSPIN(`  -- possibleName=[${possibleName}]`);
           // does name contain a namespace reference?
           if (possibleName.includes(".")) {
             possibleNameSet = possibleName.split(".");
-            this._logSPIN("  --  possibleNameSet=[" + possibleNameSet + "]");
+            this._logSPIN(`  --  possibleNameSet=[${possibleNameSet}]`);
           }
           const namePart = possibleNameSet[0];
           currNameLength = namePart.length;

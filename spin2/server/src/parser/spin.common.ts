@@ -3,7 +3,6 @@
 
 import { Position } from "vscode-languageserver-types";
 import { Context } from "../context";
-import { isBuffer } from "util";
 
 export enum eDebugDisplayType {
   Unknown = 0,
@@ -100,7 +99,7 @@ export class ContinuedLines {
         this.haveAllLines = true;
         this._finishLine();
       }
-      this._logMessage(`    --- ContLn: addLine() line=[${nextLine}], lineIdx=(${lineIdx}),  nbrLines=(${this.rawLines.length}), haveAllLines=(${this.haveAllLines})`);
+      //this._logMessage(`    --- ContLn: addLine() line=[${nextLine}], lineIdx=(${lineIdx}),  nbrLines=(${this.rawLines.length}), haveAllLines=(${this.haveAllLines})`);
     } else {
       this._logMessage(`    --- ContLn: ERROR addLine() line=[${nextLine}], lineIdx=(${lineIdx}) - attempt add after last line arrived!`);
     }
@@ -205,9 +204,9 @@ export class ContinuedLines {
     let rawIdx: number = 0;
     let remainingOffset: number = offset;
     // subtract earlier line lengths from remainder to locate line our symbol is on
-    //this._logMessage(
-    //  `    --- ContLn: ENTRY locateSymbol([${symbolName}], srtOfs=(${offset})) - rawLines=(${this.rawLines.length}), Ln#${this.lineStartIdx + 1}-${this.lineStartIdx + this.rawLines.length}`
-    //);
+    this._logMessage(
+      `    --- ContLn: ENTRY locateSymbol([${symbolName}], srtOfs=(${offset})) - rawLines=(${this.rawLines.length}), Ln#${this.lineStartIdx + 1}-${this.lineStartIdx + this.rawLines.length}`
+    );
     for (let index = 0; index < this.rawLines.length; index++) {
       const rawPossContLine: string = this.rawLines[index];
       const isLineContinued: boolean = rawPossContLine.endsWith("...");
@@ -215,31 +214,29 @@ export class ContinuedLines {
       const foundLineWhiteSpaceLength = this._skipWhite(rawPossContLine, 0);
       // if the first line, don't take out the leading whitespace
       const accumLength = index == 0 ? foundLineWhiteSpaceLength + currLineLength : currLineLength;
-      //this._logMessage(
-      //  `    --- ContLn: ls()           - CHECKING rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued}) continuedLine=[${rawPossContLine}](${rawPossContLine.length})`
-      //);
+      const trimmedLineContentOnly: string = isLineContinued ? rawPossContLine.slice(0, -3).trimEnd() : rawPossContLine.trimEnd();
+      const remainingString: string = index == 0 ? trimmedLineContentOnly.substring(remainingOffset) : trimmedLineContentOnly.trimStart().substring(remainingOffset);
+      /*
+      this._logMessage(`    --- ContLn: ls()           - CHECKING rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`);
+      this._logMessage(`    --- ContLn: ls()           - CHECKING   continuedLine=[${rawPossContLine}](${rawPossContLine.length})`);
+      this._logMessage(`    --- ContLn: ls()           - CHECKING   remainingString=[${remainingString}](${remainingString.length})`);
+      //*/
       // if our offset is not in this line -or- the remainder of this line is not long enough to contain our symbol
-      if (remainingOffset > accumLength) {
+      if (remainingOffset >= accumLength) {
         // not in this line... go to next...
         rawIdx++;
         remainingOffset -= accumLength;
         //this._logMessage(
         //  `    --- ContLn: ls()           - NOT-LINE rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`
         //);
-      } else if (rawPossContLine.indexOf(symbolName, remainingOffset) == -1) {
+      } else if (remainingString.length < symbolName.length || remainingString.indexOf(symbolName) == -1) {
         // if not found in remainder of line... go to next
         rawIdx++;
         remainingOffset = 0;
-      } else if (currLineLength - remainingOffset < symbolName.length) {
-        // symbol can't fit in this line? go to next
-        // FIXME: TODO: is this needed?? / VALID??
-        rawIdx++;
-        remainingOffset = 0;
-        //this._logMessage(`    --- ContLn: ls()           - NOT-FIT rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`);
       } else {
         // must be in this line!
         this._logMessage(
-          `    --- ContLn: locateSymbol() - THIS-LINE rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`
+          `    --- ContLn:   locateSymbol() - THIS-LINE rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`
         );
         break; // symbol is in this line
       }
@@ -257,9 +254,9 @@ export class ContinuedLines {
       desiredLocation = Position.create(lineIdx, symbolOffset);
       //this._logMessage(`    --- ContLn: locateSymbol() -> Posn=[line=(${lineIdx}), char=(${symbolOffset})]`);
       if (symbolOffset != -1) {
-        this._logMessage(`    --- ContLn: Found IN Ln#${lineIdx + 1} [${this.rawLines[rawIdx]}](${this.rawLines[rawIdx].length})`);
+        this._logMessage(`    --- ContLn:    Found [${symbolName}] IN Ln#${lineIdx + 1} [${this.rawLines[rawIdx]}](${this.rawLines[rawIdx].length})`);
       } else {
-        this._logMessage(`    --- NOT found! ?? [${symbolName}] NOT in line=[${this.rawLines[rawIdx]}] ??`);
+        this._logMessage(`    --- ERROR NOT found! ?? [${symbolName}] NOT in line=[${this.rawLines[rawIdx]}] ??`);
       }
     }
     return desiredLocation;
