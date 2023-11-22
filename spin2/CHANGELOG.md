@@ -24,6 +24,7 @@ Possible next additions:
 Update P2 Only
 
 - Awaken CON section line continuation "..." processing
+- Awaken SPIN code (code in PUB/PRI) line continuation "..." processing
 
 ## [2.2.5] 2023-11-17
 
