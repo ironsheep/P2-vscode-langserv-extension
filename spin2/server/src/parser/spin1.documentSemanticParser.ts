@@ -1068,30 +1068,43 @@ export class Spin1DocumentSemanticParser {
     const trimmedNonCommentLineStr: string = remainingNonCommentLineStr.trim();
     const remainingOffset: number = trimmedNonCommentLineStr.length > 0 ? line.indexOf(trimmedNonCommentLineStr, startingOffset) : 0;
     //this._logOBJ('- RptObjDecl remainingNonCommentLineStr=[' + remainingNonCommentLineStr + ']');
-    if (trimmedNonCommentLineStr.length > 0 && remainingNonCommentLineStr.includes(":")) {
-      // get line parts - we only care about first one
-      const lineParts: string[] = remainingNonCommentLineStr.split(":").filter(Boolean);
-      this._logOBJ("  -- GLBL GetOBJDecl lineParts=[" + lineParts + "]");
-      let instanceNamePart = lineParts[0].trim();
-      // if we have instance array declaration, then remove it
-      if (instanceNamePart.includes("[")) {
-        const nameParts = instanceNamePart.split(/[\[\]]/).filter(Boolean);
-        instanceNamePart = nameParts[0];
+    let badObjectLine: boolean = false;
+    if (remainingNonCommentLineStr.length >= 5) {
+      // c:"x" is minimm object decl len=5!
+      if (remainingNonCommentLineStr.includes(":") && remainingNonCommentLineStr.includes('"')) {
+        // get line parts - we only care about first one
+        const lineParts: string[] = remainingNonCommentLineStr.split(":").filter(Boolean);
+        this._logOBJ(`  -- GLBL GetOBJDecl lineParts=[${lineParts}]${lineParts.length}`);
+        if (lineParts.length < 2) {
+          badObjectLine = true;
+        } else {
+          let instanceNamePart = lineParts[0].trim();
+          // if we have instance array declaration, then remove it
+          if (instanceNamePart.includes("[")) {
+            const nameParts = instanceNamePart.split(/[\[\]]/).filter(Boolean);
+            instanceNamePart = nameParts[0];
+          }
+          this._logOBJ(`  -- GLBL GetOBJDecl newInstanceName=[${instanceNamePart}]`);
+          // remember this object name so we can annotate a call to it
+          const filenamePart = lineParts.length > 1 ? lineParts[1].trim().replace(/[\"]/g, "") : "--error-no-name-parsed--";
+          this._logOBJ(`  -- GLBL GetOBJDecl newFileName=[${filenamePart}]`);
+          const nameOffset = line.indexOf(instanceNamePart, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+          this.semanticFindings.recordDeclarationLine(line, lineNbr);
+          this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", lineNbr - 1, nameOffset, []), this._declarationComment(), filenamePart); // pass filename, too
+          this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);
+          this._ensureObjectFileExists(filenamePart, lineNbr - 1, line, startingOffset);
+        }
+      } else {
+        badObjectLine = true;
       }
-      this._logOBJ(`  -- GLBL GetOBJDecl newInstanceName=[${instanceNamePart}]`);
-      // remember this object name so we can annotate a call to it
-      const filenamePart = lineParts[1].trim().replace(/[\"]/g, "");
-      this._logOBJ(`  -- GLBL GetOBJDecl newFileName=[${filenamePart}]`);
-      const nameOffset = line.indexOf(instanceNamePart, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-      this.semanticFindings.recordDeclarationLine(line, lineNbr);
-      this.semanticFindings.setGlobalToken(instanceNamePart, new RememberedToken("namespace", lineNbr - 1, nameOffset, []), this._declarationComment(), filenamePart); // pass filename, too
-      this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);
-      this._ensureObjectFileExists(filenamePart, lineNbr - 1, line, startingOffset);
-    } else if (remainingNonCommentLineStr.length > 0 && !remainingNonCommentLineStr.includes(":")) {
+    } else if (remainingNonCommentLineStr.length > 0) {
+      badObjectLine = true;
+    }
+    if (badObjectLine) {
       this.semanticFindings.pushDiagnosticMessage(
         lineNbr - 1,
-        remainingOffset,
-        remainingOffset + remainingNonCommentLineStr.length,
+        currentOffset,
+        currentOffset + remainingNonCommentLineStr.length,
         eSeverity.Error,
         `Illegal P1 Syntax: Unable to parse object declaration [${remainingNonCommentLineStr}]`
       );

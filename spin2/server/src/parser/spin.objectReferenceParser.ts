@@ -315,7 +315,7 @@ export class Spin2ObjectReferenceParser {
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const remainingNonCommentLineStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     //this._logOBJ('- RptObjDecl remainingNonCommentLineStr=[' + remainingNonCommentLineStr + ']');
-    if (remainingNonCommentLineStr.length > 0 && remainingNonCommentLineStr.includes(":")) {
+    if (remainingNonCommentLineStr.length > 5 && remainingNonCommentLineStr.includes(":") && remainingNonCommentLineStr.includes('"')) {
       // get line parts - we only care about first one
       const overrideParts: string[] = remainingNonCommentLineStr.split("|").filter(Boolean);
       const lineParts: string[] = overrideParts[0].split(":").filter(Boolean);
@@ -328,9 +328,11 @@ export class Spin2ObjectReferenceParser {
       }
       this._logOBJ(`  -- GLBL GetOBJDecl newInstanceName=[${instanceNamePart}]`);
       // remember this object name so we can annotate a call to it
-      const filenamePart = lineParts[1].trim().replace(/[\"]/g, "");
+      const filenamePart = lineParts.length > 1 ? lineParts[1].trim().replace(/[\"]/g, "") : "";
       this._logOBJ(`  -- GLBL GetOBJDecl newFileName=[${filenamePart}]`);
-      this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);
+      if (filenamePart.length > 0) {
+        this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);
+      }
     }
   }
 
