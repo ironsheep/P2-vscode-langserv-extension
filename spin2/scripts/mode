@@ -63,20 +63,24 @@ if [ "${PARM}" = "check" ]; then
 	if [ "${MODE}" = "live" ]; then
 		if [ ! "${LIVE_MD5_PKG}" = "${LIVE_SRC_MD5_PKG}" ]; then
 			echo " main ${DEST_PKG} and ${LIVE_SRC_PKG} are different"
+			echo " --> cp -p ${DEST_PKG} ${LIVE_SRC_PKG}"
 			info="true"
 		fi
 		if [ ! "${LIVE_MD5_IGN}" = "${LIVE_SRC_MD5_IGN}" ]; then
 			echo " main ${DEST_IGN} and ${LIVE_SRC_IGN} are different"
+			echo " --> cp -p ${DEST_IGN} ${LIVE_SRC_IGN}"
 			info="true"
 		fi
 	fi
 	if [ "${MODE}" = "test" ]; then
 		if [ ! "${LIVE_MD5_PKG}" = "${TEST_SRC_MD5_PKG}" ]; then
 			echo " main ${DEST_PKG} and ${TEST_SRC_PKG} are different"
+			echo " --> cp -p ${DEST_PKG} ${TEST_SRC_PKG}"
 			info="true"
 		fi
 		if [ ! "${LIVE_MD5_IGN}" = "${TEST_SRC_MD5_IGN}" ]; then
 			echo " main ${DEST_IGN} and ${TEST_SRC_IGN} are different"
+			echo " --> cp -p ${DEST_IGN} ${TEST_SRC_IGN}"
 			info="true"
 		fi
 	fi
