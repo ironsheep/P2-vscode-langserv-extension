@@ -42,7 +42,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -4667,6 +4667,10 @@ export class Spin2DocumentSemanticParser {
             this._logSPIN(`  --  SPIN RHS    nameOffset=(${nameOffset}), offsetInNonStringRHS=(${offsetInNonStringRHS}), currentOffset=(${currentOffset})`);
             for (let index = 0; index < possibleNameSet.length; index++) {
               const namePart = possibleNameSet[index];
+              if (!namePart.charAt(0).match(/[a-zA-Z_]/)) {
+                nameOffset += namePart.length;
+                continue;
+              }
               currNameLength = namePart.length;
               nameOffset = line.indexOf(namePart, nameOffset);
               this._logSPIN(`  --  processing name(s) namePart=[${namePart}](${namePart.length})`);
@@ -6339,6 +6343,9 @@ export class Spin2DocumentSemanticParser {
           // FIXME: handle nameParts[1] is likely a local file variable
           if (nameParts.length > 1) {
             indexNames = nameParts[1];
+          }
+          if (indexNames && !indexNames.charAt(0).match(/[a-zA-Z_]/)) {
+            indexNames = undefined;
           }
         }
         if (indexNames) {

@@ -24,6 +24,7 @@ Possible next additions:
 Update P2 Only
 
 - Fixes to SPIN2 symbol.storageType and object[index].method() parsing
+- Handle \methodName() in debug() statements
 
 ## [2.2.6] 2023-11-21
 

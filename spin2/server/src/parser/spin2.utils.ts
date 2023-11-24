@@ -90,7 +90,7 @@ export class Spin2ParseUtils {
     //this._logMessage("  -- gdnwlp nonDblStringLine=[" + nonDblStringLine + "]");
     const nonSglStringLine: string = this.removeDebugSingleQuotedStrings(nonDblStringLine, true);
     //this._logMessage("  -- gdnwlp nonSglStringLine=[" + nonSglStringLine + "]");
-    let lineParts: string[] | null = nonSglStringLine.match(/[^ ,@\[\]\=\+\-\*\/\:\#\<\>\|\^\&\t\(\)\!\?\~]+/g);
+    let lineParts: string[] | null = nonSglStringLine.match(/[^ ,@\[\]\=\+\-\*\/\:\#\<\>\|\^\&\t\(\)\!\?\~\\]+/g);
     //let lineParts: string[] | null = line.match(/[^ ,@\[\]\+\-\*\/\<\>\t\(\)]+/g);
     return lineParts == null ? [] : lineParts;
   }
