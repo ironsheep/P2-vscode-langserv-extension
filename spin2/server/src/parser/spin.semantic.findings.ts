@@ -378,7 +378,21 @@ export class DocumentFindings {
 
   public pushSemanticToken(newToken: IParsedToken) {
     // record a new Semantic token found in this document
-    this.semanticTokens.push(newToken);
+    if (!this.semanticTokenExists(newToken)) {
+      this.semanticTokens.push(newToken);
+    }
+  }
+
+  public semanticTokenExists(newToken: IParsedToken): boolean {
+    let dupeTokenStatus: boolean = false;
+    for (let index = 0; index < this.semanticTokens.length; index++) {
+      const existingToken = this.semanticTokens[index];
+      if (existingToken.line == newToken.line && existingToken.startCharacter == newToken.startCharacter) {
+        dupeTokenStatus = true;
+        break; // outta here we have our answer
+      }
+    }
+    return dupeTokenStatus;
   }
 
   // -------------------------------------------------------------------------------------

@@ -1,0 +1,15 @@
+' --------------------
+'  test parsing of storagetype variable subpart access
+
+PUB main(param1) : retValue | local2
+
+    test(param1.word[0])
+
+    local2.word[1] := param1.byte[3]
+
+    repeat param1.byte[2]
+
+    retValue := param1.byte[0]
+
+
+PRI test(b)

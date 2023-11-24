@@ -19,6 +19,12 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.7] 2023-11-22
+
+Update P2 Only
+
+- Fixes to SPIN2 symbol.storageType and object[index].method() parsing
+
 ## [2.2.6] 2023-11-21
 
 Update P2 Only
