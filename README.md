@@ -22,6 +22,7 @@ The **P1 Forum Thread** containing discussion of [this VSCode support](https://f
 - Full **language server based** support for both P1 (spin/pasm) and P2 (spin2/pasm2) languages
 - **Parse detected errors** are reported for each document when referenced/opened. If "**Error Lens**" extension is installed these errors are shown on the offending line of code.
 - **Show Hovers** and **Signature Help** features for constants and methods within external objects now shows information from the external file in which they are defined
+- Spin **Code Folding** support
 - P2 Support:
    - **P2: Syntax and Semantic Highlighting** for both Spin2 and Pasm2 including all Streamer and Smart-pin Symbols as well as all debug() statements with parameter validation for all display types
    - **P2: Show Hovers Feature** Hovers show information about the symbol/object that's below the mouse cursor. In our case this is for both user written code and for Spin2 built-ins.

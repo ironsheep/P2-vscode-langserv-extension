@@ -12,12 +12,17 @@ Work to appear in upcoming releases:
 
 Possible next additions:
 
-- Awaken code-folding feature
-- ... more features comming too
+- More features comming. We're looking for what's next...
 - Investigate and possibly add unique coloring for method pointers
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
+
+## [2.2.8] 2023-11-2?
+
+Update P1 and P2
+
+- Awaken First draft of Code Folding (folds code blocks and comment blocks so far)
 
 ## [2.2.7] 2023-11-24
 

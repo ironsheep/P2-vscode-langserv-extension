@@ -6,13 +6,13 @@ import { Provider } from ".";
 import { Context } from "../context";
 //import { getDefinitions } from "../symbols";
 import * as path from "path";
-import { Position, Hover, MarkupKind, Definition, Location } from "vscode-languageserver-types";
+import { Position, Location } from "vscode-languageserver-types";
 import { DocumentFindings, ILocationOfToken } from "../parser/spin.semantic.findings";
 import { fileSpecFromURI } from "../parser/lang.utils";
-import { IDefinitionInfo, ExtensionUtils } from "../parser/spin.extension.utils";
+import { ExtensionUtils } from "../parser/spin.extension.utils";
 import { Range, TextDocument } from "vscode-languageserver-textdocument";
 import { DocumentLineAt } from "../parser/lsp.textDocument.utils";
-import { URI } from "vscode-uri";
+//import { URI } from "vscode-uri";
 
 export interface NamedSymbol {
   location: Location;

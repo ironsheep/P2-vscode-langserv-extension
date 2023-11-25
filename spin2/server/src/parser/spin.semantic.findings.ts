@@ -377,7 +377,19 @@ export class DocumentFindings {
       foldingCodeSpans.push(nextSpan);
     }
     //  doc comment ranges
+    for (let index = 0; index < this.blockComments.length; index++) {
+      const blockComment: RememberedComment = this.blockComments[index];
+      // NOTE: 2 or more lines can fold
+      if (blockComment.lineCount > 1) {
+        const commentLines: string[] = blockComment.lines;
+        const commentString: string = `\n------->>>>>>>>>-------\n${commentLines.join("\n")}\n-------<<<<<<<<<-------\n`;
+        this._logMessage(` -- CMT block Ln#${blockComment.firstLine + 1}-${blockComment.lastLine + 1}(${blockComment.lineSpan}): [${commentString}]`);
+        const nextSpan: IFoldSpan = { foldstart: { line: blockComment.firstLine, character: 0 }, foldEnd: { line: blockComment.lastLine, character: Number.MAX_VALUE }, type: eFoldSpanType.Comment };
+        foldingCodeSpans.push(nextSpan);
+      }
+    }
     //  PUB/PRI control flow ranges
+    //  PASM ranges
     //  continued line ranges
     return foldingCodeSpans;
   }
@@ -1961,10 +1973,12 @@ export enum eCommentType {
 }
 
 export class RememberedComment {
-  _type: eCommentType = eCommentType.Unknown;
-  _lines: string[] = [];
-  _1stLineIdx: number = 0;
-  _lastLineIdx: number = 0;
+  private _type: eCommentType = eCommentType.Unknown;
+  private _lines: string[] = [];
+  private _1stLineIdx: number = 0;
+  private _lastLineIdx: number = 0;
+  private _emptyLinesAtEnd: number = 0;
+
   constructor(type: eCommentType, lineIdx: number, firstLine: string) {
     this._1stLineIdx = lineIdx;
     this._type = type;
@@ -1989,6 +2003,11 @@ export class RememberedComment {
     return this._lines;
   }
 
+  get type(): eCommentType {
+    // Return the type of comment in this block
+    return this._type;
+  }
+
   get isDocComment(): boolean {
     // Return the array of comment lines for this block
     return this._type == eCommentType.multiLineDocComment || this._type == eCommentType.singleLineDocComment;
@@ -1997,6 +2016,10 @@ export class RememberedComment {
   get lineCount(): number {
     // Return the count of comment lines for this block
     return this._lines.length;
+  }
+  get lineSpan(): number {
+    // Return the count of comment lines for this block + number of emtpy last lines
+    return this._lastLineIdx - this._1stLineIdx + 1;
   }
 
   get isBlankLine(): boolean {
@@ -2047,9 +2070,13 @@ export class RememberedComment {
     return this._1stLineIdx;
   }
 
+  public get lastLine() {
+    return this._lastLineIdx;
+  }
+
   public span(): Range {
     // return the recorded line indexes (start,end) - span of the comment block
-    return { start: { line: this._1stLineIdx, character: 0 }, end: { line: this._lastLineIdx, character: 0 } };
+    return { start: { line: this._1stLineIdx, character: 0 }, end: { line: this._lastLineIdx, character: Number.MAX_VALUE } };
   }
 
   public appendLine(line: string) {
@@ -2071,6 +2098,11 @@ export class RememberedComment {
           const leftEdge = trimmedLine.substring(0, matchLocn - 1);
           trimmedLine = leftEdge + trimmedLine.substring(matchLocn + 2);
         }
+        if (trimmedLine.length == 0) {
+          this._emptyLinesAtEnd++;
+        }
+      } else {
+        // WHOA, missing our comment close but expecting it
       }
     } else if (this._type == eCommentType.multiLineComment) {
       matchLocn = trimmedLine.indexOf("}");
@@ -2081,6 +2113,11 @@ export class RememberedComment {
           const leftEdge = trimmedLine.substring(0, matchLocn - 1);
           trimmedLine = leftEdge + trimmedLine.substring(matchLocn + 2);
         }
+        if (trimmedLine.length == 0) {
+          this._emptyLinesAtEnd++;
+        }
+      } else {
+        // WHOA, missing our comment close but expecting it
       }
     }
     if (trimmedLine.length > 0) {
@@ -2094,6 +2131,9 @@ export class RememberedComment {
         trimmedLine = trimmedLine.substring(1);
       }
       this._lines[idx] = trimmedLine;
+    }
+    if (this._lines[this._lines.length - 1].length == 0) {
+      this._emptyLinesAtEnd++;
     }
     this._clearLinesIfAllBlank();
   }
@@ -2143,6 +2183,7 @@ export class RememberedComment {
       this._lines = [trimmedLine];
     } else {
       this._lines = [];
+      this._emptyLinesAtEnd = 0;
     }
   }
 
@@ -2196,6 +2237,7 @@ export class RememberedComment {
     }
     if (!bHaveNonBlank) {
       this._lines = [];
+      this._emptyLinesAtEnd = 0;
     }
   }
 }

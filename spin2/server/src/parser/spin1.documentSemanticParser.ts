@@ -370,7 +370,7 @@ export class Spin1DocumentSemanticParser {
             this._getPUB_PRI_Name(3, lineNbr, line);
             // and record our fake signature for later use by signature help
             const docComment: RememberedComment = this._generateFakeCommentForSignature(0, lineNbr, line);
-            if (docComment._type != eCommentType.Unknown) {
+            if (docComment.type != eCommentType.Unknown) {
               this.semanticFindings.recordFakeComment(docComment);
             } else {
               this._logState("- scan Ln#" + lineNbr + " no FAKE doc comment for this signature");

@@ -86,6 +86,13 @@ Peek at or go to the definition of variables/methods from where the variables/me
 - Enables right-mouse commands "Go to Definition" and "Peek -> Peek Definition"
 - In spin this works for method names, global variables, parameters, return values, method local variables and pasm global labels.
 
+## Feature: Code Folding
+
+Provides Spin specific code folding support
+
+- Fold Block comments, code blocks (CON, VAR, PUB, etc.), indented flow control, and continued line groups
+- This is controlled by editor settings: Editor: **Folding**, Editor: **Folding Strategy** and Editor: **Show Folding Controls**
+
 ## Feature: Generate "Object public interface" documentation
 
 Upon pressing Ctrl+Alt+d (control alt document) the editor will now generate a `{filename}.txt` document file (for your `{filename}.spin2` or `{filename}.spin` file) and open it up to the right side of your editor window. The generator extracts all PUB methods and their doc-comments along with file-top and file-bottom doc-comments.

@@ -3,7 +3,7 @@ import { Provider } from ".";
 import { Context } from "../context";
 import { ExtensionUtils } from "../parser/spin.extension.utils";
 import { fileSpecFromURI } from "../parser/lang.utils";
-import { DocumentFindings, IFoldSpan, ILocationOfToken, eFoldSpanType } from "../parser/spin.semantic.findings";
+import { DocumentFindings, IFoldSpan, eFoldSpanType } from "../parser/spin.semantic.findings";
 
 export default class FoldingRangeProvider implements Provider {
   private foldingLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
