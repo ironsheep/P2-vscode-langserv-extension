@@ -108,9 +108,23 @@ export interface IMethodSpan {
   startLineNbr: number;
   endLineNbr: number;
 }
+
 export interface IObjectReference {
   objectName: string;
   objectFilename: string;
+}
+
+export enum eFoldSpanType {
+  // should match lsp.DiagnosticSeverity
+  Unknown = 0,
+  Comment,
+  CodeBlock,
+}
+
+export interface IFoldSpan {
+  foldstart: Position; // line, char
+  foldEnd: Position;
+  type: eFoldSpanType;
 }
 
 // ----------------------------------------------------------------------------
@@ -345,6 +359,27 @@ export class DocumentFindings {
       this.diagnosticMessages.push(diagnosis);
       this._logMessage(`Add DIAGNOSIS - ${severityStr}(${lineIdx + 1})[${startChar}-${endChar}]: [${message}]`);
     }
+  }
+
+  // -------------------------------------------------------------------------------------
+  //  TRACK Return list of code fold spans found during parse of file
+  //
+  public allFoldSpans(): IFoldSpan[] {
+    const foldingCodeSpans: IFoldSpan[] = [];
+    // -----------------------
+    // gather and return:
+    // -----------------------
+    //  code block ranges
+    const blockSpans = this.blockSpans();
+    for (let index = 0; index < blockSpans.length; index++) {
+      const blockSpan = blockSpans[index];
+      const nextSpan: IFoldSpan = { foldstart: { line: blockSpan.startLineIdx, character: 0 }, foldEnd: { line: blockSpan.endLineIdx, character: Number.MAX_VALUE }, type: eFoldSpanType.CodeBlock };
+      foldingCodeSpans.push(nextSpan);
+    }
+    //  doc comment ranges
+    //  PUB/PRI control flow ranges
+    //  continued line ranges
+    return foldingCodeSpans;
   }
 
   // -------------------------------------------------------------------------------------

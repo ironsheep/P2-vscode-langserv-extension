@@ -13,7 +13,7 @@ import DefinitionProvider from "./DefinitionProvider";
 // import DocumentLinkProvider from "./DocumentLinkProvider";
 import DocumentSymbolProvider from "./DocumentSymbolProvider";
 // import FileOperationsProvider from "./FileOperationsProvider";
-// import FoldingRangeProvider from "./FoldingRangeProvider";
+import FoldingRangeProvider from "./FoldingRangeProvider";
 import HoverProvider from "./HoverProvider";
 // import ReferencesProvider from "./ReferencesProvider";
 // import RenameProvider from "./RenameProvider";
@@ -34,7 +34,7 @@ const providers = [
   //   DocumentLinkProvider,
   DocumentSymbolProvider,
   //   FileOperationsProvider,
-  //   FoldingRangeProvider,
+  FoldingRangeProvider,
   HoverProvider,
   //   ReferencesProvider,
   //   RenameProvider,
