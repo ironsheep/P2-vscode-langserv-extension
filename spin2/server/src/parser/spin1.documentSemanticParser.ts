@@ -386,7 +386,6 @@ export class Spin1DocumentSemanticParser {
           if (trimmedNonCommentLine.length > 6 && trimmedNonCommentLine.toUpperCase().includes("ORG")) {
             // ORG, ORGF, ORGH
             // record start of PASM code NOT inline
-            this.semanticFindings.recordPasmStart(i, false);
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
             if (nonStringLine.toUpperCase().includes("ORG")) {
               this._logPASM("- Ln#" + lineNbr + " pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");
@@ -425,7 +424,6 @@ export class Spin1DocumentSemanticParser {
             if (trimmedLine.toUpperCase().includes("ORG")) {
               // ORG, ORGF, ORGH
               // record start of PASM code NOT inline
-              this.semanticFindings.recordPasmStart(i, false);
               const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedLine);
               if (nonStringLine.toUpperCase().includes("ORG")) {
                 this._logPASM("- Ln#" + lineNbr + " pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");

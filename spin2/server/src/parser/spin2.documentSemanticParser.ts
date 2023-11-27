@@ -687,6 +687,7 @@ export class Spin2DocumentSemanticParser {
         }
         // now determine if this continued line set is a section start
         continuedSectionStatus = this.extensionUtils.isSectionStartLine(continuedLineSet.line);
+        this.semanticFindings.recordContinuedLineBlock(continuedLineSet.lineStartIdx, continuedLineSet.lineStartIdx + continuedLineSet.numberLines - 1);
       }
       const parsingContinuedLineSet: boolean = !continuedLineSet.isEmpty;
 

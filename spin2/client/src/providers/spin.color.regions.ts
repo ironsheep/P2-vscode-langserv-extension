@@ -497,13 +497,13 @@ export class RegionColorizer {
         // lookup color
         const color: string | undefined = this.colorForBlock(codeBlockSpan.blockType, codeBlockSpan.sequenceNbr);
         if (color) {
-          //this.logMessage(`- updRegionColors(): color=[${color}], span=[${codeBlockSpan.startLineNbr} - ${codeBlockSpan.endLineNbr}]`);
+          //this.logMessage(`- updRegionColors(): color=[${color}], span=[${codeBlockSpan.startLineIdx} - ${codeBlockSpan.endLineIdx}]`);
           // grab and instance for this color
           const colorDecorator: vscode.TextEditorDecorationType = this.instanceForColor(color, decoratorInstances);
           // create the next/first span for this color
-          this.logMessage(`  -- color=[${color}], start=[${codeBlockSpan.startLineNbr}, 0], end=[${codeBlockSpan.endLineNbr}, 0]`);
-          const startPos = new Position(codeBlockSpan.startLineNbr, 0);
-          const endPos = new Position(codeBlockSpan.endLineNbr, 0);
+          this.logMessage(`  -- color=[${color}], start=[${codeBlockSpan.startLineIdx}, 0], end=[${codeBlockSpan.endLineIdx}, 0]`);
+          const startPos = new Position(codeBlockSpan.startLineIdx, 0);
+          const endPos = new Position(codeBlockSpan.endLineIdx, 0);
 
           const decorationRange = {
             range: new vscode.Range(startPos, endPos),

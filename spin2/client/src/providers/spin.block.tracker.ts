@@ -14,8 +14,8 @@ export enum eBLockType {
 }
 
 export interface IBlockSpan {
-  startLineNbr: number;
-  endLineNbr: number;
+  startLineIdx: number;
+  endLineIdx: number;
   blockType: eBLockType;
   sequenceNbr: number;
 }
@@ -81,11 +81,11 @@ export class LocatedBlockFindings {
       const newBlockSpan: IBlockSpan = {
         blockType: this.priorBlockType,
         sequenceNbr: this.priorInstanceCount,
-        startLineNbr: this.priorBlockStartLineIdx,
-        endLineNbr: currLineIdx - 1, // ends at prior line
+        startLineIdx: this.priorBlockStartLineIdx,
+        endLineIdx: currLineIdx - 1, // ends at prior line
       };
       this.codeBlockSpans.push(newBlockSpan);
-      this._logMessage(`  -- FND-RCD-ADD sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineNbr} - ${newBlockSpan.endLineNbr}]`);
+      this._logMessage(`  -- FND-RCD-ADD sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`);
       this.priorInstanceCount = this.priorBlockType == eCurrBlockType ? this.priorInstanceCount + 1 : 1;
       this.priorBlockStartLineIdx = currLineIdx;
       this.priorBlockType = eCurrBlockType;
@@ -99,10 +99,10 @@ export class LocatedBlockFindings {
       const newBlockSpan: IBlockSpan = {
         blockType: this.priorBlockType,
         sequenceNbr: this.priorInstanceCount,
-        startLineNbr: this.priorBlockStartLineIdx,
-        endLineNbr: finalLineIdx, // ends at the last line of the file
+        startLineIdx: this.priorBlockStartLineIdx,
+        endLineIdx: finalLineIdx, // ends at the last line of the file
       };
-      this._logMessage(`  -- FND-RCD-ADD LAST sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineNbr} - ${newBlockSpan.endLineNbr}]`);
+      this._logMessage(`  -- FND-RCD-ADD LAST sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`);
       this.codeBlockSpans.push(newBlockSpan);
     }
   }

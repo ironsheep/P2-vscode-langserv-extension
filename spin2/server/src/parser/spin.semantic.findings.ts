@@ -105,8 +105,13 @@ export interface IDebugDisplayInfo {
 }
 
 export interface IMethodSpan {
-  startLineNbr: number;
-  endLineNbr: number;
+  startLineIdx: number;
+  endLineIdx: number;
+}
+
+export interface IContinuedLineSpan {
+  startLineIdx: number;
+  endLineIdx: number;
 }
 
 export interface IObjectReference {
@@ -119,6 +124,8 @@ export enum eFoldSpanType {
   Unknown = 0,
   Comment,
   CodeBlock,
+  PasmCodeBlock,
+  InlinePasmCodeBlock,
 }
 
 export interface IFoldSpan {
@@ -153,6 +160,7 @@ export class DocumentFindings {
   private priorBlockStartLineIdx: number = -1;
   private priorInstanceCount: number = 0;
   private codeBlockSpans: IBlockSpan[] = [];
+  private continuedLineSpans: IContinuedLineSpan[] = [];
   // tracking spans of PASM code
   private pasmStartLineIdx: number = -1;
   private pasmCodeSpans: IPasmCodeSpan[] = [];
@@ -240,6 +248,7 @@ export class DocumentFindings {
     this.priorBlockStartLineIdx = -1;
     this.priorInstanceCount = 0;
     this.codeBlockSpans = [];
+    this.continuedLineSpans = [];
     this.diagnosticMessages = [];
     this.outlineSymbols = [];
     this.semanticTokens = [];
@@ -390,7 +399,27 @@ export class DocumentFindings {
     }
     //  PUB/PRI control flow ranges
     //  PASM ranges
+    for (let index = 0; index < this.pasmCodeSpans.length; index++) {
+      const pasmCodeSpan: IPasmCodeSpan = this.pasmCodeSpans[index];
+      const spanType: eFoldSpanType = pasmCodeSpan.isInline ? eFoldSpanType.InlinePasmCodeBlock : eFoldSpanType.PasmCodeBlock;
+      const nextSpan: IFoldSpan = {
+        foldstart: { line: pasmCodeSpan.startLineIdx, character: 0 },
+        foldEnd: { line: pasmCodeSpan.endLineIdx, character: Number.MAX_VALUE },
+        type: spanType,
+      };
+      foldingCodeSpans.push(nextSpan);
+    }
+
     //  continued line ranges
+    for (let index = 0; index < this.continuedLineSpans.length; index++) {
+      const continuedLineSpan: IContinuedLineSpan = this.continuedLineSpans[index];
+      const nextSpan: IFoldSpan = {
+        foldstart: { line: continuedLineSpan.startLineIdx, character: 0 },
+        foldEnd: { line: continuedLineSpan.endLineIdx, character: Number.MAX_VALUE },
+        type: eFoldSpanType.CodeBlock,
+      };
+      foldingCodeSpans.push(nextSpan);
+    }
     return foldingCodeSpans;
   }
 
@@ -580,6 +609,15 @@ export class DocumentFindings {
       }
     }
     this._logMessage(`  -- appendLocationsOfToken() id=[${this.instanceId}] adds ${findCount} tokens`);
+  }
+
+  // -------------------------------------------------------------------------------------
+  //  TRACK ranges of continued lines within file
+  //
+  public recordContinuedLineBlock(startLineIdx: number, endLineIdx: number) {
+    this._logMessage(`  -- RCD-ContLine Ln#${startLineIdx + 1} - ${endLineIdx + 1}]`);
+    const newSpan: IContinuedLineSpan = { startLineIdx: startLineIdx, endLineIdx: endLineIdx };
+    this.continuedLineSpans.push(newSpan);
   }
 
   // -------------------------------------------------------------------------------------
@@ -1331,12 +1369,12 @@ export class DocumentFindings {
   public endPossibleMethod(lineNbr: number): void {
     // possibly ending a method if one was started, end it, else ignore this
     if (this.currMethodName) {
-      const spanInfo: IMethodSpan = { startLineNbr: this.currMethodStartLineNbr, endLineNbr: lineNbr };
+      const spanInfo: IMethodSpan = { startLineIdx: this.currMethodStartLineNbr, endLineIdx: lineNbr };
       if (!this.spanInfoByMethodName.has(this.currMethodName)) {
         this.spanInfoByMethodName.set(this.currMethodName, spanInfo);
-        this._logMessage(`  -- END-Method SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}]`);
+        this._logMessage(`  -- END-Method SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineIdx}, ${spanInfo.endLineIdx}]`);
       } else {
-        this._logMessage(`  -- DUPE!! SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineNbr}, ${spanInfo.endLineNbr}] IGNORED!`);
+        this._logMessage(`  -- DUPE!! SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineIdx}, ${spanInfo.endLineIdx}] IGNORED!`);
       }
     }
     // now clear in progress
@@ -1348,8 +1386,8 @@ export class DocumentFindings {
     let desiredMethodName: string | undefined = undefined;
     if (this.spanInfoByMethodName.size > 0) {
       for (const [currMethodName, currSpan] of this.spanInfoByMethodName) {
-        //this._logMessage(`  -- locTOK CHK method=[${currMethodName}], span=[${currSpan.startLineNbr}, ${currSpan.endLineNbr}]`);
-        if (lineNbr >= currSpan.startLineNbr && lineNbr <= currSpan.endLineNbr) {
+        //this._logMessage(`  -- locTOK CHK method=[${currMethodName}], span=[${currSpan.startLineIdx}, ${currSpan.endLineIdx}]`);
+        if (lineNbr >= currSpan.startLineIdx && lineNbr <= currSpan.endLineIdx) {
           desiredMethodName = currMethodName;
           break;
         }
