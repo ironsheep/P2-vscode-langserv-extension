@@ -26,8 +26,8 @@ export default class DocumentSymbolProvider implements Provider {
       for (let symblIdx = 0; symblIdx < outlineSymbols.length; symblIdx++) {
         const currSymbol = outlineSymbols[symblIdx];
         const newLspSymbol: lsp.DocumentSymbol = {
-          name: currSymbol.label(),
-          detail: currSymbol.description(),
+          name: currSymbol.label,
+          detail: currSymbol.description,
           kind: currSymbol.kind(),
           range: currSymbol.location(),
           selectionRange: currSymbol.location(),
@@ -38,8 +38,8 @@ export default class DocumentSymbolProvider implements Provider {
           for (let childSymblIdx = 0; childSymblIdx < childOutlineSymbols.length; childSymblIdx++) {
             const currChildSymbol = childOutlineSymbols[childSymblIdx];
             const newChildLspSymbol: lsp.DocumentSymbol = {
-              name: currChildSymbol.label(),
-              detail: currChildSymbol.description(),
+              name: currChildSymbol.label,
+              detail: currChildSymbol.description,
               kind: currChildSymbol.kind(),
               range: currChildSymbol.location(),
               selectionRange: currChildSymbol.location(),

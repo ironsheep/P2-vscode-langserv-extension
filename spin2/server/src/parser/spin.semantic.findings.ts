@@ -1571,6 +1571,7 @@ export class DocumentFindings {
   }
 
   public setOutlineSymbol(newSymbol: OutLineSymbol) {
+    this._logMessage(`  OUTLINE setOutlineSymbol(${newSymbol.label}) = ${newSymbol.kind}`);
     this.outlineSymbols.push(newSymbol);
   }
 
@@ -2297,11 +2298,11 @@ export class OutLineSymbol {
     this.codeRange = location;
   }
 
-  public label(): string {
+  public get label(): string {
     return this.name;
   }
 
-  public description(): string {
+  public get description(): string {
     return this.extraInfo;
   }
 
@@ -2314,6 +2315,10 @@ export class OutLineSymbol {
   }
   public addChild(descendent: OutLineSymbol) {
     this.enclosedSymbols.push(descendent);
+  }
+
+  public get hasChildren(): boolean {
+    return this.enclosedSymbols.length > 0;
   }
 
   public children(): OutLineSymbol[] {

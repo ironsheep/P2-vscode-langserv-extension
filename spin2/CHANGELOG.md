@@ -22,7 +22,8 @@ Possible next additions:
 
 Update P1 and P2
 
-- Awaken First draft of Code Folding (folds code blocks and comment blocks so far)
+- Awaken First draft of Code Folding
+    - folds code blocks, continued lines, pasm code, and comment blocks
 
 ## [2.2.7] 2023-11-24
 
