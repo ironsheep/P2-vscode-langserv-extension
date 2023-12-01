@@ -49,14 +49,17 @@ export class Spin2DocumentSymbolParser {
       const line = document.getText(desiredLineRange).replace(/\s+$/, "");
       const lineRange: lsp.Range = { start: { line: i, character: 0 }, end: { line: i, character: line.length - 1 } };
       const trimmedLine = line.trim();
-      const nonCommentLine = this.parseUtils.getRemainderWOutTrailingTicComment(0, line);
+      let nonCommentLine = this.parseUtils.getRemainderWOutTrailingTicComment(0, line);
+      if (nonCommentLine.length == 0) {
+        nonCommentLine = trimmedLine; // all comment, but parser has to see it!
+      }
 
       let linePrefix: string = line;
       let lineHasComment: boolean = false;
       let commentOffset: number = 0;
       let commentLength: number = 0;
 
-      if (nonCommentLine.trim().length == 0) {
+      if (nonCommentLine.trim().length == 0 && !trimmedLine.startsWith("'")) {
         // skip only white-space lines
         continue;
       }
