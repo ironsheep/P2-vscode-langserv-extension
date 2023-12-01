@@ -42,7 +42,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -3198,7 +3198,15 @@ export class Spin2DocumentSemanticParser {
               if (namedIndexPart.charAt(0).match(/[a-zA-Z_]/)) {
                 symbolPosition = multiLineSet.locateSymbol(namedIndexPart, currSingleLineOffset);
                 nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-                this._logSPIN(`  -- checking namedIndexPart=[${localName}], posn={${symbolPosition.line}, ${symbolPosition.character}}, nameOffset=(${nameOffset})`);
+                this._logSPIN(`  -- checking Multi namedIndexPart=[${localName}], posn={${symbolPosition.line}, ${symbolPosition.character}}, nameOffset=(${nameOffset})`);
+                if (this._isPossibleObjectReference(namedIndexPart)) {
+                  // go register object reference!
+                  const bHaveObjReference = this._reportObjectReference(namedIndexPart, symbolPosition.line, symbolPosition.character, multiLineSet.lineAt(symbolPosition.line), tokenSet);
+                  if (bHaveObjReference) {
+                    currSingleLineOffset = nameOffset + namedIndexPart.length;
+                    continue;
+                  }
+                }
                 let referenceDetails: RememberedToken | undefined = undefined;
                 if (this.semanticFindings.isLocalToken(namedIndexPart)) {
                   referenceDetails = this.semanticFindings.getLocalTokenForLine(namedIndexPart, symbolPosition.line + 1);
@@ -3571,7 +3579,15 @@ export class Spin2DocumentSemanticParser {
               const namedIndexPart = localNameParts[index];
               nameOffset = line.indexOf(namedIndexPart, currentOffset);
               if (namedIndexPart.charAt(0).match(/[a-zA-Z_]/)) {
-                this._logSPIN("  -- checking namedIndexPart=[" + namedIndexPart + "]");
+                this._logSPIN(`  -- checking namedIndexPart=[${namedIndexPart}]`);
+                if (this._isPossibleObjectReference(namedIndexPart)) {
+                  // go register object reference!
+                  const bHaveObjReference = this._reportObjectReference(namedIndexPart, lineIdx, currentOffset, line, tokenSet);
+                  if (bHaveObjReference) {
+                    currentOffset = nameOffset + namedIndexPart.length;
+                    continue;
+                  }
+                }
                 let referenceDetails: RememberedToken | undefined = undefined;
                 if (this.semanticFindings.isLocalToken(namedIndexPart)) {
                   referenceDetails = this.semanticFindings.getLocalTokenForLine(namedIndexPart, lineNbr);
