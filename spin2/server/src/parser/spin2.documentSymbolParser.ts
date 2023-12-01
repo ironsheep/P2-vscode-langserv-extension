@@ -49,62 +49,82 @@ export class Spin2DocumentSymbolParser {
       const line = document.getText(desiredLineRange).replace(/\s+$/, "");
       const lineRange: lsp.Range = { start: { line: i, character: 0 }, end: { line: i, character: line.length - 1 } };
       const trimmedLine = line.trim();
-      const trimmedNonCommentLine = this.parseUtils.getNonCommentLineRemainder(0, line);
+      const nonCommentLine = this.parseUtils.getRemainderWOutTrailingTicComment(0, line);
 
       let linePrefix: string = line;
       let lineHasComment: boolean = false;
       let commentOffset: number = 0;
       let commentLength: number = 0;
 
-      const sectionStatus = this._isOlnSectionStartLine(line);
-      if (sectionStatus.isSectionStart) {
-        currState = sectionStatus.inProgressStatus;
+      if (nonCommentLine.trim().length == 0) {
+        // skip only white-space lines
+        continue;
       }
 
       // skip all {{ --- }} multi-line doc comments
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
-        let closingOffset = line.indexOf("}}");
-        if (closingOffset != -1) {
+        const openingOffset = nonCommentLine.indexOf("{{");
+        const searchOffset: number = openingOffset != -1 ? openingOffset + 2 : 0;
+        const closingOffset = nonCommentLine.indexOf("}}", searchOffset);
+        const haveInlineCmt: boolean = openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset;
+        if (!haveInlineCmt && closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
         }
-        //  DO NOTHING Let Syntax highlighting do this
+        //  no more processing for this line
         continue;
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
-        let closingOffset = trimmedLine.indexOf("}");
-        if (closingOffset != -1) {
+        const openingOffset = nonCommentLine.indexOf("{");
+        const closingOffset = nonCommentLine.indexOf("}", openingOffset + 1);
+        const haveInlineCmt: boolean = openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset;
+        if (!haveInlineCmt && closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
         }
-        //  DO NOTHING Let Syntax highlighting do this
+        //  no more processing for this line
+        const cmtState: string = currState != eParseState.inMultiLineComment ? "LAST " : "";
+        this._logMessage(`* SKIP ${cmtState}BlockCmt Ln#${i + 1} nonCommentLine=[${nonCommentLine}]`);
         continue;
-      } else if (trimmedLine.startsWith("{{")) {
+      } else if (nonCommentLine.startsWith("''")) {
+        //  no more processing for this line
+        continue;
+      } else if (nonCommentLine.startsWith("'")) {
+        //  no more processing for this line
+        continue;
+      } else if (nonCommentLine.trim().startsWith("{{")) {
         // process multi-line doc comment
-        let openingOffset = line.indexOf("{{");
-        const closingOffset = line.indexOf("}}", openingOffset + 2);
+        const openingOffset = nonCommentLine.indexOf("{{");
+        const searchOffset: number = openingOffset != -1 ? openingOffset + 2 : 0;
+        const closingOffset = nonCommentLine.indexOf("}}", searchOffset);
         if (closingOffset != -1) {
           // is single line comment, just ignore it
         } else {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
-          //  DO NOTHING Let Syntax highlighting do this
+          //  no more processing for this line
         }
         continue;
-      } else if (trimmedLine.startsWith("{")) {
+      } else if (nonCommentLine.trim().startsWith("{")) {
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
-        let openingOffset = trimmedLine.indexOf("{");
-        const closingOffset = trimmedLine.indexOf("}", openingOffset + 1);
+        const openingOffset = nonCommentLine.indexOf("{");
+        const closingOffset = nonCommentLine.indexOf("}", openingOffset + 1);
         if (closingOffset == -1) {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
-          //  DO NOTHING Let Syntax highlighting do this
+          //  no more processing for this line
+          this._logMessage(`* SKIP BlockCmt Ln#${i + 1} nonCommentLine=[${nonCommentLine}]`);
           continue;
         }
+      }
+
+      const sectionStatus = this._isOlnSectionStartLine(line);
+      if (sectionStatus.isSectionStart) {
+        currState = sectionStatus.inProgressStatus;
       }
 
       if (line.length > 2) {
@@ -161,7 +181,7 @@ export class Spin2DocumentSymbolParser {
           this.setContainerSymbol(blockSymbol);
           // HANDLE label declaration on DAT line!
           if (linePrefix == "DAT") {
-            const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+            const lineParts: string[] = nonCommentLine.split(/[ \t]/).filter(Boolean);
             let posssibleLabel: string | undefined = undefined;
             if (lineParts.length >= 2) {
               // possibly have label, report it if we do
@@ -187,14 +207,14 @@ export class Spin2DocumentSymbolParser {
         }
       } else {
         let global_label: string | undefined = undefined;
-        if (trimmedNonCommentLine.length > 0) {
-          //this._logMessage("  * [" + currState + "] Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
+        if (nonCommentLine.length > 0) {
+          //this._logMessage("  * [" + currState + "] Ln#" + (i + 1) + " nonCommentLine=[" + nonCommentLine + "]");
           // NOT a section start
           if (currState == eParseState.inPAsmInline) {
             // process pasm (assembly) lines
             if (trimmedLine.length > 0) {
-              this._logMessage("    scan inPAsmInline Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
-              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+              this._logMessage("    scan inPAsmInline Ln#" + (i + 1) + " nonCommentLine=[" + nonCommentLine + "]");
+              const lineParts: string[] = nonCommentLine.split(/[ \t]/).filter(Boolean);
               if (lineParts.length > 0 && lineParts[0].toUpperCase() == "END") {
                 currState = prePasmState;
                 this._logMessage("    scan END-InLine Ln#" + (i + 1) + " POP currState=[" + currState + "]");
@@ -207,15 +227,15 @@ export class Spin2DocumentSymbolParser {
           } else if (currState == eParseState.inDatPAsm) {
             // process pasm (assembly) lines
             if (trimmedLine.length > 0) {
-              this._logMessage("    scan inDatPAsm Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
+              this._logMessage("    scan inDatPAsm Ln#" + (i + 1) + " nonCommentLine=[" + nonCommentLine + "]");
               // didn't leave this state check for new global label
               global_label = this._getOlnDAT_PasmDeclaration(0, line); // let's get possible label on this ORG statement
             }
           } else if (currState == eParseState.inDat) {
-            this._logMessage("    scan inDat Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
-            if (trimmedNonCommentLine.length > 6 && trimmedNonCommentLine.toUpperCase().includes("ORG")) {
+            this._logMessage("    scan inDat Ln#" + (i + 1) + " nonCommentLine=[" + nonCommentLine + "]");
+            if (nonCommentLine.length > 6 && nonCommentLine.toUpperCase().includes("ORG")) {
               // ORG, ORGF, ORGH
-              const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
+              const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(nonCommentLine);
               if (nonStringLine.toUpperCase().includes("ORG")) {
                 this._logMessage("  - pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");
                 prePasmState = currState;
@@ -231,8 +251,8 @@ export class Spin2DocumentSymbolParser {
             // Detect start of INLINE PASM - org detect
             // NOTE: The directives ORGH, ALIGNW, ALIGNL, and FILE are not allowed within in-line PASM code.
             if (trimmedLine.length > 0) {
-              this._logMessage("    scan inPub/inPri Ln#" + (i + 1) + " trimmedNonCommentLine=[" + trimmedNonCommentLine + "]");
-              const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+              this._logMessage("    scan inPub/inPri Ln#" + (i + 1) + " nonCommentLine=[" + nonCommentLine + "]");
+              const lineParts: string[] = nonCommentLine.split(/[ \t]/).filter(Boolean);
               if (lineParts.length > 0 && (lineParts[0].toUpperCase() == "ORG" || lineParts[0].toUpperCase() == "ORGF")) {
                 // Only ORG, not ORGF or ORGH
                 this._logMessage("  - (" + (i + 1) + "): outline PUB/PRI line trimmedLine=[" + trimmedLine + "]");
