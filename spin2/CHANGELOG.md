@@ -22,8 +22,13 @@ Possible next additions:
 
 Update P1 and P2
 
-- Awaken First draft of Code Folding
-    - folds code blocks, continued lines, pasm code, and comment blocks
+- Awaken First draft of Code Folding:
+  - folds code blocks, continued lines, pasm code, and comment blocks
+  - UP NEXT: fold spin language itself (repeat, if, case, etc.)
+
+Update P1
+
+- Repair more Pasm syntax highlighing
 
 ## [2.2.7] 2023-11-24
 

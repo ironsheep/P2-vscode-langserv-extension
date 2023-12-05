@@ -90,8 +90,9 @@ Peek at or go to the definition of variables/methods from where the variables/me
 
 Provides Spin specific code folding support
 
-- Fold Block comments, code blocks (CON, VAR, PUB, etc.), indented flow control, and continued line groups
+- Fold Block comments, code blocks (CON, VAR, PUB, etc.), and continued lines
 - This is controlled by editor settings: Editor: **Folding**, Editor: **Folding Strategy** and Editor: **Show Folding Controls**
+- Up Next: fold indented flow control within Spin code
 
 ## Feature: Generate "Object public interface" documentation
 
@@ -188,7 +189,7 @@ PRI pullUpValueForEnum(ePullupRqst) : pullup
 
 We are working on fixes to the following issues we've seen during our testing. However, they are not major enough to prevent this release.
 
-- The spin2 line-continuation syntax is supported only in OBJ block and on PUB/PRI declaration lines for now.  More support coming!
+- The spin2 line-continuation syntax is supported only in OBJ block and on PUB/PRI declaration lines for now. More support coming!
 - We are still working through validating the P1 support against the full P1 obex - this is a work in progress
 - Some line comments are not properly colored
 - Occasionally [byte|word|long] storage types are not properly colored

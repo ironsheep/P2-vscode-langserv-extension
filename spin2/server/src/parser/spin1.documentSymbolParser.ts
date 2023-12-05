@@ -169,7 +169,7 @@ export class Spin1DocumentSymbolParser {
               posssibleLabel = lineParts[1];
               if (
                 posssibleLabel.toUpperCase().startsWith("ORG") ||
-                this.parseUtils.isP1AsmConditional(posssibleLabel) ||
+                this.parseUtils.isP1AsmEffect(posssibleLabel) ||
                 this.parseUtils.isP1AsmInstruction(posssibleLabel) ||
                 this.parseUtils.isP1AsmReservedSymbols(posssibleLabel)
               ) {

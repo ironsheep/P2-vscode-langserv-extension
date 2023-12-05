@@ -2752,8 +2752,8 @@ export class Spin2ParseUtils {
     return illegalStatus;
   }
 
-  public isP1AsmConditional(name: string): boolean {
-    let returnStatus: boolean = this.isP1AsmEffect(name);
+  public isBadP1AsmEffectOrConditional(name: string): boolean {
+    let returnStatus: boolean = this.isBadP1AsmEffect(name);
     if (name.length >= 2) {
       const checkType: string = name.toUpperCase();
       if (checkType == "IF_ALWAYS" || checkType == "IF_NEVER") {
@@ -2763,7 +2763,7 @@ export class Spin2ParseUtils {
     return returnStatus;
   }
 
-  public isP1AsmEffect(name: string): boolean {
+  public isBadP1AsmEffect(name: string): boolean {
     let returnStatus: boolean = false;
     if (name.length >= 2) {
       const checkType: string = name.toUpperCase();
@@ -2774,7 +2774,7 @@ export class Spin2ParseUtils {
     return returnStatus;
   }
 
-  public isP2AsmConditional(name: string): boolean {
+  public isP2AsmEffect(name: string): boolean {
     let returnStatus: boolean = false;
     if (name.length >= 2) {
       const checkType: string = name.toUpperCase();
@@ -2809,13 +2809,13 @@ export class Spin2ParseUtils {
         haveLabelStatus = false;
       } else if (name.toUpperCase().startsWith("IF_") || name.toUpperCase() == "_RET_") {
         haveLabelStatus = false;
-      } else if (this.isP2AsmConditional(name)) {
+      } else if (this.isP2AsmEffect(name)) {
         haveLabelStatus = false;
       } else if (this.isP2AsmNonArgumentInstruction(name)) {
         haveLabelStatus = false;
       } else if (this.isP2AsmInstruction(name)) {
         haveLabelStatus = false;
-      } else if (this.isP1AsmConditional(name) && !this.isP1AsmEffect(name)) {
+      } else if (this.isBadP1AsmEffectOrConditional(name) && !this.isBadP1AsmEffect(name)) {
         haveLabelStatus = false;
       } else if (this.isP1AsmInstruction(name)) {
         haveLabelStatus = false;

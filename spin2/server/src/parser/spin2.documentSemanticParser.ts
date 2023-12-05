@@ -1431,7 +1431,7 @@ export class Spin2DocumentSemanticParser {
         // add p1asm detect
         !this.parseUtils.isP1AsmInstruction(newName) &&
         !this.parseUtils.isP1AsmVariable(newName) &&
-        !this.parseUtils.isP1AsmConditional(newName)
+        !this.parseUtils.isBadP1AsmEffectOrConditional(newName)
       ) {
         const nameType: string = isNamedDataDeclarationLine ? "variable" : "label";
         var labelModifiers: string[] = ["declaration"];
@@ -2512,7 +2512,7 @@ export class Spin2DocumentSemanticParser {
             ptTokenType: referenceDetails.type,
             ptTokenModifiers: modifiersWDecl,
           });
-        } else if (this.parseUtils.isP1AsmInstruction(newName) || this.parseUtils.isP1AsmConditional(newName) || this.parseUtils.isP1AsmVariable(newName)) {
+        } else if (this.parseUtils.isP1AsmInstruction(newName) || this.parseUtils.isBadP1AsmEffectOrConditional(newName) || this.parseUtils.isP1AsmVariable(newName)) {
           this._logMessage("  --  ERROR p1asm name=[" + newName + "]");
           this._recordToken(tokenSet, line, {
             line: lineIdx,
@@ -2785,7 +2785,7 @@ export class Spin2DocumentSemanticParser {
                 // skip empty operand or ":" left by splitter
                 continue;
               }
-              if (index == lineParts.length - 1 && this.parseUtils.isP2AsmConditional(argumentName)) {
+              if (index == lineParts.length - 1 && this.parseUtils.isP2AsmEffect(argumentName)) {
                 // conditional flag-set spec.
                 this._logPASM("  -- SKIP argumentName=[" + argumentName + "]");
                 continue;
@@ -2834,7 +2834,7 @@ export class Spin2DocumentSemanticParser {
                   if (
                     !this.parseUtils.isP2AsmReservedWord(namePart) &&
                     !this.parseUtils.isP2AsmInstruction(namePart) &&
-                    !this.parseUtils.isP2AsmConditional(namePart) &&
+                    !this.parseUtils.isP2AsmEffect(namePart) &&
                     !this.parseUtils.isBinaryOperator(namePart) &&
                     !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                     !this.parseUtils.isCoginitReservedSymbol(namePart) &&
@@ -4906,7 +4906,7 @@ export class Spin2DocumentSemanticParser {
                   // skip empty operand
                   continue;
                 }
-                if (index == lineParts.length - 1 && this.parseUtils.isP2AsmConditional(argumentName)) {
+                if (index == lineParts.length - 1 && this.parseUtils.isP2AsmEffect(argumentName)) {
                   // conditional flag-set spec.
                   this._logPASM("  -- SKIP argumentName=[" + argumentName + "]");
                   continue;

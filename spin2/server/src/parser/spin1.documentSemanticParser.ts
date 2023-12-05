@@ -568,8 +568,8 @@ export class Spin1DocumentSemanticParser {
                 const nonCommentOffset = line.indexOf(nonCommentLineRemainder, 0);
                 // lineNumber, currentOffset, line, allowLocalVarStatus, this.showPAsmCode
                 const allowLocalVarStatus: boolean = false;
-                const NOT_DAT_PASM: boolean = false;
-                const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(i, nonCommentOffset + orgOffset + orgStr.length, line, allowLocalVarStatus, this.showDAT, NOT_DAT_PASM);
+                const IN_DAT_PASM: boolean = true;
+                const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(i, nonCommentOffset + orgOffset + orgStr.length, line, allowLocalVarStatus, this.showDAT, IN_DAT_PASM);
                 partialTokenSet.forEach((newToken) => {
                   tokenSet.push(newToken);
                 });
@@ -1401,11 +1401,11 @@ export class Spin1DocumentSemanticParser {
               let possibleNameSet: string[] = [namePart];
               if (namePart.includes(".") && !namePart.startsWith(".")) {
                 refChar = ".";
-                possibleNameSet = namePart.split(".");
+                possibleNameSet = namePart.split(".").filter(Boolean);
                 this._logSPIN("  --  . possibleNameSet=[" + possibleNameSet + "]");
               } else if (namePart.includes("#")) {
                 refChar = "#";
-                possibleNameSet = namePart.split("#");
+                possibleNameSet = namePart.split("#").filter(Boolean);
                 this._logSPIN("  --  # possibleNameSet=[" + possibleNameSet + "]");
               }
               namePart = possibleNameSet[0];
@@ -1543,7 +1543,7 @@ export class Spin1DocumentSemanticParser {
         } else if (
           !this.parseUtils.isP1AsmReservedSymbols(newName) &&
           !this.parseUtils.isP1AsmInstruction(newName) &&
-          !this.parseUtils.isP1AsmConditional(newName) &&
+          !this.parseUtils.isP1AsmEffect(newName) &&
           !this.parseUtils.isDatStorageType(newName) &&
           !this.parseUtils.isBuiltinReservedWord(newName) &&
           !this.parseUtils.isSpinReservedWord(newName) &&
@@ -1563,8 +1563,8 @@ export class Spin1DocumentSemanticParser {
         // process remainder of line
         currentOffset = line.indexOf(lineParts[1], nameOffset + newName.length);
         const allowLocalVarStatus: boolean = false;
-        const NOT_DAT_PASM: boolean = false;
-        const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showDAT, NOT_DAT_PASM);
+        const IN_DAT_PASM: boolean = true;
+        const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(lineIdx, startingOffset, line, allowLocalVarStatus, this.showDAT, IN_DAT_PASM);
         partialTokenSet.forEach((newToken) => {
           tokenSet.push(newToken);
         });
@@ -1580,13 +1580,13 @@ export class Spin1DocumentSemanticParser {
     const tokenSet: IParsedToken[] = [];
     const lineNbr: number = lineIdx + 1;
     //this._logMessage(' DBG _reportDAT_ValueDeclarationCode(#' + lineNumber + ', ofs=' + startingOffset + ')');
-    this._logDAT("- process ValueDeclaration lineLn#" + lineNbr + " line=[" + line + "]: startingOffset=(" + startingOffset + ")");
+    this._logDAT(` - process ValueDeclaration Ln#${lineNbr} isDatPAsm=(${isDatPAsm}), line=[${line}]: ofs=(${startingOffset})`);
 
     // process data declaration
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const dataValueInitStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     if (dataValueInitStr.length > 0) {
-      this._logDAT("  -- reportDataValueInit dataValueInitStr=[" + dataValueInitStr + "]");
+      this._logDAT(`  -- reportDataValueInit dataValueInitStr=[${dataValueInitStr}]`);
 
       let lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(dataValueInitStr);
       const argumentStartIndex: number = lineParts.length > 0 && this.parseUtils.isDatStorageType(lineParts[0]) ? 1 : 0;
@@ -1609,13 +1609,17 @@ export class Spin1DocumentSemanticParser {
             continue;
           }
           // the following allows '.' in names but  only when in DAT PASM code, not spin!
-          if (possibleName.charAt(0).match(/[a-zA-Z_]/) || (isDatPAsm && possibleName.charAt(0).match(/[a-zA-Z_\.]/))) {
+          if (
+            possibleName.charAt(0).match(/[a-zA-Z_]/) ||
+            (isDatPAsm && possibleName.charAt(0).match(/[a-zA-Z_\:]/)) ||
+            (isDatPAsm && possibleName.charAt(0) == "#" && possibleName.charAt(1).match(/[a-zA-Z_\:]/))
+          ) {
             if (showDebug) {
-              this._logDAT("  -- possibleName=[" + possibleName + "]");
+              this._logDAT(`  -- possibleName=[${possibleName}]`);
             }
             // does name contain a namespace reference?
             nameOffset = line.indexOf(possibleName, currentOffset);
-            if (this._isPossibleObjectReference(possibleName)) {
+            if (possibleName.includes(".") && this._isPossibleObjectReference(possibleName)) {
               const bHaveObjReference = this._reportObjectReference(possibleName, lineIdx, nameOffset, line, tokenSet);
               if (bHaveObjReference) {
                 currentOffset = nameOffset + possibleName.length;
@@ -1626,11 +1630,11 @@ export class Spin1DocumentSemanticParser {
             let possibleNameSet: string[] = [possibleName];
             if (possibleName.includes(".") && !namePart.startsWith(".")) {
               refChar = ".";
-              possibleNameSet = possibleName.split(".");
+              possibleNameSet = possibleName.split(".").filter(Boolean);
               this._logDAT("  --  . possibleNameSet=[" + possibleNameSet + "]");
             } else if (possibleName.includes("#")) {
               refChar = "#";
-              possibleNameSet = possibleName.split("#");
+              possibleNameSet = possibleName.split("#").filter(Boolean);
               this._logDAT("  --  # possibleNameSet=[" + possibleNameSet + "]");
             }
             namePart = possibleNameSet[0];
@@ -1664,7 +1668,9 @@ export class Spin1DocumentSemanticParser {
                 !this.parseUtils.isDatNFileStorageType(namePart) &&
                 !this.parseUtils.isBinaryOperator(namePart) &&
                 !this.parseUtils.isUnaryOperator(namePart) &&
-                !this.parseUtils.isBuiltinReservedWord(namePart)
+                !this.parseUtils.isP1AsmEffect(namePart) &&
+                !this.parseUtils.isBuiltinReservedWord(namePart) &&
+                !this.parseUtils.isP1AsmConditional(namePart)
               ) {
                 if (showDebug) {
                   this._logDAT("  --  DAT rDvdc MISSING name=[" + namePart + "]");
@@ -1774,7 +1780,7 @@ export class Spin1DocumentSemanticParser {
                 // skip empty operand
                 continue;
               }
-              if (index == lineParts.length - 1 && this.parseUtils.isP1AsmConditional(namePart)) {
+              if (index == lineParts.length - 1 && this.parseUtils.isP1AsmEffect(namePart)) {
                 // conditional flag-set spec.
                 this._logPASM("  -- SKIP namePart=[" + namePart + "]");
                 continue;
@@ -1799,11 +1805,11 @@ export class Spin1DocumentSemanticParser {
                 let possibleNameSet: string[] = [namePart];
                 if (namePart.includes(".") && !namePart.startsWith(".")) {
                   refChar = ".";
-                  possibleNameSet = namePart.split(".");
+                  possibleNameSet = namePart.split(".").filter(Boolean);
                   this._logSPIN("  --  . possibleNameSet=[" + possibleNameSet + "]");
                 } else if (namePart.includes("#")) {
                   refChar = "#";
-                  possibleNameSet = namePart.split("#");
+                  possibleNameSet = namePart.split("#").filter(Boolean);
                   this._logSPIN("  --  # possibleNameSet=[" + possibleNameSet + "]");
                 }
                 namePart = possibleNameSet[0];
@@ -1828,7 +1834,7 @@ export class Spin1DocumentSemanticParser {
                   if (
                     !this.parseUtils.isP1AsmReservedWord(namePart) &&
                     !this.parseUtils.isP1AsmInstruction(namePart) &&
-                    !this.parseUtils.isP1AsmConditional(namePart) &&
+                    !this.parseUtils.isP1AsmEffect(namePart) &&
                     !this.parseUtils.isBinaryOperator(namePart) &&
                     !this.parseUtils.isBuiltinReservedWord(namePart)
                   ) {
@@ -2436,11 +2442,11 @@ export class Spin1DocumentSemanticParser {
           let possibleNameSet: string[] = [possibleName];
           if (possibleName.includes(".") && !possibleName.startsWith(".")) {
             refChar = ".";
-            possibleNameSet = possibleName.split(".");
+            possibleNameSet = possibleName.split(".").filter(Boolean);
             this._logSPIN("  --  . possibleNameSet=[" + possibleNameSet + "]");
           } else if (possibleName.includes("#")) {
             refChar = "#";
-            possibleNameSet = possibleName.split("#");
+            possibleNameSet = possibleName.split("#").filter(Boolean);
             this._logSPIN("  --  # possibleNameSet=[" + possibleNameSet + "]");
           }
           const namePart = possibleNameSet[0];

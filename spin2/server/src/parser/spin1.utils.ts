@@ -1657,6 +1657,46 @@ export class Spin1ParseUtils {
   }
 
   public isP1AsmConditional(name: string): boolean {
+    // mark these RED if seen in P2 code
+    const p1AsmConditions: string[] = [
+      "if_always",
+      "if_never",
+      "if_e",
+      "if_ne",
+      "if_a",
+      "if_b",
+      "if_ae",
+      "if_be",
+      "if_c",
+      "if_nc",
+      "if_z",
+      "if_nz",
+      "if_c_eq_z",
+      "if_c_ne_z",
+      "if_c_and_z",
+      "if_c_and_nz",
+      "if_nc_and_z",
+      "if_nc_and_nz",
+      "if_c_or_z",
+      "if_c_or_nz",
+      "if_nc_or_z",
+      "if_nc_or_nz",
+      "if_z_eq_c",
+      "if_z_ne_c",
+      "if_z_and_c",
+      "if_z_and_nc",
+      "if_nz_and_c",
+      "if_nz_and_nc",
+      "if_z_or_c",
+      "if_z_or_nc",
+      "if_nz_or_c",
+      "if_nz_or_nc",
+    ];
+    const conditionStatus: boolean = p1AsmConditions.indexOf(name.toLowerCase()) != -1;
+    return conditionStatus;
+  }
+
+  public isP1AsmEffect(name: string): boolean {
     let returnStatus: boolean = false;
     if (name.length >= 2) {
       const checkType: string = name.toUpperCase();
@@ -1680,7 +1720,7 @@ export class Spin1ParseUtils {
           haveLabelStatus = false;
         } else if (name.toUpperCase().startsWith("IF_")) {
           haveLabelStatus = false;
-        } else if (this.isP1AsmConditional(name)) {
+        } else if (this.isP1AsmEffect(name)) {
           haveLabelStatus = false;
         } else if (this.isP1AsmInstruction(name)) {
           haveLabelStatus = false;
@@ -1793,7 +1833,7 @@ export class Spin1ParseUtils {
     return false;
   }
 
-  public isP2AsmConditional(name: string): boolean {
+  public isP2AsmEffect(name: string): boolean {
     return false;
   }
 

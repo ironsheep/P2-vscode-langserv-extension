@@ -191,7 +191,7 @@ export class Spin2DocumentSymbolParser {
               posssibleLabel = lineParts[1];
               if (
                 posssibleLabel.toUpperCase().startsWith("ORG") ||
-                this.parseUtils.isP2AsmConditional(posssibleLabel) ||
+                this.parseUtils.isP2AsmEffect(posssibleLabel) ||
                 this.parseUtils.isP2AsmInstruction(posssibleLabel) ||
                 this.parseUtils.isP2AsmReservedWord(posssibleLabel)
               ) {
@@ -379,7 +379,7 @@ export class Spin2DocumentSymbolParser {
           // add p1asm detect
           !this.parseUtils.isP1AsmInstruction(newName) &&
           !this.parseUtils.isP1AsmVariable(newName) &&
-          !this.parseUtils.isP1AsmConditional(newName)
+          !this.parseUtils.isBadP1AsmEffectOrConditional(newName)
         ) {
           if (!isDataDeclarationLine && !newName.startsWith(".") && !newName.startsWith(":") && !newName.includes("#")) {
             newGlobalLabel = newName;
