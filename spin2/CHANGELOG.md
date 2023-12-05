@@ -18,7 +18,7 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.2.8] 2023-11-2?
+## [2.2.8] 2023-12-05
 
 Update P1 and P2
 
