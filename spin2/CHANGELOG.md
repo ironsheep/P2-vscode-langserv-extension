@@ -18,6 +18,12 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.9] 2023-12-11
+
+Update P2 Only
+
+- Fixes to SPIN2 object constant override highlight. (was broken in earlier release)
+
 ## [2.2.8] 2023-12-05
 
 Update P1 and P2

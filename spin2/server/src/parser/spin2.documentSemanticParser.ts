@@ -6322,12 +6322,14 @@ export class Spin2DocumentSemanticParser {
     const dottedSymbolRegex = /[a-zA-Z0-9_]\.[a-zA-Z_]/; // sym.sym
     const dottedIndexedSymbolRegex = /[a-zA-Z0-9_]\]\.[a-zA-Z_]/; // sym#sym
     const hashedSymbolRegex = /[a-zA-Z0-9_]\#[a-zA-Z_]/; // sym#sym
+    const percentSymbolRegex = /[a-zA-Z0-9_]\%[a-zA-Z_]/; // sym#sym
     const hasSymbolDotSymbol: boolean = dottedSymbolRegex.test(possibleRef);
     const hasSymbolHashSymbol: boolean = hashedSymbolRegex.test(possibleRef);
+    const hasPercentHashSymbol: boolean = percentSymbolRegex.test(possibleRef);
     const hasSymbolDOtIndexedSymbol: boolean = dottedIndexedSymbolRegex.test(possibleRef);
     const possibleRefLC: string = possibleRef.toLowerCase();
     const isPartialVariableAccess: boolean = possibleRefLC.includes(".byte[") || possibleRefLC.includes(".word[") || possibleRefLC.includes(".long[");
-    const refFoundStatus: boolean = !possibleRef.startsWith(".") && !isPartialVariableAccess && (hasSymbolDOtIndexedSymbol || hasSymbolDotSymbol || hasSymbolHashSymbol);
+    const refFoundStatus: boolean = !possibleRef.startsWith(".") && !isPartialVariableAccess && (hasSymbolDOtIndexedSymbol || hasSymbolDotSymbol || hasSymbolHashSymbol || hasPercentHashSymbol);
     this._logMessage(`  --  isObjRef() possibleRef=[${possibleRef}] -> (${refFoundStatus})`);
     return refFoundStatus;
   }
