@@ -3,16 +3,16 @@
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Position } from "vscode-languageserver-types";
-import { Context, ServerBehaviorConfiguration } from "../context";
+import { Context, ServerBehaviorConfiguration, EditorConfiguration } from "../context";
 
 import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity, eDefinitionType } from "./spin.semantic.findings";
 import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
-import { eParseState, eDebugDisplayType, ContinuedLines, haveDebugLine } from "./spin.common";
+import { eParseState, eDebugDisplayType, ContinuedLines, haveDebugLine, SpinControlFlowTracker, ICurrControlSpan } from "./spin.common";
 import { fileInDirExists } from "../files";
 //import { PublishDiagnosticsNotification } from "vscode-languageserver";
 import { ExtensionUtils } from "../parser/spin.extension.utils";
-import { channel } from "diagnostics_channel";
+//import { channel } from "diagnostics_channel";
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -38,11 +38,12 @@ interface ISpin2Directive {
 // map of display-type to etype'
 export class Spin2DocumentSemanticParser {
   private parseUtils = new Spin2ParseUtils();
+  private spinControlFlowTracker = new SpinControlFlowTracker();
   private extensionUtils: ExtensionUtils;
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -61,6 +62,7 @@ export class Spin2DocumentSemanticParser {
   private fileDirectives: ISpin2Directive[] = [];
 
   private configuration: ServerBehaviorConfiguration;
+  private editorConfiguration: EditorConfiguration;
 
   private currentMethodName: string = "";
   private currentFilespec: string = "";
@@ -72,6 +74,7 @@ export class Spin2DocumentSemanticParser {
   public constructor(protected readonly ctx: Context) {
     this.extensionUtils = new ExtensionUtils(ctx, this.spin2DebugLogEnabled);
     this.configuration = ctx.parserConfig;
+    this.editorConfiguration = ctx.editorConfig;
     if (this.spin2DebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
@@ -93,6 +96,7 @@ export class Spin2DocumentSemanticParser {
     if (this.spin2DebugLogEnabled) {
       this.semanticFindings.enableLogging(this.ctx);
       this.parseUtils.enableLogging(this.ctx);
+      this.spinControlFlowTracker.enableLogging(this.ctx);
     }
     this.configuration = this.ctx.parserConfig; // ensure we have latest
     this.isSpin1Document = isSpin1File(document.uri);
@@ -141,12 +145,13 @@ export class Spin2DocumentSemanticParser {
     if (this.spin2DebugLogEnabled) {
       continuedLineSet.enableLogging(this.ctx);
     }
-    // -------------------- PRE-PARSE just locating symbol names --------------------
+    // -------------------- PRE-PARSE just locating symbol names, spin folding info --------------------
     // also track and record block comments (both braces and tic's!)
     // let's also track prior single line and trailing comment on same line
     this._logMessage(`---> Pre SCAN -- `);
     let bBuildingSingleLineCmtBlock: boolean = false;
     let bBuildingSingleLineDocCmtBlock: boolean = false;
+    this.spinControlFlowTracker.reset();
     this.semanticFindings.recordBlockStart(eBLockType.isCon, 0); // spin file defaults to CON at 1st line
     const DOC_COMMENT = true;
     const NONDOC_COMMENT = false;
@@ -383,6 +388,17 @@ export class Spin2DocumentSemanticParser {
           this._logState("- scan Ln#" + lineNbr + " POP currState=[" + currState + "]");
         }
 
+        if (currState == eParseState.inPub || currState == eParseState.inPri) {
+          // mark end of code fold, if we were in a method
+          const spanSet: ICurrControlSpan[] = this.spinControlFlowTracker.finishControlFlow(i - 1); // pass prior line number! essentially i+1 (-1)
+          if (spanSet.length > 0) {
+            for (let index = 0; index < spanSet.length; index++) {
+              const flowSpan: ICurrControlSpan = spanSet[index];
+              this.semanticFindings.recordSpinFlowControlSpan(flowSpan.startLineIdx, flowSpan.endLineIdx);
+            }
+          }
+        }
+
         currState = sectionStatus.inProgressStatus;
         // record start of next block in code
         //  NOTE: this causes end of prior block to be recorded
@@ -584,6 +600,17 @@ export class Spin2DocumentSemanticParser {
               //this._getSpin2ObjectConstantMethodDeclaration(0, lineNbr, line);
             }
           }
+          if (lineParts.length > 0 && !continuedSectionStatus.isSectionStart) {
+            // handle spin control flow detection
+            const charsIndent: number = this.parseUtils.charsInsetCount(line, this.editorConfiguration.tabSize);
+            const spanSet: ICurrControlSpan[] = this.spinControlFlowTracker.endControlFlow(lineParts[0], charsIndent, i);
+            if (spanSet.length > 0) {
+              for (let index = 0; index < spanSet.length; index++) {
+                const flowSpan: ICurrControlSpan = spanSet[index];
+                this.semanticFindings.recordSpinFlowControlSpan(flowSpan.startLineIdx, flowSpan.endLineIdx);
+              }
+            }
+          }
         }
       }
       // we processed statements in this line, now clear prior comment associated with this line
@@ -593,6 +620,14 @@ export class Spin2DocumentSemanticParser {
         currState = pendingState;
         // only once...
         pendingState = eParseState.Unknown;
+      }
+    }
+    // mark end of code fold, if we had started one
+    const spanSet: ICurrControlSpan[] = this.spinControlFlowTracker.finishControlFlow(lines.length - 1); // pass last line index!
+    if (spanSet.length > 0) {
+      for (let index = 0; index < spanSet.length; index++) {
+        const flowSpan: ICurrControlSpan = spanSet[index];
+        this.semanticFindings.recordSpinFlowControlSpan(flowSpan.startLineIdx, flowSpan.endLineIdx);
       }
     }
     this.semanticFindings.endPossibleMethod(lines.length); // report end if last line of file(+1 since method wants line number!)

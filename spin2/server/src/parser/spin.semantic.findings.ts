@@ -65,6 +65,11 @@ export interface IPasmCodeSpan {
   isInline: boolean;
 }
 
+export interface ISpinCodeSpan {
+  startLineIdx: number;
+  endLineIdx: number;
+}
+
 export interface IParsedToken {
   line: number;
   startCharacter: number;
@@ -160,6 +165,7 @@ export class DocumentFindings {
   private priorBlockStartLineIdx: number = -1;
   private priorInstanceCount: number = 0;
   private codeBlockSpans: IBlockSpan[] = [];
+  private spinCodeFlowSpans: ISpinCodeSpan[] = [];
   private continuedLineSpans: IContinuedLineSpan[] = [];
   // tracking spans of PASM code
   private pasmStartLineIdx: number = -1;
@@ -248,6 +254,7 @@ export class DocumentFindings {
     this.priorBlockStartLineIdx = -1;
     this.priorInstanceCount = 0;
     this.codeBlockSpans = [];
+    this.spinCodeFlowSpans = [];
     this.continuedLineSpans = [];
     this.diagnosticMessages = [];
     this.outlineSymbols = [];
@@ -420,6 +427,18 @@ export class DocumentFindings {
       };
       foldingCodeSpans.push(nextSpan);
     }
+
+    // spin flow-control ranges
+    for (let index = 0; index < this.spinCodeFlowSpans.length; index++) {
+      const spinFlowSpan: ISpinCodeSpan = this.spinCodeFlowSpans[index];
+      const nextSpan: IFoldSpan = {
+        foldstart: { line: spinFlowSpan.startLineIdx, character: 0 },
+        foldEnd: { line: spinFlowSpan.endLineIdx, character: Number.MAX_VALUE },
+        type: eFoldSpanType.CodeBlock,
+      };
+      foldingCodeSpans.push(nextSpan);
+    }
+
     return foldingCodeSpans;
   }
 
@@ -615,9 +634,19 @@ export class DocumentFindings {
   //  TRACK ranges of continued lines within file
   //
   public recordContinuedLineBlock(startLineIdx: number, endLineIdx: number) {
-    this._logMessage(`  -- RCD-ContLine Ln#${startLineIdx + 1} - ${endLineIdx + 1}]`);
+    this._logMessage(`  -- RCD-ContLine [Ln#${startLineIdx + 1} - ${endLineIdx + 1}]`);
     const newSpan: IContinuedLineSpan = { startLineIdx: startLineIdx, endLineIdx: endLineIdx };
     this.continuedLineSpans.push(newSpan);
+  }
+
+  // -------------------------------------------------------------------------------------
+  //  TRACK spin control flow regions in code (IF, CASE, REPEAT)
+  //  NOTE: these can NEST!
+  //
+  public recordSpinFlowControlSpan(startLineIdx: number, endLineIdx: number) {
+    this._logMessage(`  -- RCD-Flow Span [Ln#${startLineIdx + 1} - ${endLineIdx + 1}]`);
+    const newSpan: ISpinCodeSpan = { startLineIdx: startLineIdx, endLineIdx: endLineIdx };
+    this.spinCodeFlowSpans.push(newSpan);
   }
 
   // -------------------------------------------------------------------------------------

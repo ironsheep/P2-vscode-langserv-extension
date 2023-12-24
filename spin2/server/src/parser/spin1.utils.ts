@@ -305,6 +305,33 @@ export class Spin1ParseUtils {
     return lineWithoutTrailingCommentStr;
   }
 
+  public charsInsetCount(line: string, tabWidth: number): number {
+    // count and return the number of columns of white space at start of line
+    // NOTE: expands tabs appropriate to editor settings!
+    let insetCount: number = 0;
+    if (line.length > 0) {
+      let nonWhite: boolean = false;
+      for (let index = 0; index < line.length; index++) {
+        const char = line.charAt(index);
+        switch (char) {
+          case " ":
+            insetCount++;
+            break;
+          case "\t":
+            insetCount += tabWidth - (insetCount % tabWidth);
+            break;
+          default:
+            nonWhite = true;
+            break; // no more whitespace, return count
+        }
+        if (nonWhite) {
+          break;
+        }
+      }
+    }
+    return insetCount;
+  }
+
   public indexOfMatchingCloseParen(line: string, openParenOffset: number): number {
     let desiredCloseOffset: number = -1;
     let nestingDepth: number = 1;

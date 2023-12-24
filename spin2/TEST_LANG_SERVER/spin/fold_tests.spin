@@ -1,0 +1,60 @@
+' flow control structures that need to be folded
+
+PUB main(valueParm)
+
+' --------------------------------------------------
+ '' IF testing
+  ' keywords:  IF IFNOT, ELSE, ELSEIF, ELSEIFNOT
+  if true
+     ' do something
+  elseif false
+    ifnot true
+      ' do something
+    elseifnot false
+      ' do other
+    else
+      ' yet more
+  else
+     ' do other
+
+  ifnot true
+     ' do something
+  elseifnot false
+     ' do other
+  else
+    ' yet more
+
+' --------------------------------------------------
+ '' CASE testing
+  ' keywords:  CASE, CASE_FAST
+  case valueParm
+    1: ' code
+
+    2: ' code
+    other:
+       ' code
+
+' --------------------------------------------------
+ '' REPEAT testing
+  ' keywords:  REPEAT, WHILE, UNTIL
+  repeat 10
+    ' code
+
+  repeat
+    ' code
+  until false
+
+  repeat
+    'code
+  while true
+
+' --------------------------------------------------
+
+PRI dec(value) | flag, place, digit         'private method prints decimals, three local variables
+    flag~                                   'reset digit-printed flag
+    place := 1_000_000_000                  'start at the one-billion's place and work downward
+
+    REPEAT
+        IF flag ||= (digit := value / place // 10) || place == 1    'print a digit?
+            IF LOOKDOWN(place : 1_000_000_000, 1_000_000, 1_000)    'also print a comma?
+    WHILE place /= 10

@@ -3,7 +3,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 //import Parser from "web-tree-sitter";
 
 import { Provider } from ".";
-import { Context, ServerBehaviorConfiguration } from "../context";
+import { Context, ServerBehaviorConfiguration, EditorConfiguration } from "../context";
 //import DiagnosticProcessor from "../diagnostics";
 import DocumentProcessor, { ProcessedDocument } from "../DocumentProcessor";
 import { positionToPoint, Point } from "../geometry";
@@ -105,6 +105,19 @@ export default class TextDocumentSyncProvider implements Provider {
       this.ctx.logger.log(
         `  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(${this.ctx.parserConfig.maxNumberOfReportedIssues}), highlightFlexspinDirectives=[${this.ctx.parserConfig.highlightFlexspinDirectives}], changes=(${configChanged})`
       );
+    });
+    await this.ctx.connection.workspace.getConfiguration("Editor").then((editorConfiguration: EditorConfiguration) => {
+      if (editorConfiguration == null) {
+        this.ctx.logger.log(`TRC: DP.process() ERROR! get editor settings received no info: config left at defaults`);
+      } else {
+        configChanged = editorConfiguration["tabSize"] != this.ctx.editorConfig.tabSize || editorConfiguration["insertSpaces"] != this.ctx.editorConfig.insertSpaces;
+        if (configChanged) {
+          this.ctx.editorConfig.tabSize = editorConfiguration["tabSize"];
+          this.ctx.editorConfig.insertSpaces = editorConfiguration["insertSpaces"];
+        }
+      }
+      //this.ctx.logger.log(`TRC: process() received settings RAW=[${serverConfiguration}], JSON=[${JSON.stringify(serverConfiguration)}]`);
+      this.ctx.logger.log(`  DBG --  ctx.editorConfiguration.tabSize=(${this.ctx.editorConfig.tabSize}), insertSpaces=[${this.ctx.editorConfig.insertSpaces}], changes=(${configChanged})`);
     });
     return configChanged;
   }

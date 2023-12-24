@@ -3,6 +3,8 @@
 
 import { Position } from "vscode-languageserver-types";
 import { Context } from "../context";
+import { timeStamp } from "console";
+//import { listenerCount } from "process";
 
 export enum eDebugDisplayType {
   Unknown = 0,
@@ -47,6 +49,25 @@ export enum eParseState {
   inNothing,
 }
 
+export enum eControlFlowType {
+  Unknown = 0,
+  inCase,
+  inCaseFast,
+  inRepeat,
+  inIf,
+}
+
+export interface ICurrControlStatement {
+  startLineIdx: number;
+  startLineCharOffset: number;
+  type: eControlFlowType; // [variable|method]
+}
+
+export interface ICurrControlSpan {
+  startLineIdx: number;
+  endLineIdx: number;
+}
+
 export interface IBuiltinDescription {
   found: boolean;
   type: eBuiltInType; // [variable|method]
@@ -61,6 +82,131 @@ export function haveDebugLine(line: string, startsWith: boolean = false): boolea
   const debugStatementOpenRegEx = /debug\s*\(/i; // case-insensative debug() but allowing whitespace before '('
   const debugStatementOpenStartRegEx = /^\s*debug\s*\(/i; // case-insensative debug() at start of line but allowing whitespace before '('
   return startsWith ? debugStatementOpenStartRegEx.test(line) : debugStatementOpenRegEx.test(line);
+}
+
+export class SpinControlFlowTracker {
+  private flowStatementStack: ICurrControlStatement[] = []; // nested statement tracking
+  private flowLogEnabled: boolean = false;
+  private ctx: Context | undefined = undefined;
+
+  constructor() {}
+
+  public enableLogging(ctx: Context, doEnable: boolean = true): void {
+    this.flowLogEnabled = doEnable;
+    this.ctx = ctx;
+  }
+
+  private _logMessage(message: string): void {
+    if (this.flowLogEnabled) {
+      //Write to output window.
+      if (this.ctx) {
+        this.ctx.logger.log(message);
+      }
+    }
+  }
+
+  public reset() {
+    this.flowStatementStack = [];
+  }
+
+  public startControlFlow(name: string, startLineCharOffset: number, startLineIdx: number) {
+    // record start of possible nest flow control statements
+    this._logMessage(`- SFlowCtrl: start([${name}], ofs=${startLineCharOffset}, Ln#${startLineIdx + 1})`);
+    const flowItem: ICurrControlStatement = { startLineIdx: startLineIdx, startLineCharOffset: startLineCharOffset, type: this.typeForControlFlowName(name) };
+    this.flowStatementStack.push(flowItem);
+  }
+
+  public isControlFlow(possibleName: string): boolean {
+    // return T/F where T means {possibleName} is start of spin control-flow statement
+    const possibleNesting: boolean = this.typeForControlFlowName(possibleName) != eControlFlowType.Unknown;
+    return possibleNesting;
+  }
+
+  public finishControlFlow(endLineIdx: number): ICurrControlSpan[] {
+    const closedFlowSpans: ICurrControlSpan[] = [];
+    this._logMessage(`- SFlowCtrl: finish(Ln#${endLineIdx + 1})`);
+    if (this.flowStatementStack.length > 0) {
+      do {
+        const currStatement: ICurrControlStatement = this.flowStatementStack[this.flowStatementStack.length - 1];
+        const newClosedSpan: ICurrControlSpan = { startLineIdx: currStatement.startLineIdx, endLineIdx: endLineIdx };
+        closedFlowSpans.push(newClosedSpan);
+        this.flowStatementStack.pop();
+      } while (this.flowStatementStack.length > 0);
+    }
+    return closedFlowSpans;
+  }
+
+  public endControlFlow(possibleName: string, endLineCharOffset: number, endLineIdx: number): ICurrControlSpan[] {
+    // record end of possible flow control statement, reporting any flows which this completess
+    const closedFlowSpans: ICurrControlSpan[] = [];
+    const possibleNesting: boolean = this.isControlFlow(possibleName);
+    this._logMessage(`- SFlowCtrl: end([${possibleName}], ofs=${endLineCharOffset}, Ln#${endLineIdx + 1}) - possibleNesting=${possibleNesting}`);
+    if (this.flowStatementStack.length > 0) {
+      do {
+        let endThisNesting: boolean = false;
+        const currStatement: ICurrControlStatement = this.flowStatementStack[this.flowStatementStack.length - 1];
+        const delayClose: boolean = this.delayClose(possibleName, currStatement.type);
+        // did this statment-indent-level end a flow control statement?
+        if (currStatement.startLineCharOffset < endLineCharOffset) {
+          // indented even further, no this does not end this one
+          break; // nope, abort
+        } else if (currStatement.startLineCharOffset == endLineCharOffset) {
+          // line is at same indent level we are not nesting another flow-control, yes, this ENDs it
+          endThisNesting = delayClose ? false : true;
+        } else {
+          // line is indented less than control, this does END it!
+          endThisNesting = delayClose ? false : true;
+        }
+        if (endThisNesting) {
+          const newClosedSpan: ICurrControlSpan = { startLineIdx: currStatement.startLineIdx, endLineIdx: endLineIdx - 1 };
+          this._logMessage(`- SFlowCtrl:  - close [Ln#${newClosedSpan.startLineIdx + 1} - ${newClosedSpan.endLineIdx + 1}]`);
+          closedFlowSpans.push(newClosedSpan);
+          this.flowStatementStack.pop();
+        } else {
+          break;
+        }
+      } while (this.flowStatementStack.length > 0);
+    }
+    if (possibleNesting) {
+      // no prior control flow checks in progres, just start this new one
+      this.startControlFlow(possibleName, endLineCharOffset, endLineIdx);
+    }
+    return closedFlowSpans;
+  }
+
+  private delayClose(name: string, type: eControlFlowType): boolean {
+    let shouldDelay: boolean = false;
+    if (type == eControlFlowType.inRepeat) {
+      if (name.toLowerCase() === "while") {
+        shouldDelay = true;
+      } else if (name.toLowerCase() === "until") {
+        shouldDelay = true;
+      }
+    }
+    return shouldDelay;
+  }
+
+  private typeForControlFlowName(name: string): eControlFlowType {
+    let desiredType: eControlFlowType = eControlFlowType.Unknown;
+    if (name.toLowerCase() === "if") {
+      desiredType = eControlFlowType.inIf;
+    } else if (name.toLowerCase() === "ifnot") {
+      desiredType = eControlFlowType.inIf;
+    } else if (name.toLowerCase() === "elseif") {
+      desiredType = eControlFlowType.inIf;
+    } else if (name.toLowerCase() === "else") {
+      desiredType = eControlFlowType.inIf;
+    } else if (name.toLowerCase() === "elseifnot") {
+      desiredType = eControlFlowType.inIf;
+    } else if (name.toLowerCase() === "repeat") {
+      desiredType = eControlFlowType.inRepeat;
+    } else if (name.toLowerCase() === "case") {
+      desiredType = eControlFlowType.inCase;
+    } else if (name.toLowerCase() === "case_fast") {
+      desiredType = eControlFlowType.inCaseFast;
+    }
+    return desiredType;
+  }
 }
 
 export class ContinuedLines {

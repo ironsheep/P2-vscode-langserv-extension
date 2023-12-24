@@ -16,6 +16,11 @@ export class ServerBehaviorConfiguration {
   public highlightFlexspinDirectives: boolean = false;
 }
 
+export class EditorConfiguration {
+  public tabSize: number = 4;
+  public insertSpaces: boolean = true;
+}
+
 export interface Context {
   topDocsByFSpec: TopDocsByFSpec;
   docsByFSpec: ProcessedDocumentByFSpec;
@@ -25,6 +30,7 @@ export interface Context {
   logger: lsp.Logger;
   connection: lsp.Connection;
   parserConfig: ServerBehaviorConfiguration;
+  editorConfig: EditorConfiguration;
 }
 
 let language: string = "spin2";
@@ -56,5 +62,6 @@ export async function createContext(workspaceFolders: lsp.WorkspaceFolder[], log
     logger,
     connection,
     parserConfig: new ServerBehaviorConfiguration(),
+    editorConfig: new EditorConfiguration(),
   };
 }

@@ -37,30 +37,31 @@ export class Spin2ParseUtils {
     }
   }
 
-  public etDebugStatement(startingOffset: number, line: string): string {
-    let currentOffset: number = this.skipWhite(line, startingOffset);
-    let debugNonCommentStr: string = line;
-    let openParenOffset: number = line.indexOf("(", currentOffset);
-    let closeParenOffset: number = this.indexOfMatchingCloseParen(line, openParenOffset);
-    if (line.length - startingOffset > 0 && openParenOffset != -1 && closeParenOffset != -1) {
-      // have scope of debug line - remove trailing comment, trim it and return it
-      let commentOffset: number = line.indexOf("'", closeParenOffset + 1);
-      if (commentOffset != -1) {
-        // have trailing comment remove it
-        const nonCommentEOL: number = commentOffset != -1 ? commentOffset - 1 : line.length - 1;
-        debugNonCommentStr = line.substring(currentOffset, nonCommentEOL).trim();
-      } else {
-        debugNonCommentStr = line.substring(currentOffset).trim();
+  public charsInsetCount(line: string, tabWidth: number): number {
+    // count and return the number of columns of white space at start of line
+    // NOTE: expands tabs appropriate to editor settings!
+    let insetCount: number = 0;
+    if (line.length > 0) {
+      let nonWhite: boolean = false;
+      for (let index = 0; index < line.length; index++) {
+        const char = line.charAt(index);
+        switch (char) {
+          case " ":
+            insetCount++;
+            break;
+          case "\t":
+            insetCount += tabWidth - (insetCount % tabWidth);
+            break;
+          default:
+            nonWhite = true;
+            break; // no more whitespace, return count
+        }
+        if (nonWhite) {
+          break;
+        }
       }
-    } else if (line.length - startingOffset == 0 || openParenOffset == -1) {
-      // if we don't have open paren - erase entire line
-      debugNonCommentStr = "";
     }
-    //if (line.length != debugNonCommentStr.length) {
-    //    this._logMessage('  -- DS line [' + line.substring(startingOffset) + ']');
-    //    this._logMessage('  --         [' + debugNonCommentStr + ']');
-    //}
-    return debugNonCommentStr;
+    return insetCount;
   }
 
   public indexOfMatchingCloseParen(line: string, openParenOffset: number): number {
@@ -1996,9 +1997,9 @@ export class Spin2ParseUtils {
       "Compose a zero-terminated string (quoted characters and values 1..255 allowed), return address of string<br><br>@param `listOfElements` - a comma separated list of elements to be built into a string (quoted characters and values 1..255 allowed)<br>@returns `StringAddress` - address of where string was placed in ram",
     ],
     //lstring: ['LSTRING("Hello",0,"Terve",0) : StringAddress', "Compose a length-headed string (quoted characters and values 0..255), return address of string."],
-    //bytes: ["BYTES($80,$09,$77,WORD $1234,LONG -1) : BytesAddress", "Compose a string of bytes, return address of string. WORD/LONG size overrides allowed."],
-    //words: ["WORDS(1_000,10_000,50_000,LONG $12345678) : WordsAddress", "Compose a string of words, return address of string. BYTE/LONG size overrides allowed."],
-    //longs: ["LONGS(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF) : LongsAddress", "Compose a string of longs, return address of string. BYTE/WORD size overrides allowed."],
+    byte: ["BYTE($80,$09,$77,WORD $1234,LONG -1) : BytesAddress", "Compose a string of bytes, return address of string. WORD/LONG size overrides allowed."],
+    word: ["WORD(1_000,10_000,50_000,LONG $12345678) : WordsAddress", "Compose a string of words, return address of string. BYTE/LONG size overrides allowed."],
+    long: ["LONG(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF) : LongsAddress", "Compose a string of longs, return address of string. BYTE/WORD size overrides allowed."],
   };
 
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
