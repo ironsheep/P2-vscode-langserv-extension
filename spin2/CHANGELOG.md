@@ -18,11 +18,11 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.2.10] 2023-12-23
+## [2.2.10] 2023-12-24
 
 Update P1 and P2
 
-- Complete the implementation of the spin/spin2 colde folding
+- Complete the implementation of the spin/spin2 code folding
 
 ## [2.2.9] 2023-12-11
 
