@@ -84,6 +84,32 @@ export function haveDebugLine(line: string, startsWith: boolean = false): boolea
   return startsWith ? debugStatementOpenStartRegEx.test(line) : debugStatementOpenRegEx.test(line);
 }
 
+export function isMethodCall(line: string): boolean {
+  const methodOpenRegEx = /\s*\(/; // match zero or more whitespace before '('
+  return methodOpenRegEx.test(line);
+}
+
+export function containsSpinLanguageSpec(line: string): boolean {
+  // return T/F where T means {Spin2_v##} was found in given string
+  const languageVersionRegEx = /\{Spin2\_v[0-9][0-9]\}/i; // our version specification
+  return languageVersionRegEx.test(line);
+}
+
+export function versionFromSpinLanguageSpec(line: string): number {
+  // return T/F where T means {Spin2_v##} was found in given string
+  let decodedVersion: number = 0; // return no version by default
+  if (containsSpinLanguageSpec(line)) {
+    const matchText: string = "{Spin2_v".toLowerCase();
+    const verOffset: number = line.toLowerCase().indexOf(matchText);
+    if (verOffset != -1) {
+      const tens: number = parseInt(line.charAt(verOffset + matchText.length));
+      const ones: number = parseInt(line.charAt(verOffset + matchText.length + 1));
+      decodedVersion = tens * 10 + ones;
+    }
+  }
+  return decodedVersion;
+}
+
 export class SpinControlFlowTracker {
   private flowStatementStack: ICurrControlStatement[] = []; // nested statement tracking
   private flowLogEnabled: boolean = false;
