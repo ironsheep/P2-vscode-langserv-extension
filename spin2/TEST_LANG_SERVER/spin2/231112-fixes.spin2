@@ -1,14 +1,18 @@
 ' --------------------------------------------------------------------------------------------------
 ' bitfield highlight issues  Ln#32-34
-' {Spin2_v43}
+DAT
+
+header_buf byte 0[$100]
 
 VAR
 
-byte header_buf[$100]
+byte header_buf[$100]           ' <-- BUG should generate dupe of DAT variable declaration error
+byte header_buf[$100]           ' <-- BUG should generate P2 Spin dupe VAR varaible declaration error
 
 CON
 
 SEGA_FOURCC = ("S"+"E"<<8+"G"<<16+"A"<<24)
+SEGA_FOURCC = ("S"+"E"<<8+"G"<<16+"A"<<24) ' <-- BUG should generate P2 Spin dupe constant declaration
 
 REGION_OVERSEAS_60HZ = %10 '' Americas
 REGION_DOMESTIC_60HZ = %00 '' Japan
@@ -62,6 +66,9 @@ repeat (256*8)
 
 PUB  LEDon()
 
+   file_open(@"filename1", %"r+")
+   file_open(@"filename1", %"A+")
+
    DoSETUP(string("Text",13))   'turn on LEDs
    DoSETUP(lstring("Hello",0,"Terve",0))   'turn on LEDs
    DoSETUP(byte($21,$09,$00,$02,$00,$00,$01,$00))   'turn on LEDs
@@ -72,3 +79,5 @@ PUB  LEDon()
    DoSETUP(long(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF))    'turn on LEDs
 
 PRI DoSETUP(pBytes)
+
+PRI file_open(pFilename, pOpenMode)

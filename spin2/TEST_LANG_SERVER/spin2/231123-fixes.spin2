@@ -1,5 +1,6 @@
 ' --------------------
 '  test parsing of storagetype variable subpart access
+' {Spin2_v43}
 
 PUB main(param1) : retValue | local2
 
@@ -13,3 +14,16 @@ PUB main(param1) : retValue | local2
 
 
 PRI test(b)
+
+PUB  LEDon()
+
+   DoSETUP(string("Text",13))   'turn on LEDs
+   DoSETUP(lstring("Hello",0,"Terve",0))   'turn on LEDs
+   DoSETUP(byte($21,$09,$00,$02,$00,$00,$01,$00))   'turn on LEDs
+   DoSETUP(byte($80,$09,$77,WORD $1234,LONG -1))    'turn on LEDs
+   DoSETUP(word($21,$09,$00,$02,$00,$00,$01,$00))   'turn on LEDs
+   DoSETUP(word(1_000,10_000,50_000,LONG $12345678))    'turn on LEDs
+   DoSETUP(long($21,$09,$00,$02,$00,$00,$01,$00))   'turn on LEDs
+   DoSETUP(long(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF))    'turn on LEDs
+
+PRI DoSETUP(pBytes)

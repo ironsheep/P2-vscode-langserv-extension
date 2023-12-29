@@ -161,7 +161,7 @@ export class Spin2DocumentSemanticParser {
     // let's also track prior single line and trailing comment on same line
     this._logMessage(`---> Pre SCAN -- `);
     this.parseUtils.setSpinVersion(0); // PRESET no override language version until we find one!
-    this.bHuntingForVersion = true; // we start hunting from top of file
+    this.bHuntingForVersion = true; // PRESET we start hunting from top of file
     let bBuildingSingleLineCmtBlock: boolean = false;
     let bBuildingSingleLineDocCmtBlock: boolean = false;
     this.spinControlFlowTracker.reset();
