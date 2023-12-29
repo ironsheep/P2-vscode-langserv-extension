@@ -421,7 +421,8 @@ export class Spin2DocumentSemanticParser {
 
         if (this.bHuntingForVersion) {
           this.bHuntingForVersion = false; // done, we passed the file-top comments. we can no longer search
-          this._logMessage(`  -- stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+          const newLangVersion: number = this.parseUtils.selectedSpinVersion();
+          this._logMessage(`  -- stopping HUNT  w/lang=(${newLangVersion}), Ln#${lineNbr}=[${trimmedLine}]`);
         }
 
         currState = sectionStatus.inProgressStatus;

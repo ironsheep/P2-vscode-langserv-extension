@@ -19,6 +19,13 @@ export const displayEnumByTypeName = new Map<string, eDebugDisplayType>([
 // this is how we decribe our methods with parameters in our tables...
 type TMethodTuple = readonly [signature: string, description: string, parameters: string[], returns?: string[] | undefined];
 
+export enum eSearchFilterType {
+  Unknown = 0,
+  FT_NO_PREFERENCE,
+  FT_METHOD,
+  FT_NOT_METHOD,
+}
+
 export class Spin2ParseUtils {
   private utilsLogEnabled: boolean = true;
   private ctx: Context | undefined = undefined;
@@ -841,20 +848,20 @@ export class Spin2ParseUtils {
         desiredDocText.description = description;
       } else {
         // not a debug specific symbol then check other built-in's
-        desiredDocText = this.docTextForBuiltIn(name);
+        desiredDocText = this.docTextForBuiltIn(name, eSearchFilterType.FT_NO_PREFERENCE);
       }
     }
 
     return desiredDocText;
   }
 
-  public docTextForBuiltIn(name: string): IBuiltinDescription {
+  public docTextForBuiltIn(name: string, typeFilter: eSearchFilterType): IBuiltinDescription {
     let desiredDocText: IBuiltinDescription = this._docTextForSpinBuiltInVariable(name);
     if (desiredDocText.found) {
       desiredDocText.type = eBuiltInType.BIT_VARIABLE;
     } else {
       desiredDocText = this._docTextForSpinBuiltInMethod(name);
-      if (desiredDocText.found) {
+      if (desiredDocText.found && typeFilter != eSearchFilterType.FT_NOT_METHOD) {
         desiredDocText.type = eBuiltInType.BIT_METHOD;
       } else {
         desiredDocText = this._docTextForCogAndNumericSymbols(name);
@@ -878,7 +885,7 @@ export class Spin2ParseUtils {
               // desiredDocText.type =     -->  nope, this one sets the type for us!
             } else {
               desiredDocText = this._docTextForSpinStorageTypesAlignment(name);
-              if (desiredDocText.found) {
+              if (desiredDocText.found && typeFilter != eSearchFilterType.FT_METHOD) {
                 desiredDocText.type = eBuiltInType.BIT_TYPE;
               } else {
                 desiredDocText = this._docTextForSpinDebugBuiltInInvoke(name);

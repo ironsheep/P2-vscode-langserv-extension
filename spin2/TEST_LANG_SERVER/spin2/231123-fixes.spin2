@@ -1,8 +1,8 @@
 ' --------------------
 '  test parsing of storagetype variable subpart access
-' {Spin2_v43}
+' {Spin2_v42}
 
-PUB main(param1) : retValue | local2
+PUB main(param1) : retValue | LONG local2
 
     test(param1.word[0])
 
