@@ -2086,7 +2086,7 @@ export class Spin2ParseUtils {
                     if (!reservedStatus) {
                       reservedStatus = nameKey in this._tableSpinControlFlowMethods;
                       if (!reservedStatus && this.requestedSpinVersion(43)) {
-                        // if {Spin2_v43} then also search this table
+                        // if {Spin2_v43} or greater then also search this table
                         reservedStatus = nameKey in this._tableSpinEnhancements_v43;
                       }
                     }
@@ -2133,7 +2133,7 @@ export class Spin2ParseUtils {
         desiredDocText.category = "String Method";
         protoWDescr = this._tableSpinStringBuilder[nameKey];
       } else if (this.requestedSpinVersion(43) && nameKey in this._tableSpinEnhancements_v43) {
-        // if {Spin2_v43} then also search this table
+        // if {Spin2_v43} or greater then also search this table
         desiredDocText.category = "String Method";
         protoWDescr = this._tableSpinEnhancements_v43[nameKey];
       } else if (nameKey in this._tableSpinIndexValueMethods) {
@@ -2892,7 +2892,7 @@ export class Spin2ParseUtils {
       if (checkType == "BYTE" || checkType == "WORD" || checkType == "LONG") {
         returnStatus = true;
       }
-      if (!returnStatus && languageVersion == 43) {
+      if (!returnStatus && languageVersion >= 43) {
         if (checkType == "LSTRING") {
           returnStatus = true;
         }
