@@ -85,7 +85,7 @@ export function haveDebugLine(line: string, startsWith: boolean = false): boolea
 }
 
 export function isMethodCall(line: string): boolean {
-  const methodOpenRegEx = /\s*\(/; // match zero or more whitespace before '('
+  const methodOpenRegEx = /^\s*\(/; // match zero or more whitespace before '(' from left edge of string
   return methodOpenRegEx.test(line);
 }
 

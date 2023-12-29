@@ -160,6 +160,8 @@ export class Spin2DocumentSemanticParser {
     // also track and record block comments (both braces and tic's!)
     // let's also track prior single line and trailing comment on same line
     this._logMessage(`---> Pre SCAN -- `);
+    this.parseUtils.setSpinVersion(0); // PRESET no override language version until we find one!
+    this.bHuntingForVersion = true; // we start hunting from top of file
     let bBuildingSingleLineCmtBlock: boolean = false;
     let bBuildingSingleLineDocCmtBlock: boolean = false;
     this.spinControlFlowTracker.reset();
@@ -168,6 +170,7 @@ export class Spin2DocumentSemanticParser {
     const NONDOC_COMMENT = false;
     const BLOCK_COMMENT = true;
     const LINE_COMMENT = false;
+
     for (let i = 0; i < lines.length; i++) {
       const lineNbr: number = i + 1;
       const line: string = lines[i];
@@ -3938,13 +3941,13 @@ export class Spin2DocumentSemanticParser {
                     referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                     this._logSPIN(`  --  FOUND global name=[${namePart}], referenceDetails=(${referenceDetails})`);
                     if (referenceDetails != undefined && referenceDetails?.type == "method") {
-                      const methodCallNoSpace = `${namePart}(`;
-                      const methodCallSpace = `${namePart} (`;
                       const addressOf = `@${namePart}`;
                       // FIXME: TODO: need better whitespace detection before parens!
                       // if it's not a legit method call, kill the reference
                       const searchSpace: string = multiLineSet.line.substring(nameOffset);
-                      if (!searchSpace.includes(methodCallNoSpace) && !searchSpace.includes(methodCallSpace) && !searchString.includes(addressOf)) {
+                      const methodFollowString: string = multiLineSet.line.substring(nameOffset + namePart.length);
+                      this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                      if (!isMethodCall(methodFollowString) && !searchString.includes(addressOf)) {
                         this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                         referenceDetails = undefined;
                       }
@@ -4192,11 +4195,11 @@ export class Spin2DocumentSemanticParser {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
               this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${referenceDetails})`);
               if (referenceDetails != undefined && referenceDetails?.type == "method") {
-                const methodCallNoSpace = `${namePart}(`;
-                const methodCallSpace = `${namePart} (`;
                 // FIXME: TODO: need better whitespace detection before parens!
                 const addressOf = `@${namePart}`;
-                if (!nonStringAssignmentRHSStr.includes(methodCallNoSpace) && !nonStringAssignmentRHSStr.includes(methodCallSpace) && !nonStringAssignmentRHSStr.includes(addressOf)) {
+                const methodFollowString: string = multiLineSet.line.substring(nameOffset + namePart.length);
+                this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                if (!isMethodCall(methodFollowString) && !nonStringAssignmentRHSStr.includes(addressOf)) {
                   this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                   referenceDetails = undefined;
                 }
@@ -4528,12 +4531,12 @@ export class Spin2DocumentSemanticParser {
                     referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                     this._logSPIN("  --  FOUND global name=[" + namePart + "]");
                     if (referenceDetails != undefined && referenceDetails?.type == "method") {
-                      const methodCallNoSpace = `${namePart}(`;
-                      const methodCallSpace = `${namePart} (`;
                       const addressOf = `@${namePart}`;
                       // FIXME: TODO: need better whitespace detection before parens!
                       // if it's not a legit method call, kill the reference
-                      if (!line.includes(methodCallNoSpace) && !line.includes(methodCallSpace) && !searchString.includes(addressOf)) {
+                      const methodFollowString: string = line.substring(nameOffset + namePart.length);
+                      this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                      if (!isMethodCall(methodFollowString) && !searchString.includes(addressOf)) {
                         this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                         referenceDetails = undefined;
                       }
@@ -4776,12 +4779,12 @@ export class Spin2DocumentSemanticParser {
                   this._logSPIN(`  --  EXISTS Global name=[${namePart}], BUT referenceDetails=(${referenceDetails})`);
                 }
                 if (referenceDetails != undefined && referenceDetails?.type == "method") {
-                  const methodCallNoSpace = `${namePart}(`;
-                  const methodCallSpace = `${namePart} (`;
                   // FIXME: TODO: need better whitespace detection before parens!
                   const addressOf = `@${namePart}`;
-                  if (!nonStringAssignmentRHSStr.includes(methodCallNoSpace) && !nonStringAssignmentRHSStr.includes(methodCallSpace) && !nonStringAssignmentRHSStr.includes(addressOf)) {
-                    this._logSPIN("  --  MISSING parens on method=[" + namePart + "]");
+                  const methodFollowString: string = line.substring(nameOffset + namePart.length);
+                  this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                  if (!isMethodCall(methodFollowString) && !nonStringAssignmentRHSStr.includes(addressOf)) {
+                    this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                     referenceDetails = undefined;
                   }
                 }
