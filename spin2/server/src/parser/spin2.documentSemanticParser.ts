@@ -53,7 +53,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private spin2DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -1419,8 +1419,13 @@ export class Spin2DocumentSemanticParser {
                 this._logCON("  -- GLBL GetCONDecl newName=[" + newName + "]");
                 // remember this object name so we can annotate a call to it
                 const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-                this.semanticFindings.recordDeclarationLine(line, lineNbr);
-                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
+                const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
+                if (referenceDetails) {
+                  this.semanticFindings.pushDiagnosticMessage(lineNbr - 1, nameOffset, nameOffset + newName.length, eSeverity.Error, `P2 Spin Duplicate constant name [${newName}], already declared`);
+                } else {
+                  this.semanticFindings.recordDeclarationLine(line, lineNbr);
+                  this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
+                }
               }
             }
           }
@@ -1808,8 +1813,19 @@ export class Spin2DocumentSemanticParser {
           if (newName.charAt(0).match(/[a-zA-Z_]/)) {
             this._logVAR("  -- GLBL GetVarDecl newName=[" + newName + "]");
             const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-            this.semanticFindings.recordDeclarationLine(line, lineNbr);
-            this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+            const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
+            if (referenceDetails) {
+              this.semanticFindings.pushDiagnosticMessage(
+                lineNbr - 1,
+                nameOffset,
+                nameOffset + newName.length,
+                eSeverity.Error,
+                `P2 Spin Duplicate global variable name [${newName}], already declared`
+              );
+            } else {
+              this.semanticFindings.recordDeclarationLine(line, lineNbr);
+              this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+            }
           }
         }
       } else if (!hasGoodType && lineParts.length > 0) {
@@ -1818,8 +1834,19 @@ export class Spin2DocumentSemanticParser {
           if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
             this._logVAR("  -- GLBL GetVarDecl newName=[" + longVarName + "]");
             const nameOffset = line.indexOf(longVarName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-            this.semanticFindings.recordDeclarationLine(line, lineNbr);
-            this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+            const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(longVarName);
+            if (referenceDetails) {
+              this.semanticFindings.pushDiagnosticMessage(
+                lineNbr - 1,
+                nameOffset,
+                nameOffset + longVarName.length,
+                eSeverity.Error,
+                `P2 Spin Duplicate global variable name [${longVarName}], already declared`
+              );
+            } else {
+              this.semanticFindings.recordDeclarationLine(line, lineNbr);
+              this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+            }
           }
         }
       }

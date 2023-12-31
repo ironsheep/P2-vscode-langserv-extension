@@ -18,16 +18,17 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.2.11] 2023-12-??
+## [2.2.11] 2023-12-30
 
 Update P2 Only
 
 - Add recognition of "auto" on debug scope display declarations
-- Add Semantic highlight color change for byte(), word(), and long() method overrides
+- Add semantic highlight color change for byte(), word(), and long() method overrides
 - Add recognition of byte(), word(), and long() method names to provide method vs. storage type hover text
-- Add recognition of {Spin2_v4XX} format Spin Language Requirement directive
-- Emit any languge directive in use to generated interface documentation
+- Add recognition of {Spin2_v##} format Spin Language Requirement directive
+- Emit any languge directive when used to generated interface documentation
 - Add support for lstring() when {Spin2_v43} is specified
+- Add detection of/error generation for duplicate declarations within CON, VAR and DAT sections
 
 ## [2.2.10] 2023-12-24
 
