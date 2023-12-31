@@ -1,0 +1,17 @@
+
+' --------------------
+'  test duplicate global detection
+
+DAT
+
+header_buf byte 0[$100]
+
+VAR
+
+byte header_buf[$100]           ' <-- BUG should generate dupe of DAT variable declaration error
+byte header_buf[$100]           ' <-- BUG should generate P2 Spin dupe VAR varaible declaration error
+
+CON
+
+SEGA_FOURCC = ("S"+"E"<<8+"G"<<16+"A"<<24)
+SEGA_FOURCC = ("S"+"E"<<8+"G"<<16+"A"<<24) ' <-- BUG should generate P2 Spin dupe constant declaration

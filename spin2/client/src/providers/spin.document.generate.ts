@@ -204,6 +204,7 @@ export class DocGenerator {
     let textEditor = vscode.window.activeTextEditor;
     if (textEditor) {
       let endOfLineStr: string = textEditor.document.eol == EndOfLine.CRLF ? "\r\n" : "\n";
+      let bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
 
       var currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
       var currentlyOpenTabfolderName = path.dirname(currentlyOpenTabfilePath);
@@ -236,12 +237,21 @@ export class DocGenerator {
         let priorState: eParseState = currState;
 
         let pubsFound: number = 0;
+
+        let requiredLanguageVersion: number = 0;
         //
         // 1st pass: emit topfile doc comments then list of pub methods
         //
         for (let i = 0; i < textEditor.document.lineCount; i++) {
           let line = textEditor.document.lineAt(i);
+          const lineNbr = i + 1;
           const trimmedLine = line.text.trim();
+
+          if (bHuntingForVersion && this.spinCodeUtils.containsSpinLanguageSpec(trimmedLine)) {
+            bHuntingForVersion = false; // done we found it
+            requiredLanguageVersion = this.spinCodeUtils.versionFromSpinLanguageSpec(trimmedLine);
+            this.logMessage(`+ (DBG) generateDocument() requiredLanguageVersion=(${requiredLanguageVersion}) at Ln#${lineNbr} [${trimmedLine}]`);
+          }
 
           if (currState == eParseState.inMultiLineDocComment) {
             // skip all {{ --- }} multi-line doc comments
@@ -315,13 +325,26 @@ export class DocGenerator {
               // emit comment without leading ''
               fs.appendFileSync(outFile, trimmedLine.substring(2) + endOfLineStr);
             }
-          } else if (sectionStatus.isSectionStart && currState == eParseState.inPub) {
+            continue;
+          }
+
+          if (sectionStatus.isSectionStart && bHuntingForVersion) {
+            this.logMessage(`+ (DBG) generateDocument() STOP HUNT at Ln#${lineNbr} [${trimmedLine}]`);
+            bHuntingForVersion = false; // done, we passed the file-top comments. we can no longer search
+          }
+
+          if (sectionStatus.isSectionStart && currState == eParseState.inPub) {
             // have public method report it
             pubsFound++;
             if (shouldEmitTopDocComments) {
+              this.logMessage(`+ (DBG) generateDocument() EMIT object header`);
               fs.appendFileSync(outFile, "" + endOfLineStr); // blank line
               const introText: string = 'Object "' + objectName + '" Interface:';
               fs.appendFileSync(outFile, introText + endOfLineStr);
+              if (requiredLanguageVersion > 0) {
+                const lanVersionText: string = `  (Requires Spin2 Language v${requiredLanguageVersion})`;
+                fs.appendFileSync(outFile, lanVersionText + endOfLineStr);
+              }
               fs.appendFileSync(outFile, "" + endOfLineStr); // blank line
             }
             shouldEmitTopDocComments = false; // no more of these!

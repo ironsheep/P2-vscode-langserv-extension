@@ -19,9 +19,17 @@ export const displayEnumByTypeName = new Map<string, eDebugDisplayType>([
 // this is how we decribe our methods with parameters in our tables...
 type TMethodTuple = readonly [signature: string, description: string, parameters: string[], returns?: string[] | undefined];
 
+export enum eSearchFilterType {
+  Unknown = 0,
+  FT_NO_PREFERENCE,
+  FT_METHOD,
+  FT_NOT_METHOD,
+}
+
 export class Spin2ParseUtils {
   private utilsLogEnabled: boolean = true;
   private ctx: Context | undefined = undefined;
+  private languageVersion: number = 0;
 
   public enableLogging(ctx: Context, doEnable: boolean = true): void {
     this.utilsLogEnabled = doEnable;
@@ -35,6 +43,22 @@ export class Spin2ParseUtils {
         this.ctx.logger.log(message);
       }
     }
+  }
+
+  public setSpinVersion(requiredVersion: number): void {
+    if (requiredVersion >= 0 && requiredVersion <= 999) {
+      this.languageVersion = requiredVersion < 43 ? 0 : requiredVersion;
+    }
+  }
+
+  public selectedSpinVersion(): number {
+    const selectedVersion: number = this.languageVersion == 0 ? 41 : this.languageVersion;
+    return selectedVersion;
+  }
+
+  public requestedSpinVersion(requiredVersion: number): boolean {
+    const supportedStatus: boolean = this.languageVersion >= requiredVersion ? true : false;
+    return supportedStatus;
   }
 
   public charsInsetCount(line: string, tabWidth: number): number {
@@ -824,20 +848,20 @@ export class Spin2ParseUtils {
         desiredDocText.description = description;
       } else {
         // not a debug specific symbol then check other built-in's
-        desiredDocText = this.docTextForBuiltIn(name);
+        desiredDocText = this.docTextForBuiltIn(name, eSearchFilterType.FT_NO_PREFERENCE);
       }
     }
 
     return desiredDocText;
   }
 
-  public docTextForBuiltIn(name: string): IBuiltinDescription {
+  public docTextForBuiltIn(name: string, typeFilter: eSearchFilterType): IBuiltinDescription {
     let desiredDocText: IBuiltinDescription = this._docTextForSpinBuiltInVariable(name);
     if (desiredDocText.found) {
       desiredDocText.type = eBuiltInType.BIT_VARIABLE;
     } else {
       desiredDocText = this._docTextForSpinBuiltInMethod(name);
-      if (desiredDocText.found) {
+      if (desiredDocText.found && typeFilter != eSearchFilterType.FT_NOT_METHOD) {
         desiredDocText.type = eBuiltInType.BIT_METHOD;
       } else {
         desiredDocText = this._docTextForCogAndNumericSymbols(name);
@@ -861,7 +885,7 @@ export class Spin2ParseUtils {
               // desiredDocText.type =     -->  nope, this one sets the type for us!
             } else {
               desiredDocText = this._docTextForSpinStorageTypesAlignment(name);
-              if (desiredDocText.found) {
+              if (desiredDocText.found && typeFilter != eSearchFilterType.FT_METHOD) {
                 desiredDocText.type = eBuiltInType.BIT_TYPE;
               } else {
                 desiredDocText = this._docTextForSpinDebugBuiltInInvoke(name);
@@ -1996,10 +2020,15 @@ export class Spin2ParseUtils {
       'STRING("Text",13) : StringAddress',
       "Compose a zero-terminated string (quoted characters and values 1..255 allowed), return address of string<br><br>@param `listOfElements` - a comma separated list of elements to be built into a string (quoted characters and values 1..255 allowed)<br>@returns `StringAddress` - address of where string was placed in ram",
     ],
-    //lstring: ['LSTRING("Hello",0,"Terve",0) : StringAddress', "Compose a length-headed string (quoted characters and values 0..255), return address of string."],
-    //byte: ["BYTE($80,$09,$77,WORD $1234,LONG -1) : BytesAddress", "Compose a string of bytes, return address of string. WORD/LONG size overrides allowed."],
-    //word: ["WORD(1_000,10_000,50_000,LONG $12345678) : WordsAddress", "Compose a string of words, return address of string. BYTE/LONG size overrides allowed."],
-    //long: ["LONG(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF) : LongsAddress", "Compose a string of longs, return address of string. BYTE/WORD size overrides allowed."],
+    // new additions at v42 but cleaned up at v43
+    byte: ["BYTE($80,$09,$77,WORD $1234,LONG -1) : BytesAddress", "Compose a string of bytes, return address of string. WORD/LONG size overrides allowed."],
+    word: ["WORD(1_000,10_000,50_000,LONG $12345678) : WordsAddress", "Compose a string of words, return address of string. BYTE/LONG size overrides allowed."],
+    long: ["LONG(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF) : LongsAddress", "Compose a string of longs, return address of string. BYTE/WORD size overrides allowed."],
+  };
+
+  private _tableSpinEnhancements_v43: { [Identifier: string]: string[] } = {
+    // NOTE: this does NOT support signature help! (paramaters are not highlighted for signature help due to variant forms for string() being allowed)
+    lstring: ['LSTRING("Hello",0,"Terve",0) : StringAddress', "Compose a length-headed string (quoted characters and values 0..255), return address of string."],
   };
 
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
@@ -2063,6 +2092,10 @@ export class Spin2ParseUtils {
                     reservedStatus = nameKey in this._tableSpinIndexValueMethods;
                     if (!reservedStatus) {
                       reservedStatus = nameKey in this._tableSpinControlFlowMethods;
+                      if (!reservedStatus && this.requestedSpinVersion(43)) {
+                        // if {Spin2_v43} or greater then also search this table
+                        reservedStatus = nameKey in this._tableSpinEnhancements_v43;
+                      }
                     }
                   }
                 }
@@ -2106,6 +2139,10 @@ export class Spin2ParseUtils {
       } else if (nameKey in this._tableSpinStringBuilder) {
         desiredDocText.category = "String Method";
         protoWDescr = this._tableSpinStringBuilder[nameKey];
+      } else if (this.requestedSpinVersion(43) && nameKey in this._tableSpinEnhancements_v43) {
+        // if {Spin2_v43} or greater then also search this table
+        desiredDocText.category = "String Method";
+        protoWDescr = this._tableSpinEnhancements_v43[nameKey];
       } else if (nameKey in this._tableSpinIndexValueMethods) {
         desiredDocText.category = "Hub Method";
         protoWDescr = this._tableSpinIndexValueMethods[nameKey];
@@ -2854,6 +2891,23 @@ export class Spin2ParseUtils {
     return returnStatus;
   }
 
+  public isMethodOverride(name: string, languageVersion: number): boolean {
+    // storage type override with method name: BYTE, WORD, LONG
+    let returnStatus: boolean = false;
+    if (name.length > 3) {
+      const checkType: string = name.toUpperCase();
+      if (checkType == "BYTE" || checkType == "WORD" || checkType == "LONG") {
+        returnStatus = true;
+      }
+      if (!returnStatus && languageVersion >= 43) {
+        if (checkType == "LSTRING") {
+          returnStatus = true;
+        }
+      }
+    }
+    return returnStatus;
+  }
+
   public isStorageType(name: string): boolean {
     // storage type : (BYTE|WORD)FIT, BYTE, WORD, LONG
     let returnStatus: boolean = false;
@@ -3067,14 +3121,14 @@ export class Spin2ParseUtils {
 
   // Debug Display: SCOPE declaration
   public isDebugScopeDeclarationParam(name: string): boolean {
-    const debugScopeDeclTypes: string[] = ["title", "pos", "size", "samples", "rate", "dotsize", "linesize", "textsize", "color", "hidexy"];
+    const debugScopeDeclTypes: string[] = ["title", "pos", "size", "samples", "rate", "dotsize", "linesize", "textsize", "color", "hidexy", "auto"];
     const bScopeDeclParamStatus: boolean = debugScopeDeclTypes.indexOf(name.toLowerCase()) != -1;
     return bScopeDeclParamStatus;
   }
 
   // Debug Display: SCOPE feed
   public isDebugScopeFeedParam(name: string): boolean {
-    const debugScopeFeedTypes: string[] = ["trigger", "holdoff", "samples", "clear", "save", "window", "close"];
+    const debugScopeFeedTypes: string[] = ["trigger", "holdoff", "samples", "clear", "save", "window", "close", "auto"];
     const bScopeFeedParamStatus: boolean = debugScopeFeedTypes.indexOf(name.toLowerCase()) != -1;
     return bScopeFeedParamStatus;
   }

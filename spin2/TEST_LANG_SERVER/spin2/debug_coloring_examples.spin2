@@ -5,8 +5,8 @@ PUB oscilloscope() | chanA, chanB, chanC
 '' TASK: display oscilloscope waveforms
 
     debug(`scope Scope1 pos 100 0 size 800 600 linesize 6)  ' end of line comments
-    debug(`Scope1 'Analog Input' 0 3300 250 0 %1111 red)  ' WARNING (if no comment here semantic highlight is BAD!!!)
-    debug(`Scope1 'Digital Output' 0 3300 250 300 %1111 green) ' end of line comments
+    debug(`Scope1 'Analog Input' 0 3300 250 0 %1111 red auto)  ' WARNING (if no comment here semantic highlight is BAD!!!)
+    debug(`Scope1 'Digital Output' 0 3300 250 300 %1111 green auto) ' end of line comments
     debug(`Scope1 samples 16 trigger -1)
     debug(`term Term1 pos 914 71 size 30 1 textsize 20 color red) ' end of line comments
     debug(`term Term2 pos 914 0 size 30 1 textsize 20 color green)

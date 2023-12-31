@@ -12,7 +12,7 @@ import { Context } from "../context";
 import { DocumentFindings, ITokenDescription } from "../parser/spin.semantic.findings";
 import { IDefinitionInfo, ExtensionUtils, IPairs } from "../parser/spin.extension.utils";
 import { GetWordRangeAtPosition, DocumentLineAt, PositionTranslate } from "../parser/lsp.textDocument.utils";
-import { Spin2ParseUtils } from "../parser/spin2.utils";
+import { Spin2ParseUtils, eSearchFilterType } from "../parser/spin2.utils";
 import { Spin1ParseUtils } from "../parser/spin1.utils";
 import { IBuiltinDescription, eBuiltInType } from "../parser/spin.common";
 import { isSpin1File, fileSpecFromURI } from "../parser/lang.utils";
@@ -265,7 +265,7 @@ export default class SignatureHelpProvider implements Provider {
     this._logMessage(`+ Sig: getSymbolDetails() isSignatureLine=(${isSignatureLine}), isDebugLine=(${isDebugLine}), isObjectReference=(${isObjectReference})`);
 
     let bFoundSomething: boolean = false; // we've no answer
-    let builtInFindings: IBuiltinDescription = isDebugLine ? this.parseUtils.docTextForDebugBuiltIn(searchWord) : this.parseUtils.docTextForBuiltIn(searchWord);
+    let builtInFindings: IBuiltinDescription = isDebugLine ? this.parseUtils.docTextForDebugBuiltIn(searchWord) : this.parseUtils.docTextForBuiltIn(searchWord, eSearchFilterType.FT_NO_PREFERENCE);
     if (!builtInFindings.found) {
       this._logMessage(`+ Sig: built-in=[${searchWord}], NOT found!`);
     } else {

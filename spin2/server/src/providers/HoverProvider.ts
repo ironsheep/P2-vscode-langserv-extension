@@ -13,9 +13,9 @@ import { Context } from "../context";
 import { DocumentFindings, ITokenDescription } from "../parser/spin.semantic.findings";
 import { IDefinitionInfo, ExtensionUtils } from "../parser/spin.extension.utils";
 import { DocumentLineAt } from "../parser/lsp.textDocument.utils";
-import { Spin2ParseUtils } from "../parser/spin2.utils";
+import { Spin2ParseUtils, eSearchFilterType } from "../parser/spin2.utils";
 import { Spin1ParseUtils } from "../parser/spin1.utils";
-import { eBuiltInType } from "../parser/spin.common";
+import { eBuiltInType, isMethodCall } from "../parser/spin.common";
 import { isSpin1File, fileSpecFromURI } from "../parser/lang.utils";
 
 export default class HoverProvider implements Provider {
@@ -135,6 +135,10 @@ export default class HoverProvider implements Provider {
       this._logMessage(`+ Hvr: definitionLocation() EXIT fail`);
       return Promise.resolve(null);
     }
+    this._logMessage(
+      `+ Hvr: adjustWordPosition -> [0]bool=(${adjustedPos[0]}), [1]string=[${adjustedPos[1]}], [2]string=[${adjustedPos[2]}], [3]adjposn=[${adjustedPos[3].line}:${adjustedPos[3].character}], [3]wordSrt=[${adjustedPos[4].line}:${adjustedPos[4].character}]`
+    );
+    const wordStart: Position = adjustedPos[4];
     const declarationLine: string = DocumentLineAt(document, position).trimEnd();
     let objectRef = inObjDeclarationStatus ? this._objectNameFromDeclaration(declarationLine) : adjustedPos[1];
 
@@ -144,10 +148,16 @@ export default class HoverProvider implements Provider {
     }
     const sourcePosition: Position = adjustedPos[3];
     let fileBasename = path.basename(document.uri);
-    this._logMessage(`+ Hvr: hoverSource=[${hoverSource}], inObjDecl=(${inObjDeclarationStatus}), adjPos=(${position.line},${position.character}), file=[${fileBasename}], line=[${declarationLine}]`);
+    const methodFollowString: string = declarationLine.substring(wordStart.character + hoverSource.length);
+    const bMethodCall: boolean = isMethodCall(methodFollowString);
+    this._logMessage(`+ Hvr: methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+
+    this._logMessage(
+      `+ Hvr: hoverSource=[${hoverSource}], isMethod=(${bMethodCall}), inObjDecl=(${inObjDeclarationStatus}), adjPos=(${position.line},${position.character}), file=[${fileBasename}], line=[${declarationLine}]`
+    );
 
     this._logMessage(`+ Hvr: definitionLocation() EXIT after getting symbol details`);
-    return this.getSymbolDetails(document, sourcePosition, objectRef, hoverSource);
+    return this.getSymbolDetails(document, sourcePosition, objectRef, hoverSource, bMethodCall);
   }
 
   private _objectNameFromDeclaration(line: string): string {
@@ -193,7 +203,7 @@ export default class HoverProvider implements Provider {
     return desiredLinePortion;
   }
 
-  private getSymbolDetails(document: TextDocument, position: Position, objRef: string, searchWord: string): Promise<IDefinitionInfo | null> {
+  private getSymbolDetails(document: TextDocument, position: Position, objRef: string, searchWord: string, isMethodCall: boolean): Promise<IDefinitionInfo | null> {
     return new Promise((resolve, reject) => {
       const defInfo: IDefinitionInfo = {
         file: document.uri,
@@ -238,7 +248,8 @@ export default class HoverProvider implements Provider {
       const isDebugLine: boolean = this.spin1File ? false : sourceLine.toLowerCase().startsWith("debug(");
 
       let bFoundSomething: boolean = false; // we've no answer
-      let builtInFindings = isDebugLine ? this.parseUtils.docTextForDebugBuiltIn(searchWord) : this.parseUtils.docTextForBuiltIn(searchWord);
+      const filterType: eSearchFilterType = isMethodCall ? eSearchFilterType.FT_METHOD : eSearchFilterType.FT_NOT_METHOD;
+      let builtInFindings = isDebugLine ? this.parseUtils.docTextForDebugBuiltIn(searchWord) : this.parseUtils.docTextForBuiltIn(searchWord, filterType);
       if (!builtInFindings.found) {
         this._logMessage(`+ Hvr: built-in=[${searchWord}], NOT found!`);
       } else {

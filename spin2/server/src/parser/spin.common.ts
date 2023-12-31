@@ -84,6 +84,52 @@ export function haveDebugLine(line: string, startsWith: boolean = false): boolea
   return startsWith ? debugStatementOpenStartRegEx.test(line) : debugStatementOpenRegEx.test(line);
 }
 
+export function isMethodCall(line: string): boolean {
+  const methodOpenRegEx = /^\s*\(/; // match zero or more whitespace before '(' from left edge of string
+  return methodOpenRegEx.test(line);
+}
+
+export function containsSpinLanguageSpec(line: string): boolean {
+  // return T/F where T means {Spin2_v##} was found in given string
+  const languageVersionRegEx = /\{Spin2\_v/i; // our version specification (just look for left edge)
+  return languageVersionRegEx.test(line);
+}
+
+export function versionFromSpinLanguageSpec(line: string): number {
+  // return T/F where T means {Spin2_v##} was found in given string
+  let decodedVersion: number = 0; // return no version by default
+  const languageVersionRegEx = /\{Spin2\_v[0-9][0-9]\}/i; // our version specification - well formatted 0-99
+  const languageVersionThousandsRegEx = /\{Spin2\_v[0-9][0-9][0-9]\}/i; // our version specification - well formatted 0-999
+  const is3digit: boolean = languageVersionThousandsRegEx.test(line);
+  // if have fully formatted version
+  if (languageVersionRegEx.test(line) || is3digit) {
+    if (containsSpinLanguageSpec(line)) {
+      const matchText: string = "{Spin2_v".toLowerCase();
+      const verOffset: number = line.toLowerCase().indexOf(matchText);
+      if (verOffset != -1) {
+        if (is3digit) {
+          const hundreds: number = parseInt(line.charAt(verOffset + matchText.length));
+          const tens: number = parseInt(line.charAt(verOffset + matchText.length + 1));
+          const ones: number = parseInt(line.charAt(verOffset + matchText.length + 2));
+          decodedVersion = hundreds * 100 + tens * 10 + ones;
+        } else {
+          const tens: number = parseInt(line.charAt(verOffset + matchText.length));
+          const ones: number = parseInt(line.charAt(verOffset + matchText.length + 1));
+          decodedVersion = tens * 10 + ones;
+        }
+      }
+      // special: disallow unreleased versions:
+      // - 41 is base version so say 0
+      // - 42 was not released so say zero
+      // - 40 or less is also 0
+      if (decodedVersion < 43) {
+        decodedVersion = 0;
+      }
+    }
+  }
+  return decodedVersion;
+}
+
 export class SpinControlFlowTracker {
   private flowStatementStack: ICurrControlStatement[] = []; // nested statement tracking
   private flowLogEnabled: boolean = false;

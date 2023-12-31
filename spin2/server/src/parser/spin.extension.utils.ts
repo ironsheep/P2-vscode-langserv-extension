@@ -92,7 +92,7 @@ export class ExtensionUtils {
     cursorPosition: lsp.Position,
     isInBlockComment: boolean,
     inPasmCodeStatus: boolean
-  ): [boolean, string, string, lsp.Position] {
+  ): [boolean, string, string, lsp.Position, lsp.Position] {
     const lineText = DocumentLineAt(document, wordPosition).trimEnd();
     const P2_LOCAL_LABEL_PREFIX: string = ".";
     const P1_LOCAL_LABEL_PREFIX: string = ":";
@@ -180,14 +180,14 @@ export class ExtensionUtils {
     }
     if (!wordRange || this.isPositionInString(lineText, wordPosition, stringsFound, ticVarsFound) || bPositionInComment || word.match(/^\d+.?\d+$/) || spinControlFlowKeywords.indexOf(word) > 0) {
       this._logMessage(`+ sp2Utils: adjustWordPosition() EXIT false`);
-      return [false, null!, null!, null!];
+      return [false, null!, null!, null!, null!];
     }
     if (PositionIsEqual(wordPosition, wordRange.end) && PositionIsAfter(wordPosition, wordRange.start)) {
       wordPosition = PositionTranslate(wordPosition, 0, -1);
     }
 
     this._logMessage(`+ sp2Utils: adjustWordPosition() EXIT true`);
-    return [true, objectRef, word, wordPosition];
+    return [true, objectRef, word, wordPosition, wordRange.start];
   }
 
   public isPositionInString(lineText: string, position: lsp.Position, stringsInLine: IPairs[], ticVarsInLine: IPairs[]): boolean {

@@ -8,7 +8,17 @@ import { Context, ServerBehaviorConfiguration, EditorConfiguration } from "../co
 import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, IParsedToken, eSeverity, eDefinitionType } from "./spin.semantic.findings";
 import { Spin2ParseUtils } from "./spin2.utils";
 import { isSpin1File } from "./lang.utils";
-import { eParseState, eDebugDisplayType, ContinuedLines, haveDebugLine, SpinControlFlowTracker, ICurrControlSpan } from "./spin.common";
+import {
+  eParseState,
+  eDebugDisplayType,
+  ContinuedLines,
+  haveDebugLine,
+  SpinControlFlowTracker,
+  ICurrControlSpan,
+  isMethodCall,
+  containsSpinLanguageSpec,
+  versionFromSpinLanguageSpec,
+} from "./spin.common";
 import { fileInDirExists } from "../files";
 //import { PublishDiagnosticsNotification } from "vscode-languageserver";
 import { ExtensionUtils } from "../parser/spin.extension.utils";
@@ -70,6 +80,7 @@ export class Spin2DocumentSemanticParser {
   private directory: string = "";
 
   private bRecordTrailingComments: boolean = false; // initially, we don't generate tokens for trailing comments on lines
+  private bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
 
   public constructor(protected readonly ctx: Context) {
     this.extensionUtils = new ExtensionUtils(ctx, this.spin2DebugLogEnabled);
@@ -93,6 +104,7 @@ export class Spin2DocumentSemanticParser {
   public reportDocumentSemanticTokens(document: TextDocument, findings: DocumentFindings, dirSpec: string): void {
     this.semanticFindings = findings;
     this.directory = dirSpec;
+    const startingLangVersion: number = this.parseUtils.selectedSpinVersion();
     if (this.spin2DebugLogEnabled) {
       this.semanticFindings.enableLogging(this.ctx);
       this.parseUtils.enableLogging(this.ctx);
@@ -107,6 +119,13 @@ export class Spin2DocumentSemanticParser {
 
     // retrieve tokens to highlight, post to DocumentFindings
     const allTokens = this._parseText(document.getText());
+    const endingLangVersion: number = this.parseUtils.selectedSpinVersion();
+    if (startingLangVersion != endingLangVersion) {
+      this._logMessage(`* Spin2 LANG VERSION HUNT [${startingLangVersion} -> ${endingLangVersion}]`);
+    } else {
+      this._logMessage(`* Spin2 LANG VERSION HUNT [${startingLangVersion}]`);
+    }
+    this._checkTokenSet(allTokens);
     allTokens.forEach((token) => {
       this.semanticFindings.pushSemanticToken(token);
     });
@@ -149,6 +168,9 @@ export class Spin2DocumentSemanticParser {
     // also track and record block comments (both braces and tic's!)
     // let's also track prior single line and trailing comment on same line
     this._logMessage(`---> Pre SCAN -- `);
+    const startingLangVersion: number = this.parseUtils.selectedSpinVersion();
+    this.parseUtils.setSpinVersion(0); // PRESET no override language version until we find one!
+    this.bHuntingForVersion = true; // PRESET we start hunting from top of file
     let bBuildingSingleLineCmtBlock: boolean = false;
     let bBuildingSingleLineDocCmtBlock: boolean = false;
     this.spinControlFlowTracker.reset();
@@ -157,10 +179,22 @@ export class Spin2DocumentSemanticParser {
     const NONDOC_COMMENT = false;
     const BLOCK_COMMENT = true;
     const LINE_COMMENT = false;
+
     for (let i = 0; i < lines.length; i++) {
       const lineNbr: number = i + 1;
       const line: string = lines[i];
       const trimmedLine: string = line.trim();
+      if (this.bHuntingForVersion && containsSpinLanguageSpec(trimmedLine)) {
+        this._logMessage(`  -- POSSIBLE spec: stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+        this.bHuntingForVersion = false; // done we found it
+        const newLangVersion: number = versionFromSpinLanguageSpec(trimmedLine);
+        if (newLangVersion != startingLangVersion) {
+          this.parseUtils.setSpinVersion(newLangVersion);
+          this._logMessage(`  -- found Spin2 NEW version (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+        } else {
+          this._logMessage(`  -- found Spin2 SAME version (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+        }
+      }
       const lineWOutInlineComments: string = this.parseUtils.getLineWithoutInlineComments(line);
       const bHaveLineToProcess: boolean = lineWOutInlineComments.length > 0;
       //this._logMessage(`  -- Ln#${lineNbr} bHaveLineToProcess=(${bHaveLineToProcess}), lineWOutInlineComments=[${lineWOutInlineComments}](${lineWOutInlineComments.length})`);
@@ -397,6 +431,12 @@ export class Spin2DocumentSemanticParser {
               this.semanticFindings.recordSpinFlowControlSpan(flowSpan.startLineIdx, flowSpan.endLineIdx);
             }
           }
+        }
+
+        if (this.bHuntingForVersion) {
+          this.bHuntingForVersion = false; // done, we passed the file-top comments. we can no longer search
+          const newLangVersion: number = this.parseUtils.selectedSpinVersion();
+          this._logMessage(`  -- stopping HUNT  w/lang=(${newLangVersion}), Ln#${lineNbr}=[${trimmedLine}]`);
         }
 
         currState = sectionStatus.inProgressStatus;
@@ -1065,7 +1105,6 @@ export class Spin2DocumentSemanticParser {
         pendingState = eParseState.Unknown;
       }
     }
-    this._checkTokenSet(tokenSet);
     return tokenSet;
   }
 
@@ -1380,8 +1419,13 @@ export class Spin2DocumentSemanticParser {
                 this._logCON("  -- GLBL GetCONDecl newName=[" + newName + "]");
                 // remember this object name so we can annotate a call to it
                 const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-                this.semanticFindings.recordDeclarationLine(line, lineNbr);
-                this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
+                const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
+                if (referenceDetails) {
+                  this.semanticFindings.pushDiagnosticMessage(lineNbr - 1, nameOffset, nameOffset + newName.length, eSeverity.Error, `P2 Spin Duplicate constant name [${newName}], already declared`);
+                } else {
+                  this.semanticFindings.recordDeclarationLine(line, lineNbr);
+                  this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["readonly"]), this._declarationComment());
+                }
               }
             }
           }
@@ -1769,8 +1813,19 @@ export class Spin2DocumentSemanticParser {
           if (newName.charAt(0).match(/[a-zA-Z_]/)) {
             this._logVAR("  -- GLBL GetVarDecl newName=[" + newName + "]");
             const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-            this.semanticFindings.recordDeclarationLine(line, lineNbr);
-            this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+            const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
+            if (referenceDetails) {
+              this.semanticFindings.pushDiagnosticMessage(
+                lineNbr - 1,
+                nameOffset,
+                nameOffset + newName.length,
+                eSeverity.Error,
+                `P2 Spin Duplicate global variable name [${newName}], already declared`
+              );
+            } else {
+              this.semanticFindings.recordDeclarationLine(line, lineNbr);
+              this.semanticFindings.setGlobalToken(newName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+            }
           }
         }
       } else if (!hasGoodType && lineParts.length > 0) {
@@ -1779,8 +1834,19 @@ export class Spin2DocumentSemanticParser {
           if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
             this._logVAR("  -- GLBL GetVarDecl newName=[" + longVarName + "]");
             const nameOffset = line.indexOf(longVarName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-            this.semanticFindings.recordDeclarationLine(line, lineNbr);
-            this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+            const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(longVarName);
+            if (referenceDetails) {
+              this.semanticFindings.pushDiagnosticMessage(
+                lineNbr - 1,
+                nameOffset,
+                nameOffset + longVarName.length,
+                eSeverity.Error,
+                `P2 Spin Duplicate global variable name [${longVarName}], already declared`
+              );
+            } else {
+              this.semanticFindings.recordDeclarationLine(line, lineNbr);
+              this.semanticFindings.setGlobalToken(longVarName, new RememberedToken("variable", lineNbr - 1, nameOffset, ["instance"]), this._declarationComment());
+            }
           }
         }
       }
@@ -2604,7 +2670,7 @@ export class Spin2DocumentSemanticParser {
           if (possibleName.charAt(0).match(/[a-zA-Z_]/) || (isDatPAsm && possibleName.charAt(0).match(/[a-zA-Z_\.]/))) {
             nameOffset = line.indexOf(possibleName, currentOffset);
             if (showDebug) {
-              this._logMessage(`  -- possibleName=[${possibleName}]`);
+              this._logMessage(`  -- DATval possibleName=[${possibleName}]`);
             }
             // does name contain a namespace reference?
             let possibleNameSet: string[] = [possibleName];
@@ -3916,20 +3982,20 @@ export class Spin2DocumentSemanticParser {
                     referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                     this._logSPIN(`  --  FOUND global name=[${namePart}], referenceDetails=(${referenceDetails})`);
                     if (referenceDetails != undefined && referenceDetails?.type == "method") {
-                      const methodCallNoSpace = `${namePart}(`;
-                      const methodCallSpace = `${namePart} (`;
                       const addressOf = `@${namePart}`;
                       // FIXME: TODO: need better whitespace detection before parens!
                       // if it's not a legit method call, kill the reference
                       const searchSpace: string = multiLineSet.line.substring(nameOffset);
-                      if (!searchSpace.includes(methodCallNoSpace) && !searchSpace.includes(methodCallSpace) && !searchString.includes(addressOf)) {
+                      const methodFollowString: string = multiLineSet.line.substring(nameOffset + namePart.length);
+                      this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                      if (!isMethodCall(methodFollowString) && !searchString.includes(addressOf)) {
                         this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                         referenceDetails = undefined;
                       }
                     }
                   }
                   if (referenceDetails != undefined) {
-                    this._logSPIN(`  --  SPIN RHS name=[${namePart}], ofs=(${nameOffset})`);
+                    this._logSPIN(`  --  SPIN Am RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                     this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                       line: symbolPosition.line,
                       startCharacter: symbolPosition.character,
@@ -4131,7 +4197,7 @@ export class Spin2DocumentSemanticParser {
         let nameOffset: number = 0;
         currNameLength = possibleName.length;
         if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
-          this._logSPIN(`  -- possibleName=[${possibleName}]`);
+          this._logSPIN(`  -- Spinm possibleName=[${possibleName}]`);
           offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(possibleName, offsetInNonStringRHS);
           //nameOffset = offsetInNonStringRHS + assignmentStringOffset;
           symbolPosition = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
@@ -4170,18 +4236,18 @@ export class Spin2DocumentSemanticParser {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
               this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${referenceDetails})`);
               if (referenceDetails != undefined && referenceDetails?.type == "method") {
-                const methodCallNoSpace = `${namePart}(`;
-                const methodCallSpace = `${namePart} (`;
                 // FIXME: TODO: need better whitespace detection before parens!
                 const addressOf = `@${namePart}`;
-                if (!nonStringAssignmentRHSStr.includes(methodCallNoSpace) && !nonStringAssignmentRHSStr.includes(methodCallSpace) && !nonStringAssignmentRHSStr.includes(addressOf)) {
+                const methodFollowString: string = multiLineSet.line.substring(nameOffset + namePart.length);
+                this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                if (!isMethodCall(methodFollowString) && !nonStringAssignmentRHSStr.includes(addressOf)) {
                   this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                   referenceDetails = undefined;
                 }
               }
             }
             if (referenceDetails != undefined) {
-              this._logSPIN(`  --  SPIN RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+              this._logSPIN(`  --  SPIN Bm RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: symbolPosition.character,
@@ -4190,7 +4256,18 @@ export class Spin2DocumentSemanticParser {
                 ptTokenModifiers: referenceDetails.modifiers,
               });
             } else {
-              if (this.parseUtils.isFloatConversion(namePart) && (nonStringAssignmentRHSStr.indexOf(namePart + "(") == -1 || nonStringAssignmentRHSStr.indexOf(namePart + "()") != -1)) {
+              const methodFollowString: string = multiLineSet.lineAt(symbolPosition.line).substring(nameOffset + namePart.length);
+              this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+              if (this.parseUtils.isMethodOverride(namePart, this.parseUtils.selectedSpinVersion()) && isMethodCall(methodFollowString)) {
+                this._logSPIN(`  --  override with method coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: namePart.length,
+                  ptTokenType: "function",
+                  ptTokenModifiers: ["support"],
+                });
+              } else if (this.parseUtils.isFloatConversion(namePart) && (nonStringAssignmentRHSStr.indexOf(namePart + "(") == -1 || nonStringAssignmentRHSStr.indexOf(namePart + "()") != -1)) {
                 this._logSPIN(`  --  SPIN MISSING PARENS name=[${namePart}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
@@ -4495,19 +4572,19 @@ export class Spin2DocumentSemanticParser {
                     referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                     this._logSPIN("  --  FOUND global name=[" + namePart + "]");
                     if (referenceDetails != undefined && referenceDetails?.type == "method") {
-                      const methodCallNoSpace = `${namePart}(`;
-                      const methodCallSpace = `${namePart} (`;
                       const addressOf = `@${namePart}`;
                       // FIXME: TODO: need better whitespace detection before parens!
                       // if it's not a legit method call, kill the reference
-                      if (!line.includes(methodCallNoSpace) && !line.includes(methodCallSpace) && !searchString.includes(addressOf)) {
+                      const methodFollowString: string = line.substring(nameOffset + namePart.length);
+                      this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                      if (!isMethodCall(methodFollowString) && !searchString.includes(addressOf)) {
                         this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                         referenceDetails = undefined;
                       }
                     }
                   }
                   if (referenceDetails != undefined) {
-                    this._logSPIN("  --  SPIN RHS name=[" + namePart + "], ofs=(" + nameOffset + ")");
+                    this._logSPIN(`  --  SPIN A RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                     this._recordToken(tokenSet, line, {
                       line: lineIdx,
                       startCharacter: nameOffset,
@@ -4693,7 +4770,7 @@ export class Spin2DocumentSemanticParser {
         let nameOffset: number = 0;
         currNameLength = possibleName.length;
         if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
-          this._logSPIN(`  -- possibleName=[${possibleName}]`);
+          this._logSPIN(`  -- Spin possibleName=[${possibleName}]`);
           offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(possibleName, offsetInNonStringRHS);
           nameOffset = offsetInNonStringRHS + assignmentStringOffset;
           let bHaveObjReference: boolean = this._isPossibleObjectReference(possibleName) ? this._reportObjectReference(possibleName, lineIdx, offsetInNonStringRHS, line, tokenSet) : false;
@@ -4743,18 +4820,18 @@ export class Spin2DocumentSemanticParser {
                   this._logSPIN(`  --  EXISTS Global name=[${namePart}], BUT referenceDetails=(${referenceDetails})`);
                 }
                 if (referenceDetails != undefined && referenceDetails?.type == "method") {
-                  const methodCallNoSpace = `${namePart}(`;
-                  const methodCallSpace = `${namePart} (`;
                   // FIXME: TODO: need better whitespace detection before parens!
                   const addressOf = `@${namePart}`;
-                  if (!nonStringAssignmentRHSStr.includes(methodCallNoSpace) && !nonStringAssignmentRHSStr.includes(methodCallSpace) && !nonStringAssignmentRHSStr.includes(addressOf)) {
-                    this._logSPIN("  --  MISSING parens on method=[" + namePart + "]");
+                  const methodFollowString: string = line.substring(nameOffset + namePart.length);
+                  this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                  if (!isMethodCall(methodFollowString) && !nonStringAssignmentRHSStr.includes(addressOf)) {
+                    this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                     referenceDetails = undefined;
                   }
                 }
               }
               if (referenceDetails != undefined) {
-                this._logSPIN(`  --  SPIN RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                this._logSPIN(`  --  SPIN B RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
                   startCharacter: nameOffset,
@@ -4763,7 +4840,18 @@ export class Spin2DocumentSemanticParser {
                   ptTokenModifiers: referenceDetails.modifiers,
                 });
               } else {
-                if (this.parseUtils.isFloatConversion(namePart) && (nonStringAssignmentRHSStr.indexOf(namePart + "(") == -1 || nonStringAssignmentRHSStr.indexOf(namePart + "()") != -1)) {
+                const methodFollowString: string = line.substring(nameOffset + namePart.length);
+                this._logSPIN(`  --  methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                if (this.parseUtils.isMethodOverride(namePart, this.parseUtils.selectedSpinVersion()) && isMethodCall(methodFollowString)) {
+                  this._logSPIN(`  --  override with method coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                  this._recordToken(tokenSet, line, {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: namePart.length,
+                    ptTokenType: "function",
+                    ptTokenModifiers: ["support"],
+                  });
+                } else if (this.parseUtils.isFloatConversion(namePart) && (nonStringAssignmentRHSStr.indexOf(namePart + "(") == -1 || nonStringAssignmentRHSStr.indexOf(namePart + "()") != -1)) {
                   this._logSPIN("  --  SPIN MISSING PARENS name=[" + namePart + "]");
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
