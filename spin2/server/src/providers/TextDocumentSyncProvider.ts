@@ -61,7 +61,7 @@ export default class TextDocumentSyncProvider implements Provider {
       const updatedDoc = TextDocument.update(document, contentChanges, version);
 
       await this.processor.process(updatedDoc).then(({ parseResult }) => {
-        // Send just local parser diagnostics - can't get vasm errors until save
+        // Send just local parser diagnostics
         // FIXME: not quite correct but works for now...
         this.fileDiagnostics(uri);
       });
@@ -106,7 +106,7 @@ export default class TextDocumentSyncProvider implements Provider {
         `  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(${this.ctx.parserConfig.maxNumberOfReportedIssues}), highlightFlexspinDirectives=[${this.ctx.parserConfig.highlightFlexspinDirectives}], changes=(${configChanged})`
       );
     });
-    await this.ctx.connection.workspace.getConfiguration("Editor").then((editorConfiguration: EditorConfiguration) => {
+    await this.ctx.connection.workspace.getConfiguration("editor").then((editorConfiguration: EditorConfiguration) => {
       if (editorConfiguration == null) {
         this.ctx.logger.log(`TRC: DP.process() ERROR! get editor settings received no info: config left at defaults`);
       } else {
@@ -176,7 +176,7 @@ export default class TextDocumentSyncProvider implements Provider {
       const change = params.changes[index];
       switch (change.type) {
         case lsp.FileChangeType.Changed:
-          // dont care
+          // dont care (doc change will handle this need to reparse)
           break;
         case lsp.FileChangeType.Created:
           // cause reparse open files
@@ -215,7 +215,7 @@ export default class TextDocumentSyncProvider implements Provider {
   }
 
   /**
-   * Send diagnostics from both local parser and vasm
+   * Send diagnostics from both local parser
    */
   async fileDiagnostics(uri: string) {
     const docFSpec: string = fileSpecFromURI(uri);
@@ -223,7 +223,6 @@ export default class TextDocumentSyncProvider implements Provider {
     if (!processedDocument) {
       return;
     }
-    //const vasmDiagnostics = await this.diagnostics.vasmDiagnostics(uri);
     this.ctx.logger.log(`TRC: CHK CFG maxNumberOfReportedIssues=(${this.ctx.parserConfig.maxNumberOfReportedIssues})`);
     let captureDiagnostics: lsp.Diagnostic[] = processedDocument.parseResult.allDiagnosticMessages(this.ctx.parserConfig.maxNumberOfReportedIssues);
     //this.ctx.logger.log(`CL-TRC: captureDiagnostics=[${JSON.stringify(captureDiagnostics)}]`);

@@ -77,10 +77,10 @@ connection.onDidChangeWatchedFiles((_change) => {
     const change = _change.changes[index];
     switch (change.type) {
       case FileChangeType.Changed:
-        // dont care
+        // dont care (doc change will handle this need to reparse)
         break;
       case FileChangeType.Created:
-        // casue eparse open files
+        // cause reparse open files
         break;
       case FileChangeType.Deleted:
         // cause reparse open files

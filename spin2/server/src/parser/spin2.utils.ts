@@ -46,8 +46,8 @@ export class Spin2ParseUtils {
   }
 
   public setSpinVersion(requiredVersion: number): void {
-    if (requiredVersion >= 41 && requiredVersion != 42) {
-      this.languageVersion = requiredVersion;
+    if (requiredVersion >= 0 && requiredVersion <= 999) {
+      this.languageVersion = requiredVersion < 43 ? 0 : requiredVersion;
     }
   }
 

@@ -104,6 +104,7 @@ export class Spin2DocumentSemanticParser {
   public reportDocumentSemanticTokens(document: TextDocument, findings: DocumentFindings, dirSpec: string): void {
     this.semanticFindings = findings;
     this.directory = dirSpec;
+    const startingLangVersion: number = this.parseUtils.selectedSpinVersion();
     if (this.spin2DebugLogEnabled) {
       this.semanticFindings.enableLogging(this.ctx);
       this.parseUtils.enableLogging(this.ctx);
@@ -118,6 +119,13 @@ export class Spin2DocumentSemanticParser {
 
     // retrieve tokens to highlight, post to DocumentFindings
     const allTokens = this._parseText(document.getText());
+    const endingLangVersion: number = this.parseUtils.selectedSpinVersion();
+    if (startingLangVersion != endingLangVersion) {
+      this._logMessage(`* Spin2 LANG VERSION HUNT [${startingLangVersion} -> ${endingLangVersion}]`);
+    } else {
+      this._logMessage(`* Spin2 LANG VERSION HUNT [${startingLangVersion}]`);
+    }
+    this._checkTokenSet(allTokens);
     allTokens.forEach((token) => {
       this.semanticFindings.pushSemanticToken(token);
     });
@@ -160,6 +168,7 @@ export class Spin2DocumentSemanticParser {
     // also track and record block comments (both braces and tic's!)
     // let's also track prior single line and trailing comment on same line
     this._logMessage(`---> Pre SCAN -- `);
+    const startingLangVersion: number = this.parseUtils.selectedSpinVersion();
     this.parseUtils.setSpinVersion(0); // PRESET no override language version until we find one!
     this.bHuntingForVersion = true; // PRESET we start hunting from top of file
     let bBuildingSingleLineCmtBlock: boolean = false;
@@ -176,10 +185,15 @@ export class Spin2DocumentSemanticParser {
       const line: string = lines[i];
       const trimmedLine: string = line.trim();
       if (this.bHuntingForVersion && containsSpinLanguageSpec(trimmedLine)) {
+        this._logMessage(`  -- POSSIBLE spec: stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
         this.bHuntingForVersion = false; // done we found it
         const newLangVersion: number = versionFromSpinLanguageSpec(trimmedLine);
-        this.parseUtils.setSpinVersion(newLangVersion);
-        this._logMessage(`  -- found Spin2 version (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+        if (newLangVersion != startingLangVersion) {
+          this.parseUtils.setSpinVersion(newLangVersion);
+          this._logMessage(`  -- found Spin2 NEW version (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+        } else {
+          this._logMessage(`  -- found Spin2 SAME version (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+        }
       }
       const lineWOutInlineComments: string = this.parseUtils.getLineWithoutInlineComments(line);
       const bHaveLineToProcess: boolean = lineWOutInlineComments.length > 0;
@@ -1091,7 +1105,6 @@ export class Spin2DocumentSemanticParser {
         pendingState = eParseState.Unknown;
       }
     }
-    this._checkTokenSet(tokenSet);
     return tokenSet;
   }
 
