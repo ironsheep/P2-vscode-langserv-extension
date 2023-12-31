@@ -1,4 +1,4 @@
-# VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
+# VSCode support for the Parallax Propeller v1 & v2 8-Core MCU's
 
 ![Project Maintenance][maintenance-shield]
 [![License][license-shield]](LICENSE) 
