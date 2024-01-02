@@ -18,6 +18,14 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.12] 2024-01-02
+
+Update P1 and P2
+
+- Clean up Syntax recognition of block names - Statements like 'DAT{{' caused problems (exposed other potential issues, which are now fixed)
+- Clean up Semantic highlighting of code in presence of statements like 'DAT{{'
+- P2 BUGFIX repair VAR name detection when storage type not provided
+
 ## [2.2.11] 2023-12-30
 
 Update P2 Only

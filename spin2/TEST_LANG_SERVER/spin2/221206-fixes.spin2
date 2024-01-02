@@ -55,7 +55,6 @@ pn_             res     1       'pin(s)
 ' -----------------------------------------------------------------
 
 CON
-  _clkfreq = 100_000_000
   debug_main					'single-step through main code <---- BAD debug_main is NOT a constant
 
   debug_coginit					'single-step through main code <---- BAD debug_main is NOT a constant
@@ -105,7 +104,7 @@ DAT
 launch_spin	loc	ptrb,#\$80000		'point to zeroes in empty hub space
 
 ' -----------------------------------------------------------------
-CON _clkfreq = 200_000_000
+CON
 
     'debug_main				'uncomment to single-step through everything, even COGINITs
     'debug_coginit			'uncomment to break on COGINITs

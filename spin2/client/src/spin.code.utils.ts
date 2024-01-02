@@ -112,7 +112,7 @@ export class SpinCodeUtils {
       }
     }
     if (startStatus) {
-      this._logMessage("** isSectStart line=[" + line + "]");
+      this._logMessage(`** isSectStart codeUt line=[${line}]`);
     }
     return {
       isSectionStart: startStatus,

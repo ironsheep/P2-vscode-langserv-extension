@@ -67,6 +67,11 @@ export class Spin1DocumentSymbolParser {
         continue;
       }
 
+      const sectionStatus = this.extensionUtils.isSectionStartLine(line);
+      if (sectionStatus.isSectionStart) {
+        nonCommentLine = nonCommentLine.substring(3);
+      }
+
       // skip all {{ --- }} multi-line doc comments
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
@@ -128,13 +133,12 @@ export class Spin1DocumentSymbolParser {
         }
       }
 
-      const sectionStatus = this.extensionUtils.isSectionStartLine(line);
       if (sectionStatus.isSectionStart) {
         currState = sectionStatus.inProgressStatus;
       }
 
       if (line.length > 2) {
-        const lineParts: string[] = linePrefix.split(/[ \t]/).filter(Boolean);
+        const lineParts: string[] = linePrefix.split(/[ \t\{\']/).filter(Boolean);
         linePrefix = lineParts.length > 0 ? lineParts[0].toUpperCase() : "";
         // the only form of comment we care about here is block comment after section name (e.g., "CON { text }")
         //  NEW and let's add the use of ' comment too
@@ -285,9 +289,9 @@ export class Spin1DocumentSymbolParser {
     // get line parts - we only care about first one
     const dataDeclNonCommentStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     let lineParts: string[] = this.parseUtils.getNonWhiteNParenLineParts(dataDeclNonCommentStr);
-    //this._logMessage("- Oln GetDatDecl lineParts=[" + lineParts + "](" + lineParts.length + ")");
+    this._logMessage(`- Oln GetDatDecl lineParts=[${lineParts}](${lineParts.length})`);
     let haveMoreThanDat: boolean = lineParts.length > 1 && lineParts[0].toUpperCase() == "DAT";
-    if (haveMoreThanDat || lineParts[0].toUpperCase() != "DAT") {
+    if (haveMoreThanDat || (lineParts.length > 0 && lineParts[0].toUpperCase() != "DAT")) {
       // remember this object name so we can annotate a call to it
       let nameIndex: number = 0;
       let typeIndex: number = 1;

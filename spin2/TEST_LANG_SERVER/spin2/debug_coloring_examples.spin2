@@ -48,7 +48,6 @@ PUB go() | i
 ' -----------------
 '  SCOPE (2)
 
-CON _clkfreq = 100_000_000
 
 PUB go2() | a, af, b, bf
   debug(`SCOPE MyScope)
@@ -63,7 +62,6 @@ PUB go2() | a, af, b, bf
 
 ' -----------------
 ' TERM (1)
-CON _clkfreq = 10_000_000
 
 PUB go3() | i
   debug(`TERM MyTerm SIZE 9 1 TEXTSIZE 40)
@@ -75,7 +73,6 @@ PUB go3() | i
 ' -----------------
 ' LOGIC (1)
 
-CON _clkfreq = 10_000_000
 PUB go4() | i
   debug(`LOGIC MyLogic SAMPLES 32 'Low' 3 'Mid' 2 'High')
   debug(`MyLogic TRIGGER $07 $04 HOLDOFF 2)
@@ -87,14 +84,13 @@ PUB go4() | i
 ' -----------------
 ' LOGIC (2)
 
-CON _clkfreq  = 333_333_333  'go really fast, 3ns clock period
-    rxpin = 24
+CON rxpin = 24
     txpin = rxpin + 1
     samps = 32
     bufflongs = samps / 16
     xmode = $D0800000 + rxpin << 17 + samps   'streamer mode
 
-VAR     buff[bufflongs]
+VAR     buff[bufflongs + samps]
 
 PUB go5() | i, buffaddr
 
@@ -125,7 +121,6 @@ repeat
 ' -----------------
 ' FFT
 
-CON _clkfreq = 100_000_000
 PUB go6() | i, j, k
   ' Set up FFT
   debug(`FFT MyFFT SIZE 250 200 SAMPLES 2048 0 127 RATE 256 LOGSCALE COLOR YELLOW 4 YELLOW 5)
@@ -143,7 +138,6 @@ PUB go6() | i, j, k
 ' -----------------
 ' Spectro
 
-CON _clkfreq = 100_000_000
 PUB go7() | i, j, k
   ' Set up SPECTRO
   debug(`SPECTRO MySpectro SAMPLES 2048 0 236 RANGE 1000 LUMA8X GREEN)
@@ -160,7 +154,6 @@ PUB go7() | i, j, k
 ' -----------------
 ' Plot
 
-CON _clkfreq = 10_000_000
 PUB go8(): i, j, k
   debug(`plot myplot size 400 480 backcolor white update)
   debug(`myplot origin 200 200 polar -64 -16)
@@ -189,7 +182,6 @@ PUB go8(): i, j, k
 ' -----------------
 ' Bitmap
 
-CON _clkfreq = 10_000_000
 PUB go9() | i
   debug(`bitmap MyBitmap SIZE 32 16 DOTSIZE 8 LUT2 LONGS_2BIT)
   debug(`MyBitmap TRACE 14 LUTCOLORS WHITE RED BLUE YELLOW 6)
@@ -233,7 +225,6 @@ flag    long %%3333333333333330
 ' -----------------
 ' Bitmap (2)
 
-CON _clkfreq = 100_000_000
 PUB go10() | i
     debug(`bitmap a title 'LUT1'  pos 100 100 trace 2 lut1 longs_1bit alt)
     debug(`bitmap b title 'LUT2'  pos 370 100 trace 2 lut2 longs_2bit alt)

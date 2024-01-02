@@ -1600,7 +1600,7 @@ export class DocumentFindings {
   }
 
   public setOutlineSymbol(newSymbol: OutLineSymbol) {
-    this._logMessage(`  OUTLINE setOutlineSymbol(${newSymbol.label}) = ${newSymbol.kind}`);
+    this._logMessage(`  OUTLINE setOutlineSymbol(${newSymbol.label}) = ${newSymbol.kind()}`);
     this.outlineSymbols.push(newSymbol);
   }
 

@@ -35,12 +35,12 @@ CON
 ' -----------------------------------------------------------------------------
 
    CON_NAME = CLKMODE
-   CON_NAME = CLKFREQ
+   CON_NAME2 = CLKFREQ
 
 CON
 
-   CON_NAME = CLKMODE
-   CON_NAME = CLKFREQ
+   CON_NAME3 = CLKMODE
+   CON_NAME4 = CLKFREQ
 
 PUB something()
 

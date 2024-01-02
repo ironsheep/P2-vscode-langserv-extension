@@ -108,8 +108,8 @@
     },
     "constant_block": {
       "name": "meta.block.constant.spin2",
-      "begin": "(?i)^(CON)(\\s+|\\s*$)",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)(\\s+|\\s*$))",
+      "begin": "(?i)^(CON)\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.con.spin2"
@@ -153,7 +153,7 @@
     },
     "constant_top_block": {
       "name": "meta.block.constant.spin2",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)(\\s+|\\s*$))",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "patterns": [
         {
           "include": "#comment"
@@ -196,8 +196,8 @@
     },
     "data_block": {
       "name": "meta.block.data.spin2",
-      "begin": "(?i)^(DAT)(\\s+|\\s*$)",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)(\\s+|\\s*$))",
+      "begin": "(?i)^(DAT)\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.dat.spin2"
@@ -319,8 +319,8 @@
     },
     "object_block": {
       "name": "meta.block.object.spin2",
-      "begin": "(?i)^(OBJ)(\\s+|\\s*$)",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)(\\s+|\\s*$))",
+      "begin": "(?i)^(OBJ)\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.obj.spin2"
@@ -552,8 +552,8 @@
     },
     "pasm_language_inline": {
       "name": "meta.block.pasm.language.inline.spin2",
-      "begin": "(?i)\\b(ORG|ASM)(\\s+|\\s*$)",
-      "end": "(?i)\\b(END|ENDASM)(\\s+|\\s*$)",
+      "begin": "(?i)\\b(ORG|ASM)\\b",
+      "end": "(?i)\\b(END|ENDASM)\\b",
       "beginCaptures": {
         "1": {
           "name": "storage.modifier.spin2"
@@ -593,8 +593,8 @@
     },
     "private_block": {
       "name": "meta.block.private.spin2",
-      "begin": "(?i)^(PRI)(\\s+|\\s*$)",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)(\\s+|\\s*$))",
+      "begin": "(?i)^(PRI)(\\s+)",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.pri.spin2"
@@ -614,8 +614,8 @@
     },
     "public_block": {
       "name": "meta.block.public.spin",
-      "begin": "(?i)^(PUB)(\\s+|\\s*$)",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)(\\s+|\\s*$))",
+      "begin": "(?i)^(PUB)(\\s+)",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.pub.spin2"
@@ -874,8 +874,8 @@
     },
     "variable_block": {
       "name": "meta.block.variable.spin2",
-      "begin": "(?i)^(VAR)(\\s+|\\s*$)",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)(\\s+|\\s*$))",
+      "begin": "(?i)^(VAR)\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.var.spin2"

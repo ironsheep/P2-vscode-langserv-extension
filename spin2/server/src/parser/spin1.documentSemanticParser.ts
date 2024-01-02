@@ -148,11 +148,14 @@ export class Spin1DocumentSemanticParser {
       const trimmedLine = line.trim();
       const lineWOutInlineComments: string = this.parseUtils.getLineWithoutInlineComments(line);
       const bHaveLineToProcess: boolean = lineWOutInlineComments.length > 0;
-      const trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getRemainderWOutTrailingTicComment(0, lineWOutInlineComments).trimStart() : "";
+      var trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getRemainderWOutTrailingTicComment(0, lineWOutInlineComments).trimStart() : "";
       const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
       const tempComment = line.substring(trimmedNonCommentLine.length + offSet).trim();
       this.rightEdgeComment = tempComment.length > 0 ? tempComment : undefined;
       const sectionStatus = this.extensionUtils.isSectionStartLine(line);
+      if (sectionStatus.isSectionStart) {
+        trimmedNonCommentLine = trimmedNonCommentLine.substring(3);
+      }
       const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
       // special blocks of doc-comment and non-doc comment lines handling
@@ -516,14 +519,18 @@ export class Spin1DocumentSemanticParser {
       const trimmedLine = line.trim();
       const lineWOutInlineComments: string = this.parseUtils.getLineWithoutInlineComments(line);
       const bHaveLineToProcess: boolean = lineWOutInlineComments.length > 0;
-      const trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getRemainderWOutTrailingTicComment(0, lineWOutInlineComments).trimStart() : "";
+      let trimmedNonCommentLine: string = bHaveLineToProcess ? this.parseUtils.getRemainderWOutTrailingTicComment(0, lineWOutInlineComments).trimStart() : "";
       const sectionStatus = this.extensionUtils.isSectionStartLine(line);
+      if (sectionStatus.isSectionStart) {
+        trimmedNonCommentLine = trimmedNonCommentLine.substring(3);
+      }
       const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
         // ALLOW {cmt}, {{cmt}} on same line without closing!
-        let closingOffset = lineWOutInlineComments.indexOf("}}");
+        //this._logMessage(`    hunt for '}}' Ln#${lineNbr} trimmedNonCommentLine=[${trimmedNonCommentLine}]`);
+        let closingOffset = trimmedNonCommentLine.indexOf("}}");
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
@@ -535,11 +542,11 @@ export class Spin1DocumentSemanticParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {...} on same line without closing!
-        this._logMessage("    hunt for '}' Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
+        //this._logMessage(`    hunt for '}' Ln#${lineNbr} lineWOutInlineComments=[${lineWOutInlineComments}]`);
         const closingOffset: number = lineWOutInlineComments.indexOf("}");
         if (closingOffset != -1) {
           // have close, comment ended
-          this._logMessage("    FOUND '}' Ln#" + lineNbr + " trimmedLine=[" + trimmedLine + "]");
+          this._logMessage(`    FOUND '}' Ln#${lineNbr} trimmedLine=[${trimmedLine}]`);
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment`);
         } else {
@@ -552,6 +559,70 @@ export class Spin1DocumentSemanticParser {
           tokenSet.push(newToken);
         });
         continue;
+      } else if (trimmedLine.startsWith("''")) {
+        // process single line doc comment
+        //  DO NOTHING Let Syntax highlighting do this
+      } else if (trimmedLine.startsWith("'")) {
+        // process single line non-doc comment
+        //  DO NOTHING Let Syntax highlighting do this
+      } else if (trimmedNonCommentLine.startsWith("{{")) {
+        // process multi-line doc comment
+        let openingOffset = trimmedNonCommentLine.indexOf("{{");
+        const closingOffset = trimmedNonCommentLine.indexOf("}}", openingOffset + 2);
+        if (closingOffset != -1) {
+          // is single-line {{comment}}, just ignore it Let Syntax highlighting do this
+        } else {
+          // is open of multiline comment
+          priorState = currState;
+          currState = eParseState.inMultiLineDocComment;
+          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment`);
+          //  DO NOTHING Let Syntax highlighting do this
+        }
+        continue;
+      } else if (trimmedNonCommentLine.startsWith("{")) {
+        // process possible multi-line non-doc comment
+        // do we have a close on this same line?
+        let openingOffset = trimmedNonCommentLine.indexOf("{");
+        const closingOffset = trimmedNonCommentLine.indexOf("}", openingOffset + 1);
+        if (closingOffset != -1) {
+          // is single line {comment}, just ignore it Let Syntax highlighting do this
+        } else {
+          // is open of multiline comment
+          priorState = currState;
+          currState = eParseState.inMultiLineComment;
+          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment`);
+          //  DO NOTHING Let Syntax highlighting do this
+        }
+        continue;
+      } else if (trimmedNonCommentLine.includes("{{")) {
+        // process multi-line doc comment
+        let openingOffset = trimmedNonCommentLine.indexOf("{{");
+        const closingOffset = trimmedNonCommentLine.indexOf("}}", openingOffset + 2);
+        if (closingOffset != -1) {
+          // is single line {{comment}}, just ignore it Let Syntax highlighting do this
+        } else {
+          // is open of multiline comment
+          priorState = currState;
+          currState = eParseState.inMultiLineDocComment;
+          this._logMessage(`* Ln#${lineNbr} foundMuli mid-{{ starting MultiLineDocComment`);
+          //  DO NOTHING Let Syntax highlighting do this
+        }
+        // don't continue there might be some text to process before the {{
+      } else if (trimmedNonCommentLine.includes("{")) {
+        // process possible multi-line non-doc comment
+        // do we have a close on this same line?
+        let openingOffset = trimmedNonCommentLine.indexOf("{");
+        const closingOffset = trimmedNonCommentLine.indexOf("}", openingOffset + 1);
+        if (closingOffset != -1) {
+          // is single line comment, just ignore it Let Syntax highlighting do this
+        } else {
+          // is open of multiline comment
+          priorState = currState;
+          currState = eParseState.inMultiLineComment;
+          this._logMessage(`* Ln#${lineNbr} foundMuli mid-{ starting MultiLineComment`);
+          //  DO NOTHING Let Syntax highlighting do this
+        }
+        // don't continue there might be some text to process before the {{
       } else if (sectionStatus.isSectionStart) {
         currState = sectionStatus.inProgressStatus;
         this._logState("  -- Ln#" + lineNbr + " currState=[" + currState + "]");
@@ -638,70 +709,6 @@ export class Spin1DocumentSemanticParser {
             });
           }
         }
-      } else if (trimmedLine.startsWith("''")) {
-        // process single line doc comment
-        //  DO NOTHING Let Syntax highlighting do this
-      } else if (trimmedLine.startsWith("'")) {
-        // process single line non-doc comment
-        //  DO NOTHING Let Syntax highlighting do this
-      } else if (trimmedNonCommentLine.startsWith("{{")) {
-        // process multi-line doc comment
-        let openingOffset = trimmedNonCommentLine.indexOf("{{");
-        const closingOffset = trimmedNonCommentLine.indexOf("}}", openingOffset + 2);
-        if (closingOffset != -1) {
-          // is single-line {{comment}}, just ignore it Let Syntax highlighting do this
-        } else {
-          // is open of multiline comment
-          priorState = currState;
-          currState = eParseState.inMultiLineDocComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment`);
-          //  DO NOTHING Let Syntax highlighting do this
-        }
-        continue;
-      } else if (trimmedNonCommentLine.startsWith("{")) {
-        // process possible multi-line non-doc comment
-        // do we have a close on this same line?
-        let openingOffset = trimmedNonCommentLine.indexOf("{");
-        const closingOffset = trimmedNonCommentLine.indexOf("}", openingOffset + 1);
-        if (closingOffset != -1) {
-          // is single line {comment}, just ignore it Let Syntax highlighting do this
-        } else {
-          // is open of multiline comment
-          priorState = currState;
-          currState = eParseState.inMultiLineComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment`);
-          //  DO NOTHING Let Syntax highlighting do this
-        }
-        continue;
-      } else if (trimmedNonCommentLine.includes("{{")) {
-        // process multi-line doc comment
-        let openingOffset = trimmedNonCommentLine.indexOf("{{");
-        const closingOffset = trimmedNonCommentLine.indexOf("}}", openingOffset + 2);
-        if (closingOffset != -1) {
-          // is single line {{comment}}, just ignore it Let Syntax highlighting do this
-        } else {
-          // is open of multiline comment
-          priorState = currState;
-          currState = eParseState.inMultiLineDocComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli mid-{{ starting MultiLineDocComment`);
-          //  DO NOTHING Let Syntax highlighting do this
-        }
-        // don't continue there might be some text to process before the {{
-      } else if (trimmedNonCommentLine.includes("{")) {
-        // process possible multi-line non-doc comment
-        // do we have a close on this same line?
-        let openingOffset = trimmedNonCommentLine.indexOf("{");
-        const closingOffset = trimmedNonCommentLine.indexOf("}", openingOffset + 1);
-        if (closingOffset != -1) {
-          // is single line comment, just ignore it Let Syntax highlighting do this
-        } else {
-          // is open of multiline comment
-          priorState = currState;
-          currState = eParseState.inMultiLineComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli mid-{ starting MultiLineComment`);
-          //  DO NOTHING Let Syntax highlighting do this
-        }
-        // don't continue there might be some text to process before the {{
       } else if (currState == eParseState.inCon) {
         // process a line in a constant section
         if (bHaveLineToProcess) {
@@ -2337,7 +2344,7 @@ export class Spin1DocumentSemanticParser {
                   }
                 }
               }
-              currentOffset = nameOffset + 1;
+              currentOffset = nameOffset + variableNamePart.length;
             }
           } else {
             // have simple target name, no []
@@ -2420,9 +2427,8 @@ export class Spin1DocumentSemanticParser {
                 }
               }
             }
-            currentOffset = nameOffset + 1;
+            currentOffset = nameOffset + cleanedVariableName.length;
           }
-          currentOffset = nameOffset + 1;
         }
       }
       // -------------------------------------------

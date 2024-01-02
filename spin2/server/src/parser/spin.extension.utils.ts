@@ -78,7 +78,7 @@ export class ExtensionUtils {
       }
     }
     if (startStatus) {
-      this._logMessage("** isSectStart line=[" + line + "]");
+      this._logMessage(`** isSectStart extUt line=[${line}]`);
     }
     return {
       isSectionStart: startStatus,

@@ -321,6 +321,22 @@ export class Spin2ParseUtils {
     return nonDocCommentRHSStr;
   }
 
+  public getNonWhiteDataDeclarationLineParts(line: string): string[] {
+    const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
+    const lineParts: string[] | null = nonEqualsLine.match(/[^ \t\,\(\)\+\-\/\<\>\|\&\*\^\@]+/g);
+    let filterParts: string[] = [];
+    if (lineParts != null) {
+      for (let index = 0; index < lineParts.length; index++) {
+        const element = lineParts[index];
+        if (element.length > 0) {
+          filterParts.push(element);
+        }
+      }
+    }
+
+    return filterParts;
+  }
+
   public getNonWhiteDataInitLineParts(line: string): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
     const lineParts: string[] | null = nonEqualsLine.match(/[^ \t\,\[\]\(\)\+\-\/\<\>\|\&\*\^\@]+/g);

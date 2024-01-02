@@ -1,6 +1,6 @@
 CON
 
-PUB main() : ok
+PUB main : ok
 '' our main entry point
 ''
 '' @returns ok - return T/F where T means start succeeded
