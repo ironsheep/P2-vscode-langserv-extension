@@ -18,6 +18,12 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.13] 2024-01-09
+
+Update P2
+
+- Fix a broken case of filename parsing (hyphens in filename)
+
 ## [2.2.12] 2024-01-02
 
 Update P1 and P2

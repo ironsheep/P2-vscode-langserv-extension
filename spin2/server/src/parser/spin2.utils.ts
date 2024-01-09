@@ -701,7 +701,7 @@ export class Spin2ParseUtils {
   }
 
   public getNonWhiteNOperatorLineParts(line: string): string[] {
-    let lineParts: string[] | null = line.match(/[^ \t\-\+\<\>]+/g);
+    let lineParts: string[] | null = line.match(/[^ \t\+\<\>]+/g);
     return lineParts == null ? [] : lineParts;
   }
 
