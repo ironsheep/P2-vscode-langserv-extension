@@ -1,10 +1,11 @@
 {
   "editor.insertSpaces": false,
   "typescript.tsc.autoDetect": "off",
+  "typescript.referencesCodeLens.enabled": false,
   "typescript.preferences.quoteStyle": "single",
   "editor.codeActionsOnSave": {
-	"source.fixAll.eslint": "explicit"
-},
+    "source.fixAll.eslint": "explicit"
+  },
   "files.exclude": {
     "**/.git": true,
     "**/.svn": true,
@@ -18,5 +19,4 @@
     "**/out": true
   },
   "explorerExclude.backup": {}
-  //"spin2Server.trace.server": "verbose"
 }

@@ -1,6 +1,6 @@
 // See https://aka.ms/vscode-remote/devcontainer.json for format details.
 {
-  "name": "My Extension Development",
+  "name": "Spin2 Langauge Server Development",
   "image": "node:latest",
   "context": "..",
   "appPort": ["5001:5001", "9123:8123"],
