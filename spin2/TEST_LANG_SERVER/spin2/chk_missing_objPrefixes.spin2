@@ -24,12 +24,15 @@ CON
 OBJ
     Flash : "dummy_Draft_flash_fs"
     utils : "dummy_UT_utilities"
+    testAr[2]: "dummy_isp_hub75_7seg"
 
 DAT
 
 testfile        byte "seektest.bin", 0
 
 PUB go() : status, handle, longValue, longOffset
+
+    testAr[1].showDigit()
 
     status := Flash.format()      ' Comment out this line to not erase all files
     if status < 0

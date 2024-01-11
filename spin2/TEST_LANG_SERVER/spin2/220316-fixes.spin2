@@ -17,7 +17,7 @@ CON		_clkfreq	= 250_000_000	'system clock frequency
 		gtzl_base	= 16		'must be a multiple of 8
 
 DAT		org
-' org (above) is not colored correctly unless comment follows?!
+' org (above) is not colored correctly unless comment follows?! (fixed)
 		asmclk				'set clock
 
 		setq	#gtzl_base		'launch Goertzel
@@ -29,7 +29,6 @@ DAT		org
 		jmp	 #.loop
 
 DAT		org
-' org is not colored correctly unless comment follows?!
 
 pgm_gtzl	add	ptra,#7			'init ADC pin
 		wrpin	adcmode,ptra

@@ -13,6 +13,7 @@
     "editor.inactiveSelectionBackground": "#666666e0",
     "editor.selectionBackground": "#222222e0",
     "editor.selectionHighlightBackground": "#d59880",
+	"editorCursor.foreground": "#000000",
     "editorIndentGuide.activeBackground1": "#939393",
     "editorIndentGuide.background1": "#D3D3D3",
     "editorSuggestWidget.background": "#F3F3F3",
@@ -43,7 +44,8 @@
     "tab.lastPinnedBorder": "#61616130",
     "terminal.foreground": "#cccccc",
     "terminal.inactiveSelectionBackground": "#E5EBF1",
-    "widget.border": "#d4d4d4"
+	"terminalCursor.foreground": "#333333",
+	"widget.border": "#d4d4d4"
   },
   "tokenColors": [
     {

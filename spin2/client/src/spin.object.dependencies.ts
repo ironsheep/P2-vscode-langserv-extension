@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 // https://code.visualstudio.com/api/ux-guidelines/views
 // https://code.visualstudio.com/api/extension-guides/tree-view#treeview
@@ -6,18 +6,19 @@
 // icons
 //   https://code.visualstudio.com/api/references/icons-in-labels
 
-import * as vscode from "vscode";
-import * as path from "path";
-import * as fs from "fs";
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 //import * as ic from "iconv";
-import { SpinCodeUtils, eParseState } from "./spin.code.utils";
-import { isSpinFile } from "./spin.vscode.utils";
+import { SpinCodeUtils, eParseState } from './spin.code.utils';
+import { isSpinFile } from './spin.vscode.utils';
 
 export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
-  private rootPath: string | undefined = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0 ? vscode.workspace.workspaceFolders[0].uri.fsPath : undefined;
+  private rootPath: string | undefined =
+    vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0 ? vscode.workspace.workspaceFolders[0].uri.fsPath : undefined;
   private bFixHierToTopLevel: boolean = false;
-  private topLevelFSpec: string = "";
-  private topLevelFName: string = "";
+  private topLevelFSpec: string = '';
+  private topLevelFName: string = '';
 
   private objTreeDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private objTreeOutputChannel: vscode.OutputChannel | undefined = undefined;
@@ -26,31 +27,33 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private spinCodeUtils: SpinCodeUtils = new SpinCodeUtils();
 
   // https://code.visualstudio.com/api/extension-guides/tree-view#view-container
-  private _onDidChangeTreeData: vscode.EventEmitter<Dependency | undefined | null | void> = new vscode.EventEmitter<Dependency | undefined | null | void>();
+  private _onDidChangeTreeData: vscode.EventEmitter<Dependency | undefined | null | void> = new vscode.EventEmitter<
+    Dependency | undefined | null | void
+  >();
   readonly onDidChangeTreeData: vscode.Event<Dependency | undefined | null | void> = this._onDidChangeTreeData.event;
 
   constructor() {
     if (this.objTreeDebugLogEnabled) {
       if (this.objTreeOutputChannel === undefined) {
         //Create output channel
-        this.objTreeOutputChannel = vscode.window.createOutputChannel("Spin/Spin2 ObjTree DEBUG");
-        this.logMessage("Spin/Spin2 ObjTree log started.");
+        this.objTreeOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 ObjTree DEBUG');
+        this.logMessage('Spin/Spin2 ObjTree log started.');
       } else {
-        this.logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this.logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
     // add subscriptions
     vscode.window.onDidChangeActiveTextEditor(() => this.onActiveEditorChanged());
     //vscode.workspace.onDidChangeTextDocument(e => this.onDocumentChanged(e));
     if (!this.rootPath) {
-      this.logMessage("+ (DBG) ObjDep: no root path!");
+      this.logMessage('+ (DBG) ObjDep: no root path!');
     } else {
       let topFileBaseName: string | undefined = undefined;
       const fullConfiguration = vscode.workspace.getConfiguration();
       //this.logMessage(`+ (DBG) fullConfiguration=${JSON.stringify(fullConfiguration)}`);
       this.logMessage(`+ (DBG) fullConfiguration=${fullConfiguration}`);
-      if (fullConfiguration.has("topLevel")) {
-        topFileBaseName = vscode.workspace.getConfiguration().get("topLevel"); // this worked!
+      if (fullConfiguration.has('topLevel')) {
+        topFileBaseName = vscode.workspace.getConfiguration().get('topLevel'); // this worked!
       } else {
         this.logMessage(`+ (DBG) topLevel key NOT present!`);
       }
@@ -104,13 +107,13 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
   getChildren(element?: Dependency): Thenable<Dependency[]> {
     if (!this.rootPath) {
-      vscode.window.showInformationMessage("No dependency in empty workspace");
-      let noDep = new Dependency("No object references in empty workspace", "", vscode.TreeItemCollapsibleState.None);
+      vscode.window.showInformationMessage('No dependency in empty workspace');
+      const noDep = new Dependency('No object references in empty workspace', '', vscode.TreeItemCollapsibleState.None);
       noDep.removeIcon(); // this is message, don't show icon
       return Promise.resolve([noDep]);
     }
 
-    let subDeps: Dependency[] = [];
+    const subDeps: Dependency[] = [];
     if (element) {
       this.logMessage(`+ (DBG) ObjDep: getChildren() element=[${element?.label}]`);
       // get for underlying file
@@ -118,7 +121,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       const fileSpec = path.join(this.rootPath, fileBasename);
       if (!this._fileExists(fileSpec)) {
         this.logMessage(`+ (DBG) ObjDep: getChildren() element=[${fileBasename}] has (???) deps - MISSING FILE`);
-        let topState: vscode.TreeItemCollapsibleState = this._stateForDependCount(0);
+        const topState: vscode.TreeItemCollapsibleState = this._stateForDependCount(0);
         const subDep = new Dependency(element.label, element.descriptionString, topState);
         subDep.setFileMissing();
         subDeps.push(subDep);
@@ -130,11 +133,11 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
           // huh, is this if really needed?
           if (this._fileExists(depFileSpec)) {
             const subSpinDeps = this._getDepsFromSpinFile(depFileSpec);
-            let topState: vscode.TreeItemCollapsibleState = this._stateForDependCount(subSpinDeps.length);
+            const topState: vscode.TreeItemCollapsibleState = this._stateForDependCount(subSpinDeps.length);
             const subDep = new Dependency(depency.baseName, depency.knownAs, topState);
             subDeps.push(subDep);
           } else {
-            let topState: vscode.TreeItemCollapsibleState = this._stateForDependCount(0);
+            const topState: vscode.TreeItemCollapsibleState = this._stateForDependCount(0);
             const subDep = new Dependency(depency.baseName, depency.knownAs, topState);
             subDep.setFileMissing();
             subDeps.push(subDep);
@@ -146,7 +149,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       // get for project top level file
       let spinDeps = [];
       if (this.isDocument) {
-        let textEditor = vscode.window.activeTextEditor;
+        const textEditor = vscode.window.activeTextEditor;
         if (textEditor) {
           spinDeps = this._getDepsFromDocument(textEditor.document);
         }
@@ -159,12 +162,12 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
         topState = vscode.TreeItemCollapsibleState.Expanded; // always leave top-level expanded?
       }
       if (spinDeps.length > 0) {
-        let topDep = new Dependency(this.topLevelFName, "(top-file)", topState);
+        const topDep = new Dependency(this.topLevelFName, '(top-file)', topState);
         subDeps.push(topDep);
       } else {
         //vscode.window.showInformationMessage("Workspace has no package.json");
-        let emptyMessage: string = "No object references found in `" + `${this.topLevelFName}` + "`";
-        let emptyDep = new Dependency(emptyMessage, "", vscode.TreeItemCollapsibleState.None);
+        const emptyMessage: string = 'No object references found in `' + `${this.topLevelFName}` + '`';
+        const emptyDep = new Dependency(emptyMessage, '', vscode.TreeItemCollapsibleState.None);
         emptyDep.removeIcon(); // this is message, don't show icon
         subDeps.push(emptyDep);
       }
@@ -185,13 +188,13 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   //}
 
   refresh(): void {
-    this.logMessage("+ (DBG) ObjDep: refresh()");
+    this.logMessage('+ (DBG) ObjDep: refresh()');
     this._onDidChangeTreeData.fire();
   }
 
   private async _showDocument(fileFSpec: string) {
     this.logMessage(`+ (DBG) ObjDep: _showDocument() [${fileFSpec}]`);
-    let textDocument = await vscode.workspace.openTextDocument(fileFSpec);
+    const textDocument = await vscode.workspace.openTextDocument(fileFSpec);
     await vscode.window.showTextDocument(textDocument, { preview: false });
   }
 
@@ -199,9 +202,9 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     const bHasFileType: boolean = isSpinFile(filename) ? true : false; // matches .spin and .spin2! (not .spin3, etc.)
     let desiredName: string = filename;
     if (!bHasFileType) {
-      desiredName = filename + ".spin";
+      desiredName = filename + '.spin';
       if (!this._fileExists(desiredName)) {
-        desiredName = filename + ".spin2";
+        desiredName = filename + '.spin2';
       }
     }
     return desiredName;
@@ -213,7 +216,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       if (!this.bFixHierToTopLevel) {
         const fileFSpec: string = this._getActiveSpinFile();
         const enabled: boolean = isSpinFile(fileFSpec) ? true : false; // matches .spin and .spin2
-        vscode.commands.executeCommand("setContext", "spinExtension.objectDeps.enabled", enabled);
+        vscode.commands.executeCommand('setContext', 'spinExtension.objectDeps.enabled', enabled);
         if (enabled) {
           // set new file top
           this.topLevelFSpec = fileFSpec;
@@ -224,22 +227,22 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
         }
       } else {
         // we have topLevel for this workspace, stay enabled
-        vscode.commands.executeCommand("setContext", "spinExtension.objectDeps.enabled", true);
+        vscode.commands.executeCommand('setContext', 'spinExtension.objectDeps.enabled', true);
       }
     } else {
-      vscode.commands.executeCommand("setContext", "spinExtension.objectDeps.enabled", false);
+      vscode.commands.executeCommand('setContext', 'spinExtension.objectDeps.enabled', false);
     }
   }
 
   private _getActiveSpinFile(): string {
     const textEditor = vscode.window.activeTextEditor;
-    let foundFSpec: string = "";
+    let foundFSpec: string = '';
     if (textEditor) {
-      if (textEditor.document.uri.scheme === "file") {
+      if (textEditor.document.uri.scheme === 'file') {
         this.isDocument = true; // we're loading initial deps from current tab, not file!
-        var currentlyOpenTabFSpec = textEditor.document.uri.fsPath;
+        const currentlyOpenTabFSpec = textEditor.document.uri.fsPath;
         //var currentlyOpenTabfolderName = path.dirname(currentlyOpenTabFSpec);
-        var currentlyOpenTabfileName = path.basename(currentlyOpenTabFSpec);
+        const currentlyOpenTabfileName = path.basename(currentlyOpenTabFSpec);
         //this.logMessage(`+ (DBG) ObjDep: fsPath-(${currentlyOpenTabFSpec})`);
         //this.logMessage(`+ (DBG) ObjDep: folder-(${currentlyOpenTabfolderName})`);
         this.logMessage(`+ (DBG) ObjDep: filename-(${currentlyOpenTabfileName})`);
@@ -270,17 +273,17 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     this.logMessage(`+ (DBG) ObjDep: _getDepsFromDocument()`);
     let currState: eParseState = eParseState.inCon; // compiler defaults to CON at start!
     let priorState: eParseState = currState;
-    let deps = [];
+    const deps = [];
     for (let i = 0; i < activeEditDocument.lineCount; i++) {
-      let line = activeEditDocument.lineAt(i);
-      const trimmedLine: string = line.text.replace(/\s+$/, "");
+      const line = activeEditDocument.lineAt(i);
+      const trimmedLine: string = line.text.replace(/\s+$/, '');
       if (trimmedLine.length == 0) {
         continue; // skip blank lines
       }
       // skip all {{ --- }} multi-line doc comments
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
-        let closingOffset = line.text.indexOf("}}");
+        const closingOffset = line.text.indexOf('}}');
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
@@ -288,28 +291,28 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
         continue;
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
-        let closingOffset = trimmedLine.indexOf("}");
+        const closingOffset = trimmedLine.indexOf('}');
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
         }
         //  DO NOTHING
         continue;
-      } else if (trimmedLine.startsWith("{{")) {
+      } else if (trimmedLine.startsWith('{{')) {
         // process multi-line doc comment
-        let openingOffset = line.text.indexOf("{{");
-        const closingOffset = line.text.indexOf("}}", openingOffset + 2);
+        const openingOffset = line.text.indexOf('{{');
+        const closingOffset = line.text.indexOf('}}', openingOffset + 2);
         if (closingOffset == -1) {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
         }
         continue;
-      } else if (trimmedLine.startsWith("{")) {
+      } else if (trimmedLine.startsWith('{')) {
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
-        let openingOffset = trimmedLine.indexOf("{");
-        const closingOffset = trimmedLine.indexOf("}", openingOffset + 1);
+        const openingOffset = trimmedLine.indexOf('{');
+        const closingOffset = trimmedLine.indexOf('}', openingOffset + 1);
         if (closingOffset == -1) {
           // is open of multiline comment wihtout close
           priorState = currState;
@@ -330,7 +333,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
         currState = sectionStatus.inProgressStatus;
       }
       //this.logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile() eval trimmedLine=[${trimmedLine}]`);
-      if (currState == eParseState.inObj && nonCommentLineRemainder.includes(":")) {
+      if (currState == eParseState.inObj && nonCommentLineRemainder.includes(':')) {
         const spinObj = this._spinDepFromObjectLine(nonCommentLineRemainder);
         if (spinObj) {
           this.logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile() basename=[${spinObj.baseName}] known as (${spinObj.knownAs})`);
@@ -354,29 +357,29 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   }
 
   private _getDepsFromSpinFile(fileSpec: string): SpinObject[] {
-    let deps = [];
+    const deps = [];
     this.logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile(${fileSpec})`);
     if (this._fileExists(fileSpec)) {
       const spinFileContent = this._loadFileAsString(fileSpec); // handles utf8/utf-16
-      let lines = spinFileContent.split("\r\n");
+      let lines = spinFileContent.split('\r\n');
       if (lines.length == 1) {
         // file not CRLF is LF only!
-        lines = spinFileContent.split("\n");
+        lines = spinFileContent.split('\n');
       }
       this.logMessage(`+ (DBG) ObjDep: file has (${lines.length}) lines`);
 
       let currState: eParseState = eParseState.inCon; // compiler defaults to CON at start!
       let priorState: eParseState = currState;
       for (let i = 0; i < lines.length; i++) {
-        let text = lines[i];
-        const trimmedLine = text.replace(/\s+$/, "");
+        const text = lines[i];
+        const trimmedLine = text.replace(/\s+$/, '');
         if (trimmedLine.length == 0) {
           continue; // skip blank lines
         }
         // skip all {{ --- }} multi-line doc comments
         if (currState == eParseState.inMultiLineDocComment) {
           // in multi-line doc-comment, hunt for end '}}' to exit
-          let closingOffset = text.indexOf("}}");
+          const closingOffset = text.indexOf('}}');
           if (closingOffset != -1) {
             // have close, comment ended
             currState = priorState;
@@ -384,27 +387,27 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
           continue;
         } else if (currState == eParseState.inMultiLineComment) {
           // in multi-line non-doc-comment, hunt for end '}' to exit
-          let closingOffset = trimmedLine.indexOf("}");
+          const closingOffset = trimmedLine.indexOf('}');
           if (closingOffset != -1) {
             // have close, comment ended
             currState = priorState;
           }
           continue;
-        } else if (trimmedLine.startsWith("{{")) {
+        } else if (trimmedLine.startsWith('{{')) {
           // process multi-line doc comment
-          let openingOffset = text.indexOf("{{");
-          const closingOffset = text.indexOf("}}", openingOffset + 2);
+          const openingOffset = text.indexOf('{{');
+          const closingOffset = text.indexOf('}}', openingOffset + 2);
           if (closingOffset == -1) {
             // is open of multiline comment
             priorState = currState;
             currState = eParseState.inMultiLineDocComment;
           }
           continue;
-        } else if (trimmedLine.startsWith("{")) {
+        } else if (trimmedLine.startsWith('{')) {
           // process possible multi-line non-doc comment
           // do we have a close on this same line?
-          let openingOffset = trimmedLine.indexOf("{");
-          const closingOffset = trimmedLine.indexOf("}", openingOffset + 1);
+          const openingOffset = trimmedLine.indexOf('{');
+          const closingOffset = trimmedLine.indexOf('}', openingOffset + 1);
           if (closingOffset == -1) {
             // is open of multiline comment
             priorState = currState;
@@ -425,7 +428,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
           currState = sectionStatus.inProgressStatus;
         }
         //this.logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile() eval trimmedLine=[${trimmedLine}]`);
-        if (currState == eParseState.inObj && nonCommentLineRemainder.includes(":")) {
+        if (currState == eParseState.inObj && nonCommentLineRemainder.includes(':')) {
           const spinObj = this._spinDepFromObjectLine(nonCommentLineRemainder);
           if (spinObj) {
             this.logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile() basename=[${spinObj.baseName}] known as (${spinObj.knownAs})`);
@@ -444,22 +447,22 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
   private _spinDepFromObjectLine(objLine: string): SpinObject | undefined {
     let desiredSpinObj = undefined;
-    const conOverrideLocn: number = objLine.indexOf("|");
+    const conOverrideLocn: number = objLine.indexOf('|');
     const usefullObjLine: string = conOverrideLocn != -1 ? objLine.substring(0, conOverrideLocn) : objLine;
-    const lineParts = usefullObjLine.split(/[ \t\"]/).filter(Boolean);
+    const lineParts = usefullObjLine.split(/[ \t"]/).filter(Boolean);
     this.logMessage(`+ (DBG) ObjDep: _spinDepFromObjectLine() lineParts=[${lineParts}](${lineParts.length}) line=[${objLine}]`);
-    let objName: string = "";
-    let filename: string = "";
+    let objName: string = '';
+    let filename: string = '';
     if (lineParts.length >= 2) {
       // the first colon tells us where things are so locate it...
       for (let index = 0; index < lineParts.length; index++) {
         const part = lineParts[index];
-        if (part == ":") {
+        if (part == ':') {
           objName = lineParts[index - 1];
           filename = lineParts[index + 1];
           break;
-        } else if (part.endsWith(":")) {
-          objName = part.replace(":", "");
+        } else if (part.endsWith(':')) {
+          objName = part.replace(':', '');
           filename = lineParts[index + 1];
           break;
         }
@@ -471,13 +474,13 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   }
 
   private _loadFileAsString(fspec: string): string {
-    let fileContent: string = "";
+    let fileContent: string = '';
     if (fs.existsSync(fspec)) {
       this.logMessage(`* loadFileAsString() attempt load of [${fspec}]`);
       try {
-        fileContent = fs.readFileSync(fspec, "utf-8");
-        if (fileContent.includes("\x00")) {
-          fileContent = fs.readFileSync(fspec, "utf16le");
+        fileContent = fs.readFileSync(fspec, 'utf-8');
+        if (fileContent.includes('\x00')) {
+          fileContent = fs.readFileSync(fspec, 'utf16le');
         }
       } catch (err) {
         this.logMessage(`* loadFileAsString() EXCEPTION: err=[${err}]`);
@@ -500,10 +503,13 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
 // class ProviderResult: Dependency | undefined | null | Thenable<Dependency | undefined | null>
 class SpinObject {
-  public readonly baseName: string = "";
-  public readonly knownAs: string = "";
+  public readonly baseName: string = '';
+  public readonly knownAs: string = '';
 
-  constructor(public readonly fileBaseName: string, public objName: string) {
+  constructor(
+    public readonly fileBaseName: string,
+    public objName: string
+  ) {
     this.baseName = fileBaseName;
     this.knownAs = objName;
   }
@@ -514,21 +520,25 @@ export class Dependency extends vscode.TreeItem {
   //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-field");  // hrmf... blue
   //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-enum"); // nice, orange!
   //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-structure"); // hrmf, no color (white)
-  private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-class"); // nice, orange!
-  private basename: string = "";
-  public readonly descriptionString: string = "";
+  private icon: vscode.ThemeIcon = new vscode.ThemeIcon('symbol-class'); // nice, orange!
+  private basename: string = '';
+  public readonly descriptionString: string = '';
   private fileMissing: boolean = false;
   // map our fields to underlying TreeItem
-  constructor(public readonly label: string, private objName: string, public readonly collapsibleState: vscode.TreeItemCollapsibleState) {
+  constructor(
+    public readonly label: string,
+    private objName: string,
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState
+  ) {
     // element label is  filebasename
     // element description is  object name in containing file
     // element tooltip is filename (object name)
     super(label, collapsibleState);
     this.description = this.objName;
     this.descriptionString = this.objName;
-    this.basename = label.replace(".spin2", "");
-    this.basename = this.basename.replace(".spin", "");
-    if (objName.includes("top-file")) {
+    this.basename = label.replace('.spin2', '');
+    this.basename = this.basename.replace('.spin', '');
+    if (objName.includes('top-file')) {
       this.tooltip = `This is the project top-most file`;
     } else {
       this.tooltip = `An instance of ${this.basename} known as ${this.objName}`;
@@ -537,8 +547,13 @@ export class Dependency extends vscode.TreeItem {
     //this.resourceUri = new vscode.ThemeIcon('file-code').
     //this.icon = new vscode.ThemeIcon("file-code");  // nope!!
     this.iconPath = this.icon;
-    this.contextValue = "dependency";
-    this.command = { command: "spinExtension.objectDependencies.activateFile", title: "open file", tooltip: "click to open file", arguments: [this] };
+    this.contextValue = 'dependency';
+    this.command = {
+      command: 'spinExtension.objectDependencies.activateFile',
+      title: 'open file',
+      tooltip: 'click to open file',
+      arguments: [this]
+    };
   }
 
   isFileMissing(): boolean {

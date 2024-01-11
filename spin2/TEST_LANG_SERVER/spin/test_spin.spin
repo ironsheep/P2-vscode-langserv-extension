@@ -108,11 +108,11 @@ chkBffr     long    0[vga.MAX_BUFFER_LEN]
             long    0[vga.MAX_COG_BUFFER_SIZE_IN_LONGS]
 
 '}
-PUB null()
+PUB null
 
     '' This is NOT a top level object
 
-PUB allSpinLanguageParts()
+PUB allSpinLanguageParts
 '{
 ' core spin verbs
     ABORT
@@ -196,7 +196,7 @@ PUB allSpinLanguageParts()
     xtal2
     xtal3
 '}
-PUB allHubVariableNames()
+PUB allHubVariableNames
 '{
     CLKFREQ
     CLKMODE
@@ -220,7 +220,7 @@ PUB allHubVariableNames()
 '}
 
 
-PUB allClockVariabless()
+PUB allClockVariabless
 ' value can be set with HUBSET
 ' - these are the compiled values
 ' set via CLKSET()
@@ -231,7 +231,7 @@ PUB allClockVariabless()
     CHIPVER
     cnt
 
-PUB allSpinConstants()
+PUB allSpinConstants
 '{
     TRUE
     FALSE
@@ -240,7 +240,7 @@ PUB allSpinConstants()
     PI
 '}
 
-PUB allnamedOperators()
+PUB allnamedOperators
 '{
     NOT
     AND
@@ -254,7 +254,7 @@ PUB allnamedOperators()
 
 
 
-PRI allFlowControl()
+PRI allFlowControl
 '{
    ABORT
     CASE

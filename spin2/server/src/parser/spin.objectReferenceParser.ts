@@ -1,21 +1,21 @@
-"use strict";
+'use strict';
 // server/src/parser/spin.objectReferenceParser.ts
 
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { Context } from "../context";
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Context } from '../context';
 
 //import { semanticConfiguration, reloadSemanticConfiguration } from "./spin2.extension.configuration";
-import { DocumentFindings, RememberedComment, RememberedToken } from "./spin.semantic.findings";
-import { Spin2ParseUtils } from "./spin2.utils";
-import { isSpin1File } from "./lang.utils";
-import { eParseState } from "./spin.common";
-import { ExtensionUtils } from "../parser/spin.extension.utils";
+import { DocumentFindings, RememberedToken } from './spin.semantic.findings';
+import { Spin2ParseUtils } from './spin2.utils';
+import { isSpin1File } from './lang.utils';
+import { eParseState } from './spin.common';
+import { ExtensionUtils } from '../parser/spin.extension.utils';
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
 //
-const tokenTypes = new Map<string, number>();
-const tokenModifiers = new Map<string, number>();
+//const tokenTypes = new Map<string, number>();
+//const tokenModifiers = new Map<string, number>();
 
 interface IParsedToken {
   line: number;
@@ -38,7 +38,7 @@ export class Spin2ObjectReferenceParser {
   private showState: boolean = true;
   private logTokenDiscover: boolean = true;
   private semanticFindings: DocumentFindings = new DocumentFindings(); // this gets replaced
-  private currentFilespec: string = "";
+  private currentFilespec: string = '';
   private isSpin1Document: boolean = false;
 
   public constructor(protected readonly ctx: Context) {
@@ -47,9 +47,9 @@ export class Spin2ObjectReferenceParser {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
-        this._logMessage("Spin2 Object log started.");
+        this._logMessage('Spin2 Object log started.');
       } else {
-        this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
 
@@ -69,7 +69,7 @@ export class Spin2ObjectReferenceParser {
     this.currentFilespec = document.uri;
     this._logMessage(`* locatReferencedObjects(${this.currentFilespec})`);
 
-    const allTokens = this._parseText(document.getText());
+    this._parseText(document.getText());
   }
 
   private _parseText(text: string): IParsedToken[] {
@@ -77,11 +77,11 @@ export class Spin2ObjectReferenceParser {
     const lines = text.split(/\r\n|\r|\n/);
     let currState: eParseState = eParseState.inCon; // compiler defaults to CON at start
     let priorState: eParseState = currState;
-    let prePAsmState: eParseState = currState;
+    //const prePAsmState: eParseState = currState;
 
     // track block comments
-    let currBlockComment: RememberedComment | undefined = undefined;
-    let currSingleLineBlockComment: RememberedComment | undefined = undefined;
+    //const currBlockComment: RememberedComment | undefined = undefined;
+    //const currSingleLineBlockComment: RememberedComment | undefined = undefined;
 
     const tokenSet: IParsedToken[] = [];
 
@@ -92,15 +92,15 @@ export class Spin2ObjectReferenceParser {
     // -------------------- PRE-PARSE just locating symbol names --------------------
     // also track and record block comments (both braces and tic's!)
     // let's also track prior single line and trailing comment on same line
-    this._logMessage("---> Pre SCAN");
+    this._logMessage('---> Pre SCAN');
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
       const trimmedNonCommentLine = this.parseUtils.getNonCommentLineRemainder(0, line);
-      const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
-      const tempComment = line.substring(trimmedNonCommentLine.length + offSet).trim();
+      //const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
+      //const tempComment = line.substring(trimmedNonCommentLine.length + offSet).trim();
       const sectionStatus = this.extensionUtils.isSectionStartLine(line);
-      const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+      //const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
       // now start our processing
       if (currState == eParseState.inMultiLineComment) {
@@ -111,11 +111,11 @@ export class Spin2ObjectReferenceParser {
         let currOffset: number = 0;
         let bFoundOpenClosePair: boolean = false;
         do {
-          nestedOpeningOffset = trimmedLine.indexOf("{", currOffset);
+          nestedOpeningOffset = trimmedLine.indexOf('{', currOffset);
           if (nestedOpeningOffset != -1) {
             bFoundOpenClosePair = false;
             // we have an opening {
-            closingOffset = trimmedLine.indexOf("}", nestedOpeningOffset);
+            closingOffset = trimmedLine.indexOf('}', nestedOpeningOffset);
             if (closingOffset != -1) {
               // and we have a closing, ignore this see if we have next
               currOffset = closingOffset + 1;
@@ -125,7 +125,7 @@ export class Spin2ObjectReferenceParser {
             }
           }
         } while (nestedOpeningOffset != -1 && bFoundOpenClosePair);
-        closingOffset = trimmedLine.indexOf("}", currOffset);
+        closingOffset = trimmedLine.indexOf('}', currOffset);
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
@@ -134,7 +134,7 @@ export class Spin2ObjectReferenceParser {
         continue;
       } else if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
-        let closingOffset = line.indexOf("}}");
+        const closingOffset = line.indexOf('}}');
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
@@ -144,10 +144,10 @@ export class Spin2ObjectReferenceParser {
       } else if (trimmedLine.length == 0) {
         // a blank line clears pending single line comments
         continue;
-      } else if (trimmedLine.startsWith("{{")) {
+      } else if (trimmedLine.startsWith('{{')) {
         // process multi-line doc comment
-        let openingOffset = line.indexOf("{{");
-        const closingOffset = line.indexOf("}}", openingOffset + 2);
+        const openingOffset = line.indexOf('{{');
+        const closingOffset = line.indexOf('}}', openingOffset + 2);
         if (closingOffset != -1) {
           // is single line comment, just ignore it Let Syntax highlighting do this
           // record new single-line comment
@@ -158,11 +158,11 @@ export class Spin2ObjectReferenceParser {
           //  DO NOTHING Let Syntax highlighting do this
         }
         continue;
-      } else if (trimmedLine.startsWith("{")) {
+      } else if (trimmedLine.startsWith('{')) {
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
-        let openingOffset = line.indexOf("{");
-        const closingOffset = line.indexOf("}", openingOffset + 1);
+        const openingOffset = line.indexOf('{');
+        const closingOffset = line.indexOf('}', openingOffset + 1);
         if (closingOffset != -1) {
           // is single line comment...
         } else {
@@ -188,7 +188,7 @@ export class Spin2ObjectReferenceParser {
           // process PUB/PRI method signature
         } else if (currState == eParseState.inCon) {
           // process a constant line
-          this._logState("- scan Ln#" + (i + 1) + " currState=[" + currState + "]");
+          this._logState('- scan Ln#' + (i + 1) + ' currState=[' + currState + ']');
           if (trimmedNonCommentLine.length > 3) {
             this._getCON_Declaration(3, i + 1, line);
           }
@@ -196,7 +196,7 @@ export class Spin2ObjectReferenceParser {
           // process a class(static) variable line
         } else if (currState == eParseState.inObj) {
           // process an object line
-          this._logState("- scan Ln#" + (i + 1) + " currState=[" + currState + "]");
+          this._logState('- scan Ln#' + (i + 1) + ' currState=[' + currState + ']');
           if (trimmedNonCommentLine.length > 3) {
             this._getOBJ_Declaration(3, i + 1, line);
           }
@@ -226,7 +226,7 @@ export class Spin2ObjectReferenceParser {
     }
 
     // --------------------         End of PRE-PARSE             --------------------
-    this._logMessage("---- Object Reference Parse DONE ----\n");
+    this._logMessage('---- Object Reference Parse DONE ----\n');
     return tokenSet;
   }
 
@@ -238,20 +238,20 @@ export class Spin2ObjectReferenceParser {
       //skip Past Whitespace
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-      this._logCON("  - Ln#" + lineNbr + " GetCONDecl nonCommentConstantLine=[" + nonCommentConstantLine + "]");
+      this._logCON(`  - Ln#${lineNbr} GetCONDecl nonCommentConstantLine=[${nonCommentConstantLine}]`);
 
-      const haveEnumDeclaration: boolean = nonCommentConstantLine.startsWith("#");
-      const containsMultiAssignments: boolean = nonCommentConstantLine.indexOf(",") != -1;
+      const haveEnumDeclaration: boolean = nonCommentConstantLine.startsWith('#');
+      const containsMultiAssignments: boolean = nonCommentConstantLine.indexOf(',') != -1;
       let statements: string[] = [nonCommentConstantLine];
       if (!haveEnumDeclaration && containsMultiAssignments) {
-        statements = nonCommentConstantLine.split(",");
+        statements = nonCommentConstantLine.split(',');
       }
-      this._logCON("  -- statements=[" + statements + "]");
+      this._logCON('  -- statements=[' + statements + ']');
       for (let index = 0; index < statements.length; index++) {
         const conDeclarationLine: string = statements[index].trim();
-        this._logCON("  -- conDeclarationLine=[" + conDeclarationLine + "]");
+        this._logCON('  -- conDeclarationLine=[' + conDeclarationLine + ']');
         currentOffset = line.indexOf(conDeclarationLine, currentOffset);
-        const assignmentOffset: number = conDeclarationLine.indexOf("=");
+        const assignmentOffset: number = conDeclarationLine.indexOf('=');
         if (assignmentOffset != -1) {
           // recognize constant name getting initialized via assignment
           // get line parts - we only care about first one
@@ -261,22 +261,24 @@ export class Spin2ObjectReferenceParser {
             .filter(Boolean);
           const newName = lineParts[0];
           if (newName.charAt(0).match(/[a-zA-Z_]/)) {
-            this._logCON("  -- GLBL GetCONDecl newName=[" + newName + "]");
+            this._logCON('  -- GLBL GetCONDecl newName=[' + newName + ']');
             // remember this object name so we can annotate a call to it
           }
-          const containsObjectReferences: boolean = nonCommentConstantLine.indexOf(".") != -1;
+          const containsObjectReferences: boolean = nonCommentConstantLine.indexOf('.') != -1;
           if (containsObjectReferences) {
             const assignmentRHS = nonCommentConstantLine.substring(assignmentOffset + 1).trim();
-            this._logCON("  -- GLBL GetCONDecl assignmentRHS=[" + assignmentRHS + "]");
+            this._logCON('  -- GLBL GetCONDecl assignmentRHS=[' + assignmentRHS + ']');
             const lineParts: string[] = assignmentRHS.split(/[ \t]/).filter(Boolean);
-            this._logCON("  -- GLBL GetCONDecl lineParts=[" + lineParts + "]");
+            this._logCON('  -- GLBL GetCONDecl lineParts=[' + lineParts + ']');
             for (let partIdx = 0; partIdx < lineParts.length; partIdx++) {
               const nameForEval: string = lineParts[partIdx];
-              if (nameForEval.includes(".")) {
+              if (nameForEval.includes('.')) {
                 // SPIN1 have object.constant reference
-                const refParts: string[] = nameForEval.split(".");
+                const refParts: string[] = nameForEval.split('.');
                 if (refParts.length == 2) {
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
                   const objName = refParts[0];
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
                   const childConstantName = refParts[1];
                 }
               }
@@ -289,15 +291,15 @@ export class Spin2ObjectReferenceParser {
           for (let index = 0; index < lineParts.length; index++) {
             let enumConstant: string = lineParts[index];
             // our enum name can have a step offset
-            if (enumConstant.includes("[")) {
+            if (enumConstant.includes('[')) {
               // it does, isolate name from offset
-              const enumNameParts: string[] = enumConstant.split("[");
+              const enumNameParts: string[] = enumConstant.split('[');
               enumConstant = enumNameParts[0];
             }
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
-              this._logCON("  -- GLBL enumConstant=[" + enumConstant + "]");
+              this._logCON('  -- GLBL enumConstant=[' + enumConstant + ']');
               const nameOffset = line.indexOf(enumConstant, currentOffset); // FIXME: UNDONE, do we have to dial this in?
-              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken("enumMember", lineNbr - 1, nameOffset, ["readonly"]), undefined);
+              this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken('enumMember', lineNbr - 1, nameOffset, ['readonly']), undefined);
             }
           }
         }
@@ -312,23 +314,23 @@ export class Spin2ObjectReferenceParser {
     //  -or-   segments[7]     : "isp_hub75_segment" | BUFF_SIZE = 2
     //
     //skip Past Whitespace
-    let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
+    const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const remainingNonCommentLineStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     //this._logOBJ('- RptObjDecl remainingNonCommentLineStr=[' + remainingNonCommentLineStr + ']');
-    if (remainingNonCommentLineStr.length > 5 && remainingNonCommentLineStr.includes(":") && remainingNonCommentLineStr.includes('"')) {
+    if (remainingNonCommentLineStr.length > 5 && remainingNonCommentLineStr.includes(':') && remainingNonCommentLineStr.includes('"')) {
       // get line parts - we only care about first one
-      const overrideParts: string[] = remainingNonCommentLineStr.split("|").filter(Boolean);
-      const lineParts: string[] = overrideParts[0].split(":").filter(Boolean);
-      this._logOBJ("  -- GLBL GetOBJDecl lineParts=[" + lineParts + "]");
+      const overrideParts: string[] = remainingNonCommentLineStr.split('|').filter(Boolean);
+      const lineParts: string[] = overrideParts[0].split(':').filter(Boolean);
+      this._logOBJ('  -- GLBL GetOBJDecl lineParts=[' + lineParts + ']');
       let instanceNamePart = lineParts[0].trim();
       // if we have instance array declaration, then remove it
-      if (instanceNamePart.includes("[")) {
-        const nameParts = instanceNamePart.split(/[\[\]]/).filter(Boolean);
+      if (instanceNamePart.includes('[')) {
+        const nameParts = instanceNamePart.split(/[[\]]/).filter(Boolean);
         instanceNamePart = nameParts[0];
       }
       this._logOBJ(`  -- GLBL GetOBJDecl newInstanceName=[${instanceNamePart}]`);
       // remember this object name so we can annotate a call to it
-      const filenamePart = lineParts.length > 1 ? lineParts[1].trim().replace(/[\"]/g, "") : "";
+      const filenamePart = lineParts.length > 1 ? lineParts[1].trim().replace(/["]/g, '') : '';
       this._logOBJ(`  -- GLBL GetOBJDecl newFileName=[${filenamePart}]`);
       if (filenamePart.length > 0) {
         this.semanticFindings.recordObjectImport(instanceNamePart, filenamePart);

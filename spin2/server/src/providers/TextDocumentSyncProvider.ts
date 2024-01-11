@@ -1,13 +1,13 @@
-import * as lsp from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import * as lsp from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 //import Parser from "web-tree-sitter";
 
-import { Provider } from ".";
-import { Context, ServerBehaviorConfiguration, EditorConfiguration } from "../context";
+import { Provider } from '.';
+import { Context, ServerBehaviorConfiguration, EditorConfiguration } from '../context';
 //import DiagnosticProcessor from "../diagnostics";
-import DocumentProcessor, { ProcessedDocument } from "../DocumentProcessor";
-import { positionToPoint, Point } from "../geometry";
-import { fileSpecFromURI } from "../parser/lang.utils";
+import DocumentProcessor, { ProcessedDocument } from '../DocumentProcessor';
+import { positionToPoint, Point } from '../geometry';
+import { fileSpecFromURI } from '../parser/lang.utils';
 
 export interface Edit {
   startIndex: number;
@@ -60,6 +60,7 @@ export default class TextDocumentSyncProvider implements Provider {
 
       const updatedDoc = TextDocument.update(document, contentChanges, version);
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       await this.processor.process(updatedDoc).then(({ parseResult }) => {
         // Send just local parser diagnostics
         // FIXME: not quite correct but works for now...
@@ -86,19 +87,19 @@ export default class TextDocumentSyncProvider implements Provider {
 
   async getLatestClientConfig(): Promise<boolean> {
     let configChanged: boolean = false;
-    await this.ctx.connection.workspace.getConfiguration("spinExtension.ServerBehavior").then((serverConfiguration: ServerBehaviorConfiguration) => {
+    await this.ctx.connection.workspace.getConfiguration('spinExtension.ServerBehavior').then((serverConfiguration: ServerBehaviorConfiguration) => {
       if (serverConfiguration == null) {
         this.ctx.logger.log(`TRC: DP.process() ERROR! get settings received no info: config left at defaults`);
       } else {
         configChanged =
-          serverConfiguration["maxNumberOfReportedIssues"] != this.ctx.parserConfig.maxNumberOfReportedIssues ||
-          serverConfiguration["highlightFlexspinDirectives"] != this.ctx.parserConfig.highlightFlexspinDirectives;
+          serverConfiguration['maxNumberOfReportedIssues'] != this.ctx.parserConfig.maxNumberOfReportedIssues ||
+          serverConfiguration['highlightFlexspinDirectives'] != this.ctx.parserConfig.highlightFlexspinDirectives;
         if (configChanged) {
-          this.ctx.parserConfig.maxNumberOfReportedIssues = serverConfiguration["maxNumberOfReportedIssues"];
+          this.ctx.parserConfig.maxNumberOfReportedIssues = serverConfiguration['maxNumberOfReportedIssues'];
           if (this.ctx.parserConfig.maxNumberOfReportedIssues < 0) {
             this.ctx.parserConfig.maxNumberOfReportedIssues = 0; // don't confuse our initial startup!
           }
-          this.ctx.parserConfig.highlightFlexspinDirectives = serverConfiguration["highlightFlexspinDirectives"];
+          this.ctx.parserConfig.highlightFlexspinDirectives = serverConfiguration['highlightFlexspinDirectives'];
         }
       }
       //this.ctx.logger.log(`TRC: process() received settings RAW=[${serverConfiguration}], JSON=[${JSON.stringify(serverConfiguration)}]`);
@@ -106,24 +107,28 @@ export default class TextDocumentSyncProvider implements Provider {
         `  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(${this.ctx.parserConfig.maxNumberOfReportedIssues}), highlightFlexspinDirectives=[${this.ctx.parserConfig.highlightFlexspinDirectives}], changes=(${configChanged})`
       );
     });
-    await this.ctx.connection.workspace.getConfiguration("editor").then((editorConfiguration: EditorConfiguration) => {
+    await this.ctx.connection.workspace.getConfiguration('editor').then((editorConfiguration: EditorConfiguration) => {
       if (editorConfiguration == null) {
         this.ctx.logger.log(`TRC: DP.process() ERROR! get editor settings received no info: config left at defaults`);
       } else {
-        configChanged = editorConfiguration["tabSize"] != this.ctx.editorConfig.tabSize || editorConfiguration["insertSpaces"] != this.ctx.editorConfig.insertSpaces;
+        configChanged =
+          editorConfiguration['tabSize'] != this.ctx.editorConfig.tabSize ||
+          editorConfiguration['insertSpaces'] != this.ctx.editorConfig.insertSpaces;
         if (configChanged) {
-          this.ctx.editorConfig.tabSize = editorConfiguration["tabSize"];
-          this.ctx.editorConfig.insertSpaces = editorConfiguration["insertSpaces"];
+          this.ctx.editorConfig.tabSize = editorConfiguration['tabSize'];
+          this.ctx.editorConfig.insertSpaces = editorConfiguration['insertSpaces'];
         }
       }
       //this.ctx.logger.log(`TRC: process() received settings RAW=[${serverConfiguration}], JSON=[${JSON.stringify(serverConfiguration)}]`);
-      this.ctx.logger.log(`  DBG --  ctx.editorConfiguration.tabSize=(${this.ctx.editorConfig.tabSize}), insertSpaces=[${this.ctx.editorConfig.insertSpaces}], changes=(${configChanged})`);
+      this.ctx.logger.log(
+        `  DBG --  ctx.editorConfiguration.tabSize=(${this.ctx.editorConfig.tabSize}), insertSpaces=[${this.ctx.editorConfig.insertSpaces}], changes=(${configChanged})`
+      );
     });
     return configChanged;
   }
 
   async handleConfigurationChanged({ settings }: lsp.DidChangeConfigurationParams): Promise<void> {
-    this.ctx.logger.log("TRC: DOC have settings reparse all docs");
+    this.ctx.logger.log('TRC: DOC have settings reparse all docs');
     this.ctx.logger.log(`TRC: onDidChangeConfiguration() change.settings=[${settings}]`);
     if (settings != null) {
       this.ctx.logger.log(`TRC: onDidChangeConfiguration() new settings [${JSON.stringify(settings)}]`);
@@ -141,13 +146,13 @@ export default class TextDocumentSyncProvider implements Provider {
   }
 
   async handleSaveTextDocument({ textDocument: { uri } }: lsp.DidSaveTextDocumentParams) {
-    this.ctx.logger.log("TRC: DOC-SAVE: update symbols for: [" + uri + "] and those including URI");
+    this.ctx.logger.log('TRC: DOC-SAVE: update symbols for: [' + uri + '] and those including URI');
     await this.fileDiagnostics(uri);
     this._showStats(); // dump storage stats
   }
 
   async handleCloseTextDocument({ textDocument: { uri } }: lsp.DidCloseTextDocumentParams) {
-    this.ctx.logger.log("TRC: DOC-CLOSE: remove symbols for: [" + uri + "] and included files if no longer needed");
+    this.ctx.logger.log('TRC: DOC-CLOSE: remove symbols for: [' + uri + '] and included files if no longer needed');
     const docFSpec: string = fileSpecFromURI(uri);
     const processedDocument = this.ctx.docsByFSpec.get(docFSpec);
     // if we have symbols for this file...
@@ -162,7 +167,7 @@ export default class TextDocumentSyncProvider implements Provider {
       if (openCount == 0) {
         this.ctx.docsByFSpec.clear();
         this.ctx.findingsByFSpec.clear();
-        this.ctx.logger.log("TRC: close: ALL documents Closed");
+        this.ctx.logger.log('TRC: close: ALL documents Closed');
       }
       this._showStats(); // dump storage stats
     }
@@ -196,11 +201,13 @@ export default class TextDocumentSyncProvider implements Provider {
         const processedDocument: ProcessedDocument | undefined = this.ctx.docsByFSpec.get(docFSpec);
         if (processedDocument) {
           this.ctx.logger.log(`TRC: CHK CFG maxNumberOfReportedIssues=(${this.ctx.parserConfig.maxNumberOfReportedIssues})`);
-          const captureDiagnostics: lsp.Diagnostic[] = processedDocument.parseResult.allDiagnosticMessages(this.ctx.parserConfig.maxNumberOfReportedIssues);
+          const captureDiagnostics: lsp.Diagnostic[] = processedDocument.parseResult.allDiagnosticMessages(
+            this.ctx.parserConfig.maxNumberOfReportedIssues
+          );
           const uri = processedDocument.document.uri;
           this.connection.sendDiagnostics({
             uri,
-            diagnostics: [...captureDiagnostics],
+            diagnostics: [...captureDiagnostics]
           });
         }
       }
@@ -227,50 +234,50 @@ export default class TextDocumentSyncProvider implements Provider {
     let captureDiagnostics: lsp.Diagnostic[] = processedDocument.parseResult.allDiagnosticMessages(this.ctx.parserConfig.maxNumberOfReportedIssues);
     //this.ctx.logger.log(`CL-TRC: captureDiagnostics=[${JSON.stringify(captureDiagnostics)}]`);
     // crappy override for unit testing
-    if (uri.endsWith("diagnostics.spin2")) {
+    if (uri.endsWith('diagnostics.spin2')) {
       captureDiagnostics = this.validateTestDocument(processedDocument);
     }
     this.connection.sendDiagnostics({
       uri,
-      diagnostics: [...captureDiagnostics],
+      diagnostics: [...captureDiagnostics]
     });
   }
 
   private validateTestDocument(documentInfo: ProcessedDocument): lsp.Diagnostic[] {
-    let diagnostics: lsp.Diagnostic[] = [];
+    const diagnostics: lsp.Diagnostic[] = [];
     // The validator creates diagnostics for all uppercase words length 2 and more
     const textDocument = documentInfo.document;
     const text = textDocument.getText();
     const pattern = /\b[A-Z]{2,}\b/g;
     let m: RegExpExecArray | null;
 
-    let problems = 0;
+    //let problems = 0;
     while ((m = pattern.exec(text))) {
-      problems++;
+      //problems++;
       const diagnostic: lsp.Diagnostic = {
         severity: lsp.DiagnosticSeverity.Warning,
         range: {
           start: textDocument.positionAt(m.index),
-          end: textDocument.positionAt(m.index + m[0].length),
+          end: textDocument.positionAt(m.index + m[0].length)
         },
         message: `${m[0]} is all uppercase.`,
-        source: "ex",
+        source: 'ex'
       };
       diagnostic.relatedInformation = [
         {
           location: {
             uri: textDocument.uri,
-            range: Object.assign({}, diagnostic.range),
+            range: Object.assign({}, diagnostic.range)
           },
-          message: "Spelling matters",
+          message: 'Spelling matters'
         },
         {
           location: {
             uri: textDocument.uri,
-            range: Object.assign({}, diagnostic.range),
+            range: Object.assign({}, diagnostic.range)
           },
-          message: "Particularly for names",
-        },
+          message: 'Particularly for names'
+        }
       ];
       diagnostics.push(diagnostic);
     }
@@ -280,7 +287,7 @@ export default class TextDocumentSyncProvider implements Provider {
   changeToEdit(document: TextDocument, change: lsp.TextDocumentContentChangeEvent): Edit {
     // convert a change to an edit object
     if (!lsp.TextDocumentContentChangeEvent.isIncremental(change)) {
-      throw new Error("Not incremental");
+      throw new Error('Not incremental');
     }
     const rangeOffset = document.offsetAt(change.range.start);
     const rangeLength = document.offsetAt(change.range.end) - rangeOffset;
@@ -290,7 +297,7 @@ export default class TextDocumentSyncProvider implements Provider {
       newEndPosition: positionToPoint(document.positionAt(rangeOffset + change.text.length)),
       startIndex: rangeOffset,
       oldEndIndex: rangeOffset + rangeLength,
-      newEndIndex: rangeOffset + change.text.length,
+      newEndIndex: rangeOffset + change.text.length
     };
   }
 
@@ -302,7 +309,7 @@ export default class TextDocumentSyncProvider implements Provider {
     connection.onDidChangeConfiguration(this.handleConfigurationChanged.bind(this));
     connection.onDidChangeWatchedFiles(this.handleWatchedFilesChange.bind(this));
     return {
-      textDocumentSync: lsp.TextDocumentSyncKind.Incremental,
+      textDocumentSync: lsp.TextDocumentSyncKind.Incremental
     };
   }
 }

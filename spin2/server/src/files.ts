@@ -1,16 +1,16 @@
-"use strict";
+'use strict';
 // server/src/files.ts
 
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { TextDocument } from 'vscode-languageserver-textdocument';
 //import { constants, promises as fsp, fs } from "fs";
 //import { extname, resolve, dirname } from "path";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from 'fs';
+import * as path from 'path';
 //import * as ic from "iconv";
-import { fileURLToPath } from "url";
-import { Context } from "./context";
+import { fileURLToPath } from 'url';
+import { Context } from './context';
 
-const { readFile, access } = fs.promises;
+const { access } = fs.promises;
 
 export async function exists(filePath: string): Promise<boolean> {
   return access(filePath).then(
@@ -20,16 +20,16 @@ export async function exists(filePath: string): Promise<boolean> {
 }
 
 export function isSpin1File(fileSpec: string): boolean {
-  let spinFileStatus: boolean = fileSpec.toLowerCase().endsWith(".spin");
+  const spinFileStatus: boolean = fileSpec.toLowerCase().endsWith('.spin');
   return spinFileStatus;
 }
 
 export function readDocumentFromUri(uri: string, ctx: Context): TextDocument | null {
   let content: string;
-  const url = new URL(uri, "file://");
+  const url = new URL(uri, 'file://');
   ctx.logger.log(`TRC: readDocumentFromUri() url=[${url}]`);
 
-  const languageId = isSpin1File(uri) ? "Spin" : "Spin2";
+  const languageId = isSpin1File(uri) ? 'Spin' : 'Spin2';
   const fspec: string = fileURLToPath(url);
 
   ctx.logger.log(`TRC: readDocumentFromUri() fspec=[${fspec}]`);
@@ -44,7 +44,7 @@ export function readDocumentFromUri(uri: string, ctx: Context): TextDocument | n
   return TextDocument.create(uri, languageId, 0, content);
 }
 
-type ResolveContext = Pick<Context, "workspaceFolders" | "docsByFSpec">;
+//type ResolveContext = Pick<Context, 'workspaceFolders' | 'docsByFSpec'>;
 
 /**
  * convert list of filenames (possibly without type) to filespecs
@@ -52,7 +52,7 @@ type ResolveContext = Pick<Context, "workspaceFolders" | "docsByFSpec">;
 
 export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: string, ctx: Context): string[] {
   //const roots = ctx.workspaceFolders.map((f) => URI.parse(f.uri).fsPath);
-  const rootDir = ctx.workspaceFolders[0];
+  //const rootDir = ctx.workspaceFolders[0];
   const matchedFiles: string[] = [];
   ctx.logger.log(`TRC: resolveReferencedIncludes(includedFiles=[${includedFiles}], rootDirSpec=[${rootDirSpec}])`);
 
@@ -61,13 +61,13 @@ export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: 
   for (let index = 0; index < includedFiles.length; index++) {
     const fileBaseName = includedFiles[index];
     let matchFilename: string = fileBaseName.toLowerCase();
-    if (!fileBaseName.toLowerCase().includes(".spin")) {
+    if (!fileBaseName.toLowerCase().includes('.spin')) {
       matchFilename = `${fileBaseName}.`.toLowerCase();
     }
     //ctx.logger.log(`TRC: looking for matchFilename=[${matchFilename}]`);
     for (let index = 0; index < fileSpecs.length; index++) {
       const fileSpec: string = fileSpecs[index];
-      const pathParts: string[] = fileSpec.split("/");
+      const pathParts: string[] = fileSpec.split('/');
       const fileName = pathParts[pathParts.length - 1].toLowerCase();
       //ctx.logger.log(`TRC: checking fileSpec=[${fileSpec}]`);
       if (fileName.startsWith(matchFilename)) {
@@ -124,13 +124,13 @@ export function loadFileAsStringzzz(fspec: string, ctx: Context): string {
 */
 
 export function loadFileAsString(fspec: string, ctx: Context): string {
-  let fileContent: string = "";
+  let fileContent: string = '';
   if (fs.existsSync(fspec)) {
     ctx.logger.log(`TRC: loadFileAsString() attempt load of [${fspec}]`);
     try {
-      fileContent = fs.readFileSync(fspec, "utf-8");
-      if (fileContent.includes("\x00")) {
-        fileContent = fs.readFileSync(fspec, "utf16le");
+      fileContent = fs.readFileSync(fspec, 'utf-8');
+      if (fileContent.includes('\x00')) {
+        fileContent = fs.readFileSync(fspec, 'utf16le');
       }
     } catch (err) {
       ctx.logger.log(`TRC: loadFileAsString() EXCEPTION: err=[${err}]`);
@@ -145,7 +145,7 @@ export function loadFileAsString(fspec: string, ctx: Context): string {
  * Check whether file extension is SPIN source file
  */
 export function isSpinExt(filename: string): boolean {
-  return [".spin", ".spin2", ".p2asm"].includes(path.extname(filename).toLowerCase());
+  return ['.spin', '.spin2', '.p2asm'].includes(path.extname(filename).toLowerCase());
 }
 
 export function spin1FileExists(dirSpec: string, fileName: string): boolean {
@@ -153,7 +153,7 @@ export function spin1FileExists(dirSpec: string, fileName: string): boolean {
   if (dirSpec.length > 0) {
     // NOTE: dirSpec.length can be zero  if caller not yet set up correctly
     let desiredFilename: string = fileName;
-    if (!fileName.toLowerCase().includes(".spin")) {
+    if (!fileName.toLowerCase().includes('.spin')) {
       desiredFilename = `${fileName}.spin`;
     }
     existsStatus = fileInDirExists(dirSpec, desiredFilename);
@@ -166,7 +166,7 @@ export function spin2FileExists(dirSpec: string, fileName: string): boolean {
   if (dirSpec.length > 0) {
     // NOTE: dirSpec.length can be zero  if caller not yet set up correctly
     let desiredFilename: string = fileName;
-    if (!fileName.toLowerCase().includes(".spin2")) {
+    if (!fileName.toLowerCase().includes('.spin2')) {
       desiredFilename = `${fileName}.spin2`;
     }
     existsStatus = fileInDirExists(dirSpec, desiredFilename);
@@ -176,7 +176,7 @@ export function spin2FileExists(dirSpec: string, fileName: string): boolean {
 
 export function fileInDirExists(dirSpec: string, fileName: string, ctx: Context | undefined = undefined): boolean {
   let existsStatus: boolean = false;
-  const url = new URL(path.join(dirSpec, fileName), "file://");
+  const url = new URL(path.join(dirSpec, fileName), 'file://');
   const fspec: string = fileURLToPath(url);
   if (fileExists(fspec)) {
     // File exists in path
@@ -199,7 +199,7 @@ export function fileExists(pathSpec: string): boolean {
 
 export function getSpinFilesInDirSync(dirSpec: string, ctx: Context): string[] {
   const resultList: string[] = [];
-  const url = new URL(dirSpec, "file://");
+  const url = new URL(dirSpec, 'file://');
   //const pathSpec = fileURLToPath(dirSpec);
   if (fs.existsSync(url)) {
     // Dir exists ...
@@ -220,7 +220,7 @@ export function getSpinFilesInDirSync(dirSpec: string, ctx: Context): string[] {
  */
 export async function getSpinFilesInDir(dirSpec: string): Promise<string[]> {
   const result: string[] = [];
-  const url = new URL(dirSpec, "file://");
+  const url = new URL(dirSpec, 'file://');
 
   try {
     await fs.promises.access(url, fs.constants.R_OK);

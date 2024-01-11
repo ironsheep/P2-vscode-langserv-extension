@@ -1,7 +1,7 @@
-"use strict";
+'use strict';
 // server/src/parser/spin.semantic.findings.ts
 
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 
 export enum eBLockType {
   Unknown = 0,
@@ -10,7 +10,7 @@ export enum eBLockType {
   isVar,
   isObj,
   isPub,
-  isPri,
+  isPri
 }
 
 export interface IBlockSpan {
@@ -77,15 +77,17 @@ export class LocatedBlockFindings {
       this.priorInstanceCount = 1;
     } else {
       // we are starting a later block, lets finish prior then start the new
-      const isFirstOfThisType: boolean = this.priorBlockType != eCurrBlockType ? false : true;
+      //const isFirstOfThisType: boolean = this.priorBlockType != eCurrBlockType ? false : true;
       const newBlockSpan: IBlockSpan = {
         blockType: this.priorBlockType,
         sequenceNbr: this.priorInstanceCount,
         startLineIdx: this.priorBlockStartLineIdx,
-        endLineIdx: currLineIdx - 1, // ends at prior line
+        endLineIdx: currLineIdx - 1 // ends at prior line
       };
       this.codeBlockSpans.push(newBlockSpan);
-      this._logMessage(`  -- FND-RCD-ADD sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`);
+      this._logMessage(
+        `  -- FND-RCD-ADD sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`
+      );
       this.priorInstanceCount = this.priorBlockType == eCurrBlockType ? this.priorInstanceCount + 1 : 1;
       this.priorBlockStartLineIdx = currLineIdx;
       this.priorBlockType = eCurrBlockType;
@@ -100,9 +102,11 @@ export class LocatedBlockFindings {
         blockType: this.priorBlockType,
         sequenceNbr: this.priorInstanceCount,
         startLineIdx: this.priorBlockStartLineIdx,
-        endLineIdx: finalLineIdx, // ends at the last line of the file
+        endLineIdx: finalLineIdx // ends at the last line of the file
       };
-      this._logMessage(`  -- FND-RCD-ADD LAST sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`);
+      this._logMessage(
+        `  -- FND-RCD-ADD LAST sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`
+      );
       this.codeBlockSpans.push(newBlockSpan);
     }
   }

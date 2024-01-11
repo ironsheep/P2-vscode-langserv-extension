@@ -1,4 +1,4 @@
-import * as lsp from "vscode-languageserver";
+import * as lsp from 'vscode-languageserver';
 //import type Parser from "web-tree-sitter";
 
 /**

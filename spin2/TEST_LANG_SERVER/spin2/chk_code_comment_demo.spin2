@@ -59,7 +59,9 @@ CON { driver interface Constants}
     '  DCS_ESTOP            - motor in emergency stop (external stop requested)
     #0, DCS_Unknown, DCS_STOPPED, DCS_SPIN_UP, DCS_AT_SPEED, DCS_SPIN_DN, DCS_SLOW_TO_CHG, DCS_FAULTED, DCS_ESTOP
 
-    user2 = trunc()   ' <<< SHOULD be RED trunc without ()! or with empty ()'s
+    user2 = trunc   ' <<< SHOULD be RED trunc without ()! or with empty ()'s
+    user3 = trunc()   ' <<< SHOULD be RED trunc without ()! or with empty ()'s
+    user4 = trunc(6)   ' <<< SHOULD be RED trunc without ()! or with empty ()'s
 
 OBJ { included objects }
 

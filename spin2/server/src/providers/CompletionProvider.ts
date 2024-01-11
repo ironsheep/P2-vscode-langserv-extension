@@ -1,16 +1,16 @@
-"use strict";
+'use strict';
 // src/providers/CompletionProvider.ts
 
 //       A DEMO Completion Provider!
 
-import * as lsp from "vscode-languageserver";
-import { CompletionItemKind } from "vscode-languageserver/node";
+import * as lsp from 'vscode-languageserver';
+import { CompletionItemKind } from 'vscode-languageserver/node';
 
 //import { promises as fsp } from "fs";
 //import { relative } from "path";
 //import { fileURLToPath } from "url";
-import { Provider } from ".";
-import { Context } from "../context";
+import { Provider } from '.';
+import { Context } from '../context';
 
 export default class CompletionProvider implements Provider {
   //private namedRegs: lsp.CompletionItem[];
@@ -30,37 +30,38 @@ export default class CompletionProvider implements Provider {
     connection.onCompletionResolve(this.handleCompletionResolve.bind(this));
     return {
       completionProvider: {
-        triggerCharacters: ["."],
-        resolveProvider: true,
-      },
+        triggerCharacters: ['.'],
+        resolveProvider: true
+      }
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async handleCompletion({ position, textDocument }: lsp.CompletionParams): Promise<lsp.CompletionItem[]> {
     // The pass parameter contains the position of the text document in
     // which code complete got requested. For the example we ignore this
     // info and always provide the same completion items.
     return [
       {
-        label: "TypeScript",
+        label: 'TypeScript',
         kind: CompletionItemKind.Text,
-        data: 1,
+        data: 1
       },
       {
-        label: "JavaScript",
+        label: 'JavaScript',
         kind: CompletionItemKind.Text,
-        data: 2,
-      },
+        data: 2
+      }
     ];
   }
 
   private handleCompletionResolve(item: lsp.CompletionItem) {
     if (item.data === 1) {
-      item.detail = "TypeScript details";
-      item.documentation = "TypeScript documentation";
+      item.detail = 'TypeScript details';
+      item.documentation = 'TypeScript documentation';
     } else if (item.data === 2) {
-      item.detail = "JavaScript details";
-      item.documentation = "JavaScript documentation";
+      item.detail = 'JavaScript details';
+      item.documentation = 'JavaScript documentation';
     }
     return item;
   }

@@ -67,14 +67,14 @@ VAR CogNum  ' the default variable size is LONG.
 
     BYTE    StringChar          ' byte variable
     BYTE    StringBuffer[64]    ' byte variable array (64 bytes)
-    BYTE    a,b,c[1000],d       ' command separated declarations
+    BYTE    a,b1,c1[1000],d1       ' command separated declarations
 
     WORD    CurrentCycle        ' word variable
     WORD    Cycles[200]         ' word variable array (200 words)
     WORD    ev,fv[5],gv,hv[10]      ' command separated declarations
     WORD    iv[1],jv,kv,lv[92]      ' command separated declarations
 
-    LONG    values              ' long variable
+    LONG    values0              ' long variable
     LONG    values[15]          ' long variable array (15 longs)
     LONG    il[100],jl,kl,ll        ' command separated declarations
 

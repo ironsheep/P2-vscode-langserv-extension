@@ -1,12 +1,12 @@
-"use strict";
+'use strict';
 // server/src/parser/spin.semantic.findings.ts
 
-import { Range, DiagnosticSeverity, SymbolKind, Diagnostic } from "vscode-languageserver-types";
-import { displayEnumByTypeName } from "./spin2.utils";
-import { eDebugDisplayType } from "./spin.common";
-import { Context } from "../context";
-import { Position } from "vscode-languageserver-textdocument";
-import { PortMessageReader } from "vscode-languageserver/node";
+import { Range, DiagnosticSeverity, SymbolKind, Diagnostic } from 'vscode-languageserver-types';
+import { displayEnumByTypeName } from './spin2.utils';
+import { eDebugDisplayType } from './spin.common';
+import { Context } from '../context';
+import { Position } from 'vscode-languageserver-textdocument';
+//import { PortMessageReader } from 'vscode-languageserver/node';
 
 // ============================================================================
 //  this file contains objects we use in tracking symbol use and declaration
@@ -18,7 +18,7 @@ export enum eBLockType {
   isVar,
   isObj,
   isPub,
-  isPri,
+  isPri
 }
 
 export enum eSeverity {
@@ -27,7 +27,7 @@ export enum eSeverity {
   Error,
   Warning,
   Information,
-  Hint,
+  Hint
 }
 
 export enum eDefinitionType {
@@ -35,7 +35,7 @@ export enum eDefinitionType {
   Unknown = 0,
   LocalLabel,
   GlobalLabel,
-  NonLabel,
+  NonLabel
 }
 
 // search comment type: non-doc only, doc-only, or mixed
@@ -43,7 +43,7 @@ enum eCommentFilter {
   Unknown = 0,
   docCommentOnly,
   nondocCommentOnly,
-  allComments,
+  allComments
 }
 
 export interface ILocationOfToken {
@@ -130,7 +130,7 @@ export enum eFoldSpanType {
   Comment,
   CodeBlock,
   PasmCodeBlock,
-  InlinePasmCodeBlock,
+  InlinePasmCodeBlock
 }
 
 export interface IFoldSpan {
@@ -156,7 +156,7 @@ export class DocumentFindings {
   private currMethodStartLineNbr: number = 0;
   private objectParseResultByObjectName = new Map<string, DocumentFindings>();
   private diagnosticMessages: DiagnosticReport[] = [];
-  private declarationLineCache = new Map<Number, string>();
+  private declarationLineCache = new Map<number, string>();
   private declarationGlobalLabelListCache: number[] = [];
   private declarationLocalLabelLineCache = new Map<string, number[]>(); // line numbers by localLabelName
 
@@ -183,7 +183,7 @@ export class DocumentFindings {
   // tracking includes
   private objectFilenameByInstanceName = new Map<string, string>();
   private ctx: Context | undefined;
-  private docUri: string = "--uri-not-set--";
+  private docUri: string = '--uri-not-set--';
 
   public constructor(documentUri: string | undefined = undefined) {
     if (documentUri) {
@@ -193,19 +193,19 @@ export class DocumentFindings {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
-        this._logMessage("Spin2 SemanticFindings log started.");
+        this._logMessage('Spin2 SemanticFindings log started.');
       } else {
-        this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
 
     this._logMessage("* Global, Local, MethodScoped Token repo's ready");
-    this.globalTokens = new TokenSet("gloTOK");
-    this.methodLocalTokens = new NameScopedTokenSet("methLocTOK");
+    this.globalTokens = new TokenSet('gloTOK');
+    this.methodLocalTokens = new NameScopedTokenSet('methLocTOK');
     this.declarationInfoByGlobalTokenName = new Map<string, RememberedTokenDeclarationInfo>();
     this.declarationInfoByLocalTokenName = new Map<string, RememberedTokenDeclarationInfo>();
     // and for P2
-    this.methodLocalPasmTokens = new NameScopedTokenSet("methPasmTOK");
+    this.methodLocalPasmTokens = new NameScopedTokenSet('methPasmTOK');
   }
 
   public get uri(): string {
@@ -217,11 +217,11 @@ export class DocumentFindings {
     // append filespec to our instance number
     const orignalId: string = this.instanceId;
     let priorId: string = this.instanceId;
-    if (priorId.includes("-")) {
-      const idParts: string[] = priorId.split("-");
+    if (priorId.includes('-')) {
+      const idParts: string[] = priorId.split('-');
       priorId = idParts[0];
     }
-    const basename = filespec.split("/").reverse()[0];
+    const basename = filespec.split('/').reverse()[0];
     this.instanceId = `${priorId}-${basename}`;
     this._logMessage(`DocumentFindings: [${orignalId}] -> [${this.instanceId}]`);
   }
@@ -275,9 +275,9 @@ export class DocumentFindings {
     if (this.findingsLogEnabled && this.bLogStarted == false) {
       this.bLogStarted = true;
       //Create output channel
-      this._logMessage("Spin2 SemanticFindings log started.");
+      this._logMessage('Spin2 SemanticFindings log started.');
     } else {
-      this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+      this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
     }
   }
 
@@ -329,8 +329,8 @@ export class DocumentFindings {
 
   private _deDupeReports(diagMessages: DiagnosticReport[], messageCountMax: number): DiagnosticReport[] {
     // remove duplicates in report so we still report relevent content
-    let reducedSet: DiagnosticReport[] = [];
-    let messagesWeveSeen: string[] = [];
+    const reducedSet: DiagnosticReport[] = [];
+    const messagesWeveSeen: string[] = [];
     for (let index = 0; index < diagMessages.length; index++) {
       const report = diagMessages[index];
       if (!messagesWeveSeen.includes(report.message())) {
@@ -346,23 +346,23 @@ export class DocumentFindings {
 
   public pushDiagnosticMessage(lineIdx: number, startChar: number, endChar: number, severity: eSeverity, message: string): void {
     // record a new diagnostic message
-    let severityStr: string = "??severity??";
+    let severityStr: string = '??severity??';
     if (this.findingsLogEnabled) {
       switch (severity) {
         case eSeverity.Error: {
-          severityStr = "ERROR";
+          severityStr = 'ERROR';
           break;
         }
         case eSeverity.Warning: {
-          severityStr = "WARNING";
+          severityStr = 'WARNING';
           break;
         }
         case eSeverity.Hint: {
-          severityStr = "HINT";
+          severityStr = 'HINT';
           break;
         }
         case eSeverity.Information: {
-          severityStr = "INFORMATION";
+          severityStr = 'INFORMATION';
           break;
         }
       }
@@ -389,7 +389,11 @@ export class DocumentFindings {
     const blockSpans = this.blockSpans();
     for (let index = 0; index < blockSpans.length; index++) {
       const blockSpan = blockSpans[index];
-      const nextSpan: IFoldSpan = { foldstart: { line: blockSpan.startLineIdx, character: 0 }, foldEnd: { line: blockSpan.endLineIdx, character: Number.MAX_VALUE }, type: eFoldSpanType.CodeBlock };
+      const nextSpan: IFoldSpan = {
+        foldstart: { line: blockSpan.startLineIdx, character: 0 },
+        foldEnd: { line: blockSpan.endLineIdx, character: Number.MAX_VALUE },
+        type: eFoldSpanType.CodeBlock
+      };
       foldingCodeSpans.push(nextSpan);
     }
     //  doc comment ranges
@@ -398,9 +402,13 @@ export class DocumentFindings {
       // NOTE: 2 or more lines can fold
       if (blockComment.lineCount > 1) {
         const commentLines: string[] = blockComment.lines;
-        const commentString: string = `\n------->>>>>>>>>-------\n${commentLines.join("\n")}\n-------<<<<<<<<<-------\n`;
+        const commentString: string = `\n------->>>>>>>>>-------\n${commentLines.join('\n')}\n-------<<<<<<<<<-------\n`;
         this._logMessage(` -- CMT block Ln#${blockComment.firstLine + 1}-${blockComment.lastLine + 1}(${blockComment.lineSpan}): [${commentString}]`);
-        const nextSpan: IFoldSpan = { foldstart: { line: blockComment.firstLine, character: 0 }, foldEnd: { line: blockComment.lastLine, character: Number.MAX_VALUE }, type: eFoldSpanType.Comment };
+        const nextSpan: IFoldSpan = {
+          foldstart: { line: blockComment.firstLine, character: 0 },
+          foldEnd: { line: blockComment.lastLine, character: Number.MAX_VALUE },
+          type: eFoldSpanType.Comment
+        };
         foldingCodeSpans.push(nextSpan);
       }
     }
@@ -412,7 +420,7 @@ export class DocumentFindings {
       const nextSpan: IFoldSpan = {
         foldstart: { line: pasmCodeSpan.startLineIdx, character: 0 },
         foldEnd: { line: pasmCodeSpan.endLineIdx, character: Number.MAX_VALUE },
-        type: spanType,
+        type: spanType
       };
       foldingCodeSpans.push(nextSpan);
     }
@@ -423,7 +431,7 @@ export class DocumentFindings {
       const nextSpan: IFoldSpan = {
         foldstart: { line: continuedLineSpan.startLineIdx, character: 0 },
         foldEnd: { line: continuedLineSpan.endLineIdx, character: Number.MAX_VALUE },
-        type: eFoldSpanType.CodeBlock,
+        type: eFoldSpanType.CodeBlock
       };
       foldingCodeSpans.push(nextSpan);
     }
@@ -434,7 +442,7 @@ export class DocumentFindings {
       const nextSpan: IFoldSpan = {
         foldstart: { line: spinFlowSpan.startLineIdx, character: 0 },
         foldEnd: { line: spinFlowSpan.endLineIdx, character: Number.MAX_VALUE },
-        type: eFoldSpanType.CodeBlock,
+        type: eFoldSpanType.CodeBlock
       };
       foldingCodeSpans.push(nextSpan);
     }
@@ -449,7 +457,7 @@ export class DocumentFindings {
     // return the complete set of Semantic tokens found in our document
     //  and yes, in language server we need to do the sorting before returning these
     //  otherwise some things don't get colored!
-    var sortedArray: IParsedToken[] = this.semanticTokens.sort((n1, n2) => {
+    const sortedArray: IParsedToken[] = this.semanticTokens.sort((n1, n2) => {
       if (n1.line > n2.line) {
         return 1;
       }
@@ -498,7 +506,9 @@ export class DocumentFindings {
     const namespaceKey: string = namespace.toLowerCase();
     if (!this.objectParseResultByObjectName.has(namespaceKey)) {
       this.objectParseResultByObjectName.set(namespaceKey, symbolsInNamespace);
-      this._logMessage(`* setFindingsForNamespace(${this.instanceName()}) ADD findings for [${namespace}] which is [${symbolsInNamespace.instanceName()}]`);
+      this._logMessage(
+        `* setFindingsForNamespace(${this.instanceName()}) ADD findings for [${namespace}] which is [${symbolsInNamespace.instanceName()}]`
+      );
     } else {
       this._logMessage(`* setFindingsForNamespace(${this.instanceName()}) ERROR: SKIP ADD, duplicate [${namespace}]`);
     }
@@ -517,7 +527,9 @@ export class DocumentFindings {
     if (this.objectParseResultByObjectName.has(namespaceKey)) {
       symbolsInNamespace = this.objectParseResultByObjectName.get(namespaceKey);
       if (symbolsInNamespace) {
-        this._logMessage(`* getFindingsForNamespace(${this.instanceName()}) returns [${namespace}]=[${symbolsInNamespace}] which is [${symbolsInNamespace.instanceName()}]`);
+        this._logMessage(
+          `* getFindingsForNamespace(${this.instanceName()}) returns [${namespace}]=[${symbolsInNamespace}] which is [${symbolsInNamespace.instanceName()}]`
+        );
       } else {
         this._logMessage(`* getFindingsForNamespace(${this.instanceName()}) ERROR: [-failed-get-] NO findings for [${namespace}]`);
       }
@@ -536,7 +548,7 @@ export class DocumentFindings {
   public locationsOfToken(tokenName: string, postion: Position): ILocationOfToken[] {
     // NOTE: position is cursor position in doc at location of request
     const desiredLocations: ILocationOfToken[] = [];
-    this.appendLocationsOfToken(tokenName, desiredLocations, "top", postion);
+    this.appendLocationsOfToken(tokenName, desiredLocations, 'top', postion);
     this._logMessage(`  -- locationsOfToken() id=[${this.instanceId}] returns ${desiredLocations.length} tokens`);
     return desiredLocations;
   }
@@ -546,21 +558,28 @@ export class DocumentFindings {
     //  we use this to determine if request is scoped to a method
     //   if it is, we limit responses to findings within the method
     let referenceDetails: RememberedToken | undefined = undefined;
-    const desiredTokenKey: string = tokenName.toLowerCase();
+    //const desiredTokenKey: string = tokenName.toLowerCase();
     let findCount: number = 0;
-    const isPossibleLocalLabel: boolean = tokenName.startsWith(".") || tokenName.startsWith(":");
+    const isPossibleLocalLabel: boolean = tokenName.startsWith('.') || tokenName.startsWith(':');
     // get global token from this objects
     let tokenPosition: Position = { line: -1, character: -1 };
     if (this.isGlobalToken(tokenName)) {
       referenceDetails = this.getGlobalToken(tokenName);
       if (referenceDetails) {
-        if (isPossibleLocalLabel && referenceDetails.type === "label") {
+        if (isPossibleLocalLabel && referenceDetails.type === 'label') {
           tokenPosition = this._getBestLocalLabelPostionForPosition(postion, tokenName);
         } else {
-          tokenPosition = { line: referenceDetails.lineIndex, character: referenceDetails.charIndex };
+          tokenPosition = {
+            line: referenceDetails.lineIndex,
+            character: referenceDetails.charIndex
+          };
         }
         if (tokenPosition.line != -1 && tokenPosition.character != -1) {
-          const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
+          const tokenRef: ILocationOfToken = {
+            uri: this.uri,
+            objectName: objectName,
+            position: tokenPosition
+          };
           locationsSoFar.push(tokenRef);
           findCount++;
         }
@@ -584,13 +603,20 @@ export class DocumentFindings {
           }
         }
         if (referenceDetails) {
-          if (isPossibleLocalLabel && referenceDetails.type === "label") {
+          if (isPossibleLocalLabel && referenceDetails.type === 'label') {
             tokenPosition = this._getBestLocalLabelPostionForPosition(postion, tokenName);
           } else {
-            tokenPosition = { line: referenceDetails.lineIndex, character: referenceDetails.charIndex };
+            tokenPosition = {
+              line: referenceDetails.lineIndex,
+              character: referenceDetails.charIndex
+            };
           }
           if (tokenPosition.line != -1 && tokenPosition.character != -1) {
-            const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
+            const tokenRef: ILocationOfToken = {
+              uri: this.uri,
+              objectName: objectName,
+              position: tokenPosition
+            };
             locationsSoFar.push(tokenRef);
             findCount++;
           }
@@ -603,8 +629,15 @@ export class DocumentFindings {
         for (let index = 0; index < referenceSet.length; index++) {
           referenceDetails = referenceSet[index];
           if (referenceDetails) {
-            const tokenPosition: Position = { line: referenceDetails.lineIndex, character: referenceDetails.charIndex };
-            const tokenRef: ILocationOfToken = { uri: this.uri, objectName: objectName, position: tokenPosition };
+            const tokenPosition: Position = {
+              line: referenceDetails.lineIndex,
+              character: referenceDetails.charIndex
+            };
+            const tokenRef: ILocationOfToken = {
+              uri: this.uri,
+              objectName: objectName,
+              position: tokenPosition
+            };
             locationsSoFar.push(tokenRef);
             findCount++;
             this._logMessage(`  -- appLoc-Token FOUND local token=[${tokenName}]`);
@@ -666,15 +699,17 @@ export class DocumentFindings {
       this.priorInstanceCount = 1;
     } else {
       // we are starting a later block, lets finish prior then start the new
-      const isFirstOfThisType: boolean = this.priorBlockType != eCurrBlockType ? false : true;
+      //const isFirstOfThisType: boolean = this.priorBlockType != eCurrBlockType ? false : true;
       const newBlockSpan: IBlockSpan = {
         blockType: this.priorBlockType,
         sequenceNbr: this.priorInstanceCount,
         startLineIdx: this.priorBlockStartLineIdx,
-        endLineIdx: currLineIdx - 1, // ends at prior line
+        endLineIdx: currLineIdx - 1 // ends at prior line
       };
       this.codeBlockSpans.push(newBlockSpan);
-      this._logMessage(`  -- FND-RCD-ADD sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`);
+      this._logMessage(
+        `  -- FND-RCD-ADD sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`
+      );
       this.priorInstanceCount = this.priorBlockType == eCurrBlockType ? this.priorInstanceCount + 1 : 1;
       this.priorBlockStartLineIdx = currLineIdx;
       this.priorBlockType = eCurrBlockType;
@@ -689,9 +724,11 @@ export class DocumentFindings {
         blockType: this.priorBlockType,
         sequenceNbr: this.priorInstanceCount,
         startLineIdx: this.priorBlockStartLineIdx,
-        endLineIdx: finalLineIdx, // ends at the last line of the file
+        endLineIdx: finalLineIdx // ends at the last line of the file
       };
-      this._logMessage(`  -- FND-RCD-ADD LAST sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`);
+      this._logMessage(
+        `  -- FND-RCD-ADD LAST sequenceNbr=[${newBlockSpan.sequenceNbr}], blockType=[${newBlockSpan.blockType}], span=[${newBlockSpan.startLineIdx} - ${newBlockSpan.endLineIdx}]`
+      );
       this.codeBlockSpans.push(newBlockSpan);
     }
   }
@@ -731,7 +768,11 @@ export class DocumentFindings {
   public recordPasmEnd(lineIdx: number) {
     // finish the pasm span record and record it
     if (this.pasmStartLineIdx != -1) {
-      const newSpan: IPasmCodeSpan = { startLineIdx: this.pasmStartLineIdx, endLineIdx: lineIdx, isInline: this.pasmIsInline };
+      const newSpan: IPasmCodeSpan = {
+        startLineIdx: this.pasmStartLineIdx,
+        endLineIdx: lineIdx,
+        isInline: this.pasmIsInline
+      };
       this.pasmCodeSpans.push(newSpan);
       this.pasmStartLineIdx = -1; // used this one!
       this._logMessage(`  -- FND-PASM-ADD RANGE range=[${this.pasmStartLineIdx}-${lineIdx}], isInline=[${this.pasmIsInline}]`);
@@ -747,7 +788,9 @@ export class DocumentFindings {
       const pasmSpan: IPasmCodeSpan = this.pasmCodeSpans[index];
       if (lineIndex >= pasmSpan.startLineIdx && lineIndex <= pasmSpan.endLineIdx) {
         inPasmCodeStatus = true;
-        this._logMessage(`  -- FND-PASM  range=[${pasmSpan.startLineIdx}-${pasmSpan.endLineIdx}], isInline=[${pasmSpan.isInline}] our symbol is IN PASM BLOCK`);
+        this._logMessage(
+          `  -- FND-PASM  range=[${pasmSpan.startLineIdx}-${pasmSpan.endLineIdx}], isInline=[${pasmSpan.isInline}] our symbol is IN PASM BLOCK`
+        );
         break;
       }
     }
@@ -773,7 +816,8 @@ export class DocumentFindings {
 
   public includeFilenames(): string[] {
     // return the list of filenames of included objects
-    let filenames: string[] = [];
+    const filenames: string[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [name, filename] of this.objectFilenameByInstanceName) {
       filenames.push(filename);
     }
@@ -807,7 +851,7 @@ export class DocumentFindings {
   public isLineInBlockComment(lineNumber: number): boolean {
     let inCommentStatus: boolean = false;
     if (this.blockComments.length > 0) {
-      for (let docComment of this.blockComments) {
+      for (const docComment of this.blockComments) {
         if (docComment.includesLine(lineNumber)) {
           inCommentStatus = true;
           break;
@@ -820,7 +864,7 @@ export class DocumentFindings {
   public isLineInFakeComment(lineIdx: number): boolean {
     let inCommentStatus: boolean = false;
     if (this.fakeComments.length > 0) {
-      for (let fakeComment of this.fakeComments) {
+      for (const fakeComment of this.fakeComments) {
         if (fakeComment.includesLine(lineIdx)) {
           inCommentStatus = true;
           break;
@@ -832,13 +876,13 @@ export class DocumentFindings {
 
   private logBlockComment(comment: RememberedComment) {
     const decription: string[] = comment.desribeComment();
-    this._logMessage(`${decription.join("\n")}`);
+    this._logMessage(`${decription.join('\n')}`);
   }
 
   public blockCommentMDFromLine(lineIdx: number, eFilter: eCommentFilter): string | undefined {
     let desiredComment: string | undefined = undefined;
     if (this.blockComments.length > 0) {
-      for (let blockComment of this.blockComments) {
+      for (const blockComment of this.blockComments) {
         // only one will match...
         this.logBlockComment(blockComment);
         if (blockComment.includesLine(lineIdx)) {
@@ -857,7 +901,7 @@ export class DocumentFindings {
   public fakeCommentMDFromLine(lineIdx: number, eFilter: eCommentFilter): string | undefined {
     let desiredComment: string | undefined = undefined;
     if (this.fakeComments.length > 0) {
-      for (let fakeComment of this.fakeComments) {
+      for (const fakeComment of this.fakeComments) {
         if (fakeComment.includesLine(lineIdx)) {
           const canUseThisComment: boolean = this._isUsableComment(fakeComment.isDocComment, eFilter);
           if (canUseThisComment) {
@@ -910,13 +954,13 @@ export class DocumentFindings {
   }
 
   public getDebugTokenWithDescription(tokenName: string): ITokenDescription {
-    let findings: ITokenDescription = {
+    const findings: ITokenDescription = {
       found: false,
-      tokenRawInterp: "",
+      tokenRawInterp: '',
       isGoodInterp: false,
       token: undefined,
-      scope: "",
-      interpretation: "",
+      scope: '',
+      interpretation: '',
       adjustedName: tokenName,
       declarationLineIdx: 0,
       declarationLine: undefined,
@@ -924,7 +968,7 @@ export class DocumentFindings {
       signature: undefined,
       relatedFilename: undefined,
       relatedObjectName: undefined,
-      relatedMethodName: undefined,
+      relatedMethodName: undefined
     };
     // do we have a token??
     let declInfo: RememberedTokenDeclarationInfo | undefined = undefined;
@@ -935,11 +979,14 @@ export class DocumentFindings {
       if (displayInfo.eDisplayType != eDebugDisplayType.Unknown) {
         // we have a debug display type!
         const fakeCharOffset: number = 0;
-        findings.token = new RememberedToken("debugDisplay", displayInfo.lineNbr - 1, fakeCharOffset, [displayInfo.displayTypeString]);
-        findings.scope = "Global";
-        findings.tokenRawInterp = "Global: " + this._rememberdTokenString(tokenName, findings.token);
+        findings.token = new RememberedToken('debugDisplay', displayInfo.lineNbr - 1, fakeCharOffset, [displayInfo.displayTypeString]);
+        findings.scope = 'Global';
+        findings.tokenRawInterp = 'Global: ' + this._rememberdTokenString(tokenName, findings.token);
         const termType: string = displayInfo.displayTypeString.toUpperCase();
-        declInfo = new RememberedTokenDeclarationInfo(displayInfo.lineNbr, `Debug Output: User name for an instance of ${termType}<br>- Write output to the \`${tokenName}\` window`);
+        declInfo = new RememberedTokenDeclarationInfo(
+          displayInfo.lineNbr,
+          `Debug Output: User name for an instance of ${termType}<br>- Write output to the \`${tokenName}\` window`
+        );
       }
     }
     this._fillInFindings(tokenName, findings, declInfo);
@@ -949,11 +996,11 @@ export class DocumentFindings {
   public getPublicTokenWithDescription(tokenName: string, lineNbr: number): ITokenDescription {
     let findings: ITokenDescription = {
       found: false,
-      tokenRawInterp: "",
+      tokenRawInterp: '',
       isGoodInterp: false,
       token: undefined,
-      scope: "",
-      interpretation: "",
+      scope: '',
+      interpretation: '',
       adjustedName: tokenName,
       declarationLineIdx: 0,
       declarationLine: undefined,
@@ -961,7 +1008,7 @@ export class DocumentFindings {
       signature: undefined,
       relatedFilename: undefined,
       relatedObjectName: undefined,
-      relatedMethodName: undefined,
+      relatedMethodName: undefined
     };
     // do we have a token??
     if (this.isPublicToken(tokenName)) {
@@ -971,13 +1018,13 @@ export class DocumentFindings {
   }
 
   public getTokenWithDescription(tokenName: string, lineNbr: number): ITokenDescription {
-    let findings: ITokenDescription = {
+    const findings: ITokenDescription = {
       found: false,
-      tokenRawInterp: "",
+      tokenRawInterp: '',
       isGoodInterp: false,
       token: undefined,
-      scope: "",
-      interpretation: "",
+      scope: '',
+      interpretation: '',
       adjustedName: tokenName,
       declarationLineIdx: 0,
       declarationLine: undefined,
@@ -985,7 +1032,7 @@ export class DocumentFindings {
       signature: undefined,
       relatedFilename: undefined,
       relatedObjectName: undefined,
-      relatedMethodName: undefined,
+      relatedMethodName: undefined
     };
     // do we have a token??
     let declInfo: RememberedTokenDeclarationInfo | undefined = undefined;
@@ -996,8 +1043,8 @@ export class DocumentFindings {
       findings.token = this.getGlobalToken(tokenName);
       if (findings.token) {
         // we have a GLOBAL token!
-        findings.tokenRawInterp = "Global: " + this._rememberdTokenString(tokenName, findings.token);
-        findings.scope = "Global";
+        findings.tokenRawInterp = 'Global: ' + this._rememberdTokenString(tokenName, findings.token);
+        findings.scope = 'Global';
         // and get additional info for token
         declInfo = this.declarationInfoByGlobalTokenName.get(desiredTokenKey);
       } else {
@@ -1005,8 +1052,8 @@ export class DocumentFindings {
         findings.token = this.getLocalTokenForLine(tokenName, lineNbr);
         if (findings.token) {
           // we have a LOCAL token!
-          findings.tokenRawInterp = "Local: " + this._rememberdTokenString(tokenName, findings.token);
-          findings.scope = "Local";
+          findings.tokenRawInterp = 'Local: ' + this._rememberdTokenString(tokenName, findings.token);
+          findings.scope = 'Local';
           // and get additional info for token
           declInfo = this.declarationInfoByLocalTokenName.get(desiredTokenKey);
         } else {
@@ -1014,12 +1061,12 @@ export class DocumentFindings {
           findings.token = this.methodLocalPasmTokens.getToken(tokenName);
           findings.relatedMethodName = this.methodLocalPasmTokens.getMethodNameForToken(tokenName);
           if (findings.relatedMethodName) {
-            findings.relatedMethodName = findings.relatedMethodName + "()";
+            findings.relatedMethodName = findings.relatedMethodName + '()';
           }
           if (findings.token) {
             // we have a LOCAL token!
-            findings.tokenRawInterp = "Method-local: " + this._rememberdTokenString(tokenName, findings.token);
-            findings.scope = "Local";
+            findings.tokenRawInterp = 'Method-local: ' + this._rememberdTokenString(tokenName, findings.token);
+            findings.scope = 'Local';
             // and get additional info for token
             declInfo = this.declarationInfoByLocalTokenName.get(desiredTokenKey);
           }
@@ -1033,7 +1080,7 @@ export class DocumentFindings {
   private _locateNonBlankLineAfter(lineIdx: number): number {
     let desiredLineIdx: number = lineIdx;
     if (this.blockComments.length > 0) {
-      for (let blockComment of this.blockComments) {
+      for (const blockComment of this.blockComments) {
         // only one comment will match... either or both of the line indexes
         if (blockComment.includesLine(lineIdx) || blockComment.includesLine(lineIdx + 1)) {
           desiredLineIdx = blockComment.firstLine;
@@ -1045,69 +1092,81 @@ export class DocumentFindings {
     return desiredLineIdx;
   }
 
-  private _interpretToken(token: RememberedToken, scope: string, name: string, declInfo: RememberedTokenDeclarationInfo | undefined): ITokenInterpretation {
-    this._logMessage(`  -- _interpretToken() scope=[${scope}], name=[${name}], line#=[${declInfo?.lineIndex}]` + this._rememberdTokenString(name, token));
-    let desiredInterp: ITokenInterpretation = { interpretation: "", scope: scope.toLowerCase(), name: name, isGoodInterp: true };
-    desiredInterp.interpretation = "--type??";
-    if (token?.type == "variable" && token?.modifiers.includes("readonly") && !declInfo?.isObjectReference) {
+  private _interpretToken(
+    token: RememberedToken,
+    scope: string,
+    name: string,
+    declInfo: RememberedTokenDeclarationInfo | undefined
+  ): ITokenInterpretation {
+    this._logMessage(
+      `  -- _interpretToken() scope=[${scope}], name=[${name}], line#=[${declInfo?.lineIndex}]` + this._rememberdTokenString(name, token)
+    );
+    const desiredInterp: ITokenInterpretation = {
+      interpretation: '',
+      scope: scope.toLowerCase(),
+      name: name,
+      isGoodInterp: true
+    };
+    desiredInterp.interpretation = '--type??';
+    if (token?.type == 'variable' && token?.modifiers.includes('readonly') && !declInfo?.isObjectReference) {
       // have non object reference
-      desiredInterp.scope = "object public"; // not just global
-      desiredInterp.interpretation = "32-bit constant";
-    } else if (token?.type == "variable" && token?.modifiers.includes("readonly") && declInfo?.isObjectReference) {
+      desiredInterp.scope = 'object public'; // not just global
+      desiredInterp.interpretation = '32-bit constant';
+    } else if (token?.type == 'variable' && token?.modifiers.includes('readonly') && declInfo?.isObjectReference) {
       // have object interface constant
-      desiredInterp.scope = "object interface"; // not just global
-      desiredInterp.interpretation = "32-bit constant";
-    } else if (token?.type == "debugDisplay") {
-      desiredInterp.scope = "object"; // ignore for this (or move `object` here?)
-      desiredInterp.interpretation = "user debug display";
-    } else if (token?.type == "namespace") {
-      desiredInterp.scope = "object"; // ignore for this (or move `object` here?)
-      desiredInterp.interpretation = "named instance";
-    } else if (token?.type == "variable") {
-      desiredInterp.interpretation = "variable";
-      if (token?.modifiers.includes("pasmInline")) {
-        desiredInterp.scope = "method-local"; // ignore for this (or move `object` here?)
-        desiredInterp.interpretation = "inline-pasm variable";
-      } else if (token?.modifiers.includes("local")) {
-        desiredInterp.scope = "method"; // ignore for this (or move `object` here?)
-        desiredInterp.interpretation = "local variable";
-      } else if (token?.modifiers.includes("instance")) {
-        desiredInterp.scope = "object private"; // ignore for this (or move `object` here?)
-        desiredInterp.interpretation = "instance " + desiredInterp.interpretation + " -VAR";
+      desiredInterp.scope = 'object interface'; // not just global
+      desiredInterp.interpretation = '32-bit constant';
+    } else if (token?.type == 'debugDisplay') {
+      desiredInterp.scope = 'object'; // ignore for this (or move `object` here?)
+      desiredInterp.interpretation = 'user debug display';
+    } else if (token?.type == 'namespace') {
+      desiredInterp.scope = 'object'; // ignore for this (or move `object` here?)
+      desiredInterp.interpretation = 'named instance';
+    } else if (token?.type == 'variable') {
+      desiredInterp.interpretation = 'variable';
+      if (token?.modifiers.includes('pasmInline')) {
+        desiredInterp.scope = 'method-local'; // ignore for this (or move `object` here?)
+        desiredInterp.interpretation = 'inline-pasm variable';
+      } else if (token?.modifiers.includes('local')) {
+        desiredInterp.scope = 'method'; // ignore for this (or move `object` here?)
+        desiredInterp.interpretation = 'local variable';
+      } else if (token?.modifiers.includes('instance')) {
+        desiredInterp.scope = 'object private'; // ignore for this (or move `object` here?)
+        desiredInterp.interpretation = 'instance ' + desiredInterp.interpretation + ' -VAR';
       } else {
-        desiredInterp.scope = "object private"; // ignore for this (or move `object` here?)
-        desiredInterp.interpretation = "shared " + desiredInterp.interpretation + " -DAT";
+        desiredInterp.scope = 'object private'; // ignore for this (or move `object` here?)
+        desiredInterp.interpretation = 'shared ' + desiredInterp.interpretation + ' -DAT';
       }
-    } else if (token?.type == "label") {
-      if (token?.modifiers.includes("pasmInline")) {
-        desiredInterp.scope = "method-local"; // ignore for this (or move `object` here?)
-        desiredInterp.interpretation = "inline-pasm label";
+    } else if (token?.type == 'label') {
+      if (token?.modifiers.includes('pasmInline')) {
+        desiredInterp.scope = 'method-local'; // ignore for this (or move `object` here?)
+        desiredInterp.interpretation = 'inline-pasm label';
       } else {
-        desiredInterp.scope = "object private"; // not just global
-        if (token?.modifiers.includes("static")) {
-          desiredInterp.interpretation = "local pasm label";
+        desiredInterp.scope = 'object private'; // not just global
+        if (token?.modifiers.includes('static')) {
+          desiredInterp.interpretation = 'local pasm label';
         } else {
-          desiredInterp.interpretation = "pasm label";
+          desiredInterp.interpretation = 'pasm label';
         }
       }
-    } else if (token?.type == "returnValue") {
-      desiredInterp.scope = "method"; // ignore for this (or method?)
-      desiredInterp.interpretation = "return value";
-    } else if (token?.type == "parameter") {
-      desiredInterp.scope = "method"; // ignore for this (or method?)
-      desiredInterp.interpretation = "parameter";
-    } else if (token?.type == "enumMember") {
-      desiredInterp.interpretation = "enum value";
-    } else if (token?.type == "method") {
-      desiredInterp.name = name + "()";
-      desiredInterp.scope = "object";
-      if (token?.modifiers.includes("static")) {
-        desiredInterp.interpretation = "private method";
+    } else if (token?.type == 'returnValue') {
+      desiredInterp.scope = 'method'; // ignore for this (or method?)
+      desiredInterp.interpretation = 'return value';
+    } else if (token?.type == 'parameter') {
+      desiredInterp.scope = 'method'; // ignore for this (or method?)
+      desiredInterp.interpretation = 'parameter';
+    } else if (token?.type == 'enumMember') {
+      desiredInterp.interpretation = 'enum value';
+    } else if (token?.type == 'method') {
+      desiredInterp.name = name + '()';
+      desiredInterp.scope = 'object';
+      if (token?.modifiers.includes('static')) {
+        desiredInterp.interpretation = 'private method';
       } else {
         if (declInfo?.isObjectReference) {
-          desiredInterp.scope = "object interface"; // not just global
+          desiredInterp.scope = 'object interface'; // not just global
         }
-        desiredInterp.interpretation = "public method";
+        desiredInterp.interpretation = 'public method';
       }
     } else {
       desiredInterp.isGoodInterp = false;
@@ -1117,12 +1176,12 @@ export class DocumentFindings {
 
   private _fillInFindings(tokenName: string, findings: ITokenDescription, declInfo: RememberedTokenDeclarationInfo | undefined) {
     if (findings.token) {
-      let details: ITokenInterpretation = this._interpretToken(findings.token, findings.scope, tokenName, declInfo);
+      const details: ITokenInterpretation = this._interpretToken(findings.token, findings.scope, tokenName, declInfo);
       findings.isGoodInterp = details.isGoodInterp;
       findings.interpretation = details.interpretation;
       findings.scope = details.scope;
       findings.adjustedName = details.name;
-      const bIsMethod: boolean = findings.token.type == "method";
+      const bIsMethod: boolean = findings.token.type == 'method';
       if (declInfo) {
         // and decorate with declaration line number
         findings.declarationLineIdx = declInfo.lineIndex;
@@ -1138,7 +1197,7 @@ export class DocumentFindings {
             findings.relatedObjectName = declInfo.reference;
           }
         }
-        const bIsPublic: boolean = findings.token.modifiers.includes("static") ? false : true;
+        const bIsPublic: boolean = findings.token.modifiers.includes('static') ? false : true;
         if (bIsMethod) {
           const commentType: eCommentFilter = bIsPublic ? eCommentFilter.docCommentOnly : eCommentFilter.nondocCommentOnly;
           const nonBlankLineIdx: number = this._locateNonBlankLineAfter(findings.declarationLineIdx + 1); // +1 is line after signature
@@ -1154,13 +1213,13 @@ export class DocumentFindings {
             findings.declarationComment = declInfo.comment;
           }
           // NOTE: use fake signature comment instead when there Are params and declInfo doesn't describe them
-          const haveDeclParams: boolean = findings.declarationComment && findings.declarationComment?.includes("@param") ? true : false;
+          const haveDeclParams: boolean = findings.declarationComment && findings.declarationComment?.includes('@param') ? true : false;
           this._logMessage(`  -- FND-xxxTOK haveDeclParams=(${haveDeclParams})`);
           if (!haveDeclParams) {
-            let fakeComment: string | undefined = this.fakeCommentMDFromLine(nonBlankLineIdx, commentType);
+            const fakeComment: string | undefined = this.fakeCommentMDFromLine(nonBlankLineIdx, commentType);
             if (fakeComment) {
               if (findings.declarationComment) {
-                findings.declarationComment = findings.declarationComment + "<br><br>" + fakeComment;
+                findings.declarationComment = findings.declarationComment + '<br><br>' + fakeComment;
               } else {
                 findings.declarationComment = fakeComment;
               }
@@ -1194,7 +1253,7 @@ export class DocumentFindings {
     //  (this is global name above and below currLine)
     const tokenKey: string = labelTokenName.toLowerCase();
     let localLabelPosn: Position = { line: -1, character: -1 };
-    let tokenDeclLines: number[] | undefined = this.declarationLocalLabelLineCache.get(tokenKey);
+    const tokenDeclLines: number[] | undefined = this.declarationLocalLabelLineCache.get(tokenKey);
     if (tokenDeclLines) {
       if (tokenDeclLines.length > 1) {
         //this._logMessage(`  -- gBLLPFP local=[${tokenDeclLines}](${tokenDeclLines.length})`);
@@ -1241,7 +1300,9 @@ export class DocumentFindings {
     } else {
       this._logMessage(`  -- gBLLPFP ERROR no decl lines for tok=[${labelTokenName}]`);
     }
-    this._logMessage(`  -- gBLLPFP posn=[${position.line}, ${position.character}], tok=[${labelTokenName}] -> posn=[${localLabelPosn.line}, ${localLabelPosn.character}}]`);
+    this._logMessage(
+      `  -- gBLLPFP posn=[${position.line}, ${position.character}], tok=[${labelTokenName}] -> posn=[${localLabelPosn.line}, ${localLabelPosn.character}}]`
+    );
 
     return localLabelPosn;
   }
@@ -1249,7 +1310,7 @@ export class DocumentFindings {
   public recordDeclarationLine(line: string, lineNbr: number, declType: eDefinitionType = eDefinitionType.NonLabel) {
     // remember our declaration line for later use
     // (first one in, wins)
-    const lineIdx: Number = lineNbr - 1;
+    const lineIdx: number = lineNbr - 1;
     if (!this.declarationLineCache.has(lineIdx)) {
       this.declarationLineCache.set(lineIdx, line);
     }
@@ -1269,7 +1330,7 @@ export class DocumentFindings {
   }
 
   public TEST_dumpLineCache() {
-    const lineNbrKeys: Number[] = Array.from(this.declarationLineCache.keys());
+    const lineNbrKeys: number[] = Array.from(this.declarationLineCache.keys());
     this._logMessage(`  -- FND-LineCache -------------------------`);
     for (let index = 0; index < lineNbrKeys.length; index++) {
       const lineIdx = lineNbrKeys[index];
@@ -1283,9 +1344,13 @@ export class DocumentFindings {
   public setGlobalToken(tokenName: string, token: RememberedToken, declarationComment: string | undefined, reference?: string | undefined): void {
     // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
     //   this allows go-to to get to nearest earlier than right-mouse line
-    const isLocalLabel: boolean = (tokenName.startsWith(".") || tokenName.startsWith(":")) && token.type === "label";
+    const isLocalLabel: boolean = (tokenName.startsWith('.') || tokenName.startsWith(':')) && token.type === 'label';
     if (!this.isGlobalToken(tokenName)) {
-      this._logMessage("  -- NEW-gloTOK " + this._rememberdTokenString(tokenName, token) + `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}], ref=[${reference}]`);
+      this._logMessage(
+        '  -- NEW-gloTOK ' +
+          this._rememberdTokenString(tokenName, token) +
+          `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}], ref=[${reference}]`
+      );
       this.globalTokens.setToken(tokenName, token);
       // and remember declataion line# for this token
       const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment, reference);
@@ -1315,13 +1380,13 @@ export class DocumentFindings {
   }
 
   public getGlobalToken(tokenName: string): RememberedToken | undefined {
-    var desiredToken: RememberedToken | undefined = this.globalTokens.getToken(tokenName);
+    let desiredToken: RememberedToken | undefined = this.globalTokens.getToken(tokenName);
     if (desiredToken != undefined) {
       // let's never return a declaration modifier! (somehow declaration creeps in to our list!??)
       //let modifiersNoDecl: string[] = this._modifiersWithout(desiredToken.modifiers, "declaration");
-      let modifiersNoDecl: string[] = desiredToken.modifiersWithout("declaration");
+      const modifiersNoDecl: string[] = desiredToken.modifiersWithout('declaration');
       desiredToken = new RememberedToken(desiredToken.type, desiredToken.lineIndex, desiredToken.charIndex, modifiersNoDecl);
-      this._logMessage("  -- FND-gloTOK " + this._rememberdTokenString(tokenName, desiredToken));
+      this._logMessage('  -- FND-gloTOK ' + this._rememberdTokenString(tokenName, desiredToken));
     }
     return desiredToken;
   }
@@ -1354,7 +1419,11 @@ export class DocumentFindings {
 
   public setLocalTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
     if (!this.isLocalTokenForMethod(methodName, tokenName)) {
-      this._logMessage(`  -- NEW-locTOK ln#${token.lineIndex + 1} method=[${methodName}], ` + this._rememberdTokenString(tokenName, token) + `, cmt=[${declarationComment}]`);
+      this._logMessage(
+        `  -- NEW-locTOK ln#${token.lineIndex + 1} method=[${methodName}], ` +
+          this._rememberdTokenString(tokenName, token) +
+          `, cmt=[${declarationComment}]`
+      );
       this.methodLocalTokens.setTokenForMethod(methodName, tokenName, token);
       // and remember declataion line# for this token
       const desiredTokenKey: string = tokenName.toLowerCase();
@@ -1398,12 +1467,19 @@ export class DocumentFindings {
   public endPossibleMethod(lineNbr: number): void {
     // possibly ending a method if one was started, end it, else ignore this
     if (this.currMethodName) {
-      const spanInfo: IMethodSpan = { startLineIdx: this.currMethodStartLineNbr, endLineIdx: lineNbr };
+      const spanInfo: IMethodSpan = {
+        startLineIdx: this.currMethodStartLineNbr,
+        endLineIdx: lineNbr
+      };
       if (!this.spanInfoByMethodName.has(this.currMethodName)) {
         this.spanInfoByMethodName.set(this.currMethodName, spanInfo);
-        this._logMessage(`  -- END-Method SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineIdx}, ${spanInfo.endLineIdx}]`);
+        this._logMessage(
+          `  -- END-Method SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineIdx}, ${spanInfo.endLineIdx}]`
+        );
       } else {
-        this._logMessage(`  -- DUPE!! SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineIdx}, ${spanInfo.endLineIdx}] IGNORED!`);
+        this._logMessage(
+          `  -- DUPE!! SPAN Ln#${lineNbr} method=[${this.currMethodName}], span=[${spanInfo.startLineIdx}, ${spanInfo.endLineIdx}] IGNORED!`
+        );
       }
     }
     // now clear in progress
@@ -1439,19 +1515,19 @@ export class DocumentFindings {
   }
 
   public hasLocalPasmToken(tokenName: string): boolean {
-    let tokenExistsStatus: boolean = this.methodLocalPasmTokens.hasToken(tokenName);
+    const tokenExistsStatus: boolean = this.methodLocalPasmTokens.hasToken(tokenName);
     return tokenExistsStatus;
   }
 
   public hasLocalPAsmTokenForMethod(methodName: string, tokenName: string): boolean {
-    let foundStatus: boolean = this.methodLocalPasmTokens.hasTokenForMethod(methodName, tokenName);
+    const foundStatus: boolean = this.methodLocalPasmTokens.hasTokenForMethod(methodName, tokenName);
     return foundStatus;
   }
 
   public setLocalPAsmTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
     // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
     //   this allows go-to to get to nearest earlier than right-mouse line
-    const isLocalLabel: boolean = (tokenName.startsWith(".") || tokenName.startsWith(":")) && token.type === "label";
+    const isLocalLabel: boolean = (tokenName.startsWith('.') || tokenName.startsWith(':')) && token.type === 'label';
     if (this.hasLocalPAsmTokenForMethod(methodName, tokenName)) {
       // locals can appear many times...
       if (!isLocalLabel) {
@@ -1466,7 +1542,7 @@ export class DocumentFindings {
       this.declarationInfoByLocalTokenName.set(desiredTokenKey, new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment));
       const newToken = this.methodLocalPasmTokens.getTokenForMethod(methodName, tokenName);
       if (newToken) {
-        this._logMessage("  -- NEW-lpTOK method=" + methodName + ": " + this._rememberdTokenString(tokenName, newToken));
+        this._logMessage('  -- NEW-lpTOK method=' + methodName + ': ' + this._rememberdTokenString(tokenName, newToken));
       }
     }
     if (isLocalLabel) {
@@ -1476,9 +1552,9 @@ export class DocumentFindings {
   }
 
   public getLocalPAsmTokenForMethod(methodName: string, tokenName: string): RememberedToken | undefined {
-    let desiredToken: RememberedToken | undefined = this.methodLocalPasmTokens.getTokenForMethod(methodName, tokenName);
+    const desiredToken: RememberedToken | undefined = this.methodLocalPasmTokens.getTokenForMethod(methodName, tokenName);
     if (desiredToken) {
-      this._logMessage("  -- FND-lpTOK method=" + methodName + ": " + this._rememberdTokenString(tokenName, desiredToken));
+      this._logMessage('  -- FND-lpTOK method=' + methodName + ': ' + this._rememberdTokenString(tokenName, desiredToken));
     }
     return desiredToken;
   }
@@ -1489,7 +1565,7 @@ export class DocumentFindings {
     if (localMethodName) {
       desiredToken = this.methodLocalPasmTokens.getTokenForMethod(localMethodName, tokenName);
       if (desiredToken) {
-        this._logMessage("  -- GET-lpTOK method=" + localMethodName + ": " + this._rememberdTokenString(tokenName, desiredToken));
+        this._logMessage('  -- GET-lpTOK method=' + localMethodName + ': ' + this._rememberdTokenString(tokenName, desiredToken));
       }
     }
     return desiredToken;
@@ -1508,9 +1584,9 @@ export class DocumentFindings {
   }
 
   private _rememberdTokenString(tokenName: string, aToken: RememberedToken | undefined): string {
-    let desiredInterp: string = " -- token=[len:" + tokenName.length + " [" + tokenName + "](undefined)";
+    let desiredInterp: string = ' -- token=[len:' + tokenName.length + ' [' + tokenName + '](undefined)';
     if (aToken != undefined) {
-      desiredInterp = " -- token=[len:" + tokenName.length + " [" + tokenName + "](" + aToken.type + "[" + aToken.modifiers + "])]";
+      desiredInterp = ' -- token=[len:' + tokenName.length + ' [' + tokenName + '](' + aToken.type + '[' + aToken.modifiers + '])]';
     }
     return desiredInterp;
   }
@@ -1534,20 +1610,27 @@ export class DocumentFindings {
       const possibleType: eDebugDisplayType | undefined = displayEnumByTypeName.get(typeName.toLowerCase());
       desiredType = possibleType || eDebugDisplayType.Unknown;
     }
-    this._logMessage("  DDsply getDebugDisplayEnumForType(" + typeName + ") = enum(" + desiredType + "), " + this.getNameForDebugDisplayEnum(desiredType));
+    this._logMessage(
+      '  DDsply getDebugDisplayEnumForType(' + typeName + ') = enum(' + desiredType + '), ' + this.getNameForDebugDisplayEnum(desiredType)
+    );
     return desiredType;
   }
 
   public setUserDebugDisplay(typeName: string, userName: string, lineNbr: number): void {
     const nameKey: string = userName.toLowerCase();
-    this._logMessage("  DDsply _setUserDebugDisplay(" + typeName + ", " + userName + ", li#" + lineNbr + ")");
+    this._logMessage('  DDsply _setUserDebugDisplay(' + typeName + ', ' + userName + ', li#' + lineNbr + ')');
     if (!this.isKnownDebugDisplay(userName)) {
-      let eType: eDebugDisplayType = this.getDebugDisplayEnumForType(typeName);
-      let displayInfo: IDebugDisplayInfo = { displayTypeString: typeName, userName: userName, lineNbr: lineNbr, eDisplayType: eType };
+      const eType: eDebugDisplayType = this.getDebugDisplayEnumForType(typeName);
+      const displayInfo: IDebugDisplayInfo = {
+        displayTypeString: typeName,
+        userName: userName,
+        lineNbr: lineNbr,
+        eDisplayType: eType
+      };
       this.displayInfoByDebugDisplayName.set(nameKey, displayInfo);
       //this._logMessage("  -- DDsply " + userName.toLowerCase() + "=[" + eDisplayType + " : " + typeName.toLowerCase() + "]");
     } else {
-      this._logMessage("ERROR: DDsply setUserDebugDisplay() display exists [" + userName + "]");
+      this._logMessage('ERROR: DDsply setUserDebugDisplay() display exists [' + userName + ']');
     }
   }
 
@@ -1565,7 +1648,12 @@ export class DocumentFindings {
 
   public getDebugDisplayInfoForUserName(possibleUserName: string): IDebugDisplayInfo {
     const nameKey: string = possibleUserName.toLowerCase();
-    let possibleInfo: IDebugDisplayInfo = { displayTypeString: "", userName: "", lineNbr: 0, eDisplayType: eDebugDisplayType.Unknown };
+    let possibleInfo: IDebugDisplayInfo = {
+      displayTypeString: '',
+      userName: '',
+      lineNbr: 0,
+      eDisplayType: eDebugDisplayType.Unknown
+    };
     if (this.isKnownDebugDisplay(possibleUserName)) {
       const infoFound: IDebugDisplayInfo | undefined = this.displayInfoByDebugDisplayName.get(nameKey);
       if (infoFound) {
@@ -1576,21 +1664,21 @@ export class DocumentFindings {
   }
 
   public getNameForDebugDisplayEnum(eDisplayType: eDebugDisplayType): string {
-    let desiredName: string = "?no-value-in-map?";
-    for (let [idString, eValue] of displayEnumByTypeName.entries()) {
+    let desiredName: string = '?no-value-in-map?';
+    for (const [idString, eValue] of displayEnumByTypeName.entries()) {
       if (eValue === eDisplayType) {
         desiredName = idString;
         break;
       }
     }
-    this._logMessage("  DDsply getNameForDebugDisplayEnum(enum: " + eDisplayType + ") = " + desiredName);
+    this._logMessage('  DDsply getNameForDebugDisplayEnum(enum: ' + eDisplayType + ') = ' + desiredName);
     return desiredName;
   }
 
   public isKnownDebugDisplay(possibleUserName: string): boolean {
     const nameKey: string = possibleUserName.toLowerCase();
     const foundStatus: boolean = this.displayInfoByDebugDisplayName.has(nameKey);
-    this._logMessage("  DDsply _isKnownDebugDisplay(" + possibleUserName + ") = " + foundStatus);
+    this._logMessage('  DDsply _isKnownDebugDisplay(' + possibleUserName + ') = ' + foundStatus);
     return foundStatus;
   }
 
@@ -1621,7 +1709,7 @@ export class TokenSet {
     this._logMessage(`* ${this.id} ready`);
   }
 
-  private id: string = "";
+  private id: string = '';
   private rememberedTokenByName = new Map<string, RememberedToken>();
   private ctx: Context | undefined = undefined;
   private bLogEnabled: boolean = false;
@@ -1650,7 +1738,7 @@ export class TokenSet {
 
   public clear(): void {
     this.rememberedTokenByName.clear();
-    this._logMessage(`* ${this.id} clear() now ` + this.length() + " tokens");
+    this._logMessage(`* ${this.id} clear() now ` + this.length() + ' tokens');
   }
 
   public length(): number {
@@ -1693,11 +1781,11 @@ export class TokenSet {
 
   public getToken(tokenName: string): RememberedToken | undefined {
     const desiredTokenKey: string = tokenName.toLowerCase();
-    var desiredToken: RememberedToken | undefined = this.rememberedTokenByName.get(desiredTokenKey);
+    let desiredToken: RememberedToken | undefined = this.rememberedTokenByName.get(desiredTokenKey);
     if (desiredToken != undefined) {
       // let's never return a declaration modifier! (somehow "declaration" creeps in to our list!??)
       //let modifiersNoDecl: string[] = this._modifiersWithout(desiredToken.modifiers, "declaration");
-      let modifiersNoDecl: string[] = desiredToken.modifiersWithout("declaration");
+      const modifiersNoDecl: string[] = desiredToken.modifiersWithout('declaration');
       desiredToken = new RememberedToken(desiredToken.type, desiredToken.lineIndex, desiredToken.charIndex, modifiersNoDecl);
     }
     return desiredToken;
@@ -1709,7 +1797,7 @@ export class TokenSet {
 //   CLASS NameScopedTokenSet
 //
 export class NameScopedTokenSet {
-  private id: string = "";
+  private id: string = '';
   private methodScopedTokenSetByMethodKey = new Map<string, TokenSet>();
   private origMethodNamebyMethodKey = new Map<string, string>();
   private ctx: Context | undefined = undefined;
@@ -1751,15 +1839,15 @@ export class NameScopedTokenSet {
   public clear(): void {
     this.methodScopedTokenSetByMethodKey.clear();
     this.origMethodNamebyMethodKey.clear();
-    this._logMessage(`* ${this.id} clear() now ` + this.length() + " tokens");
+    this._logMessage(`* ${this.id} clear() now ` + this.length() + ' tokens');
   }
 
   public clearForMethod(methodName: string) {
     const desiredMethodKey = methodName.toLowerCase();
-    let methodTokenSet = this._getMapForMethod(desiredMethodKey);
+    const methodTokenSet = this._getMapForMethod(desiredMethodKey);
     if (methodTokenSet) {
       methodTokenSet.clear();
-      this._logMessage(`* ${this.id} clearForMethod(${desiredMethodKey}) now ` + methodTokenSet.length() + " tokens");
+      this._logMessage(`* ${this.id} clearForMethod(${desiredMethodKey}) now ` + methodTokenSet.length() + ' tokens');
     }
   }
 
@@ -1821,10 +1909,12 @@ export class NameScopedTokenSet {
       methodTokenSet = this._getMapForMethod(desiredMethodKey);
     }
     if (methodTokenSet && methodTokenSet.hasToken(desiredTokenKey)) {
-      this._logMessage(`ERROR attempt to redefine ${desiredTokenKey} in method ${desiredMethodKey} as: ` + this._rememberdTokenString(tokenName, token));
+      this._logMessage(
+        `ERROR attempt to redefine ${desiredTokenKey} in method ${desiredMethodKey} as: ` + this._rememberdTokenString(tokenName, token)
+      );
     } else {
       if (methodTokenSet) {
-        this._logMessage("  -- NEW-lpTOK " + desiredTokenKey + "=[" + token.type + "[" + token.modifiers + "]]");
+        this._logMessage('  -- NEW-lpTOK ' + desiredTokenKey + '=[' + token.type + '[' + token.modifiers + ']]');
         methodTokenSet.setToken(desiredTokenKey, token);
       }
     }
@@ -1833,7 +1923,6 @@ export class NameScopedTokenSet {
   public getToken(tokenName: string): RememberedToken | undefined {
     let desiredToken: RememberedToken | undefined = undefined;
     const desiredTokenKey = tokenName.toLowerCase();
-    let tokenExistsStatus: boolean = false;
     for (const methodKey of this.methodScopedTokenSetByMethodKey.keys()) {
       if (this.hasTokenForMethod(methodKey, desiredTokenKey)) {
         desiredToken = this.getTokenForMethod(methodKey, desiredTokenKey);
@@ -1846,7 +1935,7 @@ export class NameScopedTokenSet {
   public getMethodNameForToken(tokenName: string): string | undefined {
     const desiredTokenKey = tokenName.toLowerCase();
     let desiredMethodName: string | undefined = undefined;
-    for (let methodKey of this.methodScopedTokenSetByMethodKey.keys()) {
+    for (const methodKey of this.methodScopedTokenSetByMethodKey.keys()) {
       if (this.hasTokenForMethod(methodKey, desiredTokenKey)) {
         desiredMethodName = methodKey;
         if (this.origMethodNamebyMethodKey.has(methodKey)) {
@@ -1867,7 +1956,7 @@ export class NameScopedTokenSet {
       if (methodLocalsTokenSet) {
         desiredToken = methodLocalsTokenSet.getToken(desiredTokenKey);
         if (desiredToken) {
-          this._logMessage("  -- FND-lpTOK " + this._rememberdTokenString(tokenName, desiredToken));
+          this._logMessage('  -- FND-lpTOK ' + this._rememberdTokenString(tokenName, desiredToken));
         }
       } else {
         this._logMessage(`  -- FND - lpTOK gtfm() no such nethodName = [${methodName}]`);
@@ -1879,9 +1968,9 @@ export class NameScopedTokenSet {
   }
 
   private _rememberdTokenString(tokenName: string, aToken: RememberedToken | undefined): string {
-    let desiredInterp: string = "  -- LP token=[len:" + tokenName.length + " [" + tokenName + "](undefined)";
+    let desiredInterp: string = '  -- LP token=[len:' + tokenName.length + ' [' + tokenName + '](undefined)';
     if (aToken != undefined) {
-      desiredInterp = "  -- LP token=[len:" + tokenName.length + " [" + tokenName + "](" + aToken.type + "[" + aToken.modifiers + "])]";
+      desiredInterp = '  -- LP token=[len:' + tokenName.length + ' [' + tokenName + '](' + aToken.type + '[' + aToken.modifiers + '])]';
     }
     return desiredInterp;
   }
@@ -1934,11 +2023,11 @@ export class RememberedToken {
   public isPublic(): boolean {
     // is symbol from CON section or is PUB method?
     let publicStatus: boolean = false;
-    if (this._type === "variable" && this._modifiers.includes("readonly")) {
+    if (this._type === 'variable' && this._modifiers.includes('readonly')) {
       publicStatus = true;
-    } else if (this._type === "enumMember") {
+    } else if (this._type === 'enumMember') {
       publicStatus = true;
-    } else if (this._type === "method" && !this._modifiers.includes("static")) {
+    } else if (this._type === 'method' && !this._modifiers.includes('static')) {
       publicStatus = true;
     }
     return publicStatus;
@@ -1948,7 +2037,7 @@ export class RememberedToken {
 
   public modifiersWith(newModifier: string): string[] {
     // add modification attribute
-    var updatedModifiers: string[] = this._modifiers;
+    const updatedModifiers: string[] = this._modifiers;
     if (!updatedModifiers.includes(newModifier)) {
       updatedModifiers.push(newModifier);
     }
@@ -1957,9 +2046,9 @@ export class RememberedToken {
 
   public modifiersWithout(unwantedModifier: string): string[] {
     //  remove modification attribute
-    var updatedModifiers: string[] = [];
-    for (var idx = 0; idx < this._modifiers.length; idx++) {
-      var possModifier: string = this._modifiers[idx];
+    const updatedModifiers: string[] = [];
+    for (let idx = 0; idx < this._modifiers.length; idx++) {
+      const possModifier: string = this._modifiers[idx];
       if (possModifier !== unwantedModifier) {
         updatedModifiers.push(possModifier);
       }
@@ -1990,7 +2079,7 @@ export class RememberedTokenDeclarationInfo {
         this._declcomment = declarationComment.trim();
       }
     }
-    if (typeof reference !== "undefined" && reference != undefined) {
+    if (typeof reference !== 'undefined' && reference != undefined) {
       this._reference = reference;
     }
   }
@@ -2037,7 +2126,7 @@ export enum eCommentType {
   singleLineComment,
   singleLineDocComment,
   multiLineComment,
-  multiLineDocComment,
+  multiLineDocComment
 }
 
 export class RememberedComment {
@@ -2053,11 +2142,11 @@ export class RememberedComment {
     // remove comment from first line
     let trimmedLine: string = firstLine;
     if (this._type == eCommentType.multiLineDocComment) {
-      if (trimmedLine.startsWith("{{")) {
+      if (trimmedLine.startsWith('{{')) {
         trimmedLine = trimmedLine.substring(2);
       }
     } else if (this._type == eCommentType.multiLineComment) {
-      if (trimmedLine.startsWith("{")) {
+      if (trimmedLine.startsWith('{')) {
         trimmedLine = trimmedLine.substring(1);
       }
     }
@@ -2098,22 +2187,22 @@ export class RememberedComment {
   public commentAsMarkDown(): string | undefined {
     // Return the markdown for this block comment
     let linesAsComment: string | undefined = undefined;
-    let tempLines: string[] = [];
+    const tempLines: string[] = [];
     // if keywords are found in comment then specially wrap the word following each keyword
     if (this.lineCount > 0) {
       for (let idx = 0; idx < this.lines.length; idx++) {
         const currLine = this.lines[idx];
-        const lineParts = currLine.split(" ");
-        let findIndex = lineParts.indexOf("@param");
+        const lineParts = currLine.split(' ');
+        let findIndex = lineParts.indexOf('@param');
         let nameItem: string | undefined = undefined;
         if (findIndex != -1 && findIndex < lineParts.length - 1) {
           nameItem = lineParts[findIndex + 1];
         } else {
-          findIndex = lineParts.indexOf("@returns");
+          findIndex = lineParts.indexOf('@returns');
           if (findIndex != -1 && findIndex < lineParts.length - 1) {
             nameItem = lineParts[findIndex + 1];
           } else {
-            findIndex = lineParts.indexOf("@local");
+            findIndex = lineParts.indexOf('@local');
             if (findIndex != -1 && findIndex < lineParts.length - 1) {
               nameItem = lineParts[findIndex + 1];
             }
@@ -2122,14 +2211,14 @@ export class RememberedComment {
         if (nameItem) {
           // now wrap the name in single back ticks
           const originameItem: string = nameItem;
-          nameItem = nameItem.replace("`", "").replace("`", "");
-          const finishedLine: string = currLine.replace(originameItem, "`" + nameItem + "`");
+          nameItem = nameItem.replace('`', '').replace('`', '');
+          const finishedLine: string = currLine.replace(originameItem, '`' + nameItem + '`');
           tempLines[idx] = finishedLine;
         } else {
           tempLines[idx] = currLine;
         }
       }
-      linesAsComment = tempLines.join("<br>");
+      linesAsComment = tempLines.join('<br>');
     }
     return linesAsComment;
   }
@@ -2144,7 +2233,10 @@ export class RememberedComment {
 
   public span(): Range {
     // return the recorded line indexes (start,end) - span of the comment block
-    return { start: { line: this._1stLineIdx, character: 0 }, end: { line: this._lastLineIdx, character: Number.MAX_VALUE } };
+    return {
+      start: { line: this._1stLineIdx, character: 0 },
+      end: { line: this._lastLineIdx, character: Number.MAX_VALUE }
+    };
   }
 
   public appendLine(line: string) {
@@ -2158,7 +2250,7 @@ export class RememberedComment {
     let trimmedLine: string = line;
     let matchLocn: number = 0;
     if (this._type == eCommentType.multiLineDocComment) {
-      matchLocn = trimmedLine.indexOf("}}");
+      matchLocn = trimmedLine.indexOf('}}');
       if (matchLocn != -1) {
         if (matchLocn == 0) {
           trimmedLine = trimmedLine.substring(2);
@@ -2173,7 +2265,7 @@ export class RememberedComment {
         // WHOA, missing our comment close but expecting it
       }
     } else if (this._type == eCommentType.multiLineComment) {
-      matchLocn = trimmedLine.indexOf("}");
+      matchLocn = trimmedLine.indexOf('}');
       if (matchLocn != -1) {
         if (matchLocn == 0) {
           trimmedLine = trimmedLine.substring(2);
@@ -2227,7 +2319,7 @@ export class RememberedComment {
     let trimmedLine: string = this._lines[0];
     let matchLocn: number = 0;
     if (this._type == eCommentType.multiLineDocComment) {
-      matchLocn = trimmedLine.indexOf("}}");
+      matchLocn = trimmedLine.indexOf('}}');
       if (matchLocn != -1) {
         if (matchLocn == 0) {
           trimmedLine = trimmedLine.substring(2);
@@ -2237,7 +2329,7 @@ export class RememberedComment {
         }
       }
     } else if (this._type == eCommentType.multiLineComment) {
-      matchLocn = trimmedLine.indexOf("}");
+      matchLocn = trimmedLine.indexOf('}');
       if (matchLocn != -1) {
         if (matchLocn == 0) {
           trimmedLine = trimmedLine.substring(2);
@@ -2266,15 +2358,15 @@ export class RememberedComment {
     const commentSpan: Range = this.span();
     const startLine = commentSpan.start.line + 1;
     const endLine = commentSpan.end.line + 1;
-    let typeString: string = "??BlockComment??";
+    let typeString: string = '??BlockComment??';
     if (this._type == eCommentType.singleLineComment) {
-      typeString = "singleLineCommentBlock";
+      typeString = 'singleLineCommentBlock';
     } else if (this._type == eCommentType.singleLineDocComment) {
-      typeString = "singleLineDocCommentBlock";
+      typeString = 'singleLineDocCommentBlock';
     } else if (this._type == eCommentType.multiLineComment) {
-      typeString = "multiLineCommentBlock";
+      typeString = 'multiLineCommentBlock';
     } else if (this._type == eCommentType.multiLineDocComment) {
-      typeString = "multiLineDocCommentBlock";
+      typeString = 'multiLineDocCommentBlock';
     }
     const lineRef: string = startLine == endLine ? `Ln#${startLine}` : `Ln#${startLine}-${endLine}`;
     const interpString: string = `[${typeString}] ${lineRef}`;
@@ -2283,13 +2375,13 @@ export class RememberedComment {
 
   public desribeComment(): string[] {
     const decriptionLines: string[] = [];
-    decriptionLines.push("-" + this.spanString());
-    decriptionLines.push(" /-- --- ---");
+    decriptionLines.push('-' + this.spanString());
+    decriptionLines.push(' /-- --- ---');
     for (let index = 0; index < this._lines.length; index++) {
       const line = this._lines[index];
       decriptionLines.push(line);
     }
-    decriptionLines.push(" \\-- --- ---");
+    decriptionLines.push(' \\-- --- ---');
     return decriptionLines;
   }
 
@@ -2297,7 +2389,7 @@ export class RememberedComment {
     // emtpy our line aray if it's really nothing worthwhile
     let bHaveNonBlank: boolean = false;
     for (let idx = 0; idx < this._lines.length; idx++) {
-      let currLine = this._lines[idx];
+      const currLine = this._lines[idx];
       if (currLine.length > 0) {
         bHaveNonBlank = true;
         break;

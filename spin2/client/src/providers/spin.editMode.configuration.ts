@@ -1,19 +1,19 @@
-"use strict";
-import * as vscode from "vscode";
+'use strict';
+import * as vscode from 'vscode';
 
 const stringToCursorStyle = (config: vscode.WorkspaceConfiguration, style: string, def: vscode.TextEditorCursorStyle) => {
   switch (config.get<string>(style)) {
-    case "line":
+    case 'line':
       return vscode.TextEditorCursorStyle.Line;
-    case "line-thin":
+    case 'line-thin':
       return vscode.TextEditorCursorStyle.LineThin;
-    case "block":
+    case 'block':
       return vscode.TextEditorCursorStyle.Block;
-    case "block-outline":
+    case 'block-outline':
       return vscode.TextEditorCursorStyle.BlockOutline;
-    case "underline":
+    case 'underline':
       return vscode.TextEditorCursorStyle.Underline;
-    case "underline-thin":
+    case 'underline-thin':
       return vscode.TextEditorCursorStyle.UnderlineThin;
     default:
       return def;
@@ -31,33 +31,33 @@ const getActiveConfiguration = (section: string): vscode.WorkspaceConfiguration 
 };
 
 const loadEditModeConfiguration = () => {
-  const insertModeConfiguration = vscode.workspace.getConfiguration("spinExtension.InsertMode");
-  const editorConfiguration = vscode.workspace.getConfiguration("editor");
+  const insertModeConfiguration = vscode.workspace.getConfiguration('spinExtension.insertMode');
+  //const editorConfiguration = vscode.workspace.getConfiguration('editor');
 
   return {
-    overtypePaste: insertModeConfiguration.get<boolean>("overtypePaste"),
-    perEditor: insertModeConfiguration.get<boolean>("perEditor") ? true : false,
+    overtypePaste: insertModeConfiguration.get<boolean>('overtypePaste'),
+    perEditor: insertModeConfiguration.get<boolean>('perEditor') ? true : false,
 
-    enableAlign: insertModeConfiguration.get<boolean>("enableAlign"),
+    enableAlign: insertModeConfiguration.get<boolean>('enableAlign'),
 
-    labelInsertMode: insertModeConfiguration.get<string>("labelInsertMode"),
-    labelOvertypeMode: insertModeConfiguration.get<string>("labelOvertypeMode"),
-    labelAlignMode: insertModeConfiguration.get<string>("labelAlignMode"),
+    labelInsertMode: insertModeConfiguration.get<string>('labelInsertMode'),
+    labelOvertypeMode: insertModeConfiguration.get<string>('labelOvertypeMode'),
+    labelAlignMode: insertModeConfiguration.get<string>('labelAlignMode'),
 
     // tslint:disable-next-line:object-literal-sort-keys
     get defaultCursorStyle(): vscode.TextEditorCursorStyle {
-      const editorConfiguration = getActiveConfiguration("editor");
-      return stringToCursorStyle(editorConfiguration, "cursorStyle", vscode.TextEditorCursorStyle.Block);
+      const editorConfiguration = getActiveConfiguration('editor');
+      return stringToCursorStyle(editorConfiguration, 'cursorStyle', vscode.TextEditorCursorStyle.Block);
     },
 
     // Get the user defined cursor style for overtype mode
     secondaryCursorStyle: (() => {
-      return stringToCursorStyle(insertModeConfiguration, "secondaryCursorStyle", vscode.TextEditorCursorStyle.Line);
+      return stringToCursorStyle(insertModeConfiguration, 'secondaryCursorStyle', vscode.TextEditorCursorStyle.Line);
     })(),
 
     ternaryCursorStyle: (() => {
-      return stringToCursorStyle(insertModeConfiguration, "ternaryCursorStyle", vscode.TextEditorCursorStyle.Line);
-    })(),
+      return stringToCursorStyle(insertModeConfiguration, 'ternaryCursorStyle', vscode.TextEditorCursorStyle.Line);
+    })()
   };
 };
 

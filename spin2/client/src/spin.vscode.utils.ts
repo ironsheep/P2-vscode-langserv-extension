@@ -1,19 +1,19 @@
-"use strict";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+'use strict';
 // src/spin.vscode.utils.ts
 
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 
 export function activeFilespec(activeEditor?: vscode.TextEditor) {
-  let desiredFilespec: string;
   if (activeEditor == null || activeEditor === undefined) {
     activeEditor = vscode.window.activeTextEditor;
   }
-  desiredFilespec = activeEditor!.document.fileName;
+  const desiredFilespec: string = activeEditor!.document.fileName;
   return desiredFilespec;
 }
 
 export function activeSpinEditors(): vscode.TextEditor[] {
-  let desiredEditors: vscode.TextEditor[] = [];
+  const desiredEditors: vscode.TextEditor[] = [];
   const editors = vscode.window.visibleTextEditors!;
   if (editors.length > 0) {
     for (let index = 0; index < editors.length; index++) {
@@ -42,7 +42,7 @@ export function editorForFilespec(filespec: string): vscode.TextEditor {
 }
 
 export function isCurrentDocumentSpin1(): boolean {
-  const editor = vscode?.window.activeTextEditor!;
+  const editor = vscode?.window.activeTextEditor;
   const document = editor ? editor.document : undefined;
   let spin1DocStatus: boolean = false;
   if (document) {
@@ -76,30 +76,30 @@ export function isSpin1Document(document: vscode.TextDocument): boolean {
 }
 
 export function isSpinOrPasmFile(fileSpec: string): boolean {
-  let spinDocumentStatus: boolean = isSpin1File(fileSpec) || isSpin2File(fileSpec) || isPasmFile(fileSpec);
+  const spinDocumentStatus: boolean = isSpin1File(fileSpec) || isSpin2File(fileSpec) || isPasmFile(fileSpec);
   return spinDocumentStatus;
 }
 
 function isPasmFile(fileSpec: string): boolean {
-  let spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith(".p2asm");
+  const spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith('.p2asm');
   return spinDocumentStatus;
 }
 
 export function isSpinFile(fileSpec: string): boolean {
-  let spinDocumentStatus: boolean = isSpin1File(fileSpec) || isSpin2File(fileSpec);
+  const spinDocumentStatus: boolean = isSpin1File(fileSpec) || isSpin2File(fileSpec);
   return spinDocumentStatus;
 }
 
 export function isSpin1File(fileSpec: string): boolean {
-  let spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith(".spin");
+  const spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith('.spin');
   return spinDocumentStatus;
 }
 export function isSpin2File(fileSpec: string): boolean {
-  let spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith(".spin2");
+  const spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith('.spin2');
   return spinDocumentStatus;
 }
 
 function isSpin2ORPasm(fileSpec: string): boolean {
-  let spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith(".spin2") || fileSpec.toLowerCase().endsWith(".p2asm");
+  const spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith('.spin2') || fileSpec.toLowerCase().endsWith('.p2asm');
   return spinDocumentStatus;
 }

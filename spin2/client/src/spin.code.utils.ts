@@ -1,6 +1,6 @@
-"use strict";
+'use strict';
 // client/src/spin.code.utils.ts
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 
 export enum eParseState {
   Unknown = 0,
@@ -14,7 +14,7 @@ export enum eParseState {
   inDatPAsm,
   inMultiLineComment,
   inMultiLineDocComment,
-  inNothing,
+  inNothing
 }
 
 export class SpinCodeUtils {
@@ -36,47 +36,59 @@ export class SpinCodeUtils {
   }
 
   public isFlexspinPreprocessorDirective(name: string): boolean {
-    const flexspinDirectiveOfNote: string[] = ["#define", "#ifdef", "#ifndef", "#else", "#elseifdef", "#elseifndef", "#endif", "#error", "#include", "#warn", "#undef"];
+    const flexspinDirectiveOfNote: string[] = [
+      '#define',
+      '#ifdef',
+      '#ifndef',
+      '#else',
+      '#elseifdef',
+      '#elseifndef',
+      '#endif',
+      '#error',
+      '#include',
+      '#warn',
+      '#undef'
+    ];
     const reservedStatus: boolean = flexspinDirectiveOfNote.indexOf(name.toLowerCase()) != -1;
     return reservedStatus;
   }
 
   public nameForParseState(state: eParseState): string {
-    let desiredInterp: string = "?unknown?";
+    let desiredInterp: string = '?unknown?';
     switch (state) {
       case eParseState.inCon:
-        desiredInterp = "CON";
+        desiredInterp = 'CON';
         break;
       case eParseState.inDat:
-        desiredInterp = "DAT";
+        desiredInterp = 'DAT';
         break;
       case eParseState.inDatPAsm:
-        desiredInterp = "DATpasm";
+        desiredInterp = 'DATpasm';
         break;
       case eParseState.inObj:
-        desiredInterp = "OBJ";
+        desiredInterp = 'OBJ';
         break;
       case eParseState.inPri:
-        desiredInterp = "PRI";
+        desiredInterp = 'PRI';
         break;
       case eParseState.inPub:
-        desiredInterp = "PUB";
+        desiredInterp = 'PUB';
         break;
       case eParseState.inMultiLineComment:
-        desiredInterp = "mlCmt";
+        desiredInterp = 'mlCmt';
         break;
       case eParseState.inMultiLineDocComment:
-        desiredInterp = "mlDocCmt";
+        desiredInterp = 'mlDocCmt';
         break;
       case eParseState.inPAsmInline:
-        desiredInterp = "Pasm-in-line";
+        desiredInterp = 'Pasm-in-line';
         break;
       case eParseState.inVar:
-        desiredInterp = "VAR";
+        desiredInterp = 'VAR';
         break;
 
       default:
-        desiredInterp = "?unk-case?";
+        desiredInterp = '?unk-case?';
         break;
     }
     return desiredInterp;
@@ -91,20 +103,20 @@ export class SpinCodeUtils {
     let inProgressState: eParseState = eParseState.Unknown;
     if (line.length > 2) {
       const sectionName: string = line.substring(0, 3).toUpperCase();
-      const nextChar: string = line.length > 3 ? line.substring(3, 4) : " ";
-      if (nextChar.charAt(0).match(/[ \t'\{]/)) {
+      const nextChar: string = line.length > 3 ? line.substring(3, 4) : ' ';
+      if (nextChar.charAt(0).match(/[ \t'{]/)) {
         startStatus = true;
-        if (sectionName === "CON") {
+        if (sectionName === 'CON') {
           inProgressState = eParseState.inCon;
-        } else if (sectionName === "DAT") {
+        } else if (sectionName === 'DAT') {
           inProgressState = eParseState.inDat;
-        } else if (sectionName === "OBJ") {
+        } else if (sectionName === 'OBJ') {
           inProgressState = eParseState.inObj;
-        } else if (sectionName === "PUB") {
+        } else if (sectionName === 'PUB') {
           inProgressState = eParseState.inPub;
-        } else if (sectionName === "PRI") {
+        } else if (sectionName === 'PRI') {
           inProgressState = eParseState.inPri;
-        } else if (sectionName === "VAR") {
+        } else if (sectionName === 'VAR') {
           inProgressState = eParseState.inVar;
         } else {
           startStatus = false;
@@ -116,7 +128,7 @@ export class SpinCodeUtils {
     }
     return {
       isSectionStart: startStatus,
-      inProgressStatus: inProgressState,
+      inProgressStatus: inProgressState
     };
   }
 
@@ -126,7 +138,7 @@ export class SpinCodeUtils {
     // TODO: UNDONE make this into loop to find first ' not in string
     if (line.length - startingOffset > 0) {
       //this.logMessage('- gnclr startingOffset=[' + startingOffset + '], startingOffset=[' + line + ']');
-      let currentOffset: number = this._skipWhite(line, startingOffset);
+      const currentOffset: number = this._skipWhite(line, startingOffset);
       // get line parts - we only care about first one
       let beginCommentOffset: number = line.indexOf("'", currentOffset);
       if (beginCommentOffset != -1) {
@@ -138,23 +150,26 @@ export class SpinCodeUtils {
         }
       }
       if (beginCommentOffset === -1) {
-        beginCommentOffset = line.indexOf("{", currentOffset);
+        beginCommentOffset = line.indexOf('{', currentOffset);
       }
       const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset - 1 : line.length - 1;
       //this.logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
       nonCommentRHSStr = line.substr(currentOffset, nonCommentEOL - currentOffset + 1).trim();
       //this.logMessage('- gnclr nonCommentRHSStr=[' + startingOffset + ']');
 
-      const singleLineMultiBeginOffset: number = nonCommentRHSStr.indexOf("{", currentOffset);
+      const singleLineMultiBeginOffset: number = nonCommentRHSStr.indexOf('{', currentOffset);
       if (singleLineMultiBeginOffset != -1) {
-        const singleLineMultiEndOffset: number = nonCommentRHSStr.indexOf("}", singleLineMultiBeginOffset);
+        const singleLineMultiEndOffset: number = nonCommentRHSStr.indexOf('}', singleLineMultiBeginOffset);
         if (singleLineMultiEndOffset != -1) {
-          const oneLineMultiComment: string = nonCommentRHSStr.substr(singleLineMultiBeginOffset, singleLineMultiEndOffset - singleLineMultiBeginOffset + 1);
-          nonCommentRHSStr = nonCommentRHSStr.replace(oneLineMultiComment, "").trim();
+          const oneLineMultiComment: string = nonCommentRHSStr.substr(
+            singleLineMultiBeginOffset,
+            singleLineMultiEndOffset - singleLineMultiBeginOffset + 1
+          );
+          nonCommentRHSStr = nonCommentRHSStr.replace(oneLineMultiComment, '').trim();
         }
       }
     } else if (line.length - startingOffset == 0) {
-      nonCommentRHSStr = "";
+      nonCommentRHSStr = '';
     }
     //if (line.substr(startingOffset).length != nonCommentRHSStr.length) {
     //    this.logMessage('  -- NCLR line [' + line.substr(startingOffset) + ']');
@@ -166,7 +181,7 @@ export class SpinCodeUtils {
   private _skipWhite(line: string, currentOffset: number): number {
     let firstNonWhiteIndex: number = currentOffset;
     for (let index = currentOffset; index < line.length; index++) {
-      if (line.substr(index, 1) != " " && line.substr(index, 1) != "\t") {
+      if (line.substr(index, 1) != ' ' && line.substr(index, 1) != '\t') {
         firstNonWhiteIndex = index;
         break;
       }
@@ -174,21 +189,22 @@ export class SpinCodeUtils {
     return firstNonWhiteIndex;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public removeDoubleQuotedStrings(line: string, showDebug: boolean = true): string {
     //this.logMessage('- RQS line [' + line + ']');
     let trimmedLine: string = line;
     //this.logMessage('- RQS line [' + line + ']');
     const doubleQuote: string = '"';
     let quoteStartOffset: number = 0; // value doesn't matter
-    let didRemove: boolean = false;
+    //let didRemove: boolean = false;
     while ((quoteStartOffset = trimmedLine.indexOf(doubleQuote)) != -1) {
       const quoteEndOffset: number = trimmedLine.indexOf(doubleQuote, quoteStartOffset + 1);
       //this.logMessage('  -- quoteStartOffset=[' + quoteStartOffset + '] quoteEndOffset=[' + quoteEndOffset + ']');
       if (quoteEndOffset != -1) {
         const badElement = trimmedLine.substr(quoteStartOffset, quoteEndOffset - quoteStartOffset + 1);
         //this.logMessage('  -- badElement=[' + badElement + ']');
-        trimmedLine = trimmedLine.replace(badElement, "#".repeat(badElement.length));
-        didRemove = showDebug ? true : false;
+        trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
+        //didRemove = showDebug ? true : false;
         //this.logMessage('-         post[' + trimmedLine + ']');
       } else {
         break; // we don't handle a single double-quote
@@ -208,20 +224,20 @@ export class SpinCodeUtils {
   //
   public containsSpinLanguageSpec(line: string): boolean {
     // return T/F where T means {Spin2_v##} was found in given string
-    const languageVersionRegEx = /\{Spin2\_v/i; // our version specification (just look for left edge)
+    const languageVersionRegEx = /\{Spin2_v/i; // our version specification (just look for left edge)
     return languageVersionRegEx.test(line);
   }
 
   public versionFromSpinLanguageSpec(line: string): number {
     // return T/F where T means {Spin2_v##} was found in given string
     let decodedVersion: number = 0; // return no version by default
-    const languageVersionRegEx = /\{Spin2\_v[0-9][0-9]\}/i; // our version specification - well formatted 0-99
-    const languageVersionThousandsRegEx = /\{Spin2\_v[0-9][0-9][0-9]\}/i; // our version specification - well formatted 0-999
+    const languageVersionRegEx = /\{Spin2_v[0-9][0-9]\}/i; // our version specification - well formatted 0-99
+    const languageVersionThousandsRegEx = /\{Spin2_v[0-9][0-9][0-9]\}/i; // our version specification - well formatted 0-999
     const is3digit: boolean = languageVersionThousandsRegEx.test(line);
     // if have fully formatted version
     if (languageVersionRegEx.test(line) || is3digit) {
       if (this.containsSpinLanguageSpec(line)) {
-        const matchText: string = "{Spin2_v".toLowerCase();
+        const matchText: string = '{Spin2_v'.toLowerCase();
         const verOffset: number = line.toLowerCase().indexOf(matchText);
         if (verOffset != -1) {
           if (is3digit) {

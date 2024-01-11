@@ -86,7 +86,7 @@ OBJ     vga     : "VGA_DRIVER"
         mouse   : "USB_Mouse"
         v[16]   : "VocalSynth"  ' instantiate array of 16 objects
 
-PUB null()
+PUB null
 
     '' This is NOT a top level object
 

@@ -1,24 +1,24 @@
-"use strict";
+'use strict';
 // src/providers/index.ts
 
-import { ClientCapabilities, Connection, ServerCapabilities } from "vscode-languageserver";
-import { Context } from "../context";
+import { ClientCapabilities, Connection, ServerCapabilities } from 'vscode-languageserver';
+import { Context } from '../context';
 
 //import CompletionProvider from "./CompletionProvider";
-import SemanticTokensProvider from "./SemanticTokensProvider";
+import SemanticTokensProvider from './SemanticTokensProvider';
 // import ConfiguratonProvider from "./ConfigurationProvider";
-import DefinitionProvider from "./DefinitionProvider";
+import DefinitionProvider from './DefinitionProvider';
 // import DocumentFormattingProvider from "./DocumentFormatttingProvider";
 // import DocumentHighlightProvider from "./DocumentHighlightProvider";
 // import DocumentLinkProvider from "./DocumentLinkProvider";
-import DocumentSymbolProvider from "./DocumentSymbolProvider";
+import DocumentSymbolProvider from './DocumentSymbolProvider';
 // import FileOperationsProvider from "./FileOperationsProvider";
-import FoldingRangeProvider from "./FoldingRangeProvider";
-import HoverProvider from "./HoverProvider";
+import FoldingRangeProvider from './FoldingRangeProvider';
+import HoverProvider from './HoverProvider';
 // import ReferencesProvider from "./ReferencesProvider";
 // import RenameProvider from "./RenameProvider";
-import SignatureHelpProvider from "./SignatureHelpProvider";
-import TextDocumentSyncProvider from "./TextDocumentSyncProvider";
+import SignatureHelpProvider from './SignatureHelpProvider';
+import TextDocumentSyncProvider from './TextDocumentSyncProvider';
 // import WorkspaceSymbolProvider from "./WorkspaceSymbolProvider";
 
 export interface Provider {
@@ -39,11 +39,16 @@ const providers = [
   //   ReferencesProvider,
   //   RenameProvider,
   SignatureHelpProvider,
-  TextDocumentSyncProvider,
+  TextDocumentSyncProvider
   //   WorkspaceSymbolProvider,
 ];
 
-export default function registerProviders(connection: Connection, ctx: Context, clientCapabilities: ClientCapabilities): ServerCapabilities {
+export default function registerProviders(
+  connection: Connection,
+  ctx: Context,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  clientCapabilities: ClientCapabilities
+): ServerCapabilities {
   return providers.reduce((acc, P) => {
     const p = new P(ctx);
     const c = p.register(connection);

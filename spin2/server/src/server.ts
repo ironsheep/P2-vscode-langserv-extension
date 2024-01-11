@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 // src/server.ts
 
 /* --------------------------------------------------------------------------------------------
@@ -13,12 +13,12 @@ import {
   DidChangeConfigurationNotification,
   InitializeResult,
   ServerCapabilities,
-  FileChangeType,
-} from "vscode-languageserver/node";
+  FileChangeType
+} from 'vscode-languageserver/node';
 
-import { TextDocument } from "vscode-languageserver-textdocument";
-import registerProviders from "./providers";
-import { createContext } from "./context";
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import registerProviders from './providers';
+import { createContext } from './context';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -29,6 +29,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let hasDiagnosticRelatedInformationCapability = false;
 
 connection.onInitialize(async (params: InitializeParams) => {
@@ -38,20 +39,24 @@ connection.onInitialize(async (params: InitializeParams) => {
   // If not, we fall back using global settings.
   hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
   hasWorkspaceFolderCapability = !!(capabilities.workspace && !!capabilities.workspace.workspaceFolders);
-  hasDiagnosticRelatedInformationCapability = !!(capabilities.textDocument && capabilities.textDocument.publishDiagnostics && capabilities.textDocument.publishDiagnostics.relatedInformation);
+  hasDiagnosticRelatedInformationCapability = !!(
+    capabilities.textDocument &&
+    capabilities.textDocument.publishDiagnostics &&
+    capabilities.textDocument.publishDiagnostics.relatedInformation
+  );
 
   const ctx = await createContext(params.workspaceFolders ?? [], connection.console, connection);
 
   const registrations: ServerCapabilities = registerProviders(connection, ctx, params.capabilities);
   const result: InitializeResult = {
-    capabilities: registrations,
+    capabilities: registrations
   };
 
   if (hasWorkspaceFolderCapability) {
     result.capabilities.workspace = {
       workspaceFolders: {
-        supported: true,
-      },
+        supported: true
+      }
     };
   }
   connection.console.log(`CL-TRC: onInitialize() Workspace folders [${JSON.stringify(params.workspaceFolders)}]`);

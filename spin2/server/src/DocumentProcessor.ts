@@ -1,19 +1,19 @@
-"use strict";
+'use strict';
 // server/src/spin.serverBehavior.configuration.ts
 
 //import * as lsp from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { readDocumentFromUri, resolveReferencedIncludes } from "./files";
-import { Context } from "./context";
-import { DocumentFindings } from "./parser/spin.semantic.findings";
-import { Spin1DocumentSymbolParser } from "./parser/spin1.documentSymbolParser";
-import { Spin2DocumentSymbolParser } from "./parser/spin2.documentSymbolParser";
-import { Spin1DocumentSemanticParser } from "./parser/spin1.documentSemanticParser";
-import { Spin2DocumentSemanticParser } from "./parser/spin2.documentSemanticParser";
-import { Spin2ObjectReferenceParser } from "./parser/spin.objectReferenceParser";
-import { isSpin1File, fileSpecFromURI } from "./parser/lang.utils";
-import * as path from "path";
+import { readDocumentFromUri, resolveReferencedIncludes } from './files';
+import { Context } from './context';
+import { DocumentFindings } from './parser/spin.semantic.findings';
+import { Spin1DocumentSymbolParser } from './parser/spin1.documentSymbolParser';
+import { Spin2DocumentSymbolParser } from './parser/spin2.documentSymbolParser';
+import { Spin1DocumentSemanticParser } from './parser/spin1.documentSemanticParser';
+import { Spin2DocumentSemanticParser } from './parser/spin2.documentSemanticParser';
+import { Spin2ObjectReferenceParser } from './parser/spin.objectReferenceParser';
+import { isSpin1File, fileSpecFromURI } from './parser/lang.utils';
+import * as path from 'path';
 
 // ----------------------------------------------------------------------------
 //  Tracking an OPEN document
@@ -57,7 +57,7 @@ export class ProcessedDocument {
   }
 
   public referencedFileSpec(fsIndex: number): string {
-    let desiredFSpec: string = "";
+    let desiredFSpec: string = '';
     if (fsIndex >= 0 && fsIndex <= this.includeFileSpecs.length) {
       desiredFSpec = this.includeFileSpecs[fsIndex];
     }
@@ -120,7 +120,7 @@ export default class DocumentProcessor {
     }
     if (didUpdate) {
       this.ctx.logger.log(`TRC: DP.reparseAllDocs() updating open files`);
-      const SEMANTIC_SYMBOLS_REFRESH_REQUEST: string = "workspace/semanticTokens/refresh";
+      const SEMANTIC_SYMBOLS_REFRESH_REQUEST: string = 'workspace/semanticTokens/refresh';
       await this.ctx.connection.sendRequest(SEMANTIC_SYMBOLS_REFRESH_REQUEST);
     }
   }
@@ -142,20 +142,20 @@ export default class DocumentProcessor {
     }
     if (didUpdate) {
       this.ctx.logger.log(`TRC: DP.reparseAllDocs() updating open files`);
-      const SEMANTIC_SYMBOLS_REFRESH_REQUEST: string = "workspace/semanticTokens/refresh";
+      const SEMANTIC_SYMBOLS_REFRESH_REQUEST: string = 'workspace/semanticTokens/refresh';
       await this.ctx.connection.sendRequest(SEMANTIC_SYMBOLS_REFRESH_REQUEST);
     }
   }
 
   async processEnclosing(includeUri: string): Promise<string[]> {
-    const includedFilename: string = path.basename(includeUri);
+    //const includedFilename: string = path.basename(includeUri);
     const includeFSpec: string = fileSpecFromURI(includeUri);
     this.ctx.logger.log(`TRC: DP.processEnclosing() search includeFSpec=[${includeFSpec}]`);
-    let bDidUpdates: boolean = false;
+    //let bDidUpdates: boolean = false;
     const updatedEnclsingUris: string[] = [];
     for (const [docUri, processedDocument] of this.ctx.docsByFSpec) {
-      const enclosingFilename: string = path.basename(docUri);
-      const enclosingFSpec: string = fileSpecFromURI(docUri);
+      //const enclosingFilename: string = path.basename(docUri);
+      //const enclosingFSpec: string = fileSpecFromURI(docUri);
       this.ctx.logger.log(`TRC: DP.processEnclosing() CHECKING [${docUri}]`);
       this.ctx.logger.log(`TRC: DP ------------------ included files: [${JSON.stringify(processedDocument.referencedFileSpecs)}]`);
       for (let index = 0; index < processedDocument.referencedFileSpecsCount; index++) {
@@ -166,13 +166,13 @@ export default class DocumentProcessor {
           updatedEnclsingUris.push(processedDocument.document.uri);
           // process parent after include file change [using  isInclude:false, skipIncludeScan:true]
           await this.process(processedDocument.document, false, true);
-          bDidUpdates = true;
+          //bDidUpdates = true;
         }
       }
     }
     // if we just updated underlying documents an parent, send refresh request to client
     //if (bDidUpdates) {
-    const SEMANTIC_SYMBOLS_REFRESH_REQUEST: string = "workspace/semanticTokens/refresh";
+    const SEMANTIC_SYMBOLS_REFRESH_REQUEST: string = 'workspace/semanticTokens/refresh';
     //const DIAGNOTICS_REFRESH_REQUEST: string = "workspace/codeLens/refresh";
     //await this.ctx.connection.sendRequest(DIAGNOTICS_REFRESH_REQUEST);
     await this.ctx.connection.sendRequest(SEMANTIC_SYMBOLS_REFRESH_REQUEST);
@@ -183,14 +183,14 @@ export default class DocumentProcessor {
   async updateFindings(docUri: string) {
     this.ctx.logger.log(`TRC: DP.updateFindings(${docUri})`);
     const docFSpec: string = fileSpecFromURI(docUri);
-    let tmpFindingsForDocument: DocumentFindings | undefined = this.ctx.findingsByFSpec.get(docFSpec);
+    const tmpFindingsForDocument: DocumentFindings | undefined = this.ctx.findingsByFSpec.get(docFSpec);
     if (!tmpFindingsForDocument) {
       return;
     }
     const currDocumentFindings: DocumentFindings = tmpFindingsForDocument;
     const processedDoc = this.ctx.docsByFSpec.get(docFSpec);
     if (processedDoc) {
-      await this._parseDocument(processedDoc, "Update-Parse", currDocumentFindings);
+      await this._parseDocument(processedDoc, 'Update-Parse', currDocumentFindings);
     }
   }
 
@@ -227,7 +227,7 @@ export default class DocumentProcessor {
 
     if (skipIncludeScan == false) {
       // do first pass parse to fill in DocumentFindings with list of object references (includes)
-      const languageId: string = isSpin1File(docFSpec) ? "Spin1" : "Spin2";
+      const languageId: string = isSpin1File(docFSpec) ? 'Spin1' : 'Spin2';
       this.ctx.logger.log(`TRC: Object Scan of ${languageId} Document: ${docFSpec}`);
       this.spin2ObjectReferenceParser.locatReferencedObjects(document, currDocumentFindings); // for objects included
     }
@@ -273,20 +273,29 @@ export default class DocumentProcessor {
       // add included documents to our map
       //
       this.ctx.logger.log(`TRC: -- STEP incorporate included docs into maps ...`);
-      const objectReferences: Map<string, string> = skipIncludeScan == false ? currDocumentFindings.includeObjectNamesByFilename() : new Map<string, string>();
-      this.ctx.logger.log(`TRC: [${currDocumentFindings.instanceName()}] nameHashKeys=[${Array.from(objectReferences.keys())}], nameHashValues=[${Array.from(objectReferences.values())}]`);
+      const objectReferences: Map<string, string> =
+        skipIncludeScan == false ? currDocumentFindings.includeObjectNamesByFilename() : new Map<string, string>();
+      this.ctx.logger.log(
+        `TRC: [${currDocumentFindings.instanceName()}] nameHashKeys=[${Array.from(objectReferences.keys())}], nameHashValues=[${Array.from(
+          objectReferences.values()
+        )}]`
+      );
       const objectNames: string[] = Array.from(objectReferences.keys());
       const objectFileNames: string[] = Array.from(objectReferences.values());
       this.ctx.logger.log(
-        `TRC: DP.process() hook-in includes for [${currDocumentFindings.instanceName()}]  objectNames=[${Array.from(objectNames)}]  objectFileNames=[${Array.from(objectFileNames)}]`
+        `TRC: DP.process() hook-in includes for [${currDocumentFindings.instanceName()}]  objectNames=[${Array.from(
+          objectNames
+        )}]  objectFileNames=[${Array.from(objectFileNames)}]`
       );
       currDocumentFindings.clear(this.PARM_ALL_BUT_INCLUDES); // now clear it out for reload after we have includes
-      this.ctx.logger.log(`TRC: [${currDocumentFindings.instanceName()}] clear() previous findings but NOT include info so can load included documents`);
+      this.ctx.logger.log(
+        `TRC: [${currDocumentFindings.instanceName()}] clear() previous findings but NOT include info so can load included documents`
+      );
       for (let index = 0; index < objectNames.length; index++) {
         const objectName = objectNames[index];
         const objectSpinFilename = objectFileNames[index];
         let matchFilename: string = objectSpinFilename.toLowerCase();
-        if (!matchFilename?.toLowerCase().includes(".spin")) {
+        if (!matchFilename?.toLowerCase().includes('.spin')) {
           matchFilename = `${matchFilename}.`.toLowerCase();
         }
         this.ctx.logger.log(`TRC: MATCHING objectName=[${objectName}], matchFilename=[${matchFilename}]`);
@@ -298,7 +307,9 @@ export default class DocumentProcessor {
             // located, now add parse results for include to this document map of includes
             const processedInclude = this.ctx.docsByFSpec.get(fSpec);
             if (processedInclude) {
-              this.ctx.logger.log(`TRC: registering [${objectName}]: [${processedInclude.parseResult.instanceName()}]: with=[${currDocumentFindings.instanceName()}]`);
+              this.ctx.logger.log(
+                `TRC: registering [${objectName}]: [${processedInclude.parseResult.instanceName()}]: with=[${currDocumentFindings.instanceName()}]`
+              );
               currDocumentFindings.enableLogging(this.ctx, true);
               currDocumentFindings.setFindingsForNamespace(objectName, processedInclude.parseResult);
               currDocumentFindings.enableLogging(this.ctx, false);
@@ -317,7 +328,7 @@ export default class DocumentProcessor {
     }
 
     // do actual parse to fill in DocumentFindings
-    const parseReason: string = skipIncludeScan == false ? "Actual-Parse" : "Reload(includes-updated)";
+    const parseReason: string = skipIncludeScan == false ? 'Actual-Parse' : 'Reload(includes-updated)';
     await this._parseDocument(currDocumentInProcess, parseReason, currDocumentFindings);
 
     this.ctx.logger.log(`TRC: DP.process() DONE processing [${currDocumentFindings.instanceName()}]`);

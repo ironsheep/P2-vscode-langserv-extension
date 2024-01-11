@@ -1,9 +1,9 @@
-"use strict";
-import * as vscode from "vscode";
+'use strict';
+import * as vscode from 'vscode';
 
 export const overtypeBeforeTypeOrig = (editor: vscode.TextEditor, text: string) => {
   // skip overtype behavior when enter is pressed
-  if (text === "\r" || text === "\n" || text === "\r\n") {
+  if (text === '\r' || text === '\n' || text === '\r\n') {
     return;
   }
 
@@ -24,11 +24,11 @@ export const overtypeBeforeTypeOrig = (editor: vscode.TextEditor, text: string) 
 
 export function overtypeBeforeType(editor: vscode.TextEditor, text: string, undoStop: boolean) {
   // skip overtype behavior when enter is pressed
-  if (text === "\r" || text === "\n" || text === "\r\n") {
-    return vscode.commands.executeCommand("default:type", { text: text });
+  if (text === '\r' || text === '\n' || text === '\r\n') {
+    return vscode.commands.executeCommand('default:type', { text: text });
   }
 
-  if (text.indexOf(" ") !== -1) undoStop = true;
+  if (text.indexOf(' ') !== -1) undoStop = true;
 
   editor.edit(
     (edit) => {
@@ -82,7 +82,7 @@ export const overtypeBeforePasteOrig = (editor: vscode.TextEditor, text: string,
       const lineEndOffset = editor.document.offsetAt(editor.document.lineAt(selection.end).range.end);
       const lineEndLength = lineEndOffset - selectionStartOffset;
 
-      const hasNewLine = text.indexOf("\r") !== -1 || text.indexOf("\n") !== -1;
+      const hasNewLine = text.indexOf('\r') !== -1 || text.indexOf('\n') !== -1;
       const newSelectionLength = Math.max(hasNewLine ? lineEndLength : Math.min(lineEndLength, text.length), selectionLength);
       const newSelectionEndPosition = editor.document.positionAt(selectionStartOffset + newSelectionLength);
 
@@ -114,7 +114,7 @@ export function overtypeBeforePaste(editor: vscode.TextEditor, text: string, pas
       const lineEndOffset = editor.document.offsetAt(editor.document.lineAt(selection.end).range.end);
       const lineEndLength = lineEndOffset - selectionStartOffset;
 
-      const hasNewLine = text.indexOf("\r") !== -1 || text.indexOf("\n") !== -1;
+      const hasNewLine = text.indexOf('\r') !== -1 || text.indexOf('\n') !== -1;
       const newSelectionLength = Math.max(hasNewLine ? lineEndLength : Math.min(lineEndLength, text.length), selectionLength);
       const newSelectionEndPosition = editor.document.positionAt(selectionStartOffset + newSelectionLength);
 

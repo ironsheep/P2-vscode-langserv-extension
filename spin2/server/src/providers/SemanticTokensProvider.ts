@@ -1,64 +1,64 @@
-"use strict";
+'use strict';
 // src/extensions.ts
 
-import * as lsp from "vscode-languageserver";
-import { Provider } from ".";
-import { Context } from "../context";
-import { DocumentFindings, IParsedToken } from "../parser/spin.semantic.findings";
-import { fileSpecFromURI } from "../parser/lang.utils";
+import * as lsp from 'vscode-languageserver';
+import { Provider } from '.';
+import { Context } from '../context';
+import { DocumentFindings, IParsedToken } from '../parser/spin.semantic.findings';
+import { fileSpecFromURI } from '../parser/lang.utils';
 
 export default class SemanticTokensProvider implements Provider {
   private tokenTypes = new Map<string, number>();
   private tokenModifiers = new Map<string, number>();
 
   private tokenTypesLegend = [
-    "comment",
-    "string",
-    "keyword",
-    "number",
-    "regexp",
-    "operator",
-    "namespace",
-    "type",
-    "struct",
-    "class",
-    "interface",
-    "enum",
-    "typeParameter",
-    "function",
-    "method",
-    "macro",
-    "variable",
-    "parameter",
-    "property",
-    "label",
-    "enumMember",
-    "event",
-    "returnValue",
-    "storageType",
-    "colorName",
-    "displayType",
-    "displayName",
-    "setupParameter",
-    "feedParameter",
+    'comment',
+    'string',
+    'keyword',
+    'number',
+    'regexp',
+    'operator',
+    'namespace',
+    'type',
+    'struct',
+    'class',
+    'interface',
+    'enum',
+    'typeParameter',
+    'function',
+    'method',
+    'macro',
+    'variable',
+    'parameter',
+    'property',
+    'label',
+    'enumMember',
+    'event',
+    'returnValue',
+    'storageType',
+    'colorName',
+    'displayType',
+    'displayName',
+    'setupParameter',
+    'feedParameter'
   ];
 
   private tokenModifiersLegend = [
-    "declaration",
-    "documentation",
-    "readonly",
-    "static",
-    "abstract",
-    "deprecated",
-    "modification",
-    "async",
-    "definition",
-    "defaultLibrary",
-    "local",
-    "pasmInline",
-    "instance",
-    "missingDeclaration",
-    "illegalUse",
+    'declaration',
+    'documentation',
+    'readonly',
+    'static',
+    'abstract',
+    'deprecated',
+    'modification',
+    'async',
+    'definition',
+    'defaultLibrary',
+    'local',
+    'pasmInline',
+    'instance',
+    'missingDeclaration',
+    'illegalUse'
   ];
 
   private semanticLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -79,9 +79,9 @@ export default class SemanticTokensProvider implements Provider {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
-        this._logMessage("Spin2 Semantic log started.");
+        this._logMessage('Spin2 Semantic log started.');
       } else {
-        this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
   }
@@ -110,7 +110,13 @@ export default class SemanticTokensProvider implements Provider {
     let tokenIdx: number = 0;
     allTokens.forEach((token) => {
       this._logMessage(`Token ${this._tokenString(tokenIdx++, token)}`);
-      builder.push(token.line, token.startCharacter, token.length, this._encodeTokenType(token.ptTokenType), this._encodeTokenModifiers(token.ptTokenModifiers));
+      builder.push(
+        token.line,
+        token.startCharacter,
+        token.length,
+        this._encodeTokenType(token.ptTokenType),
+        this._encodeTokenModifiers(token.ptTokenModifiers)
+      );
     });
     // return them to client
     return builder.build();
@@ -121,7 +127,9 @@ export default class SemanticTokensProvider implements Provider {
   private _tokenString(tokenIdx: number, aToken: IParsedToken): string {
     let desiredInterp: string = `  -- token(${aToken.line + 1},${aToken.startCharacter})=[idx:${tokenIdx}][len:${aToken.length}](undefined)`;
     if (aToken != undefined) {
-      desiredInterp = `  -- token(${aToken.line + 1},${aToken.startCharacter})=[idx:${tokenIdx}][len:${aToken.length}](${aToken.ptTokenType}[${aToken.ptTokenModifiers}])]`;
+      desiredInterp = `  -- token(${aToken.line + 1},${aToken.startCharacter})=[idx:${tokenIdx}][len:${aToken.length}](${aToken.ptTokenType}[${
+        aToken.ptTokenModifiers
+      }])]`;
     }
     return desiredInterp;
   }
@@ -129,7 +137,7 @@ export default class SemanticTokensProvider implements Provider {
   private _encodeTokenType(tokenType: string): number {
     if (this.tokenTypes.has(tokenType)) {
       return this.tokenTypes.get(tokenType)!;
-    } else if (tokenType === "notInLegend") {
+    } else if (tokenType === 'notInLegend') {
       return this.tokenTypes.size + 2;
     }
     return 0;
@@ -141,7 +149,7 @@ export default class SemanticTokensProvider implements Provider {
       const tokenModifier = strTokenModifiers[i];
       if (this.tokenModifiers.has(tokenModifier)) {
         result = result | (1 << this.tokenModifiers.get(tokenModifier)!);
-      } else if (tokenModifier === "notInLegend") {
+      } else if (tokenModifier === 'notInLegend') {
         result = result | (1 << (this.tokenModifiers.size + 2));
       }
     }
@@ -149,14 +157,14 @@ export default class SemanticTokensProvider implements Provider {
   }
 
   register(connection: lsp.Connection): lsp.ServerCapabilities {
-    connection.onRequest("textDocument/semanticTokens/full", this.handleGetSemanticTokensFull.bind(this));
+    connection.onRequest('textDocument/semanticTokens/full', this.handleGetSemanticTokensFull.bind(this));
     return {
       semanticTokensProvider: {
         full: {
-          delta: false,
+          delta: false
         },
-        legend: this.Spin2Legend(),
-      },
+        legend: this.Spin2Legend()
+      }
     };
   }
 }

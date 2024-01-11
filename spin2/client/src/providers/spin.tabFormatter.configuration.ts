@@ -1,5 +1,6 @@
-"use strict";
-import * as vscode from "vscode";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+'use strict';
+import * as vscode from 'vscode';
 
 /**
  *
@@ -23,27 +24,27 @@ export interface Blocks {
 }
 
 const loadTabConfiguration = () => {
-  const tabFormatterConfiguration = vscode.workspace.getConfiguration("spinExtension.ElasticTabstops");
+  const tabFormatterConfiguration = vscode.workspace.getConfiguration('spinExtension.elasticTabstops');
 
-  const tabset: string = tabFormatterConfiguration.get<string>("choice")!;
+  const tabset: string = tabFormatterConfiguration.get<string>('choice')!;
 
   const tabsUserSelection: string = `blocks.${tabset}`;
-  const blocks = tabFormatterConfiguration.get<Blocks>(tabsUserSelection)!;
+  //const blocks = tabFormatterConfiguration.get<Blocks>(tabsUserSelection)!;
   //const blocksConfig = tabFormatterConfiguration.inspect<Blocks>("blocks");
 
-  const tabSize = tabFormatterConfiguration.get<number>("editor.tabSize");
+  //const tabSize = tabFormatterConfiguration.get<number>('editor.tabSize');
   //const useTabStops = tabFormatterConfiguration.get<number>("editor.useTabStops");
 
-  const enable = tabFormatterConfiguration.get<boolean>("enable");
+  //const enable = tabFormatterConfiguration.get<boolean>('enable');
   //const timeout = tabFormatterConfiguration.get<number>("timeout");
   //const maxLineCount = tabFormatterConfiguration.get<number>("maxLineCount");
   //const maxLineLength = tabFormatterConfiguration.get<number>("maxLineLength");
 
   return {
-    enable: tabFormatterConfiguration.get<boolean>("enable"),
-    tabSet: tabFormatterConfiguration.get<string>("choice")!,
+    enable: tabFormatterConfiguration.get<boolean>('enable'),
+    tabSet: tabFormatterConfiguration.get<string>('choice')!,
     blocks: tabFormatterConfiguration.get<Blocks>(tabsUserSelection)!,
-    tabSize: tabFormatterConfiguration.get<number>("editor.tabSize"),
+    tabSize: tabFormatterConfiguration.get<number>('editor.tabSize')
   };
 };
 
@@ -53,7 +54,11 @@ export const reloadTabConfiguration = () => {
   const newTabConfiguration = loadTabConfiguration();
 
   // bail out if nothing changed
-  if (tabConfiguration.enable === newTabConfiguration.enable && tabConfiguration.tabSet === newTabConfiguration.tabSet && tabConfiguration.tabSize === newTabConfiguration.tabSize) {
+  if (
+    tabConfiguration.enable === newTabConfiguration.enable &&
+    tabConfiguration.tabSet === newTabConfiguration.tabSet &&
+    tabConfiguration.tabSize === newTabConfiguration.tabSize
+  ) {
     return false;
   }
 

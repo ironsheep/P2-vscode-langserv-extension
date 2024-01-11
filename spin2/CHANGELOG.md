@@ -12,11 +12,24 @@ Work to appear in upcoming releases:
 
 Possible next additions:
 
-- More features comming. We're looking for what's next...
+- More features coming. We're looking for what's next...
 - Investigate and possibly add unique coloring for method pointers
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
+
+## [2.2.14] 2024-01-11
+
+Update P1 & P2
+
+- Adjust settings/configuration mechanism (turn on/off elastic tabs no longer requires vscode restart/reload)
+- Adjust text-cursor colors for our themes (Make them more visible and consistent with other themes)
+  - NOTE: this does NOT affect the mouse pointer (arrow, or I-beam) which is controlled from your operating-system settings
+
+Update P2 Only
+
+- Minor DAT block highlighting fixes
+- Adjusted duplicate variable declaration message (clarified meaning)
 
 ## [2.2.13] 2024-01-09
 

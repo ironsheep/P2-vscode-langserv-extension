@@ -1,13 +1,13 @@
-"use strict";
+'use strict';
 // src/providers/spin.color.regions.ts
 
-import * as vscode from "vscode";
-import * as path from "path";
-import { Position } from "vscode";
-import { LocatedBlockFindings, eBLockType, IBlockSpan } from "./spin.block.tracker";
-import { editorConfiguration, reloadEditorConfiguration } from "../spin.clientBehavior.configuration";
-import { isSpinOrPasmFile, activeSpinEditors } from "../spin.vscode.utils";
-import { SpinCodeUtils, eParseState } from "../spin.code.utils";
+import * as vscode from 'vscode';
+import * as path from 'path';
+import { Position } from 'vscode';
+import { LocatedBlockFindings, eBLockType, IBlockSpan } from './spin.block.tracker';
+import { editorConfiguration, reloadEditorConfiguration } from '../spin.clientBehavior.configuration';
+import { isSpinOrPasmFile, activeSpinEditors } from '../spin.vscode.utils';
+import { SpinCodeUtils, eParseState } from '../spin.code.utils';
 
 interface DecoratorMap {
   [Identifier: string]: DecoratorDescription;
@@ -74,18 +74,18 @@ export class RegionColorizer {
     pubDk: "#C4E1FFff", // HSB: 211,23,100  (25 was too dark/rich)
     */
     //  Mine (Jeff's recolored)
-    objLt: "#ffd9d9FF", // HSB:   0,15,100 - OBJ red
-    objDk: "#ffbfbfFF", // HSB:   0,25,100
-    varLt: "#ffecd9FF", // HSB:  30,15,100 - VAR orange
-    varDk: "#ffdfbfFF", // HSB:  30,25,100
-    conLt: "#ffffd9FF", // HSB:  60,15,100 - CON yellow
-    conDk: "#ffffbfFF", // HSB:  60,25,100
-    datLt: "#d9ffd9FF", // HSB: 120,15,100 - DAT green
-    datDk: "#bfffbfFF", // HSB: 120,25,100
-    priLt: "#d9ffffFF", // HSB: 180,15,100 - PRI blue
-    priDk: "#bfffffFF", // HSB: 180,25,100
-    pubLt: "#d9d9ffFF", // HSB: 240,15,100 - PUB purple
-    pubDk: "#bfbfffFF", // HSB: 240,23,100
+    objLt: '#ffd9d9FF', // HSB:   0,15,100 - OBJ red
+    objDk: '#ffbfbfFF', // HSB:   0,25,100
+    varLt: '#ffecd9FF', // HSB:  30,15,100 - VAR orange
+    varDk: '#ffdfbfFF', // HSB:  30,25,100
+    conLt: '#ffffd9FF', // HSB:  60,15,100 - CON yellow
+    conDk: '#ffffbfFF', // HSB:  60,25,100
+    datLt: '#d9ffd9FF', // HSB: 120,15,100 - DAT green
+    datDk: '#bfffbfFF', // HSB: 120,25,100
+    priLt: '#d9ffffFF', // HSB: 180,15,100 - PRI blue
+    priDk: '#bfffffFF', // HSB: 180,25,100
+    pubLt: '#d9d9ffFF', // HSB: 240,15,100 - PUB purple
+    pubDk: '#bfbfffFF' // HSB: 240,23,100
   };
   private namedColorsAlpha: number = -1;
 
@@ -103,13 +103,15 @@ export class RegionColorizer {
     if (this.coloringDebugLogEnabled) {
       if (this.coloringOutputChannel === undefined) {
         //Create output channel
-        this.coloringOutputChannel = vscode.window.createOutputChannel("Spin/Spin2 BGColor DEBUG");
-        this.logMessage("Spin/Spin2 BGColor log started.");
+        this.coloringOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 BGColor DEBUG');
+        this.logMessage('Spin/Spin2 BGColor log started.');
       } else {
-        this.logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this.logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
-    this.logMessage(`* NEW Config: spinExtension.ClientBehavior.colorBackground=(${this.configuration.colorBackground}), backgroundApha=(${this.configuration.backgroundApha})`);
+    this.logMessage(
+      `* NEW Config: spinExtension.ClientBehavior.colorBackground=(${this.configuration.colorBackground}), backgroundApha=(${this.configuration.backgroundApha})`
+    );
 
     this.updateColorizerConfiguration(); // ensure we match the current setting value
   }
@@ -148,7 +150,7 @@ export class RegionColorizer {
   }
 
   public backgroundAlpha(): number {
-    let interpretedAlpha: number = this.configuration.backgroundApha ? this.configuration.backgroundApha : 80;
+    const interpretedAlpha: number = this.configuration.backgroundApha ? this.configuration.backgroundApha : 80;
     return interpretedAlpha;
   }
 
@@ -156,14 +158,16 @@ export class RegionColorizer {
     const updated = reloadEditorConfiguration();
     if (updated || this.namedColorsAlpha == -1) {
       this.logMessage(`* updateColorizerConfiguration() settings changed`);
-      this.logMessage(`* UPD Config: spinExtension.ClientBehavior.colorBackground=(${this.configuration.colorBackground}), backgroundApha=(${this.configuration.backgroundApha})`);
+      this.logMessage(
+        `* UPD Config: spinExtension.ClientBehavior.colorBackground=(${this.configuration.colorBackground}), backgroundApha=(${this.configuration.backgroundApha})`
+      );
       const settingsAlpha: number = this.backgroundAlpha();
       if (this.namedColorsAlpha != settingsAlpha) {
         this.namedColorsAlpha = this.backgroundAlpha();
         this.updateColorTable();
       }
       if (this.isColoringBackground() == false) {
-        this.removeBackgroundColors("updateCfg");
+        this.removeBackgroundColors('updateCfg');
       }
 
       // we need to force redraw of open editor when config changes!
@@ -176,7 +180,7 @@ export class RegionColorizer {
           this.logMessage(`* config: re-coloring [${filespec}]`);
           const blockSpanInformation: LocatedBlockFindings = this.blockFindingsForFileSpec(filespec);
           if (blockSpanInformation) {
-            this.updateRegionColors(currEditor, "cfgChg", true);
+            this.updateRegionColors(currEditor, 'cfgChg', true);
           } else {
             this.logMessage(`  -- config: NO cached DocumentFindings for [${filespec}]`);
           }
@@ -219,7 +223,7 @@ export class RegionColorizer {
 
     const fullText: string = document.getText();
     const lines: string[] = fullText.split(/\r\n|\r|\n/);
-    this.logMessage("---> Pre SCAN");
+    this.logMessage('---> Pre SCAN');
     let currState: eParseState = eParseState.inCon; // compiler defaults to CON at start
     let priorState: eParseState = currState;
     let prePAsmState: eParseState = currState;
@@ -242,11 +246,11 @@ export class RegionColorizer {
         let currOffset: number = 0;
         let bFoundOpenClosePair: boolean = false;
         do {
-          nestedOpeningOffset = trimmedLine.indexOf("{", currOffset);
+          nestedOpeningOffset = trimmedLine.indexOf('{', currOffset);
           if (nestedOpeningOffset != -1) {
             bFoundOpenClosePair = false;
             // we have an opening {
-            closingOffset = trimmedLine.indexOf("}", nestedOpeningOffset);
+            closingOffset = trimmedLine.indexOf('}', nestedOpeningOffset);
             if (closingOffset != -1) {
               // and we have a closing, ignore this see if we have next
               currOffset = closingOffset + 1;
@@ -256,7 +260,7 @@ export class RegionColorizer {
             }
           }
         } while (nestedOpeningOffset != -1 && bFoundOpenClosePair);
-        closingOffset = trimmedLine.indexOf("}", currOffset);
+        closingOffset = trimmedLine.indexOf('}', currOffset);
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
@@ -265,7 +269,7 @@ export class RegionColorizer {
         continue;
       } else if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
-        let closingOffset = line.indexOf("}}");
+        const closingOffset = line.indexOf('}}');
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
@@ -276,10 +280,10 @@ export class RegionColorizer {
         continue; // no further processing of blank line
       } else if (trimmedNonCommentLine.length > 0 && this.spinCodeUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
         continue; // handled flexspin comment do next line
-      } else if (trimmedLine.startsWith("{{")) {
+      } else if (trimmedLine.startsWith('{{')) {
         // process multi-line doc comment
-        let openingOffset = line.indexOf("{{");
-        const closingOffset = line.indexOf("}}", openingOffset + 2);
+        const openingOffset = line.indexOf('{{');
+        const closingOffset = line.indexOf('}}', openingOffset + 2);
         if (closingOffset != -1) {
           // is single line comment, just ignore it Let Syntax highlighting do this
         } else {
@@ -289,11 +293,11 @@ export class RegionColorizer {
           //  DO NOTHING Let Syntax highlighting do this
         }
         continue;
-      } else if (trimmedLine.startsWith("{")) {
+      } else if (trimmedLine.startsWith('{')) {
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
-        let openingOffset = line.indexOf("{");
-        const closingOffset = line.indexOf("}", openingOffset + 1);
+        const openingOffset = line.indexOf('{');
+        const closingOffset = line.indexOf('}', openingOffset + 1);
         if (closingOffset != -1) {
           // is single line comment...
         } else {
@@ -330,7 +334,7 @@ export class RegionColorizer {
         }
         blockSpanInformation.recordBlockStart(newBlockType, i); // start new one which ends prior
 
-        this.logMessage("- scan Ln#" + (i + 1) + " currState=[" + currState + "]");
+        this.logMessage('- scan Ln#' + (i + 1) + ' currState=[' + currState + ']');
         // ID the remainder of the line
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
           // process PUB/PRI method signature
@@ -338,10 +342,10 @@ export class RegionColorizer {
           // process a constant line
         } else if (currState == eParseState.inDat) {
           // process a class(static) variable line
-          if (trimmedNonCommentLine.length > 6 && trimmedNonCommentLine.toUpperCase().includes("ORG")) {
+          if (trimmedNonCommentLine.length > 6 && trimmedNonCommentLine.toUpperCase().includes('ORG')) {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.spinCodeUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
-            if (nonStringLine.toUpperCase().includes("ORG")) {
+            if (nonStringLine.toUpperCase().includes('ORG')) {
               prePAsmState = currState;
               currState = eParseState.inDatPAsm;
               continue;
@@ -359,10 +363,10 @@ export class RegionColorizer {
         // process a data line
         if (trimmedLine.length > 0) {
           if (trimmedLine.length > 6) {
-            if (trimmedLine.toUpperCase().includes("ORG")) {
+            if (trimmedLine.toUpperCase().includes('ORG')) {
               // ORG, ORGF, ORGH
               const nonStringLine: string = this.spinCodeUtils.removeDoubleQuotedStrings(trimmedLine);
-              if (nonStringLine.toUpperCase().includes("ORG")) {
+              if (nonStringLine.toUpperCase().includes('ORG')) {
                 prePAsmState = currState;
                 currState = eParseState.inDatPAsm;
                 continue;
@@ -379,15 +383,15 @@ export class RegionColorizer {
       }
     }
     blockSpanInformation.finishFinalBlock(lines.length - 1); // mark end of final block in file
-    this.logMessage("  -- scan DONE");
+    this.logMessage('  -- scan DONE');
   }
 
   public updateRegionColors(activeEditor: vscode.TextEditor, caller: string, isForced: boolean = false) {
     // remove any prior colors, then recolor
-    const isConfigChange: boolean = caller.includes("cfgChg");
-    const isWindowChange: boolean = caller.includes("actvEditorChg");
-    const isFromRescan: boolean = caller.includes("end1stPass");
-    const isDocChange: boolean = caller.includes("docDidChg");
+    const isConfigChange: boolean = caller.includes('cfgChg');
+    const isWindowChange: boolean = caller.includes('actvEditorChg');
+    const isFromRescan: boolean = caller.includes('end1stPass');
+    const isDocChange: boolean = caller.includes('docDidChg');
     const filespec: string = activeEditor.document.fileName;
     let isNewDocument: boolean = false;
     if (this.docVersionByFilespec.has(filespec)) {
@@ -401,7 +405,9 @@ export class RegionColorizer {
       isNewDocument = true;
     }
     this.logMessage(`- updRegionColors(${caller}), ver=[${activeEditor.document.version}] ENTRY`);
-    this.logMessage(`  --  isConfigChange=(${isConfigChange}), isWindowChange=(${isWindowChange}), isFromRescan=(${isFromRescan}), isDocChange=(${isDocChange})`);
+    this.logMessage(
+      `  --  isConfigChange=(${isConfigChange}), isWindowChange=(${isWindowChange}), isFromRescan=(${isFromRescan}), isDocChange=(${isDocChange})`
+    );
     if (isNewDocument || isFromRescan || isWindowChange || isDocChange) {
       // when we get real data save it for config change use
       this.parseDocumentForRegions(activeEditor.document);
@@ -409,7 +415,9 @@ export class RegionColorizer {
     const isSpinFile = isSpinOrPasmFile(filespec);
     let instancesByColor: DecoratorInstanceHash = {};
     let newInstance: boolean = false;
-    let foundInstancesByColor: DecoratorInstanceHash | undefined = this.decoratorInstancesByFilespec.has(filespec) ? this.decoratorInstancesByFilespec.get(filespec) : undefined;
+    const foundInstancesByColor: DecoratorInstanceHash | undefined = this.decoratorInstancesByFilespec.has(filespec)
+      ? this.decoratorInstancesByFilespec.get(filespec)
+      : undefined;
     if (foundInstancesByColor) {
       instancesByColor = foundInstancesByColor;
       this.logMessage(`  -- using existing instance cache`);
@@ -425,12 +433,14 @@ export class RegionColorizer {
       // only clear if coloring is OFF   -OR-
       //   if text changed, or if syntax pass requested update
       if (!isColoringEnabled) {
-        this.removeBackgroundColors("NOT COLORING updRgnCo():" + caller, activeEditor);
+        this.removeBackgroundColors('NOT COLORING updRgnCo():' + caller, activeEditor);
       } else {
         // only color if
         //  (1) coloring is turned on
         this.logMessage(`- updRegionColors() fm=(${caller}) [${filespec}]`);
-        let decorationsByColor: DecoratorMap | undefined = this.colorInfoByFilespec.has(filespec) ? this.colorInfoByFilespec.get(filespec) : undefined;
+        let decorationsByColor: DecoratorMap | undefined = this.colorInfoByFilespec.has(filespec)
+          ? this.colorInfoByFilespec.get(filespec)
+          : undefined;
         if (isWindowChange && !newInstance) {
           // use existing color set
           this.logMessage(`  -- widow change use existing colors`);
@@ -463,7 +473,7 @@ export class RegionColorizer {
         //this.logMessage(`- updRegionColors(): FOUND ${codeBlockSpans.length} codeBlockSpan(s)`);
         if (decorationsByColor) {
           if (!isWindowChange) {
-            this.removeBackgroundColors("updRgnCo():" + caller, activeEditor);
+            this.removeBackgroundColors('updRgnCo():' + caller, activeEditor);
           }
           // for all decorations add to editor
           const keys = Object.keys(decorationsByColor);
@@ -506,7 +516,7 @@ export class RegionColorizer {
           const endPos = new Position(codeBlockSpan.endLineIdx, 0);
 
           const decorationRange = {
-            range: new vscode.Range(startPos, endPos),
+            range: new vscode.Range(startPos, endPos)
           };
 
           // if decoration for this color doesn't exist
@@ -515,7 +525,7 @@ export class RegionColorizer {
             decorationsByColor[color] = {
               name: color,
               regions: [],
-              decorator: undefined,
+              decorator: undefined
             };
           }
 
@@ -540,7 +550,7 @@ export class RegionColorizer {
 
     const newInstance = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
-      backgroundColor: color,
+      backgroundColor: color
     });
 
     decoratorInstances[color] = newInstance;
@@ -555,7 +565,7 @@ export class RegionColorizer {
       if (lhsColors.length != rhsColors.length) {
         mapsDiffStatus = true;
       } else {
-        for (let color in lhsColors) {
+        for (const color in lhsColors) {
           const lhsDescription: DecoratorDescription = lhsMap[color];
           if (color in rhsColors) {
             /// both have same color?
@@ -578,8 +588,8 @@ export class RegionColorizer {
                 break;
               }
               for (let rgnIdx = 0; rgnIdx < lhsDescription.regions.length; rgnIdx++) {
-                const lhsRange: vscode.Range = lhsDescription.regions[rgnIdx]["range"];
-                const rhsRange: vscode.Range = rhsDescription.regions[rgnIdx]["range"];
+                const lhsRange: vscode.Range = lhsDescription.regions[rgnIdx]['range'];
+                const rhsRange: vscode.Range = rhsDescription.regions[rgnIdx]['range'];
                 if (lhsRange.start != rhsRange.start || lhsRange.end != rhsRange.end) {
                   // colored region linenumber range is diff.
                   mapsDiffStatus = true;
@@ -603,7 +613,7 @@ export class RegionColorizer {
   }
 
   private removeBackgroundColors(caller: string, activeEditor?: vscode.TextEditor) {
-    const activeFile: string = activeEditor ? activeEditor.document.fileName : "file=unknown";
+    const activeFile: string = activeEditor ? activeEditor.document.fileName : 'file=unknown';
     this.logMessage(`- rmvBackgroundColors(${caller}) [${activeFile}] - ENTRY`);
     if (!activeEditor) {
       activeEditor = vscode.window.activeTextEditor;
@@ -633,7 +643,7 @@ export class RegionColorizer {
     // alpha is specified in percent [10-100]
     if (this.namedColorsAlpha > 0) {
       const bgAlphaHex: string = this.twoDigitHexForByteValue(255 * (this.namedColorsAlpha / 100));
-      for (let colorKey in this.namedColors) {
+      for (const colorKey in this.namedColors) {
         const colorRGBA: string = this.namedColors[colorKey];
         const updatedRGBA: string = colorRGBA.substring(0, 7) + bgAlphaHex;
         this.namedColors[colorKey] = updatedRGBA;
@@ -665,21 +675,21 @@ export class RegionColorizer {
   private colorForBlock(currblockType: eBLockType, sequenceNbr: number): string | undefined {
     let colorKey: string | undefined = undefined;
     if (currblockType == eBLockType.isCon) {
-      colorKey = "con";
+      colorKey = 'con';
     } else if (currblockType == eBLockType.isObj) {
-      colorKey = "obj";
+      colorKey = 'obj';
     } else if (currblockType == eBLockType.isVar) {
-      colorKey = "var";
+      colorKey = 'var';
     } else if (currblockType == eBLockType.isDat) {
-      colorKey = "dat";
+      colorKey = 'dat';
     } else if (currblockType == eBLockType.isPub) {
-      colorKey = "pub";
+      colorKey = 'pub';
     } else if (currblockType == eBLockType.isPri) {
-      colorKey = "pri";
+      colorKey = 'pri';
     }
     let desiredColor: string | undefined = undefined;
     if (colorKey) {
-      const suffix: string = (sequenceNbr & 0x01) == 0x01 ? "Lt" : "Dk";
+      const suffix: string = (sequenceNbr & 0x01) == 0x01 ? 'Lt' : 'Dk';
       colorKey = `${colorKey}${suffix}`;
       if (colorKey in this.namedColors) {
         desiredColor = this.namedColors[colorKey];

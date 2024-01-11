@@ -1,17 +1,17 @@
-"use strict";
+'use strict';
 // src/extensions.ts
 
-import * as lsp from "vscode-languageserver";
-import { Provider } from ".";
-import { Context } from "../context";
+import * as lsp from 'vscode-languageserver';
+import { Provider } from '.';
+import { Context } from '../context';
 //import { getDefinitions } from "../symbols";
-import * as path from "path";
-import { Position, Location } from "vscode-languageserver-types";
-import { DocumentFindings, ILocationOfToken } from "../parser/spin.semantic.findings";
-import { fileSpecFromURI } from "../parser/lang.utils";
-import { ExtensionUtils } from "../parser/spin.extension.utils";
-import { Range, TextDocument } from "vscode-languageserver-textdocument";
-import { DocumentLineAt } from "../parser/lsp.textDocument.utils";
+import * as path from 'path';
+import { Position, Location } from 'vscode-languageserver-types';
+import { DocumentFindings, ILocationOfToken } from '../parser/spin.semantic.findings';
+import { fileSpecFromURI } from '../parser/lang.utils';
+import { ExtensionUtils } from '../parser/spin.extension.utils';
+import { Range, TextDocument } from 'vscode-languageserver-textdocument';
+import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
 //import { URI } from "vscode-uri";
 
 export interface NamedSymbol {
@@ -33,15 +33,15 @@ export interface Definition extends NamedSymbol {
 */
 
 export enum DefinitionType {
-  Section = "section",
-  Label = "label",
-  Constant = "constant",
-  Variable = "variable",
-  Register = "register",
-  RegisterList = "register_list",
-  Offset = "offset",
-  Macro = "macro",
-  XRef = "xref",
+  Section = 'section',
+  Label = 'label',
+  Constant = 'constant',
+  Variable = 'variable',
+  Register = 'register',
+  RegisterList = 'register_list',
+  Offset = 'offset',
+  Macro = 'macro',
+  XRef = 'xref'
 }
 
 export interface FindingsAtPostion {
@@ -60,9 +60,9 @@ export default class DefinitionProvider implements Provider {
     if (this.defnLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
-        this._logMessage("Spin Hover log started.");
+        this._logMessage('Spin Hover log started.');
       } else {
-        this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
   }
@@ -79,7 +79,7 @@ export default class DefinitionProvider implements Provider {
   }
 
   async handleGetDefinitions({ textDocument, position }: lsp.DefinitionParams): Promise<Location[]> {
-    const defLocation: Location[] = [];
+    //const defLocation: Location[] = [];
     const docFSpec: string = fileSpecFromURI(textDocument.uri);
     const processed = this.ctx.docsByFSpec.get(docFSpec);
     if (!processed) {
@@ -108,7 +108,7 @@ export default class DefinitionProvider implements Provider {
       this._logMessage(`+ Defn: found Locn=[ln=${tokenLocation.position.line}, char=${tokenLocation.position.character}] in uri=[${uri}]`);
       definitionResults.push({
         uri,
-        range,
+        range
       });
     }
 
@@ -118,7 +118,7 @@ export default class DefinitionProvider implements Provider {
   register(connection: lsp.Connection) {
     connection.onDefinition(this.handleGetDefinitions.bind(this));
     return {
-      definitionProvider: true,
+      definitionProvider: true
     };
   }
 
@@ -163,30 +163,34 @@ export default class DefinitionProvider implements Provider {
 
     const wordUnderCursor: string = adjustedPos[2];
     if (objectRef === wordUnderCursor) {
-      objectRef = "";
+      objectRef = '';
     }
     const sourcePosition: Position = adjustedPos[3];
-    let fileBasename = path.basename(document.uri);
+    const fileBasename = path.basename(document.uri);
     this._logMessage(
       `+ Defn: wordUnderCursor=[${wordUnderCursor}], inObjDecl=(${inObjDeclarationStatus}), objectRef=(${objectRef}), adjPos=(${position.line},${position.character}), file=[${fileBasename}], line=[${declarationLine}]`
     );
 
-    return { position: sourcePosition, objectReference: objectRef, selectedWord: wordUnderCursor };
+    return {
+      position: sourcePosition,
+      objectReference: objectRef,
+      selectedWord: wordUnderCursor
+    };
   }
 
   private _objectNameFromDeclaration(line: string): string {
-    let desiredString: string = "";
+    let desiredString: string = '';
     // parse object declaration forms:
     // ex:  child1 : "dummy_child" | MULTIplIER = 3, CoUNT = 5
     //      child1[4] : "dummy_child" | MULTIplIER = 3, CoUNT = 5
     //      child1[child.MAX_CT] : "dummy_child" | MULTIplIER = 3, CoUNT = 5
-    if (line.includes(":")) {
-      let lineParts: string[] = line.split(":");
+    if (line.includes(':')) {
+      let lineParts: string[] = line.split(':');
       //this._logMessage(`+ Defn: _getObjName() :-split lineParts=[${lineParts}](${lineParts.length})`);
       if (lineParts.length >= 2) {
         const instanceName = lineParts[0].trim();
-        if (instanceName.includes("[")) {
-          lineParts = instanceName.split("[");
+        if (instanceName.includes('[')) {
+          lineParts = instanceName.split('[');
           //this._logMessage(`+ Defn: _getObjName() [-split lineParts=[${lineParts}](${lineParts.length})`);
           if (lineParts.length >= 2) {
             desiredString = lineParts[0].trim();

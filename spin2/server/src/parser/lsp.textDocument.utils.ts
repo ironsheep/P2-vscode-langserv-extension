@@ -1,15 +1,15 @@
-"use strict";
+'use strict';
 // src/parser/spin2.utils.ts
 
-import * as lsp from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import * as lsp from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export function GetWordRangeAtPosition(lineText: string, position: lsp.Position, isSpin1File: boolean = false): lsp.Range {
   // return rage of word found at position
   let startIndex: number = position.character;
   let endIndex: number = position.character;
-  const wordEndCharacterSetP1: string = "\"'[](){}<> |^&@\t,+-*/\\=";
-  const wordEndCharacterSetP2: string = "\"'[](){}<> |^&#@\t,+-*/\\=:";
+  const wordEndCharacterSetP1: string = '"\'[](){}<> |^&@\t,+-*/\\=';
+  const wordEndCharacterSetP2: string = '"\'[](){}<> |^&#@\t,+-*/\\=:';
   const checkCharSet: string = isSpin1File ? wordEndCharacterSetP1 : wordEndCharacterSetP2;
 
   // back up to start of word, mark start
@@ -39,7 +39,10 @@ export function GetWordRangeAtPosition(lineText: string, position: lsp.Position,
   }
 
   // returning findings
-  let wordRange: lsp.Range = { start: { line: position.line, character: startIndex }, end: { line: position.line, character: endIndex } };
+  const wordRange: lsp.Range = {
+    start: { line: position.line, character: startIndex },
+    end: { line: position.line, character: endIndex }
+  };
   return wordRange;
 }
 
@@ -55,13 +58,19 @@ export function PositionIsAfter(lhPosition: lsp.Position, rhPosition: lsp.Positi
 
 export function PositionTranslate(position: lsp.Position, lineOffset: number, charOffset: number): lsp.Position {
   // return position adjusted by offsets
-  let adjustedPostion: lsp.Position = { line: position.line + lineOffset, character: position.character + charOffset };
+  const adjustedPostion: lsp.Position = {
+    line: position.line + lineOffset,
+    character: position.character + charOffset
+  };
   return adjustedPostion;
 }
 
 export function DocumentLineAt(document: TextDocument, position: lsp.Position): string {
   // return the full line at given document position
-  const desiredLineRange: lsp.Range = { start: { line: position.line, character: 0 }, end: { line: position.line, character: Number.MAX_VALUE } };
+  const desiredLineRange: lsp.Range = {
+    start: { line: position.line, character: 0 },
+    end: { line: position.line, character: Number.MAX_VALUE }
+  };
   const lineText = document.getText(desiredLineRange);
   return lineText;
 }

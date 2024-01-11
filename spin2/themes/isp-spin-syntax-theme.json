@@ -10,7 +10,8 @@
     "activityBarBadge.background": "#2F8FBF",
     "editor.background": "#222222",
     "editor.foreground": "#aaaaaa", // #3981da
-    "editorError.border": "#BF2F2F",
+	"editorCursor.foreground": "#AEB0AD",
+	"editorError.border": "#BF2F2F",
     "editorLineNumber.foreground": "#444444",
     "panel.border": "#2F8FBF",
     "panelTitle.activeBorder": "#2F8FBF",
@@ -33,7 +34,8 @@
     "terminal.ansiRed": "#BF3060",
     "terminal.ansiBrightRed": "#BF0040",
     "terminal.ansiYellow": "#BF8F2F",
-    "terminal.ansiBrightYellow": "#BF7F00"
+    "terminal.ansiBrightYellow": "#BF7F00",
+	"terminalCursor.foreground": "#CCCCCC",
   },
   "tokenColors": [
     {

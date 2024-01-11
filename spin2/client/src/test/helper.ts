@@ -3,8 +3,8 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import * as vscode from "vscode";
-import * as path from "path";
+import * as vscode from 'vscode';
+import * as path from 'path';
 
 export let doc: vscode.TextDocument;
 export let editor: vscode.TextEditor;
@@ -16,7 +16,7 @@ export let platformEol: string;
  */
 export async function activate(docUri: vscode.Uri) {
   // The extensionId is `publisher.name` from package.json
-  const ext = vscode.extensions.getExtension("IronSheepProductionsLLC.spin2")!;
+  const ext = vscode.extensions.getExtension('IronSheepProductionsLLC.spin2')!;
   await ext.activate();
   try {
     doc = await vscode.workspace.openTextDocument(docUri);
@@ -32,7 +32,7 @@ async function sleep(ms: number) {
 }
 
 export const getDocPath = (p: string) => {
-  return path.resolve(__dirname, "../../testFixture", p);
+  return path.resolve(__dirname, '../../testFixture', p);
 };
 export const getDocUri = (p: string) => {
   return vscode.Uri.file(getDocPath(p));
@@ -65,7 +65,7 @@ export function isHash(possHash: any): boolean {
 
 export function showObject(responseObject: any, level: number = 0, idString: string = undefined): string {
   const answerStrings: string[] = [];
-  const padding: string = " ".repeat(level * 2);
+  const padding: string = ' '.repeat(level * 2);
   const bIsTopeLevel: boolean = idString == undefined;
   const typeString: string = objectTypeString(responseObject);
   if (bIsTopeLevel) {
@@ -86,46 +86,46 @@ export function showObject(responseObject: any, level: number = 0, idString: str
   if (bIsTopeLevel) {
     answerStrings.push(``);
   }
-  return answerStrings.join("\n");
+  return answerStrings.join('\n');
 }
 
 function objectTypeString(possObject: any): string {
-  let typeString: string = isArray(possObject) ? "array[]" : "object??";
+  let typeString: string = isArray(possObject) ? 'array[]' : 'object??';
   if (isMap(possObject)) {
-    typeString = "map<k,v>";
+    typeString = 'map<k,v>';
   } else if (isHash(possObject)) {
-    typeString = "hash{}";
+    typeString = 'hash{}';
   } else if (isNumber(possObject)) {
-    typeString = "Number";
+    typeString = 'Number';
   } else if (isString(possObject)) {
-    typeString = "String";
+    typeString = 'String';
   }
   return typeString;
 }
 
 function describeArray(array: [], level: number): string {
   const answerStrings: string[] = [];
-  const padding = " ".repeat(level * 2);
+  const padding = ' '.repeat(level * 2);
   answerStrings.push(`${padding} - array of ${array.length} elements`);
   for (let index = 0; index < array.length; index++) {
     const element = array[index];
     answerStrings.push(showObject(element, level + 1, index.toString()));
   }
-  return answerStrings.join("\n");
+  return answerStrings.join('\n');
 }
 function describeMap(mapObject: Map<any, any>, level: number): string {
   const answerStrings: string[] = [];
-  const padding = " ".repeat(level * 2);
+  const padding = ' '.repeat(level * 2);
   answerStrings.push(`${padding} - Map of ${mapObject.size} objects`);
-  return answerStrings.join("\n");
+  return answerStrings.join('\n');
 }
 function describeHash(hashObject: {}, level: number): string {
   const answerStrings: string[] = [];
-  const padding = " ".repeat(level * 2);
+  const padding = ' '.repeat(level * 2);
   let keyCount = 0;
-  for (let key in hashObject) {
+  for (const key in hashObject) {
     keyCount++;
-    let value = hashObject[key];
+    const value = hashObject[key];
     const typeString: string = objectTypeString(value);
     if (isArray(value)) {
       answerStrings.push(`${padding}  -- key [${key}] of [${typeString}] w/${value.length} Entries`);
@@ -137,5 +137,5 @@ function describeHash(hashObject: {}, level: number): string {
     }
     // Use `key` and `value`
   }
-  return answerStrings.join("\n");
+  return answerStrings.join('\n');
 }

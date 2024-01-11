@@ -1,19 +1,19 @@
-"use strict";
-import * as vscode from "vscode";
+'use strict';
+import * as vscode from 'vscode';
 
-import { editModeConfiguration } from "./spin.editMode.configuration";
+import { editModeConfiguration } from './spin.editMode.configuration';
 
 export enum eEditMode {
   INSERT,
   OVERTYPE,
-  ALIGN,
+  ALIGN
 }
 
 const defaultMode = eEditMode.INSERT;
 
 const state = {
   global: defaultMode,
-  perEditor: new WeakMap<vscode.TextEditor, eEditMode>(),
+  perEditor: new WeakMap<vscode.TextEditor, eEditMode>()
 };
 
 export const getMode = (textEditor: vscode.TextEditor) => {
@@ -55,11 +55,11 @@ export function nextMode2State(oldMode: eEditMode): eEditMode {
 export function modeName(mode: eEditMode): string {
   switch (mode) {
     case eEditMode.INSERT:
-      return "Insert";
+      return 'Insert';
     case eEditMode.OVERTYPE:
-      return "Overtype";
+      return 'Overtype';
     case eEditMode.ALIGN:
-      return "Align";
+      return 'Align';
     default:
       return `ERROR?? (${mode})`;
   }

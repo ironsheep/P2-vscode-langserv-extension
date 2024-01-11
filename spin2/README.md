@@ -1,4 +1,4 @@
-# VSCode support for the Parallax Propeller v1 & v2 8-Core MCU's
+# VSCode support for the Parallax Propeller v1 & v2  8-Core MCU's
 
 Spin/Spin2 Language-Server based VSCode Extension
 

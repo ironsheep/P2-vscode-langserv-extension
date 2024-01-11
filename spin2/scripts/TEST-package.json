@@ -4,7 +4,7 @@
   "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.13",
+  "version": "2.2.14",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -41,15 +41,15 @@
         "title": "Spin2: Generate documentation file from spin source"
       },
       {
-        "command": "spinExtension.indentTabStop",
+        "command": "spinExtension.elasticTabstops.indentTabStop",
         "title": "Spin2: Indent tab stop"
       },
       {
-        "command": "spinExtension.outdentTabStop",
+        "command": "spinExtension.elasticTabstops.outdentTabStop",
         "title": "Spin2: Outdent tab stop"
       },
       {
-        "command": "spinExtension.generate.tabStops.comment",
+        "command": "spinExtension.elasticTabstops.generate.tabStops.comment",
         "title": "Spin2: Generate and insert tab stop comment"
       },
       {
@@ -123,12 +123,12 @@
       {
         "title": "Spin/Spin2 Editor Tabstops",
         "properties": {
-          "spinExtension.ElasticTabstops.enable": {
+          "spinExtension.elasticTabstops.enable": {
             "type": "boolean",
             "default": false,
             "description": "Enable the use of Spin2 Tabstops along with [Insert|Overtype|Align] insert modes."
           },
-          "spinExtension.ElasticTabstops.choice": {
+          "spinExtension.elasticTabstops.choice": {
             "type": "string",
             "default": "PropellerTool",
             "enum": [
@@ -138,7 +138,7 @@
             ],
             "description": "Select the set of Tabstops you wish to use."
           },
-          "spinExtension.ElasticTabstops.blocks.PropellerTool": {
+          "spinExtension.elasticTabstops.blocks.PropellerTool": {
             "type": "object",
             "properties": {
               "type": "array",
@@ -224,7 +224,7 @@
               }
             }
           },
-          "spinExtension.ElasticTabstops.blocks.IronSheep": {
+          "spinExtension.elasticTabstops.blocks.IronSheep": {
             "type": "object",
             "properties": {
               "type": "array",
@@ -319,7 +319,7 @@
               }
             }
           },
-          "spinExtension.ElasticTabstops.blocks.User1": {
+          "spinExtension.elasticTabstops.blocks.User1": {
             "type": "object",
             "properties": {
               "type": "array",
@@ -412,22 +412,22 @@
       {
         "title": "Spin/Spin2 TabStop Insert Mode Configuration",
         "properties": {
-          "spinExtension.InsertMode.overtypePaste": {
+          "spinExtension.insertMode.overtypePaste": {
             "type": "boolean",
             "default": false,
             "description": "Enable use of overtype behavior when pasting text while in \"Overtype\" Mode."
           },
-          "spinExtension.InsertMode.perEditor": {
+          "spinExtension.insertMode.perEditor": {
             "type": "boolean",
             "default": false,
             "description": "Enable the setting of insert/overtype/align mode \"per editor\"."
           },
-          "spinExtension.InsertMode.enableAlign": {
+          "spinExtension.insertMode.enableAlign": {
             "type": "boolean",
             "default": true,
             "description": "Enable  Editor \"Align\" behavior."
           },
-          "spinExtension.InsertMode.secondaryCursorStyle": {
+          "spinExtension.insertMode.secondaryCursorStyle": {
             "type": "string",
             "default": "block",
             "enum": [
@@ -440,7 +440,7 @@
             ],
             "description": "Select the \"Overtype\" Mode cursor style."
           },
-          "spinExtension.InsertMode.ternaryCursorStyle": {
+          "spinExtension.insertMode.ternaryCursorStyle": {
             "type": "string",
             "default": "underline",
             "enum": [
@@ -453,17 +453,17 @@
             ],
             "description": "Select the \"Align\" Mode cursor style."
           },
-          "spinExtension.InsertMode.labelInsertMode": {
+          "spinExtension.insertMode.labelInsertMode": {
             "type": "string",
             "default": "Insert",
             "description": "Label text in the status bar shown during \"Insert\" Mode (may be empty to hide the status.)"
           },
-          "spinExtension.InsertMode.labelOvertypeMode": {
+          "spinExtension.insertMode.labelOvertypeMode": {
             "type": "string",
             "default": "Overtype",
             "description": "Label text in the status bar shown during \"Overtype\" Mode (may be empty to hide the status.)"
           },
-          "spinExtension.InsertMode.labelAlignMode": {
+          "spinExtension.insertMode.labelAlignMode": {
             "type": "string",
             "default": "Align",
             "description": "Label text in the status bar shown during \"Align\" Mode (may be empty to hide the status.)"
@@ -484,40 +484,40 @@
       },
       {
         "key": "tab",
-        "command": "spinExtension.indentTabStop",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+        "command": "spinExtension.elasticTabstops.indentTabStop",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
       },
       {
         "key": "Shift+tab",
-        "command": "spinExtension.outdentTabStop",
-        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+        "command": "spinExtension.elasticTabstops.outdentTabStop",
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
       },
       {
         "key": "Ctrl+Alt+tab",
-        "command": "spinExtension.generate.tabStops.comment",
-        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+        "command": "spinExtension.elasticTabstops.generate.tabStops.comment",
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.rotate",
         "key": "insert",
         "mac": "F13",
-        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.deleteLeft",
         "key": "backspace",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.deleteRight",
         "key": "delete",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.toggle",
         "key": "Ctrl+Shift+i",
         "mac": "Cmd+Shift+i",
-        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.ElasticTabstops.enable == true"
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
       }
     ],
     "menus": {
@@ -697,9 +697,15 @@
   "devDependencies": {
     "@types/mocha": "^9.1.0",
     "@types/node": "^16.18.34",
-    "@typescript-eslint/eslint-plugin": "^5.54.0",
-    "@typescript-eslint/parser": "^5.54.0",
-    "eslint": "^8.35.0",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+	"@typescript-eslint/parser": "^6.17.0",
+	"eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-standard-with-typescript": "^43.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^16.6.1",
+    "eslint-plugin-prettier": "^5.1.2",
+    "eslint-plugin-promise": "^6.1.1",
     "mocha": "^9.2.1",
     "typescript": "^5.1.3"
   }

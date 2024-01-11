@@ -1,9 +1,9 @@
-"use strict";
+'use strict';
 // server/src/parser/spin.semantic.findings.ts
 
-import { Position } from "vscode-languageserver-types";
-import { Context } from "../context";
-import { timeStamp } from "console";
+import { Position } from 'vscode-languageserver-types';
+import { Context } from '../context';
+//import { timeStamp } from 'console';
 //import { listenerCount } from "process";
 
 export enum eDebugDisplayType {
@@ -16,7 +16,7 @@ export enum eDebugDisplayType {
   ddtPlot,
   ddtTerm,
   ddtBitmap,
-  ddtMidi,
+  ddtMidi
 }
 
 export enum eBuiltInType {
@@ -31,7 +31,7 @@ export enum eBuiltInType {
   BIT_PASM_DIRECTIVE,
   BIT_SYMBOL,
   BIT_TYPE,
-  BIT_VARIABLE,
+  BIT_VARIABLE
 }
 
 export enum eParseState {
@@ -46,7 +46,7 @@ export enum eParseState {
   inDatPAsm,
   inMultiLineComment,
   inMultiLineDocComment,
-  inNothing,
+  inNothing
 }
 
 export enum eControlFlowType {
@@ -54,7 +54,7 @@ export enum eControlFlowType {
   inCase,
   inCaseFast,
   inRepeat,
-  inIf,
+  inIf
 }
 
 export interface ICurrControlStatement {
@@ -89,22 +89,27 @@ export function isMethodCall(line: string): boolean {
   return methodOpenRegEx.test(line);
 }
 
+export function isMethodCallEmptyParens(line: string): boolean {
+  const methodOpenRegEx = /^\s*\(\)/; // match zero or more whitespace before '()' from left edge of string
+  return methodOpenRegEx.test(line);
+}
+
 export function containsSpinLanguageSpec(line: string): boolean {
   // return T/F where T means {Spin2_v##} was found in given string
-  const languageVersionRegEx = /\{Spin2\_v/i; // our version specification (just look for left edge)
+  const languageVersionRegEx = /\{Spin2_v/i; // our version specification (just look for left edge)
   return languageVersionRegEx.test(line);
 }
 
 export function versionFromSpinLanguageSpec(line: string): number {
   // return T/F where T means {Spin2_v##} was found in given string
   let decodedVersion: number = 0; // return no version by default
-  const languageVersionRegEx = /\{Spin2\_v[0-9][0-9]\}/i; // our version specification - well formatted 0-99
-  const languageVersionThousandsRegEx = /\{Spin2\_v[0-9][0-9][0-9]\}/i; // our version specification - well formatted 0-999
+  const languageVersionRegEx = /\{Spin2_v[0-9][0-9]\}/i; // our version specification - well formatted 0-99
+  const languageVersionThousandsRegEx = /\{Spin2_v[0-9][0-9][0-9]\}/i; // our version specification - well formatted 0-999
   const is3digit: boolean = languageVersionThousandsRegEx.test(line);
   // if have fully formatted version
   if (languageVersionRegEx.test(line) || is3digit) {
     if (containsSpinLanguageSpec(line)) {
-      const matchText: string = "{Spin2_v".toLowerCase();
+      const matchText: string = '{Spin2_v'.toLowerCase();
       const verOffset: number = line.toLowerCase().indexOf(matchText);
       if (verOffset != -1) {
         if (is3digit) {
@@ -158,7 +163,11 @@ export class SpinControlFlowTracker {
   public startControlFlow(name: string, startLineCharOffset: number, startLineIdx: number) {
     // record start of possible nest flow control statements
     this._logMessage(`- SFlowCtrl: start([${name}], ofs=${startLineCharOffset}, Ln#${startLineIdx + 1})`);
-    const flowItem: ICurrControlStatement = { startLineIdx: startLineIdx, startLineCharOffset: startLineCharOffset, type: this.typeForControlFlowName(name) };
+    const flowItem: ICurrControlStatement = {
+      startLineIdx: startLineIdx,
+      startLineCharOffset: startLineCharOffset,
+      type: this.typeForControlFlowName(name)
+    };
     this.flowStatementStack.push(flowItem);
   }
 
@@ -174,7 +183,10 @@ export class SpinControlFlowTracker {
     if (this.flowStatementStack.length > 0) {
       do {
         const currStatement: ICurrControlStatement = this.flowStatementStack[this.flowStatementStack.length - 1];
-        const newClosedSpan: ICurrControlSpan = { startLineIdx: currStatement.startLineIdx, endLineIdx: endLineIdx };
+        const newClosedSpan: ICurrControlSpan = {
+          startLineIdx: currStatement.startLineIdx,
+          endLineIdx: endLineIdx
+        };
         closedFlowSpans.push(newClosedSpan);
         this.flowStatementStack.pop();
       } while (this.flowStatementStack.length > 0);
@@ -204,7 +216,10 @@ export class SpinControlFlowTracker {
           endThisNesting = delayClose ? false : true;
         }
         if (endThisNesting) {
-          const newClosedSpan: ICurrControlSpan = { startLineIdx: currStatement.startLineIdx, endLineIdx: endLineIdx - 1 };
+          const newClosedSpan: ICurrControlSpan = {
+            startLineIdx: currStatement.startLineIdx,
+            endLineIdx: endLineIdx - 1
+          };
           this._logMessage(`- SFlowCtrl:  - close [Ln#${newClosedSpan.startLineIdx + 1} - ${newClosedSpan.endLineIdx + 1}]`);
           closedFlowSpans.push(newClosedSpan);
           this.flowStatementStack.pop();
@@ -223,9 +238,9 @@ export class SpinControlFlowTracker {
   private delayClose(name: string, type: eControlFlowType): boolean {
     let shouldDelay: boolean = false;
     if (type == eControlFlowType.inRepeat) {
-      if (name.toLowerCase() === "while") {
+      if (name.toLowerCase() === 'while') {
         shouldDelay = true;
-      } else if (name.toLowerCase() === "until") {
+      } else if (name.toLowerCase() === 'until') {
         shouldDelay = true;
       }
     }
@@ -234,21 +249,21 @@ export class SpinControlFlowTracker {
 
   private typeForControlFlowName(name: string): eControlFlowType {
     let desiredType: eControlFlowType = eControlFlowType.Unknown;
-    if (name.toLowerCase() === "if") {
+    if (name.toLowerCase() === 'if') {
       desiredType = eControlFlowType.inIf;
-    } else if (name.toLowerCase() === "ifnot") {
+    } else if (name.toLowerCase() === 'ifnot') {
       desiredType = eControlFlowType.inIf;
-    } else if (name.toLowerCase() === "elseif") {
+    } else if (name.toLowerCase() === 'elseif') {
       desiredType = eControlFlowType.inIf;
-    } else if (name.toLowerCase() === "else") {
+    } else if (name.toLowerCase() === 'else') {
       desiredType = eControlFlowType.inIf;
-    } else if (name.toLowerCase() === "elseifnot") {
+    } else if (name.toLowerCase() === 'elseifnot') {
       desiredType = eControlFlowType.inIf;
-    } else if (name.toLowerCase() === "repeat") {
+    } else if (name.toLowerCase() === 'repeat') {
       desiredType = eControlFlowType.inRepeat;
-    } else if (name.toLowerCase() === "case") {
+    } else if (name.toLowerCase() === 'case') {
       desiredType = eControlFlowType.inCase;
-    } else if (name.toLowerCase() === "case_fast") {
+    } else if (name.toLowerCase() === 'case_fast') {
       desiredType = eControlFlowType.inCaseFast;
     }
     return desiredType;
@@ -258,7 +273,7 @@ export class SpinControlFlowTracker {
 export class ContinuedLines {
   private rawLines: string[] = [];
   private rawLineIdxs: number[] = [];
-  private singleLine: string = "";
+  private singleLine: string = '';
   private haveAllLines: boolean = false;
   private isActive: boolean = false;
   private linesLogEnabled: boolean = false;
@@ -275,7 +290,7 @@ export class ContinuedLines {
     //this._logMessage(`    --- ContLn: Clear()`);
     this.rawLineIdxs = [];
     this.rawLines = [];
-    this.singleLine = "";
+    this.singleLine = '';
     this.haveAllLines = false;
     this.isActive = false;
   }
@@ -287,7 +302,7 @@ export class ContinuedLines {
       if (!this.isActive) {
         this.isActive = true;
       }
-      if (!nextLine.endsWith("...")) {
+      if (!nextLine.endsWith('...')) {
         this.haveAllLines = true;
         this._finishLine();
       }
@@ -342,7 +357,7 @@ export class ContinuedLines {
 
   public lineAt(desiredLineIdx: number): string {
     // return all lines concatenated so we can parse it
-    let desiredLine: string = "{-CntLn-lineAt-ERROR-}";
+    let desiredLine: string = '{-CntLn-lineAt-ERROR-}';
     for (let index = 0; index < this.rawLineIdxs.length; index++) {
       const currlineIdx = this.rawLineIdxs[index];
       if (currlineIdx == desiredLineIdx) {
@@ -359,13 +374,12 @@ export class ContinuedLines {
     if (symbolPosition.line != -1 && symbolPosition.character != -1) {
       // work our way to the offset
       desiredOffset = 0;
-      let bFoundLine: boolean = false;
       let foundLineWhiteSpaceLength: number = 0;
       let foundIndex: number = 0;
       for (let index = 0; index < this.rawLines.length; index++) {
         const currLine = this.rawLines[index];
         const currIdx = this.rawLineIdxs[index];
-        const isLineContinued: boolean = currLine.endsWith("...");
+        const isLineContinued: boolean = currLine.endsWith('...');
         foundLineWhiteSpaceLength = this._skipWhite(currLine, 0);
         const currLineLength: number = isLineContinued ? this._lengthWithoutContinuation(currLine) + 1 : currLine.trim().length; // +1 is for concatenating " "
         // if the first line, don't take out the leading whitespace
@@ -376,7 +390,6 @@ export class ContinuedLines {
           }), foundLineWhiteSpaceLength=(${foundLineWhiteSpaceLength}), desiredOffset=(${desiredOffset}), isLineContinued=(${isLineContinued})`
         );
         if (currIdx == symbolPosition.line) {
-          bFoundLine = true;
           foundIndex = index;
           break;
         }
@@ -384,7 +397,9 @@ export class ContinuedLines {
       }
       desiredOffset += foundIndex == 0 ? symbolPosition.character : symbolPosition.character - foundLineWhiteSpaceLength;
     }
-    this._logMessage(`    --- ContLn: offsetIntoLineForPosition([line=(${symbolPosition.line}), char=(${symbolPosition.character})]) -> (${desiredOffset})`);
+    this._logMessage(
+      `    --- ContLn: offsetIntoLineForPosition([line=(${symbolPosition.line}), char=(${symbolPosition.character})]) -> (${desiredOffset})`
+    );
     if (desiredOffset == -1) {
       this._logMessage(`    --- ContLn:   ERROR bad position given`);
     }
@@ -397,17 +412,20 @@ export class ContinuedLines {
     let remainingOffset: number = offset;
     // subtract earlier line lengths from remainder to locate line our symbol is on
     this._logMessage(
-      `    --- ContLn: ENTRY locateSymbol([${symbolName}], srtOfs=(${offset})) - rawLines=(${this.rawLines.length}), Ln#${this.lineStartIdx + 1}-${this.lineStartIdx + this.rawLines.length}`
+      `    --- ContLn: ENTRY locateSymbol([${symbolName}], srtOfs=(${offset})) - rawLines=(${this.rawLines.length}), Ln#${this.lineStartIdx + 1}-${
+        this.lineStartIdx + this.rawLines.length
+      }`
     );
     for (let index = 0; index < this.rawLines.length; index++) {
       const rawPossContLine: string = this.rawLines[index];
-      const isLineContinued: boolean = rawPossContLine.endsWith("...");
+      const isLineContinued: boolean = rawPossContLine.endsWith('...');
       const currLineLength: number = isLineContinued ? this._lengthWithoutContinuation(rawPossContLine) + 1 : rawPossContLine.trim().length;
       const foundLineWhiteSpaceLength = this._skipWhite(rawPossContLine, 0);
       // if the first line, don't take out the leading whitespace
       const accumLength = index == 0 ? foundLineWhiteSpaceLength + currLineLength : currLineLength;
       const trimmedLineContentOnly: string = isLineContinued ? rawPossContLine.slice(0, -3).trimEnd() : rawPossContLine.trimEnd();
-      const remainingString: string = index == 0 ? trimmedLineContentOnly.substring(remainingOffset) : trimmedLineContentOnly.trimStart().substring(remainingOffset);
+      const remainingString: string =
+        index == 0 ? trimmedLineContentOnly.substring(remainingOffset) : trimmedLineContentOnly.trimStart().substring(remainingOffset);
       /*
       this._logMessage(`    --- ContLn: ls()           - CHECKING rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`);
       this._logMessage(`    --- ContLn: ls()           - CHECKING   continuedLine=[${rawPossContLine}](${rawPossContLine.length})`);
@@ -457,7 +475,7 @@ export class ContinuedLines {
   private _skipWhite(line: string, currentOffset: number): number {
     let firstNonWhiteIndex: number = currentOffset;
     for (let index = currentOffset; index < line.length; index++) {
-      if (line.substr(index, 1) != " " && line.substr(index, 1) != "\t") {
+      if (line.substr(index, 1) != ' ' && line.substr(index, 1) != '\t') {
         firstNonWhiteIndex = index;
         break;
       }
@@ -468,7 +486,7 @@ export class ContinuedLines {
   private _lengthWithoutContinuation(line: string): number {
     // remove leading white-space and trailing spaces so we only have 1 between ea. after lines joined
     let desiredLength: number = line.trim().length;
-    if (line.endsWith("...")) {
+    if (line.endsWith('...')) {
       const tempLine: string = line.slice(0, -3);
       desiredLength = tempLine.trim().length;
     }
@@ -479,7 +497,7 @@ export class ContinuedLines {
     const nonContinusedStrings: string[] = [];
     for (let index = 0; index < this.rawLines.length; index++) {
       const continuedLine: string = this.rawLines[index];
-      if (continuedLine.endsWith("...")) {
+      if (continuedLine.endsWith('...')) {
         if (index == 0) {
           // first line we don't left-trim
           nonContinusedStrings.push(continuedLine.slice(0, -3).trimEnd()); // removing "..." as we go
@@ -492,7 +510,7 @@ export class ContinuedLines {
         nonContinusedStrings.push(continuedLine.trim());
       }
     }
-    this.singleLine = nonContinusedStrings.join(" ");
+    this.singleLine = nonContinusedStrings.join(' ');
   }
 
   private _logMessage(message: string): void {

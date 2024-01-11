@@ -1,22 +1,22 @@
-"use strict";
+'use strict';
 // src/providers/HoverProvider.ts
 
-import * as path from "path";
+import * as path from 'path';
 
-import * as lsp from "vscode-languageserver";
-import { Position, Hover, MarkupKind } from "vscode-languageserver-types";
+import * as lsp from 'vscode-languageserver';
+import { Position, Hover, MarkupKind } from 'vscode-languageserver-types';
 
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { Provider } from ".";
-import { Context } from "../context";
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Provider } from '.';
+import { Context } from '../context';
 
-import { DocumentFindings, ITokenDescription } from "../parser/spin.semantic.findings";
-import { IDefinitionInfo, ExtensionUtils } from "../parser/spin.extension.utils";
-import { DocumentLineAt } from "../parser/lsp.textDocument.utils";
-import { Spin2ParseUtils, eSearchFilterType } from "../parser/spin2.utils";
-import { Spin1ParseUtils } from "../parser/spin1.utils";
-import { eBuiltInType, isMethodCall } from "../parser/spin.common";
-import { isSpin1File, fileSpecFromURI } from "../parser/lang.utils";
+import { DocumentFindings, ITokenDescription } from '../parser/spin.semantic.findings';
+import { IDefinitionInfo, ExtensionUtils } from '../parser/spin.extension.utils';
+import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
+import { Spin2ParseUtils, eSearchFilterType } from '../parser/spin2.utils';
+import { Spin1ParseUtils } from '../parser/spin1.utils';
+import { eBuiltInType, isMethodCall } from '../parser/spin.common';
+import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class HoverProvider implements Provider {
   private hoverLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -32,9 +32,9 @@ export default class HoverProvider implements Provider {
     if (this.hoverLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
-        this._logMessage("Spin Hover log started.");
+        this._logMessage('Spin Hover log started.');
       } else {
-        this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
   }
@@ -60,7 +60,7 @@ export default class HoverProvider implements Provider {
   register(connection: lsp.Connection): lsp.ServerCapabilities {
     connection.onHover(this.handleGetHover.bind(this));
     return {
-      hoverProvider: true,
+      hoverProvider: true
     };
   }
 
@@ -93,24 +93,28 @@ export default class HoverProvider implements Provider {
           return null;
         }
 
-        const lines = IDefinitionInfo.declarationlines.filter((line) => line !== "").map((line) => line.replace(/\t/g, "    "));
-        let text = lines.join("\n").replace(/\n+$/, "");
+        const lines = IDefinitionInfo.declarationlines.filter((line) => line !== '').map((line) => line.replace(/\t/g, '    '));
+        const text = lines.join('\n').replace(/\n+$/, '');
 
         const hoverTexts: string[] = [];
-        const breakRegEx = /\<br\>/gi; // we are globally replacing <br> or <BR> markers
+        const breakRegEx = /<br>/gi; // we are globally replacing <br> or <BR> markers
 
-        hoverTexts.push(this.codeBlock(text, "spin2"));
+        hoverTexts.push(this.codeBlock(text, 'spin2'));
         if (IDefinitionInfo.doc != null) {
           // SIGH: Markdown renders line breaks when there are two or more of them.
           // so replace <br/> with two newLines!
-          hoverTexts.push(IDefinitionInfo.doc.replace(breakRegEx, "\n\n"));
+          hoverTexts.push(IDefinitionInfo.doc.replace(breakRegEx, '\n\n'));
         }
         //this._logMessage(`+ Hvr: provideHover() EXIT with hover: [${hoverTexts.join("\n")}]`);
+
+        // experiment: insert  language: 'spin2',  into contents.. didn't work!
+        // REF: https://stackoverflow.com/questions/62999411/how-to-use-vs-code-hover-provider-text-color
+
         return {
           contents: {
             kind: MarkupKind.Markdown,
-            value: hoverTexts.join("\n"),
-          },
+            value: hoverTexts.join('\n')
+          }
         };
       },
       () => {
@@ -144,10 +148,10 @@ export default class HoverProvider implements Provider {
 
     const hoverSource: string = adjustedPos[2];
     if (objectRef === hoverSource) {
-      objectRef = "";
+      objectRef = '';
     }
     const sourcePosition: Position = adjustedPos[3];
-    let fileBasename = path.basename(document.uri);
+    const fileBasename = path.basename(document.uri);
     const methodFollowString: string = declarationLine.substring(wordStart.character + hoverSource.length);
     const bMethodCall: boolean = isMethodCall(methodFollowString);
     this._logMessage(`+ Hvr: methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
@@ -161,18 +165,18 @@ export default class HoverProvider implements Provider {
   }
 
   private _objectNameFromDeclaration(line: string): string {
-    let desiredString: string = "";
+    let desiredString: string = '';
     // parse object declaration forms:
     // ex:  child1 : "dummy_child" | MULTIplIER = 3, CoUNT = 5
     //      child1[4] : "dummy_child" | MULTIplIER = 3, CoUNT = 5
     //      child1[child.MAX_CT] : "dummy_child" | MULTIplIER = 3, CoUNT = 5
-    if (line.includes(":")) {
-      let lineParts: string[] = line.split(":");
+    if (line.includes(':')) {
+      let lineParts: string[] = line.split(':');
       //this._logMessage(`+ Hvr: _getObjName() :-split lineParts=[${lineParts}](${lineParts.length})`);
       if (lineParts.length >= 2) {
         const instanceName = lineParts[0].trim();
-        if (instanceName.includes("[")) {
-          lineParts = instanceName.split("[");
+        if (instanceName.includes('[')) {
+          lineParts = instanceName.split('[');
           //this._logMessage(`+ Hvr: _getObjName() [-split lineParts=[${lineParts}](${lineParts.length})`);
           if (lineParts.length >= 2) {
             desiredString = lineParts[0].trim();
@@ -190,29 +194,35 @@ export default class HoverProvider implements Provider {
   private getSignatureWithoutLocals(line: string): string {
     let desiredLinePortion: string = line;
     // strip off locals
-    const localOffset: number = line.indexOf("|");
+    const localOffset: number = line.indexOf('|');
     if (localOffset != -1) {
       desiredLinePortion = line.substring(0, localOffset).trim();
     }
     // upper case the pub/pri
-    if (desiredLinePortion.startsWith("pub ")) {
-      desiredLinePortion = desiredLinePortion.replace("pub ", "PUB ");
-    } else if (desiredLinePortion.startsWith("pri ")) {
-      desiredLinePortion = desiredLinePortion.replace("pri ", "PRI ");
+    if (desiredLinePortion.startsWith('pub ')) {
+      desiredLinePortion = desiredLinePortion.replace('pub ', 'PUB ');
+    } else if (desiredLinePortion.startsWith('pri ')) {
+      desiredLinePortion = desiredLinePortion.replace('pri ', 'PRI ');
     }
     return desiredLinePortion;
   }
 
-  private getSymbolDetails(document: TextDocument, position: Position, objRef: string, searchWord: string, isMethodCall: boolean): Promise<IDefinitionInfo | null> {
+  private getSymbolDetails(
+    document: TextDocument,
+    position: Position,
+    objRef: string,
+    searchWord: string,
+    isMethodCall: boolean
+  ): Promise<IDefinitionInfo | null> {
     return new Promise((resolve, reject) => {
       const defInfo: IDefinitionInfo = {
         file: document.uri,
         line: position.line,
         column: position.character,
-        toolUsed: "????",
+        toolUsed: '????',
         declarationlines: [],
-        doc: "{huh, I have no clue!}",
-        name: path.basename(document.uri),
+        doc: '{huh, I have no clue!}',
+        name: path.basename(document.uri)
       };
 
       let symbolsSet: DocumentFindings = this.symbolsFound;
@@ -238,24 +248,26 @@ export default class HoverProvider implements Provider {
       let cursorCharPosn = position.character;
       do {
         const char: string = sourceLineRaw.substring(cursorCharPosn, cursorCharPosn);
-        if (char == " " || char == "\t") {
+        if (char == ' ' || char == '\t') {
           break;
         }
         cursorCharPosn--;
       } while (cursorCharPosn > 0);
-      const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith("pub") || sourceLine.toLowerCase().startsWith("pri");
+      const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith('pub') || sourceLine.toLowerCase().startsWith('pri');
       // ensure we don't recognize debug() in spin1 files!
-      const isDebugLine: boolean = this.spin1File ? false : sourceLine.toLowerCase().startsWith("debug(");
+      const isDebugLine: boolean = this.spin1File ? false : sourceLine.toLowerCase().startsWith('debug(');
 
       let bFoundSomething: boolean = false; // we've no answer
       const filterType: eSearchFilterType = isMethodCall ? eSearchFilterType.FT_METHOD : eSearchFilterType.FT_NOT_METHOD;
-      let builtInFindings = isDebugLine ? this.parseUtils.docTextForDebugBuiltIn(searchWord) : this.parseUtils.docTextForBuiltIn(searchWord, filterType);
+      const builtInFindings = isDebugLine
+        ? this.parseUtils.docTextForDebugBuiltIn(searchWord)
+        : this.parseUtils.docTextForBuiltIn(searchWord, filterType);
       if (!builtInFindings.found) {
         this._logMessage(`+ Hvr: built-in=[${searchWord}], NOT found!`);
       } else {
         this._logMessage(`+ Hvr: built-in=[${searchWord}], Found!`);
       }
-      let bFoundParseToken: boolean = isObjectReference ? symbolsSet.isPublicToken(searchWord) : symbolsSet.isKnownToken(searchWord);
+      const bFoundParseToken: boolean = isObjectReference ? symbolsSet.isPublicToken(searchWord) : symbolsSet.isKnownToken(searchWord);
       if (!bFoundParseToken) {
         this._logMessage(`+ Hvr: token=[${searchWord}], NOT found!`);
       } else {
@@ -292,11 +304,11 @@ export default class HoverProvider implements Provider {
         const scopeString: string = tokenFindings.scope;
         const typeString: string = tokenFindings.interpretation;
 
-        let docRootCommentMD: string = `(*${scopeString}* ${typeString}) **${nameString}**`; // parsedFindings
+        //let docRootCommentMD: string = `(*${scopeString}* ${typeString}) **${nameString}**`; // parsedFindings
         let typeInterpWName: string = `(${scopeString} ${typeString}) ${nameString}`; // better formatting of interp
         let typeInterp: string = `(${scopeString} ${typeString})`; // better formatting of interp
         if (scopeString.length == 0) {
-          docRootCommentMD = `(${typeString}) **${nameString}**`;
+          //docRootCommentMD = `(${typeString}) **${nameString}**`;
           typeInterpWName = `(${typeString}) ${nameString}`; // better formatting of interp
           typeInterp = `(${typeString})`;
         }
@@ -308,11 +320,11 @@ export default class HoverProvider implements Provider {
         // -------------------------------
         // load CODE section of hover
         //
-        const isMethod: boolean = typeString.includes("method");
+        const isMethod: boolean = typeString.includes('method');
         if (isMethod) {
           tokenFindings.signature = this.getSignatureWithoutLocals(nonCommentDecl);
-          if (tokenFindings.scope.includes("object")) {
-            if (typeString.includes("method")) {
+          if (tokenFindings.scope.includes('object')) {
+            if (typeString.includes('method')) {
               defInfo.declarationlines = [`(${scopeString} ${typeString}) ${tokenFindings.signature}`];
             } else {
               defInfo.declarationlines = [`(${scopeString} ${typeString}) ${nameString}`];
@@ -336,35 +348,35 @@ export default class HoverProvider implements Provider {
         // -------------------------------
         // load MarkDown section
         //
-        let mdLines: string[] = [];
+        const mdLines: string[] = [];
         if (isMethod) {
           //if (!isSignatureLine) {
           // TODO: remove NOT USING THIS  mdLines.push(`Custom Method: User defined<br>`);
           //}
         }
         if (
-          (tokenFindings.interpretation.includes("32-bit constant") && !tokenFindings.relatedObjectName) ||
-          tokenFindings.interpretation.includes("shared variable") ||
-          tokenFindings.interpretation.includes("instance variable") ||
-          tokenFindings.interpretation.includes("inline-pasm variable") ||
-          tokenFindings.interpretation.includes("enum value")
+          (tokenFindings.interpretation.includes('32-bit constant') && !tokenFindings.relatedObjectName) ||
+          tokenFindings.interpretation.includes('shared variable') ||
+          tokenFindings.interpretation.includes('instance variable') ||
+          tokenFindings.interpretation.includes('inline-pasm variable') ||
+          tokenFindings.interpretation.includes('enum value')
         ) {
           // if global constant push declaration line, first...
-          mdLines.push("Decl: " + nonCommentDecl + "<br>");
+          mdLines.push('Decl: ' + nonCommentDecl + '<br>');
         }
-        if (tokenFindings.interpretation.includes("pasm label") && tokenFindings.relatedFilename) {
-          mdLines.push("Refers to file: " + tokenFindings.relatedFilename + "<br>");
+        if (tokenFindings.interpretation.includes('pasm label') && tokenFindings.relatedFilename) {
+          mdLines.push('Refers to file: ' + tokenFindings.relatedFilename + '<br>');
         }
-        if (tokenFindings.interpretation.includes("named instance") && tokenFindings.relatedFilename) {
-          mdLines.push("An instance of: " + tokenFindings.relatedFilename + "<br>");
+        if (tokenFindings.interpretation.includes('named instance') && tokenFindings.relatedFilename) {
+          mdLines.push('An instance of: ' + tokenFindings.relatedFilename + '<br>');
         }
         if (tokenFindings.relatedObjectName) {
-          mdLines.push("Found in object: " + tokenFindings.relatedObjectName + "<br>");
+          mdLines.push('Found in object: ' + tokenFindings.relatedObjectName + '<br>');
         }
         if (tokenFindings.declarationComment) {
           // have object comment
           if (isMethod) {
-            mdLines.push("- " + tokenFindings.declarationComment);
+            mdLines.push('- ' + tokenFindings.declarationComment);
           } else {
             mdLines.push(tokenFindings.declarationComment);
           }
@@ -380,7 +392,7 @@ export default class HoverProvider implements Provider {
           }
         }
         if (mdLines.length > 0) {
-          defInfo.doc = mdLines.join(" ");
+          defInfo.doc = mdLines.join(' ');
         } else {
           defInfo.doc = undefined;
         }
@@ -392,59 +404,61 @@ export default class HoverProvider implements Provider {
           const bHaveParams = builtInFindings.parameters && builtInFindings.parameters.length > 0 ? true : false;
           const bHaveReturns = builtInFindings.returns && builtInFindings.returns.length > 0 ? true : false;
           // ensure we don't recognize debug() in spin1 files!
-          if (this.spin1File == false && searchWord.toLowerCase() == "debug" && sourceLine.toLowerCase().startsWith("debug(")) {
+          if (this.spin1File == false && searchWord.toLowerCase() == 'debug' && sourceLine.toLowerCase().startsWith('debug(')) {
             bISdebugStatement = true;
           }
           this._logMessage(`+ Hvr: bISdebugStatement=[${bISdebugStatement}], sourceLine=[${sourceLine}]`);
           let mdLines: string[] = [];
           bFoundSomething = true;
           defInfo.declarationlines = [];
-          const langIdString: string = this.spin1File ? "Spin" : "Spin2";
-          this._logMessage(`+ Hvr: searchWord=[${searchWord}], descr=(${builtInFindings.description}), type=[${langIdString} built-in], cat=[${builtInFindings.category}]`);
+          const langIdString: string = this.spin1File ? 'Spin' : 'Spin2';
+          this._logMessage(
+            `+ Hvr: searchWord=[${searchWord}], descr=(${builtInFindings.description}), type=[${langIdString} built-in], cat=[${builtInFindings.category}]`
+          );
 
           let titleText: string | undefined = builtInFindings.category;
           let subTitleText: string | undefined = undefined;
           if (builtInFindings.type == eBuiltInType.BIT_VARIABLE) {
-            defInfo.declarationlines = ["(variable) " + searchWord];
+            defInfo.declarationlines = ['(variable) ' + searchWord];
             // in one case, we are doubling "variable", remove one...
-            if (titleText && titleText.includes("Spin Variable")) {
-              titleText = "Spin";
+            if (titleText && titleText.includes('Spin Variable')) {
+              titleText = 'Spin';
             }
             subTitleText = ` variable: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_SYMBOL) {
-            defInfo.declarationlines = ["(symbol) " + searchWord];
+            defInfo.declarationlines = ['(symbol) ' + searchWord];
             subTitleText = ` symbol: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_CONSTANT) {
-            defInfo.declarationlines = ["(constant 32-bit) " + searchWord];
+            defInfo.declarationlines = ['(constant 32-bit) ' + searchWord];
             subTitleText = ` constant: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_METHOD_POINTER) {
-            defInfo.declarationlines = ["(built-in method pointer) " + builtInFindings.signature];
+            defInfo.declarationlines = ['(built-in method pointer) ' + builtInFindings.signature];
             subTitleText = `: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_METHOD) {
-            defInfo.declarationlines = ["(built-in method) " + builtInFindings.signature];
+            defInfo.declarationlines = ['(built-in method) ' + builtInFindings.signature];
             subTitleText = `: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_LANG_PART) {
             defInfo.declarationlines = [`(${langIdString} language) ` + searchWord];
             subTitleText = `: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_PASM_DIRECTIVE) {
-            defInfo.declarationlines = ["(built-in directive) " + builtInFindings.signature];
+            defInfo.declarationlines = ['(built-in directive) ' + builtInFindings.signature];
             subTitleText = `: *${langIdString} built-in*`;
           } else if (this.spin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_SYMBOL) {
             this._logMessage(`+ Hvr: builtInFindings.type=[eBuiltInType.BIT_DEBUG_SYMBOL]`);
             if (bISdebugStatement) {
-              defInfo.declarationlines = ["(DEBUG method) " + builtInFindings.signature];
-              defInfo.doc = "".concat(`${builtInFindings.category}: *${langIdString} debug built-in*<br>`, "- " + builtInFindings.description);
+              defInfo.declarationlines = ['(DEBUG method) ' + builtInFindings.signature];
+              defInfo.doc = ''.concat(`${builtInFindings.category}: *${langIdString} debug built-in*<br>`, '- ' + builtInFindings.description);
               // deselect lines into mdLines mech...
               mdLines = [];
               titleText = undefined;
               subTitleText = undefined;
             } else {
-              defInfo.declarationlines = ["(DEBUG symbol) " + searchWord];
+              defInfo.declarationlines = ['(DEBUG symbol) ' + searchWord];
               subTitleText = `: *${langIdString} debug built-in*`;
             }
           } else if (this.spin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_METHOD) {
             this._logMessage(`+ Hvr: builtInFindings.type=[eBuiltInType.BIT_DEBUG_METHOD]`);
-            defInfo.declarationlines = ["(DEBUG method) " + builtInFindings.signature];
+            defInfo.declarationlines = ['(DEBUG method) ' + builtInFindings.signature];
             subTitleText = `: *${langIdString} debug built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_TYPE) {
             defInfo.declarationlines = [`(${langIdString} Storage) ` + searchWord];
@@ -458,41 +472,41 @@ export default class HoverProvider implements Provider {
                 const lineText: string | undefined = tokenFindings.declarationLine;
                 const declLine = lineText ? lineText : DocumentLineAt(document, desiredLine).trim(); // declaration line
                 const nonCommentDecl: string = this.parseUtils.getNonCommentLineRemainder(0, declLine).trim();
-                mdLines.push("Decl: " + nonCommentDecl + "<br>");
+                mdLines.push('Decl: ' + nonCommentDecl + '<br>');
               }
             }
             mdLines.push(`${titleText}${subTitleText}<br>`);
-            mdLines.push("- " + builtInFindings.description);
+            mdLines.push('- ' + builtInFindings.description);
           }
           if (bHaveParams || bHaveReturns) {
-            mdLines.push("<br><br>"); // blank line
+            mdLines.push('<br><br>'); // blank line
           }
           if (bHaveParams && builtInFindings.parameters) {
             for (let parmIdx = 0; parmIdx < builtInFindings.parameters.length; parmIdx++) {
               const paramDescr = builtInFindings.parameters[parmIdx];
-              const lineParts: string[] = paramDescr.split(" - ");
-              const valueName: string = lineParts[0].replace("`", "").replace("`", "");
+              const lineParts: string[] = paramDescr.split(' - ');
+              const valueName: string = lineParts[0].replace('`', '').replace('`', '');
               if (lineParts.length >= 2) {
-                mdLines.push("@param `" + valueName + "` - " + paramDescr.substring(lineParts[0].length + 3) + "<br>"); // formatted parameter description
+                mdLines.push('@param `' + valueName + '` - ' + paramDescr.substring(lineParts[0].length + 3) + '<br>'); // formatted parameter description
               } else {
                 // special handling when we have non-param lines, too
                 // FIXME: TODO: is this spin1 only?? (came from spin1 hover in orig code)
-                mdLines.push(paramDescr + "<br>"); // formatted parameter description
+                mdLines.push(paramDescr + '<br>'); // formatted parameter description
               }
             }
           }
           if (bHaveReturns && builtInFindings.returns) {
             for (let parmIdx = 0; parmIdx < builtInFindings.returns.length; parmIdx++) {
               const returnsDescr = builtInFindings.returns[parmIdx];
-              const lineParts: string[] = returnsDescr.split(" - ");
-              const valueName: string = lineParts[0].replace("`", "").replace("`", "");
+              const lineParts: string[] = returnsDescr.split(' - ');
+              const valueName: string = lineParts[0].replace('`', '').replace('`', '');
               if (lineParts.length >= 2) {
-                mdLines.push("@returns `" + valueName + "` - " + returnsDescr.substring(lineParts[0].length + 3) + "<br>"); // formatted parameter description
+                mdLines.push('@returns `' + valueName + '` - ' + returnsDescr.substring(lineParts[0].length + 3) + '<br>'); // formatted parameter description
               }
             }
           }
           if (mdLines.length > 0) {
-            defInfo.doc = mdLines.join(" ");
+            defInfo.doc = mdLines.join(' ');
           } else {
             // if we have title or subTitle but no mdLines then just clear .doc
             if (titleText || subTitleText) {

@@ -1,11 +1,11 @@
-"use strict";
+'use strict';
 // src/DocumentSymbolProvider.ts
 
-import * as lsp from "vscode-languageserver/node";
-import { Provider } from ".";
-import { Context } from "../context";
-import { DocumentFindings, OutLineSymbol } from "../parser/spin.semantic.findings";
-import { fileSpecFromURI } from "../parser/lang.utils";
+import * as lsp from 'vscode-languageserver/node';
+import { Provider } from '.';
+import { Context } from '../context';
+import { DocumentFindings, OutLineSymbol } from '../parser/spin.semantic.findings';
+import { fileSpecFromURI } from '../parser/lang.utils';
 
 export default class DocumentSymbolProvider implements Provider {
   constructor(protected readonly ctx: Context) {}
@@ -30,7 +30,7 @@ export default class DocumentSymbolProvider implements Provider {
           detail: currSymbol.description,
           kind: currSymbol.kind(),
           range: currSymbol.location(),
-          selectionRange: currSymbol.location(),
+          selectionRange: currSymbol.location()
         };
 
         const childOutlineSymbols: OutLineSymbol[] = currSymbol.children();
@@ -42,7 +42,7 @@ export default class DocumentSymbolProvider implements Provider {
               detail: currChildSymbol.description,
               kind: currChildSymbol.kind(),
               range: currChildSymbol.location(),
-              selectionRange: currChildSymbol.location(),
+              selectionRange: currChildSymbol.location()
             };
             if (newLspSymbol.children == undefined) {
               newLspSymbol.children = [];
@@ -60,7 +60,7 @@ export default class DocumentSymbolProvider implements Provider {
   register(connection: lsp.Connection) {
     connection.onDocumentSymbol(this.handleGetDocumentSymbols.bind(this));
     return {
-      documentSymbolProvider: true,
+      documentSymbolProvider: true
     };
   }
 }

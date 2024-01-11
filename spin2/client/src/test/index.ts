@@ -2,22 +2,22 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import * as path from "path";
-import * as Mocha from "mocha";
-import * as glob from "glob";
+import * as path from 'path';
+import * as Mocha from 'mocha';
+import * as glob from 'glob';
 
 export function run(): Promise<void> {
   // Create the mocha test
   const mocha = new Mocha({
-    ui: "tdd",
-    color: true,
+    ui: 'tdd',
+    color: true
   });
   mocha.timeout(100000);
 
   const testsRoot = __dirname;
 
   return new Promise((resolve, reject) => {
-    glob("**.test.js", { cwd: testsRoot }, (err, files) => {
+    glob('**.test.js', { cwd: testsRoot }, (err, files) => {
       if (err) {
         return reject(err);
       }

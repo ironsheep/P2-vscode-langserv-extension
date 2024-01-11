@@ -1,21 +1,21 @@
-"use strict";
+'use strict';
 // src/providers/SignatureHelpProvider.ts
 
-import * as path from "path";
+import * as path from 'path';
 
-import * as lsp from "vscode-languageserver";
-import { Position, Range, ParameterInformation, SignatureInformation, SignatureHelp } from "vscode-languageserver-types";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { Provider } from ".";
-import { Context } from "../context";
+import * as lsp from 'vscode-languageserver';
+import { Position, Range, ParameterInformation, SignatureInformation, SignatureHelp } from 'vscode-languageserver-types';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Provider } from '.';
+import { Context } from '../context';
 
-import { DocumentFindings, ITokenDescription } from "../parser/spin.semantic.findings";
-import { IDefinitionInfo, ExtensionUtils, IPairs } from "../parser/spin.extension.utils";
-import { GetWordRangeAtPosition, DocumentLineAt, PositionTranslate } from "../parser/lsp.textDocument.utils";
-import { Spin2ParseUtils, eSearchFilterType } from "../parser/spin2.utils";
-import { Spin1ParseUtils } from "../parser/spin1.utils";
-import { IBuiltinDescription, eBuiltInType } from "../parser/spin.common";
-import { isSpin1File, fileSpecFromURI } from "../parser/lang.utils";
+import { DocumentFindings, ITokenDescription } from '../parser/spin.semantic.findings';
+import { IDefinitionInfo, ExtensionUtils, IPairs } from '../parser/spin.extension.utils';
+import { GetWordRangeAtPosition, DocumentLineAt, PositionTranslate } from '../parser/lsp.textDocument.utils';
+import { Spin2ParseUtils, eSearchFilterType } from '../parser/spin2.utils';
+import { Spin1ParseUtils } from '../parser/spin1.utils';
+import { IBuiltinDescription, eBuiltInType } from '../parser/spin.common';
+import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class SignatureHelpProvider implements Provider {
   private signatureLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -31,9 +31,9 @@ export default class SignatureHelpProvider implements Provider {
     if (this.signatureLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
-        this._logMessage("Spin signatureHelp log started.");
+        this._logMessage('Spin signatureHelp log started.');
       } else {
-        this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
   }
@@ -60,9 +60,9 @@ export default class SignatureHelpProvider implements Provider {
     connection.onSignatureHelp(this.handleGetSignatureHelp.bind(this));
     return {
       signatureHelpProvider: {
-        triggerCharacters: ["(", ","],
-        retriggerCharacters: ["(", ","],
-      },
+        triggerCharacters: ['(', ','],
+        retriggerCharacters: ['(', ',']
+      }
     };
   }
 
@@ -93,14 +93,16 @@ export default class SignatureHelpProvider implements Provider {
         this._logMessage(`+ Sig: defInfo NOT found`);
         return Promise.resolve(null);
       }
-      this._logMessage(`+ Sig: defInfo.line=[${defInfo.line}], defInfo.doc=[${defInfo.doc}], defInfo.declarationlines=[${defInfo.declarationlines}], defInfo.parameters=[${defInfo.parameters}]`);
+      this._logMessage(
+        `+ Sig: defInfo.line=[${defInfo.line}], defInfo.doc=[${defInfo.doc}], defInfo.declarationlines=[${defInfo.declarationlines}], defInfo.parameters=[${defInfo.parameters}]`
+      );
       if (defInfo.line === callerPos?.line) {
         // This must be a function definition
         this._logMessage(`+ Sig: IGNORING function/method definition`);
         return Promise.resolve(null);
       }
 
-      let declarationText: string = (defInfo.declarationlines || []).join(" ").trim();
+      const declarationText: string = (defInfo.declarationlines || []).join(' ').trim();
       this._logMessage(`+ Sig: declarationText=[${declarationText}]`);
       if (!declarationText) {
         this._logMessage(`+ Sig: IGNORING no declarationText`);
@@ -110,28 +112,28 @@ export default class SignatureHelpProvider implements Provider {
       const signatureHelp: SignatureHelp = {
         activeParameter: 0,
         activeSignature: 0,
-        signatures: [],
+        signatures: []
       };
 
       let sig: string | undefined;
       let si: SignatureInformation | undefined;
-      const breakRegEx = /\<br\>/gi; // we are globally replacing <br> or double-newline markers
-      if (defInfo.doc?.includes("Custom Method")) {
+      const breakRegEx = /<br>/gi; // we are globally replacing <br> or double-newline markers
+      if (defInfo.doc?.includes('Custom Method')) {
         // use this for user(custom) methods
-        const methodType: string = defInfo.declarationlines[0].substring(0, 3).toUpperCase();
-        const isPrivate: boolean = methodType == "PRI";
-        const sigScope: string = isPrivate ? "private" : "public";
+        //const methodType: string = defInfo.declarationlines[0].substring(0, 3).toUpperCase();
+        //const isPrivate: boolean = methodType == 'PRI';
+        //const sigScope: string = isPrivate ? 'private' : 'public';
         //sig = this.signatureWithOutLocals(`(object ${sigScope} method) ` + nonCommentDecl);
         sig = defInfo.declarationlines[0];
-        const methDescr: string = this._removeCustomMethod(this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, "\n"));
+        const methDescr: string = this._removeCustomMethod(this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, '\n'));
         si = SignatureInformation.create(sig, methDescr);
         if (si) {
           si.parameters = this.getParametersAndReturnTypeFromDoc(defInfo.doc);
         }
       } else if (defInfo.line == -1) {
         // use this for built-in methods
-        const methDescr: string = this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, "\n");
-        sig = "(Built-in) " + defInfo.declarationlines[0];
+        const methDescr: string = this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, '\n');
+        sig = '(Built-in) ' + defInfo.declarationlines[0];
         this._logMessage(`+ Sig: sig=[${sig}], methDescr=[${methDescr}]`);
         si = SignatureInformation.create(sig, methDescr);
         if (si && defInfo.parameters) {
@@ -156,36 +158,36 @@ export default class SignatureHelpProvider implements Provider {
   }
 
   private _removeCustomMethod(lineWNewlines: string): string {
-    const lines: string[] = lineWNewlines.split("\n");
+    const lines: string[] = lineWNewlines.split('\n');
     const filtLines: string[] = [];
     for (let index = 0; index < lines.length; index++) {
       const element = lines[index];
-      if (!element.includes("Custom Method")) {
+      if (!element.includes('Custom Method')) {
         filtLines.push(element);
       }
     }
-    return filtLines.join("\n");
+    return filtLines.join('\n');
   }
 
   private signatureWithOutLocals(signature: string): string {
     let trimmedSignature: string = signature;
-    const localIndicaPosn: number = trimmedSignature.indexOf("|");
+    const localIndicaPosn: number = trimmedSignature.indexOf('|');
     if (localIndicaPosn != -1) {
-      trimmedSignature = trimmedSignature.substring(0, localIndicaPosn).replace(/\s+$/, "");
+      trimmedSignature = trimmedSignature.substring(0, localIndicaPosn).replace(/\s+$/, '');
     }
     return trimmedSignature;
   }
 
   private getParametersAndReturnTypeFromParameterStringAr(paramList: string[] | undefined): ParameterInformation[] {
     // convert list of parameters frombuilt-in description tables to vscode ParameterInformation's
-    let parameterDetails: ParameterInformation[] = [];
+    const parameterDetails: ParameterInformation[] = [];
     if (paramList && paramList.length > 0) {
       for (let paramIdx = 0; paramIdx < paramList.length; paramIdx++) {
         const paramDescr = paramList[paramIdx];
         // SPIN1: cognew and coginit have lines without param - description hyphens, skip them
-        if (paramDescr.includes("-")) {
+        if (paramDescr.includes('-')) {
           const lineParts: string[] = paramDescr.split(/[ \t]/).filter(Boolean);
-          let paramName: string = lineParts[0];
+          const paramName: string = lineParts[0];
           this._logMessage(`+ Sig: gpartfpsa paramName=[${paramName}], paramDescr=[${paramDescr}})`);
           const newParamInfo: ParameterInformation = ParameterInformation.create(paramName, paramDescr);
           parameterDetails.push(newParamInfo);
@@ -207,8 +209,13 @@ export default class SignatureHelpProvider implements Provider {
     const objectRef = adjustedPos[1];
     const searchWord = adjustedPos[2];
     wordPosition = adjustedPos[3];
-    let fileBasename = path.basename(document.uri);
-    this._logMessage(`+ Sig: searchWord=[${searchWord}], adjPos=(${wordPosition.line},${wordPosition.character}), file=[${fileBasename}], line=[${DocumentLineAt(document, wordPosition)}]`);
+    const fileBasename = path.basename(document.uri);
+    this._logMessage(
+      `+ Sig: searchWord=[${searchWord}], adjPos=(${wordPosition.line},${wordPosition.character}), file=[${fileBasename}], line=[${DocumentLineAt(
+        document,
+        wordPosition
+      )}]`
+    );
 
     this._logMessage(`+ Sig: definitionLocation() EXIT after getting symbol details`);
     return this.getSymbolDetails(document, wordPosition, objectRef, searchWord);
@@ -220,12 +227,12 @@ export default class SignatureHelpProvider implements Provider {
       file: document.uri,
       line: position.line,
       column: position.character,
-      toolUsed: "????",
+      toolUsed: '????',
       declarationlines: [],
       parameters: [],
       returns: [],
-      doc: "{huh, I have no clue!}",
-      name: path.basename(document.uri),
+      doc: '{huh, I have no clue!}',
+      name: path.basename(document.uri)
     };
 
     let symbolsSet: DocumentFindings = this.symbolsFound;
@@ -252,26 +259,30 @@ export default class SignatureHelpProvider implements Provider {
     let cursorCharPosn = position.character;
     do {
       const char: string = sourceLineRaw.substring(cursorCharPosn, cursorCharPosn);
-      if (char == " " || char == "\t") {
+      if (char == ' ' || char == '\t') {
         break;
       }
       cursorCharPosn--;
     } while (cursorCharPosn > 0);
 
-    const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith("pub") || sourceLine.toLowerCase().startsWith("pri");
-    const isPrivate: boolean = sourceLine.toLowerCase().startsWith("pri");
+    const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith('pub') || sourceLine.toLowerCase().startsWith('pri');
+    const isPrivate: boolean = sourceLine.toLowerCase().startsWith('pri');
     // spin1 doesn't support debug()
-    const isDebugLine: boolean = this.spin1File == false && sourceLine.toLowerCase().startsWith("debug(");
-    this._logMessage(`+ Sig: getSymbolDetails() isSignatureLine=(${isSignatureLine}), isDebugLine=(${isDebugLine}), isObjectReference=(${isObjectReference})`);
+    const isDebugLine: boolean = this.spin1File == false && sourceLine.toLowerCase().startsWith('debug(');
+    this._logMessage(
+      `+ Sig: getSymbolDetails() isSignatureLine=(${isSignatureLine}), isDebugLine=(${isDebugLine}), isObjectReference=(${isObjectReference})`
+    );
 
     let bFoundSomething: boolean = false; // we've no answer
-    let builtInFindings: IBuiltinDescription = isDebugLine ? this.parseUtils.docTextForDebugBuiltIn(searchWord) : this.parseUtils.docTextForBuiltIn(searchWord, eSearchFilterType.FT_NO_PREFERENCE);
+    const builtInFindings: IBuiltinDescription = isDebugLine
+      ? this.parseUtils.docTextForDebugBuiltIn(searchWord)
+      : this.parseUtils.docTextForBuiltIn(searchWord, eSearchFilterType.FT_NO_PREFERENCE);
     if (!builtInFindings.found) {
       this._logMessage(`+ Sig: built-in=[${searchWord}], NOT found!`);
     } else {
       this._logMessage(`+ Sig: built-in=[${searchWord}], Found!`);
     }
-    let bFoundParseToken: boolean = isObjectReference ? symbolsSet.isPublicToken(searchWord) : symbolsSet.isKnownToken(searchWord);
+    const bFoundParseToken: boolean = isObjectReference ? symbolsSet.isPublicToken(searchWord) : symbolsSet.isKnownToken(searchWord);
     if (!bFoundParseToken) {
       this._logMessage(`+ Sig: token=[${searchWord}], NOT found!`);
     } else {
@@ -295,17 +306,20 @@ export default class SignatureHelpProvider implements Provider {
       const typeString: string = tokenFindings.interpretation;
 
       defInfo.line = tokenFindings.declarationLineIdx; // report not our line but where the method is declared
-      const desiredLinePosition: Position = { line: tokenFindings.declarationLineIdx, character: 0 };
+      const desiredLinePosition: Position = {
+        line: tokenFindings.declarationLineIdx,
+        character: 0
+      };
       const lineText: string | undefined = tokenFindings.declarationLine;
       const declLine = lineText ? lineText : DocumentLineAt(document, desiredLinePosition).trim(); // declaration line
       const nonCommentDecl: string = this.parseUtils.getNonCommentLineRemainder(0, declLine).trim();
       const signatureNoLocals: string = this.signatureWithOutLocals(nonCommentDecl).substring(4);
 
-      let docRootCommentMD: string = `(*${scopeString}* ${typeString}) **${nameString}**`; // parsedFindings
+      //let docRootCommentMD: string = `(*${scopeString}* ${typeString}) **${nameString}**`; // parsedFindings
       let typeInterpWName: string = `(${scopeString} ${typeString}) ${nameString}`; // better formatting of interp
       let typeInterp: string = `(${scopeString} ${typeString})`; // better formatting of interp
       if (scopeString.length == 0) {
-        docRootCommentMD = `(${typeString}) **${nameString}**`;
+        //docRootCommentMD = `(${typeString}) **${nameString}**`;
         typeInterpWName = `(${typeString}) ${nameString}`; // better formatting of interp
         typeInterp = `(${typeString})`;
       }
@@ -313,9 +327,9 @@ export default class SignatureHelpProvider implements Provider {
       // -------------------------------
       // load CODE section of signature help
       //
-      if (typeString.includes("method")) {
-        if (tokenFindings.scope.includes("object")) {
-          const sigPrefix: string = isPrivate ? "PRI" : "PUB";
+      if (typeString.includes('method')) {
+        if (tokenFindings.scope.includes('object')) {
+          const sigPrefix: string = isPrivate ? 'PRI' : 'PUB';
           defInfo.declarationlines = [`(${scopeString} ${typeString}) ${sigPrefix} ${signatureNoLocals}`];
         } else if (isSignatureLine) {
           // for method declaration use declaration line
@@ -336,37 +350,37 @@ export default class SignatureHelpProvider implements Provider {
       // -------------------------------
       // load MarkDown section
       //
-      let mdLines: string[] = [];
-      if (typeString.includes("method")) {
+      const mdLines: string[] = [];
+      if (typeString.includes('method')) {
         //if (!isSignatureLine) {
         mdLines.push(`Custom Method: User defined<br>`); // this is removed later
         //}
       }
       if (
-        (tokenFindings.interpretation.includes("32-bit constant") && !tokenFindings.relatedObjectName) ||
-        tokenFindings.interpretation.includes("shared variable") ||
-        tokenFindings.interpretation.includes("instance variable") ||
-        tokenFindings.interpretation.includes("inline-pasm variable") ||
-        tokenFindings.interpretation.includes("enum value")
+        (tokenFindings.interpretation.includes('32-bit constant') && !tokenFindings.relatedObjectName) ||
+        tokenFindings.interpretation.includes('shared variable') ||
+        tokenFindings.interpretation.includes('instance variable') ||
+        tokenFindings.interpretation.includes('inline-pasm variable') ||
+        tokenFindings.interpretation.includes('enum value')
       ) {
         // if global constant push declaration line, first...
-        mdLines.push("Decl: " + nonCommentDecl + "<br>");
+        mdLines.push('Decl: ' + nonCommentDecl + '<br>');
       }
-      if (tokenFindings.interpretation.includes("pasm label") && tokenFindings.relatedFilename) {
-        mdLines.push("Refers to file: " + tokenFindings.relatedFilename + "<br>");
+      if (tokenFindings.interpretation.includes('pasm label') && tokenFindings.relatedFilename) {
+        mdLines.push('Refers to file: ' + tokenFindings.relatedFilename + '<br>');
       }
-      if (tokenFindings.interpretation.includes("named instance") && tokenFindings.relatedFilename) {
-        mdLines.push("An instance of: " + tokenFindings.relatedFilename + "<br>");
+      if (tokenFindings.interpretation.includes('named instance') && tokenFindings.relatedFilename) {
+        mdLines.push('An instance of: ' + tokenFindings.relatedFilename + '<br>');
       }
       if (tokenFindings.relatedObjectName) {
-        mdLines.push("Found in object: " + tokenFindings.relatedObjectName + "<br>");
+        mdLines.push('Found in object: ' + tokenFindings.relatedObjectName + '<br>');
       }
       if (tokenFindings.declarationComment) {
         // have object comment
         mdLines.push(tokenFindings.declarationComment);
       } else {
         // no object comment
-        if (typeString.includes("method")) {
+        if (typeString.includes('method')) {
           // if methods show that we should have doc-comment, except for external object reference were we can't get to doc comments, yet!...
           if (!tokenFindings.relatedObjectName) {
             mdLines.push(`*(no doc-comment provided)*`);
@@ -376,7 +390,7 @@ export default class SignatureHelpProvider implements Provider {
         }
       }
       if (mdLines.length > 0) {
-        defInfo.doc = mdLines.join(" ");
+        defInfo.doc = mdLines.join(' ');
       } else {
         defInfo.doc = undefined;
       }
@@ -385,17 +399,19 @@ export default class SignatureHelpProvider implements Provider {
       // no token, let's check for built-in language parts
       if (builtInFindings.found) {
         let bISdebugStatement: boolean = false;
-        if (searchWord.toLowerCase() == "debug" && sourceLine.toLowerCase().startsWith("debug(")) {
+        if (searchWord.toLowerCase() == 'debug' && sourceLine.toLowerCase().startsWith('debug(')) {
           bISdebugStatement = true;
         }
         this._logMessage(`+ Sig: bISdebugStatement=[${bISdebugStatement}], sourceLine=[${sourceLine}]`);
-        let mdLines: string[] = [];
+        const mdLines: string[] = [];
         bFoundSomething = true;
         defInfo.declarationlines = [];
-        const langIdString: string = this.spin1File ? "Spin" : "Spin2";
-        this._logMessage(`+ Sig: searchWord=[${searchWord}], descr=(${builtInFindings.description}), type=[${langIdString} built-in], cat=[${builtInFindings.category}]`);
+        const langIdString: string = this.spin1File ? 'Spin' : 'Spin2';
+        this._logMessage(
+          `+ Sig: searchWord=[${searchWord}], descr=(${builtInFindings.description}), type=[${langIdString} built-in], cat=[${builtInFindings.category}]`
+        );
 
-        let titleText: string | undefined = builtInFindings.category;
+        const titleText: string | undefined = builtInFindings.category;
         let subTitleText: string | undefined = undefined;
         if (builtInFindings.type == eBuiltInType.BIT_METHOD) {
           defInfo.declarationlines = [builtInFindings.signature];
@@ -410,18 +426,21 @@ export default class SignatureHelpProvider implements Provider {
           if (builtInFindings.type == eBuiltInType.BIT_CONSTANT && bFoundParseToken) {
             const tokenFindings = symbolsSet.getTokenWithDescription(searchWord, position.line + 1);
             if (tokenFindings.found) {
-              const desiredLinePosition: Position = { line: tokenFindings.declarationLineIdx, character: 0 };
+              const desiredLinePosition: Position = {
+                line: tokenFindings.declarationLineIdx,
+                character: 0
+              };
               const lineText: string | undefined = tokenFindings.declarationLine;
               const declLine = lineText ? lineText : DocumentLineAt(document, desiredLinePosition).trim(); // declaration line
               const nonCommentDecl: string = this.parseUtils.getNonCommentLineRemainder(0, declLine).trim();
-              mdLines.push("Decl: " + nonCommentDecl + "<br>");
+              mdLines.push('Decl: ' + nonCommentDecl + '<br>');
             }
           }
           mdLines.push(`${titleText}${subTitleText}<br>`);
-          mdLines.push("- " + builtInFindings.description);
+          mdLines.push('- ' + builtInFindings.description);
         }
         if (mdLines.length > 0) {
-          defInfo.doc = mdLines.join(" ");
+          defInfo.doc = mdLines.join(' ');
         } else {
           // if we have title or subTitle but no mdLines then just clear .doc
           if (titleText || subTitleText) {
@@ -446,16 +465,19 @@ export default class SignatureHelpProvider implements Provider {
   //     ["foo", "bar string", "baz string"]
   // Takes care of balancing parens so to not get confused by signatures like:
   //     (pattern string, handler func(ResponseWriter, *Request)) {
-  private getParametersAndReturnType(signature: string): { params: string[]; returnType: string } {
+  private getParametersAndReturnType(signature: string): {
+    params: string[];
+    returnType: string;
+  } {
     const params: string[] = [];
     let parenCount = 0;
     let lastStart = 1;
     for (let i = 1; i < signature.length; i++) {
       switch (signature[i]) {
-        case "(":
+        case '(':
           parenCount++;
           break;
-        case ")":
+        case ')':
           parenCount--;
           if (parenCount < 0) {
             if (i > lastStart) {
@@ -463,11 +485,11 @@ export default class SignatureHelpProvider implements Provider {
             }
             return {
               params,
-              returnType: i < signature.length - 1 ? signature.substr(i + 1) : "",
+              returnType: i < signature.length - 1 ? signature.substr(i + 1) : ''
             };
           }
           break;
-        case ",":
+        case ',':
           if (parenCount === 0) {
             params.push(signature.substring(lastStart, i));
             lastStart = i + 2;
@@ -475,34 +497,34 @@ export default class SignatureHelpProvider implements Provider {
           break;
       }
     }
-    return { params: [], returnType: "" };
+    return { params: [], returnType: '' };
   }
 
   private getMethodDescriptionFromDoc(docMD: string | undefined): string {
-    let methodDescr: string = "";
+    let methodDescr: string = '';
     // this isolates mothd description lines and returns them
     // skipping first line, and @param, @returns lines
     if (docMD) {
-      const lines = docMD.split("<br>");
+      const lines = docMD.split('<br>');
       this._logMessage(`+ Sig: gmdfd lines=[${lines}]({${lines.length}})`);
-      let descrLines: string[] = [];
+      const descrLines: string[] = [];
       if (lines.length > 0) {
         for (let lnIdx = 1; lnIdx < lines.length; lnIdx++) {
           const sglLine = lines[lnIdx];
-          if (sglLine.includes("@param")) {
+          if (sglLine.includes('@param')) {
             continue;
           }
-          if (sglLine.includes("@returns")) {
+          if (sglLine.includes('@returns')) {
             continue;
           }
-          if (sglLine.includes("NOTE: insert comment template")) {
+          if (sglLine.includes('NOTE: insert comment template')) {
             // specific so we don't filter users comments
             continue;
           }
           descrLines.push(sglLine);
         }
         if (descrLines.length > 0) {
-          methodDescr = descrLines.join("<BR>");
+          methodDescr = descrLines.join('<BR>');
         }
       }
     }
@@ -511,13 +533,13 @@ export default class SignatureHelpProvider implements Provider {
   }
 
   private getParametersAndReturnTypeFromDoc(docMD: string): ParameterInformation[] {
-    let parameterDetails: ParameterInformation[] = [];
+    const parameterDetails: ParameterInformation[] = [];
     // this ignores return type info and just provides deets on param's
-    const lines = docMD.split("<br>").filter(Boolean);
+    const lines = docMD.split('<br>').filter(Boolean);
     if (lines.length > 0) {
       for (let lnIdx = 0; lnIdx < lines.length; lnIdx++) {
         const sglLine = lines[lnIdx];
-        if (sglLine.includes("@param")) {
+        if (sglLine.includes('@param')) {
           const lineParts: string[] = sglLine.split(/[ \t]/).filter(Boolean);
           let paramName: string = lineParts[1];
           this._logMessage(`+ Sig: gpartfd paramName=[${paramName}], lineParts=[${lineParts}]({${lineParts.length}})`);
@@ -539,7 +561,7 @@ export default class SignatureHelpProvider implements Provider {
     const origPosition: Position = position;
     while (position.character > 0) {
       const lineText = DocumentLineAt(document, position);
-      let wordRange: Range | undefined = GetWordRangeAtPosition(lineText, position);
+      const wordRange: Range | undefined = GetWordRangeAtPosition(lineText, position);
       if (wordRange) {
         position = wordRange.start;
         break;
@@ -573,24 +595,25 @@ export default class SignatureHelpProvider implements Provider {
       }
 
       // if its current line, get the text until the position given, otherwise get the full line.
-      const [currentLine, characterPosition] = lineNr === position.line ? [line.substring(0, position.character), position.character] : [line, line.length - 1];
+      const [currentLine, characterPosition] =
+        lineNr === position.line ? [line.substring(0, position.character), position.character] : [line, line.length - 1];
 
       for (let char = characterPosition; char >= 0; char--) {
         switch (currentLine[char]) {
-          case "(":
+          case '(':
             parenBalance--;
             if (parenBalance < 0) {
               this._logMessage(`+ Sig: walkBTBOC() = open[line=${lineNr}, char=${char}]`);
               return {
                 openParen: { line: lineNr, character: char },
-                commas,
+                commas
               };
             }
             break;
-          case ")":
+          case ')':
             parenBalance++;
             break;
-          case ",":
+          case ',':
             {
               const commaPos: Position = { line: lineNr, character: char };
               if (parenBalance === 0 && !this.extensionUtils.isPositionInString(line, commaPos, stringsFound, ticVarsFound)) {

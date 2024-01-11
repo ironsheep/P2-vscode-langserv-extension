@@ -1,13 +1,14 @@
-"use strict";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+'use strict';
 
-import * as vscode from "vscode";
-import { EndOfLine } from "vscode";
+import * as vscode from 'vscode';
+import { EndOfLine } from 'vscode';
 
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from 'fs';
+import * as path from 'path';
 
-import { isSpin1Document, isSpin2File, isSpin1File } from "../spin.vscode.utils";
-import { SpinCodeUtils, eParseState } from "../spin.code.utils";
+import { isSpin1Document, isSpin2File, isSpin1File } from '../spin.vscode.utils';
+import { SpinCodeUtils, eParseState } from '../spin.code.utils';
 
 export class DocGenerator {
   private generatorDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -18,10 +19,10 @@ export class DocGenerator {
     if (this.generatorDebugLogEnabled) {
       if (this.docGenOutputChannel === undefined) {
         //Create output channel
-        this.docGenOutputChannel = vscode.window.createOutputChannel("Spin/Spin2 DocGen DEBUG");
-        this.logMessage("Spin/Spin2 DocGen log started.");
+        this.docGenOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 DocGen DEBUG');
+        this.logMessage('Spin/Spin2 DocGen log started.');
       } else {
-        this.logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this.logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
   }
@@ -42,8 +43,8 @@ export class DocGenerator {
   public insertDocComment(document: vscode.TextDocument, selections: readonly vscode.Selection[]): vscode.ProviderResult<vscode.TextEdit[]> {
     return selections
       .map((selection) => {
-        let results: vscode.ProviderResult<vscode.TextEdit[]> = [];
-        let endOfLineStr: string = document.eol == EndOfLine.CRLF ? "\r\n" : "\n";
+        const results: vscode.ProviderResult<vscode.TextEdit[]> = [];
+        const endOfLineStr: string = document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
         const isSpin1Doc: boolean = isSpin1Document(document);
         this.logMessage(
           `* iDc selection(isSingle-[${selection.isSingleLine}] isSpin1Doc-(${isSpin1Doc}) isEmpty-[${selection.isEmpty}] s,e-[${selection.start.line}:${selection.start.character} - ${selection.end.line}:${selection.end.character}] activ-[${selection.active.character}] anchor-[${selection.anchor.character}])`
@@ -51,9 +52,9 @@ export class DocGenerator {
         const { firstLine, lastLine, lineCount } = this._lineNumbersFromSelection(document, selection);
         const cursorPos: vscode.Position = new vscode.Position(firstLine + 1, 0);
         let linesToInsert: string[] = [];
-        let signatureLine: string = document.lineAt(firstLine).text.trim();
-        const linePrefix = signatureLine.length > 3 ? signatureLine.substring(0, 3).toLowerCase() : "";
-        const isSignature: boolean = linePrefix.startsWith("pub") || linePrefix.startsWith("pri");
+        const signatureLine: string = document.lineAt(firstLine).text.trim();
+        const linePrefix = signatureLine.length > 3 ? signatureLine.substring(0, 3).toLowerCase() : '';
+        const isSignature: boolean = linePrefix.startsWith('pub') || linePrefix.startsWith('pri');
         if (isSignature) {
           linesToInsert = this.generateDocCommentForSignature(signatureLine, isSpin1Doc);
         } else {
@@ -62,7 +63,7 @@ export class DocGenerator {
 
         // insert the lines, if any
         if (linesToInsert.length > 0) {
-          for (let line of linesToInsert) {
+          for (const line of linesToInsert) {
             results.push(vscode.TextEdit.insert(cursorPos, `${line}` + endOfLineStr));
           }
         }
@@ -71,7 +72,10 @@ export class DocGenerator {
       .reduce((selections, selection) => selections.concat(selection), []);
   }
 
-  private _lineNumbersFromSelection(document: vscode.TextDocument, selection: vscode.Selection): { firstLine: number; lastLine: number; lineCount: number } {
+  private _lineNumbersFromSelection(
+    document: vscode.TextDocument,
+    selection: vscode.Selection
+  ): { firstLine: number; lastLine: number; lineCount: number } {
     let lineCount: number = 0;
     let firstLine: number = 0;
     let lastLine: number = 0;
@@ -89,7 +93,7 @@ export class DocGenerator {
       firstLine = selection.start.line;
       lastLine = selection.end.line;
       //this.logMessage(` - (DBG) ${lineCount} lines: fm,to=[${firstLine}, ${lastLine}], allSelectedText=[${allSelectedText}](${allSelectedText.length}), lines=[${lines}](${lines.length})`);
-      for (var currLineIdx: number = 0; currLineIdx < lines.length; currLineIdx++) {
+      for (let currLineIdx: number = 0; currLineIdx < lines.length; currLineIdx++) {
         if (lines[currLineIdx].length == 0) {
           if (currLineIdx == lines.length - 1) {
             lastLine--;
@@ -110,17 +114,17 @@ export class DocGenerator {
   }
 
   public generateDocCommentForSignature(signatureLine: string, isSpin1Method: boolean): string[] {
-    let desiredDocComment: string[] = [];
+    const desiredDocComment: string[] = [];
     this.logMessage(`* iDc SKIP - generateDocCommentForSignature([${signatureLine}], isSpin1=${isSpin1Method})`);
-    const linePrefix = signatureLine.length > 3 ? signatureLine.substring(0, 3).toLowerCase() : "";
-    const isSignature: boolean = linePrefix.startsWith("pub") || linePrefix.startsWith("pri");
-    const isPRI: boolean = linePrefix.startsWith("pri");
+    const linePrefix = signatureLine.length > 3 ? signatureLine.substring(0, 3).toLowerCase() : '';
+    const isSignature: boolean = linePrefix.startsWith('pub') || linePrefix.startsWith('pri');
+    const isPRI: boolean = linePrefix.startsWith('pri');
     if (isSignature) {
       const commentPrefix = isPRI ? "'" : "''";
-      desiredDocComment.push(commentPrefix + " ..."); // for description
-      desiredDocComment.push(commentPrefix + " "); // blank line
-      const posOpenParen = signatureLine.indexOf("(");
-      const posCloseParen = signatureLine.indexOf(")");
+      desiredDocComment.push(commentPrefix + ' ...'); // for description
+      desiredDocComment.push(commentPrefix + ' '); // blank line
+      const posOpenParen = signatureLine.indexOf('(');
+      const posCloseParen = signatureLine.indexOf(')');
       // if we have name() it's spin1 or spin2
       if (posOpenParen != -1 && posCloseParen != -1) {
         const bHasParameters: boolean = posCloseParen - posOpenParen > 1 ? true : false;
@@ -133,11 +137,11 @@ export class DocGenerator {
             desiredDocComment.push(commentPrefix + ` @param ${paramNames[paramIdx]} - `); // blank line
           }
         }
-        const bHasReturnValues: boolean = signatureLine.includes(":") ? true : false;
-        const bHasLocalVariables: boolean = signatureLine.includes("|") ? true : false;
+        const bHasReturnValues: boolean = signatureLine.includes(':') ? true : false;
+        const bHasLocalVariables: boolean = signatureLine.includes('|') ? true : false;
         if (bHasReturnValues) {
-          const posStartReturn = signatureLine.indexOf(":") + 1;
-          const posEndReturn = bHasLocalVariables ? signatureLine.indexOf("|") - 1 : signatureLine.length;
+          const posStartReturn = signatureLine.indexOf(':') + 1;
+          const posEndReturn = bHasLocalVariables ? signatureLine.indexOf('|') - 1 : signatureLine.length;
           const returnsString: string = signatureLine.substring(posStartReturn, posEndReturn);
           const numberReturns: number = (returnsString.match(/,/g) || []).length + 1;
           const returnNames = returnsString.split(/[ \t,]/).filter(Boolean);
@@ -148,17 +152,17 @@ export class DocGenerator {
         }
         let posTrailingComment = signatureLine.indexOf("'");
         if (posTrailingComment == -1) {
-          posTrailingComment = signatureLine.indexOf("{");
+          posTrailingComment = signatureLine.indexOf('{');
         }
         if (bHasLocalVariables) {
           // locals are always non-doc single-line comments
-          const posStartLocal = signatureLine.indexOf("|") + 1;
+          const posStartLocal = signatureLine.indexOf('|') + 1;
           const posEndLocal = posTrailingComment != -1 ? posTrailingComment : signatureLine.length;
           const localsString: string = signatureLine.substring(posStartLocal, posEndLocal);
           const numberLocals: number = (localsString.match(/,/g) || []).length + 1;
           const localsNames = localsString.split(/[ \t,]/).filter(Boolean);
           this.logMessage(`* gDClocalsString=[${localsString}], localsNames=[${localsNames}]`);
-          desiredDocComment.push(""); // empty line so following is not shown in comments for method
+          desiredDocComment.push(''); // empty line so following is not shown in comments for method
           desiredDocComment.push("' Local Variables:"); // blank line
           for (let localIdx = 0; localIdx < numberLocals; localIdx++) {
             desiredDocComment.push("'" + ` @local ${localsNames[localIdx]} - `); // blank line
@@ -166,11 +170,11 @@ export class DocGenerator {
         }
       } else if (isSpin1Method) {
         // spin1 methods don't need parens when no parameters are specified
-        const bHasReturnValues: boolean = signatureLine.includes(":") ? true : false;
-        const bHasLocalVariables: boolean = signatureLine.includes("|") ? true : false;
+        const bHasReturnValues: boolean = signatureLine.includes(':') ? true : false;
+        const bHasLocalVariables: boolean = signatureLine.includes('|') ? true : false;
         if (bHasReturnValues) {
-          const posStartReturn = signatureLine.indexOf(":") + 1;
-          const posEndReturn = bHasLocalVariables ? signatureLine.indexOf("|") - 1 : signatureLine.length;
+          const posStartReturn = signatureLine.indexOf(':') + 1;
+          const posEndReturn = bHasLocalVariables ? signatureLine.indexOf('|') - 1 : signatureLine.length;
           const returnsString: string = signatureLine.substring(posStartReturn, posEndReturn);
           // spin1 only allows 1 return variable
           const returnNames = returnsString.split(/[ \t,]/).filter(Boolean);
@@ -179,17 +183,17 @@ export class DocGenerator {
         }
         let posTrailingComment = signatureLine.indexOf("'");
         if (posTrailingComment == -1) {
-          posTrailingComment = signatureLine.indexOf("{");
+          posTrailingComment = signatureLine.indexOf('{');
         }
         if (bHasLocalVariables) {
           // locals are always non-doc single-line comments
-          const posStartLocal = signatureLine.indexOf("|") + 1;
+          const posStartLocal = signatureLine.indexOf('|') + 1;
           const posEndLocal = posTrailingComment != -1 ? posTrailingComment : signatureLine.length;
           const localsString: string = signatureLine.substring(posStartLocal, posEndLocal);
           const numberLocals: number = (localsString.match(/,/g) || []).length + 1;
           const localsNames = localsString.split(/[ \t,]/).filter(Boolean);
           this.logMessage(`* gDClocalsString=[${localsString}], localsNames=[${localsNames}]`);
-          desiredDocComment.push(""); // empty line so following is not shown in comments for method
+          desiredDocComment.push(''); // empty line so following is not shown in comments for method
           desiredDocComment.push("' Local Variables:"); // blank line
           for (let localIdx = 0; localIdx < numberLocals; localIdx++) {
             desiredDocComment.push("'" + ` @local ${localsNames[localIdx]} - `); // blank line
@@ -201,35 +205,35 @@ export class DocGenerator {
   }
 
   public generateDocument(): void {
-    let textEditor = vscode.window.activeTextEditor;
+    const textEditor = vscode.window.activeTextEditor;
     if (textEditor) {
-      let endOfLineStr: string = textEditor.document.eol == EndOfLine.CRLF ? "\r\n" : "\n";
+      const endOfLineStr: string = textEditor.document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
       let bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
 
-      var currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
-      var currentlyOpenTabfolderName = path.dirname(currentlyOpenTabfilePath);
-      var currentlyOpenTabfileName = path.basename(currentlyOpenTabfilePath);
+      const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
+      const currentlyOpenTabfolderName = path.dirname(currentlyOpenTabfilePath);
+      const currentlyOpenTabfileName = path.basename(currentlyOpenTabfilePath);
       this.logMessage(`+ (DBG) generateDocument() fsPath-(${currentlyOpenTabfilePath})`);
       this.logMessage(`+ (DBG) generateDocument() folder-(${currentlyOpenTabfolderName})`);
       this.logMessage(`+ (DBG) generateDocument() filename-(${currentlyOpenTabfileName})`);
       let isSpinFile: boolean = isSpin2File(currentlyOpenTabfileName);
       let isSpin1: boolean = false;
-      let fileType: string = ".spin2";
+      let fileType: string = '.spin2';
       if (!isSpinFile) {
         isSpinFile = isSpin1File(currentlyOpenTabfileName);
         if (isSpinFile) {
           isSpin1 = true;
-          fileType = ".spin";
+          fileType = '.spin';
         }
       }
       if (isSpinFile) {
-        const objectName: string = currentlyOpenTabfileName.replace(fileType, "");
-        const docFilename: string = currentlyOpenTabfileName.replace(fileType, ".txt");
+        const objectName: string = currentlyOpenTabfileName.replace(fileType, '');
+        const docFilename: string = currentlyOpenTabfileName.replace(fileType, '.txt');
         this.logMessage(`+ (DBG) generateDocument() outFn-(${docFilename})`);
         const outFSpec = path.join(currentlyOpenTabfolderName, docFilename);
         this.logMessage(`+ (DBG) generateDocument() outFSpec-(${outFSpec})`);
 
-        let outFile = fs.openSync(outFSpec, "w");
+        const outFile = fs.openSync(outFSpec, 'w');
 
         let shouldEmitTopDocComments: boolean = true;
 
@@ -243,7 +247,7 @@ export class DocGenerator {
         // 1st pass: emit topfile doc comments then list of pub methods
         //
         for (let i = 0; i < textEditor.document.lineCount; i++) {
-          let line = textEditor.document.lineAt(i);
+          const line = textEditor.document.lineAt(i);
           const lineNbr = i + 1;
           const trimmedLine = line.text.trim();
 
@@ -256,7 +260,7 @@ export class DocGenerator {
           if (currState == eParseState.inMultiLineDocComment) {
             // skip all {{ --- }} multi-line doc comments
             // in multi-line doc-comment, hunt for end '}}' to exit
-            let closingOffset = line.text.indexOf("}}");
+            const closingOffset = line.text.indexOf('}}');
             if (closingOffset != -1) {
               // have close, comment ended
               currState = priorState;
@@ -274,8 +278,8 @@ export class DocGenerator {
           } else if (currState == eParseState.inMultiLineComment) {
             // skip all { --- } multi-line non-doc comments
             // in multi-line non-doc-comment, hunt for end '}' to exit
-            const openingOffset = line.text.indexOf("{");
-            let closingOffset = line.text.indexOf("}");
+            const openingOffset = line.text.indexOf('{');
+            const closingOffset = line.text.indexOf('}');
             if (openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset) {
               // do nothing with NESTED {cmt} lines
             } else if (closingOffset != -1) {
@@ -291,10 +295,10 @@ export class DocGenerator {
             currState = sectionStatus.inProgressStatus;
           }
 
-          if (trimmedLine.startsWith("{{")) {
+          if (trimmedLine.startsWith('{{')) {
             // process multi-line doc comment
-            let openingOffset = line.text.indexOf("{{");
-            const closingOffset = line.text.indexOf("}}", openingOffset + 2);
+            const openingOffset = line.text.indexOf('{{');
+            const closingOffset = line.text.indexOf('}}', openingOffset + 2);
             if (closingOffset != -1) {
               // is single line comment, just ignore it
             } else {
@@ -307,11 +311,11 @@ export class DocGenerator {
               }
             }
             continue;
-          } else if (trimmedLine.startsWith("{")) {
+          } else if (trimmedLine.startsWith('{')) {
             // process possible multi-line non-doc comment
             // do we have a close on this same line?
-            let openingOffset = line.text.indexOf("{");
-            const closingOffset = line.text.indexOf("}", openingOffset + 1);
+            const openingOffset = line.text.indexOf('{');
+            const closingOffset = line.text.indexOf('}', openingOffset + 1);
             if (closingOffset == -1) {
               // is open of multiline comment
               priorState = currState;
@@ -338,14 +342,14 @@ export class DocGenerator {
             pubsFound++;
             if (shouldEmitTopDocComments) {
               this.logMessage(`+ (DBG) generateDocument() EMIT object header`);
-              fs.appendFileSync(outFile, "" + endOfLineStr); // blank line
+              fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
               const introText: string = 'Object "' + objectName + '" Interface:';
               fs.appendFileSync(outFile, introText + endOfLineStr);
               if (requiredLanguageVersion > 0) {
                 const lanVersionText: string = `  (Requires Spin2 Language v${requiredLanguageVersion})`;
                 fs.appendFileSync(outFile, lanVersionText + endOfLineStr);
               }
-              fs.appendFileSync(outFile, "" + endOfLineStr); // blank line
+              fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
             }
             shouldEmitTopDocComments = false; // no more of these!
             // emit new PUB prototype (w/o any trailing comment)
@@ -360,13 +364,13 @@ export class DocGenerator {
         let emitPubDocComment: boolean = false;
         let emitTrailingDocComment: boolean = false;
         for (let i = 0; i < textEditor.document.lineCount; i++) {
-          let line = textEditor.document.lineAt(i);
+          const line = textEditor.document.lineAt(i);
           const trimmedLine = line.text.trim();
 
           // skip all {{ --- }} multi-line doc comments
           if (currState == eParseState.inMultiLineDocComment) {
             // in multi-line doc-comment, hunt for end '}}' to exit
-            let closingOffset = line.text.indexOf("}}");
+            const closingOffset = line.text.indexOf('}}');
             if (closingOffset != -1) {
               // have close, comment ended
               currState = priorState;
@@ -383,8 +387,8 @@ export class DocGenerator {
             continue;
           } else if (currState == eParseState.inMultiLineComment) {
             // in multi-line non-doc-comment, hunt for end '}' to exit
-            const openingOffset = line.text.indexOf("{");
-            let closingOffset = line.text.indexOf("}");
+            const openingOffset = line.text.indexOf('{');
+            const closingOffset = line.text.indexOf('}');
             if (openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset) {
               // do nothing with NESTED {cmt} lines
             } else if (closingOffset != -1) {
@@ -399,10 +403,10 @@ export class DocGenerator {
           if (sectionStatus.isSectionStart) {
             currState = sectionStatus.inProgressStatus;
           }
-          if (trimmedLine.startsWith("{{")) {
+          if (trimmedLine.startsWith('{{')) {
             // process multi-line doc comment
-            let openingOffset = line.text.indexOf("{{");
-            const closingOffset = line.text.indexOf("}}", openingOffset + 2);
+            const openingOffset = line.text.indexOf('{{');
+            const closingOffset = line.text.indexOf('}}', openingOffset + 2);
             if (closingOffset != -1) {
               // is single line comment, just ignore it
             } else {
@@ -415,11 +419,11 @@ export class DocGenerator {
               }
             }
             continue;
-          } else if (trimmedLine.startsWith("{")) {
+          } else if (trimmedLine.startsWith('{')) {
             // process possible multi-line non-doc comment
             // do we have a close on this same line?
-            let openingOffset = line.text.indexOf("{");
-            const closingOffset = line.text.indexOf("}", openingOffset + 1);
+            const openingOffset = line.text.indexOf('{');
+            const closingOffset = line.text.indexOf('}', openingOffset + 1);
             if (closingOffset == -1) {
               // is open of multiline comment
               priorState = currState;
@@ -440,12 +444,12 @@ export class DocGenerator {
             pubsSoFar++;
             // emit new PUB prototype (w/o any trailing comment, and NO local variables)
             const trailingDocComment: string | undefined = this.getTrailingDocComment(trimmedLine);
-            let trimmedNonCommentLine = this.getNonCommentLineRemainder(0, trimmedLine);
-            const header: string = "_".repeat(trimmedNonCommentLine.length);
-            fs.appendFileSync(outFile, "" + endOfLineStr); // blank line
+            const trimmedNonCommentLine = this.getNonCommentLineRemainder(0, trimmedLine);
+            const header: string = '_'.repeat(trimmedNonCommentLine.length);
+            fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
             fs.appendFileSync(outFile, header + endOfLineStr); // underscore header line
             fs.appendFileSync(outFile, trimmedNonCommentLine + endOfLineStr);
-            fs.appendFileSync(outFile, "" + endOfLineStr); // blank line
+            fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
             if (trailingDocComment) {
               fs.appendFileSync(outFile, trailingDocComment + endOfLineStr); // underscore header line
             }
@@ -455,7 +459,7 @@ export class DocGenerator {
             }
           } else if (sectionStatus.isSectionStart && currState != eParseState.inPub && emitTrailingDocComment) {
             // emit blank line just before we do final doc comment at end of file
-            fs.appendFileSync(outFile, "" + endOfLineStr); // blank line
+            fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
           }
         }
         fs.closeSync(outFile);
@@ -470,9 +474,9 @@ export class DocGenerator {
   private getNonCommentLineRemainder(offset: number, line: string): string {
     // remove comment and then local variables
     let trimmedNonCommentLine = this.spinCodeUtils.getNonCommentLineRemainder(offset, line);
-    const localSepPosn: number = trimmedNonCommentLine.indexOf("|");
+    const localSepPosn: number = trimmedNonCommentLine.indexOf('|');
     if (localSepPosn != -1) {
-      trimmedNonCommentLine = trimmedNonCommentLine.substring(0, localSepPosn - 1).replace(/\s+$/, "");
+      trimmedNonCommentLine = trimmedNonCommentLine.substring(0, localSepPosn - 1).replace(/\s+$/, '');
     }
     return trimmedNonCommentLine;
   }
@@ -481,8 +485,8 @@ export class DocGenerator {
     // return any trailing doc comment from PUB line
     let docComment: string | undefined = undefined;
     const startDocTicCmt: number = line.indexOf("''");
-    const startDocBraceCmt: number = line.indexOf("{{");
-    const endDocBraceCmt: number = line.indexOf("}}");
+    const startDocBraceCmt: number = line.indexOf('{{');
+    const endDocBraceCmt: number = line.indexOf('}}');
     if (startDocTicCmt != -1) {
       docComment = line.substring(startDocTicCmt + 2).trim();
     } else if (startDocBraceCmt != -1 && endDocBraceCmt != -1) {
@@ -492,31 +496,34 @@ export class DocGenerator {
   }
 
   async showDocument() {
-    let textEditor = vscode.window.activeTextEditor;
+    const textEditor = vscode.window.activeTextEditor;
     if (textEditor) {
-      var currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
-      var currentlyOpenTabfolderName = path.dirname(currentlyOpenTabfilePath);
-      var currentlyOpenTabfileName = path.basename(currentlyOpenTabfilePath);
+      const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
+      const currentlyOpenTabfolderName = path.dirname(currentlyOpenTabfilePath);
+      const currentlyOpenTabfileName = path.basename(currentlyOpenTabfilePath);
       //this.logMessage(`+ (DBG) generateDocument() fsPath-(${currentlyOpenTabfilePath})`);
       //this.logMessage(`+ (DBG) generateDocument() folder-(${currentlyOpenTabfolderName})`);
       //this.logMessage(`+ (DBG) generateDocument() filename-(${currentlyOpenTabfileName})`);
       let isSpinFile: boolean = isSpin2File(currentlyOpenTabfileName);
       let isSpin1: boolean = false;
-      let fileType: string = ".spin2";
+      let fileType: string = '.spin2';
       if (!isSpinFile) {
         isSpinFile = isSpin1File(currentlyOpenTabfileName);
         if (isSpinFile) {
           isSpin1 = true;
-          fileType = ".spin";
+          fileType = '.spin';
         }
       }
       if (isSpinFile) {
-        const docFilename: string = currentlyOpenTabfileName.replace(fileType, ".txt");
+        const docFilename: string = currentlyOpenTabfileName.replace(fileType, '.txt');
         //this.logMessage(`+ (DBG) generateDocument() outFn-(${docFilename})`);
         const outFSpec = path.join(currentlyOpenTabfolderName, docFilename);
         //this.logMessage(`+ (DBG) generateDocument() outFSpec-(${outFSpec})`);
-        let doc = await vscode.workspace.openTextDocument(outFSpec); // calls back into the provider
-        await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.Beside });
+        const doc = await vscode.workspace.openTextDocument(outFSpec); // calls back into the provider
+        await vscode.window.showTextDocument(doc, {
+          preview: false,
+          viewColumn: vscode.ViewColumn.Beside
+        });
       }
     }
   }

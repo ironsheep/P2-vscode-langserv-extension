@@ -1,8 +1,8 @@
-"use strict";
+'use strict';
 // src/context.ts
 
-import * as lsp from "vscode-languageserver";
-import { ProcessedDocumentByFSpec, DocumentFindingsByFSpec, TopDocsByFSpec } from "./DocumentProcessor";
+import * as lsp from 'vscode-languageserver';
+import { ProcessedDocumentByFSpec, DocumentFindingsByFSpec, TopDocsByFSpec } from './DocumentProcessor';
 
 //import Parser from "web-tree-sitter";
 //import path from "path";
@@ -33,7 +33,7 @@ export interface Context {
   editorConfig: EditorConfiguration;
 }
 
-let language: string = "spin2";
+const language: string = 'spin2';
 
 export async function createContext(workspaceFolders: lsp.WorkspaceFolder[], logger: lsp.Logger, connection: lsp.Connection): Promise<Context> {
   /*
@@ -62,6 +62,6 @@ export async function createContext(workspaceFolders: lsp.WorkspaceFolder[], log
     logger,
     connection,
     parserConfig: new ServerBehaviorConfiguration(),
-    editorConfig: new EditorConfiguration(),
+    editorConfig: new EditorConfiguration()
   };
 }

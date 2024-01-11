@@ -1,13 +1,13 @@
-"use strict";
+'use strict';
 // src/parser/spin1.documentSymbolParser.ts
 
-import * as lsp from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { Spin1ParseUtils } from "./spin1.utils";
-import { OutLineSymbol, DocumentFindings } from "./spin.semantic.findings";
-import { Context } from "../context";
-import { eParseState } from "./spin.common";
-import { ExtensionUtils } from "../parser/spin.extension.utils";
+import * as lsp from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Spin1ParseUtils } from './spin1.utils';
+import { OutLineSymbol, DocumentFindings } from './spin.semantic.findings';
+import { Context } from '../context';
+import { eParseState } from './spin.common';
+import { ExtensionUtils } from '../parser/spin.extension.utils';
 
 // ----------------------------------------------------------------------------
 //   OUTLINE Provider
@@ -30,9 +30,9 @@ export class Spin1DocumentSymbolParser {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
-        this._logMessage("Spin1 Outline log started.");
+        this._logMessage('Spin1 Outline log started.');
       } else {
-        this._logMessage("\n\n------------------   NEW FILE ----------------\n\n");
+        this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
   }
@@ -47,10 +47,16 @@ export class Spin1DocumentSymbolParser {
     }
 
     for (let i = 0; i < document.lineCount; i++) {
-      const desiredLineRange: lsp.Range = { start: { line: i, character: 0 }, end: { line: i, character: Number.MAX_VALUE } };
+      const desiredLineRange: lsp.Range = {
+        start: { line: i, character: 0 },
+        end: { line: i, character: Number.MAX_VALUE }
+      };
       //let line = document.lineAt(i);
-      const line = document.getText(desiredLineRange).replace(/\s+$/, "");
-      const lineRange: lsp.Range = { start: { line: i, character: 0 }, end: { line: i, character: line.length - 1 } };
+      const line = document.getText(desiredLineRange).replace(/\s+$/, '');
+      const lineRange: lsp.Range = {
+        start: { line: i, character: 0 },
+        end: { line: i, character: line.length - 1 }
+      };
       const trimmedLine = line.trim();
       let nonCommentLine = this.parseUtils.getRemainderWOutTrailingTicComment(0, line);
       if (nonCommentLine.length == 0) {
@@ -75,9 +81,9 @@ export class Spin1DocumentSymbolParser {
       // skip all {{ --- }} multi-line doc comments
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '}}' to exit
-        const openingOffset = nonCommentLine.indexOf("{{");
+        const openingOffset = nonCommentLine.indexOf('{{');
         const searchOffset: number = openingOffset != -1 ? openingOffset + 2 : 0;
-        const closingOffset = nonCommentLine.indexOf("}}", searchOffset);
+        const closingOffset = nonCommentLine.indexOf('}}', searchOffset);
         const haveInlineCmt: boolean = openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset;
         if (!haveInlineCmt && closingOffset != -1) {
           // have close, comment ended
@@ -87,15 +93,15 @@ export class Spin1DocumentSymbolParser {
         continue;
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
-        const openingOffset = nonCommentLine.indexOf("{");
-        const closingOffset = nonCommentLine.indexOf("}", openingOffset + 1);
+        const openingOffset = nonCommentLine.indexOf('{');
+        const closingOffset = nonCommentLine.indexOf('}', openingOffset + 1);
         const haveInlineCmt: boolean = openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset;
         if (!haveInlineCmt && closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
         }
         //  no more processing for this line
-        const cmtState: string = currState != eParseState.inMultiLineComment ? "LAST " : "";
+        const cmtState: string = currState != eParseState.inMultiLineComment ? 'LAST ' : '';
         this._logMessage(`* SKIP ${cmtState}BlockCmt Ln#${i + 1} nonCommentLine=[${nonCommentLine}]`);
         continue;
       } else if (nonCommentLine.startsWith("''")) {
@@ -104,11 +110,11 @@ export class Spin1DocumentSymbolParser {
       } else if (nonCommentLine.startsWith("'")) {
         //  no more processing for this line
         continue;
-      } else if (nonCommentLine.trim().startsWith("{{")) {
+      } else if (nonCommentLine.trim().startsWith('{{')) {
         // process multi-line doc comment
-        const openingOffset = nonCommentLine.indexOf("{{");
+        const openingOffset = nonCommentLine.indexOf('{{');
         const searchOffset: number = openingOffset != -1 ? openingOffset + 2 : 0;
-        const closingOffset = nonCommentLine.indexOf("}}", searchOffset);
+        const closingOffset = nonCommentLine.indexOf('}}', searchOffset);
         if (closingOffset != -1) {
           // is single line comment, just ignore it
         } else {
@@ -118,11 +124,11 @@ export class Spin1DocumentSymbolParser {
           //  no more processing for this line
         }
         continue;
-      } else if (nonCommentLine.trim().startsWith("{")) {
+      } else if (nonCommentLine.trim().startsWith('{')) {
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
-        const openingOffset = nonCommentLine.indexOf("{");
-        const closingOffset = nonCommentLine.indexOf("}", openingOffset + 1);
+        const openingOffset = nonCommentLine.indexOf('{');
+        const closingOffset = nonCommentLine.indexOf('}', openingOffset + 1);
         if (closingOffset == -1) {
           // is open of multiline comment
           priorState = currState;
@@ -138,15 +144,15 @@ export class Spin1DocumentSymbolParser {
       }
 
       if (line.length > 2) {
-        const lineParts: string[] = linePrefix.split(/[ \t\{\']/).filter(Boolean);
-        linePrefix = lineParts.length > 0 ? lineParts[0].toUpperCase() : "";
+        const lineParts: string[] = linePrefix.split(/[ \t{']/).filter(Boolean);
+        linePrefix = lineParts.length > 0 ? lineParts[0].toUpperCase() : '';
         // the only form of comment we care about here is block comment after section name (e.g., "CON { text }")
         //  NEW and let's add the use of ' comment too
-        const openBraceOffset: number = line.indexOf("{");
+        const openBraceOffset: number = line.indexOf('{');
         const singleQuoteOffset: number = line.indexOf("'");
         if (openBraceOffset != -1) {
           commentOffset = openBraceOffset;
-          const closeBraceOffset: number = line.indexOf("}", openBraceOffset + 1);
+          const closeBraceOffset: number = line.indexOf('}', openBraceOffset + 1);
           if (closeBraceOffset != -1) {
             lineHasComment = true;
             commentLength = closeBraceOffset - openBraceOffset + 1;
@@ -159,20 +165,20 @@ export class Spin1DocumentSymbolParser {
       }
 
       if (sectionStatus.isSectionStart) {
-        if (linePrefix == "CON" || linePrefix == "DAT" || linePrefix == "VAR" || linePrefix == "OBJ") {
+        if (linePrefix == 'CON' || linePrefix == 'DAT' || linePrefix == 'VAR' || linePrefix == 'OBJ') {
           // start CON/VAR/OBJ/DAT
-          let sectionComment = lineHasComment ? line.substr(commentOffset, commentLength) : "";
-          const blockSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + " " + sectionComment, "", lsp.SymbolKind.Field, lineRange);
+          const sectionComment = lineHasComment ? line.substr(commentOffset, commentLength) : '';
+          const blockSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + sectionComment, '', lsp.SymbolKind.Field, lineRange);
           this.setContainerSymbol(blockSymbol);
           // HANDLE label declaration on DAT line!
-          if (linePrefix == "DAT") {
+          if (linePrefix == 'DAT') {
             const lineParts: string[] = nonCommentLine.split(/[ \t]/).filter(Boolean);
             let posssibleLabel: string | undefined = undefined;
             if (lineParts.length >= 2) {
               // possibly have label, report it if we do
               posssibleLabel = lineParts[1];
               if (
-                posssibleLabel.toUpperCase().startsWith("ORG") ||
+                posssibleLabel.toUpperCase().startsWith('ORG') ||
                 this.parseUtils.isP1AsmEffect(posssibleLabel) ||
                 this.parseUtils.isP1AsmInstruction(posssibleLabel) ||
                 this.parseUtils.isP1AsmReservedSymbols(posssibleLabel)
@@ -182,38 +188,38 @@ export class Spin1DocumentSymbolParser {
                 posssibleLabel = undefined; // Nope!
               }
               if (posssibleLabel) {
-                const labelSymbol: OutLineSymbol = new OutLineSymbol(lineParts[1], "", lsp.SymbolKind.Constant, lineRange);
+                const labelSymbol: OutLineSymbol = new OutLineSymbol(lineParts[1], '', lsp.SymbolKind.Constant, lineRange);
                 if (this.containerDocSymbol) {
                   this.containerDocSymbol.addChild(labelSymbol);
                 }
               }
             }
           }
-        } else if (linePrefix == "PUB" || linePrefix == "PRI") {
+        } else if (linePrefix == 'PUB' || linePrefix == 'PRI') {
           // start PUB/PRI
-          let methodScope: string = "Public";
-          if (line.startsWith("PRI")) {
-            methodScope = "Private";
-          }
+          //let methodScope: string = 'Public';
+          //if (line.startsWith('PRI')) {
+          //  methodScope = 'Private';
+          //}
           let methodName: string = line.substr(3).trim();
           if (methodName.includes("'")) {
             // remove tic-single-line-comment
             const lineParts: string[] = methodName.split("'");
             methodName = lineParts[0].trim();
           }
-          if (methodName.includes("{")) {
+          if (methodName.includes('{')) {
             // remove brace-wrapped-comment
-            const lineParts: string[] = methodName.split("{");
+            const lineParts: string[] = methodName.split('{');
             methodName = lineParts[0].trim();
           }
-          if (methodName.includes("|")) {
+          if (methodName.includes('|')) {
             // remove local vars
-            const lineParts: string[] = methodName.split("|");
+            const lineParts: string[] = methodName.split('|');
             methodName = lineParts[0].trim();
           }
 
           // NOTE this changed to METHOD when we added global labels which are to be Functions!
-          const methodSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + " " + methodName, "", lsp.SymbolKind.Method, lineRange);
+          const methodSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + methodName, '', lsp.SymbolKind.Method, lineRange);
           this.setContainerSymbol(methodSymbol);
         }
       } else {
@@ -228,15 +234,15 @@ export class Spin1DocumentSymbolParser {
               global_label = this._getDAT_PasmDeclaration(0, line); // let's get possible label on this ORG statement
             }
           } else if (currState == eParseState.inDat) {
-            this._logMessage("    scan inDat Ln#" + (i + 1) + " nonCommentLine=[" + nonCommentLine + "]");
-            if (nonCommentLine.length > 6 && nonCommentLine.toUpperCase().includes("ORG")) {
+            this._logMessage('    scan inDat Ln#' + (i + 1) + ' nonCommentLine=[' + nonCommentLine + ']');
+            if (nonCommentLine.length > 6 && nonCommentLine.toUpperCase().includes('ORG')) {
               // ORG, ORGF, ORGH
               const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(nonCommentLine);
-              if (nonStringLine.toUpperCase().includes("ORG")) {
-                this._logMessage("  - pre-scan DAT line trimmedLine=[" + trimmedLine + "] now Dat PASM");
+              if (nonStringLine.toUpperCase().includes('ORG')) {
+                this._logMessage('  - pre-scan DAT line trimmedLine=[' + trimmedLine + '] now Dat PASM');
                 prePasmState = currState;
                 currState = eParseState.inDatPAsm;
-                this._logMessage("    scan START DATPasm Ln#" + (i + 1) + " PUSH currState=[" + prePasmState + "]");
+                this._logMessage('    scan START DATPasm Ln#' + (i + 1) + ' PUSH currState=[' + prePasmState + ']');
                 // and ignore rest of this line
                 global_label = this._getDAT_PasmDeclaration(0, line); // let's get possible label on this ORG statement
               }
@@ -247,7 +253,7 @@ export class Spin1DocumentSymbolParser {
           if (global_label) {
             // was Variable: sorta OK (image good, color bad)
             // was Constant: sorta OK (image good, color bad)   SAME
-            const labelSymbol: OutLineSymbol = new OutLineSymbol(global_label, "", lsp.SymbolKind.Constant, lineRange);
+            const labelSymbol: OutLineSymbol = new OutLineSymbol(global_label, '', lsp.SymbolKind.Constant, lineRange);
             if (this.containerDocSymbol) {
               this.containerDocSymbol.addChild(labelSymbol);
             } else {
@@ -285,39 +291,40 @@ export class Spin1DocumentSymbolParser {
     //         didShow             byte   FALSE[256]
     //                             byte   FALSE[256]
     let newGlobalLabel: string | undefined = undefined;
-    let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
+    const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const dataDeclNonCommentStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    let lineParts: string[] = this.parseUtils.getNonWhiteNParenLineParts(dataDeclNonCommentStr);
+    const lineParts: string[] = this.parseUtils.getNonWhiteNParenLineParts(dataDeclNonCommentStr);
     this._logMessage(`- Oln GetDatDecl lineParts=[${lineParts}](${lineParts.length})`);
-    let haveMoreThanDat: boolean = lineParts.length > 1 && lineParts[0].toUpperCase() == "DAT";
-    if (haveMoreThanDat || (lineParts.length > 0 && lineParts[0].toUpperCase() != "DAT")) {
+    const haveMoreThanDat: boolean = lineParts.length > 1 && lineParts[0].toUpperCase() == 'DAT';
+    if (haveMoreThanDat || (lineParts.length > 0 && lineParts[0].toUpperCase() != 'DAT')) {
       // remember this object name so we can annotate a call to it
       let nameIndex: number = 0;
       let typeIndex: number = 1;
       let maxParts: number = 2;
-      if (lineParts[0].toUpperCase() == "DAT") {
+      if (lineParts[0].toUpperCase() == 'DAT') {
         nameIndex = 1;
         typeIndex = 2;
         maxParts = 3;
       }
-      let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[nameIndex]);
-      const isDataDeclarationLine: boolean = lineParts.length > maxParts - 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[typeIndex]) ? true : false;
-      let lblFlag: string = haveLabel ? "T" : "F";
-      let dataDeclFlag: string = isDataDeclarationLine ? "T" : "F";
-      this._logMessage("- Oln GetDatDecl lineParts=[" + lineParts + "](" + lineParts.length + ") label=" + lblFlag + ", daDecl=" + dataDeclFlag);
+      const haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[nameIndex]);
+      const isDataDeclarationLine: boolean =
+        lineParts.length > maxParts - 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[typeIndex]) ? true : false;
+      const lblFlag: string = haveLabel ? 'T' : 'F';
+      const dataDeclFlag: string = isDataDeclarationLine ? 'T' : 'F';
+      this._logMessage('- Oln GetDatDecl lineParts=[' + lineParts + '](' + lineParts.length + ') label=' + lblFlag + ', daDecl=' + dataDeclFlag);
       if (haveLabel) {
-        let newName = lineParts[nameIndex];
+        const newName = lineParts[nameIndex];
         if (
-          !newName.toLowerCase().startsWith("debug") &&
+          !newName.toLowerCase().startsWith('debug') &&
           !this.parseUtils.isP1AsmReservedWord(newName) &&
           !this.parseUtils.isSpinReservedWord(newName) &&
           !this.parseUtils.isSpinBuiltInVariable(newName) &&
           !this.parseUtils.isBuiltinReservedWord(newName)
         ) {
-          if (!isDataDeclarationLine && !newName.startsWith(".") && !newName.startsWith(":") && !newName.includes("#")) {
+          if (!isDataDeclarationLine && !newName.startsWith('.') && !newName.startsWith(':') && !newName.includes('#')) {
             newGlobalLabel = newName;
-            this._logMessage("  -- Oln GLBL gddcl newName=[" + newGlobalLabel + "]");
+            this._logMessage('  -- Oln GLBL gddcl newName=[' + newGlobalLabel + ']');
           }
         }
       }
@@ -329,26 +336,26 @@ export class Spin1DocumentSymbolParser {
     // HAVE    bGammaEnable        BYTE   TRUE               ' comment
     //         didShow             byte   FALSE[256]
     let newGlobalLabel: string | undefined = undefined;
-    let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
+    const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const datPasmRHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     if (datPasmRHSStr.length > 0) {
       const lineParts: string[] = this.parseUtils.getNonWhiteNParenLineParts(datPasmRHSStr);
-      this._logMessage("- Oln GetPasmDatDecl lineParts=[" + lineParts + "](" + lineParts.length + ")");
+      this._logMessage('- Oln GetPasmDatDecl lineParts=[' + lineParts + '](' + lineParts.length + ')');
       // handle name in 1 column
-      let haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
+      const haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
       const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-      if (haveLabel && !isDataDeclarationLine && !lineParts[0].startsWith(".") && !lineParts[0].startsWith(":") && !lineParts[0].includes("#")) {
+      if (haveLabel && !isDataDeclarationLine && !lineParts[0].startsWith('.') && !lineParts[0].startsWith(':') && !lineParts[0].includes('#')) {
         const labelName: string = lineParts[0];
         if (
           !this.parseUtils.isP1AsmReservedSymbols(labelName) &&
-          !labelName.toUpperCase().startsWith("IF_") &&
-          !labelName.toUpperCase().startsWith("_RET_") &&
-          !labelName.toUpperCase().startsWith("DEBUG")
+          !labelName.toUpperCase().startsWith('IF_') &&
+          !labelName.toUpperCase().startsWith('_RET_') &&
+          !labelName.toUpperCase().startsWith('DEBUG')
         ) {
           // org in first column is not label name, nor is if_ conditional
           newGlobalLabel = labelName;
-          this._logMessage("  -- DAT Oln PASM GLBL newGlobalLabel=[" + newGlobalLabel + "]");
+          this._logMessage('  -- DAT Oln PASM GLBL newGlobalLabel=[' + newGlobalLabel + ']');
         }
       }
     }
