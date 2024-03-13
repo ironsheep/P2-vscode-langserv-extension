@@ -18,6 +18,12 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.15] 2024-01-11
+
+Update P2 Only
+
+- Add support for v44 new built-in method names
+
 ## [2.2.14] 2024-01-11
 
 Update P1 & P2

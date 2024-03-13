@@ -2287,6 +2287,29 @@ export class Spin2ParseUtils {
     ]
   };
 
+  private _tableSpinEnhancements_v44: { [Identifier: string]: string[] } = {
+    // NOTE: this does NOT support signature help! (paramaters are not highlighted for signature help due to variant forms for string() being allowed)
+    byteswap: ['BYTESWAP(AddrA, AddrB, Count) : Match', 'Swap Count bytes of data starting at AddrA and AddrB.'],
+    wordswap: ['WORDSWAP(AddrA, AddrB, Count) : Match', 'Swap Count words of data starting at AddrA and AddrB.'],
+    longswap: ['LONGSWAP(AddrA, AddrB, Count) : Match', 'Swap Count longs of data starting at AddrA and AddrB.'],
+    bytecomp: [
+      'BYTECOMP(AddrA, AddrB, Count) : Match',
+      'Compare Count bytes of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.'
+    ],
+    wordcomp: [
+      'WORDCOMP(AddrA, AddrB, Count) : Match',
+      'Compare Count words of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.'
+    ],
+    longcomp: [
+      'LONGCOMP(AddrA, AddrB, Count) : Match',
+      'Compare Count longs of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.'
+    ],
+    fill: ['FILL(StructA, ByteValue)', 'Fill StructA with ByteValue.'],
+    copy: ['COPY(StructA, StructB)', 'Copy contents of StructB into StructA.'],
+    swap: ['SWAP(StructA, StructB)', 'Swap contents of StructA and StructB.'],
+    comp: ['COMP(StructA, StructB) : Match', 'Compare contents of StructA and StructB, return -1 if match or 0 if mismatch.']
+  };
+
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
     // NOTE: this does NOT support signature help! (paramaters are not highlighted for signature help due to ':' being param separater)
     lookup: [
@@ -2351,6 +2374,10 @@ export class Spin2ParseUtils {
                       if (!reservedStatus && this.requestedSpinVersion(43)) {
                         // if {Spin2_v43} or greater then also search this table
                         reservedStatus = nameKey in this._tableSpinEnhancements_v43;
+                        if (!reservedStatus && this.requestedSpinVersion(44)) {
+                          // if {Spin2_v44} or greater then also search this table
+                          reservedStatus = nameKey in this._tableSpinEnhancements_v44;
+                        }
                       }
                     }
                   }
@@ -2405,6 +2432,10 @@ export class Spin2ParseUtils {
         // if {Spin2_v43} or greater then also search this table
         desiredDocText.category = 'String Method';
         protoWDescr = this._tableSpinEnhancements_v43[nameKey];
+      } else if (this.requestedSpinVersion(44) && nameKey in this._tableSpinEnhancements_v44) {
+        // if {Spin2_v44} or greater then also search this table
+        desiredDocText.category = 'String Method';
+        protoWDescr = this._tableSpinEnhancements_v44[nameKey];
       } else if (nameKey in this._tableSpinIndexValueMethods) {
         desiredDocText.category = 'Hub Method';
         protoWDescr = this._tableSpinIndexValueMethods[nameKey];
