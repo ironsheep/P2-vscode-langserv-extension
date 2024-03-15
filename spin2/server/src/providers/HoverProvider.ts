@@ -19,7 +19,7 @@ import { eBuiltInType, isMethodCall } from '../parser/spin.common';
 import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class HoverProvider implements Provider {
-  private hoverLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private hoverLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private symbolsFound: DocumentFindings = new DocumentFindings(); // this gets replaced

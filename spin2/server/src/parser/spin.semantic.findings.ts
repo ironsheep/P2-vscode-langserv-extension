@@ -6,7 +6,6 @@ import { displayEnumByTypeName } from './spin2.utils';
 import { eDebugDisplayType } from './spin.common';
 import { Context } from '../context';
 import { Position } from 'vscode-languageserver-textdocument';
-//import { PortMessageReader } from 'vscode-languageserver/node';
 
 // ============================================================================
 //  this file contains objects we use in tracking symbol use and declaration
@@ -36,6 +35,15 @@ export enum eDefinitionType {
   LocalLabel,
   GlobalLabel,
   NonLabel
+}
+
+export enum ePreprocessState {
+  PPS_Unknown,
+  PPS_IFDEF,
+  PPS_IFNDEF,
+  PPS_ELSE,
+  PPS_ELSEIFDEF,
+  PPS_ENDIF
 }
 
 // search comment type: non-doc only, doc-only, or mixed
@@ -159,6 +167,16 @@ export class DocumentFindings {
   private declarationLineCache = new Map<number, string>();
   private declarationGlobalLabelListCache: number[] = [];
   private declarationLocalLabelLineCache = new Map<string, number[]>(); // line numbers by localLabelName
+
+  //  tracking preprocessor code enable state
+  private disabledLines: Range[] = [];
+  private preProcSymbols: string[] = [];
+  private inPreProcIfStatement: boolean = false;
+  // [isLineEnabled] tracks current state
+  //  when this changes from false to true we record a range of disabled lines into [disabledLines]
+  private preProcNestDepth: number = 0; // > 0 if we are in #if statement
+  private isLineEnabled: boolean[] = [true]; // we start enabled
+  private startingDisabledLineNbr: number[] = [-1];
 
   // tracking of Spin Code Blocks
   private priorBlockType: eBLockType = eBLockType.Unknown;
@@ -289,6 +307,183 @@ export class DocumentFindings {
   }
 
   // -------------------------------------------------------------------------------------
+  //  TRACK Proprocessor declarations and conditional code ranges
+  //
+
+  public preProcDisabledRanges(): Range[] {
+    return this.disabledLines;
+  }
+
+  public preProcIsLineDisabled(lineNbr: number): boolean {
+    let isDisabledStatus: boolean = false;
+    for (const disabledRange of this.disabledLines) {
+      if (lineNbr >= disabledRange.start.line && lineNbr <= disabledRange.end.line) {
+        isDisabledStatus = true;
+        break;
+      }
+    }
+    if (!isDisabledStatus && this.inPreProcIfStatement && this.isLineEnabled[this.preProcNestDepth] == false) {
+      isDisabledStatus = true;
+    }
+    return isDisabledStatus;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public preProcRecordConditionalSymbol(symbolName: string, line: string, lineNbr: number) {
+    // record a new preprossor symbol for #ifdef check
+    this._logMessage(
+      `* [PreProc] ADD SYM?  nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), isLineEnabled=(${
+        this.isLineEnabled[this.preProcNestDepth]
+      }), at ln#${lineNbr}`
+    );
+    if (!this.inPreProcIfStatement || (this.inPreProcIfStatement = true && this.isLineEnabled[this.preProcNestDepth] == true)) {
+      this.preProcDefineSymbol(symbolName);
+    }
+  }
+
+  public preProcRecordConditionChange(directive: ePreprocessState, symbolName: string = '', line: string, lineNbr: number) {
+    // handle preprocessor state transition
+    this._logMessage(`* [PreProc] rcdCondChg() [${ePreprocessState[directive]}], symbol=[${symbolName}], ln#${lineNbr}`);
+    switch (directive) {
+      case ePreprocessState.PPS_IFDEF:
+        {
+          // if symbol is defined, enable lines after this one, else disable lines after this one
+          // ensure we are nesting if already in ifdef
+          const priorDepth: number = this.preProcNestDepth;
+          this.preProcNestDepth = this.inPreProcIfStatement ? this.preProcNestDepth + 1 : 0;
+          this.inPreProcIfStatement = true;
+          // at new depth?, initialize it!
+          if (priorDepth != this.preProcNestDepth) {
+            this.isLineEnabled[this.preProcNestDepth] = true;
+            this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
+          }
+          this._logMessage(`* [PreProc] IFDEF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`);
+          // now handle ifdef
+          if (this.preProcSymbolIsDefined(symbolName)) {
+            this.preProcEnableLinesFrom(line, lineNbr);
+          } else {
+            this.preProcDisableLinesFrom(line, lineNbr + 1);
+          }
+        }
+        break;
+      case ePreprocessState.PPS_IFNDEF:
+        {
+          // ensure we are nesting if already in ifdef
+          const priorDepth: number = this.preProcNestDepth;
+          this.preProcNestDepth = this.inPreProcIfStatement ? this.preProcNestDepth + 1 : 0;
+          this.inPreProcIfStatement = true;
+          if (priorDepth != this.preProcNestDepth) {
+            this.isLineEnabled[this.preProcNestDepth] = true;
+            this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
+          }
+          this._logMessage(`* [PreProc] IFNDEF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`);
+          // now handle ifndef
+          if (!this.preProcSymbolIsDefined(symbolName)) {
+            this.preProcEnableLinesFrom(line, lineNbr);
+          } else {
+            this.preProcDisableLinesFrom(line, lineNbr + 1);
+          }
+        }
+        break;
+      case ePreprocessState.PPS_ENDIF:
+        this.preProcEnableLinesFrom(line, lineNbr);
+        this.preProcNestDepth = this.preProcNestDepth > 0 ? this.preProcNestDepth - 1 : 0;
+        this.inPreProcIfStatement = this.preProcNestDepth > 0 ? true : false;
+        this.isLineEnabled[this.preProcNestDepth] = true;
+        this._logMessage(`* [PreProc] ENDIF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`);
+        break;
+      case ePreprocessState.PPS_ELSE:
+        // invert current enable state
+        this.preProcInvertEnableLinesFrom(line, lineNbr);
+        break;
+      case ePreprocessState.PPS_ELSEIFDEF:
+        // end prior
+        // start new ifdef
+        if (this.preProcSymbolIsDefined(symbolName)) {
+          // is defined, set new enable state
+          this.preProcEnableLinesFrom(line, lineNbr);
+        } else {
+          // NOT defined so just invert state
+          this.preProcInvertEnableLinesFrom(line, lineNbr);
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  private preProcEnableLinesFrom(line: string, lineNbr: number) {
+    // BEGIN a set of enabled lines
+    this._logMessage(`* [PreProc] ENABLE from ln#${lineNbr}`);
+    if (this.isLineEnabled[this.preProcNestDepth] == false) {
+      // record prior disabled range of lines
+      const startPosn: Position = { line: this.startingDisabledLineNbr[this.preProcNestDepth], character: 0 };
+      const endPosn: Position = { line: lineNbr - 1, character: 0 };
+      const newDisableEntry: Range = { start: startPosn, end: endPosn };
+      this.disabledLines.push(newDisableEntry);
+      const itemNbr: number = this.disabledLines.length;
+      this._logMessage(
+        `* [PreProc] NEW Disable #${itemNbr} Range([${startPosn.line},${startPosn.character}], [${endPosn.line}, ${endPosn.character}])(${
+          endPosn.line - startPosn.line + 1
+        })`
+      );
+    }
+    this.isLineEnabled[this.preProcNestDepth] = true;
+  }
+
+  private preProcDisableLinesFrom(line: string, lineNbr: number) {
+    this._logMessage(`* [PreProc] DISABLE from ln#${lineNbr}`);
+    // BEGIN a set of disabled lines
+    if (this.isLineEnabled[this.preProcNestDepth] == false) {
+      // error!!! LOG THIS!
+      this._logMessage(
+        `ERROR: [PreProc] want to disable but ALREADY IS! line=[${line}](${lineNbr}) disabled at Ln#${
+          this.startingDisabledLineNbr[this.preProcNestDepth]
+        }`
+      );
+    } else {
+      this.isLineEnabled[this.preProcNestDepth] = false;
+      this.startingDisabledLineNbr[this.preProcNestDepth] = lineNbr;
+    }
+  }
+
+  private preProcInvertEnableLinesFrom(line: string, lineNbr: number) {
+    if (this.isLineEnabled[this.preProcNestDepth]) {
+      // enabled, disable
+      this.preProcDisableLinesFrom(line, lineNbr + 1);
+    } else {
+      // disabled, enable
+      this.preProcEnableLinesFrom(line, lineNbr);
+    }
+  }
+
+  private preProcDefineSymbol(symbolName: string) {
+    const symbolKey: string = symbolName.toUpperCase();
+    const currSymbolCount: number = this.preProcSymbols.length;
+    if (symbolKey.length > 0) {
+      if (!this.preProcSymbols.includes(symbolKey)) {
+        this.preProcSymbols.push(symbolKey);
+        this._logMessage(`* [PreProc] ADD symbol=[${symbolName}](${symbolName.length})`);
+      }
+    }
+    if (currSymbolCount == this.preProcSymbols.length) {
+      this._logMessage(`ERROR: [PreProc] FAILED to define new symbol=[${symbolName}](${symbolName.length})`);
+    }
+  }
+
+  private preProcSymbolIsDefined(symbolName: string): boolean {
+    let foundSymbolStatus: boolean = false;
+    const symbolKey: string = symbolName.toUpperCase();
+    if (symbolKey.length > 0) {
+      if (this.preProcSymbols.includes(symbolKey)) {
+        foundSymbolStatus = true;
+      }
+    }
+    return foundSymbolStatus;
+  }
+
+  // -------------------------------------------------------------------------------------
   //  TRACK Diagnistic Messages found during parse of file
   //
   public allDiagnosticMessages(messageCountMax: number): Diagnostic[] {
@@ -346,34 +541,38 @@ export class DocumentFindings {
 
   public pushDiagnosticMessage(lineIdx: number, startChar: number, endChar: number, severity: eSeverity, message: string): void {
     // record a new diagnostic message
-    let severityStr: string = '??severity??';
-    if (this.findingsLogEnabled) {
-      switch (severity) {
-        case eSeverity.Error: {
-          severityStr = 'ERROR';
-          break;
-        }
-        case eSeverity.Warning: {
-          severityStr = 'WARNING';
-          break;
-        }
-        case eSeverity.Hint: {
-          severityStr = 'HINT';
-          break;
-        }
-        case eSeverity.Information: {
-          severityStr = 'INFORMATION';
-          break;
+    // NEW if is for disabled line, ignore it!
+    const lineNbr: number = lineIdx + 1;
+    if (!this.preProcIsLineDisabled(lineNbr)) {
+      let severityStr: string = '??severity??';
+      if (this.findingsLogEnabled) {
+        switch (severity) {
+          case eSeverity.Error: {
+            severityStr = 'ERROR';
+            break;
+          }
+          case eSeverity.Warning: {
+            severityStr = 'WARNING';
+            break;
+          }
+          case eSeverity.Hint: {
+            severityStr = 'HINT';
+            break;
+          }
+          case eSeverity.Information: {
+            severityStr = 'INFORMATION';
+            break;
+          }
         }
       }
-    }
-    if (startChar == -1 || endChar == -1) {
-      this._logMessage(`ERROR(BAD) DIAGNOSIS SKIPPED - ${severityStr}(${lineIdx + 1})[${startChar} - ${endChar}]: [${message}]`);
-    } else {
-      const location: Range = Range.create(lineIdx, startChar, lineIdx, endChar);
-      const diagnosis: DiagnosticReport = new DiagnosticReport(message, severity, location);
-      this.diagnosticMessages.push(diagnosis);
-      this._logMessage(`Add DIAGNOSIS - ${severityStr}(${lineIdx + 1})[${startChar}-${endChar}]: [${message}]`);
+      if (startChar == -1 || endChar == -1) {
+        this._logMessage(`ERROR(BAD) DIAGNOSIS SKIPPED - ${severityStr}(${lineIdx + 1})[${startChar} - ${endChar}]: [${message}]`);
+      } else {
+        const location: Range = Range.create(lineIdx, startChar, lineIdx, endChar);
+        const diagnosis: DiagnosticReport = new DiagnosticReport(message, severity, location);
+        this.diagnosticMessages.push(diagnosis);
+        this._logMessage(`Add DIAGNOSIS - ${severityStr}(${lineIdx + 1})[${startChar}-${endChar}]: [${message}]`);
+      }
     }
   }
 
@@ -477,6 +676,10 @@ export class DocumentFindings {
       return 0;
     });
     return sortedArray;
+  }
+
+  public clearSemanticTokens() {
+    this.semanticTokens = [];
   }
 
   public pushSemanticToken(newToken: IParsedToken) {
@@ -1343,23 +1546,28 @@ export class DocumentFindings {
 
   public setGlobalToken(tokenName: string, token: RememberedToken, declarationComment: string | undefined, reference?: string | undefined): void {
     // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
-    //   this allows go-to to get to nearest earlier than right-mouse line
-    const isLocalLabel: boolean = (tokenName.startsWith('.') || tokenName.startsWith(':')) && token.type === 'label';
-    if (!this.isGlobalToken(tokenName)) {
-      this._logMessage(
-        '  -- NEW-gloTOK ' +
-          this._rememberdTokenString(tokenName, token) +
-          `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}], ref=[${reference}]`
-      );
-      this.globalTokens.setToken(tokenName, token);
-      // and remember declataion line# for this token
-      const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment, reference);
-      const desiredTokenKey: string = tokenName.toLowerCase();
-      this.declarationInfoByGlobalTokenName.set(desiredTokenKey, newDescription);
-    }
-    // NEW record line numbers for local labels
-    if (isLocalLabel) {
-      this.trackLocalTokenLineNbr(tokenName, token.lineIndex);
+    const tokenLineNbr: number = token.lineIndex + 1;
+    if (!this.preProcIsLineDisabled(tokenLineNbr)) {
+      //   this allows go-to to get to nearest earlier than right-mouse line
+      const isLocalLabel: boolean = (tokenName.startsWith('.') || tokenName.startsWith(':')) && token.type === 'label';
+      if (!this.isGlobalToken(tokenName)) {
+        this._logMessage(
+          '  -- NEW-gloTOK ' +
+            this._rememberdTokenString(tokenName, token) +
+            `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}], ref=[${reference}]`
+        );
+        this.globalTokens.setToken(tokenName, token);
+        // and remember declataion line# for this token
+        const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment, reference);
+        const desiredTokenKey: string = tokenName.toLowerCase();
+        this.declarationInfoByGlobalTokenName.set(desiredTokenKey, newDescription);
+      }
+      // NEW record line numbers for local labels
+      if (isLocalLabel) {
+        this.trackLocalTokenLineNbr(tokenName, token.lineIndex);
+      }
+    } else {
+      this._logMessage(`* SKIP token setGLobal for disabled ln#(${tokenLineNbr}) token=[${this._rememberdTokenString(tokenName, token)}]`);
     }
   }
 

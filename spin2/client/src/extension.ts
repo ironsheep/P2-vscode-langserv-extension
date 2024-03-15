@@ -539,10 +539,10 @@ function typeCommand(args: { text: string }) {
   if (editor != undefined) {
     editMode = getMode(editor);
   }
-  if (editor != undefined && tabFormatter.isEnbled() && editMode == eEditMode.OVERTYPE) {
+  if (editor !== undefined && tabFormatter.isEnbled() && editMode == eEditMode.OVERTYPE) {
     logExtensionMessage('* OVERTYPE type');
     overtypeBeforeType(editor, args.text, false);
-  } else if (editor != undefined && tabFormatter.isEnbled() && editMode == eEditMode.ALIGN) {
+  } else if (editor !== undefined && tabFormatter.isEnbled() && editMode == eEditMode.ALIGN) {
     tabFormatter.alignBeforeType(editor, args.text, false);
   } else {
     //logExtensionMessage("* VSCode type");
@@ -553,7 +553,7 @@ function typeCommand(args: { text: string }) {
 function deleteLeftCommand() {
   const editor = vscode.window.activeTextEditor;
   logExtensionMessage('* deleteLeft');
-  let bAlignEdit: boolean = editor != undefined && tabFormatter.isEnbled();
+  let bAlignEdit: boolean = editor !== undefined && tabFormatter.isEnbled();
   if (editor != undefined) {
     const editMode = getMode(editor);
     if (editMode != eEditMode.ALIGN) {

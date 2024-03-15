@@ -45,6 +45,7 @@ export default class SemanticTokensProvider implements Provider {
 
   private tokenModifiersLegend = [
     'declaration',
+    'disabled',
     'documentation',
     'readonly',
     'static',

@@ -915,9 +915,19 @@
       "foreground": "#d83333"
     },
     "*.illegalUse": {
-      // keywords/variables in bad places
-      "foreground": "#ff0000",
-      "fontStyle": "bold"
-    }
+		// keywords/variables in bad places
+		"foreground": "#ff0000",
+		"fontStyle": "bold"
+	},
+	"*.disabled": {
+	// disabled lines of code
+	// was: #FFA500 orange
+	// was: #FFD8A8 pastel orange
+	// was: #9F8769 pastel orange of 62.5%
+	// want grey at 62.5% brightness: #9f9f9f
+	// want grey at 50% brightness: #808080
+	// still too light...: #787878
+	"foreground": "#747474",
+	},
   }
 }

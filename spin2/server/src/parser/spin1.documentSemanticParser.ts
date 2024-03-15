@@ -98,6 +98,7 @@ export class Spin1DocumentSemanticParser {
 
     // retrieve tokens to highlight, post to DocumentFindings
     const allTokens = this._parseText(document.getText());
+    this.semanticFindings.clearSemanticTokens();
     allTokens.forEach((token) => {
       // prevent crash in server and emit debug so we can find problem
       this.semanticFindings.pushSemanticToken(token);
@@ -225,6 +226,12 @@ export class Spin1DocumentSemanticParser {
           }
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment`);
+          // if NO more code on line after close then skip line
+          const tempLine: string = lineWOutInlineComments.substring(closingOffset + 1).trim();
+          if (tempLine.length == 0) {
+            this._logMessage(`* SKIP MultiLineComment Ln#${i + 1} lineWOutInlineComments=[${lineWOutInlineComments}]`);
+            continue;
+          }
         } else {
           // add line to the comment recording
           currBlockComment?.appendLine(line);
@@ -539,6 +546,12 @@ export class Spin1DocumentSemanticParser {
           // have close, comment ended
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment`);
+          // if NO more code on line after close then skip line
+          const tempLine: string = lineWOutInlineComments.substring(closingOffset + 1).trim();
+          if (tempLine.length == 0) {
+            this._logMessage(`* SKIP MultiLineComment Ln#${i + 1} trimmedNonCommentLine=[${trimmedNonCommentLine}]`);
+            continue;
+          }
         } else {
           continue; // only SKIP if we don't have closing marker
         }
@@ -553,9 +566,16 @@ export class Spin1DocumentSemanticParser {
           this._logMessage(`    FOUND '}' Ln#${lineNbr} trimmedLine=[${trimmedLine}]`);
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment`);
+          // if NO more code on line after close then skip line
+          const tempLine: string = lineWOutInlineComments.substring(closingOffset + 1).trim();
+          if (tempLine.length == 0) {
+            this._logMessage(`* SKIP MultiLineComment Ln#${i + 1} lineWOutInlineComments=[${lineWOutInlineComments}]`);
+            continue;
+          }
         } else {
           continue; // only SKIP if we don't have closing marker
         }
+        //  DO NOTHING Let Syntax highlighting do this
       } else if (lineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
         const partialTokenSet: IParsedToken[] = this._reportFlexspinPreProcessorLine(i, 0, line);
         partialTokenSet.forEach((newToken) => {
@@ -829,7 +849,7 @@ export class Spin1DocumentSemanticParser {
         const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
         if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
           // check a valid preprocessor line for a declaration
-          if (symbolName != undefined && directive.toLowerCase() == '#define') {
+          if (symbolName !== undefined && directive.toLowerCase() == '#define') {
             this._logPreProc('  -- new PreProc Symbol=[' + symbolName + ']');
             const nameOffset = line.indexOf(symbolName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
             this.semanticFindings.recordDeclarationLine(line, lineNbr);
@@ -3625,7 +3645,7 @@ export class Spin1DocumentSemanticParser {
   private _checkTokenSet(tokenSet: IParsedToken[]): void {
     this._logMessage('\n---- Checking ' + tokenSet.length + ' tokens. ----');
     tokenSet.forEach((parsedToken) => {
-      if (parsedToken.length == undefined || parsedToken.startCharacter == undefined) {
+      if (parsedToken.length === undefined || parsedToken.startCharacter === undefined) {
         this._logMessage('- BAD Token=[' + parsedToken + ']');
       }
     });
