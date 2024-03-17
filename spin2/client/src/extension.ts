@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict';
 // src/extensions.ts
-
+/* eslint-disable no-console */ // allow console writes from this file
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -91,7 +91,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       try {
         // and test it!
         docGenerator.generateDocument();
-        docGenerator.showDocument();
+        docGenerator.showDocument('.txt');
       } catch (error) {
         await vscode.window.showErrorMessage('Document Generation Problem');
         console.error(error);
@@ -99,6 +99,28 @@ function registerCommands(context: vscode.ExtensionContext): void {
     })
   );
 
+  // ----------------------------------------------------------------------------
+  //   Hook GENERATE Object Hierarchy Document
+  //
+  const generateHierarchyFileCommand: string = 'spinExtension.generate.hierarchy.file';
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(generateHierarchyFileCommand, async () => {
+      docGenerator.logMessage('* generateHierarchyFileCommand');
+      try {
+        // and test it!
+        docGenerator.generateHierarchyDocument();
+        docGenerator.showDocument('.readme.txt');
+      } catch (error) {
+        await vscode.window.showErrorMessage('Hierarchy Generation Problem');
+        console.error(error);
+      }
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook ...
+  //
   const statusBarItem: vscode.StatusBarItem = createStatusBarItem();
   handleActiveTextEditorChanged(); // now show or hide based upon current/active window
 

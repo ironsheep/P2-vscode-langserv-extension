@@ -18,5 +18,9 @@
     "**/node_modules": true,
     "**/out": true
   },
-  "explorerExclude.backup": {}
+"explorerExclude.backup": {},
+"cSpell.enableFiletypes": [
+	"!json",
+	"!typescript"
+]
 }

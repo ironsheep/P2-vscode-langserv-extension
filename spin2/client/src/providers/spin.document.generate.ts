@@ -40,6 +40,9 @@ export class DocGenerator {
     }
   }
 
+  // ----------------------------------------------------------------------------
+  //   Hook GENERATE PUB/PRI doc comment
+  //
   public insertDocComment(document: vscode.TextDocument, selections: readonly vscode.Selection[]): vscode.ProviderResult<vscode.TextEdit[]> {
     return selections
       .map((selection) => {
@@ -204,6 +207,9 @@ export class DocGenerator {
     return desiredDocComment;
   }
 
+  // ----------------------------------------------------------------------------
+  //   Hook GENERATE Object Public Interface Document
+  //
   public generateDocument(): void {
     const textEditor = vscode.window.activeTextEditor;
     if (textEditor) {
@@ -495,7 +501,7 @@ export class DocGenerator {
     return docComment;
   }
 
-  async showDocument() {
+  async showDocument(reportFileType: string) {
     const textEditor = vscode.window.activeTextEditor;
     if (textEditor) {
       const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
@@ -515,7 +521,7 @@ export class DocGenerator {
         }
       }
       if (isSpinFile) {
-        const docFilename: string = currentlyOpenTabfileName.replace(fileType, '.txt');
+        const docFilename: string = currentlyOpenTabfileName.replace(fileType, reportFileType);
         //this.logMessage(`+ (DBG) generateDocument() outFn-(${docFilename})`);
         const outFSpec = path.join(currentlyOpenTabfolderName, docFilename);
         //this.logMessage(`+ (DBG) generateDocument() outFSpec-(${outFSpec})`);
@@ -526,5 +532,98 @@ export class DocGenerator {
         });
       }
     }
+  }
+
+  // ----------------------------------------------------------------------------
+  //   Hook GENERATE Object Hierarchy Document
+  //
+  public generateHierarchyDocument(): void {
+    const textEditor = vscode.window.activeTextEditor;
+    if (textEditor) {
+      const endOfLineStr: string = textEditor.document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
+      const bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
+
+      const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
+      const currentlyOpenTabfolderName = path.dirname(currentlyOpenTabfilePath);
+      const currentlyOpenTabfileName = path.basename(currentlyOpenTabfilePath);
+      this.logMessage(`+ (DBG) generateHierarchyDocument() fsPath-(${currentlyOpenTabfilePath})`);
+      this.logMessage(`+ (DBG) generateHierarchyDocument() folder-(${currentlyOpenTabfolderName})`);
+      this.logMessage(`+ (DBG) generateHierarchyDocument() filename-(${currentlyOpenTabfileName})`);
+      let isSpinFile: boolean = isSpin2File(currentlyOpenTabfileName);
+      let isSpin1: boolean = false;
+      let fileType: string = '.spin2';
+      if (!isSpinFile) {
+        isSpinFile = isSpin1File(currentlyOpenTabfileName);
+        if (isSpinFile) {
+          isSpin1 = true;
+          fileType = '.spin';
+        }
+      }
+      if (isSpinFile) {
+        const objectName: string = currentlyOpenTabfileName.replace(fileType, '');
+        const docFilename: string = currentlyOpenTabfileName.replace(fileType, '.readme.txt');
+        this.logMessage(`+ (DBG) generateHierarchyDocument() outFn-(${docFilename})`);
+        const outFSpec = path.join(currentlyOpenTabfolderName, docFilename);
+        this.logMessage(`+ (DBG) generateHierarchyDocument() outFSpec-(${outFSpec})`);
+
+        const outFile = fs.openSync(outFSpec, 'w');
+
+        const rptHoriz: string = '─';
+        const rptVert: string = '│';
+        const rptTeeRight: string = '├';
+        const rptElbow: string = '└';
+
+        // add generation here
+
+        // write report title
+        const rptTitle: string = 'Parallax Propeller Chip Object Hierarchy';
+        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${endOfLineStr}`); // horizontal line
+        fs.appendFileSync(outFile, `${rptTitle}${endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${endOfLineStr}`); // horizontal line
+        fs.appendFileSync(outFile, `${endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, ` Project :  "${objectName}"${endOfLineStr}${endOfLineStr}`);
+        fs.appendFileSync(outFile, `Reported :  ${this.reportDateString()}${endOfLineStr}${endOfLineStr}`);
+        const versionStr: string = this.extensionVersionString();
+        fs.appendFileSync(outFile, `    Tool :  VSCode Spin2 Extension ${versionStr} ${endOfLineStr}${endOfLineStr}`);
+        fs.appendFileSync(outFile, `${endOfLineStr}`); // blank line
+
+        // FIXME: TODO: get object tree from ObjectTreeProvider (may have to add supporting code therein)
+        // thne report on object tree obtained
+
+        fs.appendFileSync(outFile, `${endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, `${endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${endOfLineStr}`); // horizontal line
+        fs.closeSync(outFile);
+      } else {
+        this.logMessage(`+ (DBG) generateHierarchyDocument() NOT a spin file! can't generate doc.`);
+      }
+    } else {
+      this.logMessage(`+ (DBG) generateHierarchyDocument() NO active editor.`);
+    }
+  }
+
+  private extensionVersionString(): string {
+    // return the version string of this extension
+    const extension = vscode.extensions.getExtension('spin2');
+    const version: string = extension?.packageJSON.version;
+
+    return version; // the version of the extension
+  }
+
+  private reportDateString(): string {
+    const date = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: true
+    };
+
+    const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
+    return formattedDate; // Prints: "Saturday, January 13, 2024 at 6:50:29 PM"
   }
 }
