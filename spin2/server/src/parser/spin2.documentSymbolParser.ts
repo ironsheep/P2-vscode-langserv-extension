@@ -15,7 +15,7 @@ import { eParseState } from './spin.common';
 //    the DocumentFindings object assiciated with this file
 //
 export class Spin2DocumentSymbolParser {
-  private spin2OutlineLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private parseUtils = new Spin2ParseUtils();
@@ -23,7 +23,7 @@ export class Spin2DocumentSymbolParser {
   private symbolsFound: DocumentFindings | undefined = undefined;
 
   public constructor(protected readonly ctx: Context) {
-    if (this.spin2OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -39,7 +39,7 @@ export class Spin2DocumentSymbolParser {
     let priorState: eParseState = currState;
     let prePasmState: eParseState = currState;
     this.symbolsFound = findings;
-    if (this.spin2OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       this.symbolsFound.enableLogging(this.ctx);
     }
 
@@ -308,7 +308,7 @@ export class Spin2DocumentSymbolParser {
   }
 
   private _logMessage(message: string): void {
-    if (this.spin2OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }

@@ -19,7 +19,7 @@ import { eBuiltInType, isMethodCall } from '../parser/spin.common';
 import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class HoverProvider implements Provider {
-  private hoverLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private symbolsFound: DocumentFindings = new DocumentFindings(); // this gets replaced
@@ -28,8 +28,8 @@ export default class HoverProvider implements Provider {
   private spin1File: boolean = false;
 
   constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.hoverLogEnabled);
-    if (this.hoverLogEnabled) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         this._logMessage('Spin Hover log started.');
@@ -50,7 +50,7 @@ export default class HoverProvider implements Provider {
       return null;
     }
     this.symbolsFound = documentFindings;
-    this.symbolsFound.enableLogging(this.ctx, this.hoverLogEnabled);
+    this.symbolsFound.enableLogging(this.ctx, this.isDebugLogEnabled);
     this.spin1File = isSpin1File(docFSpec);
     this.parseUtils = this.spin1File ? new Spin1ParseUtils() : new Spin2ParseUtils();
 
@@ -70,7 +70,7 @@ export default class HoverProvider implements Provider {
    * @returns nothing
    */
   private _logMessage(message: string): void {
-    if (this.hoverLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }
@@ -234,7 +234,7 @@ export default class HoverProvider implements Provider {
           if (tmpSymbolsSet) {
             isObjectReference = true;
             symbolsSet = tmpSymbolsSet;
-            symbolsSet.enableLogging(this.ctx, this.hoverLogEnabled);
+            symbolsSet.enableLogging(this.ctx, this.isDebugLogEnabled);
           }
         }
       }

@@ -23,19 +23,19 @@ import { isSpinOrPasmDocument } from './spin.vscode.utils';
 
 let client: LanguageClient;
 
-const extensionDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
-let extensionOutputChannel: vscode.OutputChannel | undefined = undefined;
+const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
 const tabFormatter: Formatter = new Formatter();
-const docGenerator: DocGenerator = new DocGenerator();
+const docGenerator: DocGenerator = new DocGenerator(objTreeProvider);
 const codeBlockColorizer: RegionColorizer = new RegionColorizer();
 
 const logExtensionMessage = (message: string): void => {
   // simple utility to write to TABBING  output window.
-  if (extensionDebugLogEnabled && extensionOutputChannel != undefined) {
+  if (isDebugLogEnabled && debugOutputChannel != undefined) {
     //Write to output window.
-    extensionOutputChannel.appendLine(message);
+    debugOutputChannel.appendLine(message);
   }
 };
 
@@ -112,7 +112,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
         docGenerator.generateHierarchyDocument();
         docGenerator.showDocument('.readme.txt');
       } catch (error) {
-        await vscode.window.showErrorMessage('Hierarchy Generation Problem');
+        await vscode.window.showErrorMessage(`Hierarchy Generation Problem\n${error.stack}`);
+        this.logMessage(`Exception: Hierarchy Generation Problem\n${error.stack}`);
         console.error(error);
       }
     })
@@ -315,10 +316,10 @@ function initializeProviders(): void {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  if (extensionDebugLogEnabled) {
-    if (extensionOutputChannel === undefined) {
+  if (isDebugLogEnabled) {
+    if (debugOutputChannel === undefined) {
       //Create output channel
-      extensionOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 Extension DEBUG');
+      debugOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 Extension DEBUG');
       logExtensionMessage('Spin/Spin2 Extension log started.');
     } else {
       logExtensionMessage('\n\n------------------   NEW FILE ----------------\n\n');
@@ -550,7 +551,7 @@ function typeCommand(args: { text: string }) {
     vscode.commands.executeCommand('default:type', args);
     return;
   }
-  if (extensionDebugLogEnabled) {
+  if (isDebugLogEnabled) {
     const firstChar: number = args.text.charCodeAt(0);
     if (args.text.length == 1 && firstChar < 0x20) {
       logExtensionMessage('* type [0x' + firstChar.toString(16) + '](' + args.text.length + ')');

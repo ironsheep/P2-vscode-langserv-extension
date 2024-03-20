@@ -67,7 +67,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2DebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -97,10 +97,10 @@ export class Spin2DocumentSemanticParser {
   private bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
 
   public constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.spin2DebugLogEnabled);
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
     this.configuration = ctx.parserConfig;
     this.editorConfiguration = ctx.editorConfig;
-    if (this.spin2DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -119,7 +119,7 @@ export class Spin2DocumentSemanticParser {
     this.semanticFindings = findings;
     this.directory = dirSpec;
     const startingLangVersion: number = this.parseUtils.selectedSpinVersion();
-    if (this.spin2DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       this.semanticFindings.enableLogging(this.ctx);
       this.parseUtils.enableLogging(this.ctx);
       this.spinControlFlowTracker.enableLogging(this.ctx);
@@ -176,7 +176,7 @@ export class Spin2DocumentSemanticParser {
     // ==============================================================================
     // prepass to find declarations: PRI/PUB method, OBJ names, and VAR/DAT names
     //
-    if (this.spin2DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       continuedLineSet.enableLogging(this.ctx);
     }
     // -------------------- PRE-PARSE just locating symbol names, spin folding info --------------------
@@ -1735,7 +1735,7 @@ export class Spin2DocumentSemanticParser {
       const nameOffset: number = line.indexOf(searchFilename, startingOffset);
       const hasPathSep: boolean = filenameNoQuotes.includes('/');
       this._logMessage(`  -- looking for DataFile [${this.directory}/${filenameNoQuotes}]`);
-      const logCtx: Context | undefined = this.spin2DebugLogEnabled ? this.ctx : undefined;
+      const logCtx: Context | undefined = this.isDebugLogEnabled ? this.ctx : undefined;
       if (hasPathSep) {
         this.semanticFindings.pushDiagnosticMessage(
           lineIdx,
@@ -1763,7 +1763,7 @@ export class Spin2DocumentSemanticParser {
       const hasPathSep: boolean = filenameNoQuotes.includes('/');
       const fileWithExt = `${filenameNoQuotes}.spin2`;
       const nameOffset: number = line.indexOf(filenameNoQuotes, startingOffset);
-      const logCtx: Context | undefined = this.spin2DebugLogEnabled ? this.ctx : undefined;
+      const logCtx: Context | undefined = this.isDebugLogEnabled ? this.ctx : undefined;
       const checkFilename: string = hasSuffix ? filenameNoQuotes : fileWithExt;
       if (hasPathSep) {
         this.semanticFindings.pushDiagnosticMessage(
@@ -7808,7 +7808,7 @@ export class Spin2DocumentSemanticParser {
   }
 
   private _logMessage(message: string): void {
-    if (this.spin2DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }

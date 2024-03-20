@@ -9,34 +9,25 @@ import * as path from 'path';
 
 import { isSpin1Document, isSpin2File, isSpin1File } from '../spin.vscode.utils';
 import { SpinCodeUtils, eParseState } from '../spin.code.utils';
+import { ObjectTreeProvider, Dependency, RawDependency } from '../spin.object.dependencies';
 
 export class DocGenerator {
-  private generatorDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
-  private docGenOutputChannel: vscode.OutputChannel | undefined = undefined;
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
   private spinCodeUtils: SpinCodeUtils = new SpinCodeUtils();
+  private objTreeProvider: ObjectTreeProvider;
+  private endOfLineStr: string = '\r\n';
 
-  constructor() {
-    if (this.generatorDebugLogEnabled) {
-      if (this.docGenOutputChannel === undefined) {
+  constructor(objectTreeProvider: ObjectTreeProvider) {
+    this.objTreeProvider = objectTreeProvider;
+    if (this.isDebugLogEnabled) {
+      if (this.debugOutputChannel === undefined) {
         //Create output channel
-        this.docGenOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 DocGen DEBUG');
+        this.debugOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 DocGen DEBUG');
         this.logMessage('Spin/Spin2 DocGen log started.');
       } else {
         this.logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
-    }
-  }
-
-  /**
-   * write message to formatting log (when log enabled)
-   *
-   * @param the message to be written
-   * @returns nothing
-   */
-  public logMessage(message: string): void {
-    if (this.generatorDebugLogEnabled && this.docGenOutputChannel != undefined) {
-      //Write to output window.
-      this.docGenOutputChannel.appendLine(message);
     }
   }
 
@@ -47,7 +38,7 @@ export class DocGenerator {
     return selections
       .map((selection) => {
         const results: vscode.ProviderResult<vscode.TextEdit[]> = [];
-        const endOfLineStr: string = document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
+        this.endOfLineStr = document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
         const isSpin1Doc: boolean = isSpin1Document(document);
         this.logMessage(
           `* iDc selection(isSingle-[${selection.isSingleLine}] isSpin1Doc-(${isSpin1Doc}) isEmpty-[${selection.isEmpty}] s,e-[${selection.start.line}:${selection.start.character} - ${selection.end.line}:${selection.end.character}] activ-[${selection.active.character}] anchor-[${selection.anchor.character}])`
@@ -67,7 +58,7 @@ export class DocGenerator {
         // insert the lines, if any
         if (linesToInsert.length > 0) {
           for (const line of linesToInsert) {
-            results.push(vscode.TextEdit.insert(cursorPos, `${line}` + endOfLineStr));
+            results.push(vscode.TextEdit.insert(cursorPos, `${line}` + this.endOfLineStr));
           }
         }
         return results;
@@ -213,7 +204,7 @@ export class DocGenerator {
   public generateDocument(): void {
     const textEditor = vscode.window.activeTextEditor;
     if (textEditor) {
-      const endOfLineStr: string = textEditor.document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
+      this.endOfLineStr = textEditor.document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
       let bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
 
       const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
@@ -272,12 +263,12 @@ export class DocGenerator {
               currState = priorState;
               //  if last line has additional text write it!
               if (trimmedLine.length > 2 && shouldEmitTopDocComments) {
-                fs.appendFileSync(outFile, trimmedLine + endOfLineStr);
+                fs.appendFileSync(outFile, trimmedLine + this.endOfLineStr);
               }
             } else {
               //  if last line has additional text write it!
               if (shouldEmitTopDocComments) {
-                fs.appendFileSync(outFile, trimmedLine + endOfLineStr);
+                fs.appendFileSync(outFile, trimmedLine + this.endOfLineStr);
               }
             }
             continue;
@@ -313,7 +304,7 @@ export class DocGenerator {
               currState = eParseState.inMultiLineDocComment;
               //  if first line has additional text write it!
               if (trimmedLine.length > 2 && shouldEmitTopDocComments) {
-                fs.appendFileSync(outFile, trimmedLine + endOfLineStr);
+                fs.appendFileSync(outFile, trimmedLine + this.endOfLineStr);
               }
             }
             continue;
@@ -333,7 +324,7 @@ export class DocGenerator {
             // process single-line doc comment
             if (trimmedLine.length > 2 && shouldEmitTopDocComments) {
               // emit comment without leading ''
-              fs.appendFileSync(outFile, trimmedLine.substring(2) + endOfLineStr);
+              fs.appendFileSync(outFile, trimmedLine.substring(2) + this.endOfLineStr);
             }
             continue;
           }
@@ -348,19 +339,19 @@ export class DocGenerator {
             pubsFound++;
             if (shouldEmitTopDocComments) {
               this.logMessage(`+ (DBG) generateDocument() EMIT object header`);
-              fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
+              fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
               const introText: string = 'Object "' + objectName + '" Interface:';
-              fs.appendFileSync(outFile, introText + endOfLineStr);
+              fs.appendFileSync(outFile, introText + this.endOfLineStr);
               if (requiredLanguageVersion > 0) {
                 const lanVersionText: string = `  (Requires Spin2 Language v${requiredLanguageVersion})`;
-                fs.appendFileSync(outFile, lanVersionText + endOfLineStr);
+                fs.appendFileSync(outFile, lanVersionText + this.endOfLineStr);
               }
-              fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
+              fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
             }
             shouldEmitTopDocComments = false; // no more of these!
             // emit new PUB prototype (w/o any trailing comment)
             const trimmedNonCommentLine = this.getNonCommentLineRemainder(0, trimmedLine);
-            fs.appendFileSync(outFile, trimmedNonCommentLine + endOfLineStr);
+            fs.appendFileSync(outFile, trimmedNonCommentLine + this.endOfLineStr);
           }
         }
         //
@@ -382,12 +373,12 @@ export class DocGenerator {
               currState = priorState;
               //  if last line has additional text write it!
               if (trimmedLine.length > 2 && (emitTrailingDocComment || emitPubDocComment)) {
-                fs.appendFileSync(outFile, line.text.substring(2).trimEnd() + endOfLineStr);
+                fs.appendFileSync(outFile, line.text.substring(2).trimEnd() + this.endOfLineStr);
               }
             } else {
               //  if last line has additional text write it!
               if (emitTrailingDocComment || emitPubDocComment) {
-                fs.appendFileSync(outFile, line.text.trimEnd() + endOfLineStr);
+                fs.appendFileSync(outFile, line.text.trimEnd() + this.endOfLineStr);
               }
             }
             continue;
@@ -421,7 +412,7 @@ export class DocGenerator {
               currState = eParseState.inMultiLineDocComment;
               //  if first line has additional text write it!
               if (trimmedLine.length > 2 && (emitTrailingDocComment || emitPubDocComment)) {
-                fs.appendFileSync(outFile, line.text.trimEnd() + endOfLineStr);
+                fs.appendFileSync(outFile, line.text.trimEnd() + this.endOfLineStr);
               }
             }
             continue;
@@ -441,7 +432,7 @@ export class DocGenerator {
             // process single-line doc comment
             if (trimmedLine.length > 2 && (emitTrailingDocComment || emitPubDocComment)) {
               // emit comment without leading ''
-              fs.appendFileSync(outFile, trimmedLine.substring(2) + endOfLineStr);
+              fs.appendFileSync(outFile, trimmedLine.substring(2) + this.endOfLineStr);
             }
           } else if (sectionStatus.isSectionStart && currState == eParseState.inPri) {
             emitPubDocComment = false;
@@ -452,12 +443,12 @@ export class DocGenerator {
             const trailingDocComment: string | undefined = this.getTrailingDocComment(trimmedLine);
             const trimmedNonCommentLine = this.getNonCommentLineRemainder(0, trimmedLine);
             const header: string = '_'.repeat(trimmedNonCommentLine.length);
-            fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
-            fs.appendFileSync(outFile, header + endOfLineStr); // underscore header line
-            fs.appendFileSync(outFile, trimmedNonCommentLine + endOfLineStr);
-            fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
+            fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
+            fs.appendFileSync(outFile, header + this.endOfLineStr); // underscore header line
+            fs.appendFileSync(outFile, trimmedNonCommentLine + this.endOfLineStr);
+            fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
             if (trailingDocComment) {
-              fs.appendFileSync(outFile, trailingDocComment + endOfLineStr); // underscore header line
+              fs.appendFileSync(outFile, trailingDocComment + this.endOfLineStr); // underscore header line
             }
             if (pubsSoFar >= pubsFound) {
               emitTrailingDocComment = true;
@@ -465,7 +456,7 @@ export class DocGenerator {
             }
           } else if (sectionStatus.isSectionStart && currState != eParseState.inPub && emitTrailingDocComment) {
             // emit blank line just before we do final doc comment at end of file
-            fs.appendFileSync(outFile, '' + endOfLineStr); // blank line
+            fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
           }
         }
         fs.closeSync(outFile);
@@ -540,7 +531,7 @@ export class DocGenerator {
   public generateHierarchyDocument(): void {
     const textEditor = vscode.window.activeTextEditor;
     if (textEditor) {
-      const endOfLineStr: string = textEditor.document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
+      this.endOfLineStr = textEditor.document.eol == EndOfLine.CRLF ? '\r\n' : '\n';
       const bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
 
       const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
@@ -569,30 +560,43 @@ export class DocGenerator {
         const outFile = fs.openSync(outFSpec, 'w');
 
         const rptHoriz: string = '─';
-        const rptVert: string = '│';
-        const rptTeeRight: string = '├';
-        const rptElbow: string = '└';
 
         // add generation here
 
         // write report title
         const rptTitle: string = 'Parallax Propeller Chip Object Hierarchy';
-        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${endOfLineStr}`); // horizontal line
-        fs.appendFileSync(outFile, `${rptTitle}${endOfLineStr}`); // blank line
-        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${endOfLineStr}`); // horizontal line
-        fs.appendFileSync(outFile, `${endOfLineStr}`); // blank line
-        fs.appendFileSync(outFile, ` Project :  "${objectName}"${endOfLineStr}${endOfLineStr}`);
-        fs.appendFileSync(outFile, `Reported :  ${this.reportDateString()}${endOfLineStr}${endOfLineStr}`);
+        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
+        fs.appendFileSync(outFile, `${rptTitle}${this.endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
+        fs.appendFileSync(outFile, `${this.endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, ` Project :  "${objectName}"${this.endOfLineStr}${this.endOfLineStr}`);
+        fs.appendFileSync(outFile, `Reported :  ${this.reportDateString()}${this.endOfLineStr}${this.endOfLineStr}`);
         const versionStr: string = this.extensionVersionString();
-        fs.appendFileSync(outFile, `    Tool :  VSCode Spin2 Extension ${versionStr} ${endOfLineStr}${endOfLineStr}`);
-        fs.appendFileSync(outFile, `${endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, `    Tool :  VSCode Spin2 Extension ${versionStr} ${this.endOfLineStr}${this.endOfLineStr}`);
+        fs.appendFileSync(outFile, `${this.endOfLineStr}`); // blank line
 
         // FIXME: TODO: get object tree from ObjectTreeProvider (may have to add supporting code therein)
         // thne report on object tree obtained
-
-        fs.appendFileSync(outFile, `${endOfLineStr}`); // blank line
-        fs.appendFileSync(outFile, `${endOfLineStr}`); // blank line
-        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${endOfLineStr}`); // horizontal line
+        const [topFilename, depMap] = this.objTreeProvider.getObjectHierarchy();
+        if (topFilename.length == 0 || depMap.size == 0) {
+          fs.appendFileSync(outFile, `NO Dependencies found!${this.endOfLineStr}`); // blank line
+        } else {
+          this.logMessage(`+ (DBG) generateHierarchyDocument() topFilename=[${topFilename}], deps=(${depMap.size})`);
+          const depth: number = 0;
+          const topChildren = depMap.get(topFilename);
+          let lastParent: boolean = true;
+          if (topChildren !== undefined) {
+            lastParent = topChildren.length > 0 ? false : true;
+          }
+          const lastChild = false;
+          this.reportDeps(depth, [], topFilename, depMap, outFile, lastParent, lastChild);
+        }
+        fs.appendFileSync(outFile, `${this.endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, `${this.endOfLineStr}`); // blank line
+        fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
+        fs.appendFileSync(outFile, `Parallax Inc.${this.endOfLineStr}`);
+        fs.appendFileSync(outFile, `www.parallax.com${this.endOfLineStr}`);
+        fs.appendFileSync(outFile, `support@parallax.com${this.endOfLineStr}`);
         fs.closeSync(outFile);
       } else {
         this.logMessage(`+ (DBG) generateHierarchyDocument() NOT a spin file! can't generate doc.`);
@@ -602,10 +606,98 @@ export class DocGenerator {
     }
   }
 
+  private reportDeps(
+    depth: number,
+    nestList: boolean[],
+    filename: string,
+    depMap: Map<string, RawDependency[]>,
+    outFile: number,
+    isLastParent: boolean,
+    isLastChild: boolean
+  ) {
+    this.logMessage(`+ rD() d=(${depth}), nd=[${nestList}], ilp=(${isLastParent}), ilc=(${isLastChild}), fn=[${filename}]`);
+    const baseIndent: number = 12;
+    const rptHoriz: string = '─';
+    const rptVert: string = '│';
+    const rptTeeRight: string = '├';
+    const rptElbow: string = '└';
+    const children: RawDependency[] | undefined = depMap.get(filename);
+    const hasChildren: boolean = children !== undefined && children.length > 0;
+    const prefixFillTee: string = this.fillWithVerts(nestList, rptTeeRight);
+    const vertNestList: boolean[] = hasChildren ? [...nestList, true] : nestList; // create copy
+    //this.logMessage(`+ rD() vertNestList=[${vertNestList}]`);
+    const prefixFillVert: string = this.fillWithVerts(vertNestList, rptVert);
+    //this.logMessage(`+ rD() prefixFillVert=[${prefixFillVert}]`);
+    // first line
+    let linePrefixFile: string = ' '.repeat(baseIndent - 2);
+    if (depth == 0) {
+      linePrefixFile = `${linePrefixFile}  `;
+    } else {
+      if (isLastChild) {
+        const fileElbow: string = prefixFillTee.slice(0, -1) + rptElbow;
+        linePrefixFile = `${linePrefixFile}${fileElbow}${rptHoriz}${rptHoriz}`;
+      } else if (isLastParent && !isLastChild) {
+        const fileETee: string = prefixFillTee.slice(0, -1) + rptTeeRight;
+        linePrefixFile = `${linePrefixFile}${fileETee}${rptHoriz}${rptHoriz}`;
+      } else {
+        linePrefixFile = `${linePrefixFile}${prefixFillTee}${rptHoriz}${rptHoriz}`;
+      }
+    }
+    //this.logMessage(`+ rD() linePrefixFile=[${linePrefixFile}]`);
+    // blank line
+    let linePrefixSpacer: string = ' '.repeat(baseIndent - 2);
+    if (depth == 0) {
+      linePrefixSpacer = ' '.repeat(baseIndent - 2) + this.fillWithVerts([true], rptVert);
+    } else if (isLastParent && !isLastChild) {
+      const fileVert: string = prefixFillVert.slice(0, -1) + rptVert;
+      linePrefixSpacer = `${linePrefixSpacer}${fileVert}`;
+    } else {
+      linePrefixSpacer = `${linePrefixSpacer}${prefixFillVert}`;
+    }
+    //this.logMessage(`+ rD() linePrefixSpacer=[${linePrefixSpacer}]`);
+    // write one or both
+    fs.appendFileSync(outFile, `${linePrefixFile}${filename}${this.endOfLineStr}`); // blank line
+    if (!isLastParent || hasChildren || (isLastParent && !isLastChild)) {
+      fs.appendFileSync(outFile, `${linePrefixSpacer}${this.endOfLineStr}`); // blank line
+    }
+    if (hasChildren) {
+      for (let index = 0; index < children.length; index++) {
+        const rawDep = children[index];
+        const nextIsLastParent = depth == 0 && index == children.length - 1 ? true : isLastParent;
+        const nextIsLastChild = index == children.length - 1 ? true : false;
+        nestList.push(nextIsLastParent ? false : true);
+        //this.logMessage(`+ rD() call depth=(${depth + 1})`);
+        this.reportDeps(depth + 1, nestList, rawDep.name, depMap, outFile, nextIsLastParent, nextIsLastChild);
+      }
+    }
+    if (nestList.length > 0) {
+      nestList.pop();
+    }
+  }
+
+  private fillWithVerts(nestList: boolean[], lastVert: string): string {
+    const rptVert: string = '│';
+    let prefixFill: string = '';
+    if (nestList.length > 0) {
+      //this.logMessage(`+ fwV() nestList=[${nestList}], lastVert=(${lastVert})`);
+      for (let index = 0; index < nestList.length; index++) {
+        const hasVert = nestList[index];
+        const vertSym: string = index == nestList.length - 1 ? lastVert : rptVert;
+        const fillSegment = hasVert ? `    ${vertSym}` : `     `;
+        prefixFill = `${prefixFill}${fillSegment}`;
+      }
+    }
+    this.logMessage(`+ fwV()=[${prefixFill}], nestList=[${nestList}], lastVert=(${lastVert})`);
+    return prefixFill;
+  }
+
   private extensionVersionString(): string {
     // return the version string of this extension
     const extension = vscode.extensions.getExtension('spin2');
-    const version: string = extension?.packageJSON.version;
+    let version: string = extension?.packageJSON.version;
+    if (version === undefined) {
+      version = 'v?.?.?';
+    }
 
     return version; // the version of the extension
   }
@@ -625,5 +717,18 @@ export class DocGenerator {
 
     const formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
     return formattedDate; // Prints: "Saturday, January 13, 2024 at 6:50:29 PM"
+  }
+
+  /**
+   * write message to formatting log (when log enabled)
+   *
+   * @param the message to be written
+   * @returns nothing
+   */
+  public logMessage(message: string): void {
+    if (this.isDebugLogEnabled && this.debugOutputChannel != undefined) {
+      //Write to output window.
+      this.debugOutputChannel.appendLine(message);
+    }
   }
 }

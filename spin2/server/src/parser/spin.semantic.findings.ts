@@ -1912,7 +1912,7 @@ export class DocumentFindings {
 export class TokenSet {
   public constructor(idString: string) {
     //this.bLogEnabled = isLogging;
-    //this.outputChannel = logHandle;
+    //this.debugOutputChannel = logHandle;
     this.id = idString;
     this._logMessage(`* ${this.id} ready`);
   }
@@ -2013,7 +2013,7 @@ export class NameScopedTokenSet {
 
   public constructor(idString: string) {
     //this.bLogEnabled = isLogging;
-    //this.outputChannel = logHandle;
+    //this.debugOutputChannel = logHandle;
     this.id = idString;
     this._logMessage(`* ${this.id} ready`);
   }

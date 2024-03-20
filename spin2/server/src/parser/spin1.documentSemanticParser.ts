@@ -34,7 +34,7 @@ export class Spin1DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin1DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -61,10 +61,10 @@ export class Spin1DocumentSemanticParser {
   private directory: string = '';
 
   public constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.spin1DebugLogEnabled);
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
     this.configuration = ctx.parserConfig;
     this.editorConfiguration = ctx.editorConfig;
-    if (this.spin1DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -74,7 +74,7 @@ export class Spin1DocumentSemanticParser {
       }
     }
 
-    //this.semanticFindings = new DocumentFindings(this.spin1DebugLogEnabled, this.spin1log);
+    //this.semanticFindings = new DocumentFindings(this.isDebugLogEnabled, this.spin1log);
   }
 
   public docFindings(): DocumentFindings {
@@ -84,7 +84,7 @@ export class Spin1DocumentSemanticParser {
   public reportDocumentSemanticTokens(document: TextDocument, findings: DocumentFindings, dirSpec: string): void {
     this.semanticFindings = findings;
     this.directory = dirSpec;
-    if (this.spin1DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       this.semanticFindings.enableLogging(this.ctx);
       this.parseUtils.enableLogging(this.ctx);
       this.spinControlFlowTracker.enableLogging(this.ctx);
@@ -1153,7 +1153,7 @@ export class Spin1DocumentSemanticParser {
       const searchFilename: string = `"${filenameNoQuotes}`;
       const hasPathSep: boolean = filenameNoQuotes.includes('/');
       const nameOffset: number = line.indexOf(searchFilename, startingOffset);
-      const logCtx: Context | undefined = this.spin1DebugLogEnabled ? this.ctx : undefined;
+      const logCtx: Context | undefined = this.isDebugLogEnabled ? this.ctx : undefined;
       if (hasPathSep) {
         this.semanticFindings.pushDiagnosticMessage(
           lineIdx,
@@ -1181,7 +1181,7 @@ export class Spin1DocumentSemanticParser {
       const hasPathSep: boolean = filenameNoQuotes.includes('/');
       const fileWithExt = `${filenameNoQuotes}.spin`;
       const nameOffset: number = line.indexOf(filenameNoQuotes, startingOffset);
-      const logCtx: Context | undefined = this.spin1DebugLogEnabled ? this.ctx : undefined;
+      const logCtx: Context | undefined = this.isDebugLogEnabled ? this.ctx : undefined;
       const checkFilename: string = hasSuffix ? filenameNoQuotes : fileWithExt;
       if (hasPathSep) {
         this.semanticFindings.pushDiagnosticMessage(
@@ -3505,7 +3505,7 @@ export class Spin1DocumentSemanticParser {
   }
 
   private _logMessage(message: string): void {
-    if (this.spin1DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }
