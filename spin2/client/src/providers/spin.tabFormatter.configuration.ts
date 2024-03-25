@@ -35,13 +35,13 @@ const loadTabConfiguration = () => {
   //const tabSize = tabFormatterConfiguration.get<number>('editor.tabSize');
   //const useTabStops = tabFormatterConfiguration.get<number>("editor.useTabStops");
 
-  //const enable = tabFormatterConfiguration.get<boolean>('enable');
+  //const enable = tabFormatterConfiguration.get<boolean>('enable') ? true: false;
   //const timeout = tabFormatterConfiguration.get<number>("timeout");
   //const maxLineCount = tabFormatterConfiguration.get<number>("maxLineCount");
   //const maxLineLength = tabFormatterConfiguration.get<number>("maxLineLength");
 
   return {
-    enable: tabFormatterConfiguration.get<boolean>('enable'),
+    enable: tabFormatterConfiguration.get<boolean>('enable') ? true : false,
     tabSet: tabFormatterConfiguration.get<string>('choice')!,
     blocks: tabFormatterConfiguration.get<Blocks>(tabsUserSelection)!,
     tabSize: tabFormatterConfiguration.get<number>('editor.tabSize')

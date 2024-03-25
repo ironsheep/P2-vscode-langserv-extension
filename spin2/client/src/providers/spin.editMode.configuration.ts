@@ -35,10 +35,10 @@ const loadEditModeConfiguration = () => {
   //const editorConfiguration = vscode.workspace.getConfiguration('editor');
 
   return {
-    overtypePaste: insertModeConfiguration.get<boolean>('overtypePaste'),
+    overtypePaste: insertModeConfiguration.get<boolean>('overtypePaste') ? true : false,
     perEditor: insertModeConfiguration.get<boolean>('perEditor') ? true : false,
 
-    enableAlign: insertModeConfiguration.get<boolean>('enableAlign'),
+    enableAlign: insertModeConfiguration.get<boolean>('enableAlign') ? true : false,
 
     labelInsertMode: insertModeConfiguration.get<string>('labelInsertMode'),
     labelOvertypeMode: insertModeConfiguration.get<string>('labelOvertypeMode'),

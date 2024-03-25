@@ -584,10 +584,7 @@ export class DocGenerator {
           this.logMessage(`+ (DBG) generateHierarchyDocument() topFilename=[${topFilename}], deps=(${depMap.size})`);
           const depth: number = 0;
           const topChildren = depMap.get(topFilename);
-          let lastParent: boolean = true;
-          if (topChildren !== undefined) {
-            lastParent = topChildren.length > 0 ? false : true;
-          }
+          const lastParent: boolean = this.isOnlyParent(topFilename, depMap);
           const lastChild = false;
           this.reportDeps(depth, [], topFilename, depMap, outFile, lastParent, lastChild);
         }
@@ -606,6 +603,27 @@ export class DocGenerator {
     }
   }
 
+  private isOnlyParent(topFilename: string, depMap: Map<string, RawDependency[]>): boolean {
+    let onlyParentStatus: boolean = true;
+    if (depMap.has(topFilename)) {
+      const children: RawDependency[] = depMap.get(topFilename);
+      if (children !== undefined) {
+        this.logMessage(`* isOnlyParent() childrenCt=[${children.length}]`);
+        for (let index = 0; index < children.length; index++) {
+          const child = children[index];
+          const grandChildren = depMap.get(child.name);
+          if (grandChildren !== undefined && grandChildren.length > 0) {
+            this.logMessage(`* isOnlyParent() [${child.name}] grandChildren=[${grandChildren.length}]`);
+            onlyParentStatus = false;
+            break;
+          }
+        }
+      }
+    }
+    this.logMessage(`* isOnlyParent()=(${onlyParentStatus})`);
+    return onlyParentStatus;
+  }
+
   private reportDeps(
     depth: number,
     nestList: boolean[],
@@ -622,52 +640,45 @@ export class DocGenerator {
     const rptTeeRight: string = '├';
     const rptElbow: string = '└';
     const children: RawDependency[] | undefined = depMap.get(filename);
-    const hasChildren: boolean = children !== undefined && children.length > 0;
-    const prefixFillTee: string = this.fillWithVerts(nestList, rptTeeRight);
-    const vertNestList: boolean[] = hasChildren ? [...nestList, true] : nestList; // create copy
-    //this.logMessage(`+ rD() vertNestList=[${vertNestList}]`);
-    const prefixFillVert: string = this.fillWithVerts(vertNestList, rptVert);
-    //this.logMessage(`+ rD() prefixFillVert=[${prefixFillVert}]`);
-    // first line
+    const haveChildren: boolean = children !== undefined && children.length > 0;
+    const NoEndBlank: boolean = true;
+    const AllowEndBlank: boolean = false;
+    // file line prefix
+    const fileEndChar: string = isLastChild ? rptElbow : rptTeeRight;
+    const prefixFillTee: string = this.fillWithVerts(nestList, fileEndChar, NoEndBlank);
     let linePrefixFile: string = ' '.repeat(baseIndent - 2);
     if (depth == 0) {
       linePrefixFile = `${linePrefixFile}  `;
     } else {
-      if (isLastChild) {
-        const fileElbow: string = prefixFillTee.slice(0, -1) + rptElbow;
-        linePrefixFile = `${linePrefixFile}${fileElbow}${rptHoriz}${rptHoriz}`;
-      } else if (isLastParent && !isLastChild) {
-        const fileETee: string = prefixFillTee.slice(0, -1) + rptTeeRight;
-        linePrefixFile = `${linePrefixFile}${fileETee}${rptHoriz}${rptHoriz}`;
-      } else {
-        linePrefixFile = `${linePrefixFile}${prefixFillTee}${rptHoriz}${rptHoriz}`;
-      }
+      linePrefixFile = `${linePrefixFile}${prefixFillTee}${rptHoriz}${rptHoriz}`;
     }
-    //this.logMessage(`+ rD() linePrefixFile=[${linePrefixFile}]`);
-    // blank line
+    // blank line prefix
+    if (nestList.length > 1) {
+      nestList[depth - 1] = isLastChild ? false : true;
+    }
+    const vertNestList: boolean[] = haveChildren ? [...nestList, true] : nestList; // create copy and add true if children
+    const specialEndBlanking: boolean = isLastChild && !haveChildren ? false : NoEndBlank;
+    const prefixFillVert: string = this.fillWithVerts(vertNestList, rptVert, specialEndBlanking);
     let linePrefixSpacer: string = ' '.repeat(baseIndent - 2);
     if (depth == 0) {
-      linePrefixSpacer = ' '.repeat(baseIndent - 2) + this.fillWithVerts([true], rptVert);
-    } else if (isLastParent && !isLastChild) {
-      const fileVert: string = prefixFillVert.slice(0, -1) + rptVert;
-      linePrefixSpacer = `${linePrefixSpacer}${fileVert}`;
+      linePrefixSpacer = ' '.repeat(baseIndent - 2) + this.fillWithVerts([true], rptVert, NoEndBlank);
     } else {
       linePrefixSpacer = `${linePrefixSpacer}${prefixFillVert}`;
     }
-    //this.logMessage(`+ rD() linePrefixSpacer=[${linePrefixSpacer}]`);
-    // write one or both
+    // write one or both lines
     fs.appendFileSync(outFile, `${linePrefixFile}${filename}${this.endOfLineStr}`); // blank line
-    if (!isLastParent || hasChildren || (isLastParent && !isLastChild)) {
+    if (!isLastParent || haveChildren || (isLastParent && !isLastChild)) {
       fs.appendFileSync(outFile, `${linePrefixSpacer}${this.endOfLineStr}`); // blank line
     }
-    if (hasChildren) {
+    // process children of this object
+    if (haveChildren) {
       for (let index = 0; index < children.length; index++) {
-        const rawDep = children[index];
-        const nextIsLastParent = depth == 0 && index == children.length - 1 ? true : isLastParent;
-        const nextIsLastChild = index == children.length - 1 ? true : false;
+        const childDep = children[index];
+        const isLastChild: boolean = index == children.length - 1;
+
+        const nextIsLastParent = depth == 0 && isLastChild ? true : isLastParent;
         nestList.push(nextIsLastParent ? false : true);
-        //this.logMessage(`+ rD() call depth=(${depth + 1})`);
-        this.reportDeps(depth + 1, nestList, rawDep.name, depMap, outFile, nextIsLastParent, nextIsLastChild);
+        this.reportDeps(depth + 1, nestList, childDep.name, depMap, outFile, nextIsLastParent, isLastChild);
       }
     }
     if (nestList.length > 0) {
@@ -675,31 +686,40 @@ export class DocGenerator {
     }
   }
 
-  private fillWithVerts(nestList: boolean[], lastVert: string): string {
+  private fillWithVerts(nestList: boolean[], lastVert: string, noEndBlank: boolean): string {
     const rptVert: string = '│';
+    const isBlankLineGen: boolean = lastVert == rptVert;
     let prefixFill: string = '';
     if (nestList.length > 0) {
       //this.logMessage(`+ fwV() nestList=[${nestList}], lastVert=(${lastVert})`);
       for (let index = 0; index < nestList.length; index++) {
-        const hasVert = nestList[index];
-        const vertSym: string = index == nestList.length - 1 ? lastVert : rptVert;
-        const fillSegment = hasVert ? `    ${vertSym}` : `     `;
+        const isLastChild = index == nestList.length - 1;
+        let showSymbol = nestList[index];
+        if (isBlankLineGen) {
+          if (isLastChild && !noEndBlank && nestList.length > 2) {
+            showSymbol = false;
+          }
+        } else {
+          showSymbol = isLastChild ? true : showSymbol;
+        }
+
+        const vertSym: string = isLastChild ? lastVert : rptVert;
+        const fillSegment = showSymbol ? `    ${vertSym}` : `     `;
         prefixFill = `${prefixFill}${fillSegment}`;
       }
     }
-    this.logMessage(`+ fwV()=[${prefixFill}], nestList=[${nestList}], lastVert=(${lastVert})`);
+    this.logMessage(`+ fwV()=[${prefixFill}], nestList=[${nestList}], lastVert=(${lastVert}), noEndBlank=(${noEndBlank})`);
     return prefixFill;
   }
 
   private extensionVersionString(): string {
     // return the version string of this extension
-    const extension = vscode.extensions.getExtension('spin2');
+    const extension = vscode.extensions.getExtension('IronSheepProductionsLLC.spin2');
     let version: string = extension?.packageJSON.version;
     if (version === undefined) {
-      version = 'v?.?.?';
+      version = '?.?.?';
     }
-
-    return version; // the version of the extension
+    return `v${version}`; // the version of the extension
   }
 
   private reportDateString(): string {

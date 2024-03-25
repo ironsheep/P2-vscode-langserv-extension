@@ -122,7 +122,7 @@ export class Formatter {
    * Return T/F where T means the formatter should be enabled
    * @returns T/F
    */
-  isEnbled(): boolean {
+  isEnabled(): boolean {
     const bEnableStatus: boolean = this.enable ? true : false;
     return bEnableStatus;
   }

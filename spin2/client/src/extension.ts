@@ -194,7 +194,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //   Set Up our TAB Formatting
   //
   // post information to out-side world via our CONTEXT
-  vscode.commands.executeCommand('setContext', 'spinExtension.tabStops.enabled', tabFormatter.isEnbled());
+  vscode.commands.executeCommand('setContext', 'spinExtension.tabStops.enabled', tabFormatter.isEnabled());
 
   //   Hook TAB Formatting
   const insertTabStopsCommentCommand = 'spinExtension.elasticTabstops.generate.tabStops.comment';
@@ -271,15 +271,20 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const objDepTreeView: vscode.TreeView<Dependency> = vscode.window.createTreeView('spinExtension.objectDependencies', {
     canSelectMany: false,
-    showCollapseAll: true,
+    showCollapseAll: false, // now false so we don't have disfunctioning [-] button
     treeDataProvider: objTreeProvider
   });
   //objDepTreeView.onDidChangeSelection(objTreeProvider.onElementClick);
 
   const objectTreeViewRefreshCommand = 'spinExtension.objectDependencies.refreshEntry';
+  const objectTreeViewExpandAllCommand = 'spinExtension.objectDependencies.expandAll';
+  const objectTreeViewCollapseAllCommand = 'spinExtension.objectDependencies.collapseAll';
   const objectTreeViewActivateFileCommand = 'spinExtension.objectDependencies.activateFile';
+  // post information to out-side world via our CONTEXT - we default to showing top-level only (so, collapsed is true)
 
-  vscode.commands.registerCommand(objectTreeViewRefreshCommand, () => objTreeProvider.refresh());
+  vscode.commands.registerCommand(objectTreeViewRefreshCommand, async () => objTreeProvider.refresh());
+  vscode.commands.registerCommand(objectTreeViewExpandAllCommand, async () => objTreeProvider.expandAll());
+  vscode.commands.registerCommand(objectTreeViewCollapseAllCommand, async () => objTreeProvider.collapseAll());
   vscode.commands.registerCommand(objectTreeViewActivateFileCommand, async (arg1) => objTreeProvider.onElementClick(arg1));
 }
 
@@ -562,10 +567,10 @@ function typeCommand(args: { text: string }) {
   if (editor != undefined) {
     editMode = getMode(editor);
   }
-  if (editor !== undefined && tabFormatter.isEnbled() && editMode == eEditMode.OVERTYPE) {
+  if (editor !== undefined && tabFormatter.isEnabled() && editMode == eEditMode.OVERTYPE) {
     logExtensionMessage('* OVERTYPE type');
     overtypeBeforeType(editor, args.text, false);
-  } else if (editor !== undefined && tabFormatter.isEnbled() && editMode == eEditMode.ALIGN) {
+  } else if (editor !== undefined && tabFormatter.isEnabled() && editMode == eEditMode.ALIGN) {
     tabFormatter.alignBeforeType(editor, args.text, false);
   } else {
     //logExtensionMessage("* VSCode type");
@@ -576,7 +581,7 @@ function typeCommand(args: { text: string }) {
 function deleteLeftCommand() {
   const editor = vscode.window.activeTextEditor;
   logExtensionMessage('* deleteLeft');
-  let bAlignEdit: boolean = editor !== undefined && tabFormatter.isEnbled();
+  let bAlignEdit: boolean = editor !== undefined && tabFormatter.isEnabled();
   if (editor != undefined) {
     const editMode = getMode(editor);
     if (editMode != eEditMode.ALIGN) {
@@ -595,7 +600,7 @@ function deleteLeftCommand() {
 function deleteRightCommand() {
   const editor = vscode.window.activeTextEditor;
   logExtensionMessage('* deleteRight');
-  if (tabFormatter.isEnbled() && editor && getMode(editor) == eEditMode.ALIGN) {
+  if (tabFormatter.isEnabled() && editor && getMode(editor) == eEditMode.ALIGN) {
     tabFormatter.alignDelete(editor, true);
     return null;
   } else {
@@ -613,7 +618,7 @@ function pasteCommand(args: { text: string; pasteOnNewLine: boolean }) {
       logExtensionMessage('* OVERTYPE paste');
       overtypeBeforePaste(editor, args.text, args.pasteOnNewLine);
       return vscode.commands.executeCommand('default:paste', args);
-    } else if (tabFormatter.isEnbled() && getMode(editor) == eEditMode.ALIGN && !args.pasteOnNewLine) {
+    } else if (tabFormatter.isEnabled() && getMode(editor) == eEditMode.ALIGN && !args.pasteOnNewLine) {
       tabFormatter.alignBeforeType(editor, args.text, true);
       return null;
     } else {
