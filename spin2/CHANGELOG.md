@@ -20,9 +20,15 @@ Possible next additions:
 
 ## [2.2.15] 2024-01-11
 
+Update P1 and P2
+
+- Adjust object hierarchy to fully expand the tree by default
+- Add new Object Hierarchy report similar to that generated during propeller tool "Archive"
+
 Update P2 Only
 
-- Add support for v44 new built-in method names
+- Add early support for v44 new built-in method names
+- Add highlighting of object[index] expressions where index itself is an expression
 
 ## [2.2.14] 2024-01-11
 
@@ -59,7 +65,7 @@ Update P2 Only
 - Add semantic highlight color change for byte(), word(), and long() method overrides
 - Add recognition of byte(), word(), and long() method names to provide method vs. storage type hover text
 - Add recognition of {Spin2_v##} format Spin Language Requirement directive
-- Emit any languge directive when used to generated interface documentation
+- Emit any language directive when used to generated interface documentation
 - Add support for lstring() when {Spin2_v43} is specified
 - Add detection of/error generation for duplicate declarations within CON, VAR and DAT sections
 
