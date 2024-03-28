@@ -9,7 +9,7 @@ import * as path from 'path';
 
 import { isSpin1Document, isSpin2File, isSpin1File } from '../spin.vscode.utils';
 import { SpinCodeUtils, eParseState } from '../spin.code.utils';
-import { ObjectTreeProvider, Dependency, RawDependency } from '../spin.object.dependencies';
+import { ObjectTreeProvider, Dependency, SpinDependency } from '../spin.object.dependencies';
 
 export class DocGenerator {
   private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -603,17 +603,17 @@ export class DocGenerator {
     }
   }
 
-  private isOnlyParent(topFilename: string, depMap: Map<string, RawDependency[]>): boolean {
+  private isOnlyParent(topFilename: string, depMap: Map<string, SpinDependency>): boolean {
     let onlyParentStatus: boolean = true;
     if (depMap.has(topFilename)) {
-      const children: RawDependency[] = depMap.get(topFilename);
-      if (children !== undefined) {
-        this.logMessage(`* isOnlyParent() childrenCt=[${children.length}]`);
-        for (let index = 0; index < children.length; index++) {
-          const child = children[index];
-          const grandChildren = depMap.get(child.name);
-          if (grandChildren !== undefined && grandChildren.length > 0) {
-            this.logMessage(`* isOnlyParent() [${child.name}] grandChildren=[${grandChildren.length}]`);
+      const fileWithchildren: SpinDependency = depMap.get(topFilename);
+      if (fileWithchildren !== undefined) {
+        this.logMessage(`* isOnlyParent() childrenCt=[${fileWithchildren.children.length}]`);
+        for (let index = 0; index < fileWithchildren.children.length; index++) {
+          const child = fileWithchildren.children[index];
+          const grandChildWithChildren = depMap.get(child.name);
+          if (grandChildWithChildren !== undefined && grandChildWithChildren.children.length > 0) {
+            this.logMessage(`* isOnlyParent() [${child.name}] grandChildren=[${grandChildWithChildren.children.length}]`);
             onlyParentStatus = false;
             break;
           }
@@ -628,7 +628,7 @@ export class DocGenerator {
     depth: number,
     nestList: boolean[],
     filename: string,
-    depMap: Map<string, RawDependency[]>,
+    depMap: Map<string, SpinDependency>,
     outFile: number,
     isLastParent: boolean,
     isLastChild: boolean
@@ -639,8 +639,8 @@ export class DocGenerator {
     const rptVert: string = '│';
     const rptTeeRight: string = '├';
     const rptElbow: string = '└';
-    const children: RawDependency[] | undefined = depMap.get(filename);
-    const haveChildren: boolean = children !== undefined && children.length > 0;
+    const childWithChildren: SpinDependency | undefined = depMap.get(filename);
+    const haveChildren: boolean = childWithChildren !== undefined && childWithChildren.children.length > 0;
     const NoEndBlank: boolean = true;
     const AllowEndBlank: boolean = false;
     // file line prefix
@@ -672,9 +672,9 @@ export class DocGenerator {
     }
     // process children of this object
     if (haveChildren) {
-      for (let index = 0; index < children.length; index++) {
-        const childDep = children[index];
-        const isLastChild: boolean = index == children.length - 1;
+      for (let index = 0; index < childWithChildren.children.length; index++) {
+        const childDep = childWithChildren.children[index];
+        const isLastChild: boolean = index == childWithChildren.children.length - 1;
 
         const nextIsLastParent = depth == 0 && isLastChild ? true : isLastParent;
         nestList.push(nextIsLastParent ? false : true);
