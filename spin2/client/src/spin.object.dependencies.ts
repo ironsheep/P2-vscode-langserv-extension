@@ -1102,9 +1102,17 @@ export class SpinDependency {
 export class Dependency extends vscode.TreeItem {
   // TreeItem notes: id:string, label, resourceUri, tooltip, iconPath, description, contextValue, command, collapsibleState, accessibilityInformation
   // Treeitem  constructor(label, ?collapsibleState) OR constructor(resourceUri, ?collapsibleState)
+  //   NOTE:  in TreeView  'label' is bold white, 'description' is light-grey text
+  //
   //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("file-code", "#FF8000");
   //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-field");  // hrmf... blue
   //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-enum"); // nice, orange!
+  //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-color"); // hrmf, grey
+  //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-enum-member"); // hrmf... blue
+  //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-method"); // hrmf, purple!
+  //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-variable"); // hrmf, blue!
+  //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-constant"); // hrmf, grey
+  //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-array"); // hrmf, grey
   //private icon: vscode.ThemeIcon = new vscode.ThemeIcon("symbol-structure"); // hrmf, no color (white)
   private icon: vscode.ThemeIcon = new vscode.ThemeIcon('symbol-class'); // nice, orange!
   private _basename: string = '';
@@ -1113,7 +1121,6 @@ export class Dependency extends vscode.TreeItem {
   private _objName: string;
   private fileMissing: boolean = false;
   private _parent: Dependency | undefined = undefined;
-  private _instanceId: string = '';
   public readonly descriptionString: string = '';
   // map our fields to underlying TreeItem
   constructor(
@@ -1130,7 +1137,8 @@ export class Dependency extends vscode.TreeItem {
     // element depth is nesting level where 0 means top
     super(label, collapsibleState);
     this._objName = objName;
-    this.description = objName;
+    this.description = objName; //LIVE
+    //this.description = `[${userId}] ${objName}`; // TESTING
     this._parent = parent;
     this._depth = depth;
     this.descriptionString = objName;
@@ -1149,6 +1157,13 @@ export class Dependency extends vscode.TreeItem {
     //this.iconPath = { light: new vscode.ThemeIcon("file-code").id, dark: new vscode.ThemeIcon("file-code").id };
     //this.resourceUri = new vscode.ThemeIcon('file-code').
     //this.icon = new vscode.ThemeIcon("file-code");  // nope!!
+    /*
+    if (this.collapsibleState == ELEM_NONE) {
+      this.icon = new vscode.ThemeIcon('symbol-enum');
+    } else {
+      this.icon = new vscode.ThemeIcon('symbol-class');
+    }
+	*/
     this.iconPath = this.icon;
     this.contextValue = 'dependency';
     this.command = {
@@ -1183,7 +1198,7 @@ export class Dependency extends vscode.TreeItem {
   public setFileMissing() {
     this.fileMissing = true;
     const origText = this.description;
-    if (origText) {
+    if (origText !== undefined) {
       this.description = `${origText} - MISSING FILE`;
     } else {
       this.description = `- MISSING FILE`;
