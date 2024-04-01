@@ -30,14 +30,15 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private bFixHierToTopLevel: boolean = false;
   private topLevelFSpec: string = '';
   private topLevelFName: string = '';
+  private fixedTopLevelFSpec: string = '';
   private treeState: eTreeState = eTreeState.TS_ExpandAll; // eTreeState.TS_ExpandTop; // tracks current state of treeView
   private viewEnabledState: boolean = false;
   private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
-
-  private isDocument: boolean = false;
+  private isEmptying: boolean = false;
   private spinCodeUtils: SpinCodeUtils = new SpinCodeUtils();
   private latestHierarchy: Map<string, SpinDependency> = new Map(); // children by filename
+  private existingIDs: string[] = [];
 
   // https://code.visualstudio.com/api/extension-guides/tree-view#view-container
   private _onDidChangeTreeData: vscode.EventEmitter<Dependency | undefined> = new vscode.EventEmitter<Dependency | undefined>();
@@ -64,26 +65,13 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
     if (!this.rootPath) {
       this._logMessage('+ (DBG) ObjDep: no root path!');
-    } else {
-      let topFileBaseName: string | undefined = undefined;
-      const fullConfiguration = vscode.workspace.getConfiguration();
-      //this._logMessage(`+ (DBG) fullConfiguration=${JSON.stringify(fullConfiguration)}`);
-      //this._logMessage(`+ (DBG) fullConfiguration=${fullConfiguration}`);
-      if (fullConfiguration.has('topLevel')) {
-        topFileBaseName = vscode.workspace.getConfiguration().get('topLevel'); // this worked!
-      } else {
-        this._logMessage(`+ (DBG) topLevel key NOT present!`);
-      }
-      this._logMessage(`+ (DBG) ObjDep: topFileBaseName=[${topFileBaseName}]`);
-      if (topFileBaseName) {
-        this.bFixHierToTopLevel = true;
-        const fileBasename = this._filenameWithSpinFileType(topFileBaseName);
-        this.topLevelFSpec = path.join(this.rootPath, fileBasename);
-        if (!this._fileExists(this.topLevelFSpec)) {
-          this._logMessage(`+ (DBG) ObjDep: FILE NOT FOUND! [${this.topLevelFSpec}]!`);
-          this.bFixHierToTopLevel = false;
-        }
-      }
+    }
+
+    // load topFile variable if present in config
+    //  sets: bFixHierToTopLevel, fixedTopLevelFSpec
+    this._loadConfigWithTopFileInfo();
+    if (this.bFixHierToTopLevel) {
+      this.topLevelFSpec = this.fixedTopLevelFSpec;
     }
 
     if (!this.bFixHierToTopLevel) {
@@ -92,6 +80,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       this._logMessage(`+ (DBG) ObjDep: NO TOP/curr, using activeFile=[${this.topLevelFSpec}]`);
       if (this.topLevelFSpec.length == 0) {
         // ERROR failed to ID open file (or file not open)
+        this._logMessage(`!!! ERROR ObjDep: NO TOP/curr, NO activeFile`);
       }
     } else {
       this._logMessage(`+ (DBG) ObjDep: topLevelFSpec=[${this.topLevelFSpec}]`);
@@ -103,8 +92,39 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     // cause our initial status to be exposed
 
     this._logMessage(`+==+ (DBG) ObjDep: constructor() done, firing editorChanged...`);
-    this.activeEditorChanged();
-    this._preloadFullSpinDependencies();
+    if (this.topLevelFSpec.length > 0) {
+      this.activeEditorChanged(CALLED_INTERNALLY);
+      this._preloadFullSpinDependencies();
+    }
+  }
+
+  private _loadConfigWithTopFileInfo(): boolean {
+    let tmpTopFileBaseName: string | undefined = undefined;
+    let topFileChanged: boolean = false;
+    const fullConfiguration = vscode.workspace.getConfiguration();
+    //this._logMessage(`+ (DBG) fullConfiguration=${JSON.stringify(fullConfiguration)}`);
+    //this._logMessage(`+ (DBG) fullConfiguration=${fullConfiguration}`);
+    const runtimeConfiguration = vscode.workspace.getConfiguration('runtime');
+    this._logMessage(`+ (DBG) runtimeConfiguration=${JSON.stringify(runtimeConfiguration)}`);
+    if (fullConfiguration.has('topLevel')) {
+      tmpTopFileBaseName = vscode.workspace.getConfiguration().get('topLevel'); // this worked!
+    } else {
+      this._logMessage(`+ (DBG) ObjDep: topLevel key NOT present!`);
+    }
+    this._logMessage(`+ (DBG) ObjDep: fixedTopFileBaseName=[${tmpTopFileBaseName}]`);
+    if (tmpTopFileBaseName) {
+      const fileBasename = this._filenameWithSpinFileType(tmpTopFileBaseName);
+      const tmpTopLevelFSpec = path.join(this.rootPath, fileBasename);
+      if (!this._fileExists(tmpTopLevelFSpec)) {
+        this._logMessage(`+ (DBG) ObjDep: FILE NOT FOUND! [${tmpTopLevelFSpec}]!`);
+        this.bFixHierToTopLevel = false;
+      } else {
+        topFileChanged = this.fixedTopLevelFSpec != tmpTopLevelFSpec || this.bFixHierToTopLevel == false;
+        this.bFixHierToTopLevel = true;
+        this.fixedTopLevelFSpec = tmpTopLevelFSpec;
+      }
+    }
+    return topFileChanged;
   }
 
   public getObjectHierarchy(): [string, Map<string, SpinDependency>] {
@@ -130,6 +150,8 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
   public async expandAll(): Promise<void> {
     this._logMessage('+CLICK+  (DBG) ObjDep: expandAll()');
+    this.isEmptying = true;
+    this.refresh(CALLED_INTERNALLY);
     this.treeState = eTreeState.TS_ExpandAll;
     this._publishTreeState();
     this.refresh(CALLED_INTERNALLY);
@@ -137,23 +159,11 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
   public collapseAll(): void {
     this._logMessage('+CLICK+  (DBG) ObjDep: collapseAll()');
+    this.isEmptying = true;
+    this.refresh(CALLED_INTERNALLY);
     this.treeState = eTreeState.TS_ExpandTop;
     this._publishTreeState();
     this.refresh(CALLED_INTERNALLY);
-  }
-
-  private _publishTreeState() {
-    const currentState: boolean = this.treeState == eTreeState.TS_ExpandTop ? true : false;
-    this._logMessage(`* ObjDep: treeState .objectDeps.showingTopOnly=(${currentState})`);
-    vscode.commands.executeCommand('setContext', 'spinExtension.objectDeps.showingTopOnly', currentState);
-  }
-
-  private _publishViewEnableState(desiredEnableState: boolean) {
-    this._logMessage(`* ObjDep: treeView .objectDeps.enabled=(${desiredEnableState})`);
-    // record new published state
-    this.viewEnabledState = desiredEnableState;
-    // and publish new state
-    vscode.commands.executeCommand('setContext', 'spinExtension.objectDeps.enabled', desiredEnableState);
   }
 
   public getTreeItem(element: Dependency): vscode.TreeItem {
@@ -163,207 +173,10 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
      * @param element The element for which {@link TreeItem} representation is asked for.
      * @returns TreeItem representation of the element.
      */
-    this._logMessage(`+==+ (DBG) ObjDep: getTreeItem(${element.label}) [${this.collapseStateString(element.collapsibleState)}]`);
+    this._logMessage(`+==+ (DBG) ObjDep: getTreeItem(${element.label}[${element.id}]) [${this._collapseStateString(element.collapsibleState)}]`);
     // set our collapse expand value here?
-    let desiredElement: Dependency = element;
-    if (element.label !== undefined) {
-      let desiredState = ELEM_EXPANDED;
-      if (element.depth > 0) {
-        desiredState = this.treeState == eTreeState.TS_ExpandTop ? ELEM_COLLAPSED : ELEM_EXPANDED;
-      }
-      if (element.collapsibleState != desiredState) {
-        desiredElement = new Dependency(element.label, element.objName, desiredState, element.depth);
-        this._logMessage(
-          `+ (DBG) ObjDep: getTreeItem(${desiredElement.label}) [${this.collapseStateString(
-            element.collapsibleState
-          )}] -> [${this.collapseStateString(desiredElement.collapsibleState)}]`
-        );
-      } else {
-        this._logMessage(`+ (DBG) ObjDep: getTreeItem(${desiredElement.label}) [${this.collapseStateString(desiredElement.collapsibleState)}]`);
-      }
-    }
+    const desiredElement: Dependency = element;
     return desiredElement;
-  }
-
-  private collapseStateString(collapseMode: vscode.TreeItemCollapsibleState): string {
-    let desiredString: string = '';
-    switch (collapseMode) {
-      case ELEM_COLLAPSED:
-        desiredString = 'CS_COLLAPSED';
-        break;
-
-      case ELEM_EXPANDED:
-        desiredString = 'CS_EXPANDED';
-        break;
-
-      case ELEM_NONE:
-        desiredString = 'CS_NONE';
-        break;
-
-      default:
-        desiredString = '?unk?';
-        break;
-    }
-    return desiredString;
-  }
-
-  //////////////////////////////////////////////////////////////////////////////////
-  // build internal full project object hierarchy
-  //
-  private _preloadFullSpinDependencies() {
-    // prescan all files starting from current  file in active editor if any, else scan topFile if given
-    //  will do NOTHING if these conditions are not met
-    if (this.viewEnabledState == true) {
-      const rootDeps: SpinDependency[] = this._getDependencies();
-      this.latestHierarchy.clear();
-      this._addDependencies(rootDeps);
-    }
-    this._logMessage(`**** _preloadFullSpinDependencies() ended with ${this.latestHierarchy.size} files`);
-  }
-
-  private _addDependencies(rootDeps: SpinDependency[]) {
-    this._logMessage(`**** _addDependencies(${rootDeps[0].name})[${rootDeps[0].id}], ${rootDeps.length} file(s)`);
-    const scheduleGets: SpinDependency[] = [];
-    for (let index = 0; index < rootDeps.length; index++) {
-      const fileWithChildren = rootDeps[index];
-      const filename: string = fileWithChildren.name;
-      // add root if not already present
-      if (fileWithChildren.isExplored == true) {
-        if (this.latestHierarchy.has(filename) == false) {
-          this.latestHierarchy.set(filename, fileWithChildren);
-          this._logMessage(`  _addDependencies() ADD name=[${filename}][${fileWithChildren.id}], nbrChildren=(${fileWithChildren.children.length})`);
-        } else {
-          const entry: SpinDependency = this.latestHierarchy.get(filename);
-          this._logMessage(`  _addDependencies() EXISTS name=[${filename}][${entry.id}], nbrChildren=(${entry.children.length})`);
-        }
-      } else {
-        this._logMessage(`  _addDependencies() SCHEDULING name=[${fileWithChildren.name}][${fileWithChildren.id}]`);
-        scheduleGets.push(fileWithChildren);
-      }
-      if (fileWithChildren.hasChildren) {
-        // now process children
-        for (let index = 0; index < fileWithChildren.children.length; index++) {
-          const childWithChildren = fileWithChildren.children[index];
-          if (childWithChildren.isExplored == false) {
-            this._logMessage(`  _addDependencies() SCHEDULING name=[${childWithChildren.name}][${childWithChildren.id}]`);
-            scheduleGets.push(childWithChildren);
-          } else {
-            const filename: string = childWithChildren.name;
-            // add child () if not already present if NO CHILDREN or NO FILE
-            const childrenFlag: string = childWithChildren.hasChildren ? '' : 'NO-children ';
-            const fileFlag: string = childWithChildren.isFileMissing ? 'NO-file ' : '';
-            if (this.latestHierarchy.has(filename) == false) {
-              this.latestHierarchy.set(filename, childWithChildren);
-              this._logMessage(`  _addDependencies() ADD ${childrenFlag}${fileFlag}name=[${filename}][${childWithChildren.id}]`);
-            } else {
-              this._logMessage(`  _addDependencies() EXISTS ${childrenFlag}${fileFlag}name=[${filename}][${childWithChildren.id}]`);
-            }
-          }
-        }
-      }
-      // now handling entries that don't have children info
-      if (scheduleGets.length > 0) {
-        for (let index = 0; index < scheduleGets.length; index++) {
-          const needsGet = scheduleGets[index];
-          const childDeps: SpinDependency[] = this._getDependencies(needsGet);
-          this._logMessage(
-            `  _addDependencies() investigated name=[${childDeps[0].name}][${childDeps[0].id}], nbrChildren=(${childDeps[0].children.length})`
-          );
-          this._addDependencies(childDeps);
-        }
-      }
-    }
-  }
-
-  private _getDependencies(childSpinDep?: SpinDependency): SpinDependency[] {
-    /**
-     * Get the top-file w/children or specified-file w/children
-     * return this object and its dependencies
-     */
-    const topArg: string = childSpinDep !== undefined ? childSpinDep?.name : '';
-    this._logMessage(`++++ (DBG) ObjDep: getDeps(${topArg})`);
-    if (!this.rootPath) {
-      this._logMessage(`!!!! ERROR: ObjDep: Unable to locate objects without rootPath`);
-      return [];
-    }
-    const objectAndDependencies: SpinDependency[] = [];
-    if (childSpinDep !== undefined) {
-      // CASE we have CHILD: get grandchildren
-      childSpinDep.setExplored();
-      this._logMessage(`+ (DBG) ObjDep: getDeps() childSpinDep=[${childSpinDep?.name}] IS EXPLORED`);
-      // get for underlying file
-      const childFileBasename = this._filenameWithSpinFileType(childSpinDep.name);
-      const childFileSpec = path.join(this.rootPath, childFileBasename);
-      if (!this._fileExists(childFileSpec)) {
-        // CASE: file is missing for child
-        this._logMessage(`+ (DBG) ObjDep: getDeps() element=[${childFileBasename}] has (???) deps - MISSING FILE`);
-        childSpinDep.setFileMissing();
-      } else {
-        // CASE: get child deps
-        const grandChildDeps: SpinObject[] = this._getDepsFromSpinFile(childFileSpec);
-        this._logMessage(`+ (DBG) ObjDep: getDeps() element=[${childFileBasename}] has (${grandChildDeps.length}) deps`);
-        let grandChildNbr: number = 0;
-        for (let index = 0; index < grandChildDeps.length; index++) {
-          const grandChildSpinDep = grandChildDeps[index];
-          const grandChildFileSpec = path.join(this.rootPath!, grandChildSpinDep.fileName);
-          const childDep = new SpinDependency(grandChildFileSpec, grandChildSpinDep, `${childSpinDep.id}${grandChildNbr}`);
-          childSpinDep.addChild(childDep);
-          grandChildNbr++;
-        }
-      }
-      objectAndDependencies.push(childSpinDep);
-    } else {
-      this._logMessage(`+ (DBG) ObjDep: getDeps() [topLevel]`);
-      // get for project top level file
-      let childDeps: SpinObject[] = [];
-      let filename: string = path.basename(this.topLevelFSpec);
-      if (this.isDocument) {
-        const textEditor = vscode.window.activeTextEditor;
-        if (textEditor) {
-          childDeps = this._getDepsFromDocument(textEditor.document);
-          filename = path.basename(textEditor.document.fileName);
-        }
-      } else {
-        childDeps = this._getDepsFromSpinFile(this.topLevelFSpec);
-      }
-      const topSpin = new SpinObject(filename, '(top-file)');
-      const topSpinDep = new SpinDependency(this.topLevelFSpec, topSpin, '0');
-      topSpinDep.setExplored();
-      this._logMessage(`+ (DBG) ObjDep: getDeps() topLevel has (${childDeps.length}) children - IS EXPLORED`);
-      for (let index = 0; index < childDeps.length; index++) {
-        const childSpinDep = childDeps[index];
-        const newChildDep = new SpinDependency(this.topLevelFSpec, childSpinDep, `${topSpinDep.id}${index}`);
-        topSpinDep.addChild(newChildDep);
-      }
-      objectAndDependencies.push(topSpinDep);
-    }
-    // pre-mark our results
-    // if we have already explored any of these filenames then don't allow 2nd explore
-    for (let index = 0; index < objectAndDependencies[0].children.length; index++) {
-      const childDep = objectAndDependencies[0].children[index];
-      const filename: string = childDep.name;
-      if (this.latestHierarchy.has(filename)) {
-        childDep.setExplored();
-      }
-    }
-    this._dumpDeps(objectAndDependencies);
-    return objectAndDependencies;
-  }
-
-  private _dumpDeps(deps: SpinDependency[]) {
-    const itemNbr: number = 1;
-    for (let index = 0; index < deps.length; index++) {
-      const spinDep = deps[index];
-      this._logMessage(
-        `+ dumpDeps() #${itemNbr} id=[${spinDep.id}], name=[${spinDep.name}], known=[${spinDep.knownAs}], nbrChildren=(${spinDep.children.length}), depth=(${spinDep.depth}), explored=(${spinDep.isExplored})`
-      );
-      for (let index = 0; index < spinDep.children.length; index++) {
-        const childDep = spinDep.children[index];
-        this._logMessage(
-          `+ dumpDeps() --- child #${index} id=[${childDep.id}], name=[${childDep.name}], known=[${childDep.knownAs}], depth=(${childDep.depth}), explored=(${childDep.isExplored})`
-        );
-      }
-    }
   }
 
   /*
@@ -440,91 +253,432 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
      * @param element The element from which the provider gets children. Can be `undefined`.
      * @return Children of `element` or root if no element is passed.
      */
-    const topArg: string = element !== undefined ? element?.label.toString() : '';
-    this._logMessage(`+==+ (DBG) ObjDep: getChildren(${topArg})`);
-    this._dumpElement('getChildren()', element);
-    if (!this.rootPath) {
-      vscode.window.showInformationMessage('No dependency in empty workspace');
-      const noDep = new Dependency('No object references in empty workspace', '', ELEM_NONE, -1);
-      noDep.removeIcon(); // this is message, don't show icon
-      return Promise.resolve([noDep]);
-    }
-    let elementDepth: number = topArg.length > 0 ? element.depth : 0;
-    const subDeps: Dependency[] = [];
-    const subRawDeps: SpinDependency[] = [];
+    const topId: string = element !== undefined ? `[${element?.id}]` : '';
+    const topArg: string = element !== undefined ? `${element?.label.toString()}${topId}` : '';
+    this._logMessage(`+==+ (DBG) ObjDep: getChildrn(${topArg}) isEmptying=(${this.isEmptying})`);
     if (element !== undefined) {
+      this._dumpElement('getChildrn()', element);
+    }
+
+    const subDeps: Dependency[] = [];
+    if (this.isEmptying) {
+      // CASE we are letting the OBJ TREE remove all content...
+      //   so we return nothing but clear flag telling us to do this
+      // NOT NEEDED vscode.window.showInformationMessage('Rebuilding object hierarchy tree');
+      const rebuildingDep = new Dependency('...', '', ELEM_NONE, -1, 'xyzzy');
+      rebuildingDep.removeIcon(); // this is message, don't show icon
+      subDeps.push(rebuildingDep);
+      this.isEmptying = false; // we've done this once...
+    } else if (!this.rootPath) {
+      // CASE we dont know where folder containing .spin2 files is yet!
+      vscode.window.showInformationMessage('No dependency in empty workspace');
+      const noDep = new Dependency('No object references in empty workspace', '', ELEM_NONE, -1, 'x');
+      noDep.removeIcon(); // this is message, don't show icon
+      subDeps.push(noDep);
+    } else if (element !== undefined) {
       // CASE we have CHILD: get grandchildren
-      this._logMessage(`+ (DBG) ObjDep: getChildren() element=[${element?.label}]`);
+      //this._logMessage(`+ (DBG) ObjDep: getChildrn() element=[${element?.label}]`);
       // get for underlying file
       const childFileBasename = this._filenameWithSpinFileType(element.label.toString());
-      const childFileSpec = path.join(this.rootPath, childFileBasename);
-      let nbrGrandChildren: number = 0;
-      if (!this._fileExists(childFileSpec)) {
+      //const childFileSpec = path.join(this.rootPath, childFileBasename);
+      const childFileStructure: SpinDependency = this._getDepsFromHierarchy(element.label.toString());
+      if (childFileStructure.isFileMissing) {
         // CASE: file is missing for child
-        this._logMessage(`+ (DBG) ObjDep: getChildren() element=[${childFileBasename}] has (???) deps - MISSING FILE`);
-        const topState: vscode.TreeItemCollapsibleState = this._elementCollapseState(elementDepth, false, nbrGrandChildren);
-        const subDep = new Dependency(element.label, element.descriptionString, topState, -1);
+        this._logMessage(`+ (DBG) ObjDep: getChildrn() element=[${childFileBasename}] has (???) deps - MISSING FILE`);
+        const topState: vscode.TreeItemCollapsibleState = this._elementCollapseState(element.depth, false, 0);
+        const subDep = new Dependency(element.label, element.descriptionString, topState, -1, `${childFileStructure.id}z`);
         subDep.setFileMissing();
         subDeps.push(subDep);
-        subRawDeps.push(this._spinDepFromDep(subDep));
       } else {
-        // CASE: show child
-        const spinDeps = this._getDepsFromSpinFile(childFileSpec);
-        nbrGrandChildren = spinDeps.length;
-        this._logMessage(`+ (DBG) ObjDep: getChildren() element=[${childFileBasename}] has (${spinDeps.length}) deps`);
-        elementDepth++;
-        spinDeps.forEach((dependency) => {
-          const depFileSpec = path.join(this.rootPath!, dependency.fileName);
-          // huh, is this if really needed?
-          let nbrGreatGrandChildren: number = 0;
-          const childFileExists: boolean = this._fileExists(depFileSpec);
-          if (childFileExists) {
-            // CASE: show child
-            const subSpinDeps = this._getDepsFromSpinFile(depFileSpec);
-            nbrGreatGrandChildren = subSpinDeps.length;
-          }
-          const topState: vscode.TreeItemCollapsibleState = this._elementCollapseState(elementDepth, childFileExists, nbrGreatGrandChildren);
-          const subDep = new Dependency(dependency.fileName, dependency.knownAs, topState, 1, element);
-          if (!childFileExists) {
+        // CASE: have child return deps for this child
+        this._logMessage(`+ (DBG) ObjDep: getChildrn() element=[${childFileBasename}] has (${childFileStructure.children.length}) deps`);
+        for (let index = 0; index < childFileStructure.children.length; index++) {
+          const childsChild = childFileStructure.children[index];
+          //const depFileSpec = path.join(this.rootPath!, childsChild.name);
+          const childState: vscode.TreeItemCollapsibleState = this._elementCollapseState(
+            childsChild.depth,
+            !childsChild.isFileMissing,
+            childsChild.children.length
+          );
+          const subDep = new Dependency(childsChild.name, childsChild.knownAs, childState, childsChild.depth, childsChild.id);
+          if (childsChild.isFileMissing) {
             subDep.setFileMissing();
           }
           subDeps.push(subDep);
-          subRawDeps.push(this._spinDepFromDep(subDep));
-        });
+        }
       }
     } else {
-      this._logMessage(`+ (DBG) ObjDep: getChildren() [topLevel]`);
+      this._logMessage(`+ (DBG) ObjDep: getChildrn() [topLevel]`);
       // get for project top level file
-      let spinDeps = [];
-      elementDepth = 0;
-      if (this.isDocument) {
-        const textEditor = vscode.window.activeTextEditor;
-        if (textEditor) {
-          spinDeps = this._getDepsFromDocument(textEditor.document);
-        }
-      } else {
-        spinDeps = this._getDepsFromSpinFile(this.topLevelFSpec);
-      }
-      this._logMessage(`+ (DBG) ObjDep: getChildren() topLevel has (${spinDeps.length}) deps`);
-      if (spinDeps.length > 0) {
-        const topState: vscode.TreeItemCollapsibleState = this._elementCollapseState(elementDepth, true, spinDeps.length);
-        const topDep = new Dependency(this.topLevelFName, '(top-file)', topState, 0);
+      const topFileStructure: SpinDependency = this._getDepsFromHierarchy();
+      this._logMessage(`+ (DBG) ObjDep: getChildrn() topLevel has (${topFileStructure.children.length}) deps`);
+      if (topFileStructure.children.length > 0) {
+        const topState: vscode.TreeItemCollapsibleState = this._elementCollapseState(0, true, topFileStructure.children.length);
+        const topDep = new Dependency(this.topLevelFName, '(top-file)', topState, topFileStructure.depth, topFileStructure.id);
         subDeps.push(topDep);
-        for (let index = 0; index < subDeps.length; index++) {
-          const subdep: Dependency = subDeps[index];
-          subRawDeps.push(this._spinDepFromDep(subdep));
-        }
       } else {
         //vscode.window.showInformationMessage("Workspace has no package.json");
         const emptyMessage: string = `No object references found in ${this.topLevelFName}`;
-        const emptyDep = new Dependency(emptyMessage, '', vscode.TreeItemCollapsibleState.None, -1);
+        const emptyDep = new Dependency(emptyMessage, '', vscode.TreeItemCollapsibleState.None, -1, 'y');
         emptyDep.removeIcon(); // this is message, don't show icon
         subDeps.push(emptyDep);
       }
     }
+    this._dumpSubDeps(subDeps);
     return Promise.resolve(subDeps);
   }
 
+  private activeEditorChanged(internalUse: boolean = false): void {
+    // if editor is currently a SPIN file and file is in hierarchy the refresh deps
+    // if editor is not a SPIN file but topFile changed then refresh deps
+    const invokeType: string = internalUse ? 'INTERNAL' : 'tab-change';
+    this._logMessage(`* (DBG) ObjDep: activeEditorChanged(${invokeType})`);
+    let newViewEnabledState: boolean = false;
+    const initialViewEnabledState: boolean = this.viewEnabledState;
+    const topChanged: boolean = this._loadConfigWithTopFileInfo(); // ensure we have latest in case it changed
+    const haveActiveEditor: boolean = vscode.window.activeTextEditor ? true : false;
+    let editedFileNameChanged: boolean = false;
+    if (haveActiveEditor) {
+      // determine if edited file changed
+      const fileFSpec: string = this._getActiveSpinFile();
+      const fileName: string = path.basename(fileFSpec);
+      const haveSpinFile: boolean = isSpinFile(fileFSpec) ? true : false; // matches .spin and .spin2
+      editedFileNameChanged = haveSpinFile && fileFSpec != this.topLevelFSpec ? true : false;
+      this._logMessage(`+ (DBG) ObjDep: aeChg() editFName=[${fileName}], nmChg=(${editedFileNameChanged}), haveSpinFile=(${haveSpinFile})`);
+      if (editedFileNameChanged && !this.bFixHierToTopLevel) {
+        this.topLevelFSpec = fileFSpec;
+        this.topLevelFName = fileName;
+        this.rootPath = path.dirname(this.topLevelFSpec);
+      }
+    }
+    this._logMessage(`+ (DBG) ObjDep: aeChg() topFName=[${this.topLevelFName}], topChg=(${topChanged}), editedNameChg=(${editedFileNameChanged})`);
+    newViewEnabledState = true; // reset default
+    if (!this.bFixHierToTopLevel && !haveActiveEditor) {
+      this._logMessage(`+ (DBG) ObjDep: aeChg() [NO-top, NO-editor]`);
+      // CASE [00] NO top file, NO active editor
+      //  nothing to do, DONE
+      newViewEnabledState = false;
+    } else if (!this.bFixHierToTopLevel && haveActiveEditor) {
+      this._logMessage(`+ (DBG) ObjDep: aeChg() [NO-top, YES-editor]`);
+      // CASE [01] NO top file, YES active editor
+      let reloadHierarchy: boolean = false;
+      if (editedFileNameChanged) {
+        // reload full tree hierarchy
+        reloadHierarchy = true;
+      } else {
+        // just a content change
+        // if files' children changed then update file in curr tree
+        if (this.latestHierarchy.has(this.topLevelFName)) {
+          this._logMessage(`+ (DBG) ObjDep: aeChg() file is in tree!`);
+          const currDep = this.latestHierarchy.get(this.topLevelFName);
+          const needsReload: boolean = this._updateDependencies(currDep);
+          if (needsReload) {
+            // child changes were significant (dep removed or added) so...
+            // reload full tree hierarchy
+            reloadHierarchy = true;
+          }
+        }
+      }
+      if (reloadHierarchy) {
+        // child changes were significant (dep removed or added) so let's just rebuild the tree
+        this._preloadFullSpinDependencies();
+      }
+      //  if edited file changed, rebuild tree
+    } else if (this.bFixHierToTopLevel && !haveActiveEditor) {
+      this._logMessage(`+ (DBG) ObjDep: aeChg() [YES-top, NO-editor]`);
+      // CASE [10] YES topFile, NO active editor
+      //  if top file changed, rebuild tree
+      if (topChanged) {
+        this._preloadFullSpinDependencies();
+      }
+    } else if (this.bFixHierToTopLevel && haveActiveEditor) {
+      this._logMessage(`+ (DBG) ObjDep: aeChg() [YES-top, YES-editor]`);
+      // CASE [11] YES top file, YES active editor
+      //  if top file changed -OR- if edited file changed, rebuild tree
+      if (topChanged) {
+        this._preloadFullSpinDependencies();
+      } else if (this.latestHierarchy.has(this.topLevelFName)) {
+        this._logMessage(`+ (DBG) ObjDep: aeChg() file is in tree!`);
+        //  else if only file changed the reload deps for file
+        //  if file change was drammatic rebuild the file
+        const currDep = this.latestHierarchy.get(this.topLevelFName);
+        const needsReload: boolean = this._updateDependencies(currDep);
+        if (needsReload) {
+          // child changes were significant (dep removed or added) so...
+          // reload full tree hierarchy
+          this._preloadFullSpinDependencies();
+        }
+      }
+    }
+    const stateChanged: boolean = initialViewEnabledState != newViewEnabledState;
+    if (stateChanged) {
+      // only publish on change
+      this._publishViewEnableState(newViewEnabledState);
+      if (newViewEnabledState == true) {
+        // if enabled after change, refresh view
+        this.refresh(CALLED_INTERNALLY);
+      }
+    }
+  }
+
+  private _publishTreeState() {
+    const currentState: boolean = this.treeState == eTreeState.TS_ExpandTop ? true : false;
+    this._logMessage(`* ObjDep: treeState .objectDeps.showingTopOnly=(${currentState})`);
+    vscode.commands.executeCommand('setContext', 'runtime.spinExtension.objectDeps.showingTopOnly', currentState);
+  }
+
+  private _publishViewEnableState(desiredEnableState: boolean) {
+    this._logMessage(`* ObjDep: treeView .objectDeps.enabled=(${desiredEnableState})`);
+    // record new published state
+    this.viewEnabledState = desiredEnableState;
+    // and publish new state
+    vscode.commands.executeCommand('setContext', 'runtime.spinExtension.objectDeps.enabled', desiredEnableState);
+  }
+
+  private _collapseStateString(collapseMode: vscode.TreeItemCollapsibleState): string {
+    let desiredString: string = '';
+    switch (collapseMode) {
+      case ELEM_COLLAPSED:
+        desiredString = 'CS_COLLAPSED';
+        break;
+
+      case ELEM_EXPANDED:
+        desiredString = 'CS_EXPANDED';
+        break;
+
+      case ELEM_NONE:
+        desiredString = 'CS_NONE';
+        break;
+
+      default:
+        desiredString = '?unk?';
+        break;
+    }
+    return desiredString;
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////
+  // build internal full project object hierarchy
+  //
+  private _preloadFullSpinDependencies() {
+    // prescan all files starting from current  file in active editor if any, else scan topFile if given
+    //  will do NOTHING if these conditions are not met
+    this._logMessage(`**** _preloadFullSpinDeps()`);
+    if (this.viewEnabledState == true) {
+      let nextDeps: SpinDependency[] = [];
+      // ensure empty tree at start
+      this.latestHierarchy.clear();
+      // start reload from root
+      const rootDep: SpinDependency = this._getDependencies();
+      if (rootDep !== undefined) {
+        this._addDependency(rootDep);
+        for (let index = 0; index < rootDep.children.length; index++) {
+          const childDep = rootDep.children[index];
+          nextDeps.push(childDep);
+        }
+      } else {
+        this._logMessage(`ERROR: _preloadFullSpinDeps() _getDeps({root}) returned NOTHING!`);
+      }
+      let nextDepsCopy: SpinDependency[] = [];
+      do {
+        nextDepsCopy = nextDeps;
+        nextDeps = [];
+        this._logMessage(`*    _preloadFullSpinDeps() loading ${nextDepsCopy.length} children`);
+        for (let index = 0; index < nextDepsCopy.length; index++) {
+          const child = nextDepsCopy[index];
+          const childDep: SpinDependency = this._getDependencies(child);
+          if (childDep !== undefined) {
+            this._addDependency(childDep);
+            for (let index = 0; index < childDep.children.length; index++) {
+              const grandChildDep = childDep.children[index];
+              nextDeps.push(grandChildDep);
+            }
+          } else {
+            this._logMessage(`ERROR: _preloadFullSpinDeps() _getDeps(${child.name}) returned NOTHING!`);
+          }
+        }
+      } while (nextDeps.length > 0);
+    }
+
+    this._logMessage(`*    _preloadFullSpinDeps() ended with ${this.latestHierarchy.size} files`);
+    this._dumpTree();
+  }
+
+  private _addDependency(fileWithChildren: SpinDependency) {
+    this._logMessage(`**** _addDepends(${fileWithChildren.name})[${fileWithChildren.id}], ${fileWithChildren.children.length} file(s)`);
+    const filename: string = fileWithChildren.name;
+    if (fileWithChildren.isExplored == true) {
+      if (this.latestHierarchy.has(filename) == false) {
+        this.latestHierarchy.set(filename, fileWithChildren);
+      }
+    }
+  }
+
+  private _updateDependencies(childSpinDep?: SpinDependency): boolean {
+    const topArg: string = childSpinDep !== undefined ? childSpinDep?.name : '';
+    this._logMessage(`**** _updateDependencies(${topArg})`);
+    let needTreeRebuiltStatus: boolean = false;
+    if (childSpinDep) {
+      this._dumpSpinDeps([childSpinDep]);
+      const newSpinDep: SpinDependency = this._getDependencies(childSpinDep);
+      const needUpdate: boolean = childSpinDep.children.length != newSpinDep.children.length;
+      if (!needUpdate) {
+        // get list of orig child names
+        const originalChildNames = childSpinDep.children.map((child) => child.name);
+        // for the newSpinDep children replace each with the current value from this.latestHierarchy Map
+        const newChildList: SpinDependency[] = newSpinDep.children.map((child) => this.latestHierarchy.get(child.name) || child);
+        newSpinDep.replaceChildren(newChildList);
+        // for each child updated, remove from the orig child name list
+        newSpinDep.children.forEach((child) => {
+          const index = originalChildNames.indexOf(child.name);
+          if (index !== -1) {
+            originalChildNames.splice(index, 1);
+          }
+        });
+        // if orig list is not empty a child was deleted
+        if (originalChildNames.length > 0) {
+          this._logMessage(`* _updateDependencies() - looks like we removed ${originalChildNames.length} objects from ${childSpinDep.name}`);
+          // this could cause files to be removed from our list, instead let's just ask for the tree to be rebuilt
+          needTreeRebuiltStatus = true;
+        }
+        // if the new childDep has children not yet explored we have one or more new children
+        //   instead of exploring them let's just detect this case and ask for the tree to be rebuilt
+        for (let index = 0; index < newSpinDep.children.length; index++) {
+          const child = newSpinDep.children[index];
+          if (child.isExplored == false) {
+            needTreeRebuiltStatus = true;
+            break; // exit loop, we have our answer
+          }
+        }
+      }
+    }
+    return needTreeRebuiltStatus;
+  }
+
+  private _getDependencies(childSpinDep?: SpinDependency): SpinDependency | undefined {
+    /**
+     * Get the top-file w/children or specified-file w/children
+     * return this object and its dependencies
+     */
+    //const topArg: string = childSpinDep !== undefined ? childSpinDep?.name : '';
+    //this._logMessage(`++++ (DBG) ObjDep: getDeps(${topArg})`);
+    let objectAndDependency: SpinDependency = undefined;
+    if (!this.rootPath) {
+      this._logMessage(`!!!! ERROR: ObjDep: Unable to locate objects without rootPath`);
+      return objectAndDependency;
+    }
+    if (childSpinDep !== undefined) {
+      // CASE we have CHILD: get grandchildren
+      childSpinDep.setExplored();
+      //this._logMessage(`+ (DBG) ObjDep: getDeps() childSpinDep=[${childSpinDep?.name}] IS EXPLORED`);
+      // get for underlying file
+      this._logMessage(`* _getDeps(top) childFName=[${childSpinDep.name}]`);
+      const childFileBasename = this._filenameWithSpinFileType(childSpinDep.name);
+      const childFileSpec = path.join(this.rootPath, childFileBasename);
+      if (!this._fileExists(childFileSpec)) {
+        // CASE: file is missing for child
+        //this._logMessage(`+ (DBG) ObjDep: getDeps() element=[${childFileBasename}] has (???) deps - MISSING FILE`);
+        childSpinDep.setFileMissing();
+      } else {
+        // CASE: get child deps
+        const grandChildDeps: SpinObject[] = this._getDepsFromSpinFile(childFileSpec);
+        //this._logMessage(`+ (DBG) ObjDep: getDeps() element=[${childFileBasename}] has (${grandChildDeps.length}) deps`);
+        let grandChildNbr: number = 0;
+        for (let index = 0; index < grandChildDeps.length; index++) {
+          const childsChild = grandChildDeps[index];
+          const grandChildFileSpec = path.join(this.rootPath!, childsChild.fileName);
+          const childDep = new SpinDependency(grandChildFileSpec, childsChild, `${childSpinDep.id}${grandChildNbr}`);
+          this._checkId(childDep);
+          childSpinDep.addChild(childDep);
+          grandChildNbr++;
+        }
+      }
+      objectAndDependency = childSpinDep;
+    } else {
+      //this._logMessage(`+ (DBG) ObjDep: getDeps() [topLevel]`);
+      // get for project top level file
+      this._logMessage(`* _getDeps(top) topLevelFName=[${this.topLevelFName}]`);
+      const childDeps: SpinObject[] = this._getDepsFromSpinFile(this.topLevelFSpec);
+      const topSpin = new SpinObject(this.topLevelFName, '(top-file)');
+      const topSpinDep = new SpinDependency(this.topLevelFSpec, topSpin, '0');
+      this._checkId(topSpinDep);
+      topSpinDep.setExplored();
+      //this._logMessage(`+ (DBG) ObjDep: getDeps() topLevel has (${childDeps.length}) children - IS EXPLORED`);
+      for (let index = 0; index < childDeps.length; index++) {
+        const childSpinDep = childDeps[index];
+        const newChildDep = new SpinDependency(this.topLevelFSpec, childSpinDep, `${topSpinDep.id}${index}`);
+        this._checkId(newChildDep);
+        topSpinDep.addChild(newChildDep);
+      }
+      objectAndDependency = topSpinDep;
+    }
+    // pre-mark our results
+    // if we have already explored any of these filenames then don't allow 2nd explore
+    for (let index = 0; index < objectAndDependency.children.length; index++) {
+      const childDep = objectAndDependency.children[index];
+      const filename: string = childDep.name;
+      if (this.latestHierarchy.has(filename)) {
+        childDep.setExplored();
+      }
+    }
+
+    this._dumpSpinDeps([objectAndDependency]);
+    return objectAndDependency;
+  }
+
+  private _checkId(newDep: SpinDependency) {
+    if (this.existingIDs.includes(newDep.id)) {
+      this._logMessage(`ERROR: DUPE id[${newDep.id}] exists in ${newDep.toString()}`);
+    } else {
+      this.existingIDs.push(newDep.id);
+      //this._logMessage(`* USED id[${newDep.id}] in ${newDep.toString()}`);
+    }
+  }
+
+  private _dumpTree() {
+    let keyNumber: number = 1;
+    this.latestHierarchy.forEach((value, key) => {
+      this._logMessage(`+ dumpTree() #${keyNumber} key=[${key}]`);
+      this._dumpSpinDeps([value], keyNumber);
+      //console.log(`Key: ${key}, Value: ${value}`);
+      keyNumber++;
+    });
+  }
+
+  private _dumpSpinDeps(deps: SpinDependency[], keyNbr: number = -1) {
+    const itemNbr: string = keyNbr == -1 ? '#1' : '            ';
+    for (let index = 0; index < deps.length; index++) {
+      const spinDep = deps[index];
+      this._logMessage(
+        `+ dumpDeps() ${itemNbr} id=[${spinDep.id}], name=[${spinDep.name}], known=[${spinDep.knownAs}], nbrChildren=(${spinDep.children.length}), depth=(${spinDep.depth}), explored=(${spinDep.isExplored})`
+      );
+      for (let index = 0; index < spinDep.children.length; index++) {
+        const childDep = spinDep.children[index];
+        this._logMessage(
+          `+ dumpDeps() --- child #${index} id=[${childDep.id}], name=[${childDep.name}], known=[${childDep.knownAs}], depth=(${childDep.depth}), explored=(${childDep.isExplored})`
+        );
+      }
+    }
+  }
+
+  private _dumpSubDeps(subDeps: Dependency[]) {
+    for (let index = 0; index < subDeps.length; index++) {
+      const dependency = subDeps[index];
+      this._logMessage(`* _dumpSubDeps() #${index} [${dependency.toString()}]`);
+    }
+  }
+
+  private _getDepsFromHierarchy(filename?: string): SpinDependency | undefined {
+    //const desiredName: string = filename ? filename : '[topLevel]';
+    //this._logMessage(`+ (DBG) ObjDep: _getDepsFromHier(${desiredName})`);
+    let desiredDeps: SpinDependency | undefined = undefined;
+    const topName: string = filename ? filename : this.topLevelFName;
+    if (this.latestHierarchy.has(topName)) {
+      desiredDeps = this.latestHierarchy.get(topName);
+    }
+    this._dumpSpinDeps([desiredDeps]);
+    return desiredDeps;
+  }
   private async _showDocument(fileFSpec: string) {
     this._logMessage(`+ (DBG) ObjDep: _showDocument() [${fileFSpec}]`);
     const textDocument = await vscode.workspace.openTextDocument(fileFSpec);
@@ -555,49 +709,11 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     return desiredName;
   }
 
-  private activeEditorChanged(): void {
-    // if we are not fixes
-    this._logMessage(`* (DBG) ObjDep: activeEditorChanged()`);
-    let newViewEnabledState: boolean = false;
-    const initialViewEnabledState: boolean = this.viewEnabledState;
-    if (vscode.window.activeTextEditor) {
-      if (!this.bFixHierToTopLevel) {
-        const fileFSpec: string = this._getActiveSpinFile();
-        const isEnabled: boolean = isSpinFile(fileFSpec) ? true : false; // matches .spin and .spin2
-        newViewEnabledState = isEnabled;
-        //this._publishViewEnableState(newViewEnabledState);
-        if (isEnabled) {
-          // set new file top
-          this.topLevelFSpec = fileFSpec;
-          this.topLevelFName = path.basename(this.topLevelFSpec);
-          this.rootPath = path.dirname(this.topLevelFSpec);
-          this._logMessage(`+ (DBG) ObjDep: activeEditorChanged() topLevelFSpec=[${this.topLevelFSpec}]`);
-        }
-      } else {
-        // we have topLevel for this workspace, stay enabled
-        newViewEnabledState = true;
-        //this._publishViewEnableState(newViewEnabledState);
-      }
-    } else {
-      //this._publishViewEnableState(newViewEnabledState);
-    }
-    const stateChanged: boolean = initialViewEnabledState != newViewEnabledState;
-    if (stateChanged) {
-      // only publish on change
-      this._publishViewEnableState(newViewEnabledState);
-      if (newViewEnabledState == true) {
-        // if enabled after change, refresh view
-        this.refresh(CALLED_INTERNALLY);
-      }
-    }
-  }
-
   private _getActiveSpinFile(): string {
     const textEditor = vscode.window.activeTextEditor;
     let foundFSpec: string = '';
     if (textEditor) {
       if (textEditor.document.uri.scheme === 'file') {
-        this.isDocument = true; // we're loading initial deps from current tab, not file!
         const currentlyOpenTabFSpec = textEditor.document.uri.fsPath;
         //var currentlyOpenTabfolderName = path.dirname(currentlyOpenTabFSpec);
         const currentlyOpenTabfileName = path.basename(currentlyOpenTabFSpec);
@@ -690,11 +806,11 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
         priorState = currState;
         currState = sectionStatus.inProgressStatus;
       }
-      //this._logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile() eval trimmedLine=[${trimmedLine}]`);
+      //this._logMessage(`+ (DBG) ObjDep: _getDepsFromDocument() eval trimmedLine=[${trimmedLine}]`);
       if (currState == eParseState.inObj && nonCommentLineRemainder.includes(':')) {
         const spinObj = this._spinDepFromObjectLine(nonCommentLineRemainder);
         if (spinObj) {
-          //this._logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile() basename=[${spinObj.baseName}] known as (${spinObj.knownAs})`);
+          //this._logMessage(`+ (DBG) ObjDep: _getDepsFromDocument() basename=[${spinObj.baseName}] known as (${spinObj.knownAs})`);
           deps.push(spinObj);
         } else {
           this._logMessage(`+ (DBG) ObjDep: _getDepsFromDocument() BAD parse of OBJ line [${trimmedLine}]`);
@@ -707,7 +823,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
   private _getDepsFromSpinFile(fileSpec: string): SpinObject[] {
     const deps = [];
-    //this._logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile(${fileSpec})`);
+    //this._logMessage(`+ (DBG) ObjDep: _getDepsFmSpinFile(${fileSpec})`);
     if (this._fileExists(fileSpec)) {
       const spinFileContent = this._loadFileAsString(fileSpec); // handles utf8/utf-16
       let lines = spinFileContent.split('\r\n');
@@ -776,14 +892,14 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
           priorState = currState;
           currState = sectionStatus.inProgressStatus;
         }
-        //this._logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile() eval trimmedLine=[${trimmedLine}]`);
+        //this._logMessage(`+ (DBG) ObjDep: _getDepsFmSpinFile() eval trimmedLine=[${trimmedLine}]`);
         if (currState == eParseState.inObj && nonCommentLineRemainder.includes(':')) {
           const spinObj = this._spinDepFromObjectLine(nonCommentLineRemainder);
           if (spinObj) {
-            //this._logMessage(`+ (DBG) ObjDep: _getDepsFromSpinFile() basename=[${spinObj.baseName}] known as (${spinObj.knownAs})`);
+            //this._logMessage(`+ (DBG) ObjDep: _getDepsFmSpinFile() basename=[${spinObj.baseName}] known as (${spinObj.knownAs})`);
             deps.push(spinObj);
           } else {
-            this._logMessage(`+ (DBG) ObjDep: _getDepsFromDocument() BAD parse of OBJ line [${trimmedLine}]`);
+            this._logMessage(`+ (DBG) ObjDep: _getDepsFmSpinFile() BAD parse of OBJ line [${trimmedLine}]`);
           }
         }
       }
@@ -871,15 +987,19 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
   private async _dumpElement(callerID: string, element?: Dependency) {
     let dumpElement = element;
-    if (element instanceof Promise) {
-      this._logMessage(`+ (DBG) ObjDep: _dumpElement() called with Promise!!`);
-      dumpElement = await element; // Unwrap the promise
+    if (element !== undefined) {
+      if (element instanceof Promise) {
+        this._logMessage(`+ (DBG) ObjDep: _dumpElement() called with Promise!!`);
+        dumpElement = await element; // Unwrap the promise
+      }
+      this._logMessage(
+        `* ${callerID} DUMP LBL=[${dumpElement.label}], OBJ=[${dumpElement.objName}], [${this._collapseStateString(
+          dumpElement.collapsibleState
+        )}], depth=(${dumpElement.depth})`
+      );
+    } else {
+      this._logMessage(`ERROR: _dumpElement(undefined) NOT supported!`);
     }
-    this._logMessage(
-      `* ${callerID} DUMP LBL=[${dumpElement.label}], OBJ=[${dumpElement.objName}], [${this.collapseStateString(
-        dumpElement.collapsibleState
-      )}], depth=(${dumpElement.depth})`
-    );
   }
 }
 
@@ -956,6 +1076,17 @@ export class SpinDependency {
   public setExplored() {
     this._isExplored = true;
   }
+
+  public replaceChildren(newChildren: SpinDependency[]) {
+    this._children = newChildren;
+  }
+
+  public toString(callerId: string = undefined): string {
+    let descriptionString: string = '';
+    const callerIdStr: string = callerId !== undefined ? `${callerId} ` : '';
+    descriptionString = `${callerIdStr} ${this.id} ${this._fileName} [${this.knownAs}] ${this.children.length} chidren`;
+    return descriptionString;
+  }
 }
 
 export class Dependency extends vscode.TreeItem {
@@ -980,6 +1111,7 @@ export class Dependency extends vscode.TreeItem {
     objName: string,
     collapsibleState: vscode.TreeItemCollapsibleState,
     depth: number,
+    userId: string,
     parent: Dependency | undefined = undefined
   ) {
     // element label is  filebasename
@@ -994,6 +1126,7 @@ export class Dependency extends vscode.TreeItem {
     this.descriptionString = objName;
     this._filename = label.toString(); // save 'given' name
     this._basename = label.toString(); // save 'given' name
+    this.id = userId;
     if (label !== undefined) {
       this._basename = label.toString().replace('.spin2', '');
       this._basename = this._basename.replace('.spin', '');
@@ -1045,6 +1178,12 @@ export class Dependency extends vscode.TreeItem {
     } else {
       this.description = `- MISSING FILE`;
     }
+  }
+  public toString(callerId: string = undefined): string {
+    let descriptionString: string = '';
+    const callerIdStr: string = callerId !== undefined ? `${callerId} ` : '';
+    descriptionString = `${callerIdStr} ${this.id} ${this.filename} ${this.descriptionString}`;
+    return descriptionString;
   }
 
   public removeIcon() {

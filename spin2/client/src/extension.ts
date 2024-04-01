@@ -194,7 +194,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //   Set Up our TAB Formatting
   //
   // post information to out-side world via our CONTEXT
-  vscode.commands.executeCommand('setContext', 'spinExtension.tabStops.enabled', tabFormatter.isEnabled());
+  vscode.commands.executeCommand('setContext', 'runtime.spinExtension.elasticTabstops.enabled', tabFormatter.isEnabled());
 
   //   Hook TAB Formatting
   const insertTabStopsCommentCommand = 'spinExtension.elasticTabstops.generate.tabStops.comment';
@@ -430,7 +430,7 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor) {
       //logExtensionMessage(`* SHOW SB-ITEM mode=[${modeName(mode)}]`);
     }
     // post information to out-side world via our CONTEXT
-    vscode.commands.executeCommand('setContext', 'spinExtension.insert.mode', modeName(mode));
+    vscode.commands.executeCommand('setContext', 'runtime.spinExtension.insert.mode', modeName(mode));
 
     // if in overtype mode, set the cursor to secondary style; otherwise, reset to default
     let cursorStyle;
