@@ -338,11 +338,12 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     const topChanged: boolean = this._loadConfigWithTopFileInfo(); // ensure we have latest in case it changed
     const haveActiveEditor: boolean = vscode.window.activeTextEditor ? true : false;
     let editedFileNameChanged: boolean = false;
+    let haveSpinFile: boolean = false;
     if (haveActiveEditor) {
       // determine if edited file changed
       const fileFSpec: string = this._getActiveSpinFile();
       const fileName: string = path.basename(fileFSpec);
-      const haveSpinFile: boolean = isSpinFile(fileFSpec) ? true : false; // matches .spin and .spin2
+      haveSpinFile = isSpinFile(fileFSpec) ? true : false; // matches .spin and .spin2
       editedFileNameChanged = haveSpinFile && fileFSpec != this.topLevelFSpec ? true : false;
       this._logMessage(`+ (DBG) ObjDep: aeChg() editFName=[${fileName}], nmChg=(${editedFileNameChanged}), haveSpinFile=(${haveSpinFile})`);
       if (editedFileNameChanged && !this.bFixHierToTopLevel) {
@@ -352,7 +353,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       }
     }
     this._logMessage(`+ (DBG) ObjDep: aeChg() topFName=[${this.topLevelFName}], topChg=(${topChanged}), editedNameChg=(${editedFileNameChanged})`);
-    const newViewEnabledState: boolean = !this.bFixHierToTopLevel && !haveActiveEditor ? false : true;
+    const newViewEnabledState: boolean = haveSpinFile && (this.bFixHierToTopLevel || haveActiveEditor) ? true : false;
     const stateChanged: boolean = initialViewEnabledState != newViewEnabledState;
     this.viewEnabledState = newViewEnabledState;
 
@@ -364,20 +365,22 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       this._logMessage(`+ (DBG) ObjDep: aeChg() [NO-top, YES-editor]`);
       // CASE [01] NO top file, YES active editor
       let reloadHierarchy: boolean = false;
-      if (editedFileNameChanged) {
-        // reload full tree hierarchy
-        reloadHierarchy = true;
-      } else {
-        // just a content change
-        // if files' children changed then update file in curr tree
-        if (this.latestHierarchy.has(this.topLevelFName)) {
-          this._logMessage(`+ (DBG) ObjDep: aeChg() file is in tree!`);
-          const currDep = this.latestHierarchy.get(this.topLevelFName);
-          const needsReload: boolean = this._updateDependencies(currDep);
-          if (needsReload) {
-            // child changes were significant (dep removed or added) so...
-            // reload full tree hierarchy
-            reloadHierarchy = true;
+      if (haveSpinFile) {
+        if (editedFileNameChanged) {
+          // reload full tree hierarchy
+          reloadHierarchy = true;
+        } else {
+          // just a content change
+          // if files' children changed then update file in curr tree
+          if (this.latestHierarchy.has(this.topLevelFName)) {
+            this._logMessage(`+ (DBG) ObjDep: aeChg() file is in tree!`);
+            const currDep = this.latestHierarchy.get(this.topLevelFName);
+            const needsReload: boolean = this._updateDependencies(currDep);
+            if (needsReload) {
+              // child changes were significant (dep removed or added) so...
+              // reload full tree hierarchy
+              reloadHierarchy = true;
+            }
           }
         }
       }
@@ -399,7 +402,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       //  if top file changed -OR- if edited file changed, rebuild tree
       if (topChanged) {
         this._preloadFullSpinDependencies();
-      } else if (this.latestHierarchy.has(this.topLevelFName)) {
+      } else if (haveSpinFile && this.latestHierarchy.has(this.topLevelFName)) {
         this._logMessage(`+ (DBG) ObjDep: aeChg() file is in tree!`);
         //  else if only file changed the reload deps for file
         //  if file change was drammatic rebuild the file
@@ -417,7 +420,13 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       this._publishViewEnableState(this.viewEnabledState);
       if (this.viewEnabledState == true) {
         // if enabled after change, refresh view
+        if (this.latestHierarchy.size == 0) {
+          this._preloadFullSpinDependencies();
+        }
         this.refresh(CALLED_INTERNALLY);
+      } else {
+        // is our view is not enabled, remove all hierarchy state
+        this.clearHierarchy();
       }
     }
   }
@@ -460,6 +469,12 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   //////////////////////////////////////////////////////////////////////////////////
   // build internal full project object hierarchy
   //
+  private clearHierarchy() {
+    // remove all present knowledge of spin object hierarchy
+    this.latestHierarchy.clear();
+    this.existingIDs = [];
+  }
+
   private _preloadFullSpinDependencies() {
     // prescan all files starting from current  file in active editor if any, else scan topFile if given
     //  will do NOTHING if these conditions are not met
@@ -470,8 +485,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       //
       let nextDeps: SpinDependency[] = [];
       // ensure empty tree at start, clear ID cache
-      this.latestHierarchy.clear();
-      this.existingIDs = [];
+      this.clearHierarchy();
       // start reload from root
       const rootDep: SpinDependency = this._getDependencies();
       if (rootDep !== undefined) {
