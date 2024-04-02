@@ -17,6 +17,8 @@ export class DocGenerator {
   private spinCodeUtils: SpinCodeUtils = new SpinCodeUtils();
   private objTreeProvider: ObjectTreeProvider;
   private endOfLineStr: string = '\r\n';
+  private hierarchyFilenameTotal: number = 0;
+  private hierarchyFilenameCount: number = 0;
 
   constructor(objectTreeProvider: ObjectTreeProvider) {
     this.objTreeProvider = objectTreeProvider;
@@ -575,9 +577,11 @@ export class DocGenerator {
         fs.appendFileSync(outFile, `    Tool :  VSCode Spin2 Extension ${versionStr} ${this.endOfLineStr}${this.endOfLineStr}`);
         fs.appendFileSync(outFile, `${this.endOfLineStr}`); // blank line
 
-        // FIXME: TODO: get object tree from ObjectTreeProvider (may have to add supporting code therein)
-        // thne report on object tree obtained
+        // Get object tree from ObjectTreeProvider (may have to add supporting code therein)
+        // then report on object tree obtained
         const [topFilename, depMap] = this.objTreeProvider.getObjectHierarchy();
+        this.hierarchyFilenameTotal = this.countFiles(topFilename, depMap);
+        this.hierarchyFilenameCount = 0;
         if (topFilename.length == 0 || depMap.size == 0) {
           fs.appendFileSync(outFile, `NO Dependencies found!${this.endOfLineStr}`); // blank line
         } else {
@@ -593,7 +597,9 @@ export class DocGenerator {
         fs.appendFileSync(outFile, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
         fs.appendFileSync(outFile, `Parallax Inc.${this.endOfLineStr}`);
         fs.appendFileSync(outFile, `www.parallax.com${this.endOfLineStr}`);
-        fs.appendFileSync(outFile, `support@parallax.com${this.endOfLineStr}`);
+        fs.appendFileSync(outFile, `support@parallax.com${this.endOfLineStr}${this.endOfLineStr}`);
+        fs.appendFileSync(outFile, `VSCode Spin2 Extension by:${this.endOfLineStr}`);
+        fs.appendFileSync(outFile, ` Iron Sheep Productions, LLC${this.endOfLineStr}`);
         fs.closeSync(outFile);
       } else {
         this.logMessage(`+ (DBG) generateHierarchyDocument() NOT a spin file! can't generate doc.`);
@@ -601,6 +607,30 @@ export class DocGenerator {
     } else {
       this.logMessage(`+ (DBG) generateHierarchyDocument() NO active editor.`);
     }
+  }
+
+  private countFiles(topFilename: string, deps: Map<string, SpinDependency>): number {
+    let desiredFileCount: number = topFilename && topFilename.length > 0 ? 1 : 0;
+    const topDep: SpinDependency | undefined = deps.get(topFilename);
+    if (topDep !== undefined) {
+      desiredFileCount += topDep.children.length;
+      let currChildren: string[] = topDep.children.map((child) => child.name);
+      while (currChildren.length > 0) {
+        const childrenThisPass: string[] = currChildren;
+        currChildren = [];
+        for (let index = 0; index < childrenThisPass.length; index++) {
+          const childName = childrenThisPass[index];
+          const childDep: SpinDependency | undefined = deps.get(childName);
+          if (childDep.hasChildren) {
+            desiredFileCount += childDep.children.length;
+            const grandChildrenName: string[] = childDep.children.map((grandChild) => grandChild.name);
+            currChildren.push(...grandChildrenName);
+          }
+        }
+      }
+    }
+    this.logMessage(`* countFiles() desiredFileCount=(${desiredFileCount})`);
+    return desiredFileCount;
   }
 
   private isOnlyParent(topFilename: string, depMap: Map<string, SpinDependency>): boolean {
@@ -666,8 +696,15 @@ export class DocGenerator {
       linePrefixSpacer = `${linePrefixSpacer}${prefixFillVert}`;
     }
     // write one or both lines
-    fs.appendFileSync(outFile, `${linePrefixFile}${filename}${this.endOfLineStr}`); // blank line
-    if (!isLastParent || haveChildren || (isLastParent && !isLastChild)) {
+    fs.appendFileSync(outFile, `${linePrefixFile}${filename}${this.endOfLineStr}`); // filename line
+    this.hierarchyFilenameCount++;
+    // show last line of not last line to be drawn in chart
+    //  last line is when we are both at last parent and last child
+    const showLastBlankLine: boolean = this.hierarchyFilenameCount < this.hierarchyFilenameTotal;
+    this.logMessage(
+      `+ rD() showLastBlankLine=(${showLastBlankLine}), count=(${this.hierarchyFilenameCount}), total=(${this.hierarchyFilenameTotal})`
+    );
+    if (showLastBlankLine) {
       fs.appendFileSync(outFile, `${linePrefixSpacer}${this.endOfLineStr}`); // blank line
     }
     // process children of this object
