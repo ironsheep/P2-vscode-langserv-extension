@@ -18,12 +18,13 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.2.15] 2024-01-11
+## [2.2.15] 2024-04-??
 
 Update P1 and P2
 
 - Adjust object hierarchy to fully expand the tree by default
-- Add new Object Hierarchy report similar to that generated during propeller tool "Archive"
+- [-] collapse and [+] expand icons work in object hierarchy tree view
+- Adds new Object Hierarchy report similar to that generated during propeller tool "Archive". Report is available via keystroke [Ctrl+Alt+r] - Ctrl+Alt+( r )eport from within spin/spin2 source file.
 
 Update P2 Only
 
