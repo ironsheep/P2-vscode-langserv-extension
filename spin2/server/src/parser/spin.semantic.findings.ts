@@ -889,7 +889,7 @@ export class DocumentFindings {
   //  TRACK ranges of CON/PUB/PRI/VAR/DAT/OBJ blocks within file
   //
   public recordBlockStart(eCurrBlockType: eBLockType, currLineIdx: number) {
-    this._logMessage(`  -- FND-RCD-BLOCK iblockType=[${eCurrBlockType}], span=[${currLineIdx} - ???]`);
+    this._logMessage(`  -- FND-RCD-BLOCK iblockType=[${eBLockType[eCurrBlockType]}], span=[${currLineIdx} - ???]`);
     if (currLineIdx == 0 && this.priorBlockType != eBLockType.Unknown) {
       // we are getting a replacement for the default CON start section, use it!
       this.priorBlockType = eCurrBlockType; // override the default with possibly NEW block type

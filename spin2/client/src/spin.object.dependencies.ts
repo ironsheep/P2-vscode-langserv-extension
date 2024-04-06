@@ -1244,8 +1244,8 @@ export class Dependency extends vscode.TreeItem {
     // element depth is nesting level where 0 means top
     super(label, collapsibleState);
     this._objName = objName;
-    //this.description = objName; //LIVE
-    this.description = `[${userId}] ${objName}`; // TESTING
+    this.description = objName; //LIVE
+    //this.description = `[${userId}] ${objName}`; // TESTING
     this._parent = parent;
     this._depth = depth;
     this.descriptionString = objName;
