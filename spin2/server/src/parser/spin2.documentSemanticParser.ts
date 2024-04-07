@@ -297,8 +297,8 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {...} on same line without closing!
-        const closingOffset: number = lineWOutInlineComments.indexOf('}');
-        if (closingOffset != -1) {
+        const [closingMultiline, closingOffset] = this._haveUnmatchCloseOnLine(line, '}');
+        if (closingMultiline) {
           // have close, comment ended
           // end the comment recording
           currBlockComment?.appendLastLine(i, line);
@@ -450,7 +450,7 @@ export class Spin2DocumentSemanticParser {
         if (currState == eParseState.inDatPAsm) {
           this.semanticFindings.recordPasmEnd(i - 1);
           currState = prePAsmState;
-          this._logState('- scan Ln#' + lineNbr + ' POP currState=[' + currState + ']');
+          this._logState(`- scan Ln#${lineNbr} POP currState=[${eParseState[currState]}]`);
         }
 
         if (currState == eParseState.inPub || currState == eParseState.inPri) {
@@ -489,7 +489,7 @@ export class Spin2DocumentSemanticParser {
           newBlockType = eBLockType.isPri;
         }
         this.semanticFindings.recordBlockStart(newBlockType, i); // start new one which ends prior
-        this._logState('- scan Ln#' + lineNbr + ' currState=[' + currState + ']');
+        this._logState(`- scan Ln#${lineNbr} currState=[${eParseState[currState]}]`);
       }
 
       // -------------------------------------------------------------------
@@ -529,7 +529,7 @@ export class Spin2DocumentSemanticParser {
           }
         } else if (currState == eParseState.inCon) {
           // process a constant line
-          if (trimmedNonCommentLine.length > 3) {
+          if (trimmedNonCommentLine.length > 0) {
             this._getCON_Declaration(3, lineNbr, line);
           }
         } else if (currState == eParseState.inDat) {
@@ -560,7 +560,7 @@ export class Spin2DocumentSemanticParser {
           }
         } else if (currState == eParseState.inVar) {
           // process a instance-variable line
-          if (trimmedNonCommentLine.length > 3) {
+          if (trimmedNonCommentLine.length > 0) {
             this._getVAR_Declaration(3, lineNbr, line);
           }
         }
@@ -627,7 +627,7 @@ export class Spin2DocumentSemanticParser {
             // record start of PASM code inline
             this.semanticFindings.recordPasmEnd(i);
             currState = prePAsmState;
-            this._logState('- scan Ln#' + lineNbr + ' POP currState=[' + currState + ']');
+            this._logState(`- scan Ln#${lineNbr} POP currState=[${eParseState[currState]}]`);
             // and ignore rest of this line
           } else {
             this._getSPIN_PAsmDeclaration(0, lineNbr, line);
@@ -765,8 +765,8 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {cmt}, {{cmt}} on same line without closing!
-        const closingOffset: number = lineWOutInlineComments.indexOf('}');
-        if (closingOffset != -1) {
+        const [closingMultiline, closingOffset] = this._haveUnmatchCloseOnLine(line, '}');
+        if (closingMultiline) {
           // have close, comment ended
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment`);
@@ -1061,7 +1061,7 @@ export class Spin2DocumentSemanticParser {
           const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
           if (lineParts.length > 0 && (lineParts[0].toUpperCase() == 'END' || lineParts[0].toUpperCase() == 'ENDASM')) {
             currState = prePAsmState;
-            this._logState('- scan Ln#' + lineNbr + ' POP currState=[' + currState + ']');
+            this._logState(`- scan Ln#${lineNbr} POP currState=[${eParseState[currState]}]`);
             if (lineParts[0].toUpperCase() == 'ENDASM' && !this.configuration.highlightFlexspinDirectives) {
               // report this unsupported line (FlexSpin)
               const nameOffset: number = line.indexOf(lineParts[0]);
@@ -1177,6 +1177,29 @@ export class Spin2DocumentSemanticParser {
       }
     }
     return tokenSet;
+  }
+
+  private _haveUnmatchCloseOnLine(line: string, searchChar: string): [boolean, number] {
+    let unmatchedCloseStatus: boolean = false;
+    let matchOffset: number = 0;
+    const closeString: string = searchChar;
+    const openString: string = searchChar == '}' ? '{' : '{{';
+    const matchLen: number = searchChar.length;
+    let nestLevel: number = 0;
+    if (line.length >= searchChar.length) {
+      for (let offset = 0; offset < line.length; offset++) {
+        const matchString = line.substring(offset, offset + matchLen);
+        if (matchString == openString) {
+          nestLevel++;
+        } else if (matchString == closeString) {
+          matchOffset = offset;
+          nestLevel--;
+        }
+      }
+    }
+    unmatchedCloseStatus = nestLevel == -1 ? true : false;
+    this._logMessage(`  -- _haveUnmatchCloseOnLine() isClosed=(${unmatchedCloseStatus}), ofs=(${matchOffset}) line=[${line}](${line.length})`);
+    return [unmatchedCloseStatus, matchOffset];
   }
 
   private _generateFakeCommentForSignature(startingOffset: number, lineNbr: number, line: string): RememberedComment {
@@ -7085,7 +7108,7 @@ export class Spin2DocumentSemanticParser {
               // handle one or more names!
               do {
                 // (0) register UserName use
-                this._logDEBUG('  -- rptDbg displayName=[' + displayName + ']');
+                this._logDEBUG(`  -- rptDbg displayName=[${displayName}]`);
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
                   startCharacter: symbolOffset,
@@ -7093,6 +7116,7 @@ export class Spin2DocumentSemanticParser {
                   ptTokenType: 'displayName',
                   ptTokenModifiers: ['reference']
                 });
+                this._logDEBUG(`  -- rptDbg lineParts=[${lineParts}](${lineParts.length})`);
                 symbolOffset += displayName.length + 1;
                 if (firstParamIdx < lineParts.length) {
                   firstParamIdx++;

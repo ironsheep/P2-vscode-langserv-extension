@@ -1843,6 +1843,7 @@ export class DocumentFindings {
   }
 
   public getDebugDisplayEnumForUserName(possibleUserName: string): eDebugDisplayType {
+    this._logMessage(`* getDebugDisplayEnumForUserName(${possibleUserName})`);
     const nameKey: string = possibleUserName.toLowerCase();
     let desiredEnumValue: eDebugDisplayType = eDebugDisplayType.Unknown;
     if (this.isKnownDebugDisplay(possibleUserName)) {
@@ -1855,6 +1856,7 @@ export class DocumentFindings {
   }
 
   public getDebugDisplayInfoForUserName(possibleUserName: string): IDebugDisplayInfo {
+    this._logMessage(`* getDebugDisplayInfoForUserName(${possibleUserName})`);
     const nameKey: string = possibleUserName.toLowerCase();
     let possibleInfo: IDebugDisplayInfo = {
       displayTypeString: '',
@@ -1884,6 +1886,7 @@ export class DocumentFindings {
   }
 
   public isKnownDebugDisplay(possibleUserName: string): boolean {
+    this._logMessage(`* isKnownDebugDisplay(${possibleUserName})`);
     const nameKey: string = possibleUserName.toLowerCase();
     const foundStatus: boolean = this.displayInfoByDebugDisplayName.has(nameKey);
     this._logMessage('  DDsply _isKnownDebugDisplay(' + possibleUserName + ') = ' + foundStatus);

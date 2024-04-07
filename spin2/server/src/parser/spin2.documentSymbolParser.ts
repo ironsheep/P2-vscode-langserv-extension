@@ -90,10 +90,9 @@ export class Spin2DocumentSymbolParser {
         continue;
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
-        const openingOffset = nonCommentLine.indexOf('{');
-        const closingOffset = nonCommentLine.indexOf('}', openingOffset + 1);
-        const haveInlineCmt: boolean = openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset;
-        if (!haveInlineCmt && closingOffset != -1) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const [closingMultiline, closingOffset] = this._haveUnmatchCloseOnLine(line, '}');
+        if (closingMultiline) {
           // have close, comment ended
           currState = priorState;
         }
@@ -238,11 +237,11 @@ export class Spin2DocumentSymbolParser {
           if (currState == eParseState.inPAsmInline) {
             // process pasm (assembly) lines
             if (trimmedLine.length > 0) {
-              this._logMessage('    scan inPAsmInline Ln#' + (i + 1) + ' nonCommentLine=[' + nonCommentLine + ']');
+              this._logMessage(`    scan inPAsmInline Ln#${i + 1} nonCommentLine=[${nonCommentLine}]`);
               const lineParts: string[] = nonCommentLine.split(/[ \t]/).filter(Boolean);
               if (lineParts.length > 0 && lineParts[0].toUpperCase() == 'END') {
                 currState = prePasmState;
-                this._logMessage('    scan END-InLine Ln#' + (i + 1) + ' POP currState=[' + currState + ']');
+                this._logMessage(`    scan END-InLine Ln#${i + 1} POP currState=[${eParseState[currState]}]`);
                 // and ignore rest of this line
                 continue;
               }
@@ -265,7 +264,7 @@ export class Spin2DocumentSymbolParser {
                 this._logMessage('  - pre-scan DAT line trimmedLine=[' + trimmedLine + '] now Dat PASM');
                 prePasmState = currState;
                 currState = eParseState.inDatPAsm;
-                this._logMessage('    scan START DATPasm Ln#' + (i + 1) + ' PUSH currState=[' + prePasmState + ']');
+                this._logMessage(`    scan START DATPasm Ln#${i + 1} PUSH currState=[${eParseState[prePasmState]}]`);
                 // and ignore rest of this line
                 global_label = this._getOlnDAT_PasmDeclaration(0, line); // let's get possible label on this ORG statement
               }
@@ -283,7 +282,7 @@ export class Spin2DocumentSymbolParser {
                 this._logMessage('  - (' + (i + 1) + '): outline PUB/PRI line trimmedLine=[' + trimmedLine + ']');
                 prePasmState = currState;
                 currState = eParseState.inPAsmInline;
-                this._logMessage('    scan START-InLine Ln#' + (i + 1) + ' PUSH currState=[' + prePasmState + ']');
+                this._logMessage(`    scan START-InLine Ln#${i + 1} PUSH currState=[${eParseState[prePasmState]}]`);
                 // and ignore rest of this line
                 continue;
               }
@@ -309,6 +308,28 @@ export class Spin2DocumentSymbolParser {
       this.symbolsFound.setOutlineSymbol(this.containerDocSymbol);
       this.containerDocSymbol = undefined;
     }
+  }
+  private _haveUnmatchCloseOnLine(line: string, searchChar: string): [boolean, number] {
+    let unmatchedCloseStatus: boolean = false;
+    let matchOffset: number = 0;
+    const closeString: string = searchChar;
+    const openString: string = searchChar == '}' ? '{' : '{{';
+    const matchLen: number = searchChar.length;
+    let nestLevel: number = 0;
+    if (line.length >= searchChar.length) {
+      for (let offset = 0; offset < line.length; offset++) {
+        const matchString = line.substring(offset, offset + matchLen);
+        if (matchString == openString) {
+          nestLevel++;
+        } else if (matchString == closeString) {
+          matchOffset = offset;
+          nestLevel--;
+        }
+      }
+    }
+    unmatchedCloseStatus = nestLevel == -1 ? true : false;
+    this._logMessage(`  -- _haveUnmatchCloseOnLine() isClosed=(${unmatchedCloseStatus}), ofs=(${matchOffset}) line=[${line}](${line.length})`);
+    return [unmatchedCloseStatus, matchOffset];
   }
 
   private setContainerSymbol(newSymbol: OutLineSymbol): void {
