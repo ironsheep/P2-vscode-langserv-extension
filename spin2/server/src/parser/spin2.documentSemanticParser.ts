@@ -6567,7 +6567,7 @@ export class Spin2DocumentSemanticParser {
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             const bIsParameterName: boolean = this.parseUtils.isNameWithTypeInstantiation(newParameter, eDisplayType);
             if (bIsParameterName) {
-              this._logDEBUG(`  -- rptDbg newParam=[${newParameter}]`);
+              this._logDEBUG(`  -- rptDbg mA newParam=[${newParameter}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: symbolPosition.character,
@@ -6619,6 +6619,7 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isBinaryOperator(newParameter) &&
                     !this.parseUtils.isFloatConversion(newParameter) &&
                     !this.parseUtils.isSpinBuiltinMethod(newParameter) &&
+                    !this.parseUtils.isDebugBitmapColorMode(newParameter) &&
                     !this.parseUtils.isBuiltinStreamerReservedWord(newParameter)
                   ) {
                     this._logDEBUG('  -- rptDbg 1 unkParam=[${newParameter}]');
@@ -6634,7 +6635,7 @@ export class Spin2DocumentSemanticParser {
                       symbolPosition.character,
                       symbolPosition.character + newParameter.length,
                       eSeverity.Error,
-                      `P2 Spin debug() A unknown name [${newParameter}]`
+                      `P2 Spin debug() mA unknown name [${newParameter}]`
                     );
                   }
                 }
@@ -6723,7 +6724,7 @@ export class Spin2DocumentSemanticParser {
                 bIsParameterName = true;
               }
               if (bIsParameterName) {
-                this._logDEBUG(`  -- rptDbg newParam=[${newParameter}]`);
+                this._logDEBUG(`  -- rptDbg mB newParam=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6791,7 +6792,7 @@ export class Spin2DocumentSemanticParser {
                         symbolPosition.character,
                         symbolPosition.character + newParameter.length,
                         eSeverity.Error,
-                        `P2 Spin debug() B unknown name [${newParameter}]`
+                        `P2 Spin debug() mB unknown name [${newParameter}]`
                       );
                     }
                   }
@@ -6896,7 +6897,7 @@ export class Spin2DocumentSemanticParser {
                   symbolPosition.character,
                   symbolPosition.character + newParameter.length,
                   eSeverity.Error,
-                  `P2 Spin debug() C unknown name [${newParameter}]`
+                  `P2 Spin debug() mC unknown name [${newParameter}]`
                 );
               }
             }
@@ -7001,7 +7002,7 @@ export class Spin2DocumentSemanticParser {
             symbolOffset = line.indexOf(newParameter, symbolOffset);
             const bIsParameterName: boolean = this.parseUtils.isNameWithTypeInstantiation(newParameter, eDisplayType);
             if (bIsParameterName) {
-              this._logDEBUG('  -- rptDbg newParam=[' + newParameter + ']');
+              this._logDEBUG('  -- rptDbg sA newParam=[' + newParameter + ']');
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: symbolOffset,
@@ -7053,6 +7054,7 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isBinaryOperator(newParameter) &&
                     !this.parseUtils.isFloatConversion(newParameter) &&
                     !this.parseUtils.isSpinBuiltinMethod(newParameter) &&
+                    !this.parseUtils.isDebugBitmapColorMode(newParameter) &&
                     !this.parseUtils.isBuiltinStreamerReservedWord(newParameter)
                   ) {
                     this._logDEBUG('  -- rptDbg 1 unkParam=[' + newParameter + ']');
@@ -7068,7 +7070,7 @@ export class Spin2DocumentSemanticParser {
                       symbolOffset,
                       symbolOffset + newParameter.length,
                       eSeverity.Error,
-                      `P2 Spin debug() A unknown name [${newParameter}]`
+                      `P2 Spin debug() sA unknown name [${newParameter}]`
                     );
                   }
                 }
@@ -7150,7 +7152,7 @@ export class Spin2DocumentSemanticParser {
                 bIsParameterName = true;
               }
               if (bIsParameterName) {
-                this._logDEBUG('  -- rptDbg newParam=[' + newParameter + ']');
+                this._logDEBUG('  -- rptDbg sB newParam=[' + newParameter + ']');
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
                   startCharacter: symbolOffset,
@@ -7218,7 +7220,7 @@ export class Spin2DocumentSemanticParser {
                         symbolOffset,
                         symbolOffset + newParameter.length,
                         eSeverity.Error,
-                        `P2 Spin debug() B unknown name [${newParameter}]`
+                        `P2 Spin debug() sB unknown name [${newParameter}]`
                       );
                     }
                   }
@@ -7309,7 +7311,7 @@ export class Spin2DocumentSemanticParser {
                   symbolOffset,
                   symbolOffset + newParameter.length,
                   eSeverity.Error,
-                  `P2 Spin debug() C unknown name [${newParameter}]`
+                  `P2 Spin debug() sC unknown name [${newParameter}]`
                 );
               }
             }
@@ -7444,7 +7446,7 @@ export class Spin2DocumentSemanticParser {
               let isMethod = line.substring(matchOffset).includes('(') ? true : false;
               if (isMethod) {
                 // ok, now let's be really sure!
-                const methodFollowString: string = line.substring(referenceOffset + refPart.length);
+                const methodFollowString: string = line.substring(matchOffset + dotReference.length);
                 this._logSPIN(`  --  ObjRef func Paren chk methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
                 isMethod = isMethodCall(methodFollowString);
               }
@@ -7469,9 +7471,9 @@ export class Spin2DocumentSemanticParser {
               if (referenceDetails && (isMethod || (!isMethod && !objectRefContainsIndex))) {
                 // we need to allow objInstance.CONSTANT and fail objectInstance[index].CONSTANT
                 const constantPart: string = possibleNameSet[1];
-                const constantOffset: number = line.indexOf(constantPart, startingOffset);
+                const constantOffset: number = line.indexOf(constantPart, matchOffset + possibleNameSet[0].length);
                 const tokenModifiers: string[] = isMethod ? [] : ['readonly'];
-                this._logMessage(`  --  rObjRef rhs constant=[${constantPart}](${referenceOffset + 1}) (${referenceDetails.type})`);
+                this._logMessage(`  --  rObjRef rhs constant=[${constantPart}], ofs=(${referenceOffset + 1}) (${referenceDetails.type})`);
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
                   startCharacter: constantOffset,

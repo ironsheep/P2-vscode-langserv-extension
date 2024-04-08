@@ -15,7 +15,7 @@ import { eParseState } from './spin.common';
 //    the DocumentFindings object assiciated with this file
 //
 export class Spin2DocumentSymbolParser {
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private parseUtils = new Spin2ParseUtils();

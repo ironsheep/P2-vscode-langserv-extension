@@ -3369,6 +3369,9 @@ export class Spin2ParseUtils {
         break;
       case eDebugDisplayType.ddtBitmap:
         nameStatus = this.isDebugBitmapDeclarationParam(newParameter);
+        if (!nameStatus) {
+          nameStatus = this.isDebugBitmapColorMode(newParameter);
+        }
         break;
       case eDebugDisplayType.ddtMidi:
         nameStatus = this.isDebugMidiDeclarationParam(newParameter);
@@ -3624,6 +3627,9 @@ export class Spin2ParseUtils {
         bHasColorMode = true;
         break;
       case eDebugDisplayType.ddtPlot:
+        bHasColorMode = true;
+        break;
+      case eDebugDisplayType.ddtTerm: // ?? demo shipped has this here??? not in DOCs???
         bHasColorMode = true;
         break;
       default:
