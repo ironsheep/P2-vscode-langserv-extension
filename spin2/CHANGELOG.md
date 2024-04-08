@@ -23,13 +23,17 @@ Possible next additions:
 Update P1 and P2
 
 - Adjust object hierarchy to fully expand the tree by default
-- [-] collapse and [+] expand icons work in object hierarchy tree view
+- [-] collapse and [+] expand icons now work in object hierarchy tree view
 - Adds new Object Hierarchy report similar to that generated during propeller tool "Archive". Report is available via keystroke [Ctrl+Alt+r] - Ctrl+Alt+( r )eport from within spin/spin2 source file.
 
 Update P2 Only
 
-- Add early support for v44 new built-in method names
+- Add preliminary support for v44 new built-in method names (this is NOT final)
 - Add highlighting of object[index] expressions where index itself is an expression
+- BUGFIX don't report `@instance[index].method` reference as bad constant use when it really is a method
+- preliminary flexspin support changes:
+ - update conditional compile suppot to grey out deslected code
+ - add support for #import   
 
 ## [2.2.14] 2024-01-11
 

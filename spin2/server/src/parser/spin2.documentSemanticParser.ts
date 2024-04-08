@@ -3491,17 +3491,11 @@ export class Spin2DocumentSemanticParser {
     }
     currSingleLineOffset = startingOffset; // reset to beginnning of line
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
-    const spin2MethodName: string = methodName + '(';
-    const spin2MethodNameWithSpace: string = methodName + ' (';
-    // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
-    this._logSPIN('-reportPubPriSig: spin2MethodName=[' + spin2MethodName + '], startNameOffset=(' + startNameOffset + ')');
-    let bHaveSpin2Method: boolean = false;
-    let symbolPosition: Position = multiLineSet.locateSymbol(spin2MethodName, currSingleLineOffset);
-    bHaveSpin2Method = symbolPosition.character != -1;
-    if (symbolPosition.character == -1) {
-      symbolPosition = multiLineSet.locateSymbol(spin2MethodNameWithSpace, currSingleLineOffset);
-      bHaveSpin2Method = symbolPosition.character != -1;
-    }
+
+    const methodFollowString: string = remainingNonCommentLineStr.substring(startNameOffset + methodName.length);
+    this._logSPIN(`  -- rptPubPriMulti() methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+    const bHaveSpin2Method: boolean = isMethodCall(methodFollowString);
+    let symbolPosition: Position = multiLineSet.locateSymbol(methodName, currSingleLineOffset);
     const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
     if (bHaveSpin2Method) {
       const declModifiers: string[] = isPrivate ? ['declaration', 'static'] : ['declaration'];
@@ -3914,16 +3908,14 @@ export class Spin2DocumentSemanticParser {
     }
 
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
-    const spin2MethodName: string = methodName + '(';
-    const spin2MethodNameWithSpace: string = methodName + ' (';
-    // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
+
+    const methodFollowString: string = line.substring(startNameOffset + methodName.length);
+    this._logSPIN(`  -- rptPubPriSig() methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+    const bHaveSpin2Method: boolean = isMethodCall(methodFollowString);
+
     //const myExpression: string = `${methodName}\s\(`;
     //const methodNameRegEx = new RegExp(myExpression, "i"); // case-insensative method name with arbitrary whitespace before open paren
-    const bHaveSpin2Method: boolean = line.includes(spin2MethodName) || line.includes(spin2MethodNameWithSpace);
-    const bHaveSpin2Method2: boolean = false; // methodNameRegEx.test(line);
-    this._logSPIN(
-      `-reportPubPriSig: spin2MethodName=[${spin2MethodName}], startNameOffset=(${startNameOffset}), bHaveSpin2Method=(${bHaveSpin2Method}), bHaveSpin2Method2=(${bHaveSpin2Method2})`
-    );
+    this._logSPIN(`-reportPubPriSig: spin2MethodName=[${methodName}], startNameOffset=(${startNameOffset}), bHaveSpin2Method=(${bHaveSpin2Method})`);
     if (bHaveSpin2Method) {
       const declModifiers: string[] = isPrivate ? ['declaration', 'static'] : ['declaration'];
       this._recordToken(tokenSet, line, {
@@ -5174,6 +5166,8 @@ export class Spin2DocumentSemanticParser {
                     //const searchKey: string = namePart.toLowerCase();
                     //const isMethodNoParen: boolean = searchKey == 'return' || searchKey == 'abort';
                     // have unknown name!? is storage type spec?
+                    const methodFollowString: string = line.substring(nameOffset + namePart.length);
+                    this._logSPIN(`  --  A methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
                     if (this.parseUtils.isStorageType(namePart)) {
                       this._logSPIN('  --  SPIN RHS storageType=[' + namePart + ']');
                       this._recordToken(tokenSet, line, {
@@ -5185,11 +5179,10 @@ export class Spin2DocumentSemanticParser {
                       });
                     } else if (
                       this.parseUtils.isSpinBuiltinMethod(namePart) &&
-                      !searchString.includes(namePart + '(') &&
+                      !isMethodCall(methodFollowString) &&
                       !this.parseUtils.isSpinNoparenMethod(namePart)
                     ) {
-                      // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
-                      this._logSPIN('  --  SPIN MISSING PARENS name=[' + namePart + ']');
+                      this._logSPIN(`  --  SPIN MISSING PARENS name=[${namePart}]`);
                       this._recordToken(tokenSet, line, {
                         line: lineIdx,
                         startCharacter: nameOffset,
@@ -5462,12 +5455,8 @@ export class Spin2DocumentSemanticParser {
                     ptTokenType: 'function',
                     ptTokenModifiers: ['support']
                   });
-                } else if (
-                  this.parseUtils.isFloatConversion(namePart) &&
-                  (nonStringAssignmentRHSStr.indexOf(namePart + '(') == -1 || nonStringAssignmentRHSStr.indexOf(namePart + '()') != -1)
-                ) {
-                  // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('  (ABOVE LINEs)
-                  this._logSPIN('  --  SPIN MISSING PARENS name=[' + namePart + ']');
+                } else if (this.parseUtils.isFloatConversion(namePart) && !isMethodCall(methodFollowString)) {
+                  this._logSPIN(`  --  SPIN MISSING PARENS name=[${namePart}]`);
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
                     startCharacter: nameOffset,
@@ -5494,11 +5483,10 @@ export class Spin2DocumentSemanticParser {
                   });
                 } else if (
                   this.parseUtils.isSpinBuiltinMethod(namePart) &&
-                  !nonStringAssignmentRHSStr.includes(namePart + '(') &&
+                  !isMethodCall(methodFollowString) &&
                   !this.parseUtils.isSpinNoparenMethod(namePart)
                 ) {
-                  // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
-                  this._logSPIN('  --  SPIN MISSING PARENS name=[' + namePart + ']');
+                  this._logSPIN(`  --  SPIN MISSING PARENS name=[${namePart}]`);
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
                     startCharacter: nameOffset,
@@ -7464,6 +7452,12 @@ export class Spin2DocumentSemanticParser {
               if (!isP1ObjectConstantRef && nameSpaceFindings) {
                 referenceDetails = nameSpaceFindings.getPublicToken(refPart);
                 this._logMessage(`  --  LookedUp Object-global token [${refPart}] got [${referenceDetails}]`);
+                // NOTE: in @instance[index].method the normal parenthesis are missing...
+                //  if the lookup sees that it's a method let's override the failed hunt for (...)
+                if (referenceDetails?._type == 'method') {
+                  isMethod = true;
+                  this._logMessage(`  --  rObjRef OVERRIDE isMethod (object lookup says it is!)`);
+                }
               }
               this._logMessage(
                 `  --  rObjRef isMethod=(${isMethod}), isP1ObjectConstRef=(${isP1ObjectConstantRef}), objectRefHasIndex=(${objectRefContainsIndex})`
