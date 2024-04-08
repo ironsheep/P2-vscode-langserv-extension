@@ -1093,6 +1093,15 @@ export class Spin2ParseUtils {
     event_xro: '(12) event Streamer NCO-rollover'
   };
 
+  public isBuiltInSmartPinReservedWord(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    let reservedStatus: boolean = false;
+    if (!reservedStatus) {
+      reservedStatus = nameKey in this._tableSmartPinNames;
+    }
+    return reservedStatus;
+  }
+
   public isBuiltinStreamerReservedWord(name: string): boolean {
     // streamer constants, smart-pin constants
     const builtinNamesOfNote: string[] = [

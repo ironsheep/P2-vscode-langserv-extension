@@ -2446,6 +2446,8 @@ export class Spin2DocumentSemanticParser {
                   } else {
                     if (
                       !this.parseUtils.isP2AsmReservedWord(namePart) &&
+                      !this.parseUtils.isBuiltInSmartPinReservedWord(namePart) &&
+                      !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                       !this.parseUtils.isUnaryOperator(namePart) &&
                       !this.parseUtils.isBinaryOperator(namePart) &&
                       !this.parseUtils.isSpinNumericSymbols(namePart)
@@ -2757,6 +2759,8 @@ export class Spin2DocumentSemanticParser {
                   } else {
                     if (
                       !this.parseUtils.isP2AsmReservedWord(namePart) &&
+                      !this.parseUtils.isBuiltInSmartPinReservedWord(namePart) &&
+                      !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                       !this.parseUtils.isUnaryOperator(namePart) &&
                       !this.parseUtils.isBinaryOperator(namePart) &&
                       !this.parseUtils.isSpinNumericSymbols(namePart)
