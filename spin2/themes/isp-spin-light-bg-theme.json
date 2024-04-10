@@ -12,7 +12,7 @@
     "editor.foreground": "#000000",
     "editor.inactiveSelectionBackground": "#666666e0",
     "editor.selectionBackground": "#222222e0",
-    "editor.selectionHighlightBackground": "#d59880",
+    "editor.selectionHighlightBackground": "#80d59880",
     "editorCursor.foreground": "#000000",
     "editorIndentGuide.activeBackground1": "#939393",
     "editorIndentGuide.background1": "#D3D3D3",
