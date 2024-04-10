@@ -33,7 +33,7 @@ const codeBlockColorizer: RegionColorizer = new RegionColorizer();
 
 const logExtensionMessage = (message: string): void => {
   // simple utility to write to TABBING  output window.
-  if (isDebugLogEnabled && debugOutputChannel != undefined) {
+  if (isDebugLogEnabled && debugOutputChannel !== undefined) {
     //Write to output window.
     debugOutputChannel.appendLine(message);
   }
@@ -551,7 +551,7 @@ function getShowInStatusBar(): boolean {
 function typeCommand(args: { text: string }) {
   const editor = vscode.window.activeTextEditor;
   let editMode: eEditMode = eEditMode.INSERT;
-  if (editor == undefined) {
+  if (editor === undefined) {
     //logExtensionMessage("* VSCode type (early)");
     vscode.commands.executeCommand('default:type', args);
     return;
@@ -564,7 +564,7 @@ function typeCommand(args: { text: string }) {
       logExtensionMessage('* type [' + args.text + '](' + args.text.length + ')');
     }
   }
-  if (editor != undefined) {
+  if (editor !== undefined) {
     editMode = getMode(editor);
   }
   if (editor !== undefined && tabFormatter.isEnabled() && editMode == eEditMode.OVERTYPE) {
@@ -582,13 +582,13 @@ function deleteLeftCommand() {
   const editor = vscode.window.activeTextEditor;
   logExtensionMessage('* deleteLeft');
   let bAlignEdit: boolean = editor !== undefined && tabFormatter.isEnabled();
-  if (editor != undefined) {
+  if (editor !== undefined) {
     const editMode = getMode(editor);
     if (editMode != eEditMode.ALIGN) {
       bAlignEdit = false;
     }
   }
-  if (bAlignEdit && editor != undefined) {
+  if (bAlignEdit && editor !== undefined) {
     tabFormatter.alignDelete(editor, false);
     return null;
   } else {
@@ -611,7 +611,7 @@ function deleteRightCommand() {
 
 function pasteCommand(args: { text: string; pasteOnNewLine: boolean }) {
   const editor = vscode.window.activeTextEditor;
-  if (editor != undefined) {
+  if (editor !== undefined) {
     logExtensionMessage('* paste');
     if (getMode(editor) == eEditMode.OVERTYPE && editModeConfiguration.overtypePaste) {
       // TODO: Make paste work with align

@@ -197,6 +197,7 @@ export default class DocumentProcessor {
   async process(document: TextDocument, isInclude: boolean = false, skipIncludeScan: boolean = false): Promise<ProcessedDocument> {
     this.ctx.logger.log(`TRC: DP.process(${document.uri}`);
     const docFSpec: string = fileSpecFromURI(document.uri);
+    const fileName: string = path.basename(docFSpec);
     this.ctx.logger.log(`TRC: DP.process() isInclude=${isInclude}, skipIncludeScan=${skipIncludeScan}, docFSpec=[${docFSpec}]`);
 
     // we keep a single DocumentFindings for each document.uri -> docFSpec
@@ -229,7 +230,7 @@ export default class DocumentProcessor {
       // do first pass parse to fill in DocumentFindings with list of object references (includes)
       const languageId: string = isSpin1File(docFSpec) ? 'Spin1' : 'Spin2';
       this.ctx.logger.log(`TRC: Object Scan of ${languageId} Document: ${docFSpec}`);
-      this.spin2ObjectReferenceParser.locatReferencedObjects(document, currDocumentFindings); // for objects included
+      this.spin2ObjectReferenceParser.locateReferencedObjects(document, currDocumentFindings); // for objects included
     }
     const includedFiles: string[] = skipIncludeScan == false ? currDocumentFindings.includeFilenames() : [];
     this.ctx.logger.log(`TRC: [${currDocumentFindings.instanceName()}] includedFiles=[${includedFiles}]`);
@@ -274,11 +275,12 @@ export default class DocumentProcessor {
       //
       this.ctx.logger.log(`TRC: -- STEP incorporate included docs into maps ...`);
       const objectReferences: Map<string, string> =
-        skipIncludeScan == false ? currDocumentFindings.includeObjectNamesByFilename() : new Map<string, string>();
+        skipIncludeScan == false ? currDocumentFindings.includedObjectNamesByFilename() : new Map<string, string>();
+      const includes: string[] = currDocumentFindings.includeNamesForFilename(fileName);
       this.ctx.logger.log(
         `TRC: [${currDocumentFindings.instanceName()}] nameHashKeys=[${Array.from(objectReferences.keys())}], nameHashValues=[${Array.from(
           objectReferences.values()
-        )}]`
+        )}], includedFiles=[${includes}]`
       );
       const objectNames: string[] = Array.from(objectReferences.keys());
       const objectFileNames: string[] = Array.from(objectReferences.values());
@@ -291,6 +293,8 @@ export default class DocumentProcessor {
       this.ctx.logger.log(
         `TRC: [${currDocumentFindings.instanceName()}] clear() previous findings but NOT include info so can load included documents`
       );
+      //
+      // connnect our child objects so document will hightlight child references
       for (let index = 0; index < objectNames.length; index++) {
         const objectName = objectNames[index];
         const objectSpinFilename = objectFileNames[index];
@@ -316,6 +320,40 @@ export default class DocumentProcessor {
               //this.ctx.logger.log(`TRC: Added include findings for ${objectName}: "${objectSpinFilename}"`);
             } else {
               this.ctx.logger.log(`TRC: NO findings found for ${objectName}: "${objectSpinFilename}": uri=[${fSpec}]`);
+            }
+          }
+        }
+        if (!bFound) {
+          this.ctx.logger.log(`TRC: NO include filename matches found!`);
+        }
+      }
+      //
+      // load symbols from included files so document will hightlight these symbols as well
+      for (let index = 0; index < includes.length; index++) {
+        const includeFilename = includes[index];
+        const includeSpinFilename = includeFilename;
+        let matchFilename: string = includeFilename.toLowerCase();
+        if (!matchFilename?.toLowerCase().includes('.spin')) {
+          matchFilename = `${matchFilename}.`.toLowerCase();
+        }
+        this.ctx.logger.log(`TRC: MATCHING includeFilename=[${includeFilename}], matchFilename=[${matchFilename}]`);
+        let bFound: boolean = false;
+        for (let index = 0; index < currDocumentInProcess.referencedFileSpecsCount; index++) {
+          const fSpec: string = currDocumentInProcess.referencedFileSpec(index);
+          if (fSpec.toLowerCase().includes(includeFilename)) {
+            bFound = true;
+            // located, now add parse results for include to this document map of includes
+            const processedInclude = this.ctx.docsByFSpec.get(fSpec);
+            if (processedInclude) {
+              this.ctx.logger.log(
+                `TRC: merging symbols from [${includeFilename}]: [${processedInclude.parseResult.instanceName()}]: into=[${currDocumentFindings.instanceName()}]`
+              );
+              currDocumentFindings.enableLogging(this.ctx, true);
+              currDocumentFindings.loadIncludeSymbols(includeFilename, processedInclude.parseResult);
+              currDocumentFindings.enableLogging(this.ctx, false);
+              //this.ctx.logger.log(`TRC: Added include findings for ${objectName}: "${objectSpinFilename}"`);
+            } else {
+              this.ctx.logger.log(`TRC: NO findings found for ${includeFilename}: "${includeSpinFilename}": uri=[${fSpec}]`);
             }
           }
         }

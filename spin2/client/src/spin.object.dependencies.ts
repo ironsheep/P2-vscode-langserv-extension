@@ -1047,7 +1047,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
    * @returns nothing
    */
   private _logMessage(message: string): void {
-    if (this.isDebugLogEnabled && this.debugOutputChannel != undefined) {
+    if (this.isDebugLogEnabled && this.debugOutputChannel !== undefined) {
       //Write to output window.
       this.debugOutputChannel.appendLine(message);
     }

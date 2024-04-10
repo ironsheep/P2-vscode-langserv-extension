@@ -9,10 +9,10 @@ import * as path from 'path';
 
 import { isSpin1Document, isSpin2File, isSpin1File } from '../spin.vscode.utils';
 import { SpinCodeUtils, eParseState } from '../spin.code.utils';
-import { ObjectTreeProvider, Dependency, SpinDependency } from '../spin.object.dependencies';
+import { ObjectTreeProvider, SpinDependency } from '../spin.object.dependencies';
 
 export class DocGenerator {
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
   private spinCodeUtils: SpinCodeUtils = new SpinCodeUtils();
   private objTreeProvider: ObjectTreeProvider;
@@ -783,7 +783,7 @@ export class DocGenerator {
    * @returns nothing
    */
   public logMessage(message: string): void {
-    if (this.isDebugLogEnabled && this.debugOutputChannel != undefined) {
+    if (this.isDebugLogEnabled && this.debugOutputChannel !== undefined) {
       //Write to output window.
       this.debugOutputChannel.appendLine(message);
     }

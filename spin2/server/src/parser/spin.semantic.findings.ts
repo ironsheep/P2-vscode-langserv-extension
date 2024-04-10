@@ -152,6 +152,7 @@ export interface IFoldSpan {
 //   CLASS DocumentFindings
 export class DocumentFindings {
   private globalTokens;
+  private includeGlobalTokens;
   private methodLocalTokens;
   private instanceId: string = `ID:${new Date().getTime()}`;
   private declarationInfoByGlobalTokenName;
@@ -171,6 +172,7 @@ export class DocumentFindings {
   //  tracking preprocessor code enable state
   private disabledLines: Range[] = [];
   private preProcSymbols: string[] = [];
+  private includePreProcSymbols: string[] = [];
   private inPreProcIfStatement: boolean = false;
   // [isLineEnabled] tracks current state
   //  when this changes from false to true we record a range of disabled lines into [disabledLines]
@@ -190,7 +192,7 @@ export class DocumentFindings {
   private pasmCodeSpans: IPasmCodeSpan[] = [];
   private pasmIsInline: boolean = false;
 
-  private findingsLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   // tracking object outline
@@ -198,8 +200,11 @@ export class DocumentFindings {
 
   private semanticTokens: IParsedToken[] = [];
 
-  // tracking includes
+  // tracking includes (both OBJ (object use) and #include use)
   private objectFilenameByInstanceName = new Map<string, string>();
+  // here we track which file #include's what file(s)
+  private includedFilenameByIncluderFilename = new Map<string, string[]>();
+
   private ctx: Context | undefined;
   private docUri: string = '--uri-not-set--';
 
@@ -207,7 +212,7 @@ export class DocumentFindings {
     if (documentUri) {
       this.docUri = documentUri;
     }
-    if (this.findingsLogEnabled) {
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -219,6 +224,7 @@ export class DocumentFindings {
 
     this._logMessage("* Global, Local, MethodScoped Token repo's ready");
     this.globalTokens = new TokenSet('gloTOK');
+    this.includeGlobalTokens = new TokenSet('gloTOKIncl');
     this.methodLocalTokens = new NameScopedTokenSet('methLocTOK');
     this.declarationInfoByGlobalTokenName = new Map<string, RememberedTokenDeclarationInfo>();
     this.declarationInfoByLocalTokenName = new Map<string, RememberedTokenDeclarationInfo>();
@@ -277,20 +283,24 @@ export class DocumentFindings {
     this.diagnosticMessages = [];
     this.outlineSymbols = [];
     this.semanticTokens = [];
+    this.preProcSymbols = [];
     if (clearIncludesToo) {
       this.objectParseResultByObjectName.clear();
       this._logMessage(`  -- FND-clear REMOVED object includes [${this.instanceName()}]`);
+      this.includeGlobalTokens.clear();
+      this.includePreProcSymbols = [];
     }
   }
 
   public enableLogging(ctx: Context, doEnable: boolean = true): void {
-    this.findingsLogEnabled = doEnable;
+    this.isDebugLogEnabled = doEnable;
     this.ctx = ctx;
     this.globalTokens.enableLogging(ctx, doEnable);
+    this.includeGlobalTokens.enableLogging(ctx, doEnable);
     this.methodLocalTokens.enableLogging(ctx, doEnable);
     this.methodLocalPasmTokens.enableLogging(ctx, doEnable);
     // since we are already constructed, repeat this....
-    if (this.findingsLogEnabled && this.bLogStarted == false) {
+    if (this.isDebugLogEnabled && this.bLogStarted == false) {
       this.bLogStarted = true;
       //Create output channel
       this._logMessage('Spin2 SemanticFindings log started.');
@@ -322,9 +332,15 @@ export class DocumentFindings {
         break;
       }
     }
-    if (!isDisabledStatus && this.inPreProcIfStatement && this.isLineEnabled[this.preProcNestDepth] == false) {
-      isDisabledStatus = true;
+    this._logMessage(
+      `* [PreProc] isLineDisabled(Ln#${lineNbr}) inPreProcStmnt=(${this.inPreProcIfStatement}), nestDepth=(${
+        this.preProcNestDepth
+      }), isLineEnabled=(${this.isLineEnabled[this.preProcNestDepth]})`
+    );
+    if (!isDisabledStatus) {
+      isDisabledStatus = this.isLineEnabled[this.preProcNestDepth] == false;
     }
+    this._logMessage(`* [PreProc]   preProcIsLineDisabled() -> (${isDisabledStatus})`);
     return isDisabledStatus;
   }
 
@@ -337,13 +353,14 @@ export class DocumentFindings {
       }), at ln#${lineNbr}`
     );
     if (!this.inPreProcIfStatement || (this.inPreProcIfStatement = true && this.isLineEnabled[this.preProcNestDepth] == true)) {
-      this.preProcDefineSymbol(symbolName);
+      this.definePreProcSymbol(symbolName);
     }
   }
 
   public preProcRecordConditionChange(directive: ePreprocessState, symbolName: string = '', line: string, lineNbr: number) {
     // handle preprocessor state transition
     this._logMessage(`* [PreProc] rcdCondChg() [${ePreprocessState[directive]}], symbol=[${symbolName}], ln#${lineNbr}`);
+    const startInPreProc: boolean = this.inPreProcIfStatement;
     switch (directive) {
       case ePreprocessState.PPS_IFDEF:
         {
@@ -357,9 +374,11 @@ export class DocumentFindings {
             this.isLineEnabled[this.preProcNestDepth] = true;
             this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
           }
-          this._logMessage(`* [PreProc] IFDEF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`);
+          this._logMessage(
+            `* [PreProc]   IFDEF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`
+          );
           // now handle ifdef
-          if (this.preProcSymbolIsDefined(symbolName)) {
+          if (this.isPreProcSymbolDefined(symbolName)) {
             this.preProcEnableLinesFrom(line, lineNbr);
           } else {
             this.preProcDisableLinesFrom(line, lineNbr + 1);
@@ -376,9 +395,11 @@ export class DocumentFindings {
             this.isLineEnabled[this.preProcNestDepth] = true;
             this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
           }
-          this._logMessage(`* [PreProc] IFNDEF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`);
+          this._logMessage(
+            `* [PreProc]   IFNDEF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`
+          );
           // now handle ifndef
-          if (!this.preProcSymbolIsDefined(symbolName)) {
+          if (!this.isPreProcSymbolDefined(symbolName)) {
             this.preProcEnableLinesFrom(line, lineNbr);
           } else {
             this.preProcDisableLinesFrom(line, lineNbr + 1);
@@ -389,8 +410,10 @@ export class DocumentFindings {
         this.preProcEnableLinesFrom(line, lineNbr);
         this.preProcNestDepth = this.preProcNestDepth > 0 ? this.preProcNestDepth - 1 : 0;
         this.inPreProcIfStatement = this.preProcNestDepth > 0 ? true : false;
-        this.isLineEnabled[this.preProcNestDepth] = true;
-        this._logMessage(`* [PreProc] ENDIF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`);
+        this.isLineEnabled[this.preProcNestDepth] = true; // TODO: is this a BUG???!!!
+        this._logMessage(
+          `* [PreProc]   ENDIF nestDepth=(${this.preProcNestDepth}), inPreProcStmnt=(${this.inPreProcIfStatement}), from ln#${lineNbr}`
+        );
         break;
       case ePreprocessState.PPS_ELSE:
         // invert current enable state
@@ -399,7 +422,7 @@ export class DocumentFindings {
       case ePreprocessState.PPS_ELSEIFDEF:
         // end prior
         // start new ifdef
-        if (this.preProcSymbolIsDefined(symbolName)) {
+        if (this.isPreProcSymbolDefined(symbolName)) {
           // is defined, set new enable state
           this.preProcEnableLinesFrom(line, lineNbr);
         } else {
@@ -410,6 +433,9 @@ export class DocumentFindings {
 
       default:
         break;
+    }
+    if (startInPreProc != this.inPreProcIfStatement) {
+      this._logMessage(`* [PreProc]   inPreProcIfStatement:(${startInPreProc}) -> (${this.inPreProcIfStatement})`);
     }
   }
 
@@ -424,7 +450,7 @@ export class DocumentFindings {
       this.disabledLines.push(newDisableEntry);
       const itemNbr: number = this.disabledLines.length;
       this._logMessage(
-        `* [PreProc] NEW Disable #${itemNbr} Range([${startPosn.line},${startPosn.character}], [${endPosn.line}, ${endPosn.character}])(${
+        `* [PreProc]   NEW Disable #${itemNbr} Range([${startPosn.line},${startPosn.character}], [${endPosn.line}, ${endPosn.character}])(${
           endPosn.line - startPosn.line + 1
         })`
       );
@@ -458,7 +484,7 @@ export class DocumentFindings {
     }
   }
 
-  private preProcDefineSymbol(symbolName: string) {
+  private definePreProcSymbol(symbolName: string) {
     const symbolKey: string = symbolName.toUpperCase();
     const currSymbolCount: number = this.preProcSymbols.length;
     if (symbolKey.length > 0) {
@@ -472,15 +498,47 @@ export class DocumentFindings {
     }
   }
 
-  private preProcSymbolIsDefined(symbolName: string): boolean {
+  public isPreProcSymbolDefined(symbolName: string): boolean {
     let foundSymbolStatus: boolean = false;
     const symbolKey: string = symbolName.toUpperCase();
     if (symbolKey.length > 0) {
       if (this.preProcSymbols.includes(symbolKey)) {
         foundSymbolStatus = true;
+      } else if (this.includePreProcSymbols.includes(symbolKey)) {
+        foundSymbolStatus = true;
       }
     }
     return foundSymbolStatus;
+  }
+
+  private defineIncludePreProcSymbol(symbolName: string) {
+    const symbolKey: string = symbolName.toUpperCase();
+    const currSymbolCount: number = this.includePreProcSymbols.length;
+    if (symbolKey.length > 0) {
+      if (!this.includePreProcSymbols.includes(symbolKey)) {
+        this.includePreProcSymbols.push(symbolKey);
+        this._logMessage(`* [PreProc] ADD symbol=[${symbolName}](${symbolName.length})`);
+      }
+    }
+    if (currSymbolCount == this.includePreProcSymbols.length) {
+      this._logMessage(`ERROR: [PreProc] FAILED to define new symbol=[${symbolName}](${symbolName.length})`);
+    }
+  }
+
+  public isIncludePreProcSymbolDefined(symbolName: string): boolean {
+    let foundSymbolStatus: boolean = false;
+    const symbolKey: string = symbolName.toUpperCase();
+    if (symbolKey.length > 0) {
+      if (this.includePreProcSymbols.includes(symbolKey)) {
+        foundSymbolStatus = true;
+      }
+    }
+    return foundSymbolStatus;
+  }
+
+  private allPreprocessorSymbols(): string[] {
+    // used by include file handler
+    return this.preProcSymbols;
   }
 
   // -------------------------------------------------------------------------------------
@@ -545,7 +603,7 @@ export class DocumentFindings {
     const lineNbr: number = lineIdx + 1;
     if (!this.preProcIsLineDisabled(lineNbr)) {
       let severityStr: string = '??severity??';
-      if (this.findingsLogEnabled) {
+      if (this.isDebugLogEnabled) {
         switch (severity) {
           case eSeverity.Error: {
             severityStr = 'ERROR';
@@ -699,6 +757,31 @@ export class DocumentFindings {
       }
     }
     return dupeTokenStatus;
+  }
+
+  // -------------------------------------------------------------------------------------
+  // TRACK #include's
+  //
+  public loadIncludeSymbols(includeFilename: string, includeSymbols: DocumentFindings) {
+    // merge global symbols from include into our findings...
+    //this._logMessage(`* merging symbols from [${includeSymbols.instanceName()}] into [${this.instanceName()}]`);
+    const globalTokenList = Array.from(includeSymbols.globalTokenSet());
+    for (const [tokenName, token] of globalTokenList) {
+      this._logMessage(`  -- Including new global [${tokenName}] from [${includeFilename}]`);
+      const declInfo = includeSymbols.globalTokenDeclarationInfo(tokenName);
+      let declarationComment: string | undefined = undefined;
+      if (declInfo !== undefined) {
+        declarationComment = declInfo.comment;
+      }
+      this.setIncludeGlobalToken(tokenName, token, declarationComment);
+    }
+    // merge info about which symbols are from #define statements
+    const defines: string[] = includeSymbols.allPreprocessorSymbols();
+    for (let index = 0; index < defines.length; index++) {
+      const newDefinedSymbol = defines[index];
+      this._logMessage(`  -- Including new DEFINE [${newDefinedSymbol}] from [${includeFilename}]`);
+      this.defineIncludePreProcSymbol(newDefinedSymbol);
+    }
   }
 
   // -------------------------------------------------------------------------------------
@@ -858,7 +941,7 @@ export class DocumentFindings {
 
       if (symbolsFound) {
         if (this.ctx) {
-          symbolsFound.enableLogging(this.ctx, this.findingsLogEnabled);
+          symbolsFound.enableLogging(this.ctx, this.isDebugLogEnabled);
         }
         symbolsFound.appendLocationsOfToken(tokenName, locationsSoFar, nameSpace, postion);
       }
@@ -1004,7 +1087,7 @@ export class DocumentFindings {
   }
 
   // -------------------------------------------------------------------------------------
-  //  TRACK objects
+  //  TRACK objects and #includes
   //
   public recordObjectImport(name: string, filename: string): void {
     // record use of object namespace
@@ -1017,19 +1100,58 @@ export class DocumentFindings {
     }
   }
 
+  public recordIncludeByWhom(fileIncluding: string, filename: string): void {
+    // record use of object namespace
+    const includerNameKey: string = fileIncluding.toLowerCase();
+    if (!this.includedFilenameByIncluderFilename.has(includerNameKey)) {
+      this.includedFilenameByIncluderFilename.set(includerNameKey, [filename]);
+      this._logMessage(`  -- ADD-INCLUDE by=[${fileIncluding}] of filename=[${filename}]`);
+    } else {
+      const filesIncluded: string[] | undefined = this.includedFilenameByIncluderFilename.get(includerNameKey);
+      if (filesIncluded) {
+        if (filesIncluded.includes(filename) == false) {
+          filesIncluded.push(filename);
+          this.includedFilenameByIncluderFilename.set(includerNameKey, filesIncluded);
+        } else {
+          this._logMessage(`  -- DUPE-INCLUDE SKIPPED by=[${fileIncluding}] of filename=[${filename}]`);
+        }
+      } else {
+        this._logMessage(`ERROR:[INTERNAL] recordIncludeByWhom() failed to get curr list of includes for ${fileIncluding}`);
+      }
+    }
+  }
+
   public includeFilenames(): string[] {
     // return the list of filenames of included objects
     const filenames: string[] = [];
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for (const [name, filename] of this.objectFilenameByInstanceName) {
+    for (const [instanceName, filename] of this.objectFilenameByInstanceName) {
       filenames.push(filename);
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for (const [includer, includedFilenames] of this.includedFilenameByIncluderFilename) {
+      filenames.push(...includedFilenames);
+    }
+
     return filenames;
   }
 
-  public includeObjectNamesByFilename(): Map<string, string> {
+  public includedObjectNamesByFilename(): Map<string, string> {
     // return the full object set: instance names with assoc. file names
     return this.objectFilenameByInstanceName;
+  }
+
+  public includeNamesForFilename(includerName: string): string[] {
+    // return the set: files include by includer
+    let includedFiles: string[] = [];
+    const includerNameKey: string = includerName.toLowerCase();
+    for (const [includer, includedFilenames] of this.includedFilenameByIncluderFilename) {
+      if (includer == includerNameKey) {
+        includedFiles = includedFilenames;
+        break; // have our answer abort search
+      }
+    }
+    return includedFiles;
   }
 
   public isNameSpace(possibleNamespace: string): boolean {
@@ -1280,6 +1402,12 @@ export class DocumentFindings {
     return findings;
   }
 
+  private globalTokenDeclarationInfo(tokenName: string): RememberedTokenDeclarationInfo | undefined {
+    const desiredTokenKey = tokenName.toLowerCase();
+    const declInfo: RememberedTokenDeclarationInfo | undefined = this.declarationInfoByGlobalTokenName.get(desiredTokenKey);
+    return declInfo;
+  }
+
   private _locateNonBlankLineAfter(lineIdx: number): number {
     let desiredLineIdx: number = lineIdx;
     if (this.blockComments.length > 0) {
@@ -1446,9 +1574,16 @@ export class DocumentFindings {
   }
 
   public isGlobalToken(tokenName: string): boolean {
-    const foundStatus: boolean = this.globalTokens.hasToken(tokenName);
+    let foundStatus: boolean = this.globalTokens.hasToken(tokenName);
+    if (foundStatus == false) {
+      foundStatus = this.includeGlobalTokens.hasToken(tokenName);
+    }
     this._logMessage(`  -- IS-gloTOK [${tokenName}] says ${foundStatus}`);
     return foundStatus;
+  }
+
+  private globalTokenSet(): [string, RememberedToken][] {
+    return this.globalTokens.entries();
   }
 
   private _getBestLocalLabelPostionForPosition(position: Position, labelTokenName: string): Position {
@@ -1544,6 +1679,21 @@ export class DocumentFindings {
     this._logMessage(`  `);
   }
 
+  private setIncludeGlobalToken(tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
+    // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
+    //   this allows go-to to get to nearest earlier than right-mouse line
+    if (!this.isGlobalToken(tokenName)) {
+      this._logMessage(
+        '  -- NEW-IncGloTOK ' + this._rememberdTokenString(tokenName, token) + `, ln#${token.lineIndex + 1}, cmt=[${declarationComment}]`
+      );
+      this.includeGlobalTokens.setToken(tokenName, token);
+      // and remember declataion line# for this token
+      const newDescription: RememberedTokenDeclarationInfo = new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment, undefined);
+      const desiredTokenKey: string = tokenName.toLowerCase();
+      this.declarationInfoByGlobalTokenName.set(desiredTokenKey, newDescription);
+    }
+  }
+
   public setGlobalToken(tokenName: string, token: RememberedToken, declarationComment: string | undefined, reference?: string | undefined): void {
     // FIXME: TODO:  UNDONE - this needs to allow multiple .tokenName's or :tokenName's and keep line numbers for each.
     const tokenLineNbr: number = token.lineIndex + 1;
@@ -1589,7 +1739,10 @@ export class DocumentFindings {
 
   public getGlobalToken(tokenName: string): RememberedToken | undefined {
     let desiredToken: RememberedToken | undefined = this.globalTokens.getToken(tokenName);
-    if (desiredToken != undefined) {
+    if (desiredToken === undefined) {
+      desiredToken = this.includeGlobalTokens.getToken(tokenName);
+    }
+    if (desiredToken !== undefined) {
       // let's never return a declaration modifier! (somehow declaration creeps in to our list!??)
       //let modifiersNoDecl: string[] = this._modifiersWithout(desiredToken.modifiers, "declaration");
       const modifiersNoDecl: string[] = desiredToken.modifiersWithout('declaration');
@@ -1645,7 +1798,7 @@ export class DocumentFindings {
     const methodName: string | undefined = this._getMethodNameForLine(lineNbr);
     if (methodName) {
       desiredToken = this.methodLocalTokens.getTokenForMethod(methodName, tokenName);
-      if (desiredToken != undefined) {
+      if (desiredToken !== undefined) {
         this._logMessage(`  -- FND-locTOK ln#${lineNbr} method=[${methodName}], ` + this._rememberdTokenString(tokenName, desiredToken));
       } else {
         this._logMessage(`  -- FAILED to FND-locTOK ln#${lineNbr} method=[${methodName}], ` + tokenName);
@@ -1783,7 +1936,7 @@ export class DocumentFindings {
   // PRIVATE (Utility) Methods
   //
   private _logMessage(message: string): void {
-    if (this.findingsLogEnabled) {
+    if (this.isDebugLogEnabled) {
       // Write to output window.
       if (this.ctx) {
         this.ctx.logger.log(message);
@@ -1793,7 +1946,7 @@ export class DocumentFindings {
 
   private _rememberdTokenString(tokenName: string, aToken: RememberedToken | undefined): string {
     let desiredInterp: string = ' -- token=[len:' + tokenName.length + ' [' + tokenName + '](undefined)';
-    if (aToken != undefined) {
+    if (aToken !== undefined) {
       desiredInterp = ' -- token=[len:' + tokenName.length + ' [' + tokenName + '](' + aToken.type + '[' + aToken.modifiers + '])]';
     }
     return desiredInterp;
@@ -1943,7 +2096,7 @@ export class TokenSet {
     yield* this.rememberedTokenByName;
   }
 
-  public entries() {
+  public entries(): [string, RememberedToken][] {
     return Array.from(this.rememberedTokenByName.entries());
   }
 
@@ -1959,7 +2112,7 @@ export class TokenSet {
 
   public rememberdTokenString(tokenName: string, aToken: RememberedToken | undefined): string {
     let desiredInterp: string = `  -- token=[len:${tokenName.length} [${tokenName}](undefined)`;
-    if (aToken != undefined) {
+    if (aToken !== undefined) {
       desiredInterp = `  -- token=[len:${tokenName.length} [${tokenName}](${aToken.type}[${aToken.modifiers}])]`;
     }
     return desiredInterp;
@@ -1993,7 +2146,7 @@ export class TokenSet {
   public getToken(tokenName: string): RememberedToken | undefined {
     const desiredTokenKey: string = tokenName.toLowerCase();
     let desiredToken: RememberedToken | undefined = this.rememberedTokenByName.get(desiredTokenKey);
-    if (desiredToken != undefined) {
+    if (desiredToken !== undefined) {
       // let's never return a declaration modifier! (somehow "declaration" creeps in to our list!??)
       //let modifiersNoDecl: string[] = this._modifiersWithout(desiredToken.modifiers, "declaration");
       const modifiersNoDecl: string[] = desiredToken.modifiersWithout('declaration');
@@ -2180,7 +2333,7 @@ export class NameScopedTokenSet {
 
   private _rememberdTokenString(tokenName: string, aToken: RememberedToken | undefined): string {
     let desiredInterp: string = '  -- LP token=[len:' + tokenName.length + ' [' + tokenName + '](undefined)';
-    if (aToken != undefined) {
+    if (aToken !== undefined) {
       desiredInterp = '  -- LP token=[len:' + tokenName.length + ' [' + tokenName + '](' + aToken.type + '[' + aToken.modifiers + '])]';
     }
     return desiredInterp;
@@ -2210,7 +2363,7 @@ export class RememberedToken {
     this._type = type;
     this._lineIdx = lineIdx;
     this._charIdx = charIdx;
-    if (modifiers != undefined) {
+    if (modifiers !== undefined) {
       this._modifiers = modifiers;
     }
   }
@@ -2290,7 +2443,7 @@ export class RememberedTokenDeclarationInfo {
         this._declcomment = declarationComment.trim();
       }
     }
-    if (typeof reference !== 'undefined' && reference != undefined) {
+    if (typeof reference !== 'undefined' && reference !== undefined) {
       this._reference = reference;
     }
   }

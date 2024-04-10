@@ -2,7 +2,7 @@
 // server/src/parser/spin.objectReferenceParser.ts
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Context } from '../context';
+import { Context, ServerBehaviorConfiguration } from '../context';
 
 //import { semanticConfiguration, reloadSemanticConfiguration } from "./spin2.extension.configuration";
 import { DocumentFindings, RememberedToken } from './spin.semantic.findings';
@@ -10,6 +10,7 @@ import { Spin2ParseUtils } from './spin2.utils';
 import { isSpin1File } from './lang.utils';
 import { eParseState } from './spin.common';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
+import path = require('path');
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -31,7 +32,7 @@ export class Spin2ObjectReferenceParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin2ObjectLocatorLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showCON: boolean = true;
   private showOBJ: boolean = true;
   private showPAsmCode: boolean = true;
@@ -40,10 +41,13 @@ export class Spin2ObjectReferenceParser {
   private semanticFindings: DocumentFindings = new DocumentFindings(); // this gets replaced
   private currentFilespec: string = '';
   private isSpin1Document: boolean = false;
+  private includingDocumentFilename: string = '';
+  private configuration: ServerBehaviorConfiguration;
 
   public constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.spin2ObjectLocatorLogEnabled);
-    if (this.spin2ObjectLocatorLogEnabled) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
+    this.configuration = this.ctx.parserConfig; // ensure we have latest
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -53,27 +57,33 @@ export class Spin2ObjectReferenceParser {
       }
     }
 
-    //this.semanticFindings = new DocumentFindings(this.spin2ObjectLocatorLogEnabled, this.spin1log);
+    //this.semanticFindings = new DocumentFindings(this.isDebugLogEnabled, this.spin1log);
   }
 
   public docFindings(): DocumentFindings {
     return this.semanticFindings;
   }
 
-  public locatReferencedObjects(document: TextDocument, findings: DocumentFindings): void {
+  public locateReferencedObjects(document: TextDocument, findings: DocumentFindings): void {
     this.semanticFindings = findings;
-    if (this.spin2ObjectLocatorLogEnabled) {
+    if (this.isDebugLogEnabled) {
       this.semanticFindings.enableLogging(this.ctx);
     }
     this.isSpin1Document = isSpin1File(document.uri);
     this.currentFilespec = document.uri;
-    this._logMessage(`* locatReferencedObjects(${this.currentFilespec})`);
-
+    this.includingDocumentFilename = path.basename(this.currentFilespec);
+    this._logMessage(`* locateReferencedObjects(${this.currentFilespec})`);
     this._parseText(document.getText());
   }
 
   private _parseText(text: string): IParsedToken[] {
     // parse our entire file
+    // if user has enabled flexspin then we hunt for #includes, too!
+    this._logMessage(`++ SORP maxNumberOfReportedIssues=(${this.ctx.parserConfig.maxNumberOfReportedIssues})`);
+    this._logMessage(`++ SORP highlightFlexspinDirectives=(${this.ctx.parserConfig.highlightFlexspinDirectives})`);
+    if (this.ctx.parserConfig.maxNumberOfReportedIssues == -1) {
+      this._logMessage('++ SORP WARNING: client configurataion NOT yet available...');
+    }
     const lines = text.split(/\r\n|\r|\n/);
     let currState: eParseState = eParseState.inCon; // compiler defaults to CON at start
     let priorState: eParseState = currState;
@@ -177,6 +187,19 @@ export class Spin2ObjectReferenceParser {
       } else if (trimmedLine.startsWith("'")) {
         // process single line non-doc comment
         continue;
+      } else if (trimmedLine.startsWith('#include') && this.ctx.parserConfig.highlightFlexspinDirectives == true) {
+        // user has enabled FLexspin so let's handle #includes, too
+        // Ex: #include "config.spin2"
+        const lineParts: string[] = trimmedLine.split('"').filter(Boolean);
+        this._logMessage(`- scan Ln#${i + 1} #include lineParts=[${lineParts}](${lineParts.length})`);
+        // lineParts should now be ["#include ", "config.spin2"]
+        if (lineParts.length >= 2) {
+          const filename: string = lineParts[1];
+          this._logMessage(`  -- ADD file [${filename}] included by [${this.includingDocumentFilename}]`);
+          this.semanticFindings.recordIncludeByWhom(this.includingDocumentFilename, filename);
+        } else {
+          this._logMessage(`ERROR: bad parse of #include Ln#${i + 1} [${trimmedLine}]`);
+        }
       } else if (sectionStatus.isSectionStart) {
         // mark end of method, if we were in a method
         currState = sectionStatus.inProgressStatus;
@@ -234,11 +257,12 @@ export class Spin2ObjectReferenceParser {
     // HAVE    DIGIT_NO_VALUE = -2   ' digit value when NOT [0-9]
     //  -or-     _clkmode = xtal1 + pll16x
     //
-    if (line.substr(startingOffset).length > 1) {
+    const isPreprocessorStatement: boolean = this.parseUtils.lineStartsWithFlexspinPreprocessorDirective(line);
+    if (isPreprocessorStatement == false && line.substr(startingOffset).length > 1) {
       //skip Past Whitespace
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-      this._logCON(`  - Ln#${lineNbr} GetCONDecl nonCommentConstantLine=[${nonCommentConstantLine}]`);
+      this._logCON(`  - Ln#${lineNbr} SORP GetCONDecl nonCommentConstantLine=[${nonCommentConstantLine}]`);
 
       const haveEnumDeclaration: boolean = nonCommentConstantLine.startsWith('#');
       const containsMultiAssignments: boolean = nonCommentConstantLine.indexOf(',') != -1;
@@ -321,7 +345,7 @@ export class Spin2ObjectReferenceParser {
       // get line parts - we only care about first one
       const overrideParts: string[] = remainingNonCommentLineStr.split('|').filter(Boolean);
       const lineParts: string[] = overrideParts[0].split(':').filter(Boolean);
-      this._logOBJ('  -- GLBL GetOBJDecl lineParts=[' + lineParts + ']');
+      this._logOBJ('  -- SORP GLBL GetOBJDecl lineParts=[' + lineParts + ']');
       let instanceNamePart = lineParts[0].trim();
       // if we have instance array declaration, then remove it
       if (instanceNamePart.includes('[')) {
@@ -363,7 +387,7 @@ export class Spin2ObjectReferenceParser {
   }
 
   private _logMessage(message: string): void {
-    if (this.spin2ObjectLocatorLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }

@@ -325,11 +325,6 @@ export class Spin2DocumentSemanticParser {
         // a blank line clears pending single line comments
         this.priorSingleLineComment = undefined;
         continue;
-      } else if (singleLineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(singleLineParts[0])) {
-        this._getFlexspinPreProcessor_Declaration(0, lineNbr, line);
-        // a FlexspinPreprocessorDirective line clears pending single line comments
-        this.priorSingleLineComment = undefined;
-        continue;
       } else if (trimmedLine.startsWith("''")) {
         if (bBuildingSingleLineDocCmtBlock) {
           // process single line doc comment which follows one of same
@@ -441,7 +436,13 @@ export class Spin2DocumentSemanticParser {
           //  DO NOTHING Let Syntax highlighting do this
           //continue; // DON'T SKIP, process rest of line
         }
+      } else if (singleLineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(singleLineParts[0])) {
+        this._getFlexspinPreProcessor_Declaration(0, lineNbr, line);
+        // a FlexspinPreprocessorDirective line clears pending single line comments
+        this.priorSingleLineComment = undefined;
+        continue; // only SKIP if we have FlexSpin directive
       }
+
       // handle wrap-up before we do continued-line gathering
       if (sectionStatus.isSectionStart) {
         // mark end of method, if we were in a method
@@ -1511,14 +1512,17 @@ export class Spin2DocumentSemanticParser {
     // NEW: multi line enums with no punctuation, ends at blank line (uses this.conEnumInProgress)
     //
     this._logCON(`  - Ln#${lineNbr} GetCONDecl startingOffset=(${startingOffset}), line=[${line}](${line.length})`);
-    if (line.substring(startingOffset).length > 1) {
+    const isPreprocessorStatement: boolean = this.parseUtils.lineStartsWithFlexspinPreprocessorDirective(line);
+    if (isPreprocessorStatement == false && line.substring(startingOffset).length > 1) {
       //skip Past Whitespace
       let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
       const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
       if (nonCommentConstantLine.length == 0) {
         this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
       } else {
-        this._logCON(`  -- GetCONDecl nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`);
+        this._logCON(
+          `  -- GetCONDecl isPreProc=(${isPreprocessorStatement}), nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`
+        );
         const haveEnumDeclaration: boolean = this._isEnumDeclarationLine(lineNbr - 1, 0, nonCommentConstantLine);
         const isAssignment: boolean = nonCommentConstantLine.indexOf('=') != -1;
         if (!haveEnumDeclaration && isAssignment) {
@@ -1548,11 +1552,12 @@ export class Spin2DocumentSemanticParser {
               this._logCON('  -- GetCONDecl assign lineParts=[' + lineParts + '](' + lineParts.length + ')');
               const newName = lineParts[0];
               if (newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
-                this._logCON('  -- GLBL GetCONDecl newName=[' + newName + ']');
-                // if this line is NOT disabled
-                if (!this.semanticFindings.preProcIsLineDisabled(lineNbr)) {
+                // if this line is NOT disabled, record new global (or error with DUPLICATE)
+                const lineIsDisabled: boolean = this.semanticFindings.preProcIsLineDisabled(lineNbr);
+                this._logCON(`  -- GLBL GetCONDecl newName=[${newName}], lineIsDisabled=(${lineIsDisabled})`);
+                const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+                if (!lineIsDisabled) {
                   // remember this object name so we can annotate a call to it
-                  const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
                   const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
                   if (referenceDetails) {
                     this.semanticFindings.pushDiagnosticMessage(
@@ -1570,6 +1575,10 @@ export class Spin2DocumentSemanticParser {
                       this._declarationComment()
                     );
                   }
+                } else {
+                  const token = new RememberedToken('variable', lineNbr - 1, nameOffset, ['readonly']);
+                  this._declarationComment();
+                  this._logMessage(`* SKIP token setGLobal for disabled ln#(${lineNbr}) token=[${this._rememberdTokenString(newName, token)}]`);
                 }
               }
             }
@@ -2130,15 +2139,15 @@ export class Spin2DocumentSemanticParser {
             ptTokenType: 'keyword',
             ptTokenModifiers: ['control', 'directive']
           });
-          const hasSymbol: boolean =
+          const lineHasSymbol: boolean =
             directive.toLowerCase() == '#define' ||
             directive.toLowerCase() == '#ifdef' ||
             directive.toLowerCase() == '#ifndef' ||
             directive.toLowerCase() == '#elseifdef' ||
             directive.toLowerCase() == '#elseifndef';
-          if (hasSymbol && symbolName != undefined) {
+          if (lineHasSymbol && symbolName !== undefined) {
             const nameOffset = line.indexOf(symbolName, currentOffset);
-            this._logPreProc('  -- GLBL symbolName=[' + symbolName + ']');
+            this._logPreProc(`  -- GLBL symbolName=[${symbolName}]`);
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.isGlobalToken(symbolName)) {
               referenceDetails = this.semanticFindings.getGlobalToken(symbolName);
@@ -2155,6 +2164,14 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: referenceDetails.type,
                 ptTokenModifiers: updatedModificationSet
               });
+            } else if (this.semanticFindings.isPreProcSymbolDefined(symbolName)) {
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: symbolName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['readonly']
+              });
             } else if (this.parseUtils.isFlexspinReservedWord(symbolName)) {
               // record a constant reference
               this._recordToken(tokenSet, line, {
@@ -2170,8 +2187,8 @@ export class Spin2DocumentSemanticParser {
                 line: lineIdx,
                 startCharacter: nameOffset,
                 length: symbolName.length,
-                ptTokenType: 'comment',
-                ptTokenModifiers: ['line']
+                ptTokenType: 'variable', //'comment',
+                ptTokenModifiers: ['disabled'] // ['line']
               });
             }
           }
@@ -2203,8 +2220,12 @@ export class Spin2DocumentSemanticParser {
     const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     let enumDeclStatus: boolean = nonCommentConstantLine.trim().startsWith('#');
+    const isPreprocessorStatement: boolean = this.parseUtils.lineStartsWithFlexspinPreprocessorDirective(nonCommentConstantLine);
+    if (isPreprocessorStatement) {
+      enumDeclStatus = false;
+    }
     // if not yet sure...
-    if (enumDeclStatus == false) {
+    if (isPreprocessorStatement == false && enumDeclStatus == false) {
       // don't know what this line is, yet
       const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(',') != -1;
       let statements: string[] = [nonCommentConstantLine];
@@ -2256,7 +2277,7 @@ export class Spin2DocumentSemanticParser {
         this._logCON(`  -- assignments statements=[${statements}](${statements.length})`);
         for (let index = 0; index < statements.length; index++) {
           const conDeclarationLine: string = statements[index].trim();
-          this._logCON('  -- conDeclarationLine=[' + conDeclarationLine + ']');
+          this._logCON('  -- m conDeclarationLine=[' + conDeclarationLine + ']');
           //currSingleLineOffset = line.indexOf(conDeclarationLine, currSingleLineOffset);
           const symbolPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, currSingleLineOffset);
           // locate key indicators of line style

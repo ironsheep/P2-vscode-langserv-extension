@@ -112,7 +112,7 @@ export class Formatter {
    * @returns nothing
    */
   public logMessage(message: string): void {
-    if (this.isDebugLogEnabled && this.debugOutputChannel != undefined) {
+    if (this.isDebugLogEnabled && this.debugOutputChannel !== undefined) {
       //Write to output window.
       this.debugOutputChannel.appendLine(message);
     }
