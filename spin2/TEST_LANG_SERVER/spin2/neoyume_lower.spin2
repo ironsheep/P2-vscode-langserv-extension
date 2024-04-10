@@ -61,8 +61,11 @@ _lspc_animctr byte 0
 
               orgh $60
               ' control bit format is %ET_DCBA_RLDU (E=sElect,T=sTart)
-io_pl1_padw   word 0 ' < $60 (populated by USB code)
-io_pl2_padw   word 0 ' < $62 (populated by USB code)
+io_pl1_padw   long 0 ' < $60 (populated by USB code)
+io_pl2_padw   long 0 ' < $64 (populated by USB code)
+
+              long 0 ' < $68 stupid hack to pass down pointer from USB code
+              long 0 ' < $6C
 
               orgh $80
               ' Stuff set by upcode
@@ -309,14 +312,26 @@ mk_rdimm
 mk_wrportbank
               mov mk_memtmp3,mk_effaddr
               zerox mk_memtmp3,#19
-              cmp mk_memtmp3,##$FFFF0 wc
-              'debug("Bankswitch write: ",uhex_long(mk_memvalue,mk_effaddr,mk_virtualpc))
+              cmp mk_memtmp3,##$FFFF0 wcz
               setq #1
               rdlong mk_memtmp0,#_exr_port_base
+              tjs mk_memtmp1,#.pvc
+              'debug("Bankswitch write: ",uhex_long(mk_memvalue,mk_effaddr,mk_virtualpc))
               shl mk_memvalue,#20 ' 1 MB steps
               and mk_memtmp1,mk_memvalue
               add mk_memtmp0,mk_memtmp1
         if_ae mov mk_port_base,mk_memtmp0
+              ret wcz
+.pvc
+              'debug("PVC write ",uhex_long(mk_memtmp3,mk_memvalue))
+        if_e  setword mk_pvc_bankreg,mk_memvalue,#0
+              cmp mk_memtmp3,##$FFFF2 wcz
+        if_e  setword mk_pvc_bankreg,mk_memvalue,#1
+              mov     mk_memvalue,mk_pvc_bankreg
+              shr     mk_memvalue,#8
+              zerox   mk_memvalue,mk_memtmp1 ' limit range
+              add     mk_memtmp0,mk_memvalue
+              mov     mk_port_base,mk_memtmp0
               ret wcz
 
 
@@ -548,7 +563,7 @@ mk_nibble_0   ' Immediate ops (decode headache!)
               mov pb,mk_opword
         if_z  call #mk_setup_reg32
         if_nz and mk_optmp1,#7
-        if_nz call #mk_setup_operand8
+        if_nz call #mk_setup_operand8_move
               call mk_readf
               'debug("doing bitop with ",uhex_byte(mk_optmp1),uhex_long(mk_memvalue))
               testbn mk_memvalue,mk_optmp1 wc
@@ -570,6 +585,18 @@ mk_cmp
               push #mk_cmp_common
               jmp #mk_get_second_reg
 
+mk_cmpa
+              testb mk_opword,#8 wc ' long sized?
+        if_nc callpb mk_opword,#mk_setup_operand16_move
+        if_c  callpb mk_opword,#mk_setup_operand32_move
+              call mk_readf
+        if_nc signx mk_memvalue,#15
+
+              shr mk_opword,#9
+              and mk_opword,#7
+              skipf #%11_111_00 ' Skip swap and shift
+              alts mk_opword,#mk_a0
+              mov mk_optmp1,0-0
 mk_cmp_swapped
               xor mk_memvalue,mk_optmp1
               xor mk_optmp1,mk_memvalue
@@ -590,22 +617,6 @@ mk_cmp_common
               bitz mk_sr,#MK_ZERO_BIT
               testb mk_optmp0,#31 wc
         _ret_ bitc mk_sr,#MK_NEG_BIT
-
-
-mk_cmpa
-              testb mk_opword,#8 wc ' long sized?
-        if_nc callpb mk_opword,#mk_setup_operand16
-        if_c  callpb mk_opword,#mk_setup_operand32
-              call mk_readf
-        if_nc signx mk_memvalue,#15
-              mov pb,mk_opword
-              shr pb,#9
-              and pb,#7
-              alts pb,#mk_a0
-              mov mk_optmp1,0-0
-              mov mk_shiftit,#0
-              jmp #mk_cmp_common
-
 
 
 
@@ -674,8 +685,8 @@ mk_addsuba
               setq mk_dreg_mask
               muxq .adda_op,mk_opword
               testb mk_opword,#8 wc ' long sized?
-        if_nc callpb mk_opword,#mk_setup_operand16
-        if_c  callpb mk_opword,#mk_setup_operand32
+        if_nc callpb mk_opword,#mk_setup_operand16_move
+        if_c  callpb mk_opword,#mk_setup_operand32_move
               call mk_readf
               'debug("in mk_adda: ",uhex_long(mk_memvalue))
         if_nc signx mk_memvalue,#15
@@ -776,7 +787,7 @@ mk_thelogicop and mk_memvalue,mk_optmp1 wz
 mk_getop_ram
               mov mk_memtmp0,mk_virtualpc
               add mk_virtualpc,#2
-              setword mk_memtmp0,#1,#1 ' main_ram!
+              setword mk_memtmp0,#@main_ram>>16,#1
               rdword mk_opword,mk_memtmp0
         _ret_ movbyts mk_opword,#%%3201
 
@@ -798,6 +809,7 @@ mk_dreg_mask      long %111_000_000_000
 
 mk_vectors_mask long $FF_FF80
 mk_bit31      long 1<<31
+mk_minus4     long -4
 
 
 mk_cogvar_start
@@ -813,6 +825,7 @@ mk_vectors_ptr res 1
 mk_prog_base    res 1
 mk_port_base    res 1
 mk_bios_base    res 1
+mk_pvc_bankreg  res 1
 
 mk_virtualpc  res 1 ' PC in virtual space
 mk_effaddr    res 1 ' calculated effective address
@@ -939,7 +952,7 @@ mk_nibble_5_not_addsub
               testb mk_opword,#3 andz
         if_z  jmp #mk_dbcc
               ' got SCC
-              callpb mk_opword,#mk_setup_operand8
+              callpb mk_opword,#mk_setup_operand8_move
               call mk_readf ' <- yes, this is stupid but accurate
               getnib pb,mk_opword,#2
               shr pb,#1 wc
@@ -951,22 +964,22 @@ mk_nibble_5_not_addsub
 
 mk_romque_refill
               mov mk_romqueio_target,mk_romque_area_ptr
-              mov mk_romqueio_length,#MK_ROMQUE_SIZE/2
-              mov mk_romque_left,#MK_ROMQUE_SIZE wcz ' clear C and Z
+              mov mk_romqueio_length,#MK_ROMQUE_SIZE/2  wcz ' clear C and Z
               mov mk_romqueio_addr,mk_virtualpc
-              zerox mk_romqueio_addr,mk_romque_zerox' Limit to 1 MB range
+              zerox mk_romqueio_addr,mk_romque_zerox ' Limit to 1 MB range
               add mk_romqueio_addr,mk_romque_base
               ' Handle not long-aligned access
               rczr mk_romqueio_addr wcz
-        if_z  jmp #mk_address_error_debug ' TODO: maybe make AE function code read program in this case?
+        'if_z  jmp #mk_address_error_debug ' TODO: maybe make AE function code read program in this case?
         if_c  sub  mk_romqueio_target,#2
         if_c  add  mk_romqueio_length,#1
               setq #2
               wrlong mk_romqueio_addr,#_progrq_addr
               cogatn mk_romio_atnval
               mov ptra,mk_romque_area_ptr
-              waitatn
-              jmp #mk_getop_rom
+              mov mk_romque_left,#MK_ROMQUE_SIZE
+              push #mk_getop_rom
+        _ret_ waitatn
 
 
 mk_compute_ea ' CAN AND WILL OVERWRITE FLAGS
@@ -1016,7 +1029,7 @@ mk_nibble_E   ' shifts
 
 .memshift
               mov pb,mk_opword
-              call #mk_setup_operand16
+              call #mk_setup_operand16_move
               mov mk_shiftit,#15
               mov mk_optmp1,#1
               shr mk_opword,#8 ' get shift mode bits into place
@@ -1097,21 +1110,6 @@ mk_do_roxl
 .loop
               ret
 
-
-
-
-mk_readrom_ea32
-              mov mk_romio_length,#2
-              skipf #%10
-mk_readrom_ea
-              mov pa,mk_effaddr
-              mov mk_romio_length,#1
-              rczr pa wcz
-              mov mk_romio_target,mk_romio_area_ptr
-        if_c  sub mk_romio_target,#2
-        if_z  sub mk_romio_target,#1
-
-              jmp #$
 
 mk_setup_nothing8
 mk_setup_nothing16
@@ -1302,14 +1300,6 @@ mk_nibble_4   ' AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
               altd mk_optmp0,#mk_flowop_impl_tbl
               jmp 0-0
 
-.jmp_jsr
-              call #mk_compute_ea
-              mov mk_branchdisplace,mk_effaddr
-              sub mk_branchdisplace,mk_virtualpc
-              testb mk_opword,#6 wc ' if NC, got JSR
-        if_c  jmp #mk_dobranch
-              jmp #mk_call
-
 
 .swap
               and mk_opword,#15
@@ -1336,8 +1326,8 @@ mk_nibble_4   ' AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
               test mk_opword,#%110_000 wz
         if_nz jmp #mk_hub_movem
               testb mk_opword,#6 wc
-        if_nc call #mk_setup_operand16
-        if_c  call #mk_setup_operand32
+        if_nc call #mk_setup_operand16_move
+        if_c  call #mk_setup_operand32_move
               call mk_readf
         if_nc signx mk_memvalue,#7 wcz
         if_c  signx mk_memvalue,#15 wcz
@@ -1378,6 +1368,22 @@ mk_nibble_4   ' AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
               jmp mk_writef
 
 
+.jmp_jsr
+              call #mk_compute_ea
+              mov mk_branchdisplace,mk_effaddr
+              sub mk_branchdisplace,mk_virtualpc
+              testb mk_opword,#6 wc ' if NC, got JSR
+        if_c  jmp #mk_dobranch
+              ' fall through
+mk_call
+              ' Push return address on stack
+              sub mk_a7,#4
+              mov mk_effaddr,mk_a7
+              call #mk_setup_ea32
+              mov mk_memvalue,mk_virtualpc
+              call mk_writef
+              'debug("SP after call: ",uhex_long(mk_a7),uhex_long(mk_virtualpc),shex_long(mk_branchdisplace))
+              jmp #mk_dobranch
 
 
 
@@ -1437,8 +1443,9 @@ mk_dbcc       ' DBcc
               sub mk_optmp0,#1 wc
               altd mk_opword,#mk_d0
               setword 0-0,mk_optmp0,#0
-        if_nc jmp #mk_dobranch
-              ret
+              cmp mk_branchdisplace,mk_minus4 wz
+        if_z  waitx #100 ' Slow down delay loops - fix Z80 race condition in pulstar/blazstar
+        _ret_ tjnf mk_optmp0,#mk_dobranch
 
 mk_get_second_reg
               mov pb,mk_opword
@@ -1472,16 +1479,6 @@ mk_getopimm32
         _ret_ mov mk_opword,mk_optmp0
 
 
-
-mk_call
-              ' Push return address on stack
-              sub mk_a7,#4
-              mov mk_effaddr,mk_a7
-              call #mk_setup_ea32
-              mov mk_memvalue,mk_virtualpc
-              call mk_writef
-              'debug("SP after call: ",uhex_long(mk_a7),uhex_long(mk_virtualpc),shex_long(mk_branchdisplace))
-              jmp #mk_dobranch
 
 mk_nibble_6   ' branches
               ' compute destination
@@ -1519,11 +1516,10 @@ mk_dobranch
               'jmp #$
 .not_a_sussy_baka '}
               'debug("branching ",shex(mk_branchdisplace)," to ",uhex_long(mk_virtualpc))
-              testb mk_virtualpc,#0 wc
+              sar mk_branchdisplace,#1 wc
         if_c  jmp #mk_address_error_debug ' TODO: maybe make AE function code read program in this case?
               tjz ptra,#.notfast ' if que not active, this isn't relevant
               ' see if fast branch within que is ok
-              sar mk_branchdisplace,#1
               sub mk_romque_left,mk_branchdisplace
               cmp mk_romque_left,#MK_ROMQUE_SIZE+1 wc ' see below
               'debug("would be ",sdec(mk_romque_left))
@@ -1689,8 +1685,7 @@ mk_ea_headache
               mov mk_eatmp1,mk_opword ' backup
               call mk_getopf
               'debug("in mk_ea_headache ",uhex_word(mk_opword))
-              testb pb,#0 wz
-              testb pb,#1 wc
+              rczr pb wcz
         if_01 jmp #.longabs
         if_11 jmp #.index
               signx mk_opword,#15 ' absolute short or PC displacement
@@ -1853,7 +1848,6 @@ mk_address_error ' can basically only happen due to misalignment?
               mov mk_optmp1,mk_vectors_ptr
               add mk_optmp1,#$0C
               rdlong mk_branchdisplace,mk_optmp1
-              sub mk_branchdisplace,mk_virtualpc
               mov mk_optmp1,mk_effaddr ' save for later
               ' set supervisor mode, unset trace mode
               mov mk_optmp2,mk_sr
@@ -1894,6 +1888,8 @@ mk_address_error ' can basically only happen due to misalignment?
               testb mk_optmp2,#MK_SUPER_BIT wc
               bitc mk_memvalue,#2 ' we do know what mode we were in though
               call mk_writef
+              mov ptra,#0 ' force reset ROM que
+              mov mk_virtualpc, #0 ' force reset PC to avoid double fault
               jmp #mk_dobranch
 
 
@@ -1954,8 +1950,8 @@ mk_hub_rte
               add mk_a7,#4
               'debug("RTE from ",uhex_long_(mk_virtualpc)," to ",uhex_long(mk_memvalue))
               mov mk_memvalue,mk_optmp2 ' only write SR after we're done popping
-              call #mk_wr_sr
-              jmp #mk_dobranch
+              push ##mk_dobranch
+              jmp #mk_wr_sr
 
 mk_hub_rtr
               mov mk_effaddr,mk_a7
@@ -2231,7 +2227,7 @@ mk_hub_movep  ' MOVEP
 
 mk_hub_mul    ' MULU/MULS
               mov pb,mk_opword
-              call #mk_setup_operand16
+              call #mk_setup_operand16_move
               call mk_readf
               mov pb,mk_opword
               and pb,mk_dreg_mask
@@ -2248,7 +2244,7 @@ mk_hub_mul    ' MULU/MULS
 
 mk_hub_div    ' DIVU/DIVS
               mov pb,mk_opword
-              call #mk_setup_operand16
+              call #mk_setup_operand16_move
               call mk_readf ' get divider
               mov pb,mk_opword
               shr pb,#9
@@ -2256,26 +2252,24 @@ mk_hub_div    ' DIVU/DIVS
               alts pb,#mk_d0
               mov mk_optmp0,0-0 ' get divisor
               tjz mk_memvalue,#.by_zero
-              mov mk_optmp1,#0 ' bit 0 holds appropriate result sign
               testb mk_opword,#8 wz ' set z if signed
         if_z  signx mk_memvalue,#15
         if_z  abs mk_memvalue wc
-        if_z_and_c bitnot mk_optmp1,#0
+        if_z  wrc mk_optmp1 ' bit 0 holds appropriate result sign
         if_z  abs mk_optmp0 wc
-        if_z_and_c bitnot mk_optmp1,#0
               qdiv mk_optmp0,mk_memvalue
+        if_z_and_c bitnot mk_optmp1,#0
               bitl mk_sr,#MK_CARRY_BIT
               getqx mk_memvalue    ' quotient
               getqy mk_optmp0      ' remainder
               ' Apply sign
-              testb mk_optmp1,#0 wc
-              negc mk_memvalue
-              negc mk_optmp0
+        if_z  testb mk_optmp1,#0 wc
+        if_z  negc mk_memvalue
+        if_z  negc mk_optmp0
               testb mk_memvalue,#15 wc
               bitc mk_sr,#MK_NEG_BIT
               ' Check overflow
               mov mk_optmp1,mk_memvalue
-              testb mk_opword,#8 wz ' set z if signed
         if_z  signx mk_memvalue,#15
         if_nz zerox mk_memvalue,#15
               cmp mk_optmp1,mk_memvalue wz
@@ -2305,7 +2299,7 @@ mk_hub_div    ' DIVU/DIVS
 
 
 mk_hub_srmove
-              call #mk_setup_operand16
+              call #mk_setup_operand16_move
               testb mk_opword,#10 wc ' FROM (NC) or TO (C) SR
         if_nc push mk_writef
         if_nc jmp #mk_rd_sr
@@ -2503,7 +2497,7 @@ mk_hub_sbcd
 
 mk_hub_nbcd
               'debug ("in NBCD with ",uhex(mk_opword))
-              call #mk_setup_operand8 ' opword still in PB!
+              call #mk_setup_operand8_move ' opword still in PB!
               call mk_readf
               ' See: https://github.com/flamewing/68k-bcd-verifier/blob/master/bcd-emul.cc#L104
               ' compute dd
@@ -2571,7 +2565,7 @@ mk_hub_addsubx
               testb mk_sr,#MK_EXT_BIT wc
               ' must be rcl for correct ripple carry
               rcl mk_memvalue,mk_shiftit
-              rcl mk_optmp1,mk_shiftit
+              shl mk_optmp1,mk_shiftit
               ' generate stupid overflow flag
               mov mk_optmp0,mk_optmp1
               addsx mk_optmp0,mk_memvalue wc
@@ -2669,7 +2663,7 @@ mk_hub_cmpm
               jmp mk_readf
 
 mk_hub_chk
-              call #mk_setup_operand16 ' pb already loaded
+              call #mk_setup_operand16_move ' pb already loaded
               call mk_readf
               call #mk_get_second_reg
               andn mk_sr,#MK_OVER_MASK|MK_CARRY_MASK ' Undocumented flags
@@ -2710,61 +2704,6 @@ mk_init
               waitx ##1000000
               rdword mk_romio_atnval,#_ma_cogatn_w
 
-
-              {
-              ' Compute timing constant for H counter emulation
-              ' (note that "pixel" here means hcounter values, which are actually 2 pixels)
-              rdlong pa,#_clkf
-              qmul pa,##round(6.36e-5/211.0*4294967296.0) ' cy/s * s/px -> cy/px
-              getqy pa ' cycles per pixel
-              getqx pb ' fractional part
-              rolword pa,pb,#1
-              qfrac #1,pa
-              getqx pa ' our timing reciporal
-              wrword pa,#vdp_cyc2hcnt_w
-              debug("H counter timing constant: ",udec_word_array(#vdp_cyc2hcnt_w,#1))
-              ' Compute timing constant for 6-button state machine reset
-              rdlong pa,#_clkf
-              qdiv pa,##666 ' 1.5 ms - unfortunate reciporal
-              getqx pa
-              wrlong pa,#io_6btn_timeout
-              ' Reset I/O ports (so it seems like we're cold-booting)
-              wrbyte #0,#io_pl1_dir
-              wrbyte #0,#io_pl2_dir
-              wrbyte #0,#io_pl1_out
-              wrbyte #0,#io_pl2_out
-               }
-
-              ' allocate all the locks like some sort of maniac
-              {
-              mov pa,#0
-              rep @.lockmadness,#16
-              locknew pb wc
-        if_nc bith pa,pb
-.lockmadness
-              ' deallocate all the ones we don't want
-              andn pa,##STATIC_LOCKS
-              mov pb,#0
-              rep @.lockmadness2,#16
-              shr pa,#1 wc
-        if_c  lockret pb
-              add pb,#1
-.lockmadness2}
-
-{
-              rdbyte mk_romio_zerox,#rom_zerox
-              sub mk_romio_zerox,#2 ' we apply it to long-unit addresses
-              rdlong mk_sram_begin,#sram_map_start
-              rdlong mk_sram_stop,#sram_map_end
-              ' Reset ROM/SRAM mapping
-              rdbyte mk_memvalue,#sram_bankreg
-              call #sram_set_bank
-}
-
-              ' setup interrupts
-              'setse1 #$10+HINT_LOCK
-              'setse2 #$10+VINT_LOCK
-              'drvl #38 addpins 1 ' DEBUG LEDs
 
               rdlong mk_prog_base,#_exr_prog_base
               rdlong mk_port_base,#_exr_port_base
@@ -2904,6 +2843,8 @@ mk_check_core_integrity
 
 CON ' Memory arbiter constants
 
+#define USE_PSRAM16
+
 #ifdef USE_PSRAM16
 MA_CHAR_ASHIFT = 1
 MA_CHAR_CYCLES = 4
@@ -2934,16 +2875,32 @@ MA_PAGESIZE = 0 addbits 7
 MA_BANKSHIFT = 23
 #endif
 
+#ifdef USE_HYPER
+MA_CHAR_ASHIFT = 0 ' special access code
+MA_CHAR_CYCLES = 8
+MA_PCM_ASHIFT = 0 ' special access code
+MA_PCM_CYCLES = 16
+MA_PROGCYSHL = 2
+MA_PAGESIZE = 0 addbits 15 ' Technically only bounds at 8MB?
+MA_BANKSHIFT = 23
+#endif
+
+#ifdef USE_PSRAM_EITHER
 #ifdef USE_PSRAM_SLOW
 MA_CLKDIV = 3
 MA_CYMUL = 1
+#define MA_SYSCLK3
 #else
 MA_CLKDIV = 2
 MA_CYMUL = 2
 #endif
+#elseifdef USE_HYPER
+MA_CLKDIV = 2
+MA_CYMUL = 1
+#endif
 
 DAT ' Memory arbiter (PSRAM)
-#ifdef USE_PSRAM_EITHER
+
               org 0
 ma_entry
               cogid pa
@@ -2956,8 +2913,10 @@ ma_entry
               rdlong 0,##@ma_lutcode
 
               rdlong ma_char_base,#_exr_char_base
-              shr ma_char_base,#2
 
+
+#ifdef USE_PSRAM_EITHER
+              shr ma_char_base,#2
 
               fltl #PSRAM_CLK
 #ifdef USE_PSRAM_SLOW
@@ -2973,6 +2932,21 @@ ma_entry
               drvl #PSRAM_SELECT addpins (PSRAM_BANKS-1)
 
               wrpin ##(PSRAM_SYNC_DATA ? P_SYNC_IO : P_ASYNC_IO),ma_psram_pinfield
+#elseifdef USE_HYPER
+              shr ma_char_base,#3
+
+              fltl #HYPER_CLK
+              wrpin ##P_TRANSITION|P_OE|(PSRAM_SYNC_CLOCK ? P_SYNC_IO : P_ASYNC_IO), #HYPER_CLK
+              wxpin #2, #HYPER_CLK
+
+              wrpin ##P_INVERT_OUTPUT,#HYPER_SELECT addpins (HYPER_BANKS-1)
+              drvl #HYPER_SELECT addpins (HYPER_BANKS-1)
+
+              wrpin ##(HYPER_SYNC_DATA ? P_SYNC_IO : P_ASYNC_IO),#HYPER_BASE addpins 7
+
+              modc HYPER_RESET < 0 ? _clr : _set wc
+        if_c  drvh #HYPER_RESET&511
+#endif
 
               setxfrq ma_nco_slow
               waitx #200
@@ -3010,12 +2984,16 @@ ma_lineloop
               testb ma_curline,#1 wc
         if_c  add ptrb,##96*4*4*2
 
-.slotlp
-              rdlong ma_mtmp1,ptrb[2] wc
+              rdlong ma_mtmp1,ptrb[2] wc ' Read first address
         if_c  jmp #ma_lineloop ' got sentinel
-
+#ifdef USE_PSRAM_EITHER
               shl     ma_mtmp1,#MA_CHAR_ASHIFT ' sprite lines are 2 longs
+#endif
               add     ma_mtmp1,ma_char_base
+.slotlp
+
+#ifdef USE_PSRAM_EITHER
+
 #ifndef USE_PSRAM_NOBANKS
               mov ma_mtmp3,ma_mtmp1
               shr ma_mtmp3,#MA_BANKSHIFT
@@ -3047,15 +3025,46 @@ ma_lineloop
               fltl ma_psram_pinfield
               setq ma_nco_slow
               xcont ma_psram_readspr_cmd,#0
+              rdlong  ma_mtmp1,ptrb[2+4] wc ' Read address for next slot ( C = got sentinel )
+              add     ptrb,#4*4
+              shl     ma_mtmp1,#MA_CHAR_ASHIFT ' sprite lines are 2 longs
+              add     ma_mtmp1,ma_char_base
               waitxfi
               drvl #PSRAM_SELECT addpins (PSRAM_BANKS-1)
 #ifdef USE_PSRAM_SLOW
               fltl  #PSRAM_CLK
 #endif
 .irqshield
-              add ptrb,#4*4
-              djnz ma_slotleft,#.slotlp
-              'debug("canary alive. Lorem ipsum dolor sit amet. Take it easy!")
+#elseifdef USE_HYPER
+              add     ma_mtmp1,ma_char_base
+              shr     ma_mtmp1,#1 wc
+              wrc     ma_mtmp2
+              shl     ma_mtmp2,#10
+              setbyte ma_mtmp1,#%101_00000,#3 ' read linear burst
+              movbyts ma_mtmp1, #%%0123
+              rep @.irqshield,#1
+              drvh #HYPER_SELECT
+              drvl #HYPER_BASE addpins 7
+              drvl #HYPER_CLK ' Init clock pin with correct (?) alignment
+              xinit ma_hyper_addr_cmd1,ma_mtmp1
+              wypin #(6+HYPER_WAIT+MA_CHAR_CYCLES)*MA_CYMUL,#HYPER_CLK ' setup clock periods
+              xcont ma_hyper_addr_cmd2,ma_mtmp2
+              setq ma_nco_fast
+              xcont #HYPER_WAIT*MA_CLKDIV+HYPER_DELAY,#0
+              wrfast ma_bit31,ptrb
+              waitxmt
+              fltl #HYPER_BASE addpins 7
+              setq ma_nco_slow
+              xcont ma_hyper_readspr_cmd,#0
+              rdlong  ma_mtmp1,ptrb[2+4] wc ' Read address for next slot ( C = got sentinel )
+              add     ptrb,#4*4
+              add     ma_mtmp1,ma_char_base
+              waitxfi
+              drvl #HYPER_SELECT addpins (HYPER_BANKS-1)
+              fltl #HYPER_CLK
+.irqshield
+#endif
+      if_nc   djnz ma_slotleft,#.slotlp ' fall through if sentinel got
               jmp #ma_lineloop
 
 
@@ -3064,6 +3073,7 @@ ma_do_adpcm
 
               'drvh #38
 
+#ifdef USE_PSRAM_EITHER
               shl     ma_mtmp1,#MA_PCM_ASHIFT ' ADPCM cache lines are 4 longs
 #ifndef USE_PSRAM_NOBANKS
               mov ma_mtmp3,ma_mtmp1
@@ -3108,6 +3118,35 @@ ma_do_adpcm
               fltl  #PSRAM_CLK
 #endif
 .irqshield
+#elseifdef USE_HYPER
+              ' 16 byte ADPCM blocks line up with HyperRAM half-pages
+              setbyte ma_mtmp1,#%101_00000,#3 ' read linear burst
+              movbyts ma_mtmp1, #%%0123
+              rep @.irqshield,#1
+              drvh #HYPER_SELECT
+              drvl #HYPER_BASE addpins 7
+              drvl #HYPER_CLK ' Init clock pin with correct (?) alignment
+              xinit ma_hyper_addr_cmd1,ma_mtmp1
+              wypin #(6+HYPER_WAIT+MA_PCM_CYCLES)*MA_CYMUL,#HYPER_CLK ' setup clock periods
+              xcont ma_hyper_addr_cmd2,#0 ' no intra-page address needed
+              setq ma_nco_fast
+              xcont #HYPER_WAIT*MA_CLKDIV+HYPER_DELAY,#0
+              waitxmt
+              fltl #HYPER_BASE addpins 7
+              mov ma_mtmp3,ma_adpcm_pollptr
+              sub ma_mtmp3,#@adpcm_pollbox
+              shl ma_mtmp3,#3 ' 4*8 -> 32 bytes per channel
+              testb ma_mtmp1,#(MA_PCM_ASHIFT^24) wc ' odd blocks go in odd buffers (bit 0 of original poll value)
+        if_c  add ma_mtmp3,#16
+              add ma_mtmp3,ma_adpcm_bufferbase
+              wrfast ma_bit31,ma_mtmp3
+              setq ma_nco_slow
+              xcont ma_hyper_readpcm_cmd,#0
+              waitxfi
+              drvl #HYPER_SELECT addpins (HYPER_BANKS-1)
+              fltl #HYPER_CLK
+.irqshield
+#endif
         _ret_ wrlong #0,ma_adpcm_pollptr
 
 
@@ -3133,6 +3172,7 @@ ma_68krequest
               cogatn ma_mk_cogatn_val
               reti2
 
+#ifdef USE_PSRAM_EITHER
 ma_psram_read68k
               mov ma_itmp0,#(8+PSRAM_WAIT)*MA_CYMUL
               shl ma_prog_length,#MA_PROGCYSHL + (encod MA_CYMUL)
@@ -3182,15 +3222,44 @@ ma_psram_read68k
 #else
         _ret_ drvl #PSRAM_SELECT addpins (PSRAM_BANKS-1)
 #endif
-
+#elseifdef USE_HYPER
+ma_psram_read68k
+              mov ma_itmp0,#(6+HYPER_WAIT)*MA_CYMUL
+              shl ma_prog_length,#MA_PROGCYSHL + (encod MA_CYMUL)
+              add ma_itmp0,ma_prog_length
+              ' Prepare command
+              rczr ma_prog_addr wcz
+              rczl ma_itmp3
+              and ma_itmp3,#%11
+              shl ma_itmp3,#9
+              setbyte ma_prog_addr,#%101_00000,#3 ' read linear burst
+              movbyts ma_prog_addr, #%%0123
+              drvh #HYPER_SELECT
+              drvl #HYPER_BASE addpins 7
+              drvl #HYPER_CLK ' Init clock pin with correct (?) alignment
+              xinit ma_hyper_addr_cmd1,ma_prog_addr
+              wypin ma_itmp0,#HYPER_CLK ' setup clock periods
+              xcont ma_hyper_addr_cmd2,ma_itmp3
+              setq ma_nco_fast
+              xcont #HYPER_WAIT*MA_CLKDIV+HYPER_DELAY,#0
+              setword ma_hyper_read68k_cmd,ma_prog_length,#0
+              waitxmt
+              fltl #HYPER_BASE addpins 7
+              setq ma_nco_slow
+              xcont ma_hyper_read68k_cmd,#0
+              waitxfi
+              drvl #HYPER_SELECT addpins (HYPER_BANKS-1)
+              fltl #HYPER_CLK
+              ret wcz
+#endif
 
 
 
 
 ma_bit31      'alias
 ma_nco_fast   long $8000_0000
-#ifdef USE_PSRAM_SLOW
-ma_nco_slow   long $2AAAAAAB
+#ifdef MA_SYSCLK3
+ma_nco_slow   long $2AAA_AAAB
 #else
 ma_nco_slow   long $4000_0000
 #endif
@@ -3217,6 +3286,14 @@ ma_psram_addr_cmd long (PSRAM_BASE<<17)|X_PINS_ON | X_IMM_8X4_4DAC1 + 8
 ma_psram_read68k_cmd long (PSRAM_BASE<<17)|X_WRITE_ON| X_4P_4DAC1_WFBYTE
 ma_psram_readspr_cmd long (PSRAM_BASE<<17)|X_WRITE_ON| X_4P_4DAC1_WFBYTE + MA_CHAR_CYCLES
 ma_psram_readpcm_cmd long (PSRAM_BASE<<17)|X_WRITE_ON| X_4P_4DAC1_WFBYTE + MA_PCM_CYCLES
+#endif
+
+#ifdef USE_HYPER
+ma_hyper_addr_cmd1 long (HYPER_BASE<<17)|X_PINS_ON | X_IMM_4X8_1DAC8 + 4
+ma_hyper_addr_cmd2 long (HYPER_BASE<<17)|X_PINS_ON | X_IMM_4X8_1DAC8 + 2
+ma_hyper_read68k_cmd  long (HYPER_BASE<<17)|X_WRITE_ON| X_8P_1DAC8_WFBYTE
+ma_hyper_readspr_cmd  long (HYPER_BASE<<17)|X_WRITE_ON| X_8P_1DAC8_WFBYTE + MA_CHAR_CYCLES
+ma_hyper_readpcm_cmd  long (HYPER_BASE<<17)|X_WRITE_ON| X_8P_1DAC8_WFBYTE + MA_PCM_CYCLES
 #endif
 
 ma_adpcm_pollptr long @adpcm_pollbox
@@ -3285,8 +3362,6 @@ ma_lutcode
 
               fit 1024
 
-#endif
-
 DAT ' I/O glue
               orgh
 
@@ -3302,7 +3377,7 @@ iog_z80port_wr8
 
 iog_status_a_rd16
               rdbyte mk_memvalue,#z80_reply_b
-              rolbyte mk_memvalue,#$1F,#0 ' Does a real AES _have_ a STATUS_A, anyways?
+              rolbyte mk_memvalue,#$07,#0 ' Coin 3/4 being always low is a weird way of detecting AES hardware used by unibios.
               ret wcz
 
 iog_status_b_rd16
@@ -3552,6 +3627,7 @@ lspc_entry
         if_be wrbyte lspc_tmp1,ptra++
               incmod lspc_tmp1,#255 wc
         if_nc jmp #.inner
+
               incmod lspc_vshrink,#255 wc
         if_nc jmp #.outer
               }
@@ -3599,7 +3675,7 @@ lspc_linelp
         if_11 incmod lspc_autoframe,#7
         if_11 wrbyte lspc_autoframe,#_lspc_animctr
 
-              cmp lspc_chkline,#224 wz
+              cmp lspc_chkline,#224+1 wz ' +1 to avoid glitches on last line
         if_z  locktry #VINT_LOCK wc
         if_z  lockrel #VINT_LOCK
         'if_11 drvnot #38
@@ -5198,24 +5274,6 @@ zk_lutbase
               long zk_immmath + (%11_00_00_0000_0011_0_10_00_0<<10) ' $FE: CP imm8
               long zk_rst                               ' $FF: RST 38h
 
-              ' PSRAM helper table. Must be at $300
-              long $0000
-              long $1111
-              long $2222
-              long $3333
-              long $4444
-              long $5555
-              long $6666
-              long $7777
-              long $8888
-              long $9999
-              long $AAAA
-              long $BBBB
-              long $CCCC
-              long $DDDD
-              long $EEEE
-              long $FFFF
-
 
 zk_rolla      mov zk_tmp8,zk_accu
 zk_shiftop
@@ -5604,7 +5662,7 @@ zk_doreset
 CON ' OPNBCog constants
 
 
-  VOLUME_BALANCE = 0.8 ' Balance between FM/ADPCM and SSG. 1.0 is all OPN2, 0.0 is all SSG
+  VOLUME_BALANCE = 0.8 ' Balance between FM/ADPCM and SSG. 1.0 is all FM/ADPCM, 0.0 is all SSG
 
 
   OVERDRIVE = 1.0
@@ -5649,7 +5707,7 @@ CON ' OPNBCog constants
   OP_SIZE = 12    ' Size of an operator
   CH_OFFSET = 24  ' Offset from global registers to channels == Size of the global registers
   CH_SIZE   = OP_OFFSET + 4*OP_SIZE ' Total size of a channel
-  OPN_SIZE = 4*CH_SIZE + CH_OFFSET  ' Total OPN2 register count
+  OPN_SIZE = 4*CH_SIZE + CH_OFFSET  ' Total OPNB register count
 
   SSG_SIZE = 16
 
@@ -5765,7 +5823,7 @@ EG_RATE_63 = round(8.0*EG_FACTOR)
 DAT ' OPNBCog init code
               orgh
 '===========================================================
-'                Assembly OPN2 emulator
+'                Assembly OPNB emulator
 '===========================================================
 opn_init
               'debug    (udec(leftp,rightp),uhex_long(sampleRate))
@@ -6161,9 +6219,8 @@ opn_muteChannels        long 0'%11_11
 opn_leftp               long 0
 opn_rightp              long 0
 
-              'long 0[10] ' The elder gods ask for this to be here.
 opn_sampleRate          long 0
-opn_lpf_scas            long $1000
+opn_lpf_scas            long $1800 ' lower values lead to more muffled sound. $4000 is unfiltered
 ' Constants
 ' ---------
 opn_dac_center          long $7F80
@@ -6197,7 +6254,7 @@ adpa_accl               long 0
 adpa_accr               long 0
 
 
-' OPN2 internal state
+' OPNB internal state
 ' -------------------
 op_phase                long 0[4*4]
 eg_state_b              byte EG_RELEASE[4*4]
@@ -6509,7 +6566,7 @@ opn_arg2                res 1
 opn_arg3                res 1
 opn_arg4                res 1
 
-' OPN2 global/channel regs
+' OPNB global/channel regs
 ' ------------------------
 gl_unused_alev_lfo_bfreq res 1
 gl_ch3_kcodes_mode        res 1
@@ -6522,18 +6579,18 @@ ch_freq_algo_pan          res 1
 gl_keyon                  res 1
 ch_am_enable              res 1
 
-' OPN2 current operator regs
+' OPNB current operator regs
 ' --------------------------
 op_mul_tl               res 1
 
 
-' OPN2 current EG operator regs
+' OPNB current EG operator regs
 ' -----------------------------
 opn_tempValue3          res 1 ' here so it can get overwritten when the EG reads operator data
 eg_ar_dr_sr_rr          res 1
 eg_rs_sl_ssgeg          res 1
 
-' OPN2 temporary
+' OPNB temporary
 ' --------------
 op_accu                 res 1
 ch_out                  res 1
@@ -6717,7 +6774,7 @@ do_output
               add       opn_arg1,opn_outl
               add       opn_arg2,opn_outr
 
-              ' apply low-pass filter and mix PSG
+              ' apply low-pass filter
               scas      opn_arg1,opn_lpf_scas
               add       opn_filter_left,0-0
 

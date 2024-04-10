@@ -18,7 +18,7 @@ import { IBuiltinDescription, eBuiltInType } from '../parser/spin.common';
 import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class SignatureHelpProvider implements Provider {
-  private signatureLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private symbolsFound: DocumentFindings = new DocumentFindings(); // this gets replaced
@@ -27,8 +27,8 @@ export default class SignatureHelpProvider implements Provider {
   private spin1File: boolean = false;
 
   constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.signatureLogEnabled);
-    if (this.signatureLogEnabled) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         this._logMessage('Spin signatureHelp log started.');
@@ -49,7 +49,7 @@ export default class SignatureHelpProvider implements Provider {
       return null;
     }
     this.symbolsFound = documentFindings;
-    this.symbolsFound.enableLogging(this.ctx, this.signatureLogEnabled);
+    this.symbolsFound.enableLogging(this.ctx, this.isDebugLogEnabled);
     this.spin1File = isSpin1File(docFSpec);
     this.parseUtils = this.spin1File ? new Spin1ParseUtils() : new Spin2ParseUtils();
 
@@ -72,7 +72,7 @@ export default class SignatureHelpProvider implements Provider {
    * @returns nothing
    */
   private _logMessage(message: string): void {
-    if (this.signatureLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }
@@ -244,7 +244,7 @@ export default class SignatureHelpProvider implements Provider {
         if (tmpSymbolsSet) {
           isObjectReference = true;
           symbolsSet = tmpSymbolsSet;
-          symbolsSet.enableLogging(this.ctx, this.signatureLogEnabled);
+          symbolsSet.enableLogging(this.ctx, this.isDebugLogEnabled);
         }
       }
     }

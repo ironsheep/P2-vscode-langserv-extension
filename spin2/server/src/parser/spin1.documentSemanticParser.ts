@@ -34,7 +34,7 @@ export class Spin1DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private spin1DebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -61,10 +61,10 @@ export class Spin1DocumentSemanticParser {
   private directory: string = '';
 
   public constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.spin1DebugLogEnabled);
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
     this.configuration = ctx.parserConfig;
     this.editorConfiguration = ctx.editorConfig;
-    if (this.spin1DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -74,7 +74,7 @@ export class Spin1DocumentSemanticParser {
       }
     }
 
-    //this.semanticFindings = new DocumentFindings(this.spin1DebugLogEnabled, this.spin1log);
+    //this.semanticFindings = new DocumentFindings(this.isDebugLogEnabled, this.spin1log);
   }
 
   public docFindings(): DocumentFindings {
@@ -84,7 +84,7 @@ export class Spin1DocumentSemanticParser {
   public reportDocumentSemanticTokens(document: TextDocument, findings: DocumentFindings, dirSpec: string): void {
     this.semanticFindings = findings;
     this.directory = dirSpec;
-    if (this.spin1DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       this.semanticFindings.enableLogging(this.ctx);
       this.parseUtils.enableLogging(this.ctx);
       this.spinControlFlowTracker.enableLogging(this.ctx);
@@ -98,6 +98,7 @@ export class Spin1DocumentSemanticParser {
 
     // retrieve tokens to highlight, post to DocumentFindings
     const allTokens = this._parseText(document.getText());
+    this.semanticFindings.clearSemanticTokens();
     allTokens.forEach((token) => {
       // prevent crash in server and emit debug so we can find problem
       this.semanticFindings.pushSemanticToken(token);
@@ -225,6 +226,12 @@ export class Spin1DocumentSemanticParser {
           }
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment`);
+          // if NO more code on line after close then skip line
+          const tempLine: string = lineWOutInlineComments.substring(closingOffset + 1).trim();
+          if (tempLine.length == 0) {
+            this._logMessage(`* SKIP MultiLineComment Ln#${i + 1} lineWOutInlineComments=[${lineWOutInlineComments}]`);
+            continue;
+          }
         } else {
           // add line to the comment recording
           currBlockComment?.appendLine(line);
@@ -539,6 +546,12 @@ export class Spin1DocumentSemanticParser {
           // have close, comment ended
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment`);
+          // if NO more code on line after close then skip line
+          const tempLine: string = lineWOutInlineComments.substring(closingOffset + 1).trim();
+          if (tempLine.length == 0) {
+            this._logMessage(`* SKIP MultiLineComment Ln#${i + 1} trimmedNonCommentLine=[${trimmedNonCommentLine}]`);
+            continue;
+          }
         } else {
           continue; // only SKIP if we don't have closing marker
         }
@@ -553,9 +566,16 @@ export class Spin1DocumentSemanticParser {
           this._logMessage(`    FOUND '}' Ln#${lineNbr} trimmedLine=[${trimmedLine}]`);
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment`);
+          // if NO more code on line after close then skip line
+          const tempLine: string = lineWOutInlineComments.substring(closingOffset + 1).trim();
+          if (tempLine.length == 0) {
+            this._logMessage(`* SKIP MultiLineComment Ln#${i + 1} lineWOutInlineComments=[${lineWOutInlineComments}]`);
+            continue;
+          }
         } else {
           continue; // only SKIP if we don't have closing marker
         }
+        //  DO NOTHING Let Syntax highlighting do this
       } else if (lineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(lineParts[0])) {
         const partialTokenSet: IParsedToken[] = this._reportFlexspinPreProcessorLine(i, 0, line);
         partialTokenSet.forEach((newToken) => {
@@ -829,7 +849,7 @@ export class Spin1DocumentSemanticParser {
         const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
         if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
           // check a valid preprocessor line for a declaration
-          if (symbolName != undefined && directive.toLowerCase() == '#define') {
+          if (symbolName !== undefined && directive.toLowerCase() == '#define') {
             this._logPreProc('  -- new PreProc Symbol=[' + symbolName + ']');
             const nameOffset = line.indexOf(symbolName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
             this.semanticFindings.recordDeclarationLine(line, lineNbr);
@@ -1133,7 +1153,7 @@ export class Spin1DocumentSemanticParser {
       const searchFilename: string = `"${filenameNoQuotes}`;
       const hasPathSep: boolean = filenameNoQuotes.includes('/');
       const nameOffset: number = line.indexOf(searchFilename, startingOffset);
-      const logCtx: Context | undefined = this.spin1DebugLogEnabled ? this.ctx : undefined;
+      const logCtx: Context | undefined = this.isDebugLogEnabled ? this.ctx : undefined;
       if (hasPathSep) {
         this.semanticFindings.pushDiagnosticMessage(
           lineIdx,
@@ -1161,7 +1181,7 @@ export class Spin1DocumentSemanticParser {
       const hasPathSep: boolean = filenameNoQuotes.includes('/');
       const fileWithExt = `${filenameNoQuotes}.spin`;
       const nameOffset: number = line.indexOf(filenameNoQuotes, startingOffset);
-      const logCtx: Context | undefined = this.spin1DebugLogEnabled ? this.ctx : undefined;
+      const logCtx: Context | undefined = this.isDebugLogEnabled ? this.ctx : undefined;
       const checkFilename: string = hasSuffix ? filenameNoQuotes : fileWithExt;
       if (hasPathSep) {
         this.semanticFindings.pushDiagnosticMessage(
@@ -3485,7 +3505,7 @@ export class Spin1DocumentSemanticParser {
   }
 
   private _logMessage(message: string): void {
-    if (this.spin1DebugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }
@@ -3625,7 +3645,7 @@ export class Spin1DocumentSemanticParser {
   private _checkTokenSet(tokenSet: IParsedToken[]): void {
     this._logMessage('\n---- Checking ' + tokenSet.length + ' tokens. ----');
     tokenSet.forEach((parsedToken) => {
-      if (parsedToken.length == undefined || parsedToken.startCharacter == undefined) {
+      if (parsedToken.length === undefined || parsedToken.startCharacter === undefined) {
         this._logMessage('- BAD Token=[' + parsedToken + ']');
       }
     });

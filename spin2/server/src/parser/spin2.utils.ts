@@ -1093,6 +1093,15 @@ export class Spin2ParseUtils {
     event_xro: '(12) event Streamer NCO-rollover'
   };
 
+  public isBuiltInSmartPinReservedWord(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    let reservedStatus: boolean = false;
+    if (!reservedStatus) {
+      reservedStatus = nameKey in this._tableSmartPinNames;
+    }
+    return reservedStatus;
+  }
+
   public isBuiltinStreamerReservedWord(name: string): boolean {
     // streamer constants, smart-pin constants
     const builtinNamesOfNote: string[] = [
@@ -2460,6 +2469,17 @@ export class Spin2ParseUtils {
     return desiredDocText;
   }
 
+  public lineStartsWithFlexspinPreprocessorDirective(line: string): boolean {
+    let lineIsDirectiveStatus: boolean = false;
+    if (line && line.length > 0) {
+      const lineParts: string[] = line.split(/[ \t]/).filter(Boolean);
+      if (lineParts.length > 0) {
+        lineIsDirectiveStatus = this.isFlexspinPreprocessorDirective(lineParts[0]);
+      }
+    }
+    return lineIsDirectiveStatus;
+  }
+
   public isFlexspinPreprocessorDirective(name: string): boolean {
     const flexspinDirectiveOfNote: string[] = [
       '#define',
@@ -3369,6 +3389,9 @@ export class Spin2ParseUtils {
         break;
       case eDebugDisplayType.ddtBitmap:
         nameStatus = this.isDebugBitmapDeclarationParam(newParameter);
+        if (!nameStatus) {
+          nameStatus = this.isDebugBitmapColorMode(newParameter);
+        }
         break;
       case eDebugDisplayType.ddtMidi:
         nameStatus = this.isDebugMidiDeclarationParam(newParameter);
@@ -3624,6 +3647,9 @@ export class Spin2ParseUtils {
         bHasColorMode = true;
         break;
       case eDebugDisplayType.ddtPlot:
+        bHasColorMode = true;
+        break;
+      case eDebugDisplayType.ddtTerm: // ?? demo shipped has this here??? not in DOCs???
         bHasColorMode = true;
         break;
       default:

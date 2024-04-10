@@ -129,6 +129,15 @@
           "include": "#constants"
         },
         {
+          "include": "#event_constants"
+        },
+        {
+          "include": "#smartpins_constants"
+        },
+        {
+          "include": "#streamer_constants"
+        },
+        {
           "include": "#string"
         },
         {

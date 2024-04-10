@@ -51,13 +51,13 @@ export interface FindingsAtPostion {
 }
 
 export default class DefinitionProvider implements Provider {
-  private defnLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
   private extensionUtils: ExtensionUtils;
 
   constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.defnLogEnabled);
-    if (this.defnLogEnabled) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         this._logMessage('Spin Hover log started.');
@@ -72,7 +72,7 @@ export default class DefinitionProvider implements Provider {
    * @returns nothing
    */
   private _logMessage(message: string): void {
-    if (this.defnLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }
@@ -90,7 +90,7 @@ export default class DefinitionProvider implements Provider {
       return []; // empty case
     }
     const symbolsFound: DocumentFindings = documentFindings;
-    symbolsFound.enableLogging(this.ctx, this.defnLogEnabled);
+    symbolsFound.enableLogging(this.ctx, this.isDebugLogEnabled);
 
     const symbolIdent: FindingsAtPostion | undefined = this.symbolAtLocation(processed.document, position, symbolsFound);
     if (!symbolIdent) {

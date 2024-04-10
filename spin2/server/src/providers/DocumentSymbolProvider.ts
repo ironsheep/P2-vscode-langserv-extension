@@ -44,7 +44,7 @@ export default class DocumentSymbolProvider implements Provider {
               range: currChildSymbol.location(),
               selectionRange: currChildSymbol.location()
             };
-            if (newLspSymbol.children == undefined) {
+            if (newLspSymbol.children === undefined) {
               newLspSymbol.children = [];
             }
             newLspSymbol.children.push(newChildLspSymbol);

@@ -65,8 +65,8 @@ export class Formatter {
   readonly endIdentifierREgEx1 = /^(?<end>\s*(end|endasm))\s+/i;
   readonly endIdentifierREgEx2 = /^(?<end>\s*(end|endasm))$/i;
 
-  private tabbingDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
-  private tabbingOutputChannel: vscode.OutputChannel | undefined = undefined;
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
   private finalTabSelection: vscode.Selection;
   private bFinalTabSelectionValid: boolean = false;
@@ -76,10 +76,10 @@ export class Formatter {
   //export const configuration = loadConfiguration();
 
   constructor() {
-    if (this.tabbingDebugLogEnabled) {
-      if (this.tabbingOutputChannel === undefined) {
+    if (this.isDebugLogEnabled) {
+      if (this.debugOutputChannel === undefined) {
         //Create output channel
-        this.tabbingOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 Format DEBUG');
+        this.debugOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 Format DEBUG');
         this.logMessage('Spin/Spin2 Format log started.');
       } else {
         this.logMessage('\n\n------------------   NEW FILE ----------------\n\n');
@@ -112,9 +112,9 @@ export class Formatter {
    * @returns nothing
    */
   public logMessage(message: string): void {
-    if (this.tabbingDebugLogEnabled && this.tabbingOutputChannel != undefined) {
+    if (this.isDebugLogEnabled && this.debugOutputChannel !== undefined) {
       //Write to output window.
-      this.tabbingOutputChannel.appendLine(message);
+      this.debugOutputChannel.appendLine(message);
     }
   }
 
@@ -122,7 +122,7 @@ export class Formatter {
    * Return T/F where T means the formatter should be enabled
    * @returns T/F
    */
-  isEnbled(): boolean {
+  isEnabled(): boolean {
     const bEnableStatus: boolean = this.enable ? true : false;
     return bEnableStatus;
   }

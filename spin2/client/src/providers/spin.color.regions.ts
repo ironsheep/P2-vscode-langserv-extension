@@ -24,9 +24,9 @@ interface DecoratorInstanceHash {
 }
 
 export class RegionColorizer {
-  private coloringDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
-  private trackerDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
-  private coloringOutputChannel: vscode.OutputChannel | undefined = undefined;
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isTrackerDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
   private namedColors: { [Identifier: string]: string } = {
     //  key: "rgba hex value"
@@ -100,10 +100,10 @@ export class RegionColorizer {
   private spinCodeUtils: SpinCodeUtils = new SpinCodeUtils();
 
   constructor() {
-    if (this.coloringDebugLogEnabled) {
-      if (this.coloringOutputChannel === undefined) {
+    if (this.isDebugLogEnabled) {
+      if (this.debugOutputChannel === undefined) {
         //Create output channel
-        this.coloringOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 BGColor DEBUG');
+        this.debugOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 BGColor DEBUG');
         this.logMessage('Spin/Spin2 BGColor log started.');
       } else {
         this.logMessage('\n\n------------------   NEW FILE ----------------\n\n');
@@ -125,7 +125,7 @@ export class RegionColorizer {
       blockFindings = this.findingsByFilespec.get(fileSpec);
       this.logMessage(`  -- REUSE blockSpanInformation.id=[${blockFindings.id}] for [${path.basename(fileSpec)}]`);
     } else {
-      blockFindings = new LocatedBlockFindings(this.coloringOutputChannel, this.trackerDebugLogEnabled);
+      blockFindings = new LocatedBlockFindings(this.debugOutputChannel, this.isTrackerDebugLogEnabled);
       this.findingsByFilespec.set(fileSpec, blockFindings);
       this.logMessage(`  -- NEW blockSpanInformation.id=[${blockFindings.id}] for [${path.basename(fileSpec)}]`);
     }
@@ -531,7 +531,7 @@ export class RegionColorizer {
 
           // add range to new or existing decoration
           decorationsByColor[color].regions.push(decorationRange);
-          if (decorationsByColor[color].decorator == undefined) {
+          if (decorationsByColor[color].decorator === undefined) {
             decorationsByColor[color].decorator = colorDecorator;
           }
         }
@@ -666,9 +666,9 @@ export class RegionColorizer {
    * @returns nothing
    */
   public logMessage(message: string): void {
-    if (this.coloringDebugLogEnabled && this.coloringOutputChannel != undefined) {
+    if (this.isDebugLogEnabled && this.debugOutputChannel !== undefined) {
       //Write to output window.
-      this.coloringOutputChannel.appendLine(message);
+      this.debugOutputChannel.appendLine(message);
     }
   }
 

@@ -6,13 +6,13 @@ import { fileSpecFromURI } from '../parser/lang.utils';
 import { DocumentFindings, IFoldSpan, eFoldSpanType } from '../parser/spin.semantic.findings';
 
 export default class FoldingRangeProvider implements Provider {
-  private foldingLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
   private extensionUtils: ExtensionUtils;
 
   constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.foldingLogEnabled);
-    if (this.foldingLogEnabled) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         this._logMessage('Spin Folding log started.');
@@ -27,7 +27,7 @@ export default class FoldingRangeProvider implements Provider {
    * @returns nothing
    */
   private _logMessage(message: string): void {
-    if (this.foldingLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }
@@ -45,7 +45,7 @@ export default class FoldingRangeProvider implements Provider {
       return []; // empty case
     }
     const symbolsFound: DocumentFindings = documentFindings;
-    symbolsFound.enableLogging(this.ctx, this.foldingLogEnabled);
+    symbolsFound.enableLogging(this.ctx, this.isDebugLogEnabled);
 
     const foldSpans: IFoldSpan[] = symbolsFound.allFoldSpans();
 

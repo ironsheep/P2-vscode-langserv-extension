@@ -18,20 +18,20 @@ export enum eParseState {
 }
 
 export class SpinCodeUtils {
-  private debugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
-  private outputChannel: vscode.OutputChannel | undefined = undefined;
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
   public constructor() {}
 
   public enableLogging(channel: vscode.OutputChannel, doEnable: boolean = true): void {
-    this.debugLogEnabled = doEnable;
-    this.outputChannel = channel;
+    this.isDebugLogEnabled = doEnable;
+    this.debugOutputChannel = channel;
   }
 
   private _logMessage(message: string): void {
-    if (this.debugLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
-      this.outputChannel.appendLine(message);
+      this.debugOutputChannel.appendLine(message);
     }
   }
 

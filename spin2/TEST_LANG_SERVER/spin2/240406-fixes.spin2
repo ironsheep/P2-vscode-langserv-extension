@@ -1,0 +1,89 @@
+' -------------------------------
+CON
+
+VAR	cog		'status
+        av_base_pin_
+
+PUB stop()
+
+'' Stop VGA driver cog
+
+  if cog
+    cogstop(cog-1)
+    pinclear(av_base_pin_ addpins 4)
+
+' -------------------------------
+DAT
+
+Mario0 byte {
+}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
+MarioColors long {
+}%00000000_00000000_00000000_00000000,{  $7fff	'any bit 31..24 set means transparent
+}%11111111_11111000_11111000_11111000,{  $7fff
+}%11111111_11111000_11111000_11111000,{  $7fff
+}%11111111_11111000_11111000_11111000,{  $7fff
+}%11111111_11111000_11011000_10011000,{  $7f73
+}%11111111_11010000_00000000_00100000,{  $6804  12->32
+}%11111111_00100000_00100000_00100000  ' $1084  13->33 'address=51
+
+' -------------------------------
+CON
+{
+To instantiate a display type:
+  --->>>   inline comments shouldn't end block comment!!
+DEBUG("`DISPLAY_TYPE name {configurations and values}")
+
+To feed a display {or more than one display}:
+
+DEBUG("`name {name name ...} value value value keyword value etc")
+
+}
+
+' -------------------------------
+
+CON
+offx                    = 100
+offy                    = 1000
+spacex                  = 16
+spacey                  = 16
+dims                    = 8
+dotsize                 = 8
+winx                    = 6 + dims * dotsize
+winy                    = 29 + dims * dotsize
+
+pub go() | i, k
+
+  repeat i from 0 to 15
+    k := long[@pixels + $36][i]
+    long[@pixels + $36][i] := k >> 16 & $0000FF | k << 16 & $FF0000 | k & $00FF00
+
+  repeat i from 0 to 15
+    debug(`bitmap b`(i) pos `(offx + spacex + i & %11 * (winx + spacex), offy + spacey + i >> 2 & %11 * (winy + spacey)) rate 1 title '`(i)' size `(dims,dims) dotsize `(dotsize) lut4 trace `(i))
+  waitms(1000)
+  repeat i from 0 to 15
+    debug(`b`(i) lutcolors `uhex_long_array_(@pixels+$36,16))
+  k~
+  repeat
+    i := byte[@pixels + $76][k >> 1 & $3F] >> (!k & 1 * 4) & $F
+    debug(`b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15 `(i))
+    'debug(`b0 `(i))
+    if k >= 63 and k < 64 * 3 and (k & $00 == $0)
+      debug(`b0 save `(offx, offy, cntx * (winx + spacex) + spacex, cnty * (winy + spacey) + spacey) 'TRACE`(k-63)')
+    k++
+    'waitms(25)
+
+DAT
+pixels  BYTE  0,0,0  ' file    "bitmapdemo.bmp"
+' -------------------------------
+
+pub main()
+  'Configure display
+  debug(`term message pos 200 500 size 12 4 textsize 40 rgbi8x) ' <-- WHY RED?? fix this
+
+  '' FOLLOWING LINE CRASHES!!!
+    'debug(`message 'Hello World!')            'Display "Hello World!" on computer screen
+
+' -------------------------------

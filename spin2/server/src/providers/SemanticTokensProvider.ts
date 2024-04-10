@@ -45,6 +45,7 @@ export default class SemanticTokensProvider implements Provider {
 
   private tokenModifiersLegend = [
     'declaration',
+    'disabled',
     'documentation',
     'readonly',
     'static',
@@ -61,7 +62,7 @@ export default class SemanticTokensProvider implements Provider {
     'illegalUse'
   ];
 
-  private semanticLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   //private namedRegs: lsp.CompletionItem[];
@@ -75,7 +76,7 @@ export default class SemanticTokensProvider implements Provider {
 		*/
     this.tokenTypesLegend.forEach((tokenType, index) => this.tokenTypes.set(tokenType, index));
     this.tokenModifiersLegend.forEach((tokenModifier, index) => this.tokenModifiers.set(tokenModifier, index));
-    if (this.semanticLogEnabled) {
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -87,7 +88,7 @@ export default class SemanticTokensProvider implements Provider {
   }
 
   private _logMessage(message: string): void {
-    if (this.semanticLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }

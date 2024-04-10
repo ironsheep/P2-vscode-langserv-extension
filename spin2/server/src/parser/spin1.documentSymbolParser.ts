@@ -16,7 +16,7 @@ import { ExtensionUtils } from '../parser/spin.extension.utils';
 //    the DocumentFindings object assiciated with this file
 //
 export class Spin1DocumentSymbolParser {
-  private spin1OutlineLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
   private extensionUtils: ExtensionUtils;
 
@@ -25,8 +25,8 @@ export class Spin1DocumentSymbolParser {
   private symbolsFound: DocumentFindings | undefined = undefined;
 
   public constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.spin1OutlineLogEnabled);
-    if (this.spin1OutlineLogEnabled) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -42,7 +42,7 @@ export class Spin1DocumentSymbolParser {
     let priorState: eParseState = currState;
     let prePasmState: eParseState = currState;
     this.symbolsFound = findings;
-    if (this.spin1OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       this.symbolsFound.enableLogging(this.ctx);
     }
 
@@ -168,7 +168,17 @@ export class Spin1DocumentSymbolParser {
         if (linePrefix == 'CON' || linePrefix == 'DAT' || linePrefix == 'VAR' || linePrefix == 'OBJ') {
           // start CON/VAR/OBJ/DAT
           const sectionComment = lineHasComment ? line.substr(commentOffset, commentLength) : '';
-          const blockSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + sectionComment, '', lsp.SymbolKind.Field, lineRange);
+          let blockSymbolKind: lsp.SymbolKind = lsp.SymbolKind.Variable;
+          if (linePrefix == 'CON') {
+            blockSymbolKind = lsp.SymbolKind.Method;
+          } else if (linePrefix == 'DAT') {
+            blockSymbolKind = lsp.SymbolKind.EnumMember;
+          } else if (linePrefix == 'OBJ') {
+            blockSymbolKind = lsp.SymbolKind.Class;
+          } else if (linePrefix == 'VAR') {
+            blockSymbolKind = lsp.SymbolKind.Variable;
+          }
+          const blockSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + sectionComment, '', blockSymbolKind, lineRange);
           this.setContainerSymbol(blockSymbol);
           // HANDLE label declaration on DAT line!
           if (linePrefix == 'DAT') {
@@ -188,7 +198,8 @@ export class Spin1DocumentSymbolParser {
                 posssibleLabel = undefined; // Nope!
               }
               if (posssibleLabel) {
-                const labelSymbol: OutLineSymbol = new OutLineSymbol(lineParts[1], '', lsp.SymbolKind.Constant, lineRange);
+                //const labelSymbol: OutLineSymbol = new OutLineSymbol(lineParts[1], '', lsp.SymbolKind.Constant, lineRange);
+                const labelSymbol: OutLineSymbol = new OutLineSymbol(lineParts[1], '', lsp.SymbolKind.String, lineRange);
                 if (this.containerDocSymbol) {
                   this.containerDocSymbol.addChild(labelSymbol);
                 }
@@ -219,7 +230,8 @@ export class Spin1DocumentSymbolParser {
           }
 
           // NOTE this changed to METHOD when we added global labels which are to be Functions!
-          const methodSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + methodName, '', lsp.SymbolKind.Method, lineRange);
+          const methodSymbolKind: lsp.SymbolKind = linePrefix == 'PUB' ? lsp.SymbolKind.Method : lsp.SymbolKind.Field;
+          const methodSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + methodName, '', methodSymbolKind, lineRange);
           this.setContainerSymbol(methodSymbol);
         }
       } else {
@@ -253,7 +265,8 @@ export class Spin1DocumentSymbolParser {
           if (global_label) {
             // was Variable: sorta OK (image good, color bad)
             // was Constant: sorta OK (image good, color bad)   SAME
-            const labelSymbol: OutLineSymbol = new OutLineSymbol(global_label, '', lsp.SymbolKind.Constant, lineRange);
+            //const labelSymbol: OutLineSymbol = new OutLineSymbol(global_label, '', lsp.SymbolKind.Constant, lineRange);
+            const labelSymbol: OutLineSymbol = new OutLineSymbol(global_label, '', lsp.SymbolKind.String, lineRange);
             if (this.containerDocSymbol) {
               this.containerDocSymbol.addChild(labelSymbol);
             } else {
@@ -280,7 +293,7 @@ export class Spin1DocumentSymbolParser {
   }
 
   private _logMessage(message: string): void {
-    if (this.spin1OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }

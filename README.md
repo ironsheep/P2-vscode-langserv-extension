@@ -31,7 +31,8 @@ The **P1 Forum Thread** containing discussion of [this VSCode support](https://f
    - **P1: Syntax and Semantic Highlighting** for both Spin and Pasm
    - **P1: Show Hovers Feature** Hovers show information about the symbol/object that's below the mouse cursor. In our case this is for both user written code and for Spin built-ins.
    - **P1: Signature Help Feature** As you are typing a method name show signature help for both user written methods and for Spin built-in methods.
-- **Object Public interface documentation generation** via keystroke [Ctrl+Alt+d], doc opens on right side of editor
+- **Object Public interface Documentation generation** via keystroke [Ctrl+Alt+d] - Ctrl+Alt+( d )ocument. <br>- Document opens on right side of editor
+- **Object Hierarchy Report generation** via keystroke [Ctrl+Alt+r] - Ctrl+Alt+( r )eport. <br>- Report opens on right side of editor
 - **Doc-Comment Generation** for PUB and PRI methods via keystroke [Ctrl+Alt+c] - Ctrl+Alt+( c )omment. <br>- Comment is inserted immediately below the PUB or PRI line.
 - Editor **Screen Coloring** support per section à la Parallax **Propeller Tool**
 - **Custom tabbing** Tab-stop support per section à la Parallax **Propeller Tool**
@@ -44,13 +45,13 @@ The **P1 Forum Thread** containing discussion of [this VSCode support](https://f
 ### Up next
 We are working on the next updates:
 
-- Code folding support
 - Improve Hover support (more doc details such as pasm code help)
 
 These are not yet definate but I'm:
 
 - Looking into adding a setting to our extension allowing one to change a "PNut Enable Debug" setting which would be used when building with on windows with PNut
 - Looking into developing a Task Provider (to be built into our extension) which would recognize the tools installed and the OS and then provide only the tasks appropriate for the OS with the tools installed.
+- Looking into customizable Spin code formatter with features like format on save.
 
 ### Future directions
 
@@ -118,8 +119,8 @@ George (GitHub [DrMerfy](https://github.com/DrMerfy)) for the latest [VSCode-Ove
 
 ## License
 
-Licensed under the MIT License. <br>
-<br>
+Licensed under the MIT License.
+
 Follow these links for more information:
 
 ### [Copyright](copyright) | [License](LICENSE)

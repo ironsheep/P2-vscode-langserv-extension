@@ -7,7 +7,7 @@ const loadEditorConfiguration = () => {
   const editorConfiguration = vscode.workspace.getConfiguration('spinExtension.ClientBehavior');
 
   return {
-    colorBackground: editorConfiguration.get<boolean>('colorEditorBackground'),
+    colorBackground: editorConfiguration.get<boolean>('colorEditorBackground') ? true : false,
     backgroundApha: editorConfiguration.get<number>('editorBackgroundAlpha')
   };
 };

@@ -37,6 +37,7 @@ export default class TextDocumentSyncProvider implements Provider {
 
     // ensure we have the clint settings before proceeding
     if (this.ctx.parserConfig.maxNumberOfReportedIssues == -1) {
+      this.ctx.logger.log(`TRC: LOAD client configuration`);
       await this.getLatestClientConfig();
     }
 

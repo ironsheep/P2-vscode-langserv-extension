@@ -15,7 +15,7 @@ import { eParseState } from './spin.common';
 //    the DocumentFindings object assiciated with this file
 //
 export class Spin2DocumentSymbolParser {
-  private spin2OutlineLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private parseUtils = new Spin2ParseUtils();
@@ -23,7 +23,7 @@ export class Spin2DocumentSymbolParser {
   private symbolsFound: DocumentFindings | undefined = undefined;
 
   public constructor(protected readonly ctx: Context) {
-    if (this.spin2OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -39,7 +39,7 @@ export class Spin2DocumentSymbolParser {
     let priorState: eParseState = currState;
     let prePasmState: eParseState = currState;
     this.symbolsFound = findings;
-    if (this.spin2OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       this.symbolsFound.enableLogging(this.ctx);
     }
 
@@ -90,10 +90,9 @@ export class Spin2DocumentSymbolParser {
         continue;
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
-        const openingOffset = nonCommentLine.indexOf('{');
-        const closingOffset = nonCommentLine.indexOf('}', openingOffset + 1);
-        const haveInlineCmt: boolean = openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset;
-        if (!haveInlineCmt && closingOffset != -1) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const [closingMultiline, closingOffset] = this._haveUnmatchCloseOnLine(line, '}');
+        if (closingMultiline) {
           // have close, comment ended
           currState = priorState;
         }
@@ -185,12 +184,23 @@ export class Spin2DocumentSymbolParser {
             methodName = lineParts[0].trim();
           }
           // NOTE this changed to METHOD when we added global labels which are to be Functions!
-          const methodSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + methodName, methodScope, lsp.SymbolKind.Method, lineRange);
+          const methodSymbolKind: lsp.SymbolKind = linePrefix == 'PUB' ? lsp.SymbolKind.Method : lsp.SymbolKind.Field;
+          const methodSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + methodName, methodScope, methodSymbolKind, lineRange);
           this.setContainerSymbol(methodSymbol);
         } else {
           // start CON/VAR/OBJ/DAT
           const sectionComment = lineHasComment ? line.substr(commentOffset, commentLength) : '';
-          const blockSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + sectionComment, '', lsp.SymbolKind.Field, lineRange);
+          let blockSymbolKind: lsp.SymbolKind = lsp.SymbolKind.Variable;
+          if (linePrefix == 'CON') {
+            blockSymbolKind = lsp.SymbolKind.Method;
+          } else if (linePrefix == 'DAT') {
+            blockSymbolKind = lsp.SymbolKind.EnumMember;
+          } else if (linePrefix == 'OBJ') {
+            blockSymbolKind = lsp.SymbolKind.Class;
+          } else if (linePrefix == 'VAR') {
+            blockSymbolKind = lsp.SymbolKind.Variable;
+          }
+          const blockSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + sectionComment, '', blockSymbolKind, lineRange);
           this.setContainerSymbol(blockSymbol);
           // HANDLE label declaration on DAT line!
           if (linePrefix == 'DAT') {
@@ -210,7 +220,8 @@ export class Spin2DocumentSymbolParser {
                 posssibleLabel = undefined; // Nope!
               }
               if (posssibleLabel) {
-                const labelSymbol: OutLineSymbol = new OutLineSymbol(lineParts[1], '', lsp.SymbolKind.Constant, lineRange);
+                //const labelSymbol: OutLineSymbol = new OutLineSymbol(lineParts[1], '', lsp.SymbolKind.Constant, lineRange);
+                const labelSymbol: OutLineSymbol = new OutLineSymbol(lineParts[1], '', lsp.SymbolKind.String, lineRange);
                 if (this.containerDocSymbol) {
                   this.containerDocSymbol.addChild(labelSymbol);
                 }
@@ -226,11 +237,11 @@ export class Spin2DocumentSymbolParser {
           if (currState == eParseState.inPAsmInline) {
             // process pasm (assembly) lines
             if (trimmedLine.length > 0) {
-              this._logMessage('    scan inPAsmInline Ln#' + (i + 1) + ' nonCommentLine=[' + nonCommentLine + ']');
+              this._logMessage(`    scan inPAsmInline Ln#${i + 1} nonCommentLine=[${nonCommentLine}]`);
               const lineParts: string[] = nonCommentLine.split(/[ \t]/).filter(Boolean);
               if (lineParts.length > 0 && lineParts[0].toUpperCase() == 'END') {
                 currState = prePasmState;
-                this._logMessage('    scan END-InLine Ln#' + (i + 1) + ' POP currState=[' + currState + ']');
+                this._logMessage(`    scan END-InLine Ln#${i + 1} POP currState=[${eParseState[currState]}]`);
                 // and ignore rest of this line
                 continue;
               }
@@ -253,7 +264,7 @@ export class Spin2DocumentSymbolParser {
                 this._logMessage('  - pre-scan DAT line trimmedLine=[' + trimmedLine + '] now Dat PASM');
                 prePasmState = currState;
                 currState = eParseState.inDatPAsm;
-                this._logMessage('    scan START DATPasm Ln#' + (i + 1) + ' PUSH currState=[' + prePasmState + ']');
+                this._logMessage(`    scan START DATPasm Ln#${i + 1} PUSH currState=[${eParseState[prePasmState]}]`);
                 // and ignore rest of this line
                 global_label = this._getOlnDAT_PasmDeclaration(0, line); // let's get possible label on this ORG statement
               }
@@ -271,7 +282,7 @@ export class Spin2DocumentSymbolParser {
                 this._logMessage('  - (' + (i + 1) + '): outline PUB/PRI line trimmedLine=[' + trimmedLine + ']');
                 prePasmState = currState;
                 currState = eParseState.inPAsmInline;
-                this._logMessage('    scan START-InLine Ln#' + (i + 1) + ' PUSH currState=[' + prePasmState + ']');
+                this._logMessage(`    scan START-InLine Ln#${i + 1} PUSH currState=[${eParseState[prePasmState]}]`);
                 // and ignore rest of this line
                 continue;
               }
@@ -280,7 +291,8 @@ export class Spin2DocumentSymbolParser {
           if (global_label) {
             // was Variable: sorta OK (image good, color bad)
             // was Constant: sorta OK (image good, color bad)   SAME
-            const labelSymbol: OutLineSymbol = new OutLineSymbol(global_label, '', lsp.SymbolKind.Constant, lineRange);
+            //const labelSymbol: OutLineSymbol = new OutLineSymbol(global_label, '', lsp.SymbolKind.Constant, lineRange);
+            const labelSymbol: OutLineSymbol = new OutLineSymbol(global_label, '', lsp.SymbolKind.String, lineRange);
             // if we have a container add to container, else just record it
             if (this.containerDocSymbol) {
               this.containerDocSymbol.addChild(labelSymbol);
@@ -297,6 +309,28 @@ export class Spin2DocumentSymbolParser {
       this.containerDocSymbol = undefined;
     }
   }
+  private _haveUnmatchCloseOnLine(line: string, searchChar: string): [boolean, number] {
+    let unmatchedCloseStatus: boolean = false;
+    let matchOffset: number = 0;
+    const closeString: string = searchChar;
+    const openString: string = searchChar == '}' ? '{' : '{{';
+    const matchLen: number = searchChar.length;
+    let nestLevel: number = 0;
+    if (line.length >= searchChar.length) {
+      for (let offset = 0; offset < line.length; offset++) {
+        const matchString = line.substring(offset, offset + matchLen);
+        if (matchString == openString) {
+          nestLevel++;
+        } else if (matchString == closeString) {
+          matchOffset = offset;
+          nestLevel--;
+        }
+      }
+    }
+    unmatchedCloseStatus = nestLevel == -1 ? true : false;
+    this._logMessage(`  -- _haveUnmatchCloseOnLine() isClosed=(${unmatchedCloseStatus}), ofs=(${matchOffset}) line=[${line}](${line.length})`);
+    return [unmatchedCloseStatus, matchOffset];
+  }
 
   private setContainerSymbol(newSymbol: OutLineSymbol): void {
     // report symbol, possible container symbol, then start a new container
@@ -308,7 +342,7 @@ export class Spin2DocumentSymbolParser {
   }
 
   private _logMessage(message: string): void {
-    if (this.spin2OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }

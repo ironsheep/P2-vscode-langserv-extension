@@ -66,7 +66,7 @@ export function isHash(possHash: any): boolean {
 export function showObject(responseObject: any, level: number = 0, idString: string = undefined): string {
   const answerStrings: string[] = [];
   const padding: string = ' '.repeat(level * 2);
-  const bIsTopeLevel: boolean = idString == undefined;
+  const bIsTopeLevel: boolean = idString === undefined;
   const typeString: string = objectTypeString(responseObject);
   if (bIsTopeLevel) {
     answerStrings.push(``);

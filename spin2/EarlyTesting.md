@@ -1,6 +1,7 @@
 # VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
 
 ![Project Maintenance][maintenance-shield]
+
 [![License][license-shield]](LICENSE) 
 
 ## Early Testing of the new Language-Server based VSCode Extension
@@ -60,7 +61,7 @@ It should now be installed
 
 - Ensure [Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens) extension is installed
 
-![Error Lens](./DOCs/images/ErrorLens-Ext.png)
+![Error Lens](./images/ErrorLens-Ext.png)
 **FIGURE 1**: The Error Lens Extension
 
 When you DON'T have error Lens installed (or it is disabled) Your errors (highlighted in the code as bright RED text) only show in bottom area in the [Problems] Tab:
@@ -182,9 +183,8 @@ The Spin2 extension provides **5 themes**. 2 for light mode and 3 for dark mode.
 
 ## License
 
-Copyright © 2023 Iron Sheep Productions, LLC.<br />
-Licensed under the MIT License. <br>
-<br>
+Licensed under the MIT License. 
+
 Follow these links for more information:
 
 ### [Copyright](copyright) | [License](LICENSE)
@@ -197,7 +197,7 @@ Follow these links for more information:
 
 [marketplace-rating]: https://vsmarketplacebadge.apphb.com/rating-short/ironsheepproductionsllc.spin2.svg
 
-[license-shield]: https://camo.githubusercontent.com/bc04f96d911ea5f6e3b00e44fc0731ea74c8e1e9/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c6963656e73652f69616e74726963682f746578742d646976696465722d726f772e7376673f7374796c653d666f722d7468652d6261646765
+[license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
 
 [Release-shield]: https://img.shields.io/github/release/ironsheep/P2-vscode-extensions/all.svg
 

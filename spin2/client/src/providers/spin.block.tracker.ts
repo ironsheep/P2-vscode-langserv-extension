@@ -25,8 +25,8 @@ export interface IBlockSpan {
 //   CLASS DocumentFindings
 export class LocatedBlockFindings {
   // tracking of Spin Code Blocks
-  private trackerDebugLogEnabled: boolean = false;
-  private trackerOutputChannel: vscode.OutputChannel | undefined = undefined;
+  private isDebugLogEnabled: boolean = false;
+  private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
   private instanceId: string = `BT:${new Date().getTime()}`;
 
@@ -37,8 +37,8 @@ export class LocatedBlockFindings {
   private findingsLogEnabled: boolean = false;
 
   constructor(callerOutputChannel: vscode.OutputChannel, isCallerDebugEnabled: boolean) {
-    this.trackerDebugLogEnabled = isCallerDebugEnabled;
-    this.trackerOutputChannel = callerOutputChannel;
+    this.isDebugLogEnabled = isCallerDebugEnabled;
+    this.debugOutputChannel = callerOutputChannel;
   }
   public clear() {
     // clear spin-code-block tracking
@@ -57,9 +57,9 @@ export class LocatedBlockFindings {
   // PRIVATE (Utility) Methods
   //
   private _logMessage(message: string): void {
-    if (this.trackerDebugLogEnabled && this.trackerOutputChannel != undefined) {
+    if (this.isDebugLogEnabled && this.debugOutputChannel !== undefined) {
       //Write to output window.
-      this.trackerOutputChannel.appendLine(message);
+      this.debugOutputChannel.appendLine(message);
     }
   }
 
