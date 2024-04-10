@@ -1,6 +1,21 @@
+
+obj {{
+             
+                             ┌───── ┌─────┐ ┌─────
+                     │ ┌─── │ ┌─┐ │ │ ┌───
+                               │ │    │ │ │ │ │ │ ┐ ┐
+                               │ └─── │ └─┘ │ │ └─┘ │
+                     └───── └─────┘ └─────┘  V1.2.1
+
+              The sound of the Super Nintendo in a cog!
+
+}}
+
 con { fixed io pins }
 
   LIB_VERSION = 140                                             ' 1.4.0
+
+  FILENAME_SIZE = 40
 
   SF_CS    = 61  { O }                                          ' flash chip select
   SF_SCLK  = 60  { O }                                          ' flash clock
