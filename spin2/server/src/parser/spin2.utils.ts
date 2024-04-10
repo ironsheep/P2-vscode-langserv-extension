@@ -2469,6 +2469,17 @@ export class Spin2ParseUtils {
     return desiredDocText;
   }
 
+  public lineStartsWithFlexspinPreprocessorDirective(line: string): boolean {
+    let lineIsDirectiveStatus: boolean = false;
+    if (line && line.length > 0) {
+      const lineParts: string[] = line.split(/[ \t]/).filter(Boolean);
+      if (lineParts.length > 0) {
+        lineIsDirectiveStatus = this.isFlexspinPreprocessorDirective(lineParts[0]);
+      }
+    }
+    return lineIsDirectiveStatus;
+  }
+
   public isFlexspinPreprocessorDirective(name: string): boolean {
     const flexspinDirectiveOfNote: string[] = [
       '#define',

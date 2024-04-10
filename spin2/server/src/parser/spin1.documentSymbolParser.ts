@@ -16,7 +16,7 @@ import { ExtensionUtils } from '../parser/spin.extension.utils';
 //    the DocumentFindings object assiciated with this file
 //
 export class Spin1DocumentSymbolParser {
-  private spin1OutlineLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
   private extensionUtils: ExtensionUtils;
 
@@ -25,8 +25,8 @@ export class Spin1DocumentSymbolParser {
   private symbolsFound: DocumentFindings | undefined = undefined;
 
   public constructor(protected readonly ctx: Context) {
-    this.extensionUtils = new ExtensionUtils(ctx, this.spin1OutlineLogEnabled);
-    if (this.spin1OutlineLogEnabled) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
+    if (this.isDebugLogEnabled) {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -42,7 +42,7 @@ export class Spin1DocumentSymbolParser {
     let priorState: eParseState = currState;
     let prePasmState: eParseState = currState;
     this.symbolsFound = findings;
-    if (this.spin1OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       this.symbolsFound.enableLogging(this.ctx);
     }
 
@@ -293,7 +293,7 @@ export class Spin1DocumentSymbolParser {
   }
 
   private _logMessage(message: string): void {
-    if (this.spin1OutlineLogEnabled) {
+    if (this.isDebugLogEnabled) {
       //Write to output window.
       this.ctx.logger.log(message);
     }
