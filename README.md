@@ -119,8 +119,8 @@ George (GitHub [DrMerfy](https://github.com/DrMerfy)) for the latest [VSCode-Ove
 
 ## License
 
-Licensed under the MIT License. <br>
-<br>
+Licensed under the MIT License.
+
 Follow these links for more information:
 
 ### [Copyright](copyright) | [License](LICENSE)
