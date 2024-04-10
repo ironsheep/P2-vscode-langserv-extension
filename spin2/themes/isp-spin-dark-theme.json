@@ -29,7 +29,7 @@
     "editor.background": "#1f1f1f",
     "editor.findMatchBackground": "#9e6a03",
     "editor.foreground": "#cccccc",
-	"editorCursor.foreground": "#AEB0AD",
+    "editorCursor.foreground": "#AEB0AD",
     "editorGroup.border": "#ffffff17",
     "editorGroupHeader.tabsBackground": "#181818",
     "editorGroupHeader.tabsBorder": "#ffffff15",
@@ -116,8 +116,8 @@
     "tab.unfocusedHoverBackground": "#6e76811a",
     "terminal.foreground": "#cccccc",
     "terminal.tab.activeBorder": "#0078d4",
-	"terminalCursor.foreground": "#CCCCCC",
-	"textBlockQuote.background": "#010409",
+    "terminalCursor.foreground": "#CCCCCC",
+    "textBlockQuote.background": "#010409",
     "textBlockQuote.border": "#ffffff14",
     "textCodeBlock.background": "#6e768166",
     "textLink.activeForeground": "#40A6FF",
@@ -131,7 +131,7 @@
     "welcomePage.tileBackground": "#ffffff0f",
     "welcomePage.progress.foreground": "#0078d4",
     "widget.border": "#ffffff15",
-    "editor.inactiveSelectionBackground": "#3A3D41",
+    "editor.inactiveSelectionBackground": "#a03A3D41",
     "editorIndentGuide.background1": "#404040",
     "editorIndentGuide.activeBackground1": "#707070",
     "editor.selectionHighlightBackground": "#ADD6FF26",
@@ -199,14 +199,28 @@
     },
     {
       "name": "Types declaration and references, TS grammar specific",
-      "scope": ["meta.type.cast.expr", "meta.type.new.expr", "support.constant.math", "support.constant.dom", "support.constant.json", "entity.other.inherited-class"],
+      "scope": [
+        "meta.type.cast.expr",
+        "meta.type.new.expr",
+        "support.constant.math",
+        "support.constant.dom",
+        "support.constant.json",
+        "entity.other.inherited-class"
+      ],
       "settings": {
         "foreground": "#4EC9B0"
       }
     },
     {
       "name": "Control flow / Special keywords",
-      "scope": ["keyword.control", "source.cpp keyword.operator.new", "keyword.operator.delete", "keyword.other.using", "keyword.other.operator", "entity.name.operator"],
+      "scope": [
+        "keyword.control",
+        "source.cpp keyword.operator.new",
+        "keyword.operator.delete",
+        "keyword.other.using",
+        "keyword.other.operator",
+        "entity.name.operator"
+      ],
       "settings": {
         "foreground": "#C586C0"
       }
@@ -269,7 +283,12 @@
       }
     },
     {
-      "scope": ["constant.character.character-class.regexp", "constant.other.character-class.set.regexp", "constant.other.character-class.regexp", "constant.character.set.regexp"],
+      "scope": [
+        "constant.character.character-class.regexp",
+        "constant.other.character-class.set.regexp",
+        "constant.other.character-class.regexp",
+        "constant.character.set.regexp"
+      ],
       "settings": {
         "foreground": "#d16969"
       }
@@ -305,7 +324,11 @@
       }
     },
     {
-      "scope": ["meta.embedded", "source.groovy.embedded", "string meta.image.inline.markdown"],
+      "scope": [
+        "meta.embedded",
+        "source.groovy.embedded",
+        "string meta.image.inline.markdown"
+      ],
       "settings": {
         "foreground": "#D4D4D4"
       }
@@ -341,7 +364,12 @@
       }
     },
     {
-      "scope": ["constant.numeric", "variable.other.enummember", "keyword.operator.plus.exponent", "keyword.operator.minus.exponent"],
+      "scope": [
+        "constant.numeric",
+        "variable.other.enummember",
+        "keyword.operator.plus.exponent",
+        "keyword.operator.minus.exponent"
+      ],
       "settings": {
         "foreground": "#b5cea8"
       }
@@ -540,7 +568,11 @@
     },
     {
       "name": "String interpolation",
-      "scope": ["punctuation.definition.template-expression.begin", "punctuation.definition.template-expression.end", "punctuation.section.embedded"],
+      "scope": [
+        "punctuation.definition.template-expression.begin",
+        "punctuation.definition.template-expression.end",
+        "punctuation.section.embedded"
+      ],
       "settings": {
         "foreground": "#569cd6"
       }
@@ -553,7 +585,14 @@
       }
     },
     {
-      "scope": ["support.type.vendored.property-name", "support.type.property-name", "variable.css", "variable.scss", "variable.other.less", "source.coffee.embedded"],
+      "scope": [
+        "support.type.vendored.property-name",
+        "support.type.property-name",
+        "variable.css",
+        "variable.scss",
+        "variable.other.less",
+        "source.coffee.embedded"
+      ],
       "settings": {
         "foreground": "#9cdcfe"
       }
@@ -600,7 +639,10 @@
       }
     },
     {
-      "scope": ["punctuation.section.embedded.begin.php", "punctuation.section.embedded.end.php"],
+      "scope": [
+        "punctuation.section.embedded.begin.php",
+        "punctuation.section.embedded.end.php"
+      ],
       "settings": {
         "foreground": "#569cd6"
       }
@@ -619,7 +661,11 @@
     },
     {
       "name": "coloring of the Java import and package identifiers",
-      "scope": ["storage.modifier.import.java", "variable.language.wildcard.java", "storage.modifier.package.java"],
+      "scope": [
+        "storage.modifier.import.java",
+        "variable.language.wildcard.java",
+        "storage.modifier.package.java"
+      ],
       "settings": {
         "foreground": "#d4d4d4"
       }
@@ -915,19 +961,19 @@
       "foreground": "#d83333"
     },
     "*.illegalUse": {
-		// keywords/variables in bad places
-		"foreground": "#ff0000",
-		"fontStyle": "bold"
-	},
-	"*.disabled": {
-	// disabled lines of code
-	// was: #FFA500 orange
-	// was: #FFD8A8 pastel orange
-	// was: #9F8769 pastel orange of 62.5%
-	// want grey at 62.5% brightness: #9f9f9f
-	// want grey at 50% brightness: #808080
-	// still too light...: #787878
-	"foreground": "#747474",
-	},
+      // keywords/variables in bad places
+      "foreground": "#ff0000",
+      "fontStyle": "bold"
+    },
+    "*.disabled": {
+      // disabled lines of code
+      // was: #FFA500 orange
+      // was: #FFD8A8 pastel orange
+      // was: #9F8769 pastel orange of 62.5%
+      // want grey at 62.5% brightness: #9f9f9f
+      // want grey at 50% brightness: #808080
+      // still too light...: #787878
+      "foreground": "#747474"
+    }
   }
 }
