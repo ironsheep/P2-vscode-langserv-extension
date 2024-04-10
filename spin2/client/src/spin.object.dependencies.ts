@@ -33,7 +33,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private fixedTopLevelFSpec: string = '';
   private treeState: eTreeState = eTreeState.TS_ExpandAll; // eTreeState.TS_ExpandTop; // tracks current state of treeView
   private viewEnabledState: boolean = false;
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
   private isEmptying: boolean = false;
   private spinCodeUtils: SpinCodeUtils = new SpinCodeUtils();

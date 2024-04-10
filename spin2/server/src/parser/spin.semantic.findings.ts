@@ -192,7 +192,7 @@ export class DocumentFindings {
   private pasmCodeSpans: IPasmCodeSpan[] = [];
   private pasmIsInline: boolean = false;
 
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   // tracking object outline
