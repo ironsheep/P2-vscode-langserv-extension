@@ -4,7 +4,7 @@
   "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.14",
+  "version": "2.2.15",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -32,6 +32,10 @@
   "main": "./client/out/extension",
   "contributes": {
     "commands": [
+      {
+        "command": "spinExtension.generate.hierarchy.file",
+        "title": "Spin2: Generate hierarchy documentation file from spin source"
+      },
       {
         "command": "spinExtension.generate.doc.comment",
         "title": "Spin2: Generate and insert documentation comment"
@@ -74,6 +78,16 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "spinExtension.objectDependencies.expandAll",
+        "title": "Spin2: Expand All",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "spinExtension.objectDependencies.collapseAll",
+        "title": "Spin2: Collapse All",
+        "icon": "$(collapse-all)"
+      },
+      {
         "command": "spinExtension.objectDependencies.activateFile",
         "title": "Spin2: Open source code for this object",
         "icon": "$(open-preview)"
@@ -93,11 +107,7 @@
           "spinExtension.trace.server": {
             "scope": "window",
             "type": "string",
-            "enum": [
-              "off",
-              "messages",
-              "verbose"
-            ],
+            "enum": ["off", "messages", "verbose"],
             "default": "off",
             "description": "Traces the communication between VSCode client and the spin2 language server."
           },
@@ -131,11 +141,7 @@
           "spinExtension.elasticTabstops.choice": {
             "type": "string",
             "default": "PropellerTool",
-            "enum": [
-              "PropellerTool",
-              "IronSheep",
-              "User1"
-            ],
+            "enum": ["PropellerTool", "IronSheep", "User1"],
             "description": "Select the set of Tabstops you wish to use."
           },
           "spinExtension.elasticTabstops.blocks.PropellerTool": {
@@ -149,78 +155,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  78,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 78, 80]
               },
               "var": {
-                "tabStops": [
-                  2,
-                  8,
-                  22,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 22, 32, 56, 80]
               },
               "obj": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 80]
               },
               "pub": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  8,
-                  14,
-                  24,
-                  32,
-                  48,
-                  56,
-                  80
-                ]
+                "tabStops": [8, 14, 24, 32, 48, 56, 80]
               }
             }
           },
@@ -235,87 +185,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  4,
-                  8,
-                  16,
-                  20,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
               },
               "var": {
-                "tabStops": [
-                  4,
-                  12,
-                  24,
-                  28,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 12, 24, 28, 32, 44, 56, 68, 80]
               },
               "obj": {
-                "tabStops": [
-                  4,
-                  8,
-                  16,
-                  20,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
               },
               "pub": {
-                "tabStops": [
-                  4,
-                  8,
-                  12,
-                  16,
-                  20,
-                  24,
-                  28,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  4,
-                  8,
-                  12,
-                  16,
-                  20,
-                  24,
-                  28,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  4,
-                  16,
-                  20,
-                  24,
-                  28,
-                  48,
-                  52,
-                  56,
-                  60,
-                  64,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 16, 20, 24, 28, 48, 52, 56, 60, 64, 68, 80]
               }
             }
           },
@@ -330,80 +215,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  76,
-                  77,
-                  78,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 76, 77, 78, 80]
               },
               "var": {
-                "tabStops": [
-                  2,
-                  8,
-                  22,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 22, 32, 56, 80]
               },
               "obj": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 80]
               },
               "pub": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  8,
-                  14,
-                  24,
-                  32,
-                  48,
-                  56,
-                  80
-                ]
+                "tabStops": [8, 14, 24, 32, 48, 56, 80]
               }
             }
           }
@@ -473,6 +300,11 @@
     ],
     "keybindings": [
       {
+        "key": "Ctrl+Alt+r",
+        "command": "spinExtension.generate.hierarchy.file",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
         "key": "Ctrl+Alt+d",
         "command": "spinExtension.generate.documentation.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
@@ -485,39 +317,39 @@
       {
         "key": "tab",
         "command": "spinExtension.elasticTabstops.indentTabStop",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "key": "Shift+tab",
         "command": "spinExtension.elasticTabstops.outdentTabStop",
-        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "key": "Ctrl+Alt+tab",
         "command": "spinExtension.elasticTabstops.generate.tabStops.comment",
-        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.rotate",
         "key": "insert",
         "mac": "F13",
-        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.deleteLeft",
         "key": "backspace",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.deleteRight",
         "key": "delete",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.toggle",
         "key": "Ctrl+Shift+i",
         "mac": "Cmd+Shift+i",
-        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       }
     ],
     "menus": {
@@ -525,6 +357,16 @@
         {
           "command": "spinExtension.objectDependencies.refreshEntry",
           "when": "view == spinExtension.objectDependencies",
+          "group": "navigation"
+        },
+        {
+          "command": "spinExtension.objectDependencies.expandAll",
+          "when": "view == spinExtension.objectDependencies && runtime.spinExtension.objectDeps.showingTopOnly == true",
+          "group": "navigation"
+        },
+        {
+          "command": "spinExtension.objectDependencies.collapseAll",
+          "when": "view == spinExtension.objectDependencies && runtime.spinExtension.objectDeps.showingTopOnly == false",
           "group": "navigation"
         }
       ]
@@ -571,26 +413,14 @@
     "languages": [
       {
         "id": "spin2",
-        "aliases": [
-          "spin2",
-          "Spin2",
-          "SPIN2"
-        ],
-        "extensions": [
-          ".spin2"
-        ],
+        "aliases": ["spin2", "Spin2", "SPIN2"],
+        "extensions": [".spin2"],
         "configuration": "./spin2.language-configuration.json"
       },
       {
         "id": "spin",
-        "aliases": [
-          "spin",
-          "Spin",
-          "SPIN"
-        ],
-        "extensions": [
-          ".spin"
-        ],
+        "aliases": ["spin", "Spin", "SPIN"],
+        "extensions": [".spin"],
         "configuration": "./spin1.language-configuration.json"
       }
     ],
@@ -651,17 +481,17 @@
       {
         "id": "illegalUse",
         "description": "Identifies keywords where they shouldn't be!"
+      },
+      {
+        "id": "disabled",
+        "description": "Identifies code disabled by preprocessor"
       }
     ],
     "semanticTokenScopes": [
       {
         "scopes": {
-          "returnValue": [
-            "meta.returntype.spin"
-          ],
-          "storageType": [
-            "storage.type.pasm.spin2"
-          ]
+          "returnValue": ["meta.returntype.spin"],
+          "storageType": ["storage.type.pasm.spin2"]
         }
       }
     ],
@@ -672,7 +502,7 @@
           "name": "Object Dependencies",
           "icon": "$(type-hierarchy)",
           "contextualTitle": "Propeller Spin2 Development",
-          "when": "spinExtension.objectDeps.enabled"
+          "when": "runtime.spinExtension.objectDeps.enabled"
         }
       ]
     },
@@ -698,8 +528,8 @@
     "@types/mocha": "^9.1.0",
     "@types/node": "^16.18.34",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
-	"@typescript-eslint/parser": "^6.17.0",
-	"eslint": "^8.56.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-config-standard-with-typescript": "^43.0.0",
     "eslint-plugin-import": "^2.29.1",

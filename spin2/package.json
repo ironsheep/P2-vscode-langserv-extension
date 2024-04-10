@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.14",
+  "version": "2.2.15",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -38,6 +38,10 @@
   "main": "./client/out/extension",
   "contributes": {
     "commands": [
+      {
+        "command": "spinExtension.generate.hierarchy.file",
+        "title": "Spin2: Generate hierarchy documentation file from spin source"
+      },
       {
         "command": "spinExtension.generate.doc.comment",
         "title": "Spin2: Generate and insert documentation comment"
@@ -78,6 +82,16 @@
         "command": "spinExtension.objectDependencies.refreshEntry",
         "title": "Spin2: Refresh object dependencies view",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "spinExtension.objectDependencies.expandAll",
+        "title": "Spin2: Expand All",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "spinExtension.objectDependencies.collapseAll",
+        "title": "Spin2: Collapse All",
+        "icon": "$(collapse-all)"
       },
       {
         "command": "spinExtension.objectDependencies.activateFile",
@@ -479,6 +493,11 @@
     ],
     "keybindings": [
       {
+        "key": "Ctrl+Alt+r",
+        "command": "spinExtension.generate.hierarchy.file",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
         "key": "Ctrl+Alt+d",
         "command": "spinExtension.generate.documentation.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
@@ -491,39 +510,39 @@
       {
         "key": "tab",
         "command": "spinExtension.elasticTabstops.indentTabStop",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "key": "Shift+tab",
         "command": "spinExtension.elasticTabstops.outdentTabStop",
-        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "key": "Ctrl+Alt+tab",
         "command": "spinExtension.elasticTabstops.generate.tabStops.comment",
-        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.rotate",
         "key": "insert",
         "mac": "F13",
-        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.deleteLeft",
         "key": "backspace",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.deleteRight",
         "key": "delete",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
         "command": "spinExtension.insertMode.toggle",
         "key": "Ctrl+Shift+i",
         "mac": "Cmd+Shift+i",
-        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && config.spinExtension.elasticTabstops.enable == true"
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       }
     ],
     "menus": {
@@ -531,6 +550,16 @@
         {
           "command": "spinExtension.objectDependencies.refreshEntry",
           "when": "view == spinExtension.objectDependencies",
+          "group": "navigation"
+        },
+        {
+          "command": "spinExtension.objectDependencies.expandAll",
+          "when": "view == spinExtension.objectDependencies && runtime.spinExtension.objectDeps.showingTopOnly == true",
+          "group": "navigation"
+        },
+        {
+          "command": "spinExtension.objectDependencies.collapseAll",
+          "when": "view == spinExtension.objectDependencies && runtime.spinExtension.objectDeps.showingTopOnly == false",
           "group": "navigation"
         }
       ]
@@ -657,6 +686,10 @@
       {
         "id": "illegalUse",
         "description": "Identifies keywords where they shouldn't be!"
+      },
+      {
+        "id": "disabled",
+        "description": "Identifies code disabled by preprocessor"
       }
     ],
     "semanticTokenScopes": [
@@ -678,7 +711,7 @@
           "name": "Object Dependencies",
           "icon": "$(type-hierarchy)",
           "contextualTitle": "Propeller Spin2 Development",
-          "when": "spinExtension.objectDeps.enabled"
+          "when": "runtime.spinExtension.objectDeps.enabled"
         }
       ]
     },

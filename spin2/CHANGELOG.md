@@ -18,7 +18,7 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.2.15] 2024-04-??
+## [2.2.15] 2024-04-09
 
 Update P1 and P2
 
@@ -28,12 +28,11 @@ Update P1 and P2
 
 Update P2 Only
 
-- Add preliminary support for v44 new built-in method names (this is NOT final)
 - Add highlighting of object[index] expressions where index itself is an expression
 - BUGFIX don't report `@instance[index].method` reference as bad constant use when it really is a method
 - preliminary flexspin support changes:
  - update conditional compile suppot to grey out deslected code
- - add support for #import   
+ - add support for #import of .spin2 code
 
 ## [2.2.14] 2024-01-11
 
