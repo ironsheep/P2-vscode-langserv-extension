@@ -493,17 +493,20 @@
     ],
     "keybindings": [
       {
-        "key": "Ctrl+Alt+r",
+        "key": "Ctrl+Win+r",
+        "mac": "Ctrl+Alt+r",
         "command": "spinExtension.generate.hierarchy.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
-        "key": "Ctrl+Alt+d",
+        "key": "Ctrl+Win+d",
+        "mac": "Ctrl+Alt+d",
         "command": "spinExtension.generate.documentation.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
-        "key": "Ctrl+Alt+c",
+        "key": "Ctrl+Win+c",
+        "mac": "Ctrl+Alt+c",
         "command": "spinExtension.generate.doc.comment",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
@@ -518,7 +521,8 @@
         "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
       {
-        "key": "Ctrl+Alt+tab",
+        "key": "Ctrl+Win+tab",
+        "mac": "Ctrl+Alt+tab",
         "command": "spinExtension.elasticTabstops.generate.tabStops.comment",
         "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },

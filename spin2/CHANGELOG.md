@@ -26,6 +26,10 @@ Update P2 Only
 - BUGFIX: Semantic: repair handling of {Spin2_v??} built-in method name support
 - BUGFIX: File access issues on Windows (11?) repaired
 - Cleaned up the code-fold detection... now handling ORG* forms better
+- Adjusted report key-chords for windows:
+  - Ctrl+Win+r - Generate Object Hierarchy Report
+  - Ctrl+Win+d - Generate OBject Public Interface Report
+  - Ctrl+Win+c - (When cursor on PUB or PRI line) Insert Doc comment below the PUB or PRI line
 
 
 ## [2.2.15] 2024-04-09
