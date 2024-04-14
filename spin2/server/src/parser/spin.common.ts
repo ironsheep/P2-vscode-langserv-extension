@@ -94,23 +94,34 @@ export function isMethodCallEmptyParens(line: string): boolean {
   return methodOpenRegEx.test(line);
 }
 
-export function containsSpinLanguageSpec(line: string): boolean {
+export function containsSpinLanguageSpec(line: string, ctx: Context | undefined = undefined): boolean {
   // return T/F where T means {Spin2_v##} was found in given string
   const languageVersionRegEx = /\{Spin2_v/i; // our version specification (just look for left edge)
-  return languageVersionRegEx.test(line);
+  const findStatus: boolean = languageVersionRegEx.test(line);
+  _logMessage(`* containsSpinLanguageSpec() -> (${findStatus})`, ctx);
+  return findStatus;
 }
 
-export function versionFromSpinLanguageSpec(line: string): number {
+function _logMessage(message: string, ctx: Context | undefined): void {
+  //Write to output window.
+  if (ctx) {
+    ctx.logger.log(message);
+  }
+}
+
+export function versionFromSpinLanguageSpec(line: string, ctx: Context | undefined = undefined): number {
   // return T/F where T means {Spin2_v##} was found in given string
   let decodedVersion: number = 0; // return no version by default
   const languageVersionRegEx = /\{Spin2_v[0-9][0-9]\}/i; // our version specification - well formatted 0-99
   const languageVersionThousandsRegEx = /\{Spin2_v[0-9][0-9][0-9]\}/i; // our version specification - well formatted 0-999
+  const is2digit: boolean = languageVersionRegEx.test(line);
   const is3digit: boolean = languageVersionThousandsRegEx.test(line);
   // if have fully formatted version
-  if (languageVersionRegEx.test(line) || is3digit) {
+  if (is2digit || is3digit) {
     if (containsSpinLanguageSpec(line)) {
       const matchText: string = '{Spin2_v'.toLowerCase();
       const verOffset: number = line.toLowerCase().indexOf(matchText);
+      //_logMessage(`  -- VFSLS() is2digit=(${is2digit}), is3digit(${is3digit}), verOffset=(${verOffset})`, ctx);
       if (verOffset != -1) {
         if (is3digit) {
           const hundreds: number = parseInt(line.charAt(verOffset + matchText.length));
@@ -118,9 +129,14 @@ export function versionFromSpinLanguageSpec(line: string): number {
           const ones: number = parseInt(line.charAt(verOffset + matchText.length + 2));
           decodedVersion = hundreds * 100 + tens * 10 + ones;
         } else {
+          //_logMessage(
+          //    `  -- VFSLS() PARSE tens=(${line.charAt(verOffset + matchText.length)}), ones=(${line.charAt(verOffset + matchText.length + 1)})`,
+          //    ctx
+          //);
           const tens: number = parseInt(line.charAt(verOffset + matchText.length));
           const ones: number = parseInt(line.charAt(verOffset + matchText.length + 1));
           decodedVersion = tens * 10 + ones;
+          //_logMessage(`  -- VFSLS() parsing tens=(${tens}), ones=(${ones}) -> (${decodedVersion})`, ctx);
         }
       }
       // special: disallow unreleased versions:
@@ -128,10 +144,12 @@ export function versionFromSpinLanguageSpec(line: string): number {
       // - 42 was not released so say zero
       // - 40 or less is also 0
       if (decodedVersion < 43) {
+        _logMessage(`  -- VFSLS() Replace unsupported (${decodedVersion}) with (0)!`, ctx);
         decodedVersion = 0;
       }
     }
   }
+  _logMessage(`  -- Returning language spec of (${decodedVersion}) for [${line}]`, ctx);
   return decodedVersion;
 }
 

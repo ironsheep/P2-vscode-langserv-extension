@@ -225,7 +225,9 @@ export class SpinCodeUtils {
   public containsSpinLanguageSpec(line: string): boolean {
     // return T/F where T means {Spin2_v##} was found in given string
     const languageVersionRegEx = /\{Spin2_v/i; // our version specification (just look for left edge)
-    return languageVersionRegEx.test(line);
+    const foundSpecStatus: boolean = languageVersionRegEx.test(line);
+    this._logMessage(`  -- FOUND language spec in [${line}]`);
+    return foundSpecStatus;
   }
 
   public versionFromSpinLanguageSpec(line: string): number {
@@ -256,10 +258,13 @@ export class SpinCodeUtils {
         // - 42 was not released so say zero
         // - 40 or less is also 0
         if (decodedVersion < 43) {
+          this._logMessage(`  -- Replace unsupported language spec (${decodedVersion}) with (0)!`);
           decodedVersion = 0;
         }
       }
     }
+    this._logMessage(`  -- Returning language spec of (${decodedVersion}) for [${line}]`);
+
     return decodedVersion;
   }
 }

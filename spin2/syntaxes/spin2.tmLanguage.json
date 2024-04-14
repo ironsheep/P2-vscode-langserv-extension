@@ -450,7 +450,7 @@
         },
         {
           "name": "storage.type.pasm2",
-          "match": "(?i)\\b(BYTE|WORD|LONG|RES)\\b"
+          "match": "(?i)\\b(BYTE|WORD|(BYTE|WORD)FIT|LONG|RES)\\b"
         },
         {
           "name": "keyword.pasm.instruction.branch.pasm2",
@@ -718,7 +718,7 @@
         },
         {
           "name": "storage.type.pasm.spin2",
-          "match": "(?i)\\b(BYTE|WORD|BYTEFIT|WORDFIT|LONG)\\b"
+          "match": "(?i)\\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\\b"
         },
         {
           "name": "keyword.control.flow.spin2",
@@ -904,7 +904,7 @@
           "include": "#pasm_storage_alignment"
         },
         {
-          "match": "(?i)\\b(byte|word|bytefit|wordfit|long)\\s*(\\w+)(\\[.*\\])?",
+          "match": "(?i)\\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\\s*(\\w+)(\\[.*\\])?",
           "captures": {
             "1": {
               "name": "storage.type.spin2"

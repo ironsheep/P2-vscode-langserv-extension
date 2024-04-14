@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -132,9 +132,9 @@ export class Spin2DocumentSemanticParser {
     let allTokens = this._parseText(document.getText());
     const endingLangVersion: number = this.parseUtils.selectedSpinVersion();
     if (startingLangVersion != endingLangVersion) {
-      this._logMessage(`* Spin2 LANG VERSION HUNT [${startingLangVersion} -> ${endingLangVersion}]`);
+      this._logMessage(`* Spin2 LANG VERSION chg [${startingLangVersion} -> ${endingLangVersion}]`);
     } else {
-      this._logMessage(`* Spin2 LANG VERSION HUNT [${startingLangVersion}]`);
+      this._logMessage(`* Spin2 LANG VERSION [${startingLangVersion}]`);
     }
     allTokens = this._checkTokenSet(allTokens, document.getText());
     this.semanticFindings.clearSemanticTokens();
@@ -200,15 +200,15 @@ export class Spin2DocumentSemanticParser {
       const trimmedLine: string = line.trim();
 
       // Nnew PNut/Propeller Tool directive support: {Spin2_v##}
-      if (this.bHuntingForVersion && containsSpinLanguageSpec(trimmedLine)) {
-        this._logMessage(`  -- POSSIBLE spec: stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+      if (this.bHuntingForVersion && containsSpinLanguageSpec(trimmedLine, this.ctx)) {
+        //this._logMessage(`  -- POSSIBLE spec: stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
         this.bHuntingForVersion = false; // done we found it
-        const newLangVersion: number = versionFromSpinLanguageSpec(trimmedLine);
-        if (newLangVersion != startingLangVersion) {
+        const newLangVersion: number = versionFromSpinLanguageSpec(trimmedLine, this.ctx);
+        if (newLangVersion != startingLangVersion || newLangVersion != this.parseUtils.selectedSpinVersion()) {
           this.parseUtils.setSpinVersion(newLangVersion);
-          this._logMessage(`  -- found Spin2 NEW version (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+          this._logMessage(`  -- found Spin2 NEW LANG VERSION (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
         } else {
-          this._logMessage(`  -- found Spin2 SAME version (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
+          this._logMessage(`  -- found Spin2 SAME LANG VERSION (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
         }
       }
 
@@ -465,13 +465,6 @@ export class Spin2DocumentSemanticParser {
           }
         }
 
-        if (this.bHuntingForVersion && lineNbr > 3 && blocksFoundCount > 1) {
-          // we are in a new block (sectionStart) if 2nd or later block then we stop our search
-          this.bHuntingForVersion = false; // done, we passed the file-top comments. we can no longer search
-          const newLangVersion: number = this.parseUtils.selectedSpinVersion();
-          this._logMessage(`  -- stopping HUNT  w/lang=(${newLangVersion}), Ln#${lineNbr}=[${trimmedLine}]`);
-        }
-
         currState = sectionStatus.inProgressStatus;
         // record start of next block in code
         //  NOTE: this causes end of prior block to be recorded
@@ -489,6 +482,15 @@ export class Spin2DocumentSemanticParser {
         } else if (currState == eParseState.inPri) {
           newBlockType = eBLockType.isPri;
         }
+
+        const stopVersionHunt: boolean = newBlockType != eBLockType.Unknown ? true : false;
+        if (this.bHuntingForVersion && stopVersionHunt) {
+          // we are in a new block (sectionStart) if 2nd or later block then we stop our search
+          this.bHuntingForVersion = false; // done, we passed the file-top comments. we can no longer search
+          const newLangVersion: number = this.parseUtils.selectedSpinVersion();
+          this._logMessage(`  -- code block! stopping HUNT LANG VERSION=(${newLangVersion}), Ln#${lineNbr}=[${trimmedLine}]`);
+        }
+
         this.semanticFindings.recordBlockStart(newBlockType, i); // start new one which ends prior
         this._logState(`- scan Ln#${lineNbr} currState=[${eParseState[currState]}]`);
       }
@@ -2486,7 +2488,7 @@ export class Spin2DocumentSemanticParser {
                         symbolPosition.character,
                         symbolPosition.character + namePart.length,
                         eSeverity.Error,
-                        `P2 Spin CON missing Declaration [${namePart}]`
+                        `P2 Spin mCON missing Declaration [${namePart}]`
                       );
                     }
                   }
@@ -2946,7 +2948,7 @@ export class Spin2DocumentSemanticParser {
             nameOffset,
             nameOffset + newName.length,
             eSeverity.Error,
-            `P2 Spin A missing declaration [${newName}]`
+            `P2 Spin DAT missing declaration [${newName}]`
           );
         }
 
@@ -3137,7 +3139,7 @@ export class Spin2DocumentSemanticParser {
                   nameOffset,
                   nameOffset + namePartLength,
                   eSeverity.Error,
-                  `P2 Spin DAT missing declaration [${namePart}]`
+                  `P2 Spin DATval missing declaration [${namePart}]`
                 );
               }
             }
@@ -4454,7 +4456,7 @@ export class Spin2DocumentSemanticParser {
                         symbolPosition.character,
                         symbolPosition.character + variableNamePart.length,
                         eSeverity.Error,
-                        `P2 Spin B missing declaration [${variableNamePart}]`
+                        `P2 Spin mB missing declaration [${variableNamePart}]`
                       );
                     }
                   }
@@ -4586,7 +4588,7 @@ export class Spin2DocumentSemanticParser {
                         symbolPosition.character,
                         symbolPosition.character + namePart.length,
                         eSeverity.Error,
-                        `P2 Spin C missing declaration [${namePart}]`
+                        `P2 Spin mC missing declaration [${namePart}]`
                       );
                     }
                   }
@@ -4648,7 +4650,7 @@ export class Spin2DocumentSemanticParser {
                       symbolPosition.character,
                       symbolPosition.character + cleanedVariableName.length,
                       eSeverity.Error,
-                      `P2 Spin D missing declaration [${cleanedVariableName}]`
+                      `P2 Spin mD missing declaration [${cleanedVariableName}]`
                     );
                   }
                 }
@@ -4802,7 +4804,7 @@ export class Spin2DocumentSemanticParser {
             } else {
               const methodFollowString: string = multiLineSet.lineAt(symbolPosition.line).substring(nameOffset + namePart.length);
               this._logSPIN(`  --  Multi-C methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
-              if (this.parseUtils.isMethodOverride(namePart, this.parseUtils.selectedSpinVersion()) && isMethodCall(methodFollowString)) {
+              if (this.parseUtils.isSpinBuiltinMethod(namePart) && isMethodCall(methodFollowString)) {
                 this._logSPIN(`  --  override with method coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
@@ -4831,7 +4833,7 @@ export class Spin2DocumentSemanticParser {
                   eSeverity.Error,
                   'P2 Spin missing parens'
                 );
-              } else if (this.parseUtils.isStorageType(namePart)) {
+              } else if (this.parseUtils.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
                 // have unknown name!? is storage type spec?
                 this._logSPIN(`  --  SPIN RHS storageType=[${namePart}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -4918,7 +4920,7 @@ export class Spin2DocumentSemanticParser {
                     symbolPosition.character,
                     symbolPosition.character + namePart.length,
                     eSeverity.Error,
-                    `P2 Spin E missing declaration [${namePart}]`
+                    `P2 Spin mE missing declaration [${namePart}]`
                   );
                 }
               }
@@ -5193,7 +5195,7 @@ export class Spin2DocumentSemanticParser {
                     // have unknown name!? is storage type spec?
                     const methodFollowString: string = line.substring(nameOffset + namePart.length);
                     this._logSPIN(`  --  A methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
-                    if (this.parseUtils.isStorageType(namePart)) {
+                    if (this.parseUtils.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
                       this._logSPIN('  --  SPIN RHS storageType=[' + namePart + ']');
                       this._recordToken(tokenSet, line, {
                         line: lineIdx,
@@ -5471,7 +5473,7 @@ export class Spin2DocumentSemanticParser {
               } else {
                 const methodFollowString: string = line.substring(nameOffset + namePart.length);
                 this._logSPIN(`  --  C methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
-                if (this.parseUtils.isMethodOverride(namePart, this.parseUtils.selectedSpinVersion()) && isMethodCall(methodFollowString)) {
+                if (this.parseUtils.isSpinBuiltinMethod(namePart) && isMethodCall(methodFollowString)) {
                   this._logSPIN(`  --  override with method coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
@@ -5496,7 +5498,7 @@ export class Spin2DocumentSemanticParser {
                     eSeverity.Error,
                     'P2 Spin missing parens'
                   );
-                } else if (this.parseUtils.isStorageType(namePart)) {
+                } else if (this.parseUtils.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
                   // have unknown name!? is storage type spec?
                   this._logSPIN('  --  SPIN RHS storageType=[' + namePart + ']');
                   this._recordToken(tokenSet, line, {
@@ -5577,12 +5579,13 @@ export class Spin2DocumentSemanticParser {
                       `P1 Spin variable [${namePart}] not allowed in P2 Spin`
                     );
                   } else {
+                    const errorMsg: string = methodFollowString ? `P2 Spin E missing method declaration` : `P2 Spin E missing declaration`;
                     this.semanticFindings.pushDiagnosticMessage(
                       lineIdx,
                       nameOffset,
                       nameOffset + namePart.length,
                       eSeverity.Error,
-                      `P2 Spin E missing declaration [${namePart}]`
+                      `${errorMsg} [${namePart}]`
                     );
                   }
                 }
@@ -5667,7 +5670,7 @@ export class Spin2DocumentSemanticParser {
                 nameOffset,
                 nameOffset + possSymbolName.length,
                 eSeverity.Error,
-                `P2 Spin E2 missing declaration [${possSymbolName}]`
+                `P2 Spin Index missing declaration [${possSymbolName}]`
               );
             }
           }
@@ -5832,7 +5835,7 @@ export class Spin2DocumentSemanticParser {
                           nameOffset,
                           nameOffset + namePart.length,
                           eSeverity.Error,
-                          `P2 Spin F pasm missing declaration [${namePart}]`
+                          `P2 Spin pasm missing declaration [${namePart}]`
                         );
                       } else if (this.parseUtils.isIllegalInlinePAsmDirective(namePart)) {
                         this._logPASM('  --  SPIN inlinePAsm ERROR[CODE] illegal name=[' + namePart + ']');
@@ -5987,7 +5990,7 @@ export class Spin2DocumentSemanticParser {
                     nameOffset,
                     nameOffset + nameReference.length,
                     eSeverity.Error,
-                    `P2 Spin G missing declaration [${nameReference}]`
+                    `P2 Spin OBJ A missing declaration [${nameReference}]`
                   );
                 }
               }
@@ -6028,7 +6031,7 @@ export class Spin2DocumentSemanticParser {
               nameOffset,
               nameOffset + overideName.length,
               eSeverity.Error,
-              `P2 Spin H missing declaration [${overideName}]`
+              `P2 Spin OBJ B missing declaration [${overideName}]`
             );
           }
           this._logOBJ(
@@ -6086,7 +6089,7 @@ export class Spin2DocumentSemanticParser {
                   nameOffset,
                   nameOffset + overideValue.length,
                   eSeverity.Error,
-                  `P2 Spin I missing declaration [${overideValue}]`
+                  `P2 Spin OBJ C missing declaration [${overideValue}]`
                 );
               }
             }
@@ -6186,7 +6189,7 @@ export class Spin2DocumentSemanticParser {
                     symbolPosition.character,
                     symbolPosition.character + nameReference.length,
                     eSeverity.Error,
-                    `P2 Spin G missing declaration [${nameReference}]`
+                    `P2 Spin OBJ mA  issing declaration [${nameReference}]`
                   );
                 }
               }
@@ -6234,7 +6237,7 @@ export class Spin2DocumentSemanticParser {
               symbolPosition.character,
               symbolPosition.character + overideName.length,
               eSeverity.Error,
-              `P2 Spin H missing declaration [${overideName}]`
+              `P2 Spin OBJ mB missing declaration [${overideName}]`
             );
           }
           this._logOBJ(
@@ -6299,7 +6302,7 @@ export class Spin2DocumentSemanticParser {
                   symbolPosition.character,
                   symbolPosition.character + overideValue.length,
                   eSeverity.Error,
-                  `P2 Spin I missing declaration [${overideValue}]`
+                  `P2 Spin OBJ mC missing declaration [${overideValue}]`
                 );
               }
             }
@@ -6417,7 +6420,7 @@ export class Spin2DocumentSemanticParser {
                         nameOffset,
                         nameOffset + namePart.length,
                         eSeverity.Error,
-                        `P2 Spin I missing declaration [${namePart}]`
+                        `P2 Spin VAR A missing declaration [${namePart}]`
                       );
                     }
                   }
@@ -6494,7 +6497,7 @@ export class Spin2DocumentSemanticParser {
                   nameOffset,
                   nameOffset + newName.length,
                   eSeverity.Error,
-                  `P2 Spin J missing declaration [${newName}]`
+                  `P2 Spin VAR B missing declaration [${newName}]`
                 );
               }
             }

@@ -208,7 +208,7 @@ repository:
       - name: storage.modifier.pasm2
         match: '(?i)\b(ORG(F|H)?|FIT)\b'
       - name: storage.type.pasm2
-        match: '(?i)\b(BYTE|WORD|LONG|RES)\b'
+        match: '(?i)\b(BYTE|WORD|(BYTE|WORD)FIT|LONG|RES)\b'
       - name: keyword.pasm.instruction.branch.pasm2
         match: '(?i)\b((CALL|RET)(A|B)?|CALL(D|PA|PB)|DJ(N?F|N?Z)|SKIP|(SKIP|EXEC)F|IJN?Z|JMP(REL)?|REP|RESI(0|1|2|3)|RETI(0|1|2|3)|TJ(N?F|N?S|N?Z|V))\b'
       - name: keyword.pasm.instruction.colorspace.pasm2
@@ -342,7 +342,7 @@ repository:
       - include: "#coginit_constants"
       - include: "#modcz_constants"
       - name: storage.type.pasm.spin2
-        match: '(?i)\b(BYTE|WORD|BYTEFIT|WORDFIT|LONG)\b'
+        match: '(?i)\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\b'
       - name: keyword.control.flow.spin2
         match: '(?i)\b(IF|ELSEIF|ELSEIFNOT|ELSE|IFNOT|CASE|CASE_FAST|OTHER|REPEAT|WITH|FROM|TO|STEP|UNTIL|WHILE|NEXT|QUIT|RETURN|ABORT)\b'
       - name: support.function.hub.spin2
@@ -439,7 +439,7 @@ repository:
       - include: "#number"
       - include: "#array_index"
       - include: "#pasm_storage_alignment"
-      - match: '(?i)\b(byte|word|bytefit|wordfit|long)\s*(\w+)(\[.*\])?'
+      - match: '(?i)\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\s*(\w+)(\[.*\])?'
         captures:
           "1": { name: storage.type.spin2 }
           "2": { name: variable.name.var.spin2 }
