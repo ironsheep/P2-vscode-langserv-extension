@@ -679,6 +679,8 @@ export class DocumentFindings {
         foldEnd: { line: pasmCodeSpan.endLineIdx, character: Number.MAX_VALUE },
         type: spanType
       };
+      const pasmLineSpan: number = pasmCodeSpan.endLineIdx - pasmCodeSpan.startLineIdx + 1;
+      this._logMessage(` -- PASM block Ln#${pasmCodeSpan.startLineIdx + 1}-${pasmCodeSpan.endLineIdx + 1}(${pasmLineSpan}): [???]`);
       foldingCodeSpans.push(nextSpan);
     }
 
@@ -690,6 +692,10 @@ export class DocumentFindings {
         foldEnd: { line: continuedLineSpan.endLineIdx, character: Number.MAX_VALUE },
         type: eFoldSpanType.CodeBlock
       };
+      const contLineSpan: number = continuedLineSpan.endLineIdx - continuedLineSpan.startLineIdx + 1;
+      this._logMessage(
+        ` -- ContinuedLines block Ln#${continuedLineSpan.startLineIdx + 1}-${continuedLineSpan.endLineIdx + 1}(${contLineSpan}): [???]`
+      );
       foldingCodeSpans.push(nextSpan);
     }
 
@@ -701,6 +707,8 @@ export class DocumentFindings {
         foldEnd: { line: spinFlowSpan.endLineIdx, character: Number.MAX_VALUE },
         type: eFoldSpanType.CodeBlock
       };
+      const flowLineSpan: number = spinFlowSpan.endLineIdx - spinFlowSpan.startLineIdx + 1;
+      this._logMessage(` -- FLOW block Ln#${spinFlowSpan.startLineIdx + 1}-${spinFlowSpan.endLineIdx + 1}(${flowLineSpan}): [???]`);
       foldingCodeSpans.push(nextSpan);
     }
 
@@ -1046,9 +1054,18 @@ export class DocumentFindings {
   //
   public recordPasmStart(lineIdx: number, isInline: boolean) {
     // record the start lineIndex and type of pasm block
+    // handle multiple starts (don't nest)
+    if (this.isInPasmFold()) {
+      this.recordPasmEnd(lineIdx - 1);
+    }
     this.pasmStartLineIdx = lineIdx;
     this.pasmIsInline = isInline;
     this._logMessage(`  -- FND-PASM-NEW START lineIdx=[${lineIdx}], isInline=[${isInline}]`);
+  }
+
+  public isInPasmFold(): boolean {
+    // return T/F where T means we have a range in progress then...
+    return this.pasmStartLineIdx != -1 ? true : false;
   }
 
   public recordPasmEnd(lineIdx: number) {

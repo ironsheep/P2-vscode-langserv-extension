@@ -22,9 +22,10 @@ Possible next additions:
 
 Update P2 Only
 
-- BUGFIX: Syntax: add missing bytefit/wordfit recodnition in DAT blocks
+- BUGFIX: Syntax: add missing bytefit/wordfit recodnition in DAT blocks (#6)
 - BUGFIX: Semantic: repair handling of {Spin2_v??} built-in method name support
 - BUGFIX: File access issues on Windows (11?) repaired
+- Cleaned up the code-fold detection... now handling ORG* forms better
 
 
 ## [2.2.15] 2024-04-09

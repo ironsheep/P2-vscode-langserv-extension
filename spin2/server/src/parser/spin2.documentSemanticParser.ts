@@ -538,13 +538,15 @@ export class Spin2DocumentSemanticParser {
         } else if (currState == eParseState.inDat) {
           // process a class(static) variable line
           this._logPASM(`- process DAT SECTION Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
-          if (trimmedNonCommentLine.length > 6 && trimmedNonCommentLine.toUpperCase().includes('ORG')) {
+          // the following 2 was 6 but skipping orgh statements???
+          if (trimmedNonCommentLine.length > 2 && trimmedNonCommentLine.toUpperCase().includes('ORG')) {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
+            this._logPASM(`- Ln#${lineNbr} pre-scan DAT trimmedNonCommentLine=[${trimmedNonCommentLine}], nonStringLine=[${nonStringLine}]`);
             if (nonStringLine.toUpperCase().includes('ORG')) {
-              this._logPASM('- Ln#' + lineNbr + ' pre-scan DAT line trimmedLine=[' + trimmedLine + '] now Dat PASM');
+              this._logPASM(`- Ln#${lineNbr} pre-scan DAT line nonStringLine=[${nonStringLine}] now Dat PASM`);
               // record start of PASM code NOT inline
-              this.semanticFindings.recordPasmStart(i, false);
+              this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
               prePAsmState = currState;
               currState = eParseState.inDatPAsm;
               this._getDAT_Declaration(0, lineNbr, line); // let's get possible label on this ORG statement
@@ -592,13 +594,14 @@ export class Spin2DocumentSemanticParser {
         // process a data line
         this._logPASM(`- check DAT Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
-          if (trimmedLine.toUpperCase().includes('ORG')) {
+          if (trimmedNonCommentLine.toUpperCase().includes('ORG')) {
             // ORG, ORGF, ORGH
-            const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedLine);
+            const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
+            this._logPASM(`- Ln#${lineNbr} pre-scan DAT trimmedNonCommentLine=[${trimmedNonCommentLine}], nonStringLine=[${nonStringLine}]`);
             if (nonStringLine.toUpperCase().includes('ORG')) {
               this._logPASM(`- Ln#${lineNbr} pre-scan DAT line trimmedLine=[${trimmedLine}] now Dat PASM`);
               // record start of PASM code NOT inline
-              this.semanticFindings.recordPasmStart(i, false);
+              this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
               prePAsmState = currState;
               currState = eParseState.inDatPAsm;
               this._getDAT_Declaration(0, lineNbr, line); // let's get possible label on this ORG statement
@@ -640,8 +643,21 @@ export class Spin2DocumentSemanticParser {
         }
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
-        this._logPASM(`- check DAT PASM Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
+          this._logPASM(`- check DAT PASM Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+          // the following 2 was 6 but skipping orgh statements???
+          if (trimmedNonCommentLine.length > 2 && trimmedNonCommentLine.toUpperCase().includes('ORG')) {
+            // ORG, ORGF, ORGH
+            const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
+            this._logPASM(`- Ln#${lineNbr} pre-scan DATpasm trimmedNonCommentLine=[${trimmedNonCommentLine}], nonStringLine=[${nonStringLine}]`);
+            if (nonStringLine.toUpperCase().includes('ORG')) {
+              this._logPASM(`- Ln#${lineNbr} pre-scan DATpasm line nonStringLine=[${nonStringLine}] now Dat PASM`);
+              // record start of PASM code NOT inline
+              this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
+              this._getDAT_PAsmDeclaration(0, lineNbr, line); // let's get possible label on this ORG statement
+              continue;
+            }
+          }
           this._getDAT_PAsmDeclaration(0, lineNbr, line);
           const isDebugLine: boolean = haveDebugLine(trimmedNonCommentLine); // trimmedNonCommentLine.toLowerCase().includes("debug(");
           if (isDebugLine) {
@@ -664,7 +680,7 @@ export class Spin2DocumentSemanticParser {
             // Only ORG, not ORGF or ORGH
             this._logPASM(`- Ln#${lineNbr} pre-scan PUB/PRI line trimmedLine=[${trimmedLineToParse}]`);
             // record start of PASM code NOT inline
-            this.semanticFindings.recordPasmStart(i, true);
+            this.semanticFindings.recordPasmStart(i, true); // true = IS inline
             prePAsmState = currState;
             currState = eParseState.inPAsmInline;
             // and ignore rest of this line
