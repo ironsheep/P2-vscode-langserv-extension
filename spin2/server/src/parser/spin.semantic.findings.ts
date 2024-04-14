@@ -659,7 +659,7 @@ export class DocumentFindings {
       // NOTE: 2 or more lines can fold
       if (blockComment.lineCount > 1) {
         const commentLines: string[] = blockComment.lines;
-        const commentString: string = `\n------->>>>>>>>>-------\n${commentLines.join('\n')}\n-------<<<<<<<<<-------\n`;
+        const commentString: string = `\n---FOLD---->>>>>>>>>----BELOW---\n${commentLines.join('\n')}\n---FOLD----<<<<<<<<<----ABOVE---\n`;
         this._logMessage(` -- CMT block Ln#${blockComment.firstLine + 1}-${blockComment.lastLine + 1}(${blockComment.lineSpan}): [${commentString}]`);
         const nextSpan: IFoldSpan = {
           foldstart: { line: blockComment.firstLine, character: 0 },

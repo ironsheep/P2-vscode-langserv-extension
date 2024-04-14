@@ -1,0 +1,45 @@
+'' ------------------------------------------------------------------------------
+''   version specific tests
+'' ------------------------------------------------------------------------------
+''  {Spin2_v44} NOTE: internal decode WON'T allow v01-v42!!!
+DAT
+
+pBytes   LONG  0
+testVal   LONG  0
+
+VAR
+
+LONG StructA
+LONG AddrA
+
+PUB go() | AddrB, Count, ByteValue, StructB
+
+' new in v42 BUT v42 NOT released
+  pBytes := LSTRING("Hello",0,"TerveA",0)
+
+' ONLY in v42 BUT v42 NOT released
+  pBytes := BYTES($80,$09,$77,WORD $1234,LONG -1)
+  pBytes := WORDS(1_000,10_000,50_000,LONG $12345678)
+  pBytes := LONGS(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF)
+
+' new in version v43
+  pBytes := LSTRING("Hello",0,"TerveB",0)
+  pBytes := BYTE($81,$09,$77,WORD $1234,LONG -1)
+  pBytes := WORD(1_000,10_001,50_000,LONG $12345678)
+  pBytes := LONG(1e-6,1e-4,1.0,1e3,1e6,-50,BYTE $FF)
+
+  ' new in version v44
+  BYTESWAP(AddrA, AddrB, Count)
+  WORDSWAP(AddrA, AddrB, Count)
+  LONGSWAP(AddrA, AddrB, Count)
+
+  testVal := BYTECOMP(AddrA, AddrB, Count)
+  testVal := WORDCOMP(AddrA, AddrB, Count)
+  testVal := LONGCOMP(AddrA, AddrB, Count)
+
+  FILL(StructA, ByteValue)
+  COPY(StructA, StructB)
+  SWAP(StructA, StructB)
+  testVal := COMP(StructA, StructB)
+
+'------------------------------------------------------------------------------

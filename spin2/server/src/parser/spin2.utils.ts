@@ -47,13 +47,24 @@ export class Spin2ParseUtils {
 
   public setSpinVersion(requiredVersion: number): void {
     if (requiredVersion >= 0 && requiredVersion <= 999) {
-      this.languageVersion = requiredVersion < 43 ? 0 : requiredVersion;
+      const newVersion: number = requiredVersion < 43 ? 0 : requiredVersion;
+      if (newVersion != this.languageVersion) {
+        this._logMessage(`  -- set SpinVersion() (${this.languageVersion}) -> (${newVersion})`);
+      } else {
+        this._logMessage(`  -- set SpinVersion() (${this.languageVersion})`);
+      }
+      this.languageVersion = newVersion;
     }
   }
 
   public selectedSpinVersion(): number {
     const selectedVersion: number = this.languageVersion == 0 ? 41 : this.languageVersion;
     return selectedVersion;
+  }
+
+  public exactSpinVersion(requiredVersion: number): boolean {
+    const supportedStatus: boolean = this.languageVersion == requiredVersion ? true : false;
+    return supportedStatus;
   }
 
   public requestedSpinVersion(requiredVersion: number): boolean {
@@ -2272,23 +2283,10 @@ export class Spin2ParseUtils {
     string: [
       'STRING("Text",13) : StringAddress',
       'Compose a zero-terminated string (quoted characters and values 1..255 allowed), return address of string<br><br>@param `listOfElements` - a comma separated list of elements to be built into a string (quoted characters and values 1..255 allowed)<br>@returns `StringAddress` - address of where string was placed in ram'
-    ],
-    // new additions at v42 but cleaned up at v43
-    byte: [
-      'BYTE($80,$09,$77,WORD $1234,LONG -1) : BytesAddress',
-      'Compose a string of bytes, return address of string. WORD/LONG size overrides allowed.'
-    ],
-    word: [
-      'WORD(1_000,10_000,50_000,LONG $12345678) : WordsAddress',
-      'Compose a string of words, return address of string. BYTE/LONG size overrides allowed.'
-    ],
-    long: [
-      'LONG(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF) : LongsAddress',
-      'Compose a string of longs, return address of string. BYTE/WORD size overrides allowed.'
     ]
   };
 
-  private _tableSpinEnhancements_v43: { [Identifier: string]: string[] } = {
+  private _tableSpinEnhancements_v42: { [Identifier: string]: string[] } = {
     // NOTE: this does NOT support signature help! (paramaters are not highlighted for signature help due to variant forms for string() being allowed)
     lstring: [
       'LSTRING("Hello",0,"Terve",0) : StringAddress',
@@ -2296,11 +2294,24 @@ export class Spin2ParseUtils {
     ]
   };
 
+  private _tableSpinEnhancements_v42_replaced: { [Identifier: string]: string[] } = {
+    // only used if version is EXACTLY v42
+    bytes: ['BYTES($80,$09,$77,WORD $1234,LONG -1)', 'Compose a string of bytes, return address of string. WORD/LONG size overrides allowed.'],
+    words: ['WORDS(1_000,10_000,50_000,LONG $12345678)', ' Compose a string of words, return address of string. BYTE/LONG size overrides allowed.'],
+    longs: ['LONGS(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF)', ' Compose a string of longs, return address of string. BYTE/WORD size overrides allowed.']
+  };
+
+  private _tableSpinEnhancements_v43: { [Identifier: string]: string[] } = {
+    // in v43 and later these became singular vs. plural names
+    byte: ['BYTE($80,$09,$77,WORD $1234,LONG -1)', 'Compose a string of bytes, return address of string. WORD/LONG size overrides allowed.'],
+    word: ['WORD(1_000,10_000,50_000,LONG $12345678)', ' Compose a string of words, return address of string. BYTE/LONG size overrides allowed.'],
+    long: ['LONG(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF)', ' Compose a string of longs, return address of string. BYTE/WORD size overrides allowed.']
+  };
+
   private _tableSpinEnhancements_v44: { [Identifier: string]: string[] } = {
-    // NOTE: this does NOT support signature help! (paramaters are not highlighted for signature help due to variant forms for string() being allowed)
-    byteswap: ['BYTESWAP(AddrA, AddrB, Count) : Match', 'Swap Count bytes of data starting at AddrA and AddrB.'],
-    wordswap: ['WORDSWAP(AddrA, AddrB, Count) : Match', 'Swap Count words of data starting at AddrA and AddrB.'],
-    longswap: ['LONGSWAP(AddrA, AddrB, Count) : Match', 'Swap Count longs of data starting at AddrA and AddrB.'],
+    byteswap: ['BYTESWAP(AddrA, AddrB, Count)', 'Swap Count bytes of data starting at AddrA and AddrB.'],
+    wordswap: ['WORDSWAP(AddrA, AddrB, Count)', 'Swap Count words of data starting at AddrA and AddrB.'],
+    longswap: ['LONGSWAP(AddrA, AddrB, Count)', 'Swap Count longs of data starting at AddrA and AddrB.'],
     bytecomp: [
       'BYTECOMP(AddrA, AddrB, Count) : Match',
       'Compare Count bytes of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.'
@@ -2380,12 +2391,12 @@ export class Spin2ParseUtils {
                     reservedStatus = nameKey in this._tableSpinIndexValueMethods;
                     if (!reservedStatus) {
                       reservedStatus = nameKey in this._tableSpinControlFlowMethods;
-                      if (!reservedStatus && this.requestedSpinVersion(43)) {
-                        // if {Spin2_v43} or greater then also search this table
-                        reservedStatus = nameKey in this._tableSpinEnhancements_v43;
-                        if (!reservedStatus && this.requestedSpinVersion(44)) {
-                          // if {Spin2_v44} or greater then also search this table
-                          reservedStatus = nameKey in this._tableSpinEnhancements_v44;
+                      if (!reservedStatus) {
+                        // see if we are using a keyword only present in a specific version
+                        reservedStatus = this.isVersionSpecificMethod(nameKey);
+                        if (!reservedStatus) {
+                          // see if we are using a keyword provided by accumulated versions
+                          reservedStatus = this.isVersionAddedMethod(nameKey);
                         }
                       }
                     }
@@ -2397,6 +2408,41 @@ export class Spin2ParseUtils {
         }
       }
     }
+    this._logMessage(`  -- iSBM(${name}) = (${reservedStatus})`);
+    return reservedStatus;
+  }
+
+  private isVersionSpecificMethod(name: string): boolean {
+    // some keywords did NOT survivie to later versions
+    //  this routine determines if we are using one of these
+    const nameKey: string = name.toLowerCase();
+    let reservedStatus: boolean = false;
+    if (this.exactSpinVersion(42)) {
+      // in version v42 we added some keywords, they were renamed in v43!
+      reservedStatus = nameKey in this._tableSpinEnhancements_v42_replaced;
+    }
+    this._logMessage(`  -- iVerSM(${name}) = (${reservedStatus})`);
+    return reservedStatus;
+  }
+
+  private isVersionAddedMethod(name: string): boolean {
+    // a number of keywords are added by later versions
+    //  this routine checks all added keywords allowed by the file-specific version
+    const nameKey: string = name.toLowerCase();
+    let reservedStatus: boolean = false;
+    if (this.requestedSpinVersion(42)) {
+      // requested version is v42 or greater
+      reservedStatus = nameKey in this._tableSpinEnhancements_v42;
+    }
+    if (!reservedStatus && this.requestedSpinVersion(43)) {
+      // requested version is v43 or greater
+      reservedStatus = nameKey in this._tableSpinEnhancements_v43;
+    }
+    if (!reservedStatus && this.requestedSpinVersion(44)) {
+      // requested version is v44 or greater
+      reservedStatus = nameKey in this._tableSpinEnhancements_v44;
+    }
+    this._logMessage(`  -- iVerAM(${name}) = (${reservedStatus})`);
     return reservedStatus;
   }
 
@@ -2437,13 +2483,17 @@ export class Spin2ParseUtils {
       } else if (nameKey in this._tableSpinStringBuilder) {
         desiredDocText.category = 'String Method';
         protoWDescr = this._tableSpinStringBuilder[nameKey];
+      } else if (this.requestedSpinVersion(42) && nameKey in this._tableSpinEnhancements_v42) {
+        // if {Spin2_v42} or greater then also search this table
+        desiredDocText.category = 'String Method';
+        protoWDescr = this._tableSpinEnhancements_v42[nameKey];
       } else if (this.requestedSpinVersion(43) && nameKey in this._tableSpinEnhancements_v43) {
         // if {Spin2_v43} or greater then also search this table
         desiredDocText.category = 'String Method';
         protoWDescr = this._tableSpinEnhancements_v43[nameKey];
       } else if (this.requestedSpinVersion(44) && nameKey in this._tableSpinEnhancements_v44) {
         // if {Spin2_v44} or greater then also search this table
-        desiredDocText.category = 'String Method';
+        desiredDocText.category = 'Memory Method';
         protoWDescr = this._tableSpinEnhancements_v44[nameKey];
       } else if (nameKey in this._tableSpinIndexValueMethods) {
         desiredDocText.category = 'Hub Method';
@@ -3217,23 +3267,6 @@ export class Spin2ParseUtils {
         returnStatus = true;
       } else {
         returnStatus = this.isStorageType(name);
-      }
-    }
-    return returnStatus;
-  }
-
-  public isMethodOverride(name: string, languageVersion: number): boolean {
-    // storage type override with method name: BYTE, WORD, LONG
-    let returnStatus: boolean = false;
-    if (name.length > 3) {
-      const checkType: string = name.toUpperCase();
-      if (checkType == 'BYTE' || checkType == 'WORD' || checkType == 'LONG') {
-        returnStatus = true;
-      }
-      if (!returnStatus && languageVersion >= 43) {
-        if (checkType == 'LSTRING') {
-          returnStatus = true;
-        }
       }
     }
     return returnStatus;
