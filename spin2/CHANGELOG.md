@@ -18,14 +18,13 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.2.16] 2024-04-13
+## [2.2.16] 2024-04-14
 
 Update P2 Only
 
 - BUGFIX: Syntax: add missing bytefit/wordfit recodnition in DAT blocks
-- BUGFIX: Semantic: clean up version-specific built-in method name support
-- FlexSpin preliminary support:
-  - Replaced greying disabled code with darkening the color of disabled code
+- BUGFIX: Semantic: repair handling of {Spin2_v??} built-in method name support
+- BUGFIX: File access issues on Windows (11?) repaired
 
 
 ## [2.2.15] 2024-04-09
