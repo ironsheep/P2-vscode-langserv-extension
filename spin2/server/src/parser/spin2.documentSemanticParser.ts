@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -192,7 +192,7 @@ export class Spin2DocumentSemanticParser {
     const NONDOC_COMMENT = false;
     const BLOCK_COMMENT = true;
     //const LINE_COMMENT = false;
-    let blocksFoundCount: number = 0;
+    //let blocksFoundCount: number = 0;
 
     for (let i = 0; i < lines.length; i++) {
       const lineNbr: number = i + 1;
@@ -223,7 +223,7 @@ export class Spin2DocumentSemanticParser {
       this.rightEdgeComment = tempComment.length > 0 ? tempComment : undefined;
       const sectionStatus = this.extensionUtils.isSectionStartLine(line);
       if (sectionStatus.isSectionStart) {
-        blocksFoundCount += 1;
+        //blocksFoundCount += 1;
         trimmedNonCommentLine = trimmedNonCommentLine.substring(3).trimStart();
       }
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);

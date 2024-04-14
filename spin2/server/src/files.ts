@@ -67,8 +67,9 @@ export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: 
     //ctx.logger.log(`TRC: looking for matchFilename=[${matchFilename}]`);
     for (let index = 0; index < fileSpecs.length; index++) {
       const fileSpec: string = fileSpecs[index];
-      const pathParts: string[] = fileSpec.split('/');
+      const pathParts: string[] = fileSpec.split(/[/\\]/).filter(Boolean); // handle windows/linux paths
       const fileName = pathParts[pathParts.length - 1].toLowerCase();
+      //ctx.logger.log(`TRC: found fileSpec=[${fileSpec}], pathParts=[${pathParts}](${pathParts.length}), fileName=[${fileName}]`);
       //ctx.logger.log(`TRC: checking fileSpec=[${fileSpec}]`);
       if (fileName.startsWith(matchFilename)) {
         matchedFiles.push(fileSpec);

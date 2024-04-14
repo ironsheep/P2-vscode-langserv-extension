@@ -245,8 +245,8 @@ export class DocumentFindings {
       const idParts: string[] = priorId.split('-');
       priorId = idParts[0];
     }
-    const basename = filespec.split('/').reverse()[0];
-    this.instanceId = `${priorId}-${basename}`;
+    const basename = filespec.split(/[/\\]/).filter(Boolean).reverse()[0]; // handle windows/linux paths
+    this.instanceId = `${priorId}-${basename}`.replace(/\s/g, '_');
     this._logMessage(`DocumentFindings: [${orignalId}] -> [${this.instanceId}]`);
   }
 
