@@ -23,7 +23,7 @@ import { isSpinOrPasmDocument } from './spin.vscode.utils';
 
 let client: LanguageClient;
 
-const isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
@@ -226,9 +226,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
         const [cursorSelect, bShouldSelect] = tabFormatter.indentEndingSelection();
         applyTextEdits(document, textEdits!);
         if (bShouldSelect) {
-          tabFormatter.logMessage(
-            `* SET CURSOR sel=[${cursorSelect.anchor.line}:${cursorSelect.anchor.character}, ${cursorSelect.active.line}:${cursorSelect.active.character}]`
-          );
+          const anchorPosition: string = `${cursorSelect.anchor.line}:${cursorSelect.anchor.character}`;
+          const activePosition: string = `${cursorSelect.active.line}:${cursorSelect.active.character}`;
+          tabFormatter.logMessage(`* SET CURSOR sel=[${anchorPosition}, ${activePosition}]`);
           editor.selection = cursorSelect;
         }
       } catch (error) {
@@ -249,9 +249,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
         const [cursorSelect, bShouldSelect] = tabFormatter.outdentEndingSelection();
         applyTextEdits(document, textEdits!);
         if (bShouldSelect) {
-          tabFormatter.logMessage(
-            `* SET CURSOR sel=[${cursorSelect.anchor.line}:${cursorSelect.anchor.character}, ${cursorSelect.active.line}:${cursorSelect.active.character}]`
-          );
+          const anchorPosition: string = `${cursorSelect.anchor.line}:${cursorSelect.anchor.character}`;
+          const activePosition: string = `${cursorSelect.active.line}:${cursorSelect.active.character}`;
+          tabFormatter.logMessage(`* SET CURSOR sel=[${anchorPosition}, ${activePosition}]`);
           editor.selection = cursorSelect;
         }
         console.log();
