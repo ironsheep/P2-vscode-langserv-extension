@@ -77,6 +77,7 @@ There are additional companion documents in this Repository:
 4. [VSCode Extensions](EXTENSIONS.md) we find useful in our own P2 development
 5. [Visual Examples - Tabbing](TAB-VisualEx.md) a visual explaination of how our Tabbing feature works (*For those of us, like me, who understand more easily when we see pictures.*)
 6. [Engineering Notes - Tabbing](TAB-SPECs.md) more detailed description of how our Tabbing feature works
+7. Spin2 Extension Details: [Settings](Spin2-Settings.md) and [Keyboard Mapping](Spin2-Settings.md#our-spinspin2-vscode-key-mapping)
 
 Also, here are a couple of really useful VSCode sources:
 
