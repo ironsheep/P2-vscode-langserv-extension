@@ -45,6 +45,21 @@ Insert Mode Adjustments:
 - **Secondary Cursor Style** - Adjusts the Overtype cursor
 - **Ternary Cursor Style** - Adjusts the Align cursor
 
+## Our Spin/Spin2 VSCode Key Mapping
+
+In general To open the Settings editor, navigate to **[Code]** > **Settings** > **Keyboard Shortcuts**.
+
+The kayboard mappings are different on Windows than they are on Mac, RPi or Linux.
+
+### The Key Mapping on Windows:
+
+![Keys 1 of 2](./DOCs/KeysOnWIndows.png)
+**FIGURE 4**: Keyboard Shortcuts screen on Windows.
+
+### The Key Mapping on MacOS, RPi, Linux:
+
+![Keys 2 of 2](./DOCs/keysOnMacRPi.png)
+**FIGURE 5**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
 
 ## License
 
