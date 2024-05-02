@@ -6,14 +6,10 @@ import { EndOfLine } from 'vscode';
 import { SerialPort } from 'serialport';
 import { UsbSerial } from '../usb.serial';
 
-import { usb, getDeviceList, findByIds } from 'usb';
-
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import { isSpin1File, isSpin2File } from '../spin.vscode.utils';
-import { waitSec } from '../timerUtils';
-import { usbDeviceNodeList } from '../platformUtils';
 
 export class USBDocGenerator {
   private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -107,37 +103,6 @@ export class USBDocGenerator {
         fs.appendFileSync(rptFileID, `${this.endOfLineStr}`); // blank line
 
         // -------------------------------------------------------------------
-        // LIBRARY: USB
-
-        fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
-        const lib2Title: string = 'Using library [usb]:';
-        fs.appendFileSync(rptFileID, `${lib2Title}${this.endOfLineStr}`); // blank line
-        const devices: usb.Device[] = await getDeviceList();
-        deviceCount = devices.length;
-        const serialDevices: usb.Device[] = devices.filter((device) => {
-          return device.deviceDescriptor.bDeviceClass === 0x02;
-        });
-        fs.appendFileSync(rptFileID, `* found (${serialDevices.length}) serial devices within (${devices.length}) total devices${this.endOfLineStr}`);
-        devices.forEach((device) => {
-          this.showUsbDevice(rptFileID, device);
-        });
-        if (deviceCount == 0) {
-          fs.appendFileSync(rptFileID, ` { No [usb] devices found }${this.endOfLineStr}`);
-        }
-        fs.appendFileSync(rptFileID, `${this.endOfLineStr}`); // blank line
-        const venFTDI: number = 0x0403;
-        const dvcPropPlug: number = 0x6015;
-        const device: usb.Device = await findByIds(venFTDI, dvcPropPlug);
-        if (device !== undefined) {
-          this.showUsbDevice(rptFileID, device);
-        } else {
-          fs.appendFileSync(rptFileID, ` { No PropTool device found }${this.endOfLineStr}`);
-        }
-
-        fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
-        fs.appendFileSync(rptFileID, `${this.endOfLineStr}`); // blank line
-
-        // -------------------------------------------------------------------
         // Identify Device
         fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
         const idDvcTitle: string = 'Open device and get P2 Info:';
@@ -202,129 +167,6 @@ export class USBDocGenerator {
     } else {
       this.logMessage(`+ (DBG) generateUsbReportDocument() NO active editor.`);
     }
-  }
-
-  private showUsbDevice(fileID: number, device: usb.Device) {
-    fs.appendFileSync(fileID, `-- DEVICE -----${this.endOfLineStr}`);
-    const vidString = this.hexString(device.deviceDescriptor.idVendor, 4);
-    const pidString = this.hexString(device.deviceDescriptor.idProduct, 4);
-    const equipName = this.stringForVidPid(device.deviceDescriptor.idVendor, device.deviceDescriptor.idProduct);
-    fs.appendFileSync(fileID, ` Device ID: ${vidString} : ${pidString} - ${equipName}${this.endOfLineStr}`);
-    const classStr: string = this.stringForClass(device.deviceDescriptor.bDeviceClass);
-    fs.appendFileSync(fileID, ` Class: ${classStr}${this.endOfLineStr}`);
-    // Add more properties as needed
-  }
-
-  private stringForVidPid(vid: number, pid: number): string {
-    let desredInterp: string = '?unknown?';
-    let deviceName: string = '';
-    let company: string = '';
-    switch (vid) {
-      case 0x5ac:
-        company = 'Apple Inc.';
-        break;
-      case 0x5e3:
-        company = 'Genesys Logic, Inc.';
-        break;
-      case 0x1d5c:
-        company = 'Fresco Logic Inc.';
-        break;
-      case 0x0403:
-        company = 'Future Technology Devices International Limited';
-        break;
-      default:
-        company = `company ${vid}(${this.hexString(vid, 4)})`;
-        break;
-    }
-    switch (pid) {
-      case 0x101d:
-        deviceName = 'USB2 Hub';
-        break;
-      case 0x101e:
-        deviceName = 'USB3 Gen2 Hub';
-        break;
-      case 0x1114:
-        deviceName = 'Studio Display';
-        break;
-      case 0x6015:
-        deviceName = 'Prop Plug - Parallax.com';
-        break;
-      case 0x7102:
-        deviceName = 'Generic Billboard Device';
-        break;
-      case 0x749:
-        deviceName = 'USB3.0 Card Reader';
-        break;
-      case 0x610:
-        deviceName = 'USB2.1 Hub';
-        break;
-
-      default:
-        deviceName = `device ${pid}(${this.hexString(pid, 4)})`;
-        break;
-    }
-    desredInterp = `${deviceName} (${company})`;
-
-    return desredInterp;
-  }
-
-  private stringForClass(usbClass: number): string {
-    let desredInterp: string = '?unknown?';
-    switch (usbClass) {
-      case 0:
-        desredInterp = 'Null?';
-        break;
-
-      case 1:
-        desredInterp = 'Audio';
-        break;
-
-      case 2:
-        desredInterp = 'Comm(CDC)';
-        break;
-
-      case 3:
-        desredInterp = 'HID';
-        break;
-
-      case 5:
-        desredInterp = 'Physical';
-        break;
-
-      case 6:
-        desredInterp = 'Imaging';
-        break;
-
-      case 7:
-        desredInterp = 'Printer';
-        break;
-
-      case 8:
-        desredInterp = 'Mass Storage';
-        break;
-
-      case 9:
-        desredInterp = 'Hub';
-        break;
-
-      case 17: // 0x11
-        desredInterp = 'Billboard';
-        break;
-
-      case 239: // 0xEF
-        desredInterp = 'Misc.';
-        break;
-
-      default:
-        desredInterp = `?unknown=${usbClass}(0x${this.hexString(usbClass, 2)})?`;
-        break;
-    }
-    return desredInterp;
-  }
-
-  private hexString(value: number, width: number): string {
-    const desiredInterp: string = `${value.toString(16).toUpperCase().padStart(width, '0')}`;
-    return desiredInterp;
   }
 
   public async showDocument(reportFileType: string) {
