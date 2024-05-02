@@ -6,7 +6,6 @@ import { EndOfLine } from 'vscode';
 import { SerialPort } from 'serialport';
 import { UsbSerial } from '../usb.serial';
 
-import { devicesAsync } from 'node-hid';
 import { usb, getDeviceList, findByIds } from 'usb';
 
 import * as os from 'os';
@@ -139,35 +138,6 @@ export class USBDocGenerator {
         fs.appendFileSync(rptFileID, `${this.endOfLineStr}`); // blank line
 
         // -------------------------------------------------------------------
-        // LIBRARY: node-hid
-        fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
-        const lib3Title: string = 'Using library [node-hid]:';
-        fs.appendFileSync(rptFileID, `${lib3Title}${this.endOfLineStr}`); // blank line
-        deviceCount = 0;
-        await devicesAsync()
-          .then((ports) => {
-            ports.forEach((port) => {
-              deviceCount++;
-              fs.appendFileSync(rptFileID, `-- DEVICE -----${this.endOfLineStr}`);
-              fs.appendFileSync(rptFileID, ` Path: ${port.path}${this.endOfLineStr}`);
-              fs.appendFileSync(rptFileID, ` Manufacturer: ${port.manufacturer}${this.endOfLineStr}`);
-              fs.appendFileSync(rptFileID, ` Serial Number: ${port.serialNumber}${this.endOfLineStr}`);
-              fs.appendFileSync(rptFileID, ` Interface: ${port.interface}${this.endOfLineStr}`);
-              fs.appendFileSync(rptFileID, ` Vendor ID: ${port.vendorId}${this.endOfLineStr}`);
-              fs.appendFileSync(rptFileID, ` Product ID: ${port.productId}${this.endOfLineStr}`);
-              fs.appendFileSync(rptFileID, ` Product: ${port.product}${this.endOfLineStr}`);
-            });
-          })
-          .catch((err) => {
-            fs.appendFileSync(rptFileID, `ERROR: listing ports: ${err}${this.endOfLineStr}`);
-          });
-        if (deviceCount == 0) {
-          fs.appendFileSync(rptFileID, ` { No usb-hid devices found }${this.endOfLineStr}`);
-        }
-        fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
-        fs.appendFileSync(rptFileID, `${this.endOfLineStr}`); // blank line
-
-        // -------------------------------------------------------------------
         // Identify Device
         fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
         const idDvcTitle: string = 'Open device and get P2 Info:';
@@ -176,8 +146,8 @@ export class USBDocGenerator {
         const deviceNodes: string[] = await UsbSerial.serialDeviceList();
         this.logMessage(`dvcNodes=[${deviceNodes}]`); // blank line
 
-        const deviceNodes1: string[] = usbDeviceNodeList(this.debugOutputChannel);
-        this.logMessage(`dvcNodes1=[${deviceNodes1}]`); // blank line
+        //const deviceNodes1: string[] = usbDeviceNodeList(this.debugOutputChannel);
+        //this.logMessage(`dvcNodes1=[${deviceNodes1}]`); // blank line
         if (deviceNodes.length > 0) {
           for (let index = 0; index < deviceNodes.length; index++) {
             const deviceNode = deviceNodes[index];
