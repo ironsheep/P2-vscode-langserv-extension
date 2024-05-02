@@ -20,15 +20,17 @@ import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarItem, destroyStatusBarItem, updateStatusBarItem } from './providers/spin.editMode.statusBarItem';
 import { isSpinOrPasmDocument } from './spin.vscode.utils';
+import { USBDocGenerator } from './providers/usb.document.generate';
 
 let client: LanguageClient;
 
-const isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
 const tabFormatter: Formatter = new Formatter();
 const docGenerator: DocGenerator = new DocGenerator(objTreeProvider);
+const usbDocGenerator: USBDocGenerator = new USBDocGenerator();
 const codeBlockColorizer: RegionColorizer = new RegionColorizer();
 
 const logExtensionMessage = (message: string): void => {
@@ -79,6 +81,25 @@ function registerProviders(context: vscode.ExtensionContext): void {
 
 function registerCommands(context: vscode.ExtensionContext): void {
   // register client-side commands: tabbing and document generation
+  logExtensionMessage(`* registerCommands()`);
+  // ----------------------------------------------------------------------------
+  //   Hook GENERATE USB TEST Document
+  //
+  const generateUSBDocumentFileCommand: string = 'spinExtension.generate.usb.documentation.file';
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(generateUSBDocumentFileCommand, async () => {
+      usbDocGenerator.logMessage('* generateUSBDocumentFileCommand');
+      try {
+        // and test it!
+        usbDocGenerator.generateUsbReportDocument();
+        usbDocGenerator.showDocument('.usb.txt');
+      } catch (error) {
+        await vscode.window.showErrorMessage('USB Document Generation Problem');
+        console.error(error);
+      }
+    })
+  );
 
   // ----------------------------------------------------------------------------
   //   Hook GENERATE Object Public Interface Document

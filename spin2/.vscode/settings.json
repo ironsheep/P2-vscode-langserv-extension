@@ -21,6 +21,8 @@
 "explorerExclude.backup": {},
 "cSpell.enableFiletypes": [
 	"!json",
-	"!typescript"
+	"!typescript",
+	"!yaml",
+	"!yml"
 ]
 }

@@ -1,0 +1,277 @@
+──────────────────────────────────────────────────
+USB Libraries on Platforms Test Report for [macOS]
+──────────────────────────────────────────────────
+
+Run :  Wednesday, May 1, 2024 at 6:30:33 PM
+
+    Tool :  VSCode Spin2 Extension v2.2.17 
+
+──────────────────────────────────────────────────
+Using library [serialPort]:
+-- DEVICE -----
+ Port: /dev/tty.Bluetooth-Incoming-Port
+ Manufacturer: undefined
+ Serial Number: undefined
+ Location ID: undefined
+ Vendor ID: undefined
+ Product ID: undefined
+-- DEVICE -----
+ Port: /dev/tty.usbserial-P9whu7bn
+ Manufacturer: Parallax Inc
+ Serial Number: P9whu7bn
+ Location ID: 08400000
+ Vendor ID: 0403
+ Product ID: 6015
+-- DEVICE -----
+ Port: /dev/tty.usbserial-P9cektn7
+ Manufacturer: Parallax Inc
+ Serial Number: P9cektn7
+ Location ID: 08300000
+ Vendor ID: 0403
+ Product ID: 6015
+──────────────────────────────────────────────────
+
+──────────────────────────────────────────────────
+Using library [usb]:
+* found (0) serial devices within (6) total devices
+-- DEVICE -----
+ Device ID: 0403 : 6015 - Prop Plug - Parallax.com (Future Technology Devices International Limited)
+ Class: Null?
+-- DEVICE -----
+ Device ID: 0403 : 6015 - Prop Plug - Parallax.com (Future Technology Devices International Limited)
+ Class: Null?
+-- DEVICE -----
+ Device ID: 05AC : 1114 - Studio Display (Apple Inc.)
+ Class: Misc.
+-- DEVICE -----
+ Device ID: 05AC : 101E - USB3 Gen2 Hub (Apple Inc.)
+ Class: Hub
+-- DEVICE -----
+ Device ID: 05AC : 101D - USB2 Hub (Apple Inc.)
+ Class: Hub
+-- DEVICE -----
+ Device ID: 2A0E : 002A - device 42(002A) (company 10766(2A0E))
+ Class: Null?
+
+-- DEVICE -----
+ Device ID: 0403 : 6015 - Prop Plug - Parallax.com (Future Technology Devices International Limited)
+ Class: Null?
+──────────────────────────────────────────────────
+
+──────────────────────────────────────────────────
+Using library [node-hid]:
+-- DEVICE -----
+ Path: DevSrvsID:4294970989
+ Manufacturer: Apple
+ Serial Number: 
+ Interface: -1
+ Vendor ID: 0
+ Product ID: 0
+ Product: 
+-- DEVICE -----
+ Path: DevSrvsID:4294971014
+ Manufacturer: Apple
+ Serial Number: 
+ Interface: -1
+ Vendor ID: 0
+ Product ID: 0
+ Product: 
+-- DEVICE -----
+ Path: DevSrvsID:4294970808
+ Manufacturer: APPL
+ Serial Number: 
+ Interface: -1
+ Vendor ID: 0
+ Product ID: 0
+ Product: BTM
+-- DEVICE -----
+ Path: DevSrvsID:4294972113
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 13
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972124
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 14
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972117
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 12
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972127
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 10
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972123
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 11
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972123
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 11
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972123
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 11
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972123
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 11
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972123
+ Manufacturer: Apple Inc.
+ Serial Number: 00008030-000251343430802E
+ Interface: 11
+ Vendor ID: 1452
+ Product ID: 4372
+ Product: Studio Display
+-- DEVICE -----
+ Path: DevSrvsID:4294972500
+ Manufacturer: Apple Inc.
+ Serial Number: 08-95-42-ef-c8-cd
+ Interface: -1
+ Vendor ID: 76
+ Product ID: 671
+ Product: Magic Keyboard with Touch ID and Numeric Keypad
+-- DEVICE -----
+ Path: DevSrvsID:4294972507
+ Manufacturer: Apple Inc.
+ Serial Number: 08-95-42-ef-c8-cd
+ Interface: -1
+ Vendor ID: 76
+ Product ID: 671
+ Product: Magic Keyboard with Touch ID and Numeric Keypad
+-- DEVICE -----
+ Path: DevSrvsID:4294972507
+ Manufacturer: Apple Inc.
+ Serial Number: 08-95-42-ef-c8-cd
+ Interface: -1
+ Vendor ID: 76
+ Product ID: 671
+ Product: Magic Keyboard with Touch ID and Numeric Keypad
+-- DEVICE -----
+ Path: DevSrvsID:4294970081
+ Manufacturer: Apple
+ Serial Number: 
+ Interface: -1
+ Vendor ID: 0
+ Product ID: 0
+ Product: Headset
+-- DEVICE -----
+ Path: DevSrvsID:4294972516
+ Manufacturer: Apple Inc.
+ Serial Number: 08-95-42-ef-c8-cd
+ Interface: -1
+ Vendor ID: 76
+ Product ID: 671
+ Product: Magic Keyboard with Touch ID and Numeric Keypad
+-- DEVICE -----
+ Path: DevSrvsID:4294972516
+ Manufacturer: Apple Inc.
+ Serial Number: 08-95-42-ef-c8-cd
+ Interface: -1
+ Vendor ID: 76
+ Product ID: 671
+ Product: Magic Keyboard with Touch ID and Numeric Keypad
+-- DEVICE -----
+ Path: DevSrvsID:4294972516
+ Manufacturer: Apple Inc.
+ Serial Number: 08-95-42-ef-c8-cd
+ Interface: -1
+ Vendor ID: 76
+ Product ID: 671
+ Product: Magic Keyboard with Touch ID and Numeric Keypad
+-- DEVICE -----
+ Path: DevSrvsID:4294972523
+ Manufacturer: Apple Inc.
+ Serial Number: 08-95-42-ef-c8-cd
+ Interface: -1
+ Vendor ID: 76
+ Product ID: 671
+ Product: Magic Keyboard with Touch ID and Numeric Keypad
+-- DEVICE -----
+ Path: DevSrvsID:4294972537
+ Manufacturer: Apple Inc.
+ Serial Number: 08-95-42-ef-c8-cd
+ Interface: -1
+ Vendor ID: 1452
+ Product ID: 671
+ Product: Magic Keyboard with Touch ID and Numeric Keypad
+-- DEVICE -----
+ Path: DevSrvsID:4295031207
+ Manufacturer: Logitech
+ Serial Number: D5DDC606
+ Interface: -1
+ Vendor ID: 1133
+ Product ID: 45108
+ Product: MX Master 3S
+-- DEVICE -----
+ Path: DevSrvsID:4295031207
+ Manufacturer: Logitech
+ Serial Number: D5DDC606
+ Interface: -1
+ Vendor ID: 1133
+ Product ID: 45108
+ Product: MX Master 3S
+-- DEVICE -----
+ Path: DevSrvsID:4295031207
+ Manufacturer: Logitech
+ Serial Number: D5DDC606
+ Interface: -1
+ Vendor ID: 1133
+ Product ID: 45108
+ Product: MX Master 3S
+-- DEVICE -----
+ Path: DevSrvsID:4294970977
+ Manufacturer: Apple
+ Serial Number: 
+ Interface: -1
+ Vendor ID: 0
+ Product ID: 0
+ Product: 
+──────────────────────────────────────────────────
+
+──────────────────────────────────────────────────
+Open device and get P2 Info:
+ [ #1 - /dev/tty.usbserial-P9cektn7,P9cektn7 ]
+ [ #2 - /dev/tty.usbserial-P9whu7bn,P9whu7bn ]
+
+Found PropPlug S/N #P9cektn7 at [/dev/tty.usbserial-P9cektn7]
+ P2: P2X8C4M64P Rev B/C - 8 cogs, 512KB hub, 64 smart pins
+──────────────────────────────────────────────────
+
+
+──────────────────────────────────────────────────
+VSCode Spin2 Extension by:
+ Iron Sheep Productions, LLC
