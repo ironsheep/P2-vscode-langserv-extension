@@ -156,12 +156,23 @@ export class UsbSerial {
     const byteCount: number = uint8Bytes.length < this._p2loadLimit ? uint8Bytes.length : this._p2loadLimit;
     if (this.usbConnected) {
       const dataBase64: string = Buffer.from(uint8Bytes).toString('base64');
-      await this.write(requestStartDownload);
-      await this.write(dataBase64);
-      await this.write('~');
+      await this.write(`${requestStartDownload}\r`);
+      //await this.write(dataBase64);
+      // Break this up into 128 char lines with > sync chars starting each
+      const LINE_LENGTH: number = 128;
+      // silicon doc says: It's a good idea to start each Base64 data line with a ">" character, to keep the baud rate tightly calibrated.
+      const lineCount: number = dataBase64.length + LINE_LENGTH - 1 / LINE_LENGTH;
+      const lastLineLength: number = dataBase64.length % LINE_LENGTH;
+      for (let index = 0; index < lineCount; index++) {
+        const lineLength = index == lineCount - 1 ? lastLineLength : LINE_LENGTH;
+        const singleLine = dataBase64.substring(index * LINE_LENGTH, index * LINE_LENGTH + lineLength);
+        await this.write('>' + singleLine);
+      }
+      await this.write(' ~\r');
     }
   }
 
+  /*
   private async downloadNew(uint8Bytes: Uint8Array) {
     const byteCount: number = uint8Bytes.length;
     const base64String: string = Buffer.from(uint8Bytes).toString('base64');
@@ -218,6 +229,7 @@ export class UsbSerial {
     }
     this.logMessage(`-- -------- -------- ------------------ --`);
   }
+  */
 
   private async write(value: string): Promise<void> {
     //this.logMessage(`--> Tx ...`);
