@@ -17,6 +17,7 @@ export class UsbSerial {
   private _serialParser: ReadlineParser;
   private _downloadBaud: number = DEFAULT_DOWNLOAD_BAUD;
   private _p2DeviceId: string = '';
+  private _p2loadLimit: number = 0;
   private _latestError: string = '';
   private _dtrValue: boolean = false;
 
@@ -55,7 +56,7 @@ export class UsbSerial {
     });
     // Open errors will be emitted as an error event
     this._serialPort.on('error', (err) => this.handleSerialError(err.message));
-    this._serialPort.on('open', () => this.handleSerialOpen(this._serialPort));
+    this._serialPort.on('open', () => this.handleSerialOpen());
 
     // wait for any returned data
     this._serialParser = this._serialPort.pipe(new ReadlineParser({ delimiter: this.endOfLineStr }));
@@ -81,8 +82,12 @@ export class UsbSerial {
     return desiredText;
   }
 
-  get connected(): boolean {
+  get foundP2(): boolean {
     return this._p2DeviceId === '' ? false : true;
+  }
+
+  get usbConnected(): boolean {
+    return this._serialPort.isOpen;
   }
 
   public getIdStringOrError(): [string, string] {
@@ -94,9 +99,13 @@ export class UsbSerial {
     this._latestError = errMessage;
   }
 
-  private handleSerialOpen(usbPort: SerialPort) {
+  private handleSerialOpen() {
     this.logMessage(`* handleSerialOpen() open...`);
-    this.requestP2IDString(usbPort);
+    const myString: string = 'Hello, World! 0123456789';
+    const myBuffer: Buffer = Buffer.from(myString, 'utf8');
+    const myUint8Array: Uint8Array = new Uint8Array(myBuffer);
+    this.downloadNew(myUint8Array);
+    this.requestP2IDString();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,6 +121,7 @@ export class UsbSerial {
           this.logMessage(`  -- REPLY [${currLine}](${currLine.length})`);
           const idLetter = currLine.charAt(replyString.length);
           this._p2DeviceId = this.descriptionForVerLetter(idLetter);
+          this._p2loadLimit = this.limitForVerLetter(idLetter);
           propFound = true;
           break;
         }
@@ -123,30 +133,150 @@ export class UsbSerial {
     }
   }
 
-  private async requestP2IDString(usbPort: SerialPort): Promise<void> {
+  private async requestP2IDString(): Promise<void> {
     const requestPropType: string = '> Prop_Chk 0 0 0 0';
-    this.logMessage(`* requestP2IDString() - port open (${usbPort.isOpen})`);
+    this.logMessage(`* requestP2IDString() - port open (${this._serialPort.isOpen})`);
     await waitSec(1);
-    await this.setDtr(usbPort, true);
+    await this.setDtr(true);
     await waitSec(1);
-    await this.setDtr(usbPort, false);
+    await this.setDtr(false);
     //this.logMessage(`  -- plug reset!`);
     // NO wait yields a 1.5 mSec delay on my mac Studio
     // NOTE: if nothing sent, and Edge Module default switch settings, the prop will boot in 142 mSec
     await waitMSec(15);
-    return await this.write(usbPort, `${requestPropType}\r`);
+    return await this.write(`${requestPropType}\r`);
     /*return new Promise((resolve, reject) => {
       //this.logMessage(`* requestP2IDString() - EXIT`);
       resolve();
     });*/
   }
 
-  private enterBootLoader(usbPort: SerialPort) {}
+  private async download(uint8Bytes: Uint8Array) {
+    const requestStartDownload: string = '> Prop_Txt 0 0 0 0';
+    const byteCount: number = uint8Bytes.length < this._p2loadLimit ? uint8Bytes.length : this._p2loadLimit;
+    if (this.usbConnected) {
+      await this.write(requestStartDownload);
+      let n = 0;
+      let m = 0;
+      for (let index = 0; index < byteCount; index++) {
+        const uint8Byte = uint8Bytes.at(index);
+        m = (m << 8) + uint8Byte;
+        n += 8;
+        if (n >= 6) {
+          await this.txBase64(m >> (n - 6));
+          n -= 6;
+        }
+        if (n >= 6) {
+          await this.txBase64(m >> (n - 6));
+          n -= 6;
+        }
+      }
+      if (n > 0) {
+        await this.txBase64(m << (6 - n));
+      }
+    }
+    await this.write('~');
+  }
 
-  private async write(usbPort: SerialPort, value: string): Promise<void> {
+  private async downloadNew(uint8Bytes: Uint8Array) {
+    const byteCount: number = uint8Bytes.length;
+    const base64Length: number = (uint8Bytes.length * 8) / 6;
+    const sendBuffer: Uint8Array = new Uint8Array(base64Length);
+    let sendOffset: number = 0;
+    let n = 0;
+    let m = 0;
+    for (let index = 0; index < byteCount; index++) {
+      const uint8Byte = uint8Bytes.at(index);
+      m = (m << 8) + uint8Byte;
+      n += 8;
+      if (n >= 6) {
+        sendBuffer[sendOffset++] = this.toBase64(m >> (n - 6));
+        n -= 6;
+      if (n >= 6) {
+        sendBuffer[sendOffset++] = this.toBase64(m >> (n - 6));
+        n -= 6;
+      }
+    }
+    if (n > 0) {
+      sendBuffer[sendOffset++] = this.toBase64(m << (6 - n));
+    }
+    const base64String: string = Buffer.from(uint8Bytes).toString('base64');
+    this.dumpBufferHex(sendBuffer, 'our64');
+    this.dumpStringHex(base64String, 'builtin64');
+  }
+
+  private dumpBufferHex(uint6Buffer: Uint8Array, callerId: string) {
+    //
+    const byteCount: number = uint6Buffer.length;
+    /// dump hex and ascii data
+    let displayOffset: number = 0;
+    let currOffset = 0;
+    this.logMessage(`-- -------- ${callerId} ------------------ --`);
+    while (displayOffset < byteCount) {
+      let hexPart = '';
+      let asciiPart = '';
+      const remainingBytes = byteCount - displayOffset;
+      const lineLength = remainingBytes > 16 ? 16 : remainingBytes;
+      for (let i = 0; i < lineLength; i++) {
+        const byteValue = uint6Buffer[currOffset + i];
+        hexPart += byteValue.toString(16).padStart(2, '0').toUpperCase() + ' ';
+        asciiPart += byteValue >= 0x20 && byteValue <= 0x7e ? String.fromCharCode(byteValue) : '.';
+      }
+      const offsetPart = displayOffset.toString(16).padStart(5, '0').toUpperCase();
+
+      this.logMessage(`${offsetPart}- ${hexPart.padEnd(48, ' ')}  '${asciiPart}'`);
+      currOffset += lineLength;
+      displayOffset += lineLength;
+    }
+    this.logMessage(`-- -------- -------- ------------------ --`);
+  }
+
+  private dumpStringHex(uint6Buffer: string, callerId: string) {
+    //
+    const byteCount: number = uint6Buffer.length;
+    let displayOffset: number = 0;
+    let currOffset = 0;
+    this.logMessage(`-- -------- ${callerId} ------------------ --`);
+    while (displayOffset < byteCount) {
+      let hexPart = '';
+      let asciiPart = '';
+      const remainingBytes = byteCount - displayOffset;
+      const lineLength = remainingBytes > 16 ? 16 : remainingBytes;
+      for (let i = 0; i < lineLength; i++) {
+        const byteValue = uint6Buffer.charCodeAt(currOffset + i);
+        hexPart += byteValue.toString(16).padStart(2, '0').toUpperCase() + ' ';
+        asciiPart += byteValue >= 0x20 && byteValue <= 0x7e ? String.fromCharCode(byteValue) : '.';
+      }
+      const offsetPart = displayOffset.toString(16).padStart(5, '0').toUpperCase();
+
+      this.logMessage(`${offsetPart}- ${hexPart.padEnd(48, ' ')}  '${asciiPart}'`);
+      currOffset += lineLength;
+      displayOffset += lineLength;
+    }
+    this.logMessage(`-- -------- -------- ------------------ --`);
+  }
+
+  private async txBase64(value6Bit: number) {
+    // Pnut TBase64() pascal
+    await this.write(this.toBase64Char(value6Bit & 0x3f));
+  }
+
+  private toBase64(value6Bit: number): number {
+    const interpString: string = this.toBase64Char(value6Bit);
+    return interpString.charCodeAt(0);
+  }
+  private toBase64Char(value6Bit: number): string {
+    // Pnut TBase64() pascal
+    const base64Ar: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    const interpValue: string = base64Ar.charAt(value6Bit & 0x3f);
+    this.logMessage(`* toBase64(${value6Bit & 0x3f}) -> [${interpValue}]`);
+    return interpValue;
+  }
+
+  private async write(value: string): Promise<void> {
     //this.logMessage(`--> Tx ...`);
     return new Promise((resolve, reject) => {
-      usbPort.write(value, (err) => {
+      this._serialPort.write(value, (err) => {
         if (err) reject(err);
         else {
           resolve();
@@ -156,10 +286,10 @@ export class UsbSerial {
     });
   }
 
-  private async drain(usbPort: SerialPort): Promise<void> {
+  private async drain(): Promise<void> {
     this.logMessage(`--> Tx drain`);
     return new Promise((resolve, reject) => {
-      usbPort.drain((err) => {
+      this._serialPort.drain((err) => {
         if (err) reject(err);
         else {
           this.logMessage(`--> Tx {empty}`);
@@ -169,9 +299,9 @@ export class UsbSerial {
     });
   }
 
-  private async setDtr(usbPort: SerialPort, value: boolean): Promise<void> {
+  private async setDtr(value: boolean): Promise<void> {
     return new Promise((resolve, reject) => {
-      usbPort.set({ dtr: value }, (err) => {
+      this._serialPort.set({ dtr: value }, (err) => {
         if (err) {
           this.logMessage(`DTR: ERROR:${err.name} - ${err.message}`);
           reject(err);
@@ -182,6 +312,26 @@ export class UsbSerial {
         }
       });
     });
+  }
+
+  private limitForVerLetter(idLetter: string): number {
+    let desiredvalue: number = 0;
+    if (idLetter === 'A') {
+      desiredvalue = 0x100000;
+    } else if (idLetter === 'B') {
+      desiredvalue = 0x040000;
+    } else if (idLetter === 'C') {
+      desiredvalue = 0x008000;
+    } else if (idLetter === 'D') {
+      desiredvalue = 0x020000;
+    } else if (idLetter === 'E') {
+      desiredvalue = 0x080000;
+    } else if (idLetter === 'F') {
+      desiredvalue = 0x100000;
+    } else if (idLetter === 'G') {
+      desiredvalue = 0x100000;
+    }
+    return desiredvalue;
   }
 
   private descriptionForVerLetter(idLetter: string): string {
