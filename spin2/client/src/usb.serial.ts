@@ -155,54 +155,16 @@ export class UsbSerial {
     const requestStartDownload: string = '> Prop_Txt 0 0 0 0';
     const byteCount: number = uint8Bytes.length < this._p2loadLimit ? uint8Bytes.length : this._p2loadLimit;
     if (this.usbConnected) {
+      const dataBase64: string = Buffer.from(uint8Bytes).toString('base64');
       await this.write(requestStartDownload);
-      let n = 0;
-      let m = 0;
-      for (let index = 0; index < byteCount; index++) {
-        const uint8Byte = uint8Bytes.at(index);
-        m = (m << 8) + uint8Byte;
-        n += 8;
-        if (n >= 6) {
-          await this.txBase64(m >> (n - 6));
-          n -= 6;
-        }
-        if (n >= 6) {
-          await this.txBase64(m >> (n - 6));
-          n -= 6;
-        }
-      }
-      if (n > 0) {
-        await this.txBase64(m << (6 - n));
-      }
+      await this.write(dataBase64);
+      await this.write('~');
     }
-    await this.write('~');
   }
 
   private async downloadNew(uint8Bytes: Uint8Array) {
     const byteCount: number = uint8Bytes.length;
-    const base64Length: number = (uint8Bytes.length * 8) / 6;
-    const sendBuffer: Uint8Array = new Uint8Array(base64Length);
-    let sendOffset: number = 0;
-    let n = 0;
-    let m = 0;
-    for (let index = 0; index < byteCount; index++) {
-      const uint8Byte = uint8Bytes.at(index);
-      m = (m << 8) + uint8Byte;
-      n += 8;
-      if (n >= 6) {
-        sendBuffer[sendOffset++] = this.toBase64(m >> (n - 6));
-        n -= 6;
-      }
-      if (n >= 6) {
-        sendBuffer[sendOffset++] = this.toBase64(m >> (n - 6));
-        n -= 6;
-      }
-    }
-    if (n > 0) {
-      sendBuffer[sendOffset++] = this.toBase64(m << (6 - n));
-    }
     const base64String: string = Buffer.from(uint8Bytes).toString('base64');
-    this.dumpBufferHex(sendBuffer, 'our64');
     this.dumpStringHex(base64String, 'builtin64');
   }
 
@@ -255,23 +217,6 @@ export class UsbSerial {
       displayOffset += lineLength;
     }
     this.logMessage(`-- -------- -------- ------------------ --`);
-  }
-
-  private async txBase64(value6Bit: number) {
-    // Pnut TBase64() pascal
-    await this.write(this.toBase64Char(value6Bit & 0x3f));
-  }
-
-  private toBase64(value6Bit: number): number {
-    const interpString: string = this.toBase64Char(value6Bit);
-    return interpString.charCodeAt(0);
-  }
-  private toBase64Char(value6Bit: number): string {
-    // Pnut TBase64() pascal
-    const base64Ar: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-    const interpValue: string = base64Ar.charAt(value6Bit & 0x3f);
-    this.logMessage(`* toBase64(${value6Bit & 0x3f}) -> [${interpValue}]`);
-    return interpValue;
   }
 
   private async write(value: string): Promise<void> {
