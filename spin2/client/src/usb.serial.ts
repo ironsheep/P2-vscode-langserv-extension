@@ -192,6 +192,7 @@ export class UsbSerial {
       if (n >= 6) {
         sendBuffer[sendOffset++] = this.toBase64(m >> (n - 6));
         n -= 6;
+      }
       if (n >= 6) {
         sendBuffer[sendOffset++] = this.toBase64(m >> (n - 6));
         n -= 6;
