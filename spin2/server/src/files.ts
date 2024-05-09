@@ -56,24 +56,25 @@ export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: 
   const matchedFiles: string[] = [];
   ctx.logger.log(`TRC: resolveReferencedIncludes(includedFiles=[${includedFiles}], rootDirSpec=[${rootDirSpec}])`);
 
-  const fileSpecs: string[] = getSpinFilesInDirSync(rootDirSpec, ctx);
+  const fileSpecs: string[] = getSpinFilesInDirSync(rootDirSpec, includedFiles, ctx);
   ctx.logger.log(`TRC: found fileSpecs=[${fileSpecs}]`);
   for (let index = 0; index < includedFiles.length; index++) {
     const fileBaseName = includedFiles[index];
+    const hasFileExt: boolean = fileBaseName.includes('.');
     let matchFilename: string = fileBaseName.toLowerCase();
-    if (!fileBaseName.toLowerCase().includes('.spin')) {
+    if (!fileBaseName.toLowerCase().includes('.spin') && hasFileExt == false) {
       matchFilename = `${fileBaseName}.`.toLowerCase();
     }
-    //ctx.logger.log(`TRC: looking for matchFilename=[${matchFilename}]`);
+    ctx.logger.log(`TRC: looking for matchFilename=[${matchFilename}]`);
     for (let index = 0; index < fileSpecs.length; index++) {
       const fileSpec: string = fileSpecs[index];
       const pathParts: string[] = fileSpec.split(/[/\\]/).filter(Boolean); // handle windows/linux paths
       const fileName = pathParts[pathParts.length - 1].toLowerCase();
       //ctx.logger.log(`TRC: found fileSpec=[${fileSpec}], pathParts=[${pathParts}](${pathParts.length}), fileName=[${fileName}]`);
-      //ctx.logger.log(`TRC: checking fileSpec=[${fileSpec}]`);
+      ctx.logger.log(`TRC: checking fileSpec=[${fileSpec}]`);
       if (fileName.startsWith(matchFilename)) {
         matchedFiles.push(fileSpec);
-        //ctx.logger.log(`TRC: matched fileSpec=[${fileSpec}]`);
+        ctx.logger.log(`TRC: matched fileSpec=[${fileSpec}]`);
       }
     }
   }
@@ -198,7 +199,7 @@ export function fileExists(pathSpec: string): boolean {
   return existsStatus;
 }
 
-export function getSpinFilesInDirSync(dirSpec: string, ctx: Context): string[] {
+export function getSpinFilesInDirSync(dirSpec: string, includedFiles: string[], ctx: Context): string[] {
   const resultList: string[] = [];
   const url = new URL(dirSpec, 'file://');
   //const pathSpec = fileURLToPath(dirSpec);
@@ -207,6 +208,8 @@ export function getSpinFilesInDirSync(dirSpec: string, ctx: Context): string[] {
     const tmpFiles: string[] = fs.readdirSync(url);
     tmpFiles.forEach((file) => {
       if (isSpinExt(file)) {
+        resultList.push(path.join(dirSpec, file));
+      } else if (includedFiles.includes(file)) {
         resultList.push(path.join(dirSpec, file));
       }
     });

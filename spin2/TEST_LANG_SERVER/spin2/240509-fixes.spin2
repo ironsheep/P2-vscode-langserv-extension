@@ -9,3 +9,11 @@ VAR
 
    alignl
    byte curdir[MAX_PATH+1],tmppath[MAX_PATH+1]
+
+' -----------------------------------------------
+
+#include "dummy-spin-but-not.inc"
+
+PUB  main() | lclVar
+
+  lclVar := MAX_BYTES

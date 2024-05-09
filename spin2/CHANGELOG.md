@@ -22,7 +22,8 @@ Possible next additions:
 
 Update P2 Only
 
-- BUGFIX: parsing repair detection of alignl/alignw in VAR Issue(#9)
+- BUGFIX: parsing repair detection of alignl/alignw in VAR. Issue(#9)
+- BUGFIX: FlexSpin support: implement new understanding. #include is including spin code but no longer needs spin/spin2 file extension. Issue(#11)
 
 ## [2.2.16] 2024-04-14
 

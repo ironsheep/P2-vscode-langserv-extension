@@ -237,8 +237,8 @@ export default class DocumentProcessor {
 
     if (includedFiles.length > 0) {
       // convert to matching filespecs
-      const resolved = await resolveReferencedIncludes(includedFiles, currDocumentInProcess.folder, this.ctx);
-      this.ctx.logger.log(`TRC: -- STEP back from resolveReferencedIncludes()...`);
+      const resolved: string[] = await resolveReferencedIncludes(includedFiles, currDocumentInProcess.folder, this.ctx);
+      this.ctx.logger.log(`TRC: -- STEP back from resolveReferencedIncludes()... resolved=[${resolved}]`);
       currDocumentInProcess.pushReferencedFileSpecs(...resolved);
       this.ctx.logger.log(`TRC: -- STEP scan the includes...`);
       if (currDocumentInProcess.referencedFileSpecsCount == 0) {
@@ -276,11 +276,11 @@ export default class DocumentProcessor {
       this.ctx.logger.log(`TRC: -- STEP incorporate included docs into maps ...`);
       const objectReferences: Map<string, string> =
         skipIncludeScan == false ? currDocumentFindings.includedObjectNamesByFilename() : new Map<string, string>();
-      const includes: string[] = currDocumentFindings.includeNamesForFilename(fileName);
+      const includeNames: string[] = currDocumentFindings.includeNamesForFilename(fileName);
       this.ctx.logger.log(
         `TRC: [${currDocumentFindings.instanceName()}] nameHashKeys=[${Array.from(objectReferences.keys())}], nameHashValues=[${Array.from(
           objectReferences.values()
-        )}], includedFiles=[${includes}]`
+        )}], includedFiles=[${includeNames}]`
       );
       const objectNames: string[] = Array.from(objectReferences.keys());
       const objectFileNames: string[] = Array.from(objectReferences.values());
@@ -294,7 +294,7 @@ export default class DocumentProcessor {
         `TRC: [${currDocumentFindings.instanceName()}] clear() previous findings but NOT include info so can load included documents`
       );
       //
-      // connnect our child objects so document will hightlight child references
+      // connnect our child objects so document will highlight child references
       for (let index = 0; index < objectNames.length; index++) {
         const objectName = objectNames[index];
         const objectSpinFilename = objectFileNames[index];
@@ -324,16 +324,18 @@ export default class DocumentProcessor {
           }
         }
         if (!bFound) {
-          this.ctx.logger.log(`TRC: NO include filename matches found!`);
+          this.ctx.logger.log(`TRC: NO object filename matches found!`);
         }
       }
       //
-      // load symbols from included files so document will hightlight these symbols as well
-      for (let index = 0; index < includes.length; index++) {
-        const includeFilename = includes[index];
+      // load symbols from included files so document will highlight these symbols as well
+      for (let index = 0; index < includeNames.length; index++) {
+        const includeFilename = includeNames[index];
         const includeSpinFilename = includeFilename;
         let matchFilename: string = includeFilename.toLowerCase();
-        if (!matchFilename?.toLowerCase().includes('.spin')) {
+        // allow filenames such as name.inc where fileType is present but NOT .spin or .spin2
+        const hasFileExt: boolean = path.basename(matchFilename).includes('.');
+        if (!matchFilename?.toLowerCase().includes('.spin') && hasFileExt == false) {
           matchFilename = `${matchFilename}.`.toLowerCase();
         }
         this.ctx.logger.log(`TRC: MATCHING includeFilename=[${includeFilename}], matchFilename=[${matchFilename}]`);
@@ -393,11 +395,9 @@ export default class DocumentProcessor {
     // return depth-first list of included files
     const parsedDoc: ProcessedDocument | undefined = this.ctx.docsByFSpec.get(FSpec);
     if (parsedDoc) {
-      if (parsedDoc.referencedFileSpecsCount > 0) {
-        for (let index = 0; index < parsedDoc.referencedFileSpecsCount; index++) {
-          const includeFSpec = parsedDoc.referencedFileSpec(index);
-          this._getParseList(includeFSpec, resultList);
-        }
+      for (let index = 0; index < parsedDoc.referencedFileSpecsCount; index++) {
+        const includeFSpec = parsedDoc.referencedFileSpec(index);
+        this._getParseList(includeFSpec, resultList);
       }
     }
     // only 1 copy of each fileSpec, please!
