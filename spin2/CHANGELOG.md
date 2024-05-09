@@ -18,11 +18,17 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.17] 2024-05-??
+
+Update P2 Only
+
+- BUGFIX: parsing repair detection of alignl/alignw in VAR Issue(#9)
+
 ## [2.2.16] 2024-04-14
 
 Update P2 Only
 
-- BUGFIX: Syntax: add missing bytefit/wordfit recodnition in DAT blocks (#6)
+- BUGFIX: Syntax: add missing bytefit/wordfit recognition in DAT blocks (#6)
 - BUGFIX: Semantic: repair handling of {Spin2_v??} built-in method name support
 - BUGFIX: File access issues on Windows (11?) repaired
 - Cleaned up the code-fold detection... now handling ORG* forms better

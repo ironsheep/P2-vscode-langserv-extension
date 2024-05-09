@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -2048,7 +2048,7 @@ export class Spin2DocumentSemanticParser {
             this._logVAR(`  -- GLBL GetVarDecl adjust longVarName:[${newName}] -> [${tempParts[0]}]`);
             newName = tempParts[0];
           }
-          if (newName.charAt(0).match(/[a-zA-Z_]/)) {
+          if (newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isAlignType(newName)) {
             this._logVAR(`  -- GLBL GetVarDecl w/type newName=[${newName}]`);
             const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
             const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
@@ -2080,7 +2080,7 @@ export class Spin2DocumentSemanticParser {
             this._logVAR(`  -- GLBL GetVarDecl adjust longVarName:[${longVarName}] -> [${tempParts[0]}]`);
             longVarName = tempParts[0];
           }
-          if (longVarName.charAt(0).match(/[a-zA-Z_]/)) {
+          if (longVarName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isAlignType(longVarName)) {
             this._logVAR(`  -- GLBL GetVarDecl w/o type newName=[${longVarName}]`);
             const nameOffset = line.indexOf(longVarName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
             const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(longVarName);

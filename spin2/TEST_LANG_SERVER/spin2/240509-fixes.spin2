@@ -1,0 +1,11 @@
+' reported issue #9
+CON
+
+   MAX_PATH = 4
+
+VAR
+   alignl
+   long repeatkey,repeatnext
+
+   alignl
+   byte curdir[MAX_PATH+1],tmppath[MAX_PATH+1]
