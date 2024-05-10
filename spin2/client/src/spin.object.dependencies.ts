@@ -962,6 +962,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
           // process single-line non-doc comment
           continue;
         }
+        // FIXME: add #include handling if FlexSpin mode enabled!
         const nonCommentLineRemainder: string = this.spinCodeUtils.getNonCommentLineRemainder(0, text);
         const sectionStatus = this.spinCodeUtils.isSectionStartLine(text);
         if (sectionStatus.isSectionStart) {
