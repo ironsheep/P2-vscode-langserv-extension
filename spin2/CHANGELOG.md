@@ -18,6 +18,10 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.2.18] 2024-05-09
+
+- Quick repackage and release to pull cruft out of distribution package (oops!)
+
 ## [2.2.17] 2024-05-09
 
 Update P2 Only
