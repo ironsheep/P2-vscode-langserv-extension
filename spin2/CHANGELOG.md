@@ -18,11 +18,14 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.2.17] 2024-05-??
+## [2.2.17] 2024-05-09
 
 Update P2 Only
 
 - BUGFIX: parsing repair detection of alignl/alignw in VAR. Issue(#9)
+
+Update P1 and P2
+
 - BUGFIX: FlexSpin support: implement new understanding. #include is including spin code but no longer needs spin/spin2 file extension. Issue(#11)
 - BUGFIX: FlexSpin support: fix highlighting for #include lines
 
@@ -38,7 +41,6 @@ Update P2 Only
   - Ctrl+Win+r - Generate Object Hierarchy Report
   - Ctrl+Win+d - Generate OBject Public Interface Report
   - Ctrl+Win+c - (When cursor on PUB or PRI line) Insert Doc comment below the PUB or PRI line
-
 
 ## [2.2.15] 2024-04-09
 
