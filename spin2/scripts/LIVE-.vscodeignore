@@ -2,8 +2,12 @@
 .vscode/**
 .history/**
 .devcontainer/**
+node_modules/**
 scripts/**
 server/**
+*NEW
+*ORIG
+*REF*
 !server/out/server.js
 client/**
 !client/out/extension.js

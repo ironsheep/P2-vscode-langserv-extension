@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.17",
+  "version": "2.2.18",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
