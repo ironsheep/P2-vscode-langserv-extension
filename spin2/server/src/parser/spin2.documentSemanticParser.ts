@@ -2210,6 +2210,25 @@ export class Spin2DocumentSemanticParser {
               });
             }
           }
+          const lineHasFilename: boolean = directive.toLowerCase() == '#include';
+          if (lineHasFilename) {
+            const openQuoteOffset: number = line.indexOf('"');
+            if (openQuoteOffset != -1) {
+              const closeQuoteOffset: number = line.indexOf('"', openQuoteOffset + 1);
+              if (closeQuoteOffset != -1) {
+                const symbolLength = closeQuoteOffset - openQuoteOffset + 1;
+                // record an filename
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: openQuoteOffset,
+                  length: symbolLength,
+                  ptTokenType: 'filename',
+                  ptTokenModifiers: []
+                });
+                this._logPreProc(`  -- filename=[${line.substring(openQuoteOffset, closeQuoteOffset + 1)}]`);
+              }
+            }
+          }
         }
       } else {
         //  DO NOTHING we don't highlight these (flexspin support not enabled)

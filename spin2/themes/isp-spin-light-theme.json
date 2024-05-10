@@ -634,6 +634,7 @@
     "variable.declaration.instance": "#64bfb9", // instance global varable
     "enumMember": "#a051a0", // constants
     "enumMember.declaration": "#a051a0", // constants
+    "filename": "#eb6077",
     "variable.readonly": "#a051a0", // constants
     "variable.declaration.readonly": "#a051a0", // constants
     "variable.local": "#82c0af", // constants a0c1b8

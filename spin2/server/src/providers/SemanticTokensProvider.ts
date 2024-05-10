@@ -40,7 +40,8 @@ export default class SemanticTokensProvider implements Provider {
     'displayType',
     'displayName',
     'setupParameter',
-    'feedParameter'
+    'feedParameter',
+    'filename'
   ];
 
   private tokenModifiersLegend = [
