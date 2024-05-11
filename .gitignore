@@ -194,8 +194,10 @@ JAYS_PORT
 out/
 *-OFFLINE
 spin2/scripts/mode.flg
-f1.txt
+*.txt
 filt-*.log
+*NEW
+*ORIG
 spin2/TEST_LANG_SERVER/spin2/USB_Packet_Driver.spin2
 spin2/TEST_LANG_SERVER/spin2/chk_code_comment_demo.readme.txt
 /spin2/TEST_LANG_SERVER/FmAda
