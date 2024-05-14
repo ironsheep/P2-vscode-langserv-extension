@@ -16,11 +16,7 @@ DEST_PKG=package.json
 DEST_IGN=.vscodeignore
 
 if [ ! -n "${PARM}" ]; then
-  echo "${SCRIPT}: ERROR: need [live|test|list|detect|check] as param \$1" >&2
-  echo ""
-  ${SCRIPT} list
-  echo ""
-  exit 1
+  PARM=list  # nothing provide just state what mode we are in
 fi
 
 if [ ! "${PARM}" = "live" ]; then
