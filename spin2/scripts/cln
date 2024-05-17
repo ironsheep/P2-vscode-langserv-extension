@@ -3,3 +3,11 @@
 (set -x;cd ./out;rm -rf *;cd -)
 (set -x;cd ./client/out;rm -rf *;cd -)
 (set -x;cd ./server/out;rm -rf *;cd -)
+
+cd ./node_modules;rm -rf *;cd -
+cd ./client/node_modules;rm -rf *;cd -
+cd ./server/node_modules;rm -rf *;cd -
+
+(set -x;rm -f package-lock.json)
+(set -x;rm -f ./client/package-lock.json)
+(set -x;rm -f ./server/package-lock.json)

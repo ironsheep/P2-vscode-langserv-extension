@@ -7,6 +7,7 @@
 /* eslint-disable no-console */ // allow console writes from this file
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as PNutTs from 'p2-pnut-ts';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 
@@ -20,6 +21,8 @@ import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarItem, destroyStatusBarItem, updateStatusBarItem } from './providers/spin.editMode.statusBarItem';
 import { isSpinOrPasmDocument } from './spin.vscode.utils';
+import { USBDocGenerator } from './providers/usb.document.generate';
+import { spawn } from 'child_process';
 
 let client: LanguageClient;
 
@@ -30,6 +33,7 @@ const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
 const tabFormatter: Formatter = new Formatter();
 const docGenerator: DocGenerator = new DocGenerator(objTreeProvider);
 const codeBlockColorizer: RegionColorizer = new RegionColorizer();
+const usbDocGenerator: USBDocGenerator = new USBDocGenerator();
 
 const logExtensionMessage = (message: string): void => {
   // simple utility to write to TABBING  output window.
@@ -120,6 +124,25 @@ function registerCommands(context: vscode.ExtensionContext): void {
   );
 
   // ----------------------------------------------------------------------------
+  //   Hook GENERATE USB TEST Document
+  //
+  const generateUSBDocumentFileCommand: string = 'spinExtension.generate.usb.documentation.file';
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(generateUSBDocumentFileCommand, async () => {
+      usbDocGenerator.logMessage('* generateUSBDocumentFileCommand');
+      try {
+        // and test it!
+        usbDocGenerator.generateUsbReportDocument();
+        usbDocGenerator.showDocument('.usb.txt');
+      } catch (error) {
+        await vscode.window.showErrorMessage('USB Document Generation Problem');
+        console.error(error);
+      }
+    })
+  );
+
+  // ----------------------------------------------------------------------------
   //   Hook ...
   //
   const statusBarItem: vscode.StatusBarItem = createStatusBarItem();
@@ -189,6 +212,107 @@ function registerCommands(context: vscode.ExtensionContext): void {
       }
     })
   );
+
+  // ----------------------------------------------------------------------------
+  //   Hook GENERATE list of USB Serial (Proplug) Devices
+  //
+  const generatePropPlugList: string = 'spinExtension.list.propplugs';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(generatePropPlugList, function () {
+      const terminal = vscode.window.createTerminal('List Serial Devices');
+      // terminal.sendText('npm run pnut-ts --help'); // NOPE
+      const rootInstallDir = __dirname.replace('out', '');
+      const pnutCmd = path.join(rootInstallDir, 'node_modules', '.bin', 'pnut-ts');
+      const tsNodeCmd = path.join(rootInstallDir, 'node_modules', '.bin', 'ts-node');
+      terminal.sendText(`${tsNodeCmd} ${pnutCmd} --help`);
+      terminal.show();
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook Compile a .spin2 file to file(s) and or download
+  //
+  const compileSpin2File: string = 'spinExtension.compile.file';
+  /* -- VERSION 2 FAILED
+  context.subscriptions.push(
+    vscode.commands.registerCommand(compileSpin2File, async () => {
+      try {
+        // and test it!
+        const editor = vscode?.window.activeTextEditor;
+        const srcFilename = path.basename(editor.document!.fileName);
+        //this.logMessage(`* compileSpin2File: [${srcFilename}]`);
+
+        const rootInstallDir = __dirname.replace('out', '');
+        const nodeModulesBinDir = path.join(rootInstallDir, 'node_modules', '.bin');
+        const pnutCmd = path.join(rootInstallDir, 'node_modules', 'p2-pnut-ts', 'out', 'pnut-ts.js');
+        const tsNodeCmd = path.join(rootInstallDir, 'node_modules', '.bin', 'ts-node');
+
+        const args: string[] = ['-v', '--help', `${srcFilename}`];
+        // Create a new terminal
+        const terminal = vscode.window.createTerminal('PNut-TS Compiler Output');
+        // Add node_modules/.bin to PATH
+        terminal.sendText(`export PATH="${nodeModulesBinDir}:$PATH"`);
+
+        terminal.sendText(`# tsNodeCmd=[${tsNodeCmd}]`);
+        terminal.sendText(`# pnutCmd=[${pnutCmd}]`);
+        terminal.sendText(`# pnut-ts ${args.join(' ')}`);
+        const childProcess = spawn(tsNodeCmd, [pnutCmd, ...args]);
+
+        childProcess.stdout.on('data', (data) => {
+          terminal.sendText(data.toString());
+        });
+
+        childProcess.stderr.on('data', (data) => {
+          terminal.sendText(data.toString());
+        });
+
+        childProcess.on('close', (code) => {
+          terminal.sendText(`child process exited with code ${code}`);
+        });
+
+        terminal.show();
+      } catch (error) {
+        await vscode.window.showErrorMessage(`Spin2 file compile Problem - error: ${error}`);
+        console.error(error);
+      }
+    })
+  );
+	*/
+
+  // -- VERSION 1 FAILED
+  context.subscriptions.push(
+    vscode.commands.registerCommand(compileSpin2File, async () => {
+      docGenerator.logMessage('* generateDocumentCommentCommand');
+      try {
+        // and test it!
+        const editor = vscode?.window.activeTextEditor;
+        const srcFilename = path.basename(editor.document!.fileName);
+        const pnutCompiler = new PNutTs.PNutInTypeScript();
+        pnutCompiler.setArgs(['-v', '--help', `${srcFilename}`]);
+        // Create a new terminal
+        const terminal = vscode.window.createTerminal('PNut-TS Compiler Output');
+        const childProcess = pnutCompiler.run();
+
+        childProcess.stdout.on('data', (data) => {
+          terminal.sendText(data.toString());
+        });
+
+        childProcess.stderr.on('data', (data) => {
+          terminal.sendText(data.toString());
+        });
+
+        childProcess.on('close', (code) => {
+          terminal.sendText(`child process exited with code ${code}`);
+        });
+
+        terminal.show();
+      } catch (error) {
+        await vscode.window.showErrorMessage(`Spin2 file compile Problem - error: ${error}`);
+        console.error(error);
+      }
+    })
+  );
+  //*/
 
   // ----------------------------------------------------------------------------
   //   Set Up our TAB Formatting

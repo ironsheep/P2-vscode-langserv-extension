@@ -4,7 +4,7 @@
   "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.17",
+  "version": "2.2.19",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -37,12 +37,24 @@
         "title": "Spin2: Generate hierarchy documentation file from spin source"
       },
       {
+        "command": "spinExtension.generate.usb.documentation.file",
+        "title": "Spin2: Generate USB findings report"
+      },
+      {
         "command": "spinExtension.generate.doc.comment",
         "title": "Spin2: Generate and insert documentation comment"
       },
       {
         "command": "spinExtension.generate.documentation.file",
         "title": "Spin2: Generate documentation file from spin source"
+      },
+      {
+        "command": "spinExtension.compile.file",
+        "title": "Spin2: Compile .spin2 to file(s) and/or download"
+      },
+      {
+        "command": "spinExtension.list.propplugs",
+        "title": "Spin2: List PropPlug Serial Devices"
       },
       {
         "command": "spinExtension.elasticTabstops.indentTabStop",
@@ -488,16 +500,37 @@
     "keybindings": [
       {
         "key": "Ctrl+Alt+r",
+        "win": "Ctrl+Win+r",
         "command": "spinExtension.generate.hierarchy.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
+        "key": "Ctrl+Alt+u",
+        "win": "Ctrl+Win+u",
+        "command": "spinExtension.generate.usb.documentation.file",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
         "key": "Ctrl+Alt+d",
+        "win": "Ctrl+Win+d",
         "command": "spinExtension.generate.documentation.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
+        "key": "Ctrl+Alt+b",
+        "win": "Ctrl+Win+b",
+        "command": "spinExtension.compile.file",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+      },
+      {
+        "key": "Ctrl+Alt+n",
+        "win": "Ctrl+Win+n",
+        "command": "spinExtension.list.propplugs",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
         "key": "Ctrl+Alt+c",
+        "win": "Ctrl+Win+c",
         "command": "spinExtension.generate.doc.comment",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
@@ -513,6 +546,7 @@
       },
       {
         "key": "Ctrl+Alt+tab",
+        "win": "Ctrl+Win+tab",
         "command": "spinExtension.elasticTabstops.generate.tabStops.comment",
         "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
       },
@@ -731,10 +765,9 @@
     "pretest": "npm run compile && npm run lint",
     "test": "sh ./scripts/e2e.sh"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/mocha": "^9.1.0",
-    "@types/node": "^16.18.34",
+    "@types/node": "^20.12.12",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
     "eslint": "^8.56.0",
