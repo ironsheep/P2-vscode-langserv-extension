@@ -3,7 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
+# tarballs
+*.tgz
+*.zip
+
+# C Extensions
 *.so
 
 # Distribution / packaging
