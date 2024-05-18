@@ -495,6 +495,46 @@
             "description": "Label text in the status bar shown during \"Align\" Mode (may be empty to hide the status.)"
           }
         }
+      },
+      {
+        "title": "Spin/Spin2 ToolChain Configuration",
+        "properties": {
+          "spinExtension.toolchain.propPlug": {
+            "type": "string",
+            "default": "",
+            "description": "The selected device connecting to your P2"
+          },
+          "spinExtension.toolchain.compileOptions.enableDebug": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable debug code generation in Spin2 compiles"
+          },
+          "spinExtension.toolchain.compileOptions.enableLstOutput": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable generation of Spin2 listing output from compile"
+          },
+          "spinExtension.toolchain.compileOptions.enableBinOutput": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable generation of Spin2 binary output from compile"
+          },
+          "spinExtension.toolchain.paths.pnutTs": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the pnut_ts executable"
+          },
+          "spinExtension.toolchain.paths.flexSpin": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the FlexSpin executable"
+          },
+          "spinExtension.toolchain.paths.loadP2": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the loadP2 executable"
+          }
+        }
       }
     ],
     "keybindings": [

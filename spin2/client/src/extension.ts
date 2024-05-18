@@ -22,11 +22,13 @@ import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName 
 import { createStatusBarItem, destroyStatusBarItem, updateStatusBarItem } from './providers/spin.editMode.statusBarItem';
 import { isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
-import { spawn } from 'child_process';
+//import { spawn } from 'child_process';
+import { executableExists, isMac, isWindows, locateExe, platform, platformExeName } from './fileUtils';
+import { UsbSerial } from './usb.serial';
 
 let client: LanguageClient;
 
-const isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
@@ -444,6 +446,92 @@ function initializeProviders(): void {
 	*/
 }
 
+// ----------------------------------------------------------------------------
+//   Hook Startup scan for PropPlugs
+//
+async function locatePropPlugs() {
+  const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
+  const devicesFound: string[] = [];
+  for (let index = 0; index < deviceNodesDetail.length; index++) {
+    const deviceNodeInfo = deviceNodesDetail[index];
+    const portParts = deviceNodeInfo.split(',');
+    //const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
+    const deviceNode: string = portParts[0];
+    devicesFound.push(deviceNode);
+  }
+  logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
+  if (devicesFound.length == 1) {
+    updateConfig('toolchain.propPlug', devicesFound[0]);
+  }
+}
+
+// ----------------------------------------------------------------------------
+//   Hook Startup scan for Toolchain parts
+//
+async function locateTools() {
+  // factor in use of ENV{'path'} to locate tools
+  const envPath = process.env.PATH;
+  const userBin = path.join('~', 'bin');
+  const userLocalBin = path.join('usr', 'local', 'bin');
+  const optLocalBin = path.join('opt', 'local', 'bin');
+  let platformPaths: string[] = [];
+  if (isWindows()) {
+    const envDirs = envPath.split(':').filter(Boolean);
+    // C:\Program Files (x86)\Parallax Inc
+    const appParallax = path.join('Program Files (x86)', 'pnut_ts');
+    platformPaths = [...envDirs, appParallax];
+  } else if (isMac()) {
+    const envDirs = envPath.split(':').filter(Boolean);
+    const applications = path.join('Applications', 'flexprop', 'bin');
+    platformPaths = [...envDirs, applications, userBin, userLocalBin, optLocalBin];
+  } else {
+    // assume linux, RPi
+    platformPaths = [userBin, userLocalBin];
+  }
+  // and ensure there is only one occurance of each path in list
+  platformPaths = platformPaths.sort().filter((item, index, self) => index === self.indexOf(item));
+  // now see if we find any tools
+  let toolsFound: boolean = false;
+  const pnutFSpec: string | undefined = await locateExe('pnut_ts', platformPaths);
+  if (pnutFSpec !== undefined) {
+    // Update the configuration with the path of the executable.
+    toolsFound = true;
+    logExtensionMessage(`* TOOL: ${pnutFSpec}`);
+    await updateConfig('toolchain.paths.pnutTs', pnutFSpec);
+  }
+  const flexSpinFSpec = await locateExe('flexspin', platformPaths);
+  if (flexSpinFSpec !== undefined) {
+    // Update the configuration with the path of the executable.
+    toolsFound = true;
+    logExtensionMessage(`* TOOL: ${flexSpinFSpec}`);
+    await updateConfig('toolchain.paths.flexSpin', flexSpinFSpec);
+  }
+  const loadP2FSpec = await locateExe('loadp2', platformPaths);
+  if (loadP2FSpec !== undefined) {
+    // Update the configuration with the path of the executable.
+    toolsFound = true;
+    logExtensionMessage(`* TOOL: ${loadP2FSpec}`);
+    await updateConfig('toolchain.paths.loadP2', loadP2FSpec);
+  }
+  if (!toolsFound) {
+    logExtensionMessage(`* TOOL: {No Tools Found}`);
+  }
+  logExtensionMessage(`* TOOL: platform=[${platform()}]`);
+  logExtensionMessage(`* TOOL: platformPaths=[${platformPaths}]`);
+}
+
+async function updateConfig(path: string, value: string | string[]) {
+  // Get the workspace configuration.
+  const config = vscode.workspace.getConfiguration('spinExtension');
+  const jsonConfig: string = JSON.stringify(config, null, 4);
+  logExtensionMessage(`+ (DBG) BEFORE config=(${jsonConfig})`);
+  await config.update(path, value, vscode.ConfigurationTarget.Workspace);
+
+  const configPost = vscode.workspace.getConfiguration('spinExtension');
+  const jsonConfigPost: string = JSON.stringify(configPost, null, 4);
+  logExtensionMessage(`+ (DBG) AFTER config=(${jsonConfigPost})`);
+}
+
 export function activate(context: vscode.ExtensionContext) {
   if (isDebugLogEnabled) {
     if (debugOutputChannel === undefined) {
@@ -461,6 +549,8 @@ export function activate(context: vscode.ExtensionContext) {
   registerProviders(context);
   registerCommands(context);
   initializeProviders();
+  locateTools();
+  locatePropPlugs();
 
   /*   EXAMPLE
 	    vscode.workspace.onDidSaveTextDocument(e => {
