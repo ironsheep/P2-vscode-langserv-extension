@@ -526,7 +526,11 @@ async function locatePropPlugs() {
   }
   logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
   if (devicesFound.length == 1) {
+    // if only 1 device, select it
     updateConfig('toolchain.propPlug', devicesFound[0], eConfigSection.CS_USER);
+  } else if (devicesFound.length == 0) {
+    // if NO devices, select NONE
+    updateConfig('toolchain.propPlug', undefined, eConfigSection.CS_USER);
   }
 }
 
