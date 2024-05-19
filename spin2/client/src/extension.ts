@@ -19,12 +19,28 @@ import { overtypeBeforePaste, overtypeBeforeType } from './providers/spin.editMo
 import { editModeConfiguration, reloadEditModeConfiguration } from './providers/spin.editMode.configuration';
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
-import { createStatusBarItem, destroyStatusBarItem, updateStatusBarItem } from './providers/spin.editMode.statusBarItem';
-import { isSpinOrPasmDocument } from './spin.vscode.utils';
+import {
+  createStatusBarInsertModeItem,
+  destroyStatusBarInsertModeItem,
+  updateStatusBarInsertModeItem
+} from './providers/spin.editMode.statusBarItem';
+import { isCurrentDocumentSpin2, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
 //import { spawn } from 'child_process';
-import { executableExists, isMac, isWindows, locateExe, platform, platformExeName } from './fileUtils';
+import { isMac, isWindows, locateExe, platform } from './fileUtils';
 import { UsbSerial } from './usb.serial';
+import {
+  createStatusBarFlashDownloadItem,
+  destroyStatusBarFlashDownloadItem,
+  getDownloadFlashMode,
+  updateStatusBarFlashDownloadItem
+} from './providers/spin.downloadFlashMode.statusBarItem';
+import {
+  createStatusBarCompileDebugItem,
+  destroyStatusBarCompileDebugItem,
+  getCompileDebugMode,
+  updateStatusBarCompileDebugItem
+} from './providers/spin.compileDebugMode.statusBarItem';
 
 let client: LanguageClient;
 
@@ -147,7 +163,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook ...
   //
-  const statusBarItem: vscode.StatusBarItem = createStatusBarItem();
+  const statusInsertModeBarItem: vscode.StatusBarItem = createStatusBarInsertModeItem();
+  const statusCompileDebugBarItem: vscode.StatusBarItem = createStatusBarCompileDebugItem();
+  const statusDownloadFlashBarItem: vscode.StatusBarItem = createStatusBarFlashDownloadItem();
   handleActiveTextEditorChanged(); // now show or hide based upon current/active window
 
   context.subscriptions.push(
@@ -169,7 +187,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidOpenTextDocument(handleTextDocumentOpened),
     vscode.workspace.onDidChangeConfiguration(handleDidChangeConfiguration),
 
-    statusBarItem
+    statusInsertModeBarItem,
+    statusCompileDebugBarItem,
+    statusDownloadFlashBarItem
   );
 
   // ----------------------------------------------------------------------------
@@ -228,6 +248,46 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const tsNodeCmd = path.join(rootInstallDir, 'node_modules', '.bin', 'ts-node');
       terminal.sendText(`${tsNodeCmd} ${pnutCmd} --help`);
       terminal.show();
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook TOGGLE compile w/Debug and update display
+  //
+  const toggleCompileWithDebug: string = 'spinExtension.toggle.debug';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(toggleCompileWithDebug, async () => {
+      logExtensionMessage('CMD: toggleCompileWithDebug');
+      try {
+        const isDebugEnabled: boolean = getCompileDebugMode();
+        const newEnableState = isDebugEnabled ? false : true;
+        updateConfig('toolchain.compileOptions.enableDebug', newEnableState);
+        logExtensionMessage(`* enableDebug (${isDebugEnabled}) -> (${newEnableState})`);
+        //updateStatusBarCompileDebugItem(true);
+      } catch (error) {
+        await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
+        console.error(error);
+      }
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook TOGGLE download to FLASH and update display
+  //
+  const toggleDownloadToFlash: string = 'spinExtension.toggle.flash';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(toggleDownloadToFlash, async () => {
+      logExtensionMessage('CMD: toggleDownloadToFlash');
+      try {
+        const isFlashEnabled: boolean = getDownloadFlashMode();
+        const newEnableState = isFlashEnabled ? false : true;
+        updateConfig('toolchain.downloadOptions.enableFlash', newEnableState);
+        logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
+        //updateStatusBarFlashDownloadItem(true);
+      } catch (error) {
+        await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
+        console.error(error);
+      }
     })
   );
 
@@ -327,7 +387,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(insertTabStopsCommentCommand, async () => {
-      logExtensionMessage('* insertTabStopsCommentCommand');
+      logExtensionMessage('CMD: insertTabStopsCommentCommand');
       try {
         const editor = vscode?.window.activeTextEditor;
         const document = editor.document!;
@@ -344,7 +404,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(indentTabStopCommand, async () => {
-      logExtensionMessage('* indentTabStopCommand');
+      logExtensionMessage('CMD: indentTabStopCommand');
       try {
         const editor = vscode?.window.activeTextEditor;
         const document = editor.document!;
@@ -367,7 +427,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(outdentTabStopCommand, async () => {
-      logExtensionMessage('* outdentTabStopCommand');
+      logExtensionMessage('CMD: outdentTabStopCommand');
       try {
         const editor = vscode.window.activeTextEditor!;
         const document = editor.document!;
@@ -520,16 +580,31 @@ async function locateTools() {
   logExtensionMessage(`* TOOL: platformPaths=[${platformPaths}]`);
 }
 
-async function updateConfig(path: string, value: string | string[]) {
+async function updateConfig(path: string, value: string | string[] | boolean) {
   // Get the workspace configuration.
-  const config = vscode.workspace.getConfiguration('spinExtension');
-  const jsonConfig: string = JSON.stringify(config, null, 4);
-  logExtensionMessage(`+ (DBG) BEFORE config=(${jsonConfig})`);
-  await config.update(path, value, vscode.ConfigurationTarget.Workspace);
+  const startingConfig = vscode.workspace.getConfiguration('spinExtension');
+  const startJsonConfig: string = JSON.stringify(startingConfig, null, 4);
+  //logExtensionMessage(`+ (DBG) BEFORE config=(${startJsonConfig})`);
+  await startingConfig.update(path, value, vscode.ConfigurationTarget.Workspace);
 
-  const configPost = vscode.workspace.getConfiguration('spinExtension');
-  const jsonConfigPost: string = JSON.stringify(configPost, null, 4);
-  logExtensionMessage(`+ (DBG) AFTER config=(${jsonConfigPost})`);
+  const updatedConfig = vscode.workspace.getConfiguration('spinExtension');
+  const updatedJsonConfig: string = JSON.stringify(updatedConfig, null, 4);
+  //logExtensionMessage(`+ (DBG) AFTER config=(${updatedJsonConfig})`);
+
+  if (startJsonConfig === updatedJsonConfig) {
+    logExtensionMessage(`+ (DBG) NO config value changed!`);
+  } else {
+    const startLines = startJsonConfig.split(/\r?\n/);
+    const updatedLines = updatedJsonConfig.split(/\r?\n/);
+    logExtensionMessage(`+ (DBG) config checking start (${startLines.length}) lines, updated (${updatedLines.length})`);
+    for (let index = 0; index < startLines.length; index++) {
+      const startLine = startLines[index];
+      const updatedLine = updatedLines[index];
+      if (startLine != updatedLine) {
+        logExtensionMessage(`+ (DBG) config ln#${index + 1} [${startLine}] -> [${updatedLine}]`);
+      }
+    }
+  }
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -613,11 +688,11 @@ function handleVisibleTextEditorChanged(textEditors: vscode.TextEditor[]) {
 function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor) {
   let argumentInterp: string = 'undefined';
   let isSpinWindow: boolean = false;
-  let showStatusBarItem: boolean = true;
+  let showStatusBarInsertModeItem: boolean = true;
   const showInserModeIndicator: boolean = tabConfiguration.enable == true;
   let docVersion: number = -1;
   if (textEditor == null && textEditor === undefined) {
-    showStatusBarItem = false;
+    showStatusBarInsertModeItem = false;
   } else {
     if (isSpinOrPasmDocument(textEditor.document)) {
       isSpinWindow = true;
@@ -625,13 +700,15 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor) {
       argumentInterp = `${path.basename(textEditor.document.fileName)} v${docVersion}`;
     } else {
       argumentInterp = '-- NOT-SPIN-WINDOW --';
-      showStatusBarItem = false;
+      showStatusBarInsertModeItem = false;
     }
   }
   logExtensionMessage(`* handleActiveTextEditorChanged(${argumentInterp})`);
 
-  if (!showStatusBarItem || !showInserModeIndicator) {
-    updateStatusBarItem(null); // hide status bar content
+  if (!showStatusBarInsertModeItem || !showInserModeIndicator) {
+    updateStatusBarInsertModeItem(null); // hide status bar content
+    updateStatusBarCompileDebugItem(null);
+    updateStatusBarFlashDownloadItem(null);
     //logExtensionMessage(`* HIDE SB-ITEM`);
   }
 
@@ -640,9 +717,12 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor) {
 
     const mode = getMode(textEditor);
     if (showInserModeIndicator) {
-      updateStatusBarItem(mode); // show status bar content
+      updateStatusBarInsertModeItem(mode); // show status bar content
       //logExtensionMessage(`* SHOW SB-ITEM mode=[${modeName(mode)}]`);
     }
+    // these alwasy get updated if showing
+    updateStatusBarCompileDebugItem(true);
+    updateStatusBarFlashDownloadItem(true);
     // post information to out-side world via our CONTEXT
     vscode.commands.executeCommand('setContext', 'runtime.spinExtension.insert.mode', modeName(mode));
 
@@ -686,7 +766,7 @@ function recolorizeSpinDocumentIfChanged(editor: vscode.TextEditor, callerId: st
 
 const handleDidChangeConfiguration = () => {
   const previousPerEditor = editModeConfiguration.perEditor;
-  const previousShowInStatusBar = getShowInStatusBar();
+  const previousShowInStatusBar = getShowInserModeInStatusBar();
   const previousInsertModeEnable = tabConfiguration.enable;
   logExtensionMessage('* handleDidChangeConfiguration');
 
@@ -702,16 +782,21 @@ const handleDidChangeConfiguration = () => {
     return;
   }
 
-  const showInStatusBar = getShowInStatusBar();
+  const showInsertModeInStatusBar = getShowInserModeInStatusBar();
   //logExtensionMessage(`* (DBG) showInStatusBar=(${showInStatusBar}), previousInsertModeEnable=(${previousInsertModeEnable})`);
 
   // post create / destroy when changed
-  if (showInStatusBar !== previousShowInStatusBar) {
-    if (showInStatusBar) {
-      createStatusBarItem();
+  if (showInsertModeInStatusBar !== previousShowInStatusBar) {
+    if (showInsertModeInStatusBar) {
+      createStatusBarInsertModeItem();
     } else {
-      destroyStatusBarItem();
+      destroyStatusBarInsertModeItem();
     }
+  }
+
+  if (isCurrentDocumentSpin2()) {
+    updateStatusBarCompileDebugItem(true);
+    updateStatusBarFlashDownloadItem(true);
   }
 
   // update state if the per-editor/global configuration option changes
@@ -729,7 +814,7 @@ const handleDidChangeConfiguration = () => {
 
 function toggleCommand() {
   const textEditor = vscode.window.activeTextEditor;
-  logExtensionMessage('* toggle');
+  logExtensionMessage('CMD: toggle');
   if (textEditor == null) {
     return;
   }
@@ -740,7 +825,7 @@ function toggleCommand() {
 
 function toggleCommand2State() {
   const textEditor = vscode.window.activeTextEditor;
-  logExtensionMessage('* toggle2State');
+  logExtensionMessage('CMD: toggle2State');
   if (textEditor == null) {
     return;
   }
@@ -749,7 +834,7 @@ function toggleCommand2State() {
   handleActiveTextEditorChanged(textEditor); // update the SB
 }
 
-function getShowInStatusBar(): boolean {
+function getShowInserModeInStatusBar(): boolean {
   let showOrNot: boolean = tabConfiguration.enable;
   /*
   logExtensionMessage(
@@ -782,7 +867,7 @@ function typeCommand(args: { text: string }) {
     editMode = getMode(editor);
   }
   if (editor !== undefined && tabFormatter.isEnabled() && editMode == eEditMode.OVERTYPE) {
-    logExtensionMessage('* OVERTYPE type');
+    logExtensionMessage('CMD: OVERTYPE type');
     overtypeBeforeType(editor, args.text, false);
   } else if (editor !== undefined && tabFormatter.isEnabled() && editMode == eEditMode.ALIGN) {
     tabFormatter.alignBeforeType(editor, args.text, false);
@@ -794,7 +879,7 @@ function typeCommand(args: { text: string }) {
 
 function deleteLeftCommand() {
   const editor = vscode.window.activeTextEditor;
-  logExtensionMessage('* deleteLeft');
+  logExtensionMessage('CMD: deleteLeft');
   let bAlignEdit: boolean = editor !== undefined && tabFormatter.isEnabled();
   if (editor !== undefined) {
     const editMode = getMode(editor);
@@ -813,7 +898,7 @@ function deleteLeftCommand() {
 
 function deleteRightCommand() {
   const editor = vscode.window.activeTextEditor;
-  logExtensionMessage('* deleteRight');
+  logExtensionMessage('CMD: deleteRight');
   if (tabFormatter.isEnabled() && editor && getMode(editor) == eEditMode.ALIGN) {
     tabFormatter.alignDelete(editor, true);
     return null;
@@ -826,10 +911,10 @@ function deleteRightCommand() {
 function pasteCommand(args: { text: string; pasteOnNewLine: boolean }) {
   const editor = vscode.window.activeTextEditor;
   if (editor !== undefined) {
-    logExtensionMessage('* paste');
+    logExtensionMessage('CMD: paste');
     if (getMode(editor) == eEditMode.OVERTYPE && editModeConfiguration.overtypePaste) {
       // TODO: Make paste work with align
-      logExtensionMessage('* OVERTYPE paste');
+      logExtensionMessage('CMD: OVERTYPE paste');
       overtypeBeforePaste(editor, args.text, args.pasteOnNewLine);
       return vscode.commands.executeCommand('default:paste', args);
     } else if (tabFormatter.isEnabled() && getMode(editor) == eEditMode.ALIGN && !args.pasteOnNewLine) {

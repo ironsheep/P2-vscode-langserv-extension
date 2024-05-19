@@ -51,6 +51,16 @@ export function isCurrentDocumentSpin1(): boolean {
   return spin1DocStatus;
 }
 
+export function isCurrentDocumentSpin2(): boolean {
+  const editor = vscode?.window.activeTextEditor;
+  const document = editor ? editor.document : undefined;
+  let spin2DocStatus: boolean = false;
+  if (document) {
+    spin2DocStatus = isSpin2File(document.fileName);
+  }
+  return spin2DocStatus;
+}
+
 export function isSpinDocument(document: vscode.TextDocument): boolean {
   let spinDocumentStatus: boolean = false;
   if (document) {

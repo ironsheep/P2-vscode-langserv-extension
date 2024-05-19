@@ -57,6 +57,14 @@
         "title": "Spin2: List PropPlug Serial Devices"
       },
       {
+        "command": "spinExtension.toggle.debug",
+        "title": "Spin2: Toggle current state of compile w/debug enable"
+      },
+      {
+        "command": "spinExtension.toggle.flash",
+        "title": "Spin2: Toggle current state of download to FLASH enable"
+      },
+      {
         "command": "spinExtension.elasticTabstops.indentTabStop",
         "title": "Spin2: Indent tab stop"
       },
@@ -519,6 +527,11 @@
             "default": false,
             "description": "Enable generation of Spin2 binary output from compile"
           },
+          "spinExtension.toolchain.downloadOptions.enableFlash": {
+            "type": "boolean",
+            "default": false,
+            "description": "Download to FLASH when enabled"
+          },
           "spinExtension.toolchain.paths.pnutTs": {
             "type": "string",
             "default": "",
@@ -566,6 +579,18 @@
         "key": "Ctrl+Alt+n",
         "win": "Ctrl+Win+n",
         "command": "spinExtension.list.propplugs",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Alt+n",
+        "win": "Ctrl+Win+n",
+        "command": "spinExtension.toggle.debug",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Alt+f",
+        "win": "Ctrl+Win+f",
+        "command": "spinExtension.toggle.flash",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
