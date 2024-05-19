@@ -24,7 +24,7 @@ import {
   destroyStatusBarInsertModeItem,
   updateStatusBarInsertModeItem
 } from './providers/spin.editMode.statusBarItem';
-import { isCurrentDocumentSpin2, isSpinOrPasmDocument } from './spin.vscode.utils';
+import { isCurrentDocumentSpin2, isSpin2Document, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
 //import { spawn } from 'child_process';
 import { isMac, isWindows, locateExe, platform } from './fileUtils';
@@ -43,6 +43,11 @@ import {
 } from './providers/spin.compileDebugMode.statusBarItem';
 
 let client: LanguageClient;
+
+enum eConfigSection {
+  CS_USER,
+  CS_WORKSPACE
+}
 
 const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
@@ -201,6 +206,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.window.visibleTextEditors.map((editor) => {
       recolorizeSpinDocumentIfChanged(editor, 'handleTextDocumentChanged', 'Ext-docDidChg');
     });
+    updateStatusBarItems('handleTextDocumentChanged');
   }
 
   function handleTextDocumentOpened(textDocument: vscode.TextDocument) {
@@ -261,9 +267,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
       try {
         const isDebugEnabled: boolean = getCompileDebugMode();
         const newEnableState = isDebugEnabled ? false : true;
-        updateConfig('toolchain.compileOptions.enableDebug', newEnableState);
+        updateConfig('toolchain.compileOptions.enableDebug', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableDebug (${isDebugEnabled}) -> (${newEnableState})`);
-        //updateStatusBarCompileDebugItem(true);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
         console.error(error);
@@ -281,7 +286,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       try {
         const isFlashEnabled: boolean = getDownloadFlashMode();
         const newEnableState = isFlashEnabled ? false : true;
-        updateConfig('toolchain.downloadOptions.enableFlash', newEnableState);
+        updateConfig('toolchain.downloadOptions.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
         //updateStatusBarFlashDownloadItem(true);
       } catch (error) {
@@ -521,7 +526,7 @@ async function locatePropPlugs() {
   }
   logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
   if (devicesFound.length == 1) {
-    updateConfig('toolchain.propPlug', devicesFound[0]);
+    updateConfig('toolchain.propPlug', devicesFound[0], eConfigSection.CS_USER);
   }
 }
 
@@ -557,21 +562,21 @@ async function locateTools() {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${pnutFSpec}`);
-    await updateConfig('toolchain.paths.pnutTs', pnutFSpec);
+    await updateConfig('toolchain.paths.pnutTs', pnutFSpec, eConfigSection.CS_USER);
   }
   const flexSpinFSpec = await locateExe('flexspin', platformPaths);
   if (flexSpinFSpec !== undefined) {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${flexSpinFSpec}`);
-    await updateConfig('toolchain.paths.flexSpin', flexSpinFSpec);
+    await updateConfig('toolchain.paths.flexSpin', flexSpinFSpec, eConfigSection.CS_USER);
   }
   const loadP2FSpec = await locateExe('loadp2', platformPaths);
   if (loadP2FSpec !== undefined) {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${loadP2FSpec}`);
-    await updateConfig('toolchain.paths.loadP2', loadP2FSpec);
+    await updateConfig('toolchain.paths.loadP2', loadP2FSpec, eConfigSection.CS_USER);
   }
   if (!toolsFound) {
     logExtensionMessage(`* TOOL: {No Tools Found}`);
@@ -580,28 +585,35 @@ async function locateTools() {
   logExtensionMessage(`* TOOL: platformPaths=[${platformPaths}]`);
 }
 
-async function updateConfig(path: string, value: string | string[] | boolean) {
+async function updateConfig(path: string, value: string | string[] | boolean, section: eConfigSection) {
   // Get the workspace configuration.
   const startingConfig = vscode.workspace.getConfiguration('spinExtension');
-  const startJsonConfig: string = JSON.stringify(startingConfig, null, 4);
-  //logExtensionMessage(`+ (DBG) BEFORE config=(${startJsonConfig})`);
-  await startingConfig.update(path, value, vscode.ConfigurationTarget.Workspace);
-
-  const updatedConfig = vscode.workspace.getConfiguration('spinExtension');
-  const updatedJsonConfig: string = JSON.stringify(updatedConfig, null, 4);
-  //logExtensionMessage(`+ (DBG) AFTER config=(${updatedJsonConfig})`);
-
-  if (startJsonConfig === updatedJsonConfig) {
-    logExtensionMessage(`+ (DBG) NO config value changed!`);
+  const existingValue = startingConfig.get(path);
+  if (existingValue === value) {
+    logExtensionMessage(`+ (DBG) updateConfig([${path}]) Value already set, aborting`);
   } else {
-    const startLines = startJsonConfig.split(/\r?\n/);
-    const updatedLines = updatedJsonConfig.split(/\r?\n/);
-    logExtensionMessage(`+ (DBG) config checking start (${startLines.length}) lines, updated (${updatedLines.length})`);
-    for (let index = 0; index < startLines.length; index++) {
-      const startLine = startLines[index];
-      const updatedLine = updatedLines[index];
-      if (startLine != updatedLine) {
-        logExtensionMessage(`+ (DBG) config ln#${index + 1} [${startLine}] -> [${updatedLine}]`);
+    const startJsonConfig: string = JSON.stringify(startingConfig, null, 4);
+    //logExtensionMessage(`+ (DBG) BEFORE config=(${startJsonConfig})`);
+    const desiredSection: vscode.ConfigurationTarget =
+      section == eConfigSection.CS_USER ? vscode.ConfigurationTarget.Global : vscode.ConfigurationTarget.Workspace;
+    await startingConfig.update(path, value, desiredSection);
+
+    const updatedConfig = vscode.workspace.getConfiguration('spinExtension');
+    const updatedJsonConfig: string = JSON.stringify(updatedConfig, null, 4);
+    //logExtensionMessage(`+ (DBG) AFTER config=(${updatedJsonConfig})`);
+
+    if (startJsonConfig === updatedJsonConfig) {
+      logExtensionMessage(`+ (DBG) NO config value changed!`);
+    } else {
+      const startLines = startJsonConfig.split(/\r?\n/);
+      const updatedLines = updatedJsonConfig.split(/\r?\n/);
+      logExtensionMessage(`+ (DBG) config checking start (${startLines.length}) lines, updated (${updatedLines.length})`);
+      for (let index = 0; index < startLines.length; index++) {
+        const startLine = startLines[index];
+        const updatedLine = updatedLines[index];
+        if (startLine != updatedLine) {
+          logExtensionMessage(`+ (DBG) config ln#${index + 1} [${startLine}] -> [${updatedLine}]`);
+        }
       }
     }
   }
@@ -626,6 +638,7 @@ export function activate(context: vscode.ExtensionContext) {
   initializeProviders();
   locateTools();
   locatePropPlugs();
+  // NOPE handleDidChangeConfiguration();
 
   /*   EXAMPLE
 	    vscode.workspace.onDidSaveTextDocument(e => {
@@ -681,18 +694,114 @@ function handleVisibleTextEditorChanged(textEditors: vscode.TextEditor[]) {
     }
     if (spinFilesInActiveEditors == 0) {
       codeBlockColorizer.closedAllFiles();
+      /*  NOTE this double-pumps the SB change!
+    } else {
+      const editor = vscode.window.activeTextEditor!;
+      if (editor !== undefined) {
+        handleActiveTextEditorChanged(editor, 'INTERNAL');
+      }
+	  */
     }
   }
 }
 
-function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor) {
+let priorChangeUri: vscode.Uri | undefined = undefined;
+let priorShowSpinSBItems: boolean = false;
+let priorShowSpin2OnlySBItems: boolean = false;
+let priorEditorMode: eEditMode | undefined = undefined;
+let priorDownloadFlash: boolean = false;
+let priorCompileDebug: boolean = false;
+
+function updateStatusBarItems(callerId: string) {
   let argumentInterp: string = 'undefined';
   let isSpinWindow: boolean = false;
-  let showStatusBarInsertModeItem: boolean = true;
-  const showInserModeIndicator: boolean = tabConfiguration.enable == true;
+  let showSpinStatusBarItems: boolean = true;
+  let showSpin2OnlyStatusBarItems: boolean = false;
+  const showInsertModeIndicator: boolean = tabConfiguration.enable == true;
+  let docVersion: number = -1;
+  let currMode: eEditMode | undefined = undefined;
+  const textEditor = vscode.window.activeTextEditor!;
+  let isDifferentMode: boolean = false;
+  let isDifferentDownloadFlash: boolean = false;
+  let isDifferentCompileDebug: boolean = false;
+  if (textEditor == null || textEditor === undefined) {
+    showSpinStatusBarItems = false;
+  } else {
+    // have updated mode value?
+    currMode = getMode(textEditor);
+    isDifferentMode = currMode !== priorEditorMode;
+    if (isDifferentMode) {
+      priorEditorMode = currMode;
+    }
+    // have updated flash value?
+    const currDownloadFlash: boolean = getDownloadFlashMode();
+    isDifferentDownloadFlash = currDownloadFlash != priorDownloadFlash;
+    if (isDifferentDownloadFlash) {
+      priorDownloadFlash = currDownloadFlash;
+    }
+    // have updated debug value?
+    const currCompileDebug: boolean = getCompileDebugMode();
+    isDifferentCompileDebug = currCompileDebug != priorCompileDebug;
+    if (isDifferentCompileDebug) {
+      priorCompileDebug = currCompileDebug;
+    }
+    showSpin2OnlyStatusBarItems = isSpin2Document(textEditor.document);
+    if (isSpinOrPasmDocument(textEditor.document)) {
+      isSpinWindow = true;
+      docVersion = textEditor.document.version;
+      argumentInterp = `${path.basename(textEditor.document.fileName)} v${docVersion}`;
+    } else {
+      argumentInterp = '-- NOT-SPIN-WINDOW --';
+      showSpinStatusBarItems = false;
+    }
+  }
+  const isDifferentFile: boolean = priorChangeUri === undefined || textEditor.document.uri.toString() !== priorChangeUri.toString();
+  if (isDifferentFile || isDifferentMode || isDifferentDownloadFlash || isDifferentCompileDebug) {
+    const updateSpinSBItems = showSpinStatusBarItems != priorShowSpinSBItems;
+    if (updateSpinSBItems) {
+      priorShowSpinSBItems = showSpinStatusBarItems;
+    }
+    const updateSpin2SBItems = showSpin2OnlyStatusBarItems != priorShowSpin2OnlySBItems;
+    if (updateSpinSBItems) {
+      priorShowSpin2OnlySBItems = showSpin2OnlyStatusBarItems;
+    }
+    priorChangeUri = textEditor.document.uri;
+    logExtensionMessage(`* updateStatusBarItems([${callerId}]) (${argumentInterp})`);
+
+    if (updateSpin2SBItems && !showSpin2OnlyStatusBarItems) {
+      updateStatusBarCompileDebugItem(null);
+      updateStatusBarFlashDownloadItem(null);
+      logExtensionMessage(`* HIDE SB-ITEM spin2 items`);
+    }
+    if (updateSpinSBItems && (!showSpinStatusBarItems || !showInsertModeIndicator)) {
+      updateStatusBarInsertModeItem(null); // hide status bar content
+      logExtensionMessage(`* HIDE SB-ITEM`);
+    }
+
+    if (isSpinWindow && textEditor) {
+      if ((updateSpinSBItems || isDifferentMode) && showSpinStatusBarItems && showInsertModeIndicator) {
+        updateStatusBarInsertModeItem(currMode); // show status bar content
+        logExtensionMessage(`* SHOW SB-ITEM mode=[${modeName(currMode)}]`);
+      }
+      // post information to out-side world via our CONTEXT
+      vscode.commands.executeCommand('setContext', 'runtime.spinExtension.insert.mode', modeName(currMode));
+
+      if ((updateSpin2SBItems || isDifferentDownloadFlash || isDifferentCompileDebug) && showSpin2OnlyStatusBarItems) {
+        // these alwasy get updated if showing
+        updateStatusBarCompileDebugItem(true);
+        updateStatusBarFlashDownloadItem(true);
+        logExtensionMessage(`* SHOW SB-ITEM spin2 items`);
+      }
+    }
+  }
+}
+
+function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: string = undefined) {
+  let argumentInterp: string = 'undefined';
+  let isSpinWindow: boolean = false;
   let docVersion: number = -1;
   if (textEditor == null && textEditor === undefined) {
-    showStatusBarInsertModeItem = false;
+    // do nothing
   } else {
     if (isSpinOrPasmDocument(textEditor.document)) {
       isSpinWindow = true;
@@ -700,34 +809,17 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor) {
       argumentInterp = `${path.basename(textEditor.document.fileName)} v${docVersion}`;
     } else {
       argumentInterp = '-- NOT-SPIN-WINDOW --';
-      showStatusBarInsertModeItem = false;
     }
   }
-  logExtensionMessage(`* handleActiveTextEditorChanged(${argumentInterp})`);
-
-  if (!showStatusBarInsertModeItem || !showInserModeIndicator) {
-    updateStatusBarInsertModeItem(null); // hide status bar content
-    updateStatusBarCompileDebugItem(null);
-    updateStatusBarFlashDownloadItem(null);
-    //logExtensionMessage(`* HIDE SB-ITEM`);
-  }
+  const sourceID: string = source !== undefined ? source : 'EVENT';
+  logExtensionMessage(`* handleActiveTextEditorChanged(${argumentInterp}) - [${sourceID}]`);
 
   if (isSpinWindow && textEditor) {
     recolorizeSpinDocumentIfChanged(textEditor, 'handleActiveTextEditorChanged', 'Ext-actvEditorChg', true); // true=force the recolor
 
-    const mode = getMode(textEditor);
-    if (showInserModeIndicator) {
-      updateStatusBarInsertModeItem(mode); // show status bar content
-      //logExtensionMessage(`* SHOW SB-ITEM mode=[${modeName(mode)}]`);
-    }
-    // these alwasy get updated if showing
-    updateStatusBarCompileDebugItem(true);
-    updateStatusBarFlashDownloadItem(true);
-    // post information to out-side world via our CONTEXT
-    vscode.commands.executeCommand('setContext', 'runtime.spinExtension.insert.mode', modeName(mode));
-
     // if in overtype mode, set the cursor to secondary style; otherwise, reset to default
     let cursorStyle;
+    const mode = getMode(textEditor);
     switch (mode) {
       default:
         cursorStyle = editModeConfiguration.defaultCursorStyle;
@@ -741,6 +833,7 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor) {
     }
     textEditor.options.cursorStyle = cursorStyle;
   }
+  updateStatusBarItems('handleActiveTextEditorChanged');
 }
 
 const versionCacheByDocument = new Map<string, number>();
@@ -766,7 +859,7 @@ function recolorizeSpinDocumentIfChanged(editor: vscode.TextEditor, callerId: st
 
 const handleDidChangeConfiguration = () => {
   const previousPerEditor = editModeConfiguration.perEditor;
-  const previousShowInStatusBar = getShowInserModeInStatusBar();
+  const previousShowInStatusBar = getShowInsertModeInStatusBar();
   const previousInsertModeEnable = tabConfiguration.enable;
   logExtensionMessage('* handleDidChangeConfiguration');
 
@@ -782,21 +875,26 @@ const handleDidChangeConfiguration = () => {
     return;
   }
 
-  const showInsertModeInStatusBar = getShowInserModeInStatusBar();
+  const showInsertModeInStatusBar = getShowInsertModeInStatusBar();
   //logExtensionMessage(`* (DBG) showInStatusBar=(${showInStatusBar}), previousInsertModeEnable=(${previousInsertModeEnable})`);
 
   // post create / destroy when changed
   if (showInsertModeInStatusBar !== previousShowInStatusBar) {
-    if (showInsertModeInStatusBar) {
-      createStatusBarInsertModeItem();
+    const textEditor = vscode.window.activeTextEditor;
+    if (showInsertModeInStatusBar && textEditor !== undefined) {
+      const mode = getMode(textEditor);
+      updateStatusBarInsertModeItem(mode); // hide status bar content
     } else {
-      destroyStatusBarInsertModeItem();
+      updateStatusBarInsertModeItem(null); // hide status bar content
     }
   }
 
   if (isCurrentDocumentSpin2()) {
     updateStatusBarCompileDebugItem(true);
     updateStatusBarFlashDownloadItem(true);
+  } else {
+    updateStatusBarCompileDebugItem(null);
+    updateStatusBarFlashDownloadItem(null);
   }
 
   // update state if the per-editor/global configuration option changes
@@ -826,7 +924,7 @@ function toggleCommand() {
 function toggleCommand2State() {
   const textEditor = vscode.window.activeTextEditor;
   logExtensionMessage('CMD: toggle2State');
-  if (textEditor == null) {
+  if (textEditor == null || textEditor === undefined) {
     return;
   }
 
@@ -834,7 +932,7 @@ function toggleCommand2State() {
   handleActiveTextEditorChanged(textEditor); // update the SB
 }
 
-function getShowInserModeInStatusBar(): boolean {
+function getShowInsertModeInStatusBar(): boolean {
   let showOrNot: boolean = tabConfiguration.enable;
   /*
   logExtensionMessage(

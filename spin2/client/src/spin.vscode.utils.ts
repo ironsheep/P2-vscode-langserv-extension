@@ -69,6 +69,14 @@ export function isSpinDocument(document: vscode.TextDocument): boolean {
   return spinDocumentStatus;
 }
 
+export function isSpin2Document(document: vscode.TextDocument): boolean {
+  let spinDocumentStatus: boolean = false;
+  if (document) {
+    spinDocumentStatus = isSpin2File(document.fileName);
+  }
+  return spinDocumentStatus;
+}
+
 export function isSpinOrPasmDocument(document: vscode.TextDocument): boolean {
   let spinDocumentStatus: boolean = false;
   if (document) {
