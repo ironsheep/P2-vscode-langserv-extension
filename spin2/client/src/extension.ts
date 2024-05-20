@@ -19,28 +19,22 @@ import { overtypeBeforePaste, overtypeBeforeType } from './providers/spin.editMo
 import { editModeConfiguration, reloadEditModeConfiguration } from './providers/spin.editMode.configuration';
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
-import {
-  createStatusBarInsertModeItem,
-  destroyStatusBarInsertModeItem,
-  updateStatusBarInsertModeItem
-} from './providers/spin.editMode.statusBarItem';
+import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
 import { isCurrentDocumentSpin2, isSpin2Document, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
-//import { spawn } from 'child_process';
 import { isMac, isWindows, locateExe, platform } from './fileUtils';
 import { UsbSerial } from './usb.serial';
 import {
   createStatusBarFlashDownloadItem,
-  destroyStatusBarFlashDownloadItem,
   getDownloadFlashMode,
   updateStatusBarFlashDownloadItem
 } from './providers/spin.downloadFlashMode.statusBarItem';
 import {
   createStatusBarCompileDebugItem,
-  destroyStatusBarCompileDebugItem,
   getCompileDebugMode,
   updateStatusBarCompileDebugItem
 } from './providers/spin.compileDebugMode.statusBarItem';
+import { createStatusBarPropPlugItem, getPropPlugSerialNumber, updateStatusBarPropPlugItem } from './providers/spin.propPlug.statusBarItem';
 
 let client: LanguageClient;
 
@@ -171,6 +165,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   const statusInsertModeBarItem: vscode.StatusBarItem = createStatusBarInsertModeItem();
   const statusCompileDebugBarItem: vscode.StatusBarItem = createStatusBarCompileDebugItem();
   const statusDownloadFlashBarItem: vscode.StatusBarItem = createStatusBarFlashDownloadItem();
+  const statusPropPlugBarItem: vscode.StatusBarItem = createStatusBarPropPlugItem();
   handleActiveTextEditorChanged(); // now show or hide based upon current/active window
 
   context.subscriptions.push(
@@ -194,7 +189,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
     statusInsertModeBarItem,
     statusCompileDebugBarItem,
-    statusDownloadFlashBarItem
+    statusDownloadFlashBarItem,
+    statusPropPlugBarItem
   );
 
   // ----------------------------------------------------------------------------
@@ -244,18 +240,45 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook GENERATE list of USB Serial (Proplug) Devices
   //
-  const generatePropPlugList: string = 'spinExtension.list.propplugs';
+  const selectPropPlugFromList: string = 'spinExtension.select.propplug';
+  //* -- VERSION 2 - NO TERMINAL version
   context.subscriptions.push(
-    vscode.commands.registerCommand(generatePropPlugList, function () {
-      const terminal = vscode.window.createTerminal('List Serial Devices');
+    vscode.commands.registerCommand(selectPropPlugFromList, async function () {
+      logExtensionMessage('CMD: selectPropPlugFromList');
       // terminal.sendText('npm run pnut-ts --help'); // NOPE
-      const rootInstallDir = __dirname.replace('out', '');
-      const pnutCmd = path.join(rootInstallDir, 'node_modules', '.bin', 'pnut-ts');
-      const tsNodeCmd = path.join(rootInstallDir, 'node_modules', '.bin', 'ts-node');
-      terminal.sendText(`${tsNodeCmd} ${pnutCmd} --help`);
-      terminal.show();
+      const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
+      const devicesFound: string[] = [];
+      for (let index = 0; index < deviceNodesDetail.length; index++) {
+        const deviceNodeInfo = deviceNodesDetail[index];
+        const portParts = deviceNodeInfo.split(',');
+        //const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
+        const deviceNode: string = portParts[0];
+        devicesFound.push(deviceNode);
+      }
+
+      switch (devicesFound.length) {
+        case 1:
+          {
+            const selectedDevice = devicesFound[0];
+            vscode.window.showInformationMessage(`The only PropPlug ${selectedDevice} was selected for you automatically.`);
+            updateConfig('toolchain.propPlug', selectedDevice, eConfigSection.CS_USER);
+          }
+          break;
+        case 0:
+          vscode.window.showWarningMessage(`There are no available PropPlugs!`);
+          updateConfig('toolchain.propPlug', undefined, eConfigSection.CS_USER);
+          break;
+
+        default:
+          // Show the list of choices to the user.
+          vscode.window.showInformationMessage('Select the PropPlug connecting to your P2', ...devicesFound).then((userSelectedDevice) => {
+            // Save the user's choice in the workspace configuration.
+            updateConfig('toolchain.propPlug', userSelectedDevice, eConfigSection.CS_USER);
+          });
+          break;
+      }
     })
-  );
+  ); //*/
 
   // ----------------------------------------------------------------------------
   //   Hook TOGGLE compile w/Debug and update display
@@ -288,7 +311,6 @@ function registerCommands(context: vscode.ExtensionContext): void {
         const newEnableState = isFlashEnabled ? false : true;
         updateConfig('toolchain.downloadOptions.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
-        //updateStatusBarFlashDownloadItem(true);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
         console.error(error);
@@ -517,20 +539,53 @@ function initializeProviders(): void {
 async function locatePropPlugs() {
   const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
   const devicesFound: string[] = [];
+  const plugsFoundSetting = {};
+  const currDeviceNode = getCurrentPlugDeviceSelection();
+  let selectionStillExists: boolean = false;
   for (let index = 0; index < deviceNodesDetail.length; index++) {
     const deviceNodeInfo = deviceNodesDetail[index];
     const portParts = deviceNodeInfo.split(',');
-    //const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
+    const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
     const deviceNode: string = portParts[0];
     devicesFound.push(deviceNode);
+    plugsFoundSetting[deviceNode] = deviceSerial;
+    if (currDeviceNode && currDeviceNode === deviceNode) {
+      selectionStillExists = true;
+    }
   }
   logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
+  // record latest values found
+  updateConfig('toolchain.available.propPlugs', plugsFoundSetting, eConfigSection.CS_USER);
   if (devicesFound.length == 1) {
     // if only 1 device, select it
+    if (currDeviceNode && currDeviceNode != devicesFound[0]) {
+      // changing from prior selection, notify user
+      vscode.window.showWarningMessage(`Changing PropPlug to ${devicesFound[0]} from ${currDeviceNode}`);
+    }
     updateConfig('toolchain.propPlug', devicesFound[0], eConfigSection.CS_USER);
   } else if (devicesFound.length == 0) {
     // if NO devices, select NONE
+    if (currDeviceNode) {
+      // changing from prior selection, notify user
+      vscode.window.showWarningMessage(`Removed PropPlug ${currDeviceNode} - No longer available`);
+    }
     updateConfig('toolchain.propPlug', undefined, eConfigSection.CS_USER);
+  } else {
+    // we have more than one!
+    // if one is selected and it is still present then DO NOTHING
+    // else if the selection doesn't exist then clear the selection forcing the user to select a new one
+    if (selectionStillExists == false && currDeviceNode) {
+      // we have a selection but it is no longer present
+      vscode.window.showWarningMessage(
+        `Removed PropPlug ${currDeviceNode} - No longer available, Have ${devicesFound.length} other PropPlugs, press Ctrl+Alt+n to select a one`
+      );
+      updateConfig('toolchain.propPlug', undefined, eConfigSection.CS_USER);
+    } else if (selectionStillExists == false) {
+      // we don't have a selection and there are more than one so tell user to select
+      vscode.window.showInformationMessage(
+        `Found ${devicesFound.length} PropPlugs, please use Ctrl+Alt+n to select one to be used for this workspace`
+      );
+    }
   }
 }
 
@@ -589,7 +644,13 @@ async function locateTools() {
   logExtensionMessage(`* TOOL: platformPaths=[${platformPaths}]`);
 }
 
-async function updateConfig(path: string, value: string | string[] | boolean, section: eConfigSection) {
+function getCurrentPlugDeviceSelection(): string | undefined {
+  const startingConfig = vscode.workspace.getConfiguration('spinExtension');
+  const currDeviceNode: string | undefined = startingConfig.get<string>('toolchain.propPlug');
+  return currDeviceNode;
+}
+
+async function updateConfig(path: string, value: string | string[] | boolean | object, section: eConfigSection) {
   // Get the workspace configuration.
   const startingConfig = vscode.workspace.getConfiguration('spinExtension');
   const existingValue = startingConfig.get(path);
@@ -715,6 +776,7 @@ let priorShowSpin2OnlySBItems: boolean = false;
 let priorEditorMode: eEditMode | undefined = undefined;
 let priorDownloadFlash: boolean = false;
 let priorCompileDebug: boolean = false;
+let priorPlugSN: string = '';
 
 function updateStatusBarItems(callerId: string) {
   let argumentInterp: string = 'undefined';
@@ -728,9 +790,11 @@ function updateStatusBarItems(callerId: string) {
   let isDifferentMode: boolean = false;
   let isDifferentDownloadFlash: boolean = false;
   let isDifferentCompileDebug: boolean = false;
+  let isDifferentPlugSN: boolean = false;
   if (textEditor == null || textEditor === undefined) {
     showSpinStatusBarItems = false;
   } else {
+    showSpin2OnlyStatusBarItems = isSpin2Document(textEditor.document);
     // have updated mode value?
     currMode = getMode(textEditor);
     isDifferentMode = currMode !== priorEditorMode;
@@ -749,7 +813,13 @@ function updateStatusBarItems(callerId: string) {
     if (isDifferentCompileDebug) {
       priorCompileDebug = currCompileDebug;
     }
-    showSpin2OnlyStatusBarItems = isSpin2Document(textEditor.document);
+    // have updated plug S/N?
+    const currPlugSN: string = getPropPlugSerialNumber();
+    isDifferentPlugSN = currPlugSN != priorPlugSN;
+    //logExtensionMessage(`* isDifferentPlugSN=(${isDifferentPlugSN}), was=[${priorPlugSN}], is=[${currPlugSN}]`);
+    if (isDifferentPlugSN) {
+      priorPlugSN = currPlugSN;
+    }
     if (isSpinOrPasmDocument(textEditor.document)) {
       isSpinWindow = true;
       docVersion = textEditor.document.version;
@@ -759,8 +829,8 @@ function updateStatusBarItems(callerId: string) {
       showSpinStatusBarItems = false;
     }
   }
-  const isDifferentFile: boolean = priorChangeUri === undefined || textEditor.document.uri.toString() !== priorChangeUri.toString();
-  if (isDifferentFile || isDifferentMode || isDifferentDownloadFlash || isDifferentCompileDebug) {
+  const isDifferentFile: boolean = priorChangeUri === undefined || (textEditor && textEditor.document.uri.toString() !== priorChangeUri.toString());
+  if (isDifferentFile || isDifferentMode || isDifferentDownloadFlash || isDifferentCompileDebug || isDifferentPlugSN) {
     const updateSpinSBItems = showSpinStatusBarItems != priorShowSpinSBItems;
     if (updateSpinSBItems) {
       priorShowSpinSBItems = showSpinStatusBarItems;
@@ -769,17 +839,18 @@ function updateStatusBarItems(callerId: string) {
     if (updateSpinSBItems) {
       priorShowSpin2OnlySBItems = showSpin2OnlyStatusBarItems;
     }
-    priorChangeUri = textEditor.document.uri;
+    priorChangeUri = textEditor !== undefined ? textEditor.document.uri : vscode.Uri.file('');
     logExtensionMessage(`* updateStatusBarItems([${callerId}]) (${argumentInterp})`);
 
     if (updateSpin2SBItems && !showSpin2OnlyStatusBarItems) {
       updateStatusBarCompileDebugItem(null);
       updateStatusBarFlashDownloadItem(null);
-      logExtensionMessage(`* HIDE SB-ITEM spin2 items`);
+      updateStatusBarPropPlugItem(null);
+      logExtensionMessage(`* HIDE 3 SB-ITEM spin2 items`);
     }
     if (updateSpinSBItems && (!showSpinStatusBarItems || !showInsertModeIndicator)) {
       updateStatusBarInsertModeItem(null); // hide status bar content
-      logExtensionMessage(`* HIDE SB-ITEM`);
+      logExtensionMessage(`* HIDE SB-ITEM mode`);
     }
 
     if (isSpinWindow && textEditor) {
@@ -790,11 +861,12 @@ function updateStatusBarItems(callerId: string) {
       // post information to out-side world via our CONTEXT
       vscode.commands.executeCommand('setContext', 'runtime.spinExtension.insert.mode', modeName(currMode));
 
-      if ((updateSpin2SBItems || isDifferentDownloadFlash || isDifferentCompileDebug) && showSpin2OnlyStatusBarItems) {
-        // these alwasy get updated if showing
+      if ((updateSpin2SBItems || isDifferentDownloadFlash || isDifferentCompileDebug || isDifferentPlugSN) && showSpin2OnlyStatusBarItems) {
+        // these always get updated if showing
         updateStatusBarCompileDebugItem(true);
         updateStatusBarFlashDownloadItem(true);
-        logExtensionMessage(`* SHOW SB-ITEM spin2 items`);
+        updateStatusBarPropPlugItem(true);
+        logExtensionMessage(`* SHOW 3 SB-ITEM spin2 items`);
       }
     }
   }
@@ -896,15 +968,17 @@ const handleDidChangeConfiguration = () => {
   if (isCurrentDocumentSpin2()) {
     updateStatusBarCompileDebugItem(true);
     updateStatusBarFlashDownloadItem(true);
+    updateStatusBarPropPlugItem(true);
   } else {
     updateStatusBarCompileDebugItem(null);
     updateStatusBarFlashDownloadItem(null);
+    updateStatusBarPropPlugItem(null);
   }
 
   // update state if the per-editor/global configuration option changes
   if (editModeConfiguration.perEditor !== previousPerEditor) {
     const textEditor = vscode.window.activeTextEditor;
-    const mode = textEditor != null ? getMode(textEditor) : null;
+    const mode = textEditor !== undefined ? getMode(textEditor) : null;
     resetModes(mode, editModeConfiguration.perEditor);
     if (textEditor != null) {
       handleActiveTextEditorChanged(textEditor);
@@ -917,7 +991,7 @@ const handleDidChangeConfiguration = () => {
 function toggleCommand() {
   const textEditor = vscode.window.activeTextEditor;
   logExtensionMessage('CMD: toggle');
-  if (textEditor == null) {
+  if (textEditor === undefined) {
     return;
   }
 
@@ -928,7 +1002,7 @@ function toggleCommand() {
 function toggleCommand2State() {
   const textEditor = vscode.window.activeTextEditor;
   logExtensionMessage('CMD: toggle2State');
-  if (textEditor == null || textEditor === undefined) {
+  if (textEditor === undefined) {
     return;
   }
 
@@ -1001,7 +1075,7 @@ function deleteLeftCommand() {
 function deleteRightCommand() {
   const editor = vscode.window.activeTextEditor;
   logExtensionMessage('CMD: deleteRight');
-  if (tabFormatter.isEnabled() && editor && getMode(editor) == eEditMode.ALIGN) {
+  if (tabFormatter.isEnabled() && editor !== undefined && getMode(editor) == eEditMode.ALIGN) {
     tabFormatter.alignDelete(editor, true);
     return null;
   } else {

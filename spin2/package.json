@@ -53,8 +53,8 @@
         "title": "Spin2: Compile .spin2 to file(s) and/or download"
       },
       {
-        "command": "spinExtension.list.propplugs",
-        "title": "Spin2: List PropPlug Serial Devices"
+        "command": "spinExtension.select.propplug",
+        "title": "Spin2: Select PropPlug Serial Device for use"
       },
       {
         "command": "spinExtension.toggle.debug",
@@ -512,6 +512,15 @@
             "default": "",
             "description": "The selected device connecting to your P2"
           },
+          "spinExtension.toolchain.available.propPlugs": {
+            "type": "object",
+            "default": {},
+            "description": "Plug S/N by propPlug Device Node",
+            "additionalProperties": {
+              "type": "string",
+              "description": "S/N for the propPlug Device Node"
+            }
+          },
           "spinExtension.toolchain.compileOptions.enableDebug": {
             "type": "boolean",
             "default": false,
@@ -578,12 +587,12 @@
       {
         "key": "Ctrl+Alt+n",
         "win": "Ctrl+Win+n",
-        "command": "spinExtension.list.propplugs",
+        "command": "spinExtension.select.propplug",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
-        "key": "Ctrl+Alt+n",
-        "win": "Ctrl+Win+n",
+        "key": "Ctrl+Alt+g",
+        "win": "Ctrl+Win+g",
         "command": "spinExtension.toggle.debug",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },

@@ -390,7 +390,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     this._logMessage(`+==+ (DBG) ObjDep: activeEditorChanged(${invokeType})`);
     const initialViewEnabledState: boolean = this.viewEnabledState;
     const topChanged: boolean = this._loadConfigWithTopFileInfo(); // ensure we have latest in case it changed
-    const haveActiveEditor: boolean = vscode.window.activeTextEditor ? true : false;
+    const haveActiveEditor: boolean = vscode.window.activeTextEditor !== undefined ? true : false;
     let editedFileNameChanged: boolean = false;
     let haveSpinFile: boolean = false;
     if (haveActiveEditor) {
@@ -788,7 +788,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private _getActiveSpinFile(): string {
     const textEditor = vscode.window.activeTextEditor;
     let foundFSpec: string = '';
-    if (textEditor) {
+    if (textEditor !== undefined) {
       if (textEditor.document.uri.scheme === 'file') {
         const currentlyOpenTabFSpec = textEditor.document.uri.fsPath;
         //var currentlyOpenTabfolderName = path.dirname(currentlyOpenTabFSpec);

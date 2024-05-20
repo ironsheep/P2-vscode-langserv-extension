@@ -4,12 +4,15 @@
 
 import * as vscode from 'vscode';
 
-export function activeFilespec(activeEditor?: vscode.TextEditor) {
-  if (activeEditor == null || activeEditor === undefined) {
+export function activeFilespec(activeEditor?: vscode.TextEditor): string | undefined {
+  let desidredFilespec: string | undefined = undefined;
+  if (activeEditor === undefined) {
     activeEditor = vscode.window.activeTextEditor;
   }
-  const desiredFilespec: string = activeEditor!.document.fileName;
-  return desiredFilespec;
+  if (activeEditor !== undefined) {
+    desidredFilespec = activeEditor.document.fileName;
+  }
+  return desidredFilespec;
 }
 
 export function activeSpinEditors(): vscode.TextEditor[] {
