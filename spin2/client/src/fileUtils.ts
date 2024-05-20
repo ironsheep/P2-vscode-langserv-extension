@@ -57,6 +57,20 @@ export function platformExeName(exeName: string): string {
   return searchExeName;
 }
 
+export function locateNonExe(fileName: string, possibleLocations: string[]): string | undefined {
+  let fileFSpec: string | undefined = undefined;
+  for (let index = 0; index < possibleLocations.length; index++) {
+    const searchDir = possibleLocations[index];
+    const searchFSpec = path.join(searchDir, fileName);
+    const fileExists = fs.existsSync(searchFSpec);
+    if (fileExists) {
+      fileFSpec = searchFSpec;
+      break;
+    }
+  }
+  return fileFSpec;
+}
+
 export async function locateExe(exeName: string, possibleLocations: string[]): Promise<string | undefined> {
   let exeFSpec: string | undefined = undefined;
   const searchExeName = platformExeName(exeName);

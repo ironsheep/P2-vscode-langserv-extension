@@ -555,6 +555,11 @@
             "type": "string",
             "default": "",
             "description": "Absolute path of the loadP2 executable"
+          },
+          "spinExtension.toolchain.paths.flexFlashloader": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the P2ES_flashloader.bin file"
           }
         }
       }

@@ -22,7 +22,7 @@ import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName 
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
 import { isCurrentDocumentSpin2, isSpin2Document, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
-import { isMac, isWindows, locateExe, platform } from './fileUtils';
+import { isMac, isWindows, locateExe, locateNonExe, platform } from './fileUtils';
 import { UsbSerial } from './usb.serial';
 import {
   createStatusBarFlashDownloadItem,
@@ -629,13 +629,27 @@ async function locateTools() {
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${flexSpinFSpec}`);
     await updateConfig('toolchain.paths.flexSpin', flexSpinFSpec, eConfigSection.CS_USER);
-  }
-  const loadP2FSpec = await locateExe('loadp2', platformPaths);
-  if (loadP2FSpec !== undefined) {
-    // Update the configuration with the path of the executable.
-    toolsFound = true;
-    logExtensionMessage(`* TOOL: ${loadP2FSpec}`);
-    await updateConfig('toolchain.paths.loadP2', loadP2FSpec, eConfigSection.CS_USER);
+    //
+    // now look for other FlexProp related parts
+    //
+    const flexPropBin = path.dirname(flexSpinFSpec);
+    const flexPropBoard = path.join(path.dirname(flexPropBin), 'board');
+
+    const loadP2FSpec = await locateExe('loadp2', [flexPropBin]);
+    if (loadP2FSpec !== undefined) {
+      // Update the configuration with the path of the executable.
+      toolsFound = true;
+      logExtensionMessage(`* TOOL: ${loadP2FSpec}`);
+      await updateConfig('toolchain.paths.loadP2', loadP2FSpec, eConfigSection.CS_USER);
+    }
+
+    const flexFlasherBinFSpec = locateNonExe('P2ES_flashloader.bin', [flexPropBoard]);
+    if (flexFlasherBinFSpec !== undefined) {
+      // Update the configuration with the path of the executable.
+      toolsFound = true;
+      logExtensionMessage(`* TOOL: ${flexFlasherBinFSpec}`);
+      await updateConfig('toolchain.paths.flexFlashloader', flexFlasherBinFSpec, eConfigSection.CS_USER);
+    }
   }
   if (!toolsFound) {
     logExtensionMessage(`* TOOL: {No Tools Found}`);
