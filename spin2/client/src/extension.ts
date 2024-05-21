@@ -261,19 +261,19 @@ function registerCommands(context: vscode.ExtensionContext): void {
           {
             const selectedDevice = devicesFound[0];
             vscode.window.showInformationMessage(`The only PropPlug ${selectedDevice} was selected for you automatically.`);
-            updateConfig('toolchain.propPlug', selectedDevice, eConfigSection.CS_USER);
+            updateConfig('toolchain.propPlug.selected', selectedDevice, eConfigSection.CS_USER);
           }
           break;
         case 0:
           vscode.window.showWarningMessage(`There are no available PropPlugs!`);
-          updateConfig('toolchain.propPlug', undefined, eConfigSection.CS_USER);
+          updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
           break;
 
         default:
           // Show the list of choices to the user.
           vscode.window.showInformationMessage('Select the PropPlug connecting to your P2', ...devicesFound).then((userSelectedDevice) => {
             // Save the user's choice in the workspace configuration.
-            updateConfig('toolchain.propPlug', userSelectedDevice, eConfigSection.CS_USER);
+            updateConfig('toolchain.propPlug.selected', userSelectedDevice, eConfigSection.CS_USER);
           });
           break;
       }
@@ -290,7 +290,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       try {
         const isDebugEnabled: boolean = getCompileDebugMode();
         const newEnableState = isDebugEnabled ? false : true;
-        updateConfig('toolchain.compileOptions.enableDebug', newEnableState, eConfigSection.CS_WORKSPACE);
+        updateConfig('toolchain.optionsCompile.enableDebug', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableDebug (${isDebugEnabled}) -> (${newEnableState})`);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
@@ -309,7 +309,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       try {
         const isFlashEnabled: boolean = getDownloadFlashMode();
         const newEnableState = isFlashEnabled ? false : true;
-        updateConfig('toolchain.downloadOptions.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
+        updateConfig('toolchain.optionsDownload.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
@@ -555,21 +555,21 @@ async function locatePropPlugs() {
   }
   logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
   // record latest values found
-  updateConfig('toolchain.available.propPlugs', plugsFoundSetting, eConfigSection.CS_USER);
+  updateConfig('toolchain.propPlug.devicesFound', plugsFoundSetting, eConfigSection.CS_USER);
   if (devicesFound.length == 1) {
     // if only 1 device, select it
     if (currDeviceNode && currDeviceNode != devicesFound[0]) {
       // changing from prior selection, notify user
       vscode.window.showWarningMessage(`Changing PropPlug to ${devicesFound[0]} from ${currDeviceNode}`);
     }
-    updateConfig('toolchain.propPlug', devicesFound[0], eConfigSection.CS_USER);
+    updateConfig('toolchain.propPlug.selected', devicesFound[0], eConfigSection.CS_USER);
   } else if (devicesFound.length == 0) {
     // if NO devices, select NONE
     if (currDeviceNode) {
       // changing from prior selection, notify user
       vscode.window.showWarningMessage(`Removed PropPlug ${currDeviceNode} - No longer available`);
     }
-    updateConfig('toolchain.propPlug', undefined, eConfigSection.CS_USER);
+    updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
   } else {
     // we have more than one!
     // if one is selected and it is still present then DO NOTHING
@@ -579,7 +579,7 @@ async function locatePropPlugs() {
       vscode.window.showWarningMessage(
         `Removed PropPlug ${currDeviceNode} - No longer available, Have ${devicesFound.length} other PropPlugs, press Ctrl+Alt+n to select a one`
       );
-      updateConfig('toolchain.propPlug', undefined, eConfigSection.CS_USER);
+      updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
     } else if (selectionStillExists == false) {
       // we don't have a selection and there are more than one so tell user to select
       vscode.window.showInformationMessage(
@@ -596,18 +596,20 @@ async function locateTools() {
   // factor in use of ENV{'path'} to locate tools
   const envPath = process.env.PATH;
   const userBin = path.join('~', 'bin');
-  const userLocalBin = path.join('usr', 'local', 'bin');
-  const optLocalBin = path.join('opt', 'local', 'bin');
+  const userLocalBin = path.join(`${path.sep}usr`, 'local', 'bin');
+  const optLocalBin = path.join(`${path.sep}opt`, 'local', 'bin');
   let platformPaths: string[] = [];
   if (isWindows()) {
     const envDirs = envPath.split(':').filter(Boolean);
     // C:\Program Files (x86)\Parallax Inc
-    const appParallax = path.join('Program Files (x86)', 'pnut_ts');
+    const appParallax = path.join(`${path.sep}Program Files (x86)`, 'pnut_ts');
     platformPaths = [...envDirs, appParallax];
   } else if (isMac()) {
     const envDirs = envPath.split(':').filter(Boolean);
-    const applications = path.join('Applications', 'flexprop', 'bin');
-    platformPaths = [...envDirs, applications, userBin, userLocalBin, optLocalBin];
+    const applicationsFlex = path.join(`${path.sep}Applications`, 'flexprop', 'bin');
+    const applicationsSystem = path.join(`${path.sep}Applications`); // force leading slash
+    const applicationsUser = path.join('~', 'Applications');
+    platformPaths = [...envDirs, applicationsFlex, applicationsSystem, applicationsUser, userBin, userLocalBin, optLocalBin];
   } else {
     // assume linux, RPi
     platformPaths = [userBin, userLocalBin];
@@ -621,14 +623,14 @@ async function locateTools() {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${pnutFSpec}`);
-    await updateConfig('toolchain.paths.pnutTs', pnutFSpec, eConfigSection.CS_USER);
+    await updateConfig('toolchain.paths.PNutTs', pnutFSpec, eConfigSection.CS_USER);
   }
   const flexSpinFSpec = await locateExe('flexspin', platformPaths);
   if (flexSpinFSpec !== undefined) {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${flexSpinFSpec}`);
-    await updateConfig('toolchain.paths.flexSpin', flexSpinFSpec, eConfigSection.CS_USER);
+    await updateConfig('toolchain.paths.flexspin', flexSpinFSpec, eConfigSection.CS_USER);
     //
     // now look for other FlexProp related parts
     //
@@ -640,7 +642,7 @@ async function locateTools() {
       // Update the configuration with the path of the executable.
       toolsFound = true;
       logExtensionMessage(`* TOOL: ${loadP2FSpec}`);
-      await updateConfig('toolchain.paths.loadP2', loadP2FSpec, eConfigSection.CS_USER);
+      await updateConfig('toolchain.paths.loadp2', loadP2FSpec, eConfigSection.CS_USER);
     }
 
     const flexFlasherBinFSpec = locateNonExe('P2ES_flashloader.bin', [flexPropBoard]);
@@ -648,9 +650,33 @@ async function locateTools() {
       // Update the configuration with the path of the executable.
       toolsFound = true;
       logExtensionMessage(`* TOOL: ${flexFlasherBinFSpec}`);
-      await updateConfig('toolchain.paths.flexFlashloader', flexFlasherBinFSpec, eConfigSection.CS_USER);
+      await updateConfig('toolchain.paths.flexspinFlashloader', flexFlasherBinFSpec, eConfigSection.CS_USER);
     }
   }
+  // now build list of available compilers
+  const compilers = {};
+  if (flexSpinFSpec !== undefined) {
+    const installPath = path.dirname(flexSpinFSpec);
+    let compilerId = path.basename(flexSpinFSpec);
+    // optionaly remove any filetype
+    if (path.extname(compilerId).length > 0) {
+      compilerId = compilerId.replace(path.extname(compilerId), '');
+    }
+    compilers[installPath] = compilerId;
+  }
+  if (pnutFSpec !== undefined) {
+    const installPath = path.dirname(pnutFSpec);
+    let compilerId = path.basename(pnutFSpec);
+    // optionaly remove any filetype
+    if (path.extname(compilerId).length > 0) {
+      compilerId = compilerId.replace(path.extname(compilerId), '');
+    }
+    compilers[installPath] = compilerId;
+  }
+  // record the set of discovered compilers
+  await updateConfig('toolchain.compiler.installationsFound', compilers, eConfigSection.CS_USER);
+
+  // do final status reports
   if (!toolsFound) {
     logExtensionMessage(`* TOOL: {No Tools Found}`);
   }
@@ -660,7 +686,7 @@ async function locateTools() {
 
 function getCurrentPlugDeviceSelection(): string | undefined {
   const startingConfig = vscode.workspace.getConfiguration('spinExtension');
-  const currDeviceNode: string | undefined = startingConfig.get<string>('toolchain.propPlug');
+  const currDeviceNode: string | undefined = startingConfig.get<string>('toolchain.propPlug.selected');
   return currDeviceNode;
 }
 

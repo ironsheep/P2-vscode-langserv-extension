@@ -31,9 +31,9 @@ let availablePlugCount: number = 0;
 
 export function getPropPlugSerialNumber(): string {
   const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-  const deviceName: string | undefined = toolchainConfig.get<string>('propPlug');
+  const deviceName: string | undefined = toolchainConfig.get<string>('propPlug.selected');
   const deviceNodesDetail = {};
-  const deviceSet = toolchainConfig.get('available.propPlugs');
+  const deviceSet = toolchainConfig.get('propPlug.devicesFound');
   if (typeof deviceSet === 'object' && deviceSet !== null) {
     for (const [deviceNode, serialNumber] of Object.entries(deviceSet)) {
       deviceNodesDetail[deviceNode] = serialNumber;

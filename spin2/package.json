@@ -507,56 +507,70 @@
       {
         "title": "Spin/Spin2 ToolChain Configuration",
         "properties": {
-          "spinExtension.toolchain.propPlug": {
+          "spinExtension.toolchain.propPlug.selected": {
             "type": "string",
             "default": "",
             "description": "The selected device connecting to your P2"
           },
-          "spinExtension.toolchain.available.propPlugs": {
+          "spinExtension.toolchain.propPlug.devicesFound": {
             "type": "object",
             "default": {},
-            "description": "Plug S/N by propPlug Device Node",
+            "description": "Discovered PropPlug Device Nodes and their associated Serial Number",
             "additionalProperties": {
               "type": "string",
               "description": "S/N for the propPlug Device Node"
             }
           },
-          "spinExtension.toolchain.compileOptions.enableDebug": {
+          "spinExtension.toolchain.compiler.installationsFound": {
+            "type": "object",
+            "default": {},
+            "description": "Discovered Compiler installation paths and their associated Compiler ID",
+            "additionalProperties": {
+              "type": "string",
+              "description": "ID of Compiler found at installation path"
+            }
+          },
+          "spinExtension.toolchain.compiler.selected": {
+            "type": "string",
+            "default": "",
+            "description": "The your Spin/Spin2 compiler (must be one of the available compiler IDs)"
+          },
+          "spinExtension.toolchain.optionsCompile.enableDebug": {
             "type": "boolean",
             "default": false,
             "description": "Enable debug code generation in Spin2 compiles"
           },
-          "spinExtension.toolchain.compileOptions.enableLstOutput": {
+          "spinExtension.toolchain.optionsCompile.enableLstOutput": {
             "type": "boolean",
             "default": false,
             "description": "Enable generation of Spin2 listing output from compile"
           },
-          "spinExtension.toolchain.compileOptions.enableBinOutput": {
+          "spinExtension.toolchain.optionsCompile.enableBinOutput": {
             "type": "boolean",
             "default": false,
             "description": "Enable generation of Spin2 binary output from compile"
           },
-          "spinExtension.toolchain.downloadOptions.enableFlash": {
+          "spinExtension.toolchain.optionsDownload.enableFlash": {
             "type": "boolean",
             "default": false,
             "description": "Download to FLASH when enabled"
           },
-          "spinExtension.toolchain.paths.pnutTs": {
+          "spinExtension.toolchain.paths.PNutTs": {
             "type": "string",
             "default": "",
             "description": "Absolute path of the pnut_ts executable"
           },
-          "spinExtension.toolchain.paths.flexSpin": {
+          "spinExtension.toolchain.paths.flexspin": {
             "type": "string",
             "default": "",
-            "description": "Absolute path of the FlexSpin executable"
+            "description": "Absolute path of the flexspin executable"
           },
-          "spinExtension.toolchain.paths.loadP2": {
+          "spinExtension.toolchain.paths.loadp2": {
             "type": "string",
             "default": "",
             "description": "Absolute path of the loadP2 executable"
           },
-          "spinExtension.toolchain.paths.flexFlashloader": {
+          "spinExtension.toolchain.paths.flexspinFlashloader": {
             "type": "string",
             "default": "",
             "description": "Absolute path of the P2ES_flashloader.bin file"
