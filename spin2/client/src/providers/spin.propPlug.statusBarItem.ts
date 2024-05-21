@@ -29,9 +29,15 @@ export const destroyStatusBarPropPlugItem = () => {
 
 let availablePlugCount: number = 0;
 
+export function getCurrentPlugDeviceSelection(preloadedConfig?: vscode.WorkspaceConfiguration): string | undefined {
+  const toolchainConfig = preloadedConfig ? preloadedConfig : vscode.workspace.getConfiguration(`spinExtension.toolchain`);
+  const currDeviceNode: string | undefined = toolchainConfig.get<string>('propPlug.selected');
+  return currDeviceNode;
+}
+
 export function getPropPlugSerialNumber(): string {
   const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-  const deviceName: string | undefined = toolchainConfig.get<string>('propPlug.selected');
+  const deviceName: string | undefined = getCurrentPlugDeviceSelection(toolchainConfig);
   const deviceNodesDetail = {};
   const deviceSet = toolchainConfig.get('propPlug.devicesFound');
   if (typeof deviceSet === 'object' && deviceSet !== null) {

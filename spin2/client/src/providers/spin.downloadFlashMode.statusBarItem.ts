@@ -29,7 +29,7 @@ export const destroyStatusBarFlashDownloadItem = () => {
 
 export function getDownloadFlashMode(): boolean {
   const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-  const flashValue: boolean | undefined = toolchainConfig.get<boolean>('downloadOptions.enableFlash');
+  const flashValue: boolean | undefined = toolchainConfig.get<boolean>('optionsDownload.enableFlash');
   const currValue: boolean = flashValue !== undefined ? flashValue : false;
   return currValue;
 }
@@ -44,10 +44,9 @@ export const updateStatusBarFlashDownloadItem = (showItem: boolean | null) => {
     } else {
       let sbiText: string | undefined = undefined;
 
-      const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-      const isDebugEnabled: boolean = toolchainConfig.get<boolean>('downloadOptions.enableFlash') ? true : false;
+      const isFLASHEnabled: boolean = getDownloadFlashMode();
 
-      if (isDebugEnabled) {
+      if (isFLASHEnabled) {
         sbiText = 'Dnld: FLASH';
         statusBarItem.tooltip = 'Download to FLASH, click to change to RAM';
       } else {

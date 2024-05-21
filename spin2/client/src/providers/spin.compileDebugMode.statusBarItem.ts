@@ -29,7 +29,7 @@ export const destroyStatusBarCompileDebugItem = () => {
 
 export function getCompileDebugMode(): boolean {
   const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-  const debugValue: boolean | undefined = toolchainConfig.get<boolean>('compileOptions.enableDebug');
+  const debugValue: boolean | undefined = toolchainConfig.get<boolean>('optionsCompile.enableDebug');
   const currValue: boolean = debugValue !== undefined ? debugValue : false;
   return currValue;
 }

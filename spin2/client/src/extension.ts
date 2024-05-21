@@ -34,7 +34,12 @@ import {
   getCompileDebugMode,
   updateStatusBarCompileDebugItem
 } from './providers/spin.compileDebugMode.statusBarItem';
-import { createStatusBarPropPlugItem, getPropPlugSerialNumber, updateStatusBarPropPlugItem } from './providers/spin.propPlug.statusBarItem';
+import {
+  createStatusBarPropPlugItem,
+  getCurrentPlugDeviceSelection,
+  getPropPlugSerialNumber,
+  updateStatusBarPropPlugItem
+} from './providers/spin.propPlug.statusBarItem';
 
 let client: LanguageClient;
 
@@ -682,12 +687,6 @@ async function locateTools() {
   }
   logExtensionMessage(`* TOOL: platform=[${platform()}]`);
   logExtensionMessage(`* TOOL: platformPaths=[${platformPaths}]`);
-}
-
-function getCurrentPlugDeviceSelection(): string | undefined {
-  const startingConfig = vscode.workspace.getConfiguration('spinExtension');
-  const currDeviceNode: string | undefined = startingConfig.get<string>('toolchain.propPlug.selected');
-  return currDeviceNode;
 }
 
 async function updateConfig(path: string, value: string | string[] | boolean | object, section: eConfigSection) {
