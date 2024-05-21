@@ -317,7 +317,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
         updateConfig('toolchain.optionsDownload.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
       } catch (error) {
-        await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
+        await vscode.window.showErrorMessage(`TOGGLE-FLASH Problem: error=[${error}]`);
         console.error(error);
       }
     })
