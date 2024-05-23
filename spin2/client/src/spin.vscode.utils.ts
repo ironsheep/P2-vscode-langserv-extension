@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use strict';
+import * as fs from 'fs';
+import path = require('path');
 // src/spin.vscode.utils.ts
 
 import * as vscode from 'vscode';
@@ -13,6 +15,33 @@ export function activeFilespec(activeEditor?: vscode.TextEditor): string | undef
     desidredFilespec = activeEditor.document.fileName;
   }
   return desidredFilespec;
+}
+
+export function activeSpin2Filespec(activeEditor?: vscode.TextEditor): string | undefined {
+  let desiredFilespec: string | undefined = activeFilespec();
+  if (desiredFilespec !== undefined) {
+    const tmpFilespec: string | undefined = existingSpin2File(path.basename(desiredFilespec));
+    if (tmpFilespec !== undefined) {
+      desiredFilespec = tmpFilespec;
+    }
+  }
+  return desiredFilespec;
+}
+
+export function existingSpin2File(filename: string): string | undefined {
+  let desiredName: string | undefined = filename;
+  if (!isSpin2File(desiredName)) {
+    desiredName = `${desiredName}.spin2`;
+  }
+  if (!fs.existsSync(desiredName)) {
+    desiredName = undefined;
+  }
+  return desiredName;
+}
+
+function filenameHasExtension(filename: string): boolean {
+  const foundExtStatus: boolean = path.extname(filename).length > 0 ? true : false;
+  return foundExtStatus;
 }
 
 export function activeSpinEditors(): vscode.TextEditor[] {

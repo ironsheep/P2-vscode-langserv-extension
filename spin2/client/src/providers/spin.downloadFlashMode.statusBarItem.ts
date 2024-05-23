@@ -1,5 +1,6 @@
 'use strict';
 import * as vscode from 'vscode';
+import { toolchainConfiguration } from './spin.toolChain.configuration';
 
 let statusBarItem: vscode.StatusBarItem | null;
 
@@ -27,13 +28,6 @@ export const destroyStatusBarFlashDownloadItem = () => {
   statusBarItem = null;
 };
 
-export function getDownloadFlashMode(): boolean {
-  const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-  const flashValue: boolean | undefined = toolchainConfig.get<boolean>('optionsDownload.enableFlash');
-  const currValue: boolean = flashValue !== undefined ? flashValue : false;
-  return currValue;
-}
-
 export const updateStatusBarFlashDownloadItem = (showItem: boolean | null) => {
   if (statusBarItem != null) {
     if (showItem == null || showItem == false) {
@@ -44,7 +38,7 @@ export const updateStatusBarFlashDownloadItem = (showItem: boolean | null) => {
     } else {
       let sbiText: string | undefined = undefined;
 
-      const isFLASHEnabled: boolean = getDownloadFlashMode();
+      const isFLASHEnabled: boolean = toolchainConfiguration.writeFlashEnabled;
 
       if (isFLASHEnabled) {
         sbiText = 'Dnld: FLASH';

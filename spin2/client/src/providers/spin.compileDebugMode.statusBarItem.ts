@@ -1,5 +1,6 @@
 'use strict';
 import * as vscode from 'vscode';
+import { toolchainConfiguration } from './spin.toolChain.configuration';
 
 let statusBarItem: vscode.StatusBarItem | null;
 
@@ -27,13 +28,6 @@ export const destroyStatusBarCompileDebugItem = () => {
   statusBarItem = null;
 };
 
-export function getCompileDebugMode(): boolean {
-  const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-  const debugValue: boolean | undefined = toolchainConfig.get<boolean>('optionsCompile.enableDebug');
-  const currValue: boolean = debugValue !== undefined ? debugValue : false;
-  return currValue;
-}
-
 export const updateStatusBarCompileDebugItem = (showItem: boolean | null) => {
   if (statusBarItem != null) {
     if (showItem == null || showItem == false) {
@@ -44,7 +38,7 @@ export const updateStatusBarCompileDebugItem = (showItem: boolean | null) => {
     } else {
       let sbiText: string | undefined = undefined;
 
-      const isDebugEnabled: boolean = getCompileDebugMode();
+      const isDebugEnabled: boolean = toolchainConfiguration.debugEnabled;
 
       if (isDebugEnabled) {
         sbiText = 'Debug: ON';

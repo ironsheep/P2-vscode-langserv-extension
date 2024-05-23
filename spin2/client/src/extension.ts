@@ -7,7 +7,6 @@
 /* eslint-disable no-console */ // allow console writes from this file
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as PNutTs from 'p2-pnut-ts';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 
@@ -24,22 +23,18 @@ import { isCurrentDocumentSpin2, isSpin2Document, isSpinOrPasmDocument } from '.
 import { USBDocGenerator } from './providers/usb.document.generate';
 import { isMac, isWindows, locateExe, locateNonExe, platform } from './fileUtils';
 import { UsbSerial } from './usb.serial';
+import { createStatusBarFlashDownloadItem, updateStatusBarFlashDownloadItem } from './providers/spin.downloadFlashMode.statusBarItem';
+import { createStatusBarCompileDebugItem, updateStatusBarCompileDebugItem } from './providers/spin.compileDebugMode.statusBarItem';
+import { createStatusBarPropPlugItem, getPropPlugSerialNumber, updateStatusBarPropPlugItem } from './providers/spin.propPlug.statusBarItem';
 import {
-  createStatusBarFlashDownloadItem,
-  getDownloadFlashMode,
-  updateStatusBarFlashDownloadItem
-} from './providers/spin.downloadFlashMode.statusBarItem';
-import {
-  createStatusBarCompileDebugItem,
-  getCompileDebugMode,
-  updateStatusBarCompileDebugItem
-} from './providers/spin.compileDebugMode.statusBarItem';
-import {
-  createStatusBarPropPlugItem,
-  getCurrentPlugDeviceSelection,
-  getPropPlugSerialNumber,
-  updateStatusBarPropPlugItem
-} from './providers/spin.propPlug.statusBarItem';
+  PATH_FLEXSPIN,
+  PATH_LOADER_BIN,
+  PATH_LOADP2,
+  PATH_PNUT,
+  PATH_PNUT_TS,
+  reloadToolchainConfiguration,
+  toolchainConfiguration
+} from './providers/spin.toolChain.configuration';
 
 let client: LanguageClient;
 
@@ -56,7 +51,8 @@ const tabFormatter: Formatter = new Formatter();
 const docGenerator: DocGenerator = new DocGenerator(objTreeProvider);
 const codeBlockColorizer: RegionColorizer = new RegionColorizer();
 const usbDocGenerator: USBDocGenerator = new USBDocGenerator();
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+//const forceToolChainConfLoad = toolchainConfiguration; // reference to force load on startup
 const logExtensionMessage = (message: string): void => {
   // simple utility to write to TABBING  output window.
   if (isDebugLogEnabled && debugOutputChannel !== undefined) {
@@ -293,7 +289,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(toggleCompileWithDebug, async () => {
       logExtensionMessage('CMD: toggleCompileWithDebug');
       try {
-        const isDebugEnabled: boolean = getCompileDebugMode();
+        const isDebugEnabled: boolean = toolchainConfiguration.debugEnabled;
         const newEnableState = isDebugEnabled ? false : true;
         updateConfig('toolchain.optionsCompile.enableDebug', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableDebug (${isDebugEnabled}) -> (${newEnableState})`);
@@ -312,7 +308,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(toggleDownloadToFlash, async () => {
       logExtensionMessage('CMD: toggleDownloadToFlash');
       try {
-        const isFlashEnabled: boolean = getDownloadFlashMode();
+        const isFlashEnabled: boolean = toolchainConfiguration.writeFlashEnabled;
         const newEnableState = isFlashEnabled ? false : true;
         updateConfig('toolchain.optionsDownload.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
@@ -324,85 +320,171 @@ function registerCommands(context: vscode.ExtensionContext): void {
   );
 
   // ----------------------------------------------------------------------------
-  //   Hook Compile a .spin2 file to file(s) and or download
+  //   Hook Compile current .spin2 file
   //
-  const compileSpin2File: string = 'spinExtension.compile.file';
-  /* -- VERSION 2 FAILED
+  const compileCurrentSpin2File: string = 'spinExtension.compile.currfile';
+  //* -- VERSION 3
   context.subscriptions.push(
-    vscode.commands.registerCommand(compileSpin2File, async () => {
-      try {
-        // and test it!
-        const editor = vscode?.window.activeTextEditor;
-        const srcFilename = path.basename(editor.document!.fileName);
-        //this.logMessage(`* compileSpin2File: [${srcFilename}]`);
+    vscode.commands.registerCommand(compileCurrentSpin2File, async () => {
+      logExtensionMessage('* compileCurrentSpin2File');
+      const tasks = await vscode.tasks.fetchTasks();
+      const taskToRun = tasks.find((task) => task.name === 'compileP2');
 
-        const rootInstallDir = __dirname.replace('out', '');
-        const nodeModulesBinDir = path.join(rootInstallDir, 'node_modules', '.bin');
-        const pnutCmd = path.join(rootInstallDir, 'node_modules', 'p2-pnut-ts', 'out', 'pnut-ts.js');
-        const tsNodeCmd = path.join(rootInstallDir, 'node_modules', '.bin', 'ts-node');
-
-        const args: string[] = ['-v', '--help', `${srcFilename}`];
-        // Create a new terminal
-        const terminal = vscode.window.createTerminal('PNut-TS Compiler Output');
-        // Add node_modules/.bin to PATH
-        terminal.sendText(`export PATH="${nodeModulesBinDir}:$PATH"`);
-
-        terminal.sendText(`# tsNodeCmd=[${tsNodeCmd}]`);
-        terminal.sendText(`# pnutCmd=[${pnutCmd}]`);
-        terminal.sendText(`# pnut-ts ${args.join(' ')}`);
-        const childProcess = spawn(tsNodeCmd, [pnutCmd, ...args]);
-
-        childProcess.stdout.on('data', (data) => {
-          terminal.sendText(data.toString());
-        });
-
-        childProcess.stderr.on('data', (data) => {
-          terminal.sendText(data.toString());
-        });
-
-        childProcess.on('close', (code) => {
-          terminal.sendText(`child process exited with code ${code}`);
-        });
-
-        terminal.show();
-      } catch (error) {
-        await vscode.window.showErrorMessage(`Spin2 file compile Problem - error: ${error}`);
-        console.error(error);
+      if (taskToRun) {
+        vscode.tasks.executeTask(taskToRun);
+      } else {
+        const errorMessage: string = 'Task:compileP2 not found in User-Tasks';
+        await vscode.window.showErrorMessage(errorMessage);
+        console.error(errorMessage);
       }
     })
   );
-	*/
 
-  // -- VERSION 1 FAILED
+  // ----------------------------------------------------------------------------
+  //   Hook Compile TOP .spin2 file
+  //
+  const compileTopSpin2File: string = 'spinExtension.compile.topfile';
+  //* -- VERSION 1
+  context.subscriptions.push(
+    vscode.commands.registerCommand(compileTopSpin2File, async () => {
+      // this compile will fall-back to compile current when there is NO 'topLevel' defined!
+      const topFilename = toolchainConfiguration.topFilename;
+      const taskName = topFilename !== undefined ? 'compileTopP2' : 'compileP2';
+      logExtensionMessage(`* compileTopSpin2File - topFile=[${topFilename}] task=[${taskName}]`);
+      const tasks = await vscode.tasks.fetchTasks();
+      const taskToRun = tasks.find((task) => task.name === taskName);
+
+      if (taskToRun) {
+        vscode.tasks.executeTask(taskToRun);
+      } else {
+        const errorMessage: string = `Task:${taskName} not found in User-Tasks`;
+        await vscode.window.showErrorMessage(errorMessage);
+        console.error(errorMessage);
+      }
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook Download TOP binary file
+  //
+  const downloadTopFile: string = 'spinExtension.download.topfile';
+  //* -- VERSION 1
+  context.subscriptions.push(
+    vscode.commands.registerCommand(downloadTopFile, async () => {
+      logExtensionMessage('* downloadTopFile');
+      const selctedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
+      if (selctedCompiler == PATH_PNUT_TS) {
+        logExtensionMessage(`* Running pnut_ts, TO DO our own download!`);
+      } else {
+        logExtensionMessage(`* NOT pnut_ts, run download task!`);
+        const tasks = await vscode.tasks.fetchTasks();
+        const taskToRun = tasks.find((task) => task.name === 'downloadP2');
+
+        if (taskToRun) {
+          vscode.tasks.executeTask(taskToRun);
+        } else {
+          const errorMessage: string = 'Task:downloadP2 not found in User-Tasks';
+          await vscode.window.showErrorMessage(errorMessage);
+          console.error(errorMessage);
+        }
+      }
+    })
+  );
+
+  //*/
+  /* -- VERSION 2 FAILED
   context.subscriptions.push(
     vscode.commands.registerCommand(compileSpin2File, async () => {
-      docGenerator.logMessage('* generateDocumentCommentCommand');
-      try {
-        // and test it!
-        const editor = vscode?.window.activeTextEditor;
-        const srcFilename = path.basename(editor.document!.fileName);
-        const pnutCompiler = new PNutTs.PNutInTypeScript();
-        pnutCompiler.setArgs(['-v', '--help', `${srcFilename}`]);
-        // Create a new terminal
-        const terminal = vscode.window.createTerminal('PNut-TS Compiler Output');
-        const childProcess = pnutCompiler.run();
+      logExtensionMessage('* compileSpin2File');
+      const textEditor = vscode?.window.activeTextEditor;
+      const compilerFSpec: string | undefined = getCompilerFSpec();
+      const compilerID: string | undefined = getIDOfSelectedCompiler();
+      if (textEditor !== undefined && compilerFSpec !== undefined && compilerID !== undefined) {
+        try {
+          // and test it!
+          const srcFilename = path.basename(textEditor.document.fileName);
+          // Create a new terminal
+          const idString: string = getStringforCompilerID(compilerID);
+          const terminal = vscode.window.createTerminal(`${idString} Compiler Output`);
+          const srcFSpec = path.join('spin2', srcFilename);
+          const args: string[] = ['-v', '-c', '-l', `${srcFSpec}`];
+          const compiler: string = path.basename(compilerFSpec);
 
-        childProcess.stdout.on('data', (data) => {
-          terminal.sendText(data.toString());
-        });
+          terminal.sendText(`# ${compiler} ${args.join(' ')}`);
+          terminal.sendText(`# spawn ${compilerFSpec} ${args.join(' ')}`);
+          // Create a temporary file to hold the command's output and error status
+          const outputFile = path.join(os.tmpdir(), 'command-output.txt');
 
-        childProcess.stderr.on('data', (data) => {
-          terminal.sendText(data.toString());
-        });
+          // Create a shell script that executes the command, captures its output and error status, and writes them to a file
+          const script = `
+${compilerFSpec} ${args.join(' ')} | tee ${outputFile}
+echo $? >${outputFile}.status
+`;
+          terminal.sendText(script);
+          terminal.show();
 
-        childProcess.on('close', (code) => {
-          terminal.sendText(`child process exited with code ${code}`);
-        });
+          // Wait for the command to finish (this is just an example, you'll need to implement this in your own way)
+          setTimeout(() => {
+            // Read the command's output and error status from the file
+            const output = fs.readFileSync(outputFile, 'utf8');
+            const status = parseInt(fs.readFileSync(`${outputFile}.status`, 'utf8'));
 
-        terminal.show();
-      } catch (error) {
-        await vscode.window.showErrorMessage(`Spin2 file compile Problem - error: ${error}`);
-        console.error(error);
+            // Check the error status
+            if (status !== 0) {
+              terminal.sendText(`# Command exited with error status ${status}`);
+            } else {
+              terminal.sendText(`# Command exited with SUCCESS`);
+            }
+
+            // Log the output
+            //console.log(output);
+          }, 5000); // 5 seconds
+        } catch (error) {
+          await vscode.window.showErrorMessage(`Spin2 file compile Problem - error: ${error}`);
+          console.error(error);
+        }
+      }
+    })
+  );
+  //*/
+
+  /*/ -- VERSION 1 FAILED
+  context.subscriptions.push(
+    vscode.commands.registerCommand(compileSpin2File, async () => {
+      logExtensionMessage('* compileSpin2File');
+      const textEditor = vscode?.window.activeTextEditor;
+      const compilerFSpec: string | undefined = getCompilerFSpec();
+      const compilerID: string | undefined = getIDOfSelectedCompiler();
+      if (textEditor !== undefined && compilerFSpec !== undefined && compilerID !== undefined) {
+        try {
+          // and test it!
+          const srcFilename = path.basename(textEditor.document.fileName);
+          // Create a new terminal
+          const idString: string = getStringforCompilerID(compilerID);
+          const terminal = vscode.window.createTerminal(`${idString} Compiler Output`);
+          const args: string[] = ['-v', '--help', `${srcFilename}`];
+          const compiler: string = path.basename(compilerFSpec);
+          terminal.sendText(`# ${compiler} ${args.join(' ')}`);
+          terminal.sendText(`# spawn ${compilerFSpec} ${args.join(' ')}`);
+          const childProcess = spawn(compilerFSpec, [...args]);
+
+          childProcess.stdout.on('data', (data) => {
+            terminal.sendText(data.toString());
+          });
+
+          childProcess.stderr.on('data', (data) => {
+            terminal.sendText(data.toString());
+          });
+
+          childProcess.on('close', (code) => {
+            terminal.sendText(`child process exited with code ${code}`);
+          });
+
+          terminal.show();
+        } catch (error) {
+          await vscode.window.showErrorMessage(`Spin2 file compile Problem - error: ${error}`);
+          console.error(error);
+        }
       }
     })
   );
@@ -545,7 +627,7 @@ async function locatePropPlugs() {
   const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
   const devicesFound: string[] = [];
   const plugsFoundSetting = {};
-  const currDeviceNode = getCurrentPlugDeviceSelection();
+  const currDeviceNode = toolchainConfiguration.selectedPropPlug;
   let selectionStillExists: boolean = false;
   for (let index = 0; index < deviceNodesDetail.length; index++) {
     const deviceNodeInfo = deviceNodesDetail[index];
@@ -607,8 +689,10 @@ async function locateTools() {
   if (isWindows()) {
     const envDirs = envPath.split(':').filter(Boolean);
     // C:\Program Files (x86)\Parallax Inc
-    const appParallax = path.join(`${path.sep}Program Files (x86)`, 'pnut_ts');
-    platformPaths = [...envDirs, appParallax];
+    const appPNutTS = path.join(`${path.sep}Program Files (x86)`, 'pnut_ts');
+    const appParallax = path.join(`${path.sep}Program Files (x86)`, 'Parallax Inc');
+    const appPNut = path.join(`${appParallax}`, 'PNut');
+    platformPaths = [...envDirs, appParallax, appPNut, appPNutTS];
   } else if (isMac()) {
     const envDirs = envPath.split(':').filter(Boolean);
     const applicationsFlex = path.join(`${path.sep}Applications`, 'flexprop', 'bin');
@@ -623,12 +707,19 @@ async function locateTools() {
   platformPaths = platformPaths.sort().filter((item, index, self) => index === self.indexOf(item));
   // now see if we find any tools
   let toolsFound: boolean = false;
-  const pnutFSpec: string | undefined = await locateExe('pnut_ts', platformPaths);
+  const pnutFSpec: string | undefined = await locateExe('pnut_shell.bat', platformPaths);
   if (pnutFSpec !== undefined) {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${pnutFSpec}`);
-    await updateConfig('toolchain.paths.PNutTs', pnutFSpec, eConfigSection.CS_USER);
+    await updateConfig('toolchain.paths.PNut', pnutFSpec, eConfigSection.CS_USER);
+  }
+  const pnutTsFSpec: string | undefined = await locateExe('pnut_ts', platformPaths);
+  if (pnutTsFSpec !== undefined) {
+    // Update the configuration with the path of the executable.
+    toolsFound = true;
+    logExtensionMessage(`* TOOL: ${pnutTsFSpec}`);
+    await updateConfig('toolchain.paths.PNutTs', pnutTsFSpec, eConfigSection.CS_USER);
   }
   const flexSpinFSpec = await locateExe('flexspin', platformPaths);
   if (flexSpinFSpec !== undefined) {
@@ -662,21 +753,15 @@ async function locateTools() {
   const compilers = {};
   if (flexSpinFSpec !== undefined) {
     const installPath = path.dirname(flexSpinFSpec);
-    let compilerId = path.basename(flexSpinFSpec);
-    // optionaly remove any filetype
-    if (path.extname(compilerId).length > 0) {
-      compilerId = compilerId.replace(path.extname(compilerId), '');
-    }
-    compilers[installPath] = compilerId;
+    compilers[installPath] = PATH_FLEXSPIN;
   }
   if (pnutFSpec !== undefined) {
     const installPath = path.dirname(pnutFSpec);
-    let compilerId = path.basename(pnutFSpec);
-    // optionaly remove any filetype
-    if (path.extname(compilerId).length > 0) {
-      compilerId = compilerId.replace(path.extname(compilerId), '');
-    }
-    compilers[installPath] = compilerId;
+    compilers[installPath] = PATH_PNUT;
+  }
+  if (pnutTsFSpec !== undefined) {
+    const installPath = path.dirname(pnutTsFSpec);
+    compilers[installPath] = PATH_PNUT_TS;
   }
   // record the set of discovered compilers
   await updateConfig('toolchain.compiler.installationsFound', compilers, eConfigSection.CS_USER);
@@ -723,6 +808,46 @@ async function updateConfig(path: string, value: string | string[] | boolean | o
   }
 }
 
+async function updateRuntimeConfig(path: string, value: string | string[] | boolean | object) {
+  // Get the workspace configuration.
+  logExtensionMessage(`+ (DBG) updateRuntimeConfig([${path}]) Value=[${value}]`);
+  const startingConfig = vscode.workspace.getConfiguration();
+  const existingValue = startingConfig.get(path);
+  if (existingValue === value) {
+    logExtensionMessage(`+ (DBG) updateRuntimeConfig([${path}]) Value already set, aborting`);
+  } else {
+    const startJsonConfig: string = JSON.stringify(startingConfig, null, 4);
+    //logExtensionMessage(`+ (DBG) BEFORE config=(${startJsonConfig})`);
+    try {
+      await startingConfig.update(path, value, vscode.ConfigurationTarget.Workspace);
+    } catch (error) {
+      logExtensionMessage(`ERROR: updateRuntimeConfig([${path}]) <= Value=[${value}] FAILED!`);
+      console.error('Failed to update configuration:', error);
+    }
+    const updatedConfig = vscode.workspace.getConfiguration();
+    const updatedJsonConfig: string = JSON.stringify(updatedConfig, null, 4);
+    //logExtensionMessage(`+ (DBG) AFTER config=(${updatedJsonConfig})`);
+
+    if (startJsonConfig === updatedJsonConfig) {
+      logExtensionMessage(`+ (DBG) NO config value changed!`);
+    } else {
+      const startLines = startJsonConfig.split(/\r?\n/);
+      const changedStartLines = startLines.filter((line) => line.includes(path));
+      const updatedLines = updatedJsonConfig.split(/\r?\n/);
+      const changedUpdatedLines = updatedLines.filter((line) => line.includes(path));
+      logExtensionMessage(`+ (DBG) config checking start (${changedStartLines.length}) lines, updated (${changedUpdatedLines.length})`);
+      for (let index = 0; index < startLines.length; index++) {
+        const startLine = changedStartLines[index];
+        const updatedLine = changedUpdatedLines[index];
+        if (startLine != updatedLine) {
+          const locationIndex: number = startLines.indexOf(startLine);
+          logExtensionMessage(`+ (DBG) config ln#${locationIndex + 1} [${startLine}] -> [${updatedLine}]`);
+        }
+      }
+    }
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
   if (isDebugLogEnabled) {
     if (debugOutputChannel === undefined) {
@@ -740,9 +865,10 @@ export function activate(context: vscode.ExtensionContext) {
   registerProviders(context);
   registerCommands(context);
   initializeProviders();
-  locateTools();
-  locatePropPlugs();
-  // NOPE handleDidChangeConfiguration();
+  // NOPE! handleDidChangeConfiguration();
+  locateTools(); // load toolchain settings
+  locatePropPlugs(); // load Serial Port Settings
+  writeToolchainBuildVariables(); // write compile time values
 
   /*   EXAMPLE
 	    vscode.workspace.onDidSaveTextDocument(e => {
@@ -841,13 +967,13 @@ function updateStatusBarItems(callerId: string) {
       priorEditorMode = currMode;
     }
     // have updated flash value?
-    const currDownloadFlash: boolean = getDownloadFlashMode();
+    const currDownloadFlash: boolean = toolchainConfiguration.writeFlashEnabled;
     isDifferentDownloadFlash = currDownloadFlash != priorDownloadFlash;
     if (isDifferentDownloadFlash) {
       priorDownloadFlash = currDownloadFlash;
     }
     // have updated debug value?
-    const currCompileDebug: boolean = getCompileDebugMode();
+    const currCompileDebug: boolean = toolchainConfiguration.debugEnabled;
     isDifferentCompileDebug = currCompileDebug != priorCompileDebug;
     if (isDifferentCompileDebug) {
       priorCompileDebug = currCompileDebug;
@@ -982,19 +1108,22 @@ const handleDidChangeConfiguration = () => {
   tabFormatter.updateTabConfiguration();
 
   codeBlockColorizer.updateColorizerConfiguration();
-  let updated: boolean = reloadEditModeConfiguration();
+  let editModeUpdated: boolean = reloadEditModeConfiguration();
   if (previousInsertModeEnable != tabConfiguration.enable) {
-    updated = true;
+    editModeUpdated = true;
   }
-  if (!updated) {
-    return;
+
+  const toolchainUpdated: boolean = reloadToolchainConfiguration();
+  if (toolchainUpdated) {
+    // rewrite build variables
+    writeToolchainBuildVariables();
   }
 
   const showInsertModeInStatusBar = getShowInsertModeInStatusBar();
   //logExtensionMessage(`* (DBG) showInStatusBar=(${showInStatusBar}), previousInsertModeEnable=(${previousInsertModeEnable})`);
 
   // post create / destroy when changed
-  if (showInsertModeInStatusBar !== previousShowInStatusBar) {
+  if (editModeUpdated && showInsertModeInStatusBar !== previousShowInStatusBar) {
     const textEditor = vscode.window.activeTextEditor;
     if (showInsertModeInStatusBar && textEditor !== undefined) {
       const mode = getMode(textEditor);
@@ -1015,7 +1144,7 @@ const handleDidChangeConfiguration = () => {
   }
 
   // update state if the per-editor/global configuration option changes
-  if (editModeConfiguration.perEditor !== previousPerEditor) {
+  if (editModeUpdated && editModeConfiguration.perEditor !== previousPerEditor) {
     const textEditor = vscode.window.activeTextEditor;
     const mode = textEditor !== undefined ? getMode(textEditor) : null;
     resetModes(mode, editModeConfiguration.perEditor);
@@ -1026,6 +1155,95 @@ const handleDidChangeConfiguration = () => {
     handleActiveTextEditorChanged();
   }
 };
+
+function writeToolchainBuildVariables() {
+  logExtensionMessage('* writeToolchainBuildVariables');
+  // spin2.fNameTopLevel WAS topLevel
+  // get old, if present
+  const fileBaseName: string | undefined = toolchainConfiguration.topFilename;
+  logExtensionMessage(`+ (DBG) TOP-LEVEL fileBaseName=[${fileBaseName}]`);
+  // if present write as new else write undefined
+  updateRuntimeConfig('spin2.fNameTopLevel', fileBaseName);
+
+  // record selected serial port... (or remove entry)
+  const selectedSerial = toolchainConfiguration.selectedPropPlug;
+  updateRuntimeConfig('spin2.serialPort', selectedSerial);
+
+  const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
+  const compilingDebug: boolean = toolchainConfiguration.debugEnabled;
+  const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+  const loadSerialPort: string = toolchainConfiguration.selectedPropPlug;
+  // are we generating a .lst file?
+  const optionsListValue: string = toolchainConfiguration.lstOutputEnabled ? '-l' : '';
+  updateRuntimeConfig('spin2.optionsList', optionsListValue);
+  //
+  if (selectedCompilerId === PATH_FLEXSPIN) {
+    // -----------------------------------------------------------
+    // flexProp toolset has compiler, loadP2, and flashBinary
+    //
+    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_FLEXSPIN];
+    updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
+    updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
+    const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
+    updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+    // build compiler switches
+    // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
+    const flexDebugSwitch: string = toolchainConfiguration.flexspinDebugFlag;
+    const flexDebugOptions: string = compilingDebug ? `${flexDebugSwitch}` : '';
+    const flexBuildOptions: string = `${flexDebugOptions} -2 -Wabs-paths -Wmax-errors=99`;
+    updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
+    // build loader switches
+    const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
+    const loaderOptions: string = `-b230400 -t ${desiredPort}`;
+    updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
+    // build filename to be loaded (is complex name if writing to flash)
+    let flexBinaryFile: string = `${fileBaseName.replace('.spin2', '.binary')}`;
+    if (writeToFlash) {
+      flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
+    }
+    updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
+    //
+  } else if (selectedCompilerId === PATH_PNUT) {
+    // -----------------------------------------------------------
+    // PNut toolset has compiler, and loader which are the same!
+    //
+    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
+    updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
+    updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+    // build compiler switches
+    // this is -c -d, etc.
+    const buildDebugOption: string = compilingDebug ? 'd' : '';
+    const buildOptions: string = `-c${buildDebugOption}`;
+    updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+    // build loader switches
+    const loadOptions: string = writeToFlash ? `-f${buildDebugOption}` : `-r${buildDebugOption}`;
+    updateRuntimeConfig('spin2.optionsLoader', loadOptions);
+    // for pnut we use the top-level source name instead of a .binary name
+    updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
+    //
+  } else if (selectedCompilerId === PATH_PNUT_TS) {
+    // -----------------------------------------------------------
+    // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
+    //
+    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
+    updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    // build compiler switches
+    // this is -d -b -l -c, etc.
+    const buildDebugOption: string = compilingDebug ? '-d' : '';
+    const buildOptions: string = `-c -b ${buildDebugOption}${optionsListValue}`;
+    updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+    //
+  } else {
+    // -----------------------------------------------------------
+    // no compiler selected, or selection is NOT recognized
+    //
+    updateRuntimeConfig('spin2.fSpecCompiler', undefined);
+    updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    updateRuntimeConfig('spin2.fSpecLoader', undefined);
+  }
+}
 
 function toggleCommand() {
   const textEditor = vscode.window.activeTextEditor;

@@ -49,8 +49,16 @@
         "title": "Spin2: Generate documentation file from spin source"
       },
       {
-        "command": "spinExtension.compile.file",
-        "title": "Spin2: Compile .spin2 to file(s) and/or download"
+        "command": "spinExtension.compile.currfile",
+        "title": "Spin2: Compile current .spin2 file"
+      },
+      {
+        "command": "spinExtension.compile.topfile",
+        "title": "Spin2: Compile project top-level .spin2 file"
+      },
+      {
+        "command": "spinExtension.download.topfile",
+        "title": "Spin2: Download project binary file to P2"
       },
       {
         "command": "spinExtension.select.propplug",
@@ -151,6 +159,51 @@
             "minimum": 20,
             "maximum": 80,
             "description": "Adjust the Alpha component of the editor background color [20%-80%] (default is 80%, Uncheck \"Color Editor Background\" to turn off.)"
+          }
+        }
+      },
+      {
+        "title": "Spin2 Workspace Build Environment",
+        "properties": {
+          "spin2.fNameTopLevel": {
+            "type": "string",
+            "description": "Top-level filename with .spin2 extension"
+          },
+          "spin2.fSpecCompiler": {
+            "type": "string",
+            "description": "Absolute path to the selected compiler for this workspace."
+          },
+          "spin2.fSpecFlashBinary": {
+            "type": "string",
+            "description": "(flexspin only) Absolute path to the flashLoader binary for this workspace."
+          },
+          "spin2.fSpecLoader": {
+            "type": "string",
+            "description": "(flexspin only) Absolute path to the selected downloader for this workspace."
+          },
+          "spin2.serialPort": {
+            "type": "string",
+            "description": "Device Node name (or COM Port) of the selected serial port."
+          },
+          "spin2.optionsList": {
+            "type": "string",
+            "description": "Build option to enable the .lst file output."
+          },
+          "spin2.optionsBuild": {
+            "type": "string",
+            "description": "Build options without the source filename."
+          },
+          "spin2.optionsDebug": {
+            "type": "string",
+            "description": "Command-line option to enable compile of debug() statements."
+          },
+          "spin2.optionsLoader": {
+            "type": "string",
+            "description": "Additional command-line options passed to loader."
+          },
+          "spin2.optionsBinaryFname": {
+            "type": "string",
+            "description": "The name of the binary file to be downloaded. (Content varies by compiler.)"
           }
         }
       },
@@ -540,6 +593,11 @@
             "default": false,
             "description": "Enable debug code generation in Spin2 compiles"
           },
+          "spinExtension.toolchain.optionsCompile.flexspin.debug": {
+            "type": "string",
+            "default": "-gbrk",
+            "description": "Flesspin command-line option to use to enable conpile of Debug() statements [-gbrk, -g for printf]"
+          },
           "spinExtension.toolchain.optionsCompile.enableLstOutput": {
             "type": "boolean",
             "default": false,
@@ -574,6 +632,11 @@
             "type": "string",
             "default": "",
             "description": "Absolute path of the P2ES_flashloader.bin file"
+          },
+          "spinExtension.toolchain.paths.pnut": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the PNut_v99.exe file (windows only)"
           }
         }
       }
@@ -598,9 +661,28 @@
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
-        "key": "Ctrl+Alt+b",
-        "win": "Ctrl+Win+b",
-        "command": "spinExtension.compile.file",
+        "key": "Ctrl+Shift+a",
+        "command": "spinExtension.compile.currfile",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+      },
+      {
+        "key": "Ctrl+Shift+c",
+        "command": "spinExtension.compile.topfile",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+      },
+      {
+        "key": "F8",
+        "command": "spinExtension.compile.topfile",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+      },
+      {
+        "key": "Ctrl+Shift+d",
+        "command": "spinExtension.download.topfile",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+      },
+      {
+        "key": "F10",
+        "command": "spinExtension.download.topfile",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
       },
       {

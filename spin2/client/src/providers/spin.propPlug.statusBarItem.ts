@@ -1,5 +1,6 @@
 'use strict';
 import * as vscode from 'vscode';
+import { toolchainConfiguration } from './spin.toolChain.configuration';
 
 let statusBarItem: vscode.StatusBarItem | null;
 
@@ -29,30 +30,16 @@ export const destroyStatusBarPropPlugItem = () => {
 
 let availablePlugCount: number = 0;
 
-export function getCurrentPlugDeviceSelection(preloadedConfig?: vscode.WorkspaceConfiguration): string | undefined {
-  const toolchainConfig = preloadedConfig ? preloadedConfig : vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-  const currDeviceNode: string | undefined = toolchainConfig.get<string>('propPlug.selected');
-  return currDeviceNode;
-}
-
 export function getPropPlugSerialNumber(): string {
-  const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
-  const deviceName: string | undefined = getCurrentPlugDeviceSelection(toolchainConfig);
-  const deviceNodesDetail = {};
-  const deviceSet = toolchainConfig.get('propPlug.devicesFound');
-  if (typeof deviceSet === 'object' && deviceSet !== null) {
-    for (const [deviceNode, serialNumber] of Object.entries(deviceSet)) {
-      deviceNodesDetail[deviceNode] = serialNumber;
-    }
-  }
+  const deviceName: string | undefined = toolchainConfiguration.selectedPropPlug;
   let desiredInterp: string = 'None';
-  availablePlugCount = Object.keys(deviceNodesDetail).length;
+  availablePlugCount = Object.keys(toolchainConfiguration.deviceNodesFound).length;
   if (availablePlugCount > 0) {
     desiredInterp = 'Not';
     if (deviceName !== undefined) {
       // now convert this to S/N
-      for (const deviceNode of Object.keys(deviceNodesDetail)) {
-        const serialNumber = deviceNodesDetail[deviceNode];
+      for (const deviceNode of Object.keys(toolchainConfiguration.deviceNodesFound)) {
+        const serialNumber = toolchainConfiguration.deviceNodesFound[deviceNode];
         // Now you can use deviceNode and serialNumber
         if (deviceName == deviceNode) {
           desiredInterp = serialNumber;

@@ -103,12 +103,8 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     let tmpTopFileBaseName: string | undefined = undefined;
     let topFileChanged: boolean = false;
     const fullConfiguration = vscode.workspace.getConfiguration();
-    //this._logMessage(`+ (DBG) fullConfiguration=${JSON.stringify(fullConfiguration)}`);
-    //this._logMessage(`+ (DBG) fullConfiguration=${fullConfiguration}`);
-    const runtimeConfiguration = vscode.workspace.getConfiguration('runtime');
-    this._logMessage(`+ (DBG) runtimeConfiguration=${JSON.stringify(runtimeConfiguration)}`);
     if (fullConfiguration.has('topLevel')) {
-      tmpTopFileBaseName = vscode.workspace.getConfiguration().get('topLevel'); // this worked!
+      tmpTopFileBaseName = fullConfiguration.get('topLevel'); // this worked!
     } else {
       this._logMessage(`+ (DBG) ObjDep: topLevel key NOT present!`);
     }
