@@ -22,11 +22,11 @@ Currently the following compilers are runtime detected:
 | `spin2.fSpecFlashBinary` | (**flexspin only**) Absolute path of the flashLoader binary for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
 | `spin2.fSpecLoader` | (**flexspin only**) Absolute path of the selected downloader for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
 | `spin2.serialPort` | Device Node name (or COM Port) of the selected serial port.|**Runtime discovered**, set when user selects the serial port by clicking on the **VSCode StatusBar** Icon
-| `spin2.optionsBuild` **but use** <br>`spinExtension.getCompileArguments` which formats the augument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers 
-| `spin2.optionsLoader` **but use**<br>`spinExtension.getLoadArguments` which formats the augument values correctly| Additional command-line options passed to loader | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
-| `spin2.optionsBinaryFname` | The name of the **binary file** to be downloaded. <br> In case of pnut the **spin2 file** to be compiled then downloaded.<br>In case of flexspin this will also contain the full directive to load the **flash programming** utility if downloading to FLASH. | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
+| `spin2.optionsBuild` **but use:** <br>`spinExtension.getCompileArguments` which formats the augument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers 
+| `spin2.optionsLoader` **but use:**<br>`spinExtension.getLoadArguments` which formats the augument values correctly| Additional command-line options passed to loader without the binary filename | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
+| `spin2.optionsBinaryFname` | The name of the **binary file** to be downloaded. <br>-In case of **pnut** the **spin2 file** to be compiled then downloaded.<br>- In case of **flexspin** this will also contain the full directive to load the **flash programming** utility if downloading to FLASH. | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
 | | --- **VSCode built-in variables** ---
-| `fileBasename` | The file being edited. The file opened in the active VSCode text editor. | Provided by VSCode runtime
+| `fileBasename` | The file opened in the active VSCode text editor (in the active tab). | Provided by VSCode runtime
 | `workspaceFolder ` | The root folder of this workspace | Provided by VSCode runtime
 
 ### Build Commands and how they are reflected in user tasks
@@ -38,7 +38,7 @@ Currently the following compilers are runtime detected:
 | | --- **Compile current file to binary** ---
 | flexspin | `flexspin -2 -Wabs-paths -Wmax-errors=99 ${fileBasename}`
 | pnut | `pnut_shell.bat ${fileBasename} -c`
-| pnut_ts | `pnut_ts -c -b ${fileBasename}`
+| pnut_ts | `pnut_ts -c ${fileBasename}`
 
 This translates now translates into a single entry in the **user tasks** file:
 
@@ -84,7 +84,7 @@ This translates now translates into a single entry in the **user tasks** file:
 | | --- **Compile top-level file to binary** ---
 | flexspin | `flexspin -2 -Wabs-paths -Wmax-errors=99 ${config:fNameTopLevel}`
 | pnut | `pnut_shell.bat ${config:fNameTopLevel} -c`
-| pnut_ts | `pnut_ts -c -b ${config:fNameTopLevel}`
+| pnut_ts | `pnut_ts -c ${config:fNameTopLevel}`
 
 This translates now translates into a single entry in the **user tasks** file:
 
@@ -213,6 +213,53 @@ All of the entries which contain a '...tasks.runTask' value are things we need t
 [ ]
 ```
 
+
+### This build system requires an updated pnut_shell.bat
+
+This build system generates parameters with switches first then filename. PNut wants these to be filename then switch values. I've updated the `pnut_shell.bat` script which ships with PNut to always present the options to `pnut_v99.exe` in the desired order.
+
+#### Updated pnut_shell.bat file:
+```bat
+@echo off
+REM Initialize variables
+set "SPINFILE="
+set "OTHERARGS="
+set ERROR_FILE=error.txt
+set pnuterror=0
+
+ REM Check if %1, %2, or %3 is a .spin2 file
+for %%a in (%1 %2 %3) do (
+    if "%%~xa"==".spin2" (
+        set "SPINFILE=%%~a"
+    ) else (
+        set "OTHERARGS=!OTHERARGS! %%~a"
+    )
+)
+
+if "%spinfile%"=="" (
+    echo "Error: Missing .spin2 filename in: %1 %2 %3" 1>&2
+    set pnuterror=-1
+    exit %pnuterror%
+)
+
+REM remove previous error file if present
+if exist %ERROR_FILE% del /q /f %ERROR_FILE%
+
+REM if we have a file to compile or download, do so
+if exist "%spinfile%" (
+    REM always pass filename first, then arguments
+    pnut_v43 %SPINFILE% %OTHERARGS%
+    set pnuterror = %ERRORLEVEL%
+    for /f "tokens=*" %%i in (%ERROR_FILE%) do echo %%i 1>&2
+ ) else (
+    set pnuterror=-1
+    echo "Error: File NOT found - %spinfile%" 1>&2
+ )
+ exit %pnuterror%
+
+```
+
+I'll have Chip distribute this version with all pnut distributions for here on out (replacing the old one.)
 
 
 ## License

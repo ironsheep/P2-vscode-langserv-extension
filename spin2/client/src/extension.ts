@@ -19,7 +19,7 @@ import { editModeConfiguration, reloadEditModeConfiguration } from './providers/
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
-import { isCurrentDocumentSpin2, isSpin2Document, isSpinOrPasmDocument } from './spin.vscode.utils';
+import { activeSpin2Filespec, isCurrentDocumentSpin2, isSpin2Document, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
 import { isMac, isWindows, locateExe, locateNonExe, platform } from './fileUtils';
 import { UsbSerial } from './usb.serial';
@@ -910,7 +910,11 @@ export function activate(context: vscode.ExtensionContext) {
   // NOPE! handleDidChangeConfiguration();
   locateTools(); // load toolchain settings
   locatePropPlugs(); // load Serial Port Settings
-  writeToolchainBuildVariables(); // write compile time values
+
+  if (firstEditorChangeEvent) {
+    firstEditorChangeEvent = false;
+    writeToolchainBuildVariables('STARTUP');
+  }
 
   /*   EXAMPLE
 	    vscode.workspace.onDidSaveTextDocument(e => {
@@ -993,11 +997,11 @@ function updateStatusBarItems(callerId: string) {
   const showInsertModeIndicator: boolean = tabConfiguration.enable == true;
   let docVersion: number = -1;
   let currMode: eEditMode | undefined = undefined;
-  const textEditor = vscode.window.activeTextEditor!;
   let isDifferentMode: boolean = false;
   let isDifferentDownloadFlash: boolean = false;
   let isDifferentCompileDebug: boolean = false;
   let isDifferentPlugSN: boolean = false;
+  const textEditor = vscode.window.activeTextEditor!;
   if (textEditor == null || textEditor === undefined) {
     showSpinStatusBarItems = false;
   } else {
@@ -1047,6 +1051,8 @@ function updateStatusBarItems(callerId: string) {
       priorShowSpin2OnlySBItems = showSpin2OnlyStatusBarItems;
     }
     priorChangeUri = textEditor !== undefined ? textEditor.document.uri : vscode.Uri.file('');
+    // this needs to updated every time we have a new editor with spin2 file
+    writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textEditor.document.fileName);
     logExtensionMessage(`* updateStatusBarItems([${callerId}]) (${argumentInterp})`);
 
     if (updateSpin2SBItems && !showSpin2OnlyStatusBarItems) {
@@ -1079,6 +1085,8 @@ function updateStatusBarItems(callerId: string) {
   }
 }
 
+let firstEditorChangeEvent: boolean = true;
+
 function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: string = undefined) {
   let argumentInterp: string = 'undefined';
   let isSpinWindow: boolean = false;
@@ -1095,9 +1103,19 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: s
     }
   }
   const sourceID: string = source !== undefined ? source : 'EVENT';
-  logExtensionMessage(`* handleActiveTextEditorChanged(${argumentInterp}) - [${sourceID}]`);
+  const editorGivenStr: string = textEditor !== undefined ? 'w/Editor' : 'w/o Editor';
+  logExtensionMessage(`* handleActiveTextEditorChanged(${editorGivenStr}, ${sourceID}) - [${argumentInterp}]`);
+
+  if (firstEditorChangeEvent) {
+    firstEditorChangeEvent = false;
+    writeToolchainBuildVariables('EARLY-INIT');
+  }
 
   if (isSpinWindow && textEditor) {
+    // if (isSpin2File(textEditor.document.fileName)) {
+    //   this needs to updated every time we have a new editor with spin2 file
+    //    writeToolchainBinaryFnameVariable('EDITOR-CHG', textEditor.document.fileName);
+    // }
     recolorizeSpinDocumentIfChanged(textEditor, 'handleActiveTextEditorChanged', 'Ext-actvEditorChg', true); // true=force the recolor
 
     // if in overtype mode, set the cursor to secondary style; otherwise, reset to default
@@ -1158,7 +1176,7 @@ const handleDidChangeConfiguration = () => {
   const toolchainUpdated: boolean = reloadToolchainConfiguration();
   if (toolchainUpdated) {
     // rewrite build variables
-    writeToolchainBuildVariables();
+    writeToolchainBuildVariables('CFG-CHG'); // write compile/download values
   }
 
   const showInsertModeInStatusBar = getShowInsertModeInStatusBar();
@@ -1198,14 +1216,66 @@ const handleDidChangeConfiguration = () => {
   }
 };
 
-function writeToolchainBuildVariables() {
-  logExtensionMessage('* writeToolchainBuildVariables');
+function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: string) {
+  // NOTE: this runs on startup and when the active editor changes
+  logExtensionMessage(`* writeToolchainBinaryFnameVariable(${callerID})`);
   // spin2.fNameTopLevel WAS topLevel
   // get old, if present
-  const fileBaseName: string | undefined = toolchainConfiguration.topFilename;
-  logExtensionMessage(`+ (DBG) TOP-LEVEL fileBaseName=[${fileBaseName}]`);
+  let fileBaseName: string | undefined = toolchainConfiguration.topFilename;
   // if present write as new else write undefined
   updateRuntimeConfig('spin2.fNameTopLevel', fileBaseName);
+  if (fileBaseName === undefined || fileBaseName.length == 0) {
+    if (currFspec != undefined) {
+      fileBaseName = path.basename(currFspec);
+    } else {
+      fileBaseName = activeSpin2Filespec();
+      if (fileBaseName !== undefined) {
+        fileBaseName = path.basename(fileBaseName);
+      }
+    }
+    logExtensionMessage(`+ (DBG) ACTIVE fileBaseName=[${fileBaseName}]`);
+  } else {
+    logExtensionMessage(`+ (DBG) TOP-LEVEL fileBaseName=[${fileBaseName}]`);
+  }
+
+  if (fileBaseName !== undefined) {
+    const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
+    const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+    if (selectedCompilerId === PATH_FLEXSPIN) {
+      // -----------------------------------------------------------
+      // flexProp toolset has compiler, loadP2, and flashBinary
+      //
+      // build filename to be loaded (is complex name if writing to flash)
+      let flexBinaryFile: string = `${fileBaseName.replace('.spin2', '.binary')}`;
+      if (writeToFlash) {
+        const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
+        flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
+      }
+      updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
+    } else if (selectedCompilerId === PATH_PNUT) {
+      // -----------------------------------------------------------
+      // PNut toolset has compiler, and loader which are the same!
+      //
+      // for pnut we use the top-level source name instead of a .binary name
+      updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
+    } else if (selectedCompilerId === PATH_PNUT_TS) {
+      // -----------------------------------------------------------
+      // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
+      //
+      // for pnut we use the top-level source name instead of a .binary name
+      updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
+    }
+  } else {
+    // no selected spin2 file, just clear the value
+    updateRuntimeConfig('spin2.optionsBinaryFname', undefined);
+  }
+}
+
+function writeToolchainBuildVariables(callerID: string) {
+  // NOTE: this runs on startup and when the configuration changes
+  logExtensionMessage(`* writeToolchainBuildVariables(${callerID})`);
+
+  writeToolchainBinaryFnameVariable(callerID); // also set the download filename
 
   // record selected serial port... (or remove entry)
   const selectedSerial = toolchainConfiguration.selectedPropPlug;
@@ -1247,12 +1317,6 @@ function writeToolchainBuildVariables() {
       loaderOptions.push(desiredPort);
     }
     updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
-    // build filename to be loaded (is complex name if writing to flash)
-    let flexBinaryFile: string = `${fileBaseName.replace('.spin2', '.binary')}`;
-    if (writeToFlash) {
-      flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
-    }
-    updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
     //
   } else if (selectedCompilerId === PATH_PNUT) {
     // -----------------------------------------------------------
@@ -1270,8 +1334,6 @@ function writeToolchainBuildVariables() {
     // build loader switches
     const loadOptions: string[] = writeToFlash ? [`-f${buildDebugOption}`] : [`-r${buildDebugOption}`];
     updateRuntimeConfig('spin2.optionsLoader', loadOptions);
-    // for pnut we use the top-level source name instead of a .binary name
-    updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
     //
   } else if (selectedCompilerId === PATH_PNUT_TS) {
     // -----------------------------------------------------------
@@ -1280,8 +1342,8 @@ function writeToolchainBuildVariables() {
     const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
     updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
     // build compiler switches
-    // this is -d -b -l -c, etc.
-    const buildOptions: string[] = ['-c', '-B'];
+    // this is -d -O -l, etc.
+    const buildOptions: string[] = [];
     if (compilingDebug) {
       buildOptions.push('-d');
     }
@@ -1290,6 +1352,7 @@ function writeToolchainBuildVariables() {
     }
     updateRuntimeConfig('spin2.optionsBuild', buildOptions);
     // these are NOT used in this environment
+    updateRuntimeConfig('spin2.optionsLoader', undefined);
     updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     updateRuntimeConfig('spin2.fSpecLoader', undefined);
     //
@@ -1300,6 +1363,8 @@ function writeToolchainBuildVariables() {
     updateRuntimeConfig('spin2.fSpecCompiler', undefined);
     updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     updateRuntimeConfig('spin2.fSpecLoader', undefined);
+    updateRuntimeConfig('spin2.optionsBuild', undefined);
+    updateRuntimeConfig('spin2.optionsLoader', undefined);
   }
 }
 

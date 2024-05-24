@@ -8,22 +8,17 @@ import * as vscode from 'vscode';
 
 export function activeFilespec(activeEditor?: vscode.TextEditor): string | undefined {
   let desidredFilespec: string | undefined = undefined;
-  if (activeEditor === undefined) {
-    activeEditor = vscode.window.activeTextEditor;
-  }
-  if (activeEditor !== undefined) {
-    desidredFilespec = activeEditor.document.fileName;
+  const textEditor = activeEditor !== undefined ? activeEditor : vscode.window.activeTextEditor;
+  if (textEditor !== undefined) {
+    desidredFilespec = textEditor.document.fileName;
   }
   return desidredFilespec;
 }
 
 export function activeSpin2Filespec(activeEditor?: vscode.TextEditor): string | undefined {
-  let desiredFilespec: string | undefined = activeFilespec();
+  let desiredFilespec: string | undefined = activeFilespec(activeEditor);
   if (desiredFilespec !== undefined) {
-    const tmpFilespec: string | undefined = existingSpin2File(path.basename(desiredFilespec));
-    if (tmpFilespec !== undefined) {
-      desiredFilespec = tmpFilespec;
-    }
+    desiredFilespec = existingSpin2File(path.basename(desiredFilespec));
   }
   return desiredFilespec;
 }
