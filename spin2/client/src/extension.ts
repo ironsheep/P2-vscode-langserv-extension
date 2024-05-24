@@ -520,7 +520,7 @@ echo $? >${outputFile}.status
   //   Set Up our TAB Formatting
   //
   // post information to out-side world via our CONTEXT
-  vscode.commands.executeCommand('setContext', 'runtime.spinExtension.elasticTabstops.enabled', tabFormatter.isEnabled());
+  vscode.commands.executeCommand('setContext', 'runtime.spin2.elasticTabstops.enabled', tabFormatter.isEnabled());
 
   //   Hook TAB Formatting
   const insertTabStopsCommentCommand = 'spinExtension.elasticTabstops.generate.tabStops.comment';
@@ -708,26 +708,42 @@ async function locatePropPlugs() {
 async function locateTools() {
   // factor in use of ENV{'path'} to locate tools
   const envPath = process.env.PATH;
+  //  ~/bin
+  //  /usr/local/bin
+  //  /opt/local/bin
   const userBin = path.join('~', 'bin');
   const userLocalBin = path.join(`${path.sep}usr`, 'local', 'bin');
   const optLocalBin = path.join(`${path.sep}opt`, 'local', 'bin');
   let platformPaths: string[] = [];
   if (isWindows()) {
     const envDirs = envPath.split(':').filter(Boolean);
-    // C:\Program Files (x86)\Parallax Inc
-    const appPNutTS = path.join(`${path.sep}Program Files (x86)`, 'pnut_ts');
+    // C:\Program Files (x86)\Parallax Inc\PNut
+    // C:\Program Files (x86)\IronSheepProductionsLLC\pnut_ts
+    //  C:\Programs\TotalSpectrum\flexprop
+    const appFlexProp = path.join(`${path.sep}Programs`, 'TotalSpectrum', 'flexprop', 'bin');
+    const appPNutTS = path.join(`${path.sep}Program Files (x86)`, 'IronSheepProductionsLLC', 'pnut_ts');
     const appParallax = path.join(`${path.sep}Program Files (x86)`, 'Parallax Inc');
     const appPNut = path.join(`${appParallax}`, 'PNut');
-    platformPaths = [...envDirs, appParallax, appPNut, appPNutTS];
+    platformPaths = [...envDirs, appParallax, appPNut, appPNutTS, appFlexProp];
   } else if (isMac()) {
     const envDirs = envPath.split(':').filter(Boolean);
+    // /Applications/flexprop/bin
+    // /Applications
+    // ~/Applications
+    // /Applications/pnut_ts
     const applicationsFlex = path.join(`${path.sep}Applications`, 'flexprop', 'bin');
     const applicationsSystem = path.join(`${path.sep}Applications`); // force leading slash
     const applicationsUser = path.join('~', 'Applications');
-    platformPaths = [...envDirs, applicationsFlex, applicationsSystem, applicationsUser, userBin, userLocalBin, optLocalBin];
+    const applicationsPNutTS = path.join(`${path.sep}Applications`, 'pnut_ts');
+    platformPaths = [...envDirs, applicationsFlex, applicationsSystem, applicationsUser, applicationsPNutTS, userBin, userLocalBin, optLocalBin];
   } else {
     // assume linux, RPi
-    platformPaths = [userBin, userLocalBin];
+    //  /opt/flexprop
+    //  /opt/pnut_ts
+    const envDirs = envPath.split(':').filter(Boolean);
+    const optPNutTS = path.join(`${path.sep}opt`, 'pnut_ts');
+    const optFlexpropBin = path.join(`${path.sep}opt`, 'flexprop', 'bin');
+    platformPaths = [...envDirs, userBin, userLocalBin, optFlexpropBin, optPNutTS];
   }
   // and ensure there is only one occurance of each path in list
   platformPaths = platformPaths.sort().filter((item, index, self) => index === self.indexOf(item));
@@ -1050,7 +1066,7 @@ function updateStatusBarItems(callerId: string) {
         logExtensionMessage(`* SHOW SB-ITEM mode=[${modeName(currMode)}]`);
       }
       // post information to out-side world via our CONTEXT
-      vscode.commands.executeCommand('setContext', 'runtime.spinExtension.insert.mode', modeName(currMode));
+      vscode.commands.executeCommand('setContext', 'runtime.spin2.insertMode', modeName(currMode));
 
       if ((updateSpin2SBItems || isDifferentDownloadFlash || isDifferentCompileDebug || isDifferentPlugSN) && showSpin2OnlyStatusBarItems) {
         // these always get updated if showing

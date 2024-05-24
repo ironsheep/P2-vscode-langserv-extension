@@ -484,14 +484,15 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private _publishTreeState() {
     const currentState: boolean = this.treeState == eTreeState.TS_ExpandTop ? true : false;
     this._logMessage(`* ObjDep: treeState .objectDeps.showingTopOnly=(${currentState})`);
-    vscode.commands.executeCommand('setContext', 'runtime.spinExtension.objectDeps.showingTopOnly', currentState);
+    // post information to out-side world via our CONTEXT
+    vscode.commands.executeCommand('setContext', 'runtime.spin2.objectDeps.showingTopOnly', currentState);
   }
 
   private _publishViewEnableState(desiredEnableState: boolean) {
     this._logMessage(`* ObjDep: treeView .objectDeps.enabled=(${desiredEnableState})`);
     // record new published state
-    // and publish new state
-    vscode.commands.executeCommand('setContext', 'runtime.spinExtension.objectDeps.enabled', desiredEnableState);
+    // post information to out-side world via our CONTEXT
+    vscode.commands.executeCommand('setContext', 'runtime.spin2.objectDeps.enabled', desiredEnableState);
   }
 
   private _collapseStateString(collapseMode: vscode.TreeItemCollapsibleState): string {
