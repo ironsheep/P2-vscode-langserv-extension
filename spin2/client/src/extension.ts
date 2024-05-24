@@ -282,6 +282,32 @@ function registerCommands(context: vscode.ExtensionContext): void {
   ); //*/
 
   // ----------------------------------------------------------------------------
+  //   Hook to Return an array of compile arguments for use in UserTasks
+  //
+  const getCompileArgments: string = 'spinExtension.getCompileArguments';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getCompileArgments, () => {
+      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
+      let optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
+      optionsBuildAr = optionsBuildAr.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg));
+      return optionsBuildAr.join(' ');
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return an array of loader arguments for use in UserTasks
+  //
+  const getLoaderArgments: string = 'spinExtension.getLoadArguments';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getLoaderArgments, () => {
+      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
+      let optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
+      optionsLoaderAr = optionsLoaderAr.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg));
+      return optionsLoaderAr.join(' ');
+    })
+  );
+
+  // ----------------------------------------------------------------------------
   //   Hook TOGGLE compile w/Debug and update display
   //
   const toggleCompileWithDebug: string = 'spinExtension.toggle.debug';
@@ -1174,8 +1200,7 @@ function writeToolchainBuildVariables() {
   const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
   const loadSerialPort: string = toolchainConfiguration.selectedPropPlug;
   // are we generating a .lst file?
-  const optionsListValue: string = toolchainConfiguration.lstOutputEnabled ? '-l' : '';
-  updateRuntimeConfig('spin2.optionsList', optionsListValue);
+  const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
   //
   if (selectedCompilerId === PATH_FLEXSPIN) {
     // -----------------------------------------------------------
@@ -1190,12 +1215,21 @@ function writeToolchainBuildVariables() {
     // build compiler switches
     // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
     const flexDebugSwitch: string = toolchainConfiguration.flexspinDebugFlag;
-    const flexDebugOptions: string = compilingDebug ? `${flexDebugSwitch}` : '';
-    const flexBuildOptions: string = `${flexDebugOptions} -2 -Wabs-paths -Wmax-errors=99`;
+    const flexDebugOption: string = compilingDebug ? `${flexDebugSwitch}` : '';
+    const flexBuildOptions: string[] = ['-2', '-Wabs-paths', '-Wmax-errors=99'];
+    if (flexDebugOption.length > 0) {
+      flexBuildOptions.push(flexDebugOption);
+    }
+    if (lstOutputEnabled) {
+      flexBuildOptions.push('-l');
+    }
     updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
     // build loader switches
     const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
-    const loaderOptions: string = `-b230400 -t ${desiredPort}`;
+    const loaderOptions: string[] = ['-b230400', '-t', '-v']; // verbose for time being....
+    if (desiredPort.length > 0) {
+      loaderOptions.push(desiredPort);
+    }
     updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
     // build filename to be loaded (is complex name if writing to flash)
     let flexBinaryFile: string = `${fileBaseName.replace('.spin2', '.binary')}`;
@@ -1215,10 +1249,10 @@ function writeToolchainBuildVariables() {
     // build compiler switches
     // this is -c -d, etc.
     const buildDebugOption: string = compilingDebug ? 'd' : '';
-    const buildOptions: string = `-c${buildDebugOption}`;
+    const buildOptions: string[] = [`-c${buildDebugOption}`];
     updateRuntimeConfig('spin2.optionsBuild', buildOptions);
     // build loader switches
-    const loadOptions: string = writeToFlash ? `-f${buildDebugOption}` : `-r${buildDebugOption}`;
+    const loadOptions: string[] = writeToFlash ? [`-f${buildDebugOption}`] : [`-r${buildDebugOption}`];
     updateRuntimeConfig('spin2.optionsLoader', loadOptions);
     // for pnut we use the top-level source name instead of a .binary name
     updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
@@ -1231,9 +1265,17 @@ function writeToolchainBuildVariables() {
     updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
     // build compiler switches
     // this is -d -b -l -c, etc.
-    const buildDebugOption: string = compilingDebug ? '-d' : '';
-    const buildOptions: string = `-c -b ${buildDebugOption}${optionsListValue}`;
+    const buildOptions: string[] = ['-c', '-B'];
+    if (compilingDebug) {
+      buildOptions.push('-d');
+    }
+    if (lstOutputEnabled) {
+      buildOptions.push('-l');
+    }
     updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+    // these are NOT used in this environment
+    updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    updateRuntimeConfig('spin2.fSpecLoader', undefined);
     //
   } else {
     // -----------------------------------------------------------

@@ -22,10 +22,8 @@ Currently the following compilers are runtime detected:
 | `spin2.fSpecFlashBinary` | (**flexspin only**) Absolute path of the flashLoader binary for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
 | `spin2.fSpecLoader` | (**flexspin only**) Absolute path of the selected downloader for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
 | `spin2.serialPort` | Device Node name (or COM Port) of the selected serial port.|**Runtime discovered**, set when user selects the serial port by clicking on the **VSCode StatusBar** Icon
-| `spin2.optionsList` | Build option to enable the .lst file output | Set/Cleared when user **toggle the checkbox** in VSCode Settings.
-| `spin2.optionsBuild` | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers 
-| `spin2.optionsDebug` | Command-line option to enable compile of debug() statements | Determined by settings (**compiler choice**) and latest state of DEBUG selection on **VSCode StatusBar**
-| `spin2.optionsLoader` | Additional command-line options passed to loader | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
+| `spin2.optionsBuild` **but use** <br>`spinExtension.getCompileArguments` which formats the augument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers 
+| `spin2.optionsLoader` **but use**<br>`spinExtension.getLoadArguments` which formats the augument values correctly| Additional command-line options passed to loader | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
 | `spin2.optionsBinaryFname` | The name of the **binary file** to be downloaded. <br> In case of pnut the **spin2 file** to be compiled then downloaded.<br>In case of flexspin this will also contain the full directive to load the **flash programming** utility if downloading to FLASH. | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
 | | --- **VSCode built-in variables** ---
 | `fileBasename` | The file being edited. The file opened in the active VSCode text editor. | Provided by VSCode runtime
@@ -46,32 +44,32 @@ This translates now translates into a single entry in the **user tasks** file:
 
 ```json
     {
-      "label": "compileP2",
-      "type": "shell",
-      "command": "${config:fSpecCompiler}"
-      "args": ["${config:optionsBuild}", "${fileBasename}"],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
+        "label": "compileP2",
+        "type": "shell",
+        "command": "${config:spin2.fSpecCompiler}",
+        "args": ["${command:spinExtension.getCompileArguments}","${fileBasename}"],
+        "problemMatcher": {
+          "owner": "Spin2",
+          "fileLocation": ["autoDetect", "${workspaceFolder}"],
+          "pattern": {
+                "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+                "file": 1,
+            "line": 2,
+            "severity": 3,
+            "message": 4
+          }
+        },
+        "presentation": {
+          "panel": "dedicated",
+          "focus": false,
+          "showReuseMessage": false,
+          "clear": true
+        },
+        "group": {
+          "kind": "build",
+          "isDefault": true
         }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
+   }
 
 ```
 
@@ -92,32 +90,32 @@ This translates now translates into a single entry in the **user tasks** file:
 
 ```json
     {
-      "label": "compileTopP2",
-      "type": "shell",
-      "command": "${config:fSpecCompiler}",
-      "args": ["${config:optionsBuild}", "${config:fNameTopLevel}.spin2"],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
+        "label": "compileTopP2",
+        "type": "shell",
+        "command": "${config:spin2.fSpecCompiler}",
+        "args": ["${command:spinExtension.getCompileArguments}", "${config:spin2.fNameTopLevel}"],
+        "problemMatcher": {
+          "owner": "Spin2",
+          "fileLocation": ["autoDetect", "${workspaceFolder}"],
+          "pattern": {
+            "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+            "file": 1,
+            "line": 2,
+            "severity": 3,
+            "message": 4
+          }
+        },
+        "presentation": {
+          "panel": "dedicated",
+          "focus": false,
+          "showReuseMessage": false,
+          "clear": true
+        },
+        "group": {
+          "kind": "build",
+          "isDefault": true
         }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
       }
-    },
 
 ```
 
@@ -138,32 +136,32 @@ This translates now translates into a single entry in the **user tasks** file:
 
 ```json
    {
-      "label": "downloadP2",
-      "type": "shell",
-      "command": "${config:fSpecLoader}",
-      "args": ["${config:optionsLoader}", "${config:fNameTopLevelBinary}"],
-       "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
+        "label": "downloadP2",
+        "type": "shell",
+        "command": "${config:spin2.fSpecLoader}",
+        "args": ["${command:spinExtension.getLoadArguments}", "${config:spin2.optionsBinaryFname}"],
+         "problemMatcher": {
+          "owner": "Spin2",
+          "fileLocation": ["autoDetect", "${workspaceFolder}"],
+          "pattern": {
+            "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+            "file": 1,
+            "line": 2,
+            "severity": 3,
+            "message": 4
+          }
+        },
+        "presentation": {
+          "panel": "dedicated",
+          "focus": false,
+          "showReuseMessage": false,
+          "clear": true
+        },
+        "group": {
+          "kind": "test",
+          "isDefault": true
         }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
       }
-    },
 
 ```
 

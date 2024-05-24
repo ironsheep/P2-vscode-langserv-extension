@@ -19,6 +19,7 @@
     "spin2",
     "pasm",
     "pasm2",
+    "p2asm",
     "propeller",
     "propeller 2",
     "propeller v2",
@@ -71,6 +72,14 @@
       {
         "command": "spinExtension.toggle.flash",
         "title": "Spin2: Toggle current state of download to FLASH enable"
+      },
+      {
+        "command": "spinExtension.getCompileArguments",
+        "title": "Spin2: Return an array of compile arguments for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getLoadArguments",
+        "title": "Spin2: Return an array of loader arguments for use in UserTasks"
       },
       {
         "command": "spinExtension.elasticTabstops.indentTabStop",
@@ -159,51 +168,6 @@
             "minimum": 20,
             "maximum": 80,
             "description": "Adjust the Alpha component of the editor background color [20%-80%] (default is 80%, Uncheck \"Color Editor Background\" to turn off.)"
-          }
-        }
-      },
-      {
-        "title": "Spin2 Workspace Build Environment",
-        "properties": {
-          "spin2.fNameTopLevel": {
-            "type": "string",
-            "description": "Top-level filename with .spin2 extension"
-          },
-          "spin2.fSpecCompiler": {
-            "type": "string",
-            "description": "Absolute path to the selected compiler for this workspace."
-          },
-          "spin2.fSpecFlashBinary": {
-            "type": "string",
-            "description": "(flexspin only) Absolute path to the flashLoader binary for this workspace."
-          },
-          "spin2.fSpecLoader": {
-            "type": "string",
-            "description": "(flexspin only) Absolute path to the selected downloader for this workspace."
-          },
-          "spin2.serialPort": {
-            "type": "string",
-            "description": "Device Node name (or COM Port) of the selected serial port."
-          },
-          "spin2.optionsList": {
-            "type": "string",
-            "description": "Build option to enable the .lst file output."
-          },
-          "spin2.optionsBuild": {
-            "type": "string",
-            "description": "Build options without the source filename."
-          },
-          "spin2.optionsDebug": {
-            "type": "string",
-            "description": "Command-line option to enable compile of debug() statements."
-          },
-          "spin2.optionsLoader": {
-            "type": "string",
-            "description": "Additional command-line options passed to loader."
-          },
-          "spin2.optionsBinaryFname": {
-            "type": "string",
-            "description": "The name of the binary file to be downloaded. (Content varies by compiler.)"
           }
         }
       },
@@ -639,6 +603,49 @@
             "description": "Absolute path of the PNut_v99.exe file (windows only)"
           }
         }
+      },
+      {
+        "title": "Spin2 Workspace Build Environment",
+        "properties": {
+          "spin2.fNameTopLevel": {
+            "type": "string",
+            "description": "Top-level filename with .spin2 extension"
+          },
+          "spin2.fSpecCompiler": {
+            "type": "string",
+            "description": "Absolute path to the selected compiler for this workspace."
+          },
+          "spin2.fSpecFlashBinary": {
+            "type": "string",
+            "description": "(flexspin only) Absolute path to the flashLoader binary for this workspace."
+          },
+          "spin2.fSpecLoader": {
+            "type": "string",
+            "description": "(flexspin only) Absolute path to the selected downloader for this workspace."
+          },
+          "spin2.serialPort": {
+            "type": "string",
+            "description": "Device Node name (or COM Port) of the selected serial port."
+          },
+          "spin2.optionsBuild": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Build options without the source filename."
+          },
+          "spin2.optionsLoader": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Additional command-line options passed to loader."
+          },
+          "spin2.optionsBinaryFname": {
+            "type": "string",
+            "description": "The name of the binary file to be downloaded. (Content varies by compiler.)"
+          }
+        }
       }
     ],
     "keybindings": [
@@ -830,6 +837,18 @@
           ".spin"
         ],
         "configuration": "./spin1.language-configuration.json"
+      },
+      {
+        "id": "p2asm",
+        "aliases": [
+          "p2asm",
+          "P2Asm",
+          "P2ASM"
+        ],
+        "extensions": [
+          ".p2asm"
+        ],
+        "configuration": "./spin2.language-configuration.json"
       }
     ],
     "semanticTokenTypes": [
