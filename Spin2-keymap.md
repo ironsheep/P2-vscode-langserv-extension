@@ -10,20 +10,22 @@ We have many functions in our VSCode Spin2 Extension that can be activated from 
 
 | Desired Key | Purpose | Linux | MacOS | Windows 
 | --- | --- | --- | --- | --- 
-| A | Compile Active Spin2 File | Ctrl+Shift+A | Ctrl+Shift+A | Ctrl+Shift+A
-| C | Compile TopLevel Spin2 File | Ctrl+Shift+C<br>F8 | Ctrl+Shift+C<br>F8 | Ctrl+Shift+C<br>F8
-| D | Download Binary File | Ctrl+Shift+D<br>F10 | Ctrl+Shift+D<br>F10 | Ctrl+Shift+D<br>F10
-| c | Generate PUB/PRI Doc. Comment | Ctrl+Alt+c | Ctrl+Alt+c | Ctrl+Win+c
-| d | Generate Object Public Interface Doc. |
-| f | TOGGLE download to FLASH / RAM | Ctrl+Alt+f | Ctrl+Alt+f | Ctrl+Win+f
-| g | TOGGLE debug() compile | Ctrl+Alt+g | Ctrl+Alt+g | Ctrl+Win+g
-| n | Select USB port (when more than one) | Ctrl+Alt+n | Ctrl+Alt+n | Ctrl+Win+n
-| r | Generate Project Object Hierarchy Doc. | Ctrl+Alt+r | Ctrl+Alt+r | Ctrl+Win+r
-| u | Generate USB Doc. | Ctrl+Alt+u | Ctrl+Alt+u | Ctrl+Win+u
-| | --------- **When Elastic TabStops are Enabled** ---------
+| | --------- **Doumentation Commands** ---------
+| c | Generate PUB/PRI Doc. Comment | Ctrl+Alt+c | Ctrl+Alt+c | Ctrl+Alt+c
+| d | Generate Object Public Interface Doc. | Ctrl+Alt+d | Ctrl+Alt+d | Ctrl+Alt+d
+| h | Generate Project Object Hierarchy Doc. | Ctrl+Alt+h | Ctrl+Alt+h | Ctrl+Alt+h
+| u | Generate USB Doc. | Ctrl+Alt+u | Ctrl+Alt+u | Ctrl+Alt+u
+| | --------- **Compile/Download Support Commands** ---------
+| C | Compile Current Spin2 File | Ctrl+Shift+C | Ctrl+Shift+C | Ctrl+Shift+C
+| T | Compile TopLevel Spin2 File | Ctrl+Shift+T | Ctrl+Shift+T | Ctrl+Shift+T
+| D | Download Binary File | Ctrl+Shift+D<br>F11 | Ctrl+Shift+D<br>F11 | Ctrl+Shift+D<br>F11
+| f | TOGGLE download to FLASH / RAM | Ctrl+Alt+f | Ctrl+Alt+f | Ctrl+Alt+f
+| g | TOGGLE debug() compile | Ctrl+Alt+g | Ctrl+Alt+g | Ctrl+Alt+g
+| n | Select USB port (when more than one) | Ctrl+Alt+n | Ctrl+Alt+n | Ctrl+Alt+n
+| | --------- **Elastic TabStop Support** ---------
 | tab | indent (move code right) | tab | tab | tab
 | TAB | outdent (move code left) | Shift+TAB | Shift+TAB | Shift+TAB
-| tab | Generate tab-stops comment | Ctrl+Alt+tab | Ctrl+Alt+tab | Ctrl+Win+tab
+| tab | Generate tab-stops comment | Ctrl+Alt+tab | Ctrl+Alt+tab | Ctrl+Alt+tab
 | --- | Rotate Insert Mode \[ ->Align->Overtype->Insert-> \] | Insert | F13 | Insert
 | backspace | Delete char to left of cursor | backspace | backspace | backspace
 | delete | Delete char to right of cursor | delete | delete | delete
@@ -31,13 +33,13 @@ We have many functions in our VSCode Spin2 Extension that can be activated from 
 
 ### Key Prefixes by platform
 
-| Key Name | Key | Linux | MacOS | Windows 
-| --- | --- | --- | --- | --- 
+| Key Name | Key | Linux | MacOS | Windows| Notes
+| --- | --- | --- | --- | --- | ---
 | Ctrl | Control Key | x | x | x
 | Shift | Shift Key | x | x | x
 | Alt | Alt Key | x | x | x
 | cmd | Command Key |   | x |  
-| win | Windows Key |   |   | x
+| win | Windows Key |   |   | x | VSCode has problems recognizing this!??
 
 ### Assignment values to use in package.json
 

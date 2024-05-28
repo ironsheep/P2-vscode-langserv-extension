@@ -19,9 +19,9 @@ import { editModeConfiguration, reloadEditModeConfiguration } from './providers/
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
-import { activeSpin2Filespec, isCurrentDocumentSpin2, isSpin2Document, isSpinOrPasmDocument } from './spin.vscode.utils';
+import { activeSpin2Filespec, isCurrentDocumentSpin2, isSpin2Document, isSpin2File, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
-import { isMac, isWindows, locateExe, locateNonExe, platform } from './fileUtils';
+import { isMac, isWindows, loadFileAsUint8Array, loadUint8ArrayFailed, locateExe, locateNonExe, platform } from './fileUtils';
 import { UsbSerial } from './usb.serial';
 import { createStatusBarFlashDownloadItem, updateStatusBarFlashDownloadItem } from './providers/spin.downloadFlashMode.statusBarItem';
 import { createStatusBarCompileDebugItem, updateStatusBarCompileDebugItem } from './providers/spin.compileDebugMode.statusBarItem';
@@ -252,9 +252,15 @@ function registerCommands(context: vscode.ExtensionContext): void {
       for (let index = 0; index < deviceNodesDetail.length; index++) {
         const deviceNodeInfo = deviceNodesDetail[index];
         const portParts = deviceNodeInfo.split(',');
-        //const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
+        const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
         const deviceNode: string = portParts[0];
-        devicesFound.push(deviceNode);
+        if (isWindows()) {
+          // On windows show COMn:SerialNumber
+          devicesFound.push(`${deviceNode}:${deviceSerial}`);
+        } else {
+          // On non-windows show DeviceNode name (in select list)
+          devicesFound.push(deviceNode);
+        }
       }
 
       switch (devicesFound.length) {
@@ -400,7 +406,38 @@ function registerCommands(context: vscode.ExtensionContext): void {
       logExtensionMessage('* downloadTopFile');
       const selctedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
       if (selctedCompiler == PATH_PNUT_TS) {
-        logExtensionMessage(`* Running pnut_ts, TO DO our own download!`);
+        logExtensionMessage(`* Running built-in downloader...!`);
+        // create terminal
+        const terminal = vscode.window.createTerminal(`'pnut_ts' Downloader Output`);
+        // load binary file
+        const filenameToDownload = getRuntimeConfigValue('optionsBinaryFname');
+        if (filenameToDownload !== undefined && filenameToDownload !== '') {
+          // write file info to terminal
+          const rootDir: string = currenWorkingDir();
+          const binaryFilespec = path.join(rootDir, filenameToDownload);
+          const binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
+          const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
+          if (failedToLoad == false) {
+            terminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes`);
+            // write to USB PropPlug
+            const deviceNode = toolchainConfiguration.selectedPropPlug;
+            if (deviceNode !== undefined) {
+              const usbPort: UsbSerial = new UsbSerial(deviceNode);
+              await usbPort.download(binaryImage);
+              await usbPort.close();
+              terminal.sendText(`# DONE`);
+            } else {
+              terminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
+            }
+          } else {
+            terminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
+          }
+          // write success or error info to terminal
+        } else {
+          // no filename to download
+          terminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
+        }
+        terminal.show();
       } else {
         logExtensionMessage(`* NOT pnut_ts, run download task!`);
         const tasks = await vscode.tasks.fetchTasks();
@@ -416,6 +453,16 @@ function registerCommands(context: vscode.ExtensionContext): void {
       }
     })
   );
+
+  function currenWorkingDir(): string {
+    const textEditor = vscode.window.activeTextEditor;
+    let desiredFolder: string = '';
+    if (textEditor) {
+      const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
+      desiredFolder = path.dirname(currentlyOpenTabfilePath);
+    }
+    return desiredFolder;
+  }
 
   //*/
   /* -- VERSION 2 FAILED
@@ -661,9 +708,11 @@ async function locatePropPlugs() {
     const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
     const deviceNode: string = portParts[0];
     devicesFound.push(deviceNode);
-    plugsFoundSetting[deviceNode] = deviceSerial;
-    if (currDeviceNode && currDeviceNode === deviceNode) {
-      selectionStillExists = true;
+    if (deviceIsPropeller(deviceNode)) {
+      plugsFoundSetting[deviceNode] = deviceSerial;
+      if (currDeviceNode && currDeviceNode === deviceNode) {
+        selectionStillExists = true;
+      }
     }
   }
   logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
@@ -690,7 +739,7 @@ async function locatePropPlugs() {
     if (selectionStillExists == false && currDeviceNode) {
       // we have a selection but it is no longer present
       vscode.window.showWarningMessage(
-        `Removed PropPlug ${currDeviceNode} - No longer available, Have ${devicesFound.length} other PropPlugs, press Ctrl+Alt+n to select a one`
+        `Removed PropPlug ${currDeviceNode} - No longer available, Have ${devicesFound.length} other PropPlugs, press Ctrl+Alt+n to select one`
       );
       updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
     } else if (selectionStillExists == false) {
@@ -700,6 +749,45 @@ async function locatePropPlugs() {
       );
     }
   }
+}
+
+async function deviceIsPropeller(deviceNode: string): Promise<boolean> {
+  const usbPort: UsbSerial = new UsbSerial(deviceNode);
+  usbPort.identifyPropeller(); // initiate request
+  let foundPropellerStatus: boolean = false;
+  let [deviceString, deviceErrorString] = ['', ''];
+  // Wrap the interval checking code in a new Promise
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  try {
+    const deviceProperties: [string, string] = await new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 2000 / 100; // 2 seconds / 100 ms
+      const intervalId = setInterval(async () => {
+        const [deviceString, deviceErrorString] = usbPort.getIdStringOrError();
+        if (deviceString.length > 0 || deviceErrorString.length > 0) {
+          clearInterval(intervalId);
+          resolve([deviceString, deviceErrorString]);
+        } else if (attempts >= maxAttempts) {
+          clearInterval(intervalId);
+          reject(new Error('Port did not open within 2 seconds'));
+        } else {
+          attempts++;
+        }
+      }, 100); // Check every 100ms
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    [deviceString, deviceErrorString] = deviceProperties;
+  } catch (error) {
+    this.logMessage(`* deviceIsPropeller() ERROR: ${error.message}`);
+  } finally {
+    usbPort.close(); // we're done with this port
+  }
+  if (deviceString.length > 0 && deviceErrorString.length == 0) {
+    foundPropellerStatus = true;
+  }
+  //this.testDownloadFile(usbPort);
+  this.logMessage(`* deviceIsPropeller() -> (${foundPropellerStatus})`);
+  return foundPropellerStatus;
 }
 
 // ----------------------------------------------------------------------------
@@ -732,10 +820,9 @@ async function locateTools() {
     // ~/Applications
     // /Applications/pnut_ts
     const applicationsFlex = path.join(`${path.sep}Applications`, 'flexprop', 'bin');
-    const applicationsSystem = path.join(`${path.sep}Applications`); // force leading slash
     const applicationsUser = path.join('~', 'Applications');
     const applicationsPNutTS = path.join(`${path.sep}Applications`, 'pnut_ts');
-    platformPaths = [...envDirs, applicationsFlex, applicationsSystem, applicationsUser, applicationsPNutTS, userBin, userLocalBin, optLocalBin];
+    platformPaths = [...envDirs, applicationsFlex, applicationsUser, applicationsPNutTS, userBin, userLocalBin, optLocalBin];
   } else {
     // assume linux, RPi
     //  /opt/flexprop
@@ -850,23 +937,34 @@ async function updateConfig(path: string, value: string | string[] | boolean | o
   }
 }
 
+function getRuntimeConfigValue(path: string): string | undefined {
+  // return a workspace configuration value or undefined if not present
+  const startingSpin2Config = vscode.workspace.getConfiguration('spin2');
+  const existingValue = startingSpin2Config.get<string>(path);
+  logExtensionMessage(`+ (DBG) getRuntimeConfigValue([${path}]) -> [${existingValue}]`);
+  return existingValue;
+}
+
 async function updateRuntimeConfig(path: string, value: string | string[] | boolean | object) {
   // Get the workspace configuration.
-  logExtensionMessage(`+ (DBG) updateRuntimeConfig([${path}]) Value=[${value}]`);
-  const startingConfig = vscode.workspace.getConfiguration();
-  const existingValue = startingConfig.get(path);
+  const subsetConfig = path.startsWith('spin2.') ? 'spin2' : undefined;
+  const useSubset = subsetConfig !== undefined;
+  const subsetPath = useSubset ? path.substring(6) : path;
+  logExtensionMessage(`+ (DBG) updateRuntimeConfig([${path}]) <- [${value}]`);
+  const startingConfig = vscode.workspace.getConfiguration(subsetConfig);
+  const existingValue = startingConfig.get(subsetPath);
   if (existingValue === value) {
-    logExtensionMessage(`+ (DBG) updateRuntimeConfig([${path}]) Value already set, aborting`);
+    logExtensionMessage(`+ (DBG) updateRuntimeConfig([${path}]) Value (${existingValue}) === (${value}), aborting`);
   } else {
     const startJsonConfig: string = JSON.stringify(startingConfig, null, 4);
     //logExtensionMessage(`+ (DBG) BEFORE config=(${startJsonConfig})`);
     try {
-      await startingConfig.update(path, value, vscode.ConfigurationTarget.Workspace);
+      await startingConfig.update(subsetPath, value, vscode.ConfigurationTarget.Workspace);
     } catch (error) {
       logExtensionMessage(`ERROR: updateRuntimeConfig([${path}]) <= Value=[${value}] FAILED!`);
       console.error('Failed to update configuration:', error);
     }
-    const updatedConfig = vscode.workspace.getConfiguration();
+    const updatedConfig = vscode.workspace.getConfiguration(subsetConfig);
     const updatedJsonConfig: string = JSON.stringify(updatedConfig, null, 4);
     //logExtensionMessage(`+ (DBG) AFTER config=(${updatedJsonConfig})`);
 
@@ -874,9 +972,9 @@ async function updateRuntimeConfig(path: string, value: string | string[] | bool
       logExtensionMessage(`+ (DBG) NO config value changed!`);
     } else {
       const startLines = startJsonConfig.split(/\r?\n/);
-      const changedStartLines = startLines.filter((line) => line.includes(path));
+      const changedStartLines = startLines.filter((line) => line.includes(subsetPath));
       const updatedLines = updatedJsonConfig.split(/\r?\n/);
-      const changedUpdatedLines = updatedLines.filter((line) => line.includes(path));
+      const changedUpdatedLines = updatedLines.filter((line) => line.includes(subsetPath));
       logExtensionMessage(`+ (DBG) config checking start (${changedStartLines.length}) lines, updated (${changedUpdatedLines.length})`);
       for (let index = 0; index < startLines.length; index++) {
         const startLine = changedStartLines[index];
@@ -1002,10 +1100,11 @@ function updateStatusBarItems(callerId: string) {
   let isDifferentCompileDebug: boolean = false;
   let isDifferentPlugSN: boolean = false;
   const textEditor = vscode.window.activeTextEditor!;
-  if (textEditor == null || textEditor === undefined) {
+  const textDocument = textEditor !== undefined ? textEditor.document : undefined;
+  if (textEditor == null || textEditor === undefined || textDocument === undefined) {
     showSpinStatusBarItems = false;
   } else {
-    showSpin2OnlyStatusBarItems = isSpin2Document(textEditor.document);
+    showSpin2OnlyStatusBarItems = isSpin2Document(textDocument);
     // have updated mode value?
     currMode = getMode(textEditor);
     isDifferentMode = currMode !== priorEditorMode;
@@ -1051,8 +1150,10 @@ function updateStatusBarItems(callerId: string) {
       priorShowSpin2OnlySBItems = showSpin2OnlyStatusBarItems;
     }
     priorChangeUri = textEditor !== undefined ? textEditor.document.uri : vscode.Uri.file('');
-    // this needs to updated every time we have a new editor with spin2 file
-    writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textEditor.document.fileName);
+    if (textEditor !== undefined) {
+      // this needs to updated every time we have a new editor with spin2 file
+      writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textEditor.document.fileName);
+    }
     logExtensionMessage(`* updateStatusBarItems([${callerId}]) (${argumentInterp})`);
 
     if (updateSpin2SBItems && !showSpin2OnlyStatusBarItems) {
@@ -1225,7 +1326,7 @@ function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: string)
   // if present write as new else write undefined
   updateRuntimeConfig('spin2.fNameTopLevel', fileBaseName);
   if (fileBaseName === undefined || fileBaseName.length == 0) {
-    if (currFspec != undefined) {
+    if (currFspec != undefined && isSpin2File(currFspec)) {
       fileBaseName = path.basename(currFspec);
     } else {
       fileBaseName = activeSpin2Filespec();
@@ -1334,6 +1435,8 @@ function writeToolchainBuildVariables(callerID: string) {
     // build loader switches
     const loadOptions: string[] = writeToFlash ? [`-f${buildDebugOption}`] : [`-r${buildDebugOption}`];
     updateRuntimeConfig('spin2.optionsLoader', loadOptions);
+    // this is NOT used in this environment
+    updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     //
   } else if (selectedCompilerId === PATH_PNUT_TS) {
     // -----------------------------------------------------------
@@ -1353,8 +1456,8 @@ function writeToolchainBuildVariables(callerID: string) {
     updateRuntimeConfig('spin2.optionsBuild', buildOptions);
     // these are NOT used in this environment
     updateRuntimeConfig('spin2.optionsLoader', undefined);
-    updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     updateRuntimeConfig('spin2.fSpecLoader', undefined);
+    updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     //
   } else {
     // -----------------------------------------------------------

@@ -6,11 +6,13 @@ function delay(ms: number): Promise<void> {
 }
 
 // Usage in an async function:
-export async function waitSec(sec: number) {
+export async function waitSec(sec: number): Promise<void> {
+  // convert sec to milleSec
   await delay(sec * 1000);
 }
 
 // Usage in an async function:
-export async function waitMSec(ms: number) {
+export async function waitMSec(ms: number): Promise<void> {
+  // just use milleSec
   await delay(ms);
 }

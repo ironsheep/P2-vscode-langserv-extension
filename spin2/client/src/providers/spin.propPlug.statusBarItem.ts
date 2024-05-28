@@ -1,6 +1,7 @@
 'use strict';
 import * as vscode from 'vscode';
 import { toolchainConfiguration } from './spin.toolChain.configuration';
+import { isWindows } from '../fileUtils';
 
 let statusBarItem: vscode.StatusBarItem | null;
 
@@ -42,7 +43,13 @@ export function getPropPlugSerialNumber(): string {
         const serialNumber = toolchainConfiguration.deviceNodesFound[deviceNode];
         // Now you can use deviceNode and serialNumber
         if (deviceName == deviceNode) {
-          desiredInterp = serialNumber;
+          if (isWindows()) {
+            // On windows show COMn:SerialNumber
+            desiredInterp = `${deviceName}:${serialNumber}`;
+          } else {
+            // On non-windows show SerialNumber in status bar
+            desiredInterp = serialNumber;
+          }
           break;
         }
       }

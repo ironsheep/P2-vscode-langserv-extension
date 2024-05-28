@@ -101,11 +101,11 @@ export class UsbSerial {
 
   private handleSerialOpen() {
     this.logMessage(`* handleSerialOpen() open...`);
-    const myString: string = 'Hello, World! 0123456789';
-    const myBuffer: Buffer = Buffer.from(myString, 'utf8');
-    const myUint8Array: Uint8Array = new Uint8Array(myBuffer);
-    //this.downloadNew(myUint8Array);
-    this.requestP2IDString();
+    //const myString: string = 'Hello, World! 0123456789';
+    //const myBuffer: Buffer = Buffer.from(myString, 'utf8');
+    //const myUint8Array: Uint8Array = new Uint8Array(myBuffer);
+    //this.downloadNew(myUint8Array); // TESTING
+    //this.identifyPropeller();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,43 +133,96 @@ export class UsbSerial {
     }
   }
 
-  private async requestP2IDString(): Promise<void> {
+  public async identifyPropeller(): Promise<void> {
     const requestPropType: string = '> Prop_Chk 0 0 0 0';
-    this.logMessage(`* requestP2IDString() - port open (${this._serialPort.isOpen})`);
-    await waitSec(1);
-    await this.setDtr(true);
-    await waitSec(1);
-    await this.setDtr(false);
-    //this.logMessage(`  -- plug reset!`);
-    // NO wait yields a 1.5 mSec delay on my mac Studio
-    // NOTE: if nothing sent, and Edge Module default switch settings, the prop will boot in 142 mSec
-    await waitMSec(15);
-    return await this.write(`${requestPropType}\r`);
-    /*return new Promise((resolve, reject) => {
-      //this.logMessage(`* requestP2IDString() - EXIT`);
-      resolve();
-    });*/
+    this.logMessage(`* identifyPropeller() - port open (${this._serialPort.isOpen})`);
+    try {
+      await this.waitForPortOpen();
+      // continue with ID effort...
+      await waitMSec(500);
+      await this.setDtr(true);
+      await waitMSec(500);
+      await this.setDtr(false);
+      //this.logMessage(`  -- plug reset!`);
+      // NO wait yields a 1.5 mSec delay on my mac Studio
+      // NOTE: if nothing sent, and Edge Module default switch settings, the prop will boot in 142 mSec
+      await waitMSec(5); // at lease 5 mSec delay
+      await this.write(`${requestPropType}\r`);
+    } catch (error) {
+      this.logMessage(`* identifyPropeller() ERROR: ${error.message}`);
+    }
   }
 
-  public async download(uint8Bytes: Uint8Array) {
+  public async download(uint8Bytes: Uint8Array): Promise<void> {
     const requestStartDownload: string = '> Prop_Txt 0 0 0 0';
     const byteCount: number = uint8Bytes.length < this._p2loadLimit ? uint8Bytes.length : this._p2loadLimit;
-    if (this.usbConnected && uint8Bytes.length > 0) {
-      const dataBase64: string = Buffer.from(uint8Bytes).toString('base64');
-      await this.write(`${requestStartDownload}\r`);
-      //await this.write(dataBase64);
-      // Break this up into 128 char lines with > sync chars starting each
-      const LINE_LENGTH: number = 1024;
-      // silicon doc says: It's a good idea to start each Base64 data line with a ">" character, to keep the baud rate tightly calibrated.
-      const lineCount: number = dataBase64.length + LINE_LENGTH - 1 / LINE_LENGTH;
-      const lastLineLength: number = dataBase64.length % LINE_LENGTH;
-      for (let index = 0; index < lineCount; index++) {
-        const lineLength = index == lineCount - 1 ? lastLineLength : LINE_LENGTH;
-        const singleLine = dataBase64.substring(index * LINE_LENGTH, index * LINE_LENGTH + lineLength);
-        await this.write('>' + singleLine);
+    this.logMessage(`* download() - port open (${this._serialPort.isOpen})`);
+    // wait for port to be open...
+    try {
+      const didOpen = await this.waitForPortOpen();
+      this.logMessage(`* download() port opened = (${didOpen}) `);
+
+      // Continue with download...
+      if (this.usbConnected && uint8Bytes.length > 0) {
+        // * Setup for download
+        const dataBase64: string = Buffer.from(uint8Bytes).toString('base64');
+        // Break this up into 128 char lines with > sync chars starting each
+        const LINE_LENGTH: number = 512;
+        // silicon doc says: It's a good idea to start each Base64 data line with a ">" character, to keep the baud rate tightly calibrated.
+        const lineCount: number = Math.ceil(dataBase64.length / LINE_LENGTH); // Corrected lineCount calculation
+        const lastLineLength: number = dataBase64.length % LINE_LENGTH;
+        // * Reset our propeller
+        await waitMSec(500);
+        await this.setDtr(true);
+        await waitMSec(500);
+        await this.setDtr(false);
+        //this.logMessage(`  -- plug reset!`);
+        // NO wait yields a 1.5 mSec delay on my mac Studio
+        // NOTE: if nothing sent, and Edge Module default switch settings, the prop will boot in 142 mSec
+        await waitMSec(5); // at lease 5 mSec delay
+        // * Now do the download
+        await this.write(`${requestStartDownload}\r`);
+        for (let index = 0; index < lineCount; index++) {
+          const lineLength = index == lineCount - 1 ? lastLineLength : LINE_LENGTH;
+          const singleLine = dataBase64.substring(index * LINE_LENGTH, index * LINE_LENGTH + lineLength);
+          await this.write('>' + singleLine);
+          await waitMSec(5); // at lease 5 mSec delay
+        }
+        await this.write(' ~'); // PNut doesn't send a trailing CR/LF
       }
-      await this.write(' ~\r');
+    } catch (error) {
+      this.logMessage(`* download() ERROR: ${error.message}`);
     }
+  }
+
+  private async waitForPortOpen(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 2000 / 30; // 2 seconds / 30 ms
+
+      const intervalId = setInterval(async () => {
+        if (this._serialPort.isOpen) {
+          clearInterval(intervalId);
+          resolve(true);
+        } else if (attempts >= maxAttempts) {
+          clearInterval(intervalId);
+          reject(new Error('Port did not open within 2 seconds'));
+        } else {
+          attempts++;
+        }
+      }, 30); // Check every 30ms
+    });
+  }
+
+  public async close(): Promise<void> {
+    // release the usb port
+    await waitMSec(500);
+    this._serialPort.close((err) => {
+      if (err) {
+        this.logMessage(`* close() Error: ${err.message}`);
+      }
+    });
+    this.logMessage(`* close() - port close: isOpen=(${this._serialPort.isOpen})`);
   }
 
   /*

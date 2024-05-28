@@ -42,6 +42,9 @@ export function platformExeName(exeName: string): string {
       }
       break;
     case 'pnut_ts':
+      if (isWindows()) {
+        searchExeName = `${exeName}.exe`;
+      }
       break;
     case 'flexspin':
       if (isMac()) {
@@ -87,4 +90,46 @@ export async function locateExe(exeName: string, possibleLocations: string[]): P
   return new Promise((resolve, reject) => {
     resolve(exeFSpec);
   });
+}
+
+/**
+ * Checks if a file exists.
+ * @param {string} pathSpec - The path to the file.
+ * @returns {boolean} True if the file exists, false otherwise.
+ */
+export function fileExists(pathSpec: string): boolean {
+  let existsStatus: boolean = false;
+  if (fs.existsSync(pathSpec)) {
+    // File exists in path
+    existsStatus = true;
+  }
+  return existsStatus;
+}
+
+const EMPTY_CONTENT_MARKER: string = 'XY$$ZZY';
+
+export function loadFileAsUint8Array(fspec: string): Uint8Array {
+  let fileContent: Uint8Array = new Uint8Array();
+  if (fs.existsSync(fspec)) {
+    try {
+      const buffer = fs.readFileSync(fspec);
+      fileContent = new Uint8Array(buffer);
+      //if (ctx) ctx.logger.logMessage(`loaded (${fileContent.length}) bytes from [${path.basename(fspec)}]`);
+    } catch (err) {
+      //ctx.logger.log(`TRC: loadFileAsString() fspec=[${fspec}] NOT FOUND!`);
+      const encoder = new TextEncoder();
+      fileContent = new Uint8Array(encoder.encode(EMPTY_CONTENT_MARKER));
+    }
+  }
+  return fileContent;
+}
+
+export function loadUint8ArrayFailed(content: Uint8Array): boolean {
+  // Convert Uint8Array back to string
+  const decoder = new TextDecoder();
+  const checkContent = content.length > 7 ? content.slice(0, 7) : content;
+  const decodedString = decoder.decode(checkContent);
+  // Test if decoded string is 'XY$$ZZY'
+  const emptyStatus = decodedString === EMPTY_CONTENT_MARKER;
+  return emptyStatus;
 }

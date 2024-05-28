@@ -38,7 +38,6 @@ const loadToolchainConfiguration = () => {
     flexspinDebugFlag = '-gbrk'; // default value if no value found
   }
   const lstOutputEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsCompile.enableLstOutput');
-  const binOutputEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsCompile.enableBinOutput');
   const writeFlashEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableFlash');
 
   const toolPaths = {};
@@ -58,7 +57,7 @@ const loadToolchainConfiguration = () => {
   if (flashloaderPath !== undefined) {
     toolPaths[PATH_LOADER_BIN] = flashloaderPath;
   }
-  const pnutPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.pnut');
+  const pnutPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.PNut');
   if (pnutPath !== undefined) {
     toolPaths[PATH_PNUT] = pnutPath;
   }
@@ -72,7 +71,6 @@ const loadToolchainConfiguration = () => {
     debugEnabled,
     flexspinDebugFlag,
     lstOutputEnabled,
-    binOutputEnabled,
     writeFlashEnabled,
     toolPaths
   };
@@ -114,7 +112,6 @@ export const reloadToolchainConfiguration = () => {
     toolchainConfiguration.debugEnabled === newToolchainConfig.debugEnabled &&
     toolchainConfiguration.flexspinDebugFlag === newToolchainConfig.flexspinDebugFlag &&
     toolchainConfiguration.lstOutputEnabled === newToolchainConfig.lstOutputEnabled &&
-    toolchainConfiguration.binOutputEnabled === newToolchainConfig.binOutputEnabled &&
     toolchainConfiguration.writeFlashEnabled === newToolchainConfig.writeFlashEnabled &&
     objectsAreEqual(toolchainConfiguration.toolPaths, newToolchainConfig.toolPaths)
   ) {
@@ -130,7 +127,6 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.debugEnabled = newToolchainConfig.debugEnabled;
   toolchainConfiguration.flexspinDebugFlag = newToolchainConfig.flexspinDebugFlag;
   toolchainConfiguration.lstOutputEnabled = newToolchainConfig.lstOutputEnabled;
-  toolchainConfiguration.binOutputEnabled = newToolchainConfig.binOutputEnabled;
   toolchainConfiguration.writeFlashEnabled = newToolchainConfig.writeFlashEnabled;
   toolchainConfiguration.toolPaths = newToolchainConfig.toolPaths;
 

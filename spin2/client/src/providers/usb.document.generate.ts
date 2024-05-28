@@ -127,6 +127,7 @@ export class USBDocGenerator {
           fs.appendFileSync(rptFileID, `Found PropPlug S/N #${deviceSerial} at [${deviceNode}]${this.endOfLineStr}`); // blank line
 
           const usbPort: UsbSerial = new UsbSerial(deviceNode);
+          usbPort.identifyPropeller(); // initiate request
           // Wrap the interval checking code in a new Promise
           const deviceProperties: [string, string] = await new Promise((resolve, reject) => {
             const intervalId = setInterval(() => {
@@ -137,6 +138,8 @@ export class USBDocGenerator {
               }
             }, 100); // Check every 100ms
           });
+          //this.testDownloadFile(usbPort);
+          usbPort.close(); // we're done with this port
 
           const [deviceString, deviceErrorString] = deviceProperties;
           this.logMessage(`* deviceString=[${deviceString}], deviceErrorString=[${deviceErrorString}]`); // blank line
@@ -151,7 +154,6 @@ export class USBDocGenerator {
           //    fs.appendFileSync(rptFileID, ` { No P2 Info returned }${this.endOfLineStr}`);
           //}
           fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
-          this.testDownloadFile(usbPort);
         } else {
           this.logMessage(`dvcNodes=[${deviceNodes}]`); // blank line
           fs.appendFileSync(rptFileID, ` { No USB Serial devices found }${this.endOfLineStr}`);

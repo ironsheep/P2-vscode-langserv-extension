@@ -567,11 +567,6 @@
             "default": false,
             "description": "Enable generation of Spin2 listing output from compile"
           },
-          "spinExtension.toolchain.optionsCompile.enableBinOutput": {
-            "type": "boolean",
-            "default": false,
-            "description": "Enable generation of Spin2 binary output from compile"
-          },
           "spinExtension.toolchain.optionsDownload.enableFlash": {
             "type": "boolean",
             "default": false,
@@ -597,10 +592,10 @@
             "default": "",
             "description": "Absolute path of the P2ES_flashloader.bin file"
           },
-          "spinExtension.toolchain.paths.pnut": {
+          "spinExtension.toolchain.paths.PNut": {
             "type": "string",
             "default": "",
-            "description": "Absolute path of the PNut_v99.exe file (windows only)"
+            "description": "Absolute path of the pnut_shell.bat file (windows only)"
           }
         }
       },
@@ -650,70 +645,61 @@
     ],
     "keybindings": [
       {
-        "key": "Ctrl+Alt+r",
-        "win": "Ctrl+Win+r",
+        "key": "Ctrl+Alt+h",
         "command": "spinExtension.generate.hierarchy.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
-        "key": "Ctrl+Alt+u",
-        "win": "Ctrl+Win+u",
-        "command": "spinExtension.generate.usb.documentation.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
-      },
-      {
         "key": "Ctrl+Alt+d",
-        "win": "Ctrl+Win+d",
         "command": "spinExtension.generate.documentation.file",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
-        "key": "Ctrl+Shift+a",
+        "key": "Ctrl+Alt+c",
+        "command": "spinExtension.generate.doc.comment",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Alt+u",
+        "command": "spinExtension.generate.usb.documentation.file",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Shift+c",
+        "windows": "Shift+Ctrl+Alt+c",
         "command": "spinExtension.compile.currfile",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
       },
       {
-        "key": "Ctrl+Shift+c",
-        "command": "spinExtension.compile.topfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
-      },
-      {
-        "key": "F8",
+        "key": "Ctrl+Shift+t",
+        "windows": "Shift+Ctrl+Alt+t",
         "command": "spinExtension.compile.topfile",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
       },
       {
         "key": "Ctrl+Shift+d",
+        "windows": "Shift+Ctrl+Alt+d",
         "command": "spinExtension.download.topfile",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
       },
       {
-        "key": "F10",
+        "key": "F11",
         "command": "spinExtension.download.topfile",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
       },
       {
         "key": "Ctrl+Alt+n",
-        "win": "Ctrl+Win+n",
         "command": "spinExtension.select.propplug",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+g",
-        "win": "Ctrl+Win+g",
         "command": "spinExtension.toggle.debug",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+f",
-        "win": "Ctrl+Win+f",
         "command": "spinExtension.toggle.flash",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
-      },
-      {
-        "key": "Ctrl+Alt+c",
-        "win": "Ctrl+Win+c",
-        "command": "spinExtension.generate.doc.comment",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
@@ -728,7 +714,6 @@
       },
       {
         "key": "Ctrl+Alt+tab",
-        "win": "Ctrl+Win+tab",
         "command": "spinExtension.elasticTabstops.generate.tabStops.comment",
         "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       },
@@ -752,6 +737,7 @@
         "command": "spinExtension.insertMode.toggle",
         "key": "Ctrl+Shift+i",
         "mac": "Cmd+Shift+i",
+        "windows": "Shift+Alt+b",
         "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       }
     ],
