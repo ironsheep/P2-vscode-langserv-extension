@@ -90,7 +90,8 @@ export class UsbSerial {
     return this._serialPort.isOpen;
   }
 
-  public getIdStringOrError(): [string, string] {
+  public getIdStringOrError(callerID: string): [string, string] {
+    this.logMessage(`* getIdStringOrError(${callerID}) [${this._p2DeviceId}, ${this._latestError}]`);
     return [this._p2DeviceId, this._latestError];
   }
 
@@ -105,7 +106,7 @@ export class UsbSerial {
     //const myBuffer: Buffer = Buffer.from(myString, 'utf8');
     //const myUint8Array: Uint8Array = new Uint8Array(myBuffer);
     //this.downloadNew(myUint8Array); // TESTING
-    //this.identifyPropeller();
+    //this.requestPropellerVersion();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,9 +134,9 @@ export class UsbSerial {
     }
   }
 
-  public async identifyPropeller(): Promise<void> {
+  private async requestPropellerVersion(): Promise<void> {
     const requestPropType: string = '> Prop_Chk 0 0 0 0';
-    this.logMessage(`* identifyPropeller() - port open (${this._serialPort.isOpen})`);
+    this.logMessage(`* requestPropellerVersion() - port open (${this._serialPort.isOpen})`);
     try {
       await this.waitForPortOpen();
       // continue with ID effort...
@@ -149,8 +150,59 @@ export class UsbSerial {
       await waitMSec(5); // at lease 5 mSec delay
       await this.write(`${requestPropType}\r`);
     } catch (error) {
-      this.logMessage(`* identifyPropeller() ERROR: ${error.message}`);
+      this.logMessage(`* requestPropellerVersion() ERROR: ${error.message}`);
     }
+  }
+
+  public async deviceIsPropellerV2(): Promise<boolean> {
+    await this.requestPropellerVersion(); // initiate request
+    await waitMSec(1000);
+    let foundPropellerStatus: boolean = false;
+    const [deviceString, deviceErrorString] = this.getIdStringOrError(`ONLY`);
+    if (deviceErrorString.length > 0) {
+      this.logMessage(`* deviceIsPropeller() ERROR: ${deviceErrorString}`);
+    } else if (deviceString.length > 0 && deviceErrorString.length == 0) {
+      foundPropellerStatus = true;
+    }
+    this.logMessage(`* deviceIsPropeller() -> (${foundPropellerStatus})`);
+    return foundPropellerStatus;
+  }
+
+  public async deviceIsPropellerV2Loop(): Promise<boolean> {
+    await this.requestPropellerVersion(); // initiate request
+    let foundPropellerStatus: boolean = false;
+    // Wrap the interval checking code in a new Promise
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let [deviceString, deviceErrorString] = ['', ''];
+    try {
+      const deviceProperties: [string, string] = await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 15000 / 1000; // 15 seconds / 1000 ms
+        const intervalId = setInterval(async () => {
+          [deviceString, deviceErrorString] = this.getIdStringOrError(`${attempts}`);
+          if (deviceString.length > 0 || deviceErrorString.length > 0) {
+            clearInterval(intervalId);
+            resolve([deviceString, deviceErrorString]);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(intervalId);
+            reject(new Error('Propeller did not ID within 15 seconds'));
+          } else {
+            attempts++;
+          }
+        }, 1000); // Check every 200 ms
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      [deviceString, deviceErrorString] = deviceProperties;
+    } catch (error) {
+      this.logMessage(`* deviceIsPropeller() ERROR: ${error.message}`);
+    } finally {
+      this.close(); // we're done with this port
+    }
+    if (deviceString.length > 0 && deviceErrorString.length == 0) {
+      foundPropellerStatus = true;
+    }
+    this.logMessage(`* deviceIsPropeller() -> (${foundPropellerStatus})`);
+    return foundPropellerStatus;
   }
 
   public async download(uint8Bytes: Uint8Array): Promise<void> {
@@ -171,24 +223,15 @@ export class UsbSerial {
         // silicon doc says: It's a good idea to start each Base64 data line with a ">" character, to keep the baud rate tightly calibrated.
         const lineCount: number = Math.ceil(dataBase64.length / LINE_LENGTH); // Corrected lineCount calculation
         const lastLineLength: number = dataBase64.length % LINE_LENGTH;
-        // * Reset our propeller
-        await waitMSec(500);
-        await this.setDtr(true);
-        await waitMSec(500);
-        await this.setDtr(false);
-        //this.logMessage(`  -- plug reset!`);
-        // NO wait yields a 1.5 mSec delay on my mac Studio
-        // NOTE: if nothing sent, and Edge Module default switch settings, the prop will boot in 142 mSec
-        await waitMSec(5); // at lease 5 mSec delay
+
         // * Now do the download
         await this.write(`${requestStartDownload}\r`);
         for (let index = 0; index < lineCount; index++) {
           const lineLength = index == lineCount - 1 ? lastLineLength : LINE_LENGTH;
           const singleLine = dataBase64.substring(index * LINE_LENGTH, index * LINE_LENGTH + lineLength);
           await this.write('>' + singleLine);
-          await waitMSec(5); // at lease 5 mSec delay
         }
-        await this.write(' ~'); // PNut doesn't send a trailing CR/LF
+        await this.write('~'); // PNut doesn't send a leading space or a trailing CR/LF
       }
     } catch (error) {
       this.logMessage(`* download() ERROR: ${error.message}`);

@@ -35,8 +35,11 @@ import {
   reloadToolchainConfiguration,
   toolchainConfiguration
 } from './providers/spin.toolChain.configuration';
+import { ObjectImage } from './imageUtils';
+import { getFlashLoaderBin } from './spin.vscode.fileUtils';
 
 let client: LanguageClient;
+let spin2Context: vscode.ExtensionContext;
 
 enum eConfigSection {
   CS_USER,
@@ -135,7 +138,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
         docGenerator.showDocument('.readme.txt');
       } catch (error) {
         await vscode.window.showErrorMessage(`Hierarchy Generation Problem\n${error.stack}`);
-        this.logMessage(`Exception: Hierarchy Generation Problem\n${error.stack}`);
+        logExtensionMessage(`Exception: Hierarchy Generation Problem\n${error.stack}`);
         console.error(error);
       }
     })
@@ -400,6 +403,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //   Hook Download TOP binary file
   //
   const downloadTopFile: string = 'spinExtension.download.topfile';
+  let downloaderTerminal: vscode.Terminal | undefined = undefined;
   //* -- VERSION 1
   context.subscriptions.push(
     vscode.commands.registerCommand(downloadTopFile, async () => {
@@ -407,37 +411,57 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const selctedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
       if (selctedCompiler == PATH_PNUT_TS) {
         logExtensionMessage(`* Running built-in downloader...!`);
-        // create terminal
-        const terminal = vscode.window.createTerminal(`'pnut_ts' Downloader Output`);
-        // load binary file
-        const filenameToDownload = getRuntimeConfigValue('optionsBinaryFname');
-        if (filenameToDownload !== undefined && filenameToDownload !== '') {
-          // write file info to terminal
-          const rootDir: string = currenWorkingDir();
-          const binaryFilespec = path.join(rootDir, filenameToDownload);
-          const binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
-          const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
-          if (failedToLoad == false) {
-            terminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes`);
-            // write to USB PropPlug
-            const deviceNode = toolchainConfiguration.selectedPropPlug;
-            if (deviceNode !== undefined) {
-              const usbPort: UsbSerial = new UsbSerial(deviceNode);
-              await usbPort.download(binaryImage);
-              await usbPort.close();
-              terminal.sendText(`# DONE`);
-            } else {
-              terminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
-            }
-          } else {
-            terminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
+        const deviceNode = toolchainConfiguration.selectedPropPlug;
+        if (deviceNode !== undefined && deviceNode !== '') {
+          // create terminal
+          if (downloaderTerminal === undefined) {
+            downloaderTerminal = vscode.window.createTerminal(`'pnut_ts' Downloader Output`);
           }
-          // write success or error info to terminal
+          // Clear the terminal
+          downloaderTerminal.sendText('clear');
+          // load binary file
+          const filenameToDownload = getRuntimeConfigValue('optionsBinaryFname');
+          let binaryFilespec: string = '';
+          if (filenameToDownload !== undefined && filenameToDownload !== '') {
+            // write file info to terminal
+            const rootDir: string = currenWorkingDir();
+            binaryFilespec = path.join(rootDir, filenameToDownload);
+            let binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
+            const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
+            if (failedToLoad == false) {
+              const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+              if (writeToFlash) {
+                binaryImage = insertP2FlashLoader(binaryImage);
+              }
+              downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes`);
+              // write to USB PropPlug
+              if (deviceNode !== undefined) {
+                const usbPort: UsbSerial = new UsbSerial(deviceNode);
+                if (await usbPort.deviceIsPropellerV2()) {
+                  await usbPort.download(binaryImage);
+                  downloaderTerminal.sendText(`# DONE`);
+                } else {
+                  downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
+                }
+                await usbPort.close();
+              } else {
+                downloaderTerminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
+              }
+            } else {
+              downloaderTerminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
+            }
+            // write success or error info to terminal
+          } else {
+            // no filename to download
+            downloaderTerminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
+          }
+          downloaderTerminal.show();
         } else {
-          // no filename to download
-          terminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
+          const errorMessage: string = `CMD: DOWNLOAD - no propplug selected!`;
+          logExtensionMessage(errorMessage);
+          await vscode.window.showErrorMessage(errorMessage);
+          console.error(errorMessage);
         }
-        terminal.show();
       } else {
         logExtensionMessage(`* NOT pnut_ts, run download task!`);
         const tasks = await vscode.tasks.fetchTasks();
@@ -453,6 +477,47 @@ function registerCommands(context: vscode.ExtensionContext): void {
       }
     })
   );
+
+  function insertP2FlashLoader(binaryImage: Uint8Array): Uint8Array {
+    // PNut insert_flash_loader:
+    const objImage = new ObjectImage('bin-w/loader');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const debugPinRx: number = 63; // default maybe overridden by code
+    const debugPinTx: number = 62; //default maybe overridden by code
+    objImage.adopt(binaryImage);
+    // pad object to next long
+    while (objImage.offset & 0b11) {
+      objImage.append(0);
+    }
+    const _checksum_ = 0x04;
+    const _debugnop_ = 0x08;
+    const _NOP_INSTRU_ = 0;
+    const flashLoaderBin: Uint8Array = getFlashLoaderBin(spin2Context);
+    const flashLoaderLength = flashLoaderBin.length;
+    // move object upwards to accommodate flash loader
+    logExtensionMessage(`  -- move object up - flashLoaderLength=(${flashLoaderLength}) bytes`);
+    this.moveObjectUp(objImage, flashLoaderLength, 0, objImage.offset);
+    // install flash loader
+    logExtensionMessage(`  -- load flash loader`);
+    objImage.rawUint8Array.set(flashLoaderBin, 0);
+    const isDebugMode: boolean = toolchainConfiguration.debugEnabled;
+    if (isDebugMode) {
+      // debug is on
+      const debugInstru = objImage.readLong(_debugnop_);
+      objImage.replaceLong(debugInstru | debugPinTx, _debugnop_);
+    } else {
+      // debug is off
+      objImage.replaceLong(_NOP_INSTRU_, _debugnop_);
+    }
+    // compute negative sum of all data
+    let checkSum: number = 0;
+    for (let offset = 0; offset < objImage.offset; offset += 4) {
+      checkSum -= objImage.readLong(offset);
+    }
+    // insert checksum into loader
+    objImage.replaceLong(checkSum, _checksum_);
+    return objImage.rawUint8Array;
+  }
 
   function currenWorkingDir(): string {
     const textEditor = vscode.window.activeTextEditor;
@@ -708,12 +773,14 @@ async function locatePropPlugs() {
     const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
     const deviceNode: string = portParts[0];
     devicesFound.push(deviceNode);
-    if (deviceIsPropeller(deviceNode)) {
+    const usbPort: UsbSerial = new UsbSerial(deviceNode);
+    if (await usbPort.deviceIsPropellerV2()) {
       plugsFoundSetting[deviceNode] = deviceSerial;
       if (currDeviceNode && currDeviceNode === deviceNode) {
         selectionStillExists = true;
       }
     }
+    usbPort.close();
   }
   logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
   // record latest values found
@@ -749,45 +816,6 @@ async function locatePropPlugs() {
       );
     }
   }
-}
-
-async function deviceIsPropeller(deviceNode: string): Promise<boolean> {
-  const usbPort: UsbSerial = new UsbSerial(deviceNode);
-  usbPort.identifyPropeller(); // initiate request
-  let foundPropellerStatus: boolean = false;
-  let [deviceString, deviceErrorString] = ['', ''];
-  // Wrap the interval checking code in a new Promise
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  try {
-    const deviceProperties: [string, string] = await new Promise((resolve, reject) => {
-      let attempts = 0;
-      const maxAttempts = 2000 / 100; // 2 seconds / 100 ms
-      const intervalId = setInterval(async () => {
-        const [deviceString, deviceErrorString] = usbPort.getIdStringOrError();
-        if (deviceString.length > 0 || deviceErrorString.length > 0) {
-          clearInterval(intervalId);
-          resolve([deviceString, deviceErrorString]);
-        } else if (attempts >= maxAttempts) {
-          clearInterval(intervalId);
-          reject(new Error('Port did not open within 2 seconds'));
-        } else {
-          attempts++;
-        }
-      }, 100); // Check every 100ms
-    });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    [deviceString, deviceErrorString] = deviceProperties;
-  } catch (error) {
-    this.logMessage(`* deviceIsPropeller() ERROR: ${error.message}`);
-  } finally {
-    usbPort.close(); // we're done with this port
-  }
-  if (deviceString.length > 0 && deviceErrorString.length == 0) {
-    foundPropellerStatus = true;
-  }
-  //this.testDownloadFile(usbPort);
-  this.logMessage(`* deviceIsPropeller() -> (${foundPropellerStatus})`);
-  return foundPropellerStatus;
 }
 
 // ----------------------------------------------------------------------------
@@ -998,6 +1026,9 @@ export function activate(context: vscode.ExtensionContext) {
       logExtensionMessage('\n\n------------------   NEW FILE ----------------\n\n');
     }
   }
+
+  // preserve our extension context
+  spin2Context = context;
 
   // Let's get the client, later we'll start it
   client = getSetupExtensionClient(context);

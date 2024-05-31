@@ -937,6 +937,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile && npm run compile:grammar",
+    "precompile": "mkdir -p ./client/out/ext && cp -p ./client/src//ext/*.obj ./client/out/ext",
     "compile": "tsc -b",
     "compile:grammar": "npx js-yaml syntaxes/spin2.tmLanguage.YAML-tmLanguage > syntaxes/spin2.tmLanguage.json && npx js-yaml syntaxes/spin1.tmLanguage.YAML-tmLanguage > syntaxes/spin1.tmLanguage.json ",
     "watch": "tsc -b -w",
