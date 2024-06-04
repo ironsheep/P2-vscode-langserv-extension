@@ -271,14 +271,11 @@ suite('Should do Spin2 outline display', () => {
   });
 });
 
-async function testDocumentSymbols(docUri: vscode.Uri, expectedDocumentSymbolsList: Array<DocumentSymbol>) {
+async function testDocumentSymbols(docUri: vscode.Uri, expectedDocumentSymbolsList: Array<DocumentSymbol>): Promise<void> {
   await activate(docUri);
 
   // Executing the command `vscode.executeCompletionItemProvider` to simulate triggering completion
-  const actualDocumentSymbolsList = (await vscode.commands.executeCommand(
-    'vscode.executeDocumentSymbolProvider',
-    docUri
-  )) as Array<DocumentSymbol>;
+  const actualDocumentSymbolsList = (await vscode.commands.executeCommand('vscode.executeDocumentSymbolProvider', docUri)) as Array<DocumentSymbol>;
   console.log(`spin2-actualCompletionList is ${showObject(actualDocumentSymbolsList)})`);
   console.log(`spin2-expectedDocumentSymbolsList is ${showObject(expectedDocumentSymbolsList)})`);
 

@@ -211,8 +211,18 @@ function registerCommands(context: vscode.ExtensionContext): void {
     updateStatusBarItems('handleTextDocumentChanged');
   }
 
+  let startupComplete: boolean = false;
+  const startupPaths: string[] = ['/settings/resourceLanguage', '/launch', '/token-styling', '/textmate-colors', '/workbench-colors'];
+
   function handleTextDocumentOpened(textDocument: vscode.TextDocument) {
     logExtensionMessage(`* handleTextDocumentOpened(${textDocument.fileName}) `);
+
+    if (!startupComplete) {
+      if (startupPaths.includes(textDocument.fileName)) {
+        startupComplete = true;
+        logExtensionMessage(`* handleTextDocumentOpened() Startup is complete!`);
+      }
+    }
     if (isSpinOrPasmDocument(textDocument)) {
       vscode.window.visibleTextEditors.map((editor) => {
         if (editor.document.uri == textDocument.uri) {
@@ -272,19 +282,19 @@ function registerCommands(context: vscode.ExtensionContext): void {
           {
             const selectedDevice = devicesFound[0];
             vscode.window.showInformationMessage(`The only PropPlug ${selectedDevice} was selected for you automatically.`);
-            updateConfig('toolchain.propPlug.selected', selectedDevice, eConfigSection.CS_USER);
+            await updateConfig('toolchain.propPlug.selected', selectedDevice, eConfigSection.CS_USER);
           }
           break;
         case 0:
           vscode.window.showWarningMessage(`There are no available PropPlugs!`);
-          updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
+          await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
           break;
 
         default:
           // Show the list of choices to the user.
-          vscode.window.showInformationMessage('Select the PropPlug connecting to your P2', ...devicesFound).then((userSelectedDevice) => {
+          vscode.window.showInformationMessage('Select the PropPlug connecting to your P2', ...devicesFound).then(async (userSelectedDevice) => {
             // Save the user's choice in the workspace configuration.
-            updateConfig('toolchain.propPlug.selected', userSelectedDevice, eConfigSection.CS_USER);
+            await updateConfig('toolchain.propPlug.selected', userSelectedDevice, eConfigSection.CS_USER);
           });
           break;
       }
@@ -327,7 +337,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       try {
         const isDebugEnabled: boolean = toolchainConfiguration.debugEnabled;
         const newEnableState = isDebugEnabled ? false : true;
-        updateConfig('toolchain.optionsCompile.enableDebug', newEnableState, eConfigSection.CS_WORKSPACE);
+        await updateConfig('toolchain.optionsCompile.enableDebug', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableDebug (${isDebugEnabled}) -> (${newEnableState})`);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
@@ -347,7 +357,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       try {
         const isFlashEnabled: boolean = toolchainConfiguration.writeFlashEnabled;
         const newEnableState = isFlashEnabled ? false : true;
-        updateConfig('toolchain.optionsDownload.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
+        await updateConfig('toolchain.optionsDownload.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
         logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-FLASH Problem: error=[${error}]`);
@@ -806,7 +816,7 @@ function initializeProviders(): void {
 // ----------------------------------------------------------------------------
 //   Hook Startup scan for PropPlugs
 //
-async function locatePropPlugs() {
+async function locatePropPlugs(): Promise<void> {
   const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
   const devicesFound: string[] = [];
   const plugsFoundSetting = {};
@@ -837,21 +847,21 @@ async function locatePropPlugs() {
   }
   logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
   // record latest values found
-  updateConfig('toolchain.propPlug.devicesFound', plugsFoundSetting, eConfigSection.CS_USER);
+  await updateConfig('toolchain.propPlug.devicesFound', plugsFoundSetting, eConfigSection.CS_USER);
   if (devicesFound.length == 1) {
     // if only 1 device, select it
     if (currDeviceNode && currDeviceNode != devicesFound[0]) {
       // changing from prior selection, notify user
       vscode.window.showWarningMessage(`Changing PropPlug to ${devicesFound[0]} from ${currDeviceNode}`);
     }
-    updateConfig('toolchain.propPlug.selected', devicesFound[0], eConfigSection.CS_USER);
+    await updateConfig('toolchain.propPlug.selected', devicesFound[0], eConfigSection.CS_USER);
   } else if (devicesFound.length == 0) {
     // if NO devices, select NONE
     if (currDeviceNode) {
       // changing from prior selection, notify user
       vscode.window.showWarningMessage(`Removed PropPlug ${currDeviceNode} - No longer available`);
     }
-    updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
+    await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
   } else {
     // we have more than one!
     // if one is selected and it is still present then DO NOTHING
@@ -861,7 +871,7 @@ async function locatePropPlugs() {
       vscode.window.showWarningMessage(
         `Removed PropPlug ${currDeviceNode} - No longer available, Have ${devicesFound.length} other PropPlugs, press Ctrl+Alt+n to select one`
       );
-      updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
+      await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
     } else if (selectionStillExists == false) {
       // we don't have a selection and there are more than one so tell user to select
       vscode.window.showInformationMessage(
@@ -874,7 +884,7 @@ async function locatePropPlugs() {
 // ----------------------------------------------------------------------------
 //   Hook Startup scan for Toolchain parts
 //
-async function locateTools() {
+async function locateTools(): Promise<void> {
   // factor in use of ENV{'path'} to locate tools
   const envPath = process.env.PATH;
   //  ~/bin
@@ -984,12 +994,13 @@ async function locateTools() {
   logExtensionMessage(`* TOOL: platformPaths=[${platformPaths}]`);
 }
 
-async function updateConfig(path: string, value: string | string[] | boolean | object, section: eConfigSection) {
+async function updateConfig(path: string, value: string | string[] | boolean | object, section: eConfigSection): Promise<void> {
   // Get the workspace configuration.
+  logExtensionMessage(`+ (DBG) updCfg(${path}) value=(${value}) - ENTRY`);
   const startingConfig = vscode.workspace.getConfiguration('spinExtension');
   const existingValue = startingConfig.get(path);
   if (existingValue === value) {
-    logExtensionMessage(`+ (DBG) updateConfig([${path}]) Value already set, aborting`);
+    logExtensionMessage(`+ (DBG) updCfg([${path}]) Value already set, aborting`);
   } else {
     const startJsonConfig: string = JSON.stringify(startingConfig, null, 4);
     //logExtensionMessage(`+ (DBG) BEFORE config=(${startJsonConfig})`);
@@ -1002,20 +1013,21 @@ async function updateConfig(path: string, value: string | string[] | boolean | o
     //logExtensionMessage(`+ (DBG) AFTER config=(${updatedJsonConfig})`);
 
     if (startJsonConfig === updatedJsonConfig) {
-      logExtensionMessage(`+ (DBG) NO config value changed!`);
+      logExtensionMessage(`+ (DBG) updCfg() NO config value changed!`);
     } else {
       const startLines = startJsonConfig.split(/\r?\n/);
       const updatedLines = updatedJsonConfig.split(/\r?\n/);
-      logExtensionMessage(`+ (DBG) config checking start (${startLines.length}) lines, updated (${updatedLines.length})`);
+      logExtensionMessage(`+ (DBG) updCfg() checking start (${startLines.length}) lines, updated (${updatedLines.length})`);
       for (let index = 0; index < startLines.length; index++) {
         const startLine = startLines[index];
         const updatedLine = updatedLines[index];
         if (startLine != updatedLine) {
-          logExtensionMessage(`+ (DBG) config ln#${index + 1} [${startLine}] -> [${updatedLine}]`);
+          logExtensionMessage(`+ (DBG) updCfg ln#${index + 1} [${startLine}] -> [${updatedLine}]`);
         }
       }
     }
   }
+  logExtensionMessage(`+ (DBG) updCfg(${path}) value=(${value}) - EXIT`);
 }
 
 function getRuntimeConfigValue(path: string): string | undefined {
@@ -1026,23 +1038,23 @@ function getRuntimeConfigValue(path: string): string | undefined {
   return existingValue;
 }
 
-async function updateRuntimeConfig(path: string, value: string | string[] | boolean | object) {
+async function updateRuntimeConfig(path: string, value: string | string[] | boolean | object): Promise<void> {
   // Get the workspace configuration.
   const subsetConfig = path.startsWith('spin2.') ? 'spin2' : undefined;
   const useSubset = subsetConfig !== undefined;
   const subsetPath = useSubset ? path.substring(6) : path;
-  logExtensionMessage(`+ (DBG) updateRuntimeConfig([${path}]) <- [${value}]`);
+  logExtensionMessage(`+ (DBG) updRCfg([${path}]) value=[${value}]- ENTRY`);
   const startingConfig = vscode.workspace.getConfiguration(subsetConfig);
   const existingValue = startingConfig.get(subsetPath);
   if (existingValue === value) {
-    logExtensionMessage(`+ (DBG) updateRuntimeConfig([${path}]) Value (${existingValue}) === (${value}), aborting`);
+    logExtensionMessage(`+ (DBG) updRCfg([${path}]) Value (${existingValue}) === (${value}), aborting`);
   } else {
     const startJsonConfig: string = JSON.stringify(startingConfig, null, 4);
     //logExtensionMessage(`+ (DBG) BEFORE config=(${startJsonConfig})`);
     try {
       await startingConfig.update(subsetPath, value, vscode.ConfigurationTarget.Workspace);
     } catch (error) {
-      logExtensionMessage(`ERROR: updateRuntimeConfig([${path}]) <= Value=[${value}] FAILED!`);
+      logExtensionMessage(`ERROR: updRCfg([${path}]) <= Value=[${value}] FAILED!`);
       console.error('Failed to update configuration:', error);
     }
     const updatedConfig = vscode.workspace.getConfiguration(subsetConfig);
@@ -1050,23 +1062,24 @@ async function updateRuntimeConfig(path: string, value: string | string[] | bool
     //logExtensionMessage(`+ (DBG) AFTER config=(${updatedJsonConfig})`);
 
     if (startJsonConfig === updatedJsonConfig) {
-      logExtensionMessage(`+ (DBG) NO config value changed!`);
+      logExtensionMessage(`+ (DBG) updRCfg() NO config value changed!`);
     } else {
       const startLines = startJsonConfig.split(/\r?\n/);
       const changedStartLines = startLines.filter((line) => line.includes(subsetPath));
       const updatedLines = updatedJsonConfig.split(/\r?\n/);
       const changedUpdatedLines = updatedLines.filter((line) => line.includes(subsetPath));
-      logExtensionMessage(`+ (DBG) config checking start (${changedStartLines.length}) lines, updated (${changedUpdatedLines.length})`);
+      logExtensionMessage(`+ (DBG) updRCfg() checking start (${changedStartLines.length}) lines, updated (${changedUpdatedLines.length})`);
       for (let index = 0; index < startLines.length; index++) {
         const startLine = changedStartLines[index];
         const updatedLine = changedUpdatedLines[index];
         if (startLine != updatedLine) {
           const locationIndex: number = startLines.indexOf(startLine);
-          logExtensionMessage(`+ (DBG) config ln#${locationIndex + 1} [${startLine}] -> [${updatedLine}]`);
+          logExtensionMessage(`+ (DBG) updRCfg() ln#${locationIndex + 1} was [${startLine}] -> is [${updatedLine}]`);
         }
       }
     }
   }
+  logExtensionMessage(`+ (DBG) updRCfg([${path}]) value=[${value}]- EXIT`);
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -1095,7 +1108,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   if (firstEditorChangeEvent) {
     firstEditorChangeEvent = false;
-    writeToolchainBuildVariables('STARTUP');
+    // call wrtie waiting for it to complete
+    writeToolchainBuildVariables('STARTUP').then(() => {}); // wait for complete
   }
 
   /*   EXAMPLE
@@ -1171,7 +1185,7 @@ let priorDownloadFlash: boolean = false;
 let priorCompileDebug: boolean = false;
 let priorPlugSN: string = '';
 
-function updateStatusBarItems(callerId: string) {
+async function updateStatusBarItems(callerId: string): Promise<void> {
   let argumentInterp: string = 'undefined';
   let isSpinWindow: boolean = false;
   let showSpinStatusBarItems: boolean = true;
@@ -1236,7 +1250,7 @@ function updateStatusBarItems(callerId: string) {
     priorChangeUri = textEditor !== undefined ? textEditor.document.uri : vscode.Uri.file('');
     if (textEditor !== undefined) {
       // this needs to updated every time we have a new editor with spin2 file
-      writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textEditor.document.fileName);
+      await writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textEditor.document.fileName);
     }
     logExtensionMessage(`* updateStatusBarItems([${callerId}]) (${argumentInterp})`);
 
@@ -1289,18 +1303,14 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: s
   }
   const sourceID: string = source !== undefined ? source : 'EVENT';
   const editorGivenStr: string = textEditor !== undefined ? 'w/Editor' : 'w/o Editor';
-  logExtensionMessage(`* handleActiveTextEditorChanged(${editorGivenStr}, ${sourceID}) - [${argumentInterp}]`);
+  logExtensionMessage(`* handleActiveTextEditorChanged(${editorGivenStr}, ${sourceID}) - [${argumentInterp}] - ENTRY`);
 
   if (firstEditorChangeEvent) {
     firstEditorChangeEvent = false;
-    writeToolchainBuildVariables('EARLY-INIT');
+    // just don't do this!!   writeToolchainBuildVariables('EARLY-INIT').then(() => {}); // wait for complete;
   }
 
   if (isSpinWindow && textEditor) {
-    // if (isSpin2File(textEditor.document.fileName)) {
-    //   this needs to updated every time we have a new editor with spin2 file
-    //    writeToolchainBinaryFnameVariable('EDITOR-CHG', textEditor.document.fileName);
-    // }
     recolorizeSpinDocumentIfChanged(textEditor, 'handleActiveTextEditorChanged', 'Ext-actvEditorChg', true); // true=force the recolor
 
     // if in overtype mode, set the cursor to secondary style; otherwise, reset to default
@@ -1320,6 +1330,7 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: s
     textEditor.options.cursorStyle = cursorStyle;
   }
   updateStatusBarItems('handleActiveTextEditorChanged');
+  logExtensionMessage(`* handleActiveTextEditorChanged(${editorGivenStr}, ${sourceID}) - [${argumentInterp}] - EXIT`);
 }
 
 const versionCacheByDocument = new Map<string, number>();
@@ -1361,7 +1372,7 @@ const handleDidChangeConfiguration = () => {
   const toolchainUpdated: boolean = reloadToolchainConfiguration();
   if (toolchainUpdated) {
     // rewrite build variables
-    writeToolchainBuildVariables('CFG-CHG'); // write compile/download values
+    writeToolchainBuildVariables('CFG-CHG').then(() => {}); // wait for complete, write compile/download values
   }
 
   const showInsertModeInStatusBar = getShowInsertModeInStatusBar();
@@ -1401,14 +1412,14 @@ const handleDidChangeConfiguration = () => {
   }
 };
 
-function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: string) {
+async function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: string): Promise<void> {
   // NOTE: this runs on startup and when the active editor changes
-  logExtensionMessage(`* writeToolchainBinaryFnameVariable(${callerID})`);
+  logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}) - ENTRY`);
   // spin2.fNameTopLevel WAS topLevel
   // get old, if present
   let fileBaseName: string | undefined = toolchainConfiguration.topFilename;
   // if present write as new else write undefined
-  updateRuntimeConfig('spin2.fNameTopLevel', fileBaseName);
+  await updateRuntimeConfig('spin2.fNameTopLevel', fileBaseName);
   if (fileBaseName === undefined || fileBaseName.length == 0) {
     if (currFspec != undefined && isSpin2File(currFspec)) {
       fileBaseName = path.basename(currFspec);
@@ -1436,35 +1447,36 @@ function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: string)
         const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
         flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
       }
-      updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
+      await updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
     } else if (selectedCompilerId === PATH_PNUT) {
       // -----------------------------------------------------------
       // PNut toolset has compiler, and loader which are the same!
       //
       // for pnut we use the top-level source name instead of a .binary name
-      updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
+      await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
     } else if (selectedCompilerId === PATH_PNUT_TS) {
       // -----------------------------------------------------------
       // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
       //
       // for pnut we use the top-level source name instead of a .binary name
-      updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
+      await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
     }
   } else {
     // no selected spin2 file, just clear the value
-    updateRuntimeConfig('spin2.optionsBinaryFname', undefined);
+    await updateRuntimeConfig('spin2.optionsBinaryFname', undefined);
   }
+  logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}) - EXIT`);
 }
 
-function writeToolchainBuildVariables(callerID: string) {
+async function writeToolchainBuildVariables(callerID: string): Promise<void> {
   // NOTE: this runs on startup and when the configuration changes
-  logExtensionMessage(`* writeToolchainBuildVariables(${callerID})`);
+  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - ENTRY`);
 
-  writeToolchainBinaryFnameVariable(callerID); // also set the download filename
+  await writeToolchainBinaryFnameVariable(callerID); // also set the download filename
 
   // record selected serial port... (or remove entry)
   const selectedSerial = toolchainConfiguration.selectedPropPlug;
-  updateRuntimeConfig('spin2.serialPort', selectedSerial);
+  await updateRuntimeConfig('spin2.serialPort', selectedSerial);
 
   const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
   const compilingDebug: boolean = toolchainConfiguration.debugEnabled;
@@ -1478,11 +1490,11 @@ function writeToolchainBuildVariables(callerID: string) {
     // flexProp toolset has compiler, loadP2, and flashBinary
     //
     const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_FLEXSPIN];
-    updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
     const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
-    updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
+    await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
     const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
-    updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+    await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
     // build compiler switches
     // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
     const flexDebugSwitch: string = toolchainConfiguration.flexspinDebugFlag;
@@ -1494,40 +1506,40 @@ function writeToolchainBuildVariables(callerID: string) {
     if (lstOutputEnabled) {
       flexBuildOptions.push('-l');
     }
-    updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
+    await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
     // build loader switches
     const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
     const loaderOptions: string[] = ['-b230400', '-t', '-v']; // verbose for time being....
     if (desiredPort.length > 0) {
       loaderOptions.push(desiredPort);
     }
-    updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
+    await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
     //
   } else if (selectedCompilerId === PATH_PNUT) {
     // -----------------------------------------------------------
     // PNut toolset has compiler, and loader which are the same!
     //
     const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
-    updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
     const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
-    updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+    await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
     // build compiler switches
     // this is -c -d, etc.
     const buildDebugOption: string = compilingDebug ? 'd' : '';
     const buildOptions: string[] = [`-c${buildDebugOption}`];
-    updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+    await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
     // build loader switches
     const loadOptions: string[] = writeToFlash ? [`-f${buildDebugOption}`] : [`-r${buildDebugOption}`];
-    updateRuntimeConfig('spin2.optionsLoader', loadOptions);
+    await updateRuntimeConfig('spin2.optionsLoader', loadOptions);
     // this is NOT used in this environment
-    updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     //
   } else if (selectedCompilerId === PATH_PNUT_TS) {
     // -----------------------------------------------------------
     // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
     //
     const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
-    updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
     // build compiler switches
     // this is -d -O -l, etc.
     const buildOptions: string[] = [];
@@ -1537,22 +1549,23 @@ function writeToolchainBuildVariables(callerID: string) {
     if (lstOutputEnabled) {
       buildOptions.push('-l');
     }
-    updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+    await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
     // these are NOT used in this environment
-    updateRuntimeConfig('spin2.optionsLoader', undefined);
-    updateRuntimeConfig('spin2.fSpecLoader', undefined);
-    updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    await updateRuntimeConfig('spin2.optionsLoader', undefined);
+    await updateRuntimeConfig('spin2.fSpecLoader', undefined);
+    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     //
   } else {
     // -----------------------------------------------------------
     // no compiler selected, or selection is NOT recognized
     //
-    updateRuntimeConfig('spin2.fSpecCompiler', undefined);
-    updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
-    updateRuntimeConfig('spin2.fSpecLoader', undefined);
-    updateRuntimeConfig('spin2.optionsBuild', undefined);
-    updateRuntimeConfig('spin2.optionsLoader', undefined);
+    await updateRuntimeConfig('spin2.fSpecCompiler', undefined);
+    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    await updateRuntimeConfig('spin2.fSpecLoader', undefined);
+    await updateRuntimeConfig('spin2.optionsBuild', undefined);
+    await updateRuntimeConfig('spin2.optionsLoader', undefined);
   }
+  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - EXIT`);
 }
 
 function toggleCommand() {

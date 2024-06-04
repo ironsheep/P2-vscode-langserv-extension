@@ -20,11 +20,7 @@ suite('Should do completion', () => {
   });
 });
 
-async function testCompletion(
-  docUri: vscode.Uri,
-  position: vscode.Position,
-  expectedCompletionList: vscode.CompletionList
-) {
+async function testCompletion(docUri: vscode.Uri, position: vscode.Position, expectedCompletionList: vscode.CompletionList): Promise<void> {
   await activate(docUri);
 
   // Executing the command `vscode.executeCompletionItemProvider` to simulate triggering completion
