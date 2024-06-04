@@ -48,18 +48,6 @@ export class ObjectImage {
     return this._objOffset;
   }
 
-  public calculateChecksum(fromOffset: number, toOffset: number): number {
-    let sumValue: number = 0;
-    for (let index = fromOffset; index <= toOffset; index++) {
-      sumValue -= this._objImage[index];
-    }
-    //const savedLogState = this.isLogging;
-    //this.isLogging = true;
-    this.logMessage(`OBJ[${this._id}]: calculateChecksum(ofs=(${fromOffset}),len=(${toOffset})) -> ${sumValue & 0xff}`);
-    //this.isLogging = savedLogState;
-    return sumValue & 0xff;
-  }
-
   public setOffsetTo(offset: number) {
     // ?? no guard for this for now...
     this.logMessage(
@@ -178,11 +166,49 @@ export class ObjectImage {
     //}
   }
 
+  public padToLong() {
+    // if image doesn't end on long boundary then pad it with zero bytes
+    while (this.offset & 0b11) {
+      this.append(0, SUPPRESS_LOG_MSG);
+    }
+  }
+
+  public loadRamChecksum(): number {
+    // compute negative sum of all data (loader checksum)
+    let checkSum: number = 0x706f7250; // 'Prop'
+    for (let offset = 0; offset < this.offset; offset += 4) {
+      checkSum -= this.readLong(offset);
+    }
+    return checkSum;
+  }
+
+  public flasherChecksum(): number {
+    // compute negative sum of all data (loader checksum)
+    let checkSum: number = 0;
+    for (let offset = 0; offset < this.offset; offset += 4) {
+      checkSum -= this.readLong(offset);
+    }
+    return checkSum;
+  }
+
+  public calculateChecksum(fromOffset: number, toOffset: number): number {
+    let sumValue: number = 0;
+    for (let index = fromOffset; index <= toOffset; index++) {
+      sumValue -= this._objImage[index];
+    }
+    //const savedLogState = this.isLogging;
+    //this.isLogging = true;
+    this.logMessage(`OBJ[${this._id}]: calculateChecksum(ofs=(${fromOffset}),len=(${toOffset})) -> ${sumValue & 0xff}`);
+    //this.isLogging = savedLogState;
+    return sumValue & 0xff;
+  }
+
   public reset() {
     this.logMessage(`* OBJ: reset Offset to zero`);
     // effectively empty our image
     this.setOffsetTo(0); // call method, so logs
   }
+
   public dumpBytes(startOffset: number, byteCount: number, dumpId: string) {
     /// dump hex and ascii data
     let displayOffset: number = 0;
@@ -225,6 +251,7 @@ export class ObjectImage {
     return `${prefixStr}${(uint32 >>> 0).toString(16).toUpperCase().padStart(5, '0')}`;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private logMessage(message: string): void {
     if (this.isLogging) {
       //this.context.logger.logMessage(message);

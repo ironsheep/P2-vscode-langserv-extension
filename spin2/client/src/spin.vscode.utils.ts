@@ -6,6 +6,37 @@ import path = require('path');
 
 import * as vscode from 'vscode';
 
+export async function findDebugPinTx(): Promise<number | null> {
+  /*
+	This function first gets the current active text editor. If there is no
+	active text editor, it returns null. It then gets the text of the
+	document in the editor and uses a regular expression to search for
+	the DEBUG_PIN_TX = number pattern. If it finds a match, it parses
+	the number and returns it. If it doesn't find a match, it returns null.
+	*/
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return null; // No open text editor
+  }
+
+  const document = editor.document;
+  const text = document.getText();
+
+  // Exclude single line comments and inline comments
+  const cleanedText = text
+    .replace(/'.*$/gm, '') // single line comments
+    .replace(/{.*?}/g, '') // inline comments
+    .replace(/{[^]*?}/gm, ''); // and multi-line comments
+
+  const match = cleanedText.match(/DEBUG_PIN_TX\s*=\s*(\d+)/);
+  if (!match) {
+    return null; // No match found
+  }
+
+  const number = parseInt(match[1], 10);
+  return number;
+}
+
 export function activeFilespec(activeEditor?: vscode.TextEditor): string | undefined {
   let desidredFilespec: string | undefined = undefined;
   const textEditor = activeEditor !== undefined ? activeEditor : vscode.window.activeTextEditor;

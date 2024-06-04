@@ -106,6 +106,19 @@ export function fileExists(pathSpec: string): boolean {
   return existsStatus;
 }
 
+export function writeBinaryFile(binaryImage: Uint8Array, fspec: string) {
+  //const filename: string = path.basename(fspec);
+  //logExtensionMessage(`  -- writing BIN file (${binaryImage.length} bytes) to ${filename}`);
+  const stream = fs.createWriteStream(fspec);
+
+  const buffer = Buffer.from(binaryImage.buffer, 0, binaryImage.length);
+  stream.write(buffer);
+
+  // Close the stream
+  stream.end();
+  //logExtensionMessage(`Wrote ${filename} (${binaryImage.length} bytes)`);
+}
+
 const EMPTY_CONTENT_MARKER: string = 'XY$$ZZY';
 
 export function loadFileAsUint8Array(fspec: string): Uint8Array {

@@ -6,6 +6,7 @@
 // src/extensions.ts
 /* eslint-disable no-console */ // allow console writes from this file
 import * as path from 'path';
+//import * as fs from 'fs';
 import * as vscode from 'vscode';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
@@ -19,9 +20,9 @@ import { editModeConfiguration, reloadEditModeConfiguration } from './providers/
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
-import { activeSpin2Filespec, isCurrentDocumentSpin2, isSpin2Document, isSpin2File, isSpinOrPasmDocument } from './spin.vscode.utils';
+import { activeSpin2Filespec, findDebugPinTx, isCurrentDocumentSpin2, isSpin2Document, isSpin2File, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
-import { isMac, isWindows, loadFileAsUint8Array, loadUint8ArrayFailed, locateExe, locateNonExe, platform } from './fileUtils';
+import { isMac, isWindows, loadFileAsUint8Array, loadUint8ArrayFailed, locateExe, locateNonExe, platform, writeBinaryFile } from './fileUtils';
 import { UsbSerial } from './usb.serial';
 import { createStatusBarFlashDownloadItem, updateStatusBarFlashDownloadItem } from './providers/spin.downloadFlashMode.statusBarItem';
 import { createStatusBarCompileDebugItem, updateStatusBarCompileDebugItem } from './providers/spin.compileDebugMode.statusBarItem';
@@ -37,6 +38,7 @@ import {
 } from './providers/spin.toolChain.configuration';
 import { ObjectImage } from './imageUtils';
 import { getFlashLoaderBin } from './spin.vscode.fileUtils';
+import { waitMSec } from './timerUtils';
 
 let client: LanguageClient;
 let spin2Context: vscode.ExtensionContext;
@@ -164,7 +166,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   );
 
   // ----------------------------------------------------------------------------
-  //   Hook ...
+  //   Hook ... lot's o stuff
   //
   const statusInsertModeBarItem: vscode.StatusBarItem = createStatusBarInsertModeItem();
   const statusCompileDebugBarItem: vscode.StatusBarItem = createStatusBarCompileDebugItem();
@@ -245,11 +247,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //   Hook GENERATE list of USB Serial (Proplug) Devices
   //
   const selectPropPlugFromList: string = 'spinExtension.select.propplug';
-  //* -- VERSION 2 - NO TERMINAL version
+
   context.subscriptions.push(
     vscode.commands.registerCommand(selectPropPlugFromList, async function () {
       logExtensionMessage('CMD: selectPropPlugFromList');
-      // terminal.sendText('npm run pnut-ts --help'); // NOPE
       const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
       const devicesFound: string[] = [];
       for (let index = 0; index < deviceNodesDetail.length; index++) {
@@ -339,6 +340,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //   Hook TOGGLE download to FLASH and update display
   //
   const toggleDownloadToFlash: string = 'spinExtension.toggle.flash';
+
   context.subscriptions.push(
     vscode.commands.registerCommand(toggleDownloadToFlash, async () => {
       logExtensionMessage('CMD: toggleDownloadToFlash');
@@ -358,7 +360,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //   Hook Compile current .spin2 file
   //
   const compileCurrentSpin2File: string = 'spinExtension.compile.currfile';
-  //* -- VERSION 3
+
   context.subscriptions.push(
     vscode.commands.registerCommand(compileCurrentSpin2File, async () => {
       logExtensionMessage('* compileCurrentSpin2File');
@@ -379,7 +381,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //   Hook Compile TOP .spin2 file
   //
   const compileTopSpin2File: string = 'spinExtension.compile.topfile';
-  //* -- VERSION 1
+
   context.subscriptions.push(
     vscode.commands.registerCommand(compileTopSpin2File, async () => {
       // this compile will fall-back to compile current when there is NO 'topLevel' defined!
@@ -403,8 +405,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //   Hook Download TOP binary file
   //
   const downloadTopFile: string = 'spinExtension.download.topfile';
+
   let downloaderTerminal: vscode.Terminal | undefined = undefined;
-  //* -- VERSION 1
+
   context.subscriptions.push(
     vscode.commands.registerCommand(downloadTopFile, async () => {
       logExtensionMessage('* downloadTopFile');
@@ -429,16 +432,36 @@ function registerCommands(context: vscode.ExtensionContext): void {
             let binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
             const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
             if (failedToLoad == false) {
+              logExtensionMessage(`  -- load image = (${binaryImage.length}) bytes`);
+              let target: string = 'RAM';
               const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+              const needsP2ChecksumVerify: boolean = false;
               if (writeToFlash) {
-                binaryImage = insertP2FlashLoader(binaryImage);
+                target = 'FLASH';
+                binaryImage = await insertP2FlashLoader(binaryImage);
+                logExtensionMessage(`  -- load image w/flasher = (${binaryImage.length}) bytes`);
+                writeBinaryFile(binaryImage, `${binaryFilespec}fext`);
+                /*
+              } else {
+                // not flashing append a checksum then ask P2 for verification
+                //
+                // don't enable verify until we get it working
+                needsP2ChecksumVerify = true;
+                const tmpImage = new ObjectImage('temp-image');
+                tmpImage.adopt(binaryImage);
+                tmpImage.padToLong();
+                //const imageSum = 0xdeadf00d; //  TESTING
+                const imageSum = tmpImage.loadRamChecksum();
+                tmpImage.appendLong(imageSum);
+				binaryImage = tmpImage.rawUint8Array.subarray(0, tmpImage.offset);
+				//*/
               }
-              downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes`);
+              downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
               // write to USB PropPlug
               if (deviceNode !== undefined) {
                 const usbPort: UsbSerial = new UsbSerial(deviceNode);
                 if (await usbPort.deviceIsPropellerV2()) {
-                  await usbPort.download(binaryImage);
+                  await usbPort.download(binaryImage, needsP2ChecksumVerify);
                   downloaderTerminal.sendText(`# DONE`);
                 } else {
                   downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
@@ -478,12 +501,18 @@ function registerCommands(context: vscode.ExtensionContext): void {
     })
   );
 
-  function insertP2FlashLoader(binaryImage: Uint8Array): Uint8Array {
+  async function insertP2FlashLoader(binaryImage: Uint8Array): Promise<Uint8Array> {
     // PNut insert_flash_loader:
     const objImage = new ObjectImage('bin-w/loader');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const debugPinRx: number = 63; // default maybe overridden by code
-    const debugPinTx: number = 62; //default maybe overridden by code
+    let debugPinTx: number = 62; //default maybe overridden by code
+    const overrideDebugPinTx = await findDebugPinTx();
+    if (overrideDebugPinTx !== null) {
+      logExtensionMessage(`  -- insertFL default=(${debugPinTx}) but found debugPinTx=(${overrideDebugPinTx}) in Spin2 src`);
+      debugPinTx = overrideDebugPinTx;
+    }
+    logExtensionMessage(`  -- insertFL using - debugPinTx=(${debugPinTx})`);
     objImage.adopt(binaryImage);
     // pad object to next long
     while (objImage.offset & 0b11) {
@@ -496,10 +525,11 @@ function registerCommands(context: vscode.ExtensionContext): void {
     const flashLoaderLength = flashLoaderBin.length;
     // move object upwards to accommodate flash loader
     logExtensionMessage(`  -- move object up - flashLoaderLength=(${flashLoaderLength}) bytes`);
-    this.moveObjectUp(objImage, flashLoaderLength, 0, objImage.offset);
+    moveObjectUp(objImage, flashLoaderLength, 0, objImage.offset);
     // install flash loader
     logExtensionMessage(`  -- load flash loader`);
     objImage.rawUint8Array.set(flashLoaderBin, 0);
+    objImage.setOffsetTo(flashLoaderLength + binaryImage.length);
     const isDebugMode: boolean = toolchainConfiguration.debugEnabled;
     if (isDebugMode) {
       // debug is on
@@ -510,13 +540,26 @@ function registerCommands(context: vscode.ExtensionContext): void {
       objImage.replaceLong(_NOP_INSTRU_, _debugnop_);
     }
     // compute negative sum of all data
-    let checkSum: number = 0;
-    for (let offset = 0; offset < objImage.offset; offset += 4) {
-      checkSum -= objImage.readLong(offset);
-    }
+    const checkSum: number = objImage.flasherChecksum();
     // insert checksum into loader
     objImage.replaceLong(checkSum, _checksum_);
-    return objImage.rawUint8Array;
+    // return only the active portion of the array
+    return objImage.rawUint8Array.subarray(0, objImage.offset);
+  }
+
+  function moveObjectUp(objImage: ObjectImage, destOffset: number, sourceOffset: number, nbrBytes: number) {
+    const currOffset = objImage.offset;
+    logExtensionMessage(`* moveObjUp() from=(${sourceOffset}), to=(${destOffset}), length=(${nbrBytes})`);
+    if (currOffset + nbrBytes > ObjectImage.MAX_SIZE_IN_BYTES) {
+      // [error_pex]
+      throw new Error('Program exceeds 1024KB');
+    }
+    for (let index = 0; index < nbrBytes; index++) {
+      const invertedIndex = nbrBytes - index - 1;
+      objImage.replaceByte(objImage.read(sourceOffset + invertedIndex), destOffset + invertedIndex);
+    }
+    logExtensionMessage(`* moveObjUp()offset (${currOffset}) -> (${currOffset + destOffset}) `);
+    objImage.setOffsetTo(currOffset + destOffset);
   }
 
   function currenWorkingDir(): string {
@@ -634,7 +677,9 @@ echo $? >${outputFile}.status
   // post information to out-side world via our CONTEXT
   vscode.commands.executeCommand('setContext', 'runtime.spin2.elasticTabstops.enabled', tabFormatter.isEnabled());
 
+  // ----------------------------------------------------------------------------
   //   Hook TAB Formatting
+  //
   const insertTabStopsCommentCommand = 'spinExtension.elasticTabstops.generate.tabStops.comment';
 
   context.subscriptions.push(
@@ -765,6 +810,7 @@ async function locatePropPlugs() {
   const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
   const devicesFound: string[] = [];
   const plugsFoundSetting = {};
+  const RETRY_COUNT: number = 4;
   const currDeviceNode = toolchainConfiguration.selectedPropPlug;
   let selectionStillExists: boolean = false;
   for (let index = 0; index < deviceNodesDetail.length; index++) {
@@ -774,11 +820,18 @@ async function locatePropPlugs() {
     const deviceNode: string = portParts[0];
     devicesFound.push(deviceNode);
     const usbPort: UsbSerial = new UsbSerial(deviceNode);
-    if (await usbPort.deviceIsPropellerV2()) {
-      plugsFoundSetting[deviceNode] = deviceSerial;
-      if (currDeviceNode && currDeviceNode === deviceNode) {
-        selectionStillExists = true;
+    // during VSCode startup other extensions can affect our timing... so,
+    //  we may miss getting to the P2 in time after reset.
+    //  so, let's try 4 times over 300 mSec to get the P2 response
+    for (let index = 0; index < RETRY_COUNT; index++) {
+      if (await usbPort.deviceIsPropellerV2()) {
+        plugsFoundSetting[deviceNode] = deviceSerial;
+        if (currDeviceNode && currDeviceNode === deviceNode) {
+          selectionStillExists = true;
+          break;
+        }
       }
+      await waitMSec(100); // if not P2 found try again in 100msec
     }
     usbPort.close();
   }

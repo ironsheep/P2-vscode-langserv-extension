@@ -129,7 +129,7 @@ export class USBDocGenerator {
           let [deviceString, deviceErrorString] = ['', ''];
           const usbPort: UsbSerial = new UsbSerial(deviceNode);
           if (usbPort.deviceIsPropellerV2()) {
-            [deviceString, deviceErrorString] = usbPort.getIdStringOrError(`only`);
+            [deviceString, deviceErrorString] = usbPort.getIdStringOrError();
           } // initiate request
           //this.testDownloadFile(usbPort);
           usbPort.close(); // we're done with this port
@@ -175,7 +175,7 @@ export class USBDocGenerator {
     const goodLoad: boolean = this.loadUint8ArrayFailed(datImage) ? false : true;
     if (goodLoad && datImage.length > 0) {
       this.logMessage(`+ (DBG) testDownloadFile() downloading file=[${filename}](${datImage.length})`);
-      usbPort.download(datImage);
+      usbPort.download(datImage, false);
     } else {
       this.logMessage(`+ (DBG) testDownloadFile() file not found [${filename}]`);
     }
