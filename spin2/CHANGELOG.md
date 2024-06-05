@@ -18,14 +18,14 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.2.??] 2024-05-??
+## [2.3.0] 2024-06-??
 
 Updates to Compile/Download support
 
-This update adds the ability to compile and download code for Spin2 projects
+This update improves/simplifies the ability to compile and download code for Spin2 projects
 
-- NEW built in downloader for basic projects. For complex projects with objects compiled to specific locations loadp2 (bundled with flexprop) is still needed.
-- NEW Automatic toolchain discovery (paths for flexprop, pnut-ts and pnut are now automatically determined)
+- NEW automatic discovery and support for FlexProp loadp2 download to ram or flash.
+- NEW Automatic toolchain discovery (paths for FlexProp, and PNut are now automatically determined)
 - NEW Automatic PropPlug discovery
 - NEW statusBar control for switching between compile with debug() and without
 - NEW statusBar control for switching between download to FLASH / RAM
