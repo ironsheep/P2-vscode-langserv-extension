@@ -555,22 +555,39 @@
           "spinExtension.toolchain.optionsCompile.enableDebug": {
             "type": "boolean",
             "default": false,
-            "description": "Enable debug code generation in Spin2 compiles"
+            "description": "Enable compile of Spin2 debug() statements"
           },
           "spinExtension.toolchain.optionsCompile.flexspin.debug": {
             "type": "string",
             "default": "-gbrk",
-            "description": "Flesspin command-line option to use to enable conpile of Debug() statements [-gbrk, -g for printf]"
+            "description": "Flexspin command-line option to use to enable conpile of Debug() statements [-gbrk for normal, or -g for printf]"
           },
           "spinExtension.toolchain.optionsCompile.enableLstOutput": {
             "type": "boolean",
             "default": false,
-            "description": "Enable generation of Spin2 listing output from compile"
+            "description": "Enable generation of Spin2 listing (.lst) output from compile"
           },
           "spinExtension.toolchain.optionsDownload.enableFlash": {
             "type": "boolean",
             "default": false,
-            "description": "Download to FLASH when enabled"
+            "description": "Download to FLASH when enabled (otherwise to RAM)"
+          },
+          "spinExtension.toolchain.optionsDownload.enterTerminalAfter": {
+            "type": "string",
+            "default": "never",
+            "enum": [
+              "never",
+              "only when debug() compile enabled",
+              "always"
+            ],
+            "description": "Enter Terminal mode after download completes (select one)"
+          },
+          "spinExtension.toolchain.optionsDownload.flexspin.baudrate": {
+            "type": "number",
+            "default": 230400,
+            "minimum": 9600,
+            "maximum": 2000000,
+            "description": "Flexspin loadP2 command-line option: Download Baudrate (default: 230,400 baud)"
           },
           "spinExtension.toolchain.paths.PNutTs": {
             "type": "string",

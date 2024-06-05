@@ -19,13 +19,32 @@ export class UsbSerial {
   private _p2DeviceId: string = '';
   private _p2loadLimit: number = 0;
   private _latestError: string = '';
-  private _dtrValue: boolean = false;
   private _downloadChecksumGood = false;
   private _downloadResponse: string = '';
 
+  static async resetLibrary(): Promise<void> {
+    // Clear the serialport module from the cache
+    delete require.cache[require.resolve('serialport')];
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const SerialPort = require('serialport');
+  }
+
   static async serialDeviceList(): Promise<string[]> {
     const devicesFound: string[] = [];
-    const ports = await SerialPort.list();
+    let ports = await SerialPort.list();
+    // known bug? - sometimes the library returns no ports but they are plugged in
+    // if we don't find any ports, we'll try again, once
+    let havePorts = false;
+    ports.forEach((port) => {
+      if (port.vendorId == '0403' && port.productId == '6015') {
+        havePorts = true;
+      }
+    });
+    if (!havePorts) {
+      await this.resetLibrary();
+      ports = await SerialPort.list();
+    }
+
     ports.forEach((port) => {
       const serialNumber: string = port.serialNumber;
       const deviceNode: string = port.path;
@@ -48,22 +67,7 @@ export class UsbSerial {
       }
     }
     this.logMessage(`* Connecting to ${this._deviceNode}`);
-    this._serialPort = new SerialPort({
-      path: this._deviceNode,
-      baudRate: this._downloadBaud,
-      dataBits: 8,
-      stopBits: 1,
-      parity: 'none',
-      autoOpen: false
-    });
-    // Open errors will be emitted as an error event
-    this._serialPort.on('error', (err) => this.handleSerialError(err.message));
-    this._serialPort.on('open', () => this.handleSerialOpen());
-
-    // wait for any returned data
-    this._serialParser = this._serialPort.pipe(new ReadlineParser({ delimiter: this.endOfLineStr }));
-    //this._serialParser.on('data', (data) => this.handleSerialRx(data));
-    this.startReadListener();
+    this.loadSerialPort();
 
     // now open the port
     this._serialPort.open((err) => {
@@ -71,16 +75,6 @@ export class UsbSerial {
         this.handleSerialError(err.message);
       }
     });
-  }
-
-  private startReadListener() {
-    // wait for any returned data
-    this._serialParser.on('data', (data) => this.handleSerialRx(data));
-  }
-
-  private stopReadListener() {
-    // stop waiting for any returned data
-    this._serialParser.off('data', () => this.handleSerialRx());
   }
 
   get deviceInfo(): string {
@@ -106,6 +100,26 @@ export class UsbSerial {
   public getIdStringOrError(): [string, string] {
     this.logMessage(`* getIdStringOrError() [${this._p2DeviceId}, ${this._latestError}]`);
     return [this._p2DeviceId, this._latestError];
+  }
+
+  private loadSerialPort(): void {
+    this._serialPort = new SerialPort({
+      path: this._deviceNode,
+      baudRate: this._downloadBaud,
+      dataBits: 8,
+      stopBits: 1,
+      parity: 'none',
+      autoOpen: false
+    });
+
+    // wait for any returned data
+    this._serialParser = this._serialPort.pipe(new ReadlineParser({ delimiter: this.endOfLineStr }));
+    // Open errors will be emitted as an error event
+    this._serialPort.on('error', (err) => this.handleSerialError(err.message));
+    this._serialPort.on('open', () => this.handleSerialOpen());
+
+    //this._serialParser.on('data', (data) => this.handleSerialRx(data));
+    this.startReadListener();
   }
 
   private handleSerialError(errMessage: string) {
@@ -176,6 +190,13 @@ export class UsbSerial {
     } catch (error) {
       this.logMessage(`* requestPropellerVersion() ERROR: ${error.message}`);
     }
+  }
+
+  public async resetPort(): Promise<void> {
+    if (this._serialPort && this._serialPort.isOpen) {
+      await this.close();
+    }
+    this.loadSerialPort();
   }
 
   public async deviceIsPropellerV2(): Promise<boolean> {
@@ -252,6 +273,43 @@ export class UsbSerial {
     }
   }
 
+  /*
+  public async close(): Promise<void> {
+    // release the usb port
+    await waitMSec(500);
+    this._serialPort.close((err) => {
+      if (err) {
+        this.logMessage(`* close() Error: ${err.message}`);
+      }
+    });
+    this.logMessage(`* close() - port close: isOpen=(${this._serialPort.isOpen})`);
+  }
+  */
+
+  public async close(): Promise<void> {
+    // (alternate suggested by perplexity search)
+    // release the usb port
+    if (this._serialPort && this._serialPort.isOpen) {
+      await waitMSec(500);
+    }
+    return new Promise((resolve, reject) => {
+      if (this._serialPort) {
+        this._serialPort.close((err) => {
+          if (err) {
+            this.logMessage(`* close() Error: ${err.message}`);
+            reject(err);
+          } else {
+            this.logMessage(`* close() - port close: isOpen=(${this._serialPort.isOpen})`);
+            resolve();
+          }
+        });
+      } else {
+        this.logMessage(`* close() ?? no port to close ??`);
+        resolve();
+      }
+    });
+  }
+
   private async waitForPortOpen(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       let attempts = 0;
@@ -270,16 +328,14 @@ export class UsbSerial {
       }, 30); // Check every 30ms
     });
   }
+  private startReadListener() {
+    // wait for any returned data
+    this._serialParser.on('data', (data) => this.handleSerialRx(data));
+  }
 
-  public async close(): Promise<void> {
-    // release the usb port
-    await waitMSec(500);
-    this._serialPort.close((err) => {
-      if (err) {
-        this.logMessage(`* close() Error: ${err.message}`);
-      }
-    });
-    this.logMessage(`* close() - port close: isOpen=(${this._serialPort.isOpen})`);
+  private stopReadListener() {
+    // stop waiting for any returned data
+    this._serialParser.off('data', () => this.handleSerialRx());
   }
 
   /*
@@ -374,7 +430,6 @@ export class UsbSerial {
           this.logMessage(`DTR: ERROR:${err.name} - ${err.message}`);
           reject(err);
         } else {
-          this._dtrValue = value;
           this.logMessage(`DTR: ${value}`);
           resolve();
         }

@@ -857,21 +857,21 @@ async function locatePropPlugs(): Promise<void> {
     await updateConfig('toolchain.propPlug.selected', devicesFound[0], eConfigSection.CS_USER);
   } else if (devicesFound.length == 0) {
     // if NO devices, select NONE
+    await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
     if (currDeviceNode) {
       // changing from prior selection, notify user
       vscode.window.showWarningMessage(`Removed PropPlug ${currDeviceNode} - No longer available`);
     }
-    await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
   } else {
     // we have more than one!
     // if one is selected and it is still present then DO NOTHING
     // else if the selection doesn't exist then clear the selection forcing the user to select a new one
     if (selectionStillExists == false && currDeviceNode) {
       // we have a selection but it is no longer present
+      await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
       vscode.window.showWarningMessage(
         `Removed PropPlug ${currDeviceNode} - No longer available, Have ${devicesFound.length} other PropPlugs, press Ctrl+Alt+n to select one`
       );
-      await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
     } else if (selectionStillExists == false) {
       // we don't have a selection and there are more than one so tell user to select
       vscode.window.showInformationMessage(
@@ -1509,7 +1509,13 @@ async function writeToolchainBuildVariables(callerID: string): Promise<void> {
     await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
     // build loader switches
     const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
-    const loaderOptions: string[] = ['-b230400', '-t', '-v']; // verbose for time being....
+    const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
+    const loaderOptions: string[] = ['-v']; // verbose for time being....
+    const flexspinLoadP2Baudrate: number = toolchainConfiguration.flexspinDownloadBaudrate;
+    loaderOptions.push(`-b${flexspinLoadP2Baudrate}`);
+    if (enterTerminalAfter) {
+      loaderOptions.push('-t');
+    }
     if (desiredPort.length > 0) {
       loaderOptions.push(desiredPort);
     }

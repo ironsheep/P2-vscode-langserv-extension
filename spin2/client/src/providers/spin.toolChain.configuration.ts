@@ -40,6 +40,22 @@ const loadToolchainConfiguration = () => {
   const lstOutputEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsCompile.enableLstOutput');
   const writeFlashEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableFlash');
 
+  const downloadTerminalMode: string = normalizeStringConfigValue(toolchainConfig, 'optionsDownload.enterTerminalAfter');
+  let enterTerminalAfterDownload: boolean = false;
+  if (downloadTerminalMode !== undefined) {
+    if (downloadTerminalMode.toLowerCase() === 'always') {
+      enterTerminalAfterDownload = true;
+    } else if (downloadTerminalMode.toLowerCase() === 'never') {
+      enterTerminalAfterDownload = false;
+    } else if (downloadTerminalMode.toLowerCase().includes('only when debug()')) {
+      enterTerminalAfterDownload = debugEnabled ? true : false;
+    }
+  }
+
+  let flexspinDownloadBaudrate: number = toolchainConfig.get<number>('optionsDownload.flexspin.baudrate');
+  if (flexspinDownloadBaudrate === undefined) {
+    flexspinDownloadBaudrate = 230400; // defualt value if no value found
+  }
   const toolPaths = {};
   const pnutTsPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.PNutTs');
   if (pnutTsPath !== undefined) {
@@ -72,7 +88,10 @@ const loadToolchainConfiguration = () => {
     flexspinDebugFlag,
     lstOutputEnabled,
     writeFlashEnabled,
-    toolPaths
+    toolPaths,
+    downloadTerminalMode,
+    enterTerminalAfterDownload,
+    flexspinDownloadBaudrate
   };
 };
 
@@ -113,7 +132,10 @@ export const reloadToolchainConfiguration = () => {
     toolchainConfiguration.flexspinDebugFlag === newToolchainConfig.flexspinDebugFlag &&
     toolchainConfiguration.lstOutputEnabled === newToolchainConfig.lstOutputEnabled &&
     toolchainConfiguration.writeFlashEnabled === newToolchainConfig.writeFlashEnabled &&
-    objectsAreEqual(toolchainConfiguration.toolPaths, newToolchainConfig.toolPaths)
+    objectsAreEqual(toolchainConfiguration.toolPaths, newToolchainConfig.toolPaths) &&
+    toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode &&
+    toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload &&
+    toolchainConfiguration.flexspinDownloadBaudrate === newToolchainConfig.flexspinDownloadBaudrate
   ) {
     return false;
   }
@@ -129,6 +151,9 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.lstOutputEnabled = newToolchainConfig.lstOutputEnabled;
   toolchainConfiguration.writeFlashEnabled = newToolchainConfig.writeFlashEnabled;
   toolchainConfiguration.toolPaths = newToolchainConfig.toolPaths;
+  toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode;
+  toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload;
+  toolchainConfiguration.flexspinDownloadBaudrate === newToolchainConfig.flexspinDownloadBaudrate;
 
   return true;
 };
