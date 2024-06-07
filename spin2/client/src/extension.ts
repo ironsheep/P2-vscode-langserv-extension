@@ -1384,7 +1384,7 @@ const handleDidChangeConfiguration = () => {
   const previousPerEditor = editModeConfiguration.perEditor;
   const previousShowInStatusBar = getShowInsertModeInStatusBar();
   const previousInsertModeEnable = tabConfiguration.enable;
-  logExtensionMessage('* handleDidChangeConfiguration');
+  logExtensionMessage('* handleDidChangeConfiguration - ENTRY');
 
   // tell tabFormatter that is might have changed, too
   tabFormatter.updateTabConfiguration();
@@ -1436,6 +1436,7 @@ const handleDidChangeConfiguration = () => {
   } else {
     handleActiveTextEditorChanged();
   }
+  logExtensionMessage('* handleDidChangeConfiguration - EXIT');
 };
 
 async function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: string): Promise<void> {
@@ -1500,106 +1501,104 @@ async function writeToolchainBuildVariables(callerID: string): Promise<void> {
   // NOTE: this runs on startup and when the configuration changes
   logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - ENTRY`);
 
-  if (runtimeSettingChangeInProgress == false) {
-    await writeToolchainBinaryFnameVariable(callerID); // also set the download filename
+  await writeToolchainBinaryFnameVariable(callerID); // also set the download filename
 
-    // record selected serial port... (or remove entry)
-    const selectedSerial = toolchainConfiguration.selectedPropPlug;
-    await updateRuntimeConfig('spin2.serialPort', selectedSerial);
+  // record selected serial port... (or remove entry)
+  const selectedSerial = toolchainConfiguration.selectedPropPlug;
+  await updateRuntimeConfig('spin2.serialPort', selectedSerial);
 
-    const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
-    const compilingDebug: boolean = toolchainConfiguration.debugEnabled;
-    const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
-    const loadSerialPort: string = toolchainConfiguration.selectedPropPlug;
-    // are we generating a .lst file?
-    const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
+  const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
+  const compilingDebug: boolean = toolchainConfiguration.debugEnabled;
+  const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+  const loadSerialPort: string = toolchainConfiguration.selectedPropPlug;
+  // are we generating a .lst file?
+  const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
+  //
+  if (selectedCompilerId === PATH_FLEXSPIN) {
+    // -----------------------------------------------------------
+    // flexProp toolset has compiler, loadP2, and flashBinary
     //
-    if (selectedCompilerId === PATH_FLEXSPIN) {
-      // -----------------------------------------------------------
-      // flexProp toolset has compiler, loadP2, and flashBinary
-      //
-      const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_FLEXSPIN];
-      await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
-      const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
-      await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
-      const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
-      await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
-      // build compiler switches
-      // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
-      const flexDebugSwitch: string = toolchainConfiguration.flexspinDebugFlag;
-      const flexDebugOption: string = compilingDebug ? `${flexDebugSwitch}` : '';
-      const flexBuildOptions: string[] = ['-2', '-Wabs-paths', '-Wmax-errors=99'];
-      if (flexDebugOption.length > 0) {
-        flexBuildOptions.push(flexDebugOption);
-      }
-      if (lstOutputEnabled) {
-        flexBuildOptions.push('-l');
-      }
-      await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
-      // build loader switches
-      const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
-      const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
-      const loaderOptions: string[] = ['-v']; // verbose for time being....
-      const flexspinLoadP2Baudrate: number = toolchainConfiguration.flexspinDownloadBaudrate;
-      loaderOptions.push(`-b${flexspinLoadP2Baudrate}`);
-      if (enterTerminalAfter) {
-        loaderOptions.push('-t');
-      }
-      if (desiredPort.length > 0) {
-        loaderOptions.push(desiredPort);
-      }
-      await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
-      //
-    } else if (selectedCompilerId === PATH_PNUT) {
-      // -----------------------------------------------------------
-      // PNut toolset has compiler, and loader which are the same!
-      //
-      const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
-      await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
-      const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
-      await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
-      // build compiler switches
-      // this is -c -d, etc.
-      const buildDebugOption: string = compilingDebug ? 'd' : '';
-      const buildOptions: string[] = [`-c${buildDebugOption}`];
-      await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
-      // build loader switches
-      const loadOptions: string[] = writeToFlash ? [`-f${buildDebugOption}`] : [`-r${buildDebugOption}`];
-      await updateRuntimeConfig('spin2.optionsLoader', loadOptions);
-      // this is NOT used in this environment
-      await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
-      //
-    } else if (selectedCompilerId === PATH_PNUT_TS) {
-      // -----------------------------------------------------------
-      // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
-      //
-      const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
-      await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
-      // build compiler switches
-      // this is -d -O -l, etc.
-      const buildOptions: string[] = [];
-      if (compilingDebug) {
-        buildOptions.push('-d');
-      }
-      if (lstOutputEnabled) {
-        buildOptions.push('-l');
-      }
-      await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
-      // these are NOT used in this environment
-      await updateRuntimeConfig('spin2.optionsLoader', undefined);
-      await updateRuntimeConfig('spin2.fSpecLoader', undefined);
-      await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
-      //
-    } else {
-      // -----------------------------------------------------------
-      // no compiler selected, or selection is NOT recognized
-      //
-      await updateRuntimeConfig('spin2.fSpecCompiler', undefined);
-      await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
-      await updateRuntimeConfig('spin2.fSpecLoader', undefined);
-      await updateRuntimeConfig('spin2.optionsBuild', undefined);
-      await updateRuntimeConfig('spin2.optionsLoader', undefined);
+    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_FLEXSPIN];
+    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
+    await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
+    const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
+    await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+    // build compiler switches
+    // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
+    const flexDebugSwitch: string = toolchainConfiguration.flexspinDebugFlag;
+    const flexDebugOption: string = compilingDebug ? `${flexDebugSwitch}` : '';
+    const flexBuildOptions: string[] = ['-2', '-Wabs-paths', '-Wmax-errors=99'];
+    if (flexDebugOption.length > 0) {
+      flexBuildOptions.push(flexDebugOption);
     }
+    if (lstOutputEnabled) {
+      flexBuildOptions.push('-l');
+    }
+    await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
+    // build loader switches
+    const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
+    const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
+    const loaderOptions: string[] = ['-v']; // verbose for time being....
+    const flexspinLoadP2Baudrate: number = toolchainConfiguration.flexspinDownloadBaudrate;
+    loaderOptions.push(`-b${flexspinLoadP2Baudrate}`);
+    if (enterTerminalAfter) {
+      loaderOptions.push('-t');
+    }
+    if (desiredPort.length > 0) {
+      loaderOptions.push(desiredPort);
+    }
+    await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
+    //
+  } else if (selectedCompilerId === PATH_PNUT) {
+    // -----------------------------------------------------------
+    // PNut toolset has compiler, and loader which are the same!
+    //
+    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
+    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
+    await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+    // build compiler switches
+    // this is -c -d, etc.
+    const buildDebugOption: string = compilingDebug ? 'd' : '';
+    const buildOptions: string[] = [`-c${buildDebugOption}`];
+    await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+    // build loader switches
+    const loadOptions: string[] = writeToFlash ? [`-f${buildDebugOption}`] : [`-r${buildDebugOption}`];
+    await updateRuntimeConfig('spin2.optionsLoader', loadOptions);
+    // this is NOT used in this environment
+    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    //
+  } else if (selectedCompilerId === PATH_PNUT_TS) {
+    // -----------------------------------------------------------
+    // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
+    //
+    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
+    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+    // build compiler switches
+    // this is -d -O -l, etc.
+    const buildOptions: string[] = [];
+    if (compilingDebug) {
+      buildOptions.push('-d');
+    }
+    if (lstOutputEnabled) {
+      buildOptions.push('-l');
+    }
+    await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+    // these are NOT used in this environment
+    await updateRuntimeConfig('spin2.optionsLoader', undefined);
+    await updateRuntimeConfig('spin2.fSpecLoader', undefined);
+    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    //
+  } else {
+    // -----------------------------------------------------------
+    // no compiler selected, or selection is NOT recognized
+    //
+    await updateRuntimeConfig('spin2.fSpecCompiler', undefined);
+    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    await updateRuntimeConfig('spin2.fSpecLoader', undefined);
+    await updateRuntimeConfig('spin2.optionsBuild', undefined);
+    await updateRuntimeConfig('spin2.optionsLoader', undefined);
   }
   logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - EXIT`);
 }
