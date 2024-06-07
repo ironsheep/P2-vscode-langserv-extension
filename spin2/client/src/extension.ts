@@ -66,6 +66,8 @@ const logExtensionMessage = (message: string): void => {
   }
 };
 
+let runtimeSettingChangeInProgress: boolean = false;
+
 function getSetupExtensionClient(context: vscode.ExtensionContext): LanguageClient {
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
@@ -193,10 +195,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidOpenTextDocument(handleTextDocumentOpened),
     vscode.workspace.onDidChangeConfiguration(handleDidChangeConfiguration),
 
-    statusInsertModeBarItem,
     statusCompileDebugBarItem,
     statusDownloadFlashBarItem,
-    statusPropPlugBarItem
+    statusPropPlugBarItem,
+    statusInsertModeBarItem
   );
 
   // ----------------------------------------------------------------------------
@@ -261,6 +263,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(selectPropPlugFromList, async function () {
       logExtensionMessage('CMD: selectPropPlugFromList');
+      runtimeSettingChangeInProgress = true;
       const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
       const devicesFound: string[] = [];
       for (let index = 0; index < deviceNodesDetail.length; index++) {
@@ -298,6 +301,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
           });
           break;
       }
+      runtimeSettingChangeInProgress = false;
     })
   ); //*/
 
@@ -335,13 +339,20 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(toggleCompileWithDebug, async () => {
       logExtensionMessage('CMD: toggleCompileWithDebug');
       try {
+        runtimeSettingChangeInProgress = true;
+        const binFileName = getRuntimeConfigValue('optionsBinaryFname');
         const isDebugEnabled: boolean = toolchainConfiguration.debugEnabled;
         const newEnableState = isDebugEnabled ? false : true;
         await updateConfig('toolchain.optionsCompile.enableDebug', newEnableState, eConfigSection.CS_WORKSPACE);
+        if (binFileName !== undefined) {
+          //await updateRuntimeConfig('spin2.optionsBinaryFname', binFileName);
+        }
         logExtensionMessage(`* enableDebug (${isDebugEnabled}) -> (${newEnableState})`);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
         console.error(error);
+      } finally {
+        runtimeSettingChangeInProgress = false;
       }
     })
   );
@@ -355,13 +366,20 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(toggleDownloadToFlash, async () => {
       logExtensionMessage('CMD: toggleDownloadToFlash');
       try {
+        runtimeSettingChangeInProgress = true;
         const isFlashEnabled: boolean = toolchainConfiguration.writeFlashEnabled;
         const newEnableState = isFlashEnabled ? false : true;
+        const binFileName = getRuntimeConfigValue('optionsBinaryFname');
         await updateConfig('toolchain.optionsDownload.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
+        if (binFileName !== undefined) {
+          //await updateRuntimeConfig('spin2.optionsBinaryFname', binFileName);
+        }
         logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-FLASH Problem: error=[${error}]`);
         console.error(error);
+      } finally {
+        runtimeSettingChangeInProgress = false;
       }
     })
   );
@@ -1034,7 +1052,7 @@ function getRuntimeConfigValue(path: string): string | undefined {
   // return a workspace configuration value or undefined if not present
   const startingSpin2Config = vscode.workspace.getConfiguration('spin2');
   const existingValue = startingSpin2Config.get<string>(path);
-  logExtensionMessage(`+ (DBG) getRuntimeConfigValue([${path}]) -> [${existingValue}]`);
+  logExtensionMessage(`+ (DBG) getRuntimeCfgValue([${path}]) -> [${existingValue}]`);
   return existingValue;
 }
 
@@ -1177,103 +1195,57 @@ function handleVisibleTextEditorChanged(textEditors: vscode.TextEditor[]) {
   }
 }
 
-let priorChangeUri: vscode.Uri | undefined = undefined;
-let priorShowSpinSBItems: boolean = false;
-let priorShowSpin2OnlySBItems: boolean = false;
-let priorEditorMode: eEditMode | undefined = undefined;
-let priorDownloadFlash: boolean = false;
-let priorCompileDebug: boolean = false;
-let priorPlugSN: string = '';
+// we use undefined as startup case for all of these
+let priorDocumentUri: vscode.Uri | undefined = undefined;
+let priorHaveSpin1or2Document: boolean | undefined = undefined;
+let priorHaveSpin2Document: boolean | undefined = undefined;
 
 async function updateStatusBarItems(callerId: string): Promise<void> {
   let argumentInterp: string = 'undefined';
-  let isSpinWindow: boolean = false;
-  let showSpinStatusBarItems: boolean = true;
-  let showSpin2OnlyStatusBarItems: boolean = false;
+  let haveSpin1or2Document: boolean = false;
+  let haveSpin2Document: boolean = false;
   const showInsertModeIndicator: boolean = tabConfiguration.enable == true;
   let docVersion: number = -1;
-  let currMode: eEditMode | undefined = undefined;
-  let isDifferentMode: boolean = false;
-  let isDifferentDownloadFlash: boolean = false;
-  let isDifferentCompileDebug: boolean = false;
-  let isDifferentPlugSN: boolean = false;
-  const textEditor = vscode.window.activeTextEditor!;
-  const textDocument = textEditor !== undefined ? textEditor.document : undefined;
-  if (textEditor == null || textEditor === undefined || textDocument === undefined) {
-    showSpinStatusBarItems = false;
-  } else {
-    showSpin2OnlyStatusBarItems = isSpin2Document(textDocument);
-    // have updated mode value?
-    currMode = getMode(textEditor);
-    isDifferentMode = currMode !== priorEditorMode;
-    if (isDifferentMode) {
-      priorEditorMode = currMode;
-    }
-    // have updated flash value?
-    const currDownloadFlash: boolean = toolchainConfiguration.writeFlashEnabled;
-    isDifferentDownloadFlash = currDownloadFlash != priorDownloadFlash;
-    if (isDifferentDownloadFlash) {
-      priorDownloadFlash = currDownloadFlash;
-    }
-    // have updated debug value?
-    const currCompileDebug: boolean = toolchainConfiguration.debugEnabled;
-    isDifferentCompileDebug = currCompileDebug != priorCompileDebug;
-    if (isDifferentCompileDebug) {
-      priorCompileDebug = currCompileDebug;
-    }
-    // have updated plug S/N?
-    const currPlugSN: string = getPropPlugSerialNumber();
-    isDifferentPlugSN = currPlugSN != priorPlugSN;
-    //logExtensionMessage(`* isDifferentPlugSN=(${isDifferentPlugSN}), was=[${priorPlugSN}], is=[${currPlugSN}]`);
-    if (isDifferentPlugSN) {
-      priorPlugSN = currPlugSN;
-    }
-    if (isSpinOrPasmDocument(textEditor.document)) {
-      isSpinWindow = true;
-      docVersion = textEditor.document.version;
-      argumentInterp = `${path.basename(textEditor.document.fileName)} v${docVersion}`;
+  const textEditor: vscode.TextEditor | undefined = vscode.window.activeTextEditor;
+  const textDocument: vscode.TextDocument | undefined = textEditor !== undefined ? textEditor.document : undefined;
+  const currDocumentUri: vscode.Uri = textDocument !== undefined ? textDocument.uri : vscode.Uri.file('');
+  if (textDocument !== undefined) {
+    haveSpin2Document = isSpin2Document(textDocument);
+    haveSpin1or2Document = isSpinOrPasmDocument(textDocument);
+
+    if (haveSpin1or2Document) {
+      docVersion = textDocument.version;
+      argumentInterp = `${path.basename(textDocument.fileName)} v${docVersion}`;
     } else {
       argumentInterp = '-- NOT-SPIN-WINDOW --';
-      showSpinStatusBarItems = false;
     }
   }
-  const isDifferentFile: boolean = priorChangeUri === undefined || (textEditor && textEditor.document.uri.toString() !== priorChangeUri.toString());
-  if (isDifferentFile || isDifferentMode || isDifferentDownloadFlash || isDifferentCompileDebug || isDifferentPlugSN) {
-    const updateSpinSBItems = showSpinStatusBarItems != priorShowSpinSBItems;
-    if (updateSpinSBItems) {
-      priorShowSpinSBItems = showSpinStatusBarItems;
-    }
-    const updateSpin2SBItems = showSpin2OnlyStatusBarItems != priorShowSpin2OnlySBItems;
-    if (updateSpinSBItems) {
-      priorShowSpin2OnlySBItems = showSpin2OnlyStatusBarItems;
-    }
-    priorChangeUri = textEditor !== undefined ? textEditor.document.uri : vscode.Uri.file('');
-    if (textEditor !== undefined) {
-      // this needs to updated every time we have a new editor with spin2 file
-      await writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textEditor.document.fileName);
-    }
+  const updateModeSBItem = haveSpin1or2Document != priorHaveSpin1or2Document;
+  if (updateModeSBItem) {
+    priorHaveSpin1or2Document = haveSpin1or2Document;
+  }
+  const updateSpin2SBItems = haveSpin2Document != priorHaveSpin2Document;
+  if (updateSpin2SBItems) {
+    priorHaveSpin2Document = haveSpin2Document;
+  }
+
+  const isDifferentFile: boolean = priorDocumentUri === undefined || currDocumentUri.toString() !== priorDocumentUri.toString();
+  if (isDifferentFile) {
+    priorDocumentUri = currDocumentUri;
+  }
+
+  if (textDocument !== undefined && isDifferentFile) {
+    // this needs to updated every time we have a new editor with spin2 file
+    await writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textDocument.fileName);
+  }
+
+  if (isDifferentFile || updateSpin2SBItems || updateModeSBItem) {
     logExtensionMessage(`* updateStatusBarItems([${callerId}]) (${argumentInterp})`);
 
-    if (updateSpin2SBItems && !showSpin2OnlyStatusBarItems) {
-      updateStatusBarCompileDebugItem(null);
-      updateStatusBarFlashDownloadItem(null);
-      updateStatusBarPropPlugItem(null);
-      logExtensionMessage(`* HIDE 3 SB-ITEM spin2 items`);
-    }
-    if (updateSpinSBItems && (!showSpinStatusBarItems || !showInsertModeIndicator)) {
-      updateStatusBarInsertModeItem(null); // hide status bar content
-      logExtensionMessage(`* HIDE SB-ITEM mode`);
-    }
-
-    if (isSpinWindow && textEditor) {
-      if ((updateSpinSBItems || isDifferentMode) && showSpinStatusBarItems && showInsertModeIndicator) {
-        updateStatusBarInsertModeItem(currMode); // show status bar content
-        logExtensionMessage(`* SHOW SB-ITEM mode=[${modeName(currMode)}]`);
-      }
-      // post information to out-side world via our CONTEXT
-      vscode.commands.executeCommand('setContext', 'runtime.spin2.insertMode', modeName(currMode));
-
-      if ((updateSpin2SBItems || isDifferentDownloadFlash || isDifferentCompileDebug || isDifferentPlugSN) && showSpin2OnlyStatusBarItems) {
+    if (updateSpin2SBItems) {
+      if (!haveSpin2Document) {
+        hideSpin2StatusBarItems();
+      } else {
         // these always get updated if showing
         updateStatusBarCompileDebugItem(true);
         updateStatusBarFlashDownloadItem(true);
@@ -1281,20 +1253,189 @@ async function updateStatusBarItems(callerId: string): Promise<void> {
         logExtensionMessage(`* SHOW 3 SB-ITEM spin2 items`);
       }
     }
+
+    if (updateModeSBItem) {
+      if (!haveSpin1or2Document || !showInsertModeIndicator) {
+        hideSpin1or2StatusBarItems();
+      } else {
+        if (textEditor !== undefined) {
+          // have updated mode value?
+          const currMode: eEditMode = getMode(textEditor);
+          if (haveSpin1or2Document && showInsertModeIndicator) {
+            updateStatusBarInsertModeItem(currMode); // show status bar content
+            logExtensionMessage(`* SHOW SB-ITEM mode=[${modeName(currMode)}]`);
+          }
+          // post information to out-side world via our CONTEXT
+          vscode.commands.executeCommand('setContext', 'runtime.spin2.insertMode', modeName(currMode));
+        }
+      }
+    }
   }
+}
+
+/* NEW version but went bad!!!
+async function updateStatusBarItemsNEWbad(callerId: string): Promise<void> {
+  //logExtensionMessage(`* updateStatusBarItems(${callerId}) - ENTRY`);
+  let argumentInterp: string = 'undefined';
+  let haveSpin1or2Document: boolean = false;
+  let haveSpin2Document: boolean = false;
+  const showInsertModeIndicator: boolean = tabConfiguration.enable == true;
+  let docVersion: number = -1;
+  let currMode: eEditMode | undefined = undefined;
+  let isDifferentMode: boolean = false;
+  let isDifferentDownloadFlash: boolean = false;
+  let isDifferentCompileDebug: boolean = false;
+  let isDifferentPlugSN: boolean = false;
+
+  const textEditor: vscode.TextEditor | undefined = vscode.window.activeTextEditor;
+  const textDocument: vscode.TextDocument | undefined = textEditor !== undefined ? textEditor.document : undefined;
+  if (textDocument !== undefined) {
+    haveSpin1or2Document = isSpinOrPasmDocument(textDocument);
+    if (haveSpin1or2Document) {
+      docVersion = textDocument.version;
+      argumentInterp = `${path.basename(textDocument.fileName)} v${docVersion}`;
+    } else {
+      argumentInterp = '-- NOT-SPIN-WINDOW --';
+    }
+  }
+
+  if (textEditor === undefined || !haveSpin1or2Document) {
+    hideSpinControlsIfNotHidden();
+  } else if (textDocument !== undefined) {
+    haveSpin2Document = isSpin2Document(textDocument);
+    // have updated mode value?
+    currMode = getMode(textEditor);
+    isDifferentMode = currMode !== priorEditorMode;
+    if (isDifferentMode) {
+      logExtensionMessage(`* updateStatusBarItems([${callerId}]) Mode (${priorEditorMode}) -> (${currMode})`);
+      priorEditorMode = currMode;
+    }
+    // are we showing a Spin SB Items?
+
+    if (haveSpin2Document) {
+      // are we showing a Spin2-specific SB Items?
+
+      // have updated flash value?
+      const currDownloadFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+      isDifferentDownloadFlash = priorDownloadFlash === undefined || currDownloadFlash != priorDownloadFlash;
+      if (isDifferentDownloadFlash) {
+        logExtensionMessage(`* updateStatusBarItems([${callerId}]) DownloadFlash (${priorDownloadFlash}) -> (${currDownloadFlash})`);
+        priorDownloadFlash = currDownloadFlash;
+      }
+      // have updated debug value?
+      const currCompileDebug: boolean = toolchainConfiguration.debugEnabled;
+      isDifferentCompileDebug = priorCompileDebug === undefined || currCompileDebug != priorCompileDebug;
+      if (isDifferentCompileDebug) {
+        logExtensionMessage(`* updateStatusBarItems([${callerId}]) CompileDebug (${priorCompileDebug}) -> (${currCompileDebug})`);
+        priorCompileDebug = currCompileDebug;
+      }
+      // have updated plug S/N?
+      const currPlugSN: string = getPropPlugSerialNumber();
+      isDifferentPlugSN = currPlugSN != priorPlugSN;
+      //logExtensionMessage(`* isDifferentPlugSN=(${isDifferentPlugSN}), was=[${priorPlugSN}], is=[${currPlugSN}]`);
+      if (isDifferentPlugSN) {
+        logExtensionMessage(`* updateStatusBarItems([${callerId}]) PlugSN (${priorPlugSN}) -> (${currPlugSN})`);
+        priorPlugSN = currPlugSN;
+      }
+    }
+  }
+
+  const needUpdateSpin1or2SBItems: boolean = priorHaveSpin1or2Document === undefined || haveSpin1or2Document != priorHaveSpin1or2Document;
+  if (needUpdateSpin1or2SBItems) {
+    logExtensionMessage(`* updateStatusBarItems([${callerId}]) Spin1or2Doc (${priorHaveSpin1or2Document}) -> (${haveSpin1or2Document})`);
+    priorHaveSpin1or2Document = haveSpin1or2Document;
+  }
+
+  const needUpdateSpin2SBItems: boolean = priorHaveSpin2Document === undefined || haveSpin2Document != priorHaveSpin2Document;
+  if (needUpdateSpin2SBItems) {
+    logExtensionMessage(`* updateStatusBarItems([${callerId}]) Spin2Doc (${priorHaveSpin2Document}) -> (${haveSpin2Document})`);
+    priorHaveSpin2Document = haveSpin2Document;
+  }
+
+  const currDocumentUri: vscode.Uri | undefined = textDocument !== undefined ? textDocument.uri : vscode.Uri.file('');
+  const isDifferentFile: boolean = priorDocumentUri === undefined || currDocumentUri.toString() !== priorDocumentUri.toString();
+  if (isDifferentFile) {
+    logExtensionMessage(`* updateStatusBarItems([${callerId}]) DiffFile (${priorDocumentUri.toString()}) -> (${currDocumentUri.toString()})`);
+    priorDocumentUri = currDocumentUri;
+  }
+
+  if (needUpdateSpin1or2SBItems || needUpdateSpin2SBItems) {
+    logExtensionMessage(
+      `* updateStatusBarItems([${callerId}]) (${argumentInterp}) haveSpin1or2Document=(${haveSpin1or2Document}), haveSpin2Document=(${haveSpin2Document})`
+    );
+    // if we have something to update...
+    if (isDifferentFile || isDifferentMode || isDifferentDownloadFlash || isDifferentCompileDebug || isDifferentPlugSN) {
+      // record file URI is we have new file or first file
+      if (textDocument !== undefined && isDifferentFile) {
+        // this needs to updated every time we have a new editor with spin2 file
+        await writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textDocument.fileName);
+      }
+
+      if (needUpdateSpin1or2SBItems) {
+        if (!haveSpin1or2Document || !showInsertModeIndicator) {
+          hideSpin1or2StatusBarItems();
+        } else if (haveSpin1or2Document && showInsertModeIndicator && isDifferentMode) {
+          // these always get updated if showing
+          updateStatusBarInsertModeItem(currMode); // show status bar content
+          spinSBControlsHidden = true;
+          logExtensionMessage(`* SHOW SB-ITEM spin mode=[${modeName(currMode)}]`);
+          // post information to out-side world via our CONTEXT
+          vscode.commands.executeCommand('setContext', 'runtime.spin2.insertMode', modeName(currMode));
+        }
+      }
+
+      if (needUpdateSpin2SBItems) {
+        if (!haveSpin2Document) {
+          hideSpin2StatusBarItems();
+        } else {
+          // these always get updated if showing
+          if (isDifferentCompileDebug) updateStatusBarCompileDebugItem(true);
+          if (isDifferentDownloadFlash) updateStatusBarFlashDownloadItem(true);
+          if (isDifferentPlugSN) updateStatusBarPropPlugItem(true);
+          spinSBControlsHidden = true;
+          logExtensionMessage(`* SHOW 3 SB-ITEM spin2 items`);
+        }
+      }
+    }
+  }
+
+  //logExtensionMessage(`* updateStatusBarItems(${callerId}) - EXIT`);
+}
+  */
+
+let spinSBControlsHidden: boolean = false;
+
+function hideSpinControlsIfNotHidden() {
+  if (spinSBControlsHidden == false) {
+    spinSBControlsHidden = true;
+    hideSpin1or2StatusBarItems();
+    hideSpin2StatusBarItems();
+  }
+}
+
+function hideSpin1or2StatusBarItems() {
+  updateStatusBarInsertModeItem(null); // hide status bar content
+  logExtensionMessage(`* HIDE SB-ITEM spin mode`);
+}
+
+function hideSpin2StatusBarItems() {
+  updateStatusBarCompileDebugItem(null);
+  updateStatusBarFlashDownloadItem(null);
+  updateStatusBarPropPlugItem(null);
+  logExtensionMessage(`* HIDE 3 SB-ITEM spin2 items`);
 }
 
 let firstEditorChangeEvent: boolean = true;
 
 function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: string = undefined) {
-  let argumentInterp: string = 'undefined';
-  let isSpinWindow: boolean = false;
+  let argumentInterp: string = '-- NO Editor --';
+  let haveSpin1or2Document: boolean = false;
   let docVersion: number = -1;
   if (textEditor == null && textEditor === undefined) {
     // do nothing
   } else {
     if (isSpinOrPasmDocument(textEditor.document)) {
-      isSpinWindow = true;
+      haveSpin1or2Document = true;
       docVersion = textEditor.document.version;
       argumentInterp = `${path.basename(textEditor.document.fileName)} v${docVersion}`;
     } else {
@@ -1310,7 +1451,7 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: s
     // just don't do this!!   writeToolchainBuildVariables('EARLY-INIT').then(() => {}); // wait for complete;
   }
 
-  if (isSpinWindow && textEditor) {
+  if (haveSpin1or2Document) {
     recolorizeSpinDocumentIfChanged(textEditor, 'handleActiveTextEditorChanged', 'Ext-actvEditorChg', true); // true=force the recolor
 
     // if in overtype mode, set the cursor to secondary style; otherwise, reset to default
@@ -1329,11 +1470,36 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: s
     }
     textEditor.options.cursorStyle = cursorStyle;
   }
+
   updateStatusBarItems('handleActiveTextEditorChanged');
+
   logExtensionMessage(`* handleActiveTextEditorChanged(${editorGivenStr}, ${sourceID}) - [${argumentInterp}] - EXIT`);
 }
 
 const versionCacheByDocument = new Map<string, number>();
+
+/*
+function spinDocumentChanged(editor: vscode.TextEditor): boolean {
+  let documentChangedStatus: boolean = false;
+  if (isSpinOrPasmDocument(editor.document)) {
+    const newVersion: number = editor.document.version;
+    let priorVersion: number = -1;
+    const docBaseName: string = path.basename(editor.document.fileName);
+    if (versionCacheByDocument.has(editor.document.fileName)) {
+      priorVersion = versionCacheByDocument.get(editor.document.fileName);
+    } else {
+      versionCacheByDocument.set(editor.document.fileName, newVersion);
+    }
+    documentChangedStatus = newVersion != priorVersion;
+    if (documentChangedStatus) {
+      logExtensionMessage(`* spinDocChanged([${docBaseName}]) v${priorVersion} -> v${newVersion}`);
+      //} else {
+      //  logExtensionMessage(`* spinDocChanged([${docBaseName}]) - NO`);
+    }
+  }
+  return documentChangedStatus;
+}
+  */
 
 function recolorizeSpinDocumentIfChanged(editor: vscode.TextEditor, callerId: string, reason: string, forceUpdate: boolean = false) {
   if (isSpinOrPasmDocument(editor.document)) {
@@ -1415,55 +1581,57 @@ const handleDidChangeConfiguration = () => {
 async function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: string): Promise<void> {
   // NOTE: this runs on startup and when the active editor changes
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}) - ENTRY`);
-  // spin2.fNameTopLevel WAS topLevel
-  // get old, if present
-  let fileBaseName: string | undefined = toolchainConfiguration.topFilename;
-  // if present write as new else write undefined
-  await updateRuntimeConfig('spin2.fNameTopLevel', fileBaseName);
-  if (fileBaseName === undefined || fileBaseName.length == 0) {
-    if (currFspec != undefined && isSpin2File(currFspec)) {
-      fileBaseName = path.basename(currFspec);
+  if (runtimeSettingChangeInProgress == false) {
+    // spin2.fNameTopLevel WAS topLevel
+    // get old, if present
+    let fileBaseName: string | undefined = toolchainConfiguration.topFilename;
+    // if present write as new else write undefined
+    await updateRuntimeConfig('spin2.fNameTopLevel', fileBaseName);
+    if (fileBaseName === undefined || fileBaseName.length == 0) {
+      if (currFspec != undefined && isSpin2File(currFspec)) {
+        fileBaseName = path.basename(currFspec);
+      } else {
+        fileBaseName = activeSpin2Filespec();
+        if (fileBaseName !== undefined) {
+          fileBaseName = path.basename(fileBaseName);
+        }
+      }
+      logExtensionMessage(`+ (DBG) ACTIVE fileBaseName=[${fileBaseName}]`);
     } else {
-      fileBaseName = activeSpin2Filespec();
-      if (fileBaseName !== undefined) {
-        fileBaseName = path.basename(fileBaseName);
-      }
+      logExtensionMessage(`+ (DBG) TOP-LEVEL fileBaseName=[${fileBaseName}]`);
     }
-    logExtensionMessage(`+ (DBG) ACTIVE fileBaseName=[${fileBaseName}]`);
-  } else {
-    logExtensionMessage(`+ (DBG) TOP-LEVEL fileBaseName=[${fileBaseName}]`);
-  }
 
-  if (fileBaseName !== undefined) {
-    const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
-    const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
-    if (selectedCompilerId === PATH_FLEXSPIN) {
-      // -----------------------------------------------------------
-      // flexProp toolset has compiler, loadP2, and flashBinary
-      //
-      // build filename to be loaded (is complex name if writing to flash)
-      let flexBinaryFile: string = `${fileBaseName.replace('.spin2', '.binary')}`;
-      if (writeToFlash) {
-        const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
-        flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
+    if (fileBaseName !== undefined) {
+      const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
+      const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+      if (selectedCompilerId === PATH_FLEXSPIN) {
+        // -----------------------------------------------------------
+        // flexProp toolset has compiler, loadP2, and flashBinary
+        //
+        // build filename to be loaded (is complex name if writing to flash)
+        let flexBinaryFile: string = `${fileBaseName.replace('.spin2', '.binary')}`;
+        if (writeToFlash) {
+          const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
+          flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
+        }
+        await updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
+      } else if (selectedCompilerId === PATH_PNUT) {
+        // -----------------------------------------------------------
+        // PNut toolset has compiler, and loader which are the same!
+        //
+        // for pnut we use the top-level source name instead of a .binary name
+        await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
+      } else if (selectedCompilerId === PATH_PNUT_TS) {
+        // -----------------------------------------------------------
+        // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
+        //
+        // for pnut we use the top-level source name instead of a .binary name
+        await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
       }
-      await updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
-    } else if (selectedCompilerId === PATH_PNUT) {
-      // -----------------------------------------------------------
-      // PNut toolset has compiler, and loader which are the same!
-      //
-      // for pnut we use the top-level source name instead of a .binary name
-      await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
-    } else if (selectedCompilerId === PATH_PNUT_TS) {
-      // -----------------------------------------------------------
-      // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
-      //
-      // for pnut we use the top-level source name instead of a .binary name
-      await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
+    } else {
+      // no selected spin2 file, just clear the value
+      await updateRuntimeConfig('spin2.optionsBinaryFname', undefined);
     }
-  } else {
-    // no selected spin2 file, just clear the value
-    await updateRuntimeConfig('spin2.optionsBinaryFname', undefined);
   }
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}) - EXIT`);
 }
@@ -1472,104 +1640,106 @@ async function writeToolchainBuildVariables(callerID: string): Promise<void> {
   // NOTE: this runs on startup and when the configuration changes
   logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - ENTRY`);
 
-  await writeToolchainBinaryFnameVariable(callerID); // also set the download filename
+  if (runtimeSettingChangeInProgress == false) {
+    await writeToolchainBinaryFnameVariable(callerID); // also set the download filename
 
-  // record selected serial port... (or remove entry)
-  const selectedSerial = toolchainConfiguration.selectedPropPlug;
-  await updateRuntimeConfig('spin2.serialPort', selectedSerial);
+    // record selected serial port... (or remove entry)
+    const selectedSerial = toolchainConfiguration.selectedPropPlug;
+    await updateRuntimeConfig('spin2.serialPort', selectedSerial);
 
-  const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
-  const compilingDebug: boolean = toolchainConfiguration.debugEnabled;
-  const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
-  const loadSerialPort: string = toolchainConfiguration.selectedPropPlug;
-  // are we generating a .lst file?
-  const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
-  //
-  if (selectedCompilerId === PATH_FLEXSPIN) {
-    // -----------------------------------------------------------
-    // flexProp toolset has compiler, loadP2, and flashBinary
+    const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
+    const compilingDebug: boolean = toolchainConfiguration.debugEnabled;
+    const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+    const loadSerialPort: string = toolchainConfiguration.selectedPropPlug;
+    // are we generating a .lst file?
+    const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
     //
-    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_FLEXSPIN];
-    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
-    const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
-    await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
-    const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
-    await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
-    // build compiler switches
-    // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
-    const flexDebugSwitch: string = toolchainConfiguration.flexspinDebugFlag;
-    const flexDebugOption: string = compilingDebug ? `${flexDebugSwitch}` : '';
-    const flexBuildOptions: string[] = ['-2', '-Wabs-paths', '-Wmax-errors=99'];
-    if (flexDebugOption.length > 0) {
-      flexBuildOptions.push(flexDebugOption);
+    if (selectedCompilerId === PATH_FLEXSPIN) {
+      // -----------------------------------------------------------
+      // flexProp toolset has compiler, loadP2, and flashBinary
+      //
+      const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_FLEXSPIN];
+      await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+      const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
+      await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
+      const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
+      await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+      // build compiler switches
+      // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
+      const flexDebugSwitch: string = toolchainConfiguration.flexspinDebugFlag;
+      const flexDebugOption: string = compilingDebug ? `${flexDebugSwitch}` : '';
+      const flexBuildOptions: string[] = ['-2', '-Wabs-paths', '-Wmax-errors=99'];
+      if (flexDebugOption.length > 0) {
+        flexBuildOptions.push(flexDebugOption);
+      }
+      if (lstOutputEnabled) {
+        flexBuildOptions.push('-l');
+      }
+      await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
+      // build loader switches
+      const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
+      const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
+      const loaderOptions: string[] = ['-v']; // verbose for time being....
+      const flexspinLoadP2Baudrate: number = toolchainConfiguration.flexspinDownloadBaudrate;
+      loaderOptions.push(`-b${flexspinLoadP2Baudrate}`);
+      if (enterTerminalAfter) {
+        loaderOptions.push('-t');
+      }
+      if (desiredPort.length > 0) {
+        loaderOptions.push(desiredPort);
+      }
+      await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
+      //
+    } else if (selectedCompilerId === PATH_PNUT) {
+      // -----------------------------------------------------------
+      // PNut toolset has compiler, and loader which are the same!
+      //
+      const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
+      await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+      const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
+      await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+      // build compiler switches
+      // this is -c -d, etc.
+      const buildDebugOption: string = compilingDebug ? 'd' : '';
+      const buildOptions: string[] = [`-c${buildDebugOption}`];
+      await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+      // build loader switches
+      const loadOptions: string[] = writeToFlash ? [`-f${buildDebugOption}`] : [`-r${buildDebugOption}`];
+      await updateRuntimeConfig('spin2.optionsLoader', loadOptions);
+      // this is NOT used in this environment
+      await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+      //
+    } else if (selectedCompilerId === PATH_PNUT_TS) {
+      // -----------------------------------------------------------
+      // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
+      //
+      const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
+      await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+      // build compiler switches
+      // this is -d -O -l, etc.
+      const buildOptions: string[] = [];
+      if (compilingDebug) {
+        buildOptions.push('-d');
+      }
+      if (lstOutputEnabled) {
+        buildOptions.push('-l');
+      }
+      await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
+      // these are NOT used in this environment
+      await updateRuntimeConfig('spin2.optionsLoader', undefined);
+      await updateRuntimeConfig('spin2.fSpecLoader', undefined);
+      await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+      //
+    } else {
+      // -----------------------------------------------------------
+      // no compiler selected, or selection is NOT recognized
+      //
+      await updateRuntimeConfig('spin2.fSpecCompiler', undefined);
+      await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+      await updateRuntimeConfig('spin2.fSpecLoader', undefined);
+      await updateRuntimeConfig('spin2.optionsBuild', undefined);
+      await updateRuntimeConfig('spin2.optionsLoader', undefined);
     }
-    if (lstOutputEnabled) {
-      flexBuildOptions.push('-l');
-    }
-    await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
-    // build loader switches
-    const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
-    const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
-    const loaderOptions: string[] = ['-v']; // verbose for time being....
-    const flexspinLoadP2Baudrate: number = toolchainConfiguration.flexspinDownloadBaudrate;
-    loaderOptions.push(`-b${flexspinLoadP2Baudrate}`);
-    if (enterTerminalAfter) {
-      loaderOptions.push('-t');
-    }
-    if (desiredPort.length > 0) {
-      loaderOptions.push(desiredPort);
-    }
-    await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
-    //
-  } else if (selectedCompilerId === PATH_PNUT) {
-    // -----------------------------------------------------------
-    // PNut toolset has compiler, and loader which are the same!
-    //
-    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
-    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
-    const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT];
-    await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
-    // build compiler switches
-    // this is -c -d, etc.
-    const buildDebugOption: string = compilingDebug ? 'd' : '';
-    const buildOptions: string[] = [`-c${buildDebugOption}`];
-    await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
-    // build loader switches
-    const loadOptions: string[] = writeToFlash ? [`-f${buildDebugOption}`] : [`-r${buildDebugOption}`];
-    await updateRuntimeConfig('spin2.optionsLoader', loadOptions);
-    // this is NOT used in this environment
-    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
-    //
-  } else if (selectedCompilerId === PATH_PNUT_TS) {
-    // -----------------------------------------------------------
-    // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
-    //
-    const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
-    await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
-    // build compiler switches
-    // this is -d -O -l, etc.
-    const buildOptions: string[] = [];
-    if (compilingDebug) {
-      buildOptions.push('-d');
-    }
-    if (lstOutputEnabled) {
-      buildOptions.push('-l');
-    }
-    await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
-    // these are NOT used in this environment
-    await updateRuntimeConfig('spin2.optionsLoader', undefined);
-    await updateRuntimeConfig('spin2.fSpecLoader', undefined);
-    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
-    //
-  } else {
-    // -----------------------------------------------------------
-    // no compiler selected, or selection is NOT recognized
-    //
-    await updateRuntimeConfig('spin2.fSpecCompiler', undefined);
-    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
-    await updateRuntimeConfig('spin2.fSpecLoader', undefined);
-    await updateRuntimeConfig('spin2.optionsBuild', undefined);
-    await updateRuntimeConfig('spin2.optionsLoader', undefined);
   }
   logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - EXIT`);
 }

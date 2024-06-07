@@ -22,18 +22,22 @@ export class UsbSerial {
   private _downloadChecksumGood = false;
   private _downloadResponse: string = '';
 
+  /* this NO-LONGER needed
   static async resetLibrary(): Promise<void> {
     // Clear the serialport module from the cache
     delete require.cache[require.resolve('serialport')];
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const SerialPort = require('serialport');
   }
+  */
 
   static async serialDeviceList(): Promise<string[]> {
     const devicesFound: string[] = [];
-    let ports = await SerialPort.list();
+    const ports = await SerialPort.list();
+
     // known bug? - sometimes the library returns no ports but they are plugged in
     // if we don't find any ports, we'll try again, once
+    /*  NOPE KILL THIS AS IT DOESN'T WORK
     let havePorts = false;
     ports.forEach((port) => {
       if (port.vendorId == '0403' && port.productId == '6015') {
@@ -44,6 +48,7 @@ export class UsbSerial {
       await this.resetLibrary();
       ports = await SerialPort.list();
     }
+	*/
 
     ports.forEach((port) => {
       const serialNumber: string = port.serialNumber;
