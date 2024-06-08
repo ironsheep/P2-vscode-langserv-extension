@@ -44,32 +44,38 @@ This translates now translates into a single entry in the **user tasks** file:
 
 ```json
     {
-        "label": "compileP2",
-        "type": "shell",
-        "command": "${config:spin2.fSpecCompiler}",
-        "args": ["${command:spinExtension.getCompileArguments}","${fileBasename}"],
-        "problemMatcher": {
-          "owner": "Spin2",
-          "fileLocation": ["autoDetect", "${workspaceFolder}"],
-          "pattern": {
-                "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-                "file": 1,
-            "line": 2,
-            "severity": 3,
-            "message": 4
-          }
-        },
-        "presentation": {
-          "panel": "dedicated",
-          "focus": false,
-          "showReuseMessage": false,
-          "clear": true
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
+      "label": "compileP2",
+      "type": "shell",
+      "command": "${config:spin2.fSpecCompiler}",
+      "args": [
+        "${command:spinExtension.getCompileArguments}",
+        "${fileBasename}"
+      ],
+      "problemMatcher": {
+        "owner": "Spin2",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
         }
-   }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "focus": false,
+        "showReuseMessage": false,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
 
 ```
 
@@ -90,32 +96,39 @@ This translates now translates into a single entry in the **user tasks** file:
 
 ```json
     {
-        "label": "compileTopP2",
-        "type": "shell",
-        "command": "${config:spin2.fSpecCompiler}",
-        "args": ["${command:spinExtension.getCompileArguments}", "${config:spin2.fNameTopLevel}"],
-        "problemMatcher": {
-          "owner": "Spin2",
-          "fileLocation": ["autoDetect", "${workspaceFolder}"],
-          "pattern": {
-            "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-            "file": 1,
-            "line": 2,
-            "severity": 3,
-            "message": 4
-          }
-        },
-        "presentation": {
-          "panel": "dedicated",
-          "focus": false,
-          "showReuseMessage": false,
-          "clear": true
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
+      "label": "compileTopP2",
+      "type": "shell",
+      "command": "${config:spin2.fSpecCompiler}",
+      "args": [
+        "${command:spinExtension.getCompileArguments}",
+        "${config:spin2.fNameTopLevel}"
+      ],
+      "problemMatcher": {
+        "owner": "Spin2",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
         }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "focus": false,
+        "showReuseMessage": false,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
       }
+    },
+
 
 ```
 
@@ -135,33 +148,39 @@ NOTE: This now supports any runtime selected compiler. The use of `${config:opti
 This translates now translates into a single entry in the **user tasks** file:
 
 ```json
-   {
-        "label": "downloadP2",
-        "type": "shell",
-        "command": "${config:spin2.fSpecLoader}",
-        "args": ["${command:spinExtension.getLoadArguments}", "${config:spin2.optionsBinaryFname}"],
-         "problemMatcher": {
-          "owner": "Spin2",
-          "fileLocation": ["autoDetect", "${workspaceFolder}"],
-          "pattern": {
-            "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-            "file": 1,
-            "line": 2,
-            "severity": 3,
-            "message": 4
-          }
-        },
-        "presentation": {
-          "panel": "dedicated",
-          "focus": false,
-          "showReuseMessage": false,
-          "clear": true
-        },
-        "group": {
-          "kind": "test",
-          "isDefault": true
+    {
+      "label": "downloadP2",
+      "type": "shell",
+      "command": "${config:spin2.fSpecLoader}",
+      "args": [
+        "${command:spinExtension.getLoadArguments}",
+        "${config:spin2.optionsBinaryFname}"
+      ],
+      "problemMatcher": {
+        "owner": "Spin2",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
         }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "focus": false,
+        "showReuseMessage": false,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
       }
+    }
 
 ```
 
@@ -174,6 +193,8 @@ The Spin2 extension now provides built-in comamnds to run the tasks in the User-
 To to remove any task-related custom key bindinds edit the `keybindings.json` file.
 
 To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**". Select it and you should now have a file open in the editor which may contain something like:
+
+#### OLD Keybindings (remove these!):
 
 ```json
 // Place your key bindings in this file to override the defaultsauto[ ]
@@ -208,24 +229,31 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 
 All of the entries which contain a '...tasks.runTask' value are things we need to remove. When you remove any of our User-Task keybindings this file would end up looking like:
 
+#### If all you had was our old bindings then your file is now:
+
 ```json
 // Place your key bindings in this file to override the defaultsauto[...]
 [ ]
 ```
 
+If you happen to have some non-P2 bindings you can leave these in this file. **We remove any P2 bindings as they will interfere with the new build mechanism!**
 
-### This build system requires an updated pnut_shell.bat
+
+### This build system on Windows requires an updated pnut_shell.bat
 
 This build system generates parameters with switches first then filename. PNut wants these to be filename then switch values. I've updated the `pnut_shell.bat` script which ships with PNut to always present the options to `pnut_v99.exe` in the desired order.
 
 #### Updated pnut_shell.bat file:
 ```bat
-@echo off
+@echo on
+REM change above ON to OFF before FLIGHT
 REM Initialize variables
 set "SPINFILE="
 set "OTHERARGS="
 set ERROR_FILE=error.txt
 set pnuterror=0
+
+setlocal enabledelayedexpansion
 
  REM Check if %1, %2, or %3 is a .spin2 file
 for %%a in (%1 %2 %3) do (
@@ -239,27 +267,37 @@ for %%a in (%1 %2 %3) do (
 if "%spinfile%"=="" (
     echo "Error: Missing .spin2 filename in: %1 %2 %3" 1>&2
     set pnuterror=-1
-    exit %pnuterror%
+    exit /b %pnuterror%
 )
 
 REM remove previous error file if present
 if exist %ERROR_FILE% del /q /f %ERROR_FILE%
+
+REM testing...
+REM echo "given: %1 %2 %3"
+REM echo "using: %SPINFILE% %OTHERARGS%"
 
 REM if we have a file to compile or download, do so
 if exist "%spinfile%" (
     REM always pass filename first, then arguments
     pnut_v43 %SPINFILE% %OTHERARGS%
     set pnuterror = %ERRORLEVEL%
-    for /f "tokens=*" %%i in (%ERROR_FILE%) do echo %%i 1>&2
+    REM if error file was created, display usefull bits
+    if exist %ERROR_FILE% (
+        for /f "tokens=*" %%i in (%ERROR_FILE%) do echo %%i 1>&2
+    )
  ) else (
     set pnuterror=-1
     echo "Error: File NOT found - %spinfile%" 1>&2
  )
- exit %pnuterror%
+ exit /b %pnuterror%
+
 
 ```
 
 I'll have Chip distribute this version with all pnut distributions for here on out (replacing the old one.)
+
+**NOTE**: The `pnut_v43` value in this new file MUST match your exact PNut version! If is does not then this script will NOT work!  Please edit this file if it doesn't match.
 
 
 ## License
