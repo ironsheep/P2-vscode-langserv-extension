@@ -1247,9 +1247,9 @@ async function updateStatusBarItems(callerId: string): Promise<void> {
     priorDocumentUri = currDocumentUri;
   }
 
-  if (textDocument !== undefined && isDifferentFile) {
+  if (textDocument !== undefined && isDifferentFile && haveSpin2Document) {
     // this needs to updated every time we have a new editor with spin2 file
-    await writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', textDocument.fileName);
+    await writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', false, textDocument.fileName);
   }
 
   if (isDifferentFile || updateSpin2SBItems || updateModeSBItem) {
@@ -1452,18 +1452,23 @@ const handleDidChangeConfiguration = () => {
   logExtensionMessage('* handleDidChangeConfiguration - EXIT');
 };
 
-async function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: string): Promise<void> {
+async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: boolean, currFspec?: string): Promise<void> {
   // NOTE: this runs on startup and when the active editor changes
-  logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}) - ENTRY`);
-  if (runtimeSettingChangeInProgress == false) {
+  const overrideFSpec: string = currFspec !== undefined ? `, [${currFspec}]` : '';
+  logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}, force=(${forceUpdate}${overrideFSpec}) - ENTRY`);
+  if (runtimeSettingChangeInProgress == false || forceUpdate == true) {
     // spin2.fNameTopLevel WAS topLevel
     // get old, if present
     let fileBaseName: string | undefined = toolchainConfiguration.topFilename;
     // if present write as new else write undefined
     await updateRuntimeConfig('spin2.fNameTopLevel', fileBaseName);
+    // if no fileBaseName, try to get it from the current file
     if (fileBaseName === undefined || fileBaseName.length == 0) {
-      if (currFspec != undefined && isSpin2File(currFspec)) {
+      if (currFspec !== undefined && isSpin2File(currFspec)) {
         fileBaseName = path.basename(currFspec);
+      } else if (currFspec !== undefined && currFspec.endsWith('.binary')) {
+        // this can happen when running flexspin compiler
+        fileBaseName = currFspec.replace('.binary', '.spin2');
       } else {
         fileBaseName = activeSpin2Filespec();
         if (fileBaseName !== undefined) {
@@ -1507,20 +1512,26 @@ async function writeToolchainBinaryFnameVariable(callerID: string, currFspec?: s
       await updateRuntimeConfig('spin2.optionsBinaryFname', undefined);
     }
   }
-  logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}) - EXIT`);
+  logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}), force=(${forceUpdate}${overrideFSpec}) - EXIT`);
 }
 
 async function writeToolchainBuildVariables(callerID: string): Promise<void> {
   // NOTE: this runs on startup and when the configuration changes
   logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - ENTRY`);
 
-  await writeToolchainBinaryFnameVariable(callerID); // also set the download filename
+  const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
+  const forceUpdateStatus: boolean = selectedCompilerId === PATH_FLEXSPIN ? true : false;
+  let binFileName: string | undefined = selectedCompilerId === PATH_FLEXSPIN ? getRuntimeConfigValue('optionsBinaryFname') : undefined;
+  if (binFileName.includes('@0=')) {
+    const filenameParts = binFileName.split('$8000+').filter(Boolean);
+    binFileName = filenameParts.length > 1 ? filenameParts[1] : filenameParts[0];
+  }
+  await writeToolchainBinaryFnameVariable(callerID, forceUpdateStatus, binFileName); // also set the download filename
 
   // record selected serial port... (or remove entry)
   const selectedSerial = toolchainConfiguration.selectedPropPlug;
   await updateRuntimeConfig('spin2.serialPort', selectedSerial);
 
-  const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
   const compilingDebug: boolean = toolchainConfiguration.debugEnabled;
   const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
   const loadSerialPort: string = toolchainConfiguration.selectedPropPlug;
