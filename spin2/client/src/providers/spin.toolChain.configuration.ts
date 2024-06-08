@@ -7,6 +7,8 @@ export const PATH_PNUT: string = 'pnut';
 export const PATH_PNUT_TS: string = 'pnut_ts';
 export const PATH_LOADER_BIN: string = 'flashloader';
 
+export const validCompilerIDs: string[] = [PATH_PNUT_TS, PATH_PNUT, PATH_FLEXSPIN];
+
 const loadToolchainConfiguration = () => {
   // load the configuration settings making them easy to use
   const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
@@ -109,11 +111,12 @@ function normalizeStringConfigValue(config: vscode.WorkspaceConfiguration, key: 
 }
 
 function normalizeString(value: string | undefined): string | undefined {
+  // return empty strings as undefined!
   let desiredValue: string | undefined = value;
   if (desiredValue !== undefined && desiredValue.length == 0) {
     desiredValue = undefined; // return undefined string when empty string
   }
-  return value;
+  return desiredValue;
 }
 
 export const toolchainConfiguration = loadToolchainConfiguration();

@@ -278,19 +278,6 @@ export class UsbSerial {
     }
   }
 
-  /*
-  public async close(): Promise<void> {
-    // release the usb port
-    await waitMSec(500);
-    this._serialPort.close((err) => {
-      if (err) {
-        this.logMessage(`* close() Error: ${err.message}`);
-      }
-    });
-    this.logMessage(`* close() - port close: isOpen=(${this._serialPort.isOpen})`);
-  }
-  */
-
   public async close(): Promise<void> {
     // (alternate suggested by perplexity search)
     // release the usb port
@@ -298,7 +285,7 @@ export class UsbSerial {
       await waitMSec(500);
     }
     return new Promise((resolve, reject) => {
-      if (this._serialPort) {
+      if (this._serialPort && this._serialPort.isOpen) {
         this._serialPort.close((err) => {
           if (err) {
             this.logMessage(`* close() Error: ${err.message}`);
@@ -308,6 +295,9 @@ export class UsbSerial {
             resolve();
           }
         });
+      } else if (!this._serialPort.isOpen) {
+        this.logMessage(`* close() ?? port already closed ??`);
+        resolve();
       } else {
         this.logMessage(`* close() ?? no port to close ??`);
         resolve();

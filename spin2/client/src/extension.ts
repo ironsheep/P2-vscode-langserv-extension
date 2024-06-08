@@ -34,7 +34,8 @@ import {
   PATH_PNUT,
   PATH_PNUT_TS,
   reloadToolchainConfiguration,
-  toolchainConfiguration
+  toolchainConfiguration,
+  validCompilerIDs
 } from './providers/spin.toolChain.configuration';
 import { ObjectImage } from './imageUtils';
 import { getFlashLoaderBin } from './spin.vscode.fileUtils';
@@ -190,9 +191,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.window.onDidChangeVisibleTextEditors(handleVisibleTextEditorChanged),
 
     vscode.workspace.onDidChangeTextDocument(handleTextDocumentChanged),
-
     vscode.workspace.onDidCloseTextDocument(handleTextDocumentClosed),
     vscode.workspace.onDidOpenTextDocument(handleTextDocumentOpened),
+
     vscode.workspace.onDidChangeConfiguration(handleDidChangeConfiguration),
 
     statusCompileDebugBarItem,
@@ -391,15 +392,17 @@ function registerCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(compileCurrentSpin2File, async () => {
       logExtensionMessage('* compileCurrentSpin2File');
-      const tasks = await vscode.tasks.fetchTasks();
-      const taskToRun = tasks.find((task) => task.name === 'compileP2');
+      if (await ensureIsGoodCompilerSelection()) {
+        const tasks = await vscode.tasks.fetchTasks();
+        const taskToRun = tasks.find((task) => task.name === 'compileP2');
 
-      if (taskToRun) {
-        vscode.tasks.executeTask(taskToRun);
-      } else {
-        const errorMessage: string = 'Task:compileP2 not found in User-Tasks';
-        await vscode.window.showErrorMessage(errorMessage);
-        console.error(errorMessage);
+        if (taskToRun) {
+          vscode.tasks.executeTask(taskToRun);
+        } else {
+          const errorMessage: string = 'Task:compileP2 not found in User-Tasks';
+          await vscode.window.showErrorMessage(errorMessage);
+          console.error(errorMessage);
+        }
       }
     })
   );
@@ -415,15 +418,17 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const topFilename = toolchainConfiguration.topFilename;
       const taskName = topFilename !== undefined ? 'compileTopP2' : 'compileP2';
       logExtensionMessage(`* compileTopSpin2File - topFile=[${topFilename}] task=[${taskName}]`);
-      const tasks = await vscode.tasks.fetchTasks();
-      const taskToRun = tasks.find((task) => task.name === taskName);
+      if (await ensureIsGoodCompilerSelection()) {
+        const tasks = await vscode.tasks.fetchTasks();
+        const taskToRun = tasks.find((task) => task.name === taskName);
 
-      if (taskToRun) {
-        vscode.tasks.executeTask(taskToRun);
-      } else {
-        const errorMessage: string = `Task:${taskName} not found in User-Tasks`;
-        await vscode.window.showErrorMessage(errorMessage);
-        console.error(errorMessage);
+        if (taskToRun) {
+          vscode.tasks.executeTask(taskToRun);
+        } else {
+          const errorMessage: string = `Task:${taskName} not found in User-Tasks`;
+          await vscode.window.showErrorMessage(errorMessage);
+          console.error(errorMessage);
+        }
       }
     })
   );
@@ -438,91 +443,93 @@ function registerCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(downloadTopFile, async () => {
       logExtensionMessage('* downloadTopFile');
-      const selctedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
-      if (selctedCompiler == PATH_PNUT_TS) {
-        logExtensionMessage(`* Running built-in downloader...!`);
-        const deviceNode = toolchainConfiguration.selectedPropPlug;
-        if (deviceNode !== undefined && deviceNode !== '') {
-          // create terminal
-          if (downloaderTerminal === undefined) {
-            downloaderTerminal = vscode.window.createTerminal(`'pnut_ts' Downloader Output`);
-          }
-          // Clear the terminal
-          downloaderTerminal.sendText('clear');
-          // load binary file
-          const filenameToDownload = getRuntimeConfigValue('optionsBinaryFname');
-          let binaryFilespec: string = '';
-          if (filenameToDownload !== undefined && filenameToDownload !== '') {
-            // write file info to terminal
-            const rootDir: string = currenWorkingDir();
-            binaryFilespec = path.join(rootDir, filenameToDownload);
-            let binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
-            const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
-            if (failedToLoad == false) {
-              logExtensionMessage(`  -- load image = (${binaryImage.length}) bytes`);
-              let target: string = 'RAM';
-              const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
-              const needsP2ChecksumVerify: boolean = false;
-              if (writeToFlash) {
-                target = 'FLASH';
-                binaryImage = await insertP2FlashLoader(binaryImage);
-                logExtensionMessage(`  -- load image w/flasher = (${binaryImage.length}) bytes`);
-                writeBinaryFile(binaryImage, `${binaryFilespec}fext`);
-                /*
-              } else {
-                // not flashing append a checksum then ask P2 for verification
-                //
-                // don't enable verify until we get it working
-                needsP2ChecksumVerify = true;
-                const tmpImage = new ObjectImage('temp-image');
-                tmpImage.adopt(binaryImage);
-                tmpImage.padToLong();
-                //const imageSum = 0xdeadf00d; //  TESTING
-                const imageSum = tmpImage.loadRamChecksum();
-                tmpImage.appendLong(imageSum);
-				binaryImage = tmpImage.rawUint8Array.subarray(0, tmpImage.offset);
-				//*/
-              }
-              downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
-              // write to USB PropPlug
-              if (deviceNode !== undefined) {
-                const usbPort: UsbSerial = new UsbSerial(deviceNode);
-                if (await usbPort.deviceIsPropellerV2()) {
-                  await usbPort.download(binaryImage, needsP2ChecksumVerify);
-                  downloaderTerminal.sendText(`# DONE`);
-                } else {
-                  downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
-                }
-                await usbPort.close();
-              } else {
-                downloaderTerminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
-              }
-            } else {
-              downloaderTerminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
+      if (await ensureIsGoodCompilerSelection()) {
+        const selctedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
+        if (selctedCompiler == PATH_PNUT_TS) {
+          logExtensionMessage(`* Running built-in downloader...!`);
+          const deviceNode = toolchainConfiguration.selectedPropPlug;
+          if (deviceNode !== undefined && deviceNode !== '') {
+            // create terminal
+            if (downloaderTerminal === undefined) {
+              downloaderTerminal = vscode.window.createTerminal(`'pnut_ts' Downloader Output`);
             }
-            // write success or error info to terminal
+            // Clear the terminal
+            downloaderTerminal.sendText('clear');
+            // load binary file
+            const filenameToDownload = getRuntimeConfigValue('optionsBinaryFname');
+            let binaryFilespec: string = '';
+            if (filenameToDownload !== undefined && filenameToDownload !== '') {
+              // write file info to terminal
+              const rootDir: string = currenWorkingDir();
+              binaryFilespec = path.join(rootDir, filenameToDownload);
+              let binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
+              const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
+              if (failedToLoad == false) {
+                logExtensionMessage(`  -- load image = (${binaryImage.length}) bytes`);
+                let target: string = 'RAM';
+                const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+                const needsP2ChecksumVerify: boolean = false;
+                if (writeToFlash) {
+                  target = 'FLASH';
+                  binaryImage = await insertP2FlashLoader(binaryImage);
+                  logExtensionMessage(`  -- load image w/flasher = (${binaryImage.length}) bytes`);
+                  writeBinaryFile(binaryImage, `${binaryFilespec}fext`);
+                  /*
+							  } else {
+								// not flashing append a checksum then ask P2 for verification
+								//
+								// don't enable verify until we get it working
+								needsP2ChecksumVerify = true;
+								const tmpImage = new ObjectImage('temp-image');
+								tmpImage.adopt(binaryImage);
+								tmpImage.padToLong();
+								//const imageSum = 0xdeadf00d; //  TESTING
+								const imageSum = tmpImage.loadRamChecksum();
+								tmpImage.appendLong(imageSum);
+								binaryImage = tmpImage.rawUint8Array.subarray(0, tmpImage.offset);
+								//*/
+                }
+                downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
+                // write to USB PropPlug
+                if (deviceNode !== undefined) {
+                  const usbPort: UsbSerial = new UsbSerial(deviceNode);
+                  if (await usbPort.deviceIsPropellerV2()) {
+                    await usbPort.download(binaryImage, needsP2ChecksumVerify);
+                    downloaderTerminal.sendText(`# DONE`);
+                  } else {
+                    downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
+                  }
+                  await usbPort.close();
+                } else {
+                  downloaderTerminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
+                }
+              } else {
+                downloaderTerminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
+              }
+              // write success or error info to terminal
+            } else {
+              // no filename to download
+              downloaderTerminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
+            }
+            downloaderTerminal.show();
           } else {
-            // no filename to download
-            downloaderTerminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
+            const errorMessage: string = `CMD: DOWNLOAD - no propplug selected!`;
+            logExtensionMessage(errorMessage);
+            await vscode.window.showErrorMessage(errorMessage);
+            console.error(errorMessage);
           }
-          downloaderTerminal.show();
         } else {
-          const errorMessage: string = `CMD: DOWNLOAD - no propplug selected!`;
-          logExtensionMessage(errorMessage);
-          await vscode.window.showErrorMessage(errorMessage);
-          console.error(errorMessage);
-        }
-      } else {
-        logExtensionMessage(`* NOT pnut_ts, run download task!`);
-        const tasks = await vscode.tasks.fetchTasks();
-        const taskToRun = tasks.find((task) => task.name === 'downloadP2');
+          logExtensionMessage(`* NOT pnut_ts, run download task!`);
+          const tasks = await vscode.tasks.fetchTasks();
+          const taskToRun = tasks.find((task) => task.name === 'downloadP2');
 
-        if (taskToRun) {
-          vscode.tasks.executeTask(taskToRun);
-        } else {
-          const errorMessage: string = 'Task:downloadP2 not found in User-Tasks';
-          await vscode.window.showErrorMessage(errorMessage);
-          console.error(errorMessage);
+          if (taskToRun) {
+            vscode.tasks.executeTask(taskToRun);
+          } else {
+            const errorMessage: string = 'Task:downloadP2 not found in User-Tasks';
+            await vscode.window.showErrorMessage(errorMessage);
+            console.error(errorMessage);
+          }
         }
       }
     })
@@ -1393,7 +1400,7 @@ function recolorizeSpinDocumentIfChanged(editor: vscode.TextEditor, callerId: st
   }
 }
 
-const handleDidChangeConfiguration = () => {
+const handleDidChangeConfiguration = async () => {
   const previousPerEditor = editModeConfiguration.perEditor;
   const previousShowInStatusBar = getShowInsertModeInStatusBar();
   const previousInsertModeEnable = tabConfiguration.enable;
@@ -1411,7 +1418,7 @@ const handleDidChangeConfiguration = () => {
   const toolchainUpdated: boolean = reloadToolchainConfiguration();
   if (toolchainUpdated) {
     // rewrite build variables
-    writeToolchainBuildVariables('CFG-CHG').then(() => {}); // wait for complete, write compile/download values
+    await writeToolchainBuildVariables('CFG-CHG'); // wait for complete, write compile/download values
   }
 
   const showInsertModeInStatusBar = getShowInsertModeInStatusBar();
@@ -1451,6 +1458,46 @@ const handleDidChangeConfiguration = () => {
   }
   logExtensionMessage('* handleDidChangeConfiguration - EXIT');
 };
+
+async function ensureIsGoodCompilerSelection(): Promise<boolean> {
+  let goodCompilerSelectionStatus: boolean = true;
+  const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
+  let errorMessage: string = '';
+  const isSelKnown: boolean = selectedCompilerId !== undefined && validCompilerIDs.includes(selectedCompilerId);
+  const isInstalledCompiler: boolean = selectedCompilerId !== undefined ? isCompilerInstalled(selectedCompilerId) : false;
+
+  logExtensionMessage(`* ensureIsGoodCompilerSelection() id[${selectedCompilerId}], installed=(${isInstalledCompiler}), known=(${isSelKnown})`);
+  if (selectedCompilerId !== undefined && isInstalledCompiler == false) {
+    goodCompilerSelectionStatus = false;
+    errorMessage = `is not installed, please select an installed compiler`;
+  } else if (selectedCompilerId !== undefined && isSelKnown == false) {
+    goodCompilerSelectionStatus = false;
+    errorMessage = `is invalid, please select a known compiler`;
+  }
+  if (goodCompilerSelectionStatus == false) {
+    logExtensionMessage(`* ensureIsGoodCompilerSelection() - ERROR compiler [${selectedCompilerId}] ${errorMessage}`);
+    await vscode.window.showErrorMessage(
+      `Selected compiler [${selectedCompilerId}] ${errorMessage} [Please update the setting](command:workbench.action.openSettings?%22spinExtension.toolchain.compiler.selected%22)`
+    );
+    // just leave user to fix it
+  }
+  return goodCompilerSelectionStatus;
+}
+
+function isCompilerInstalled(compilerId: string): boolean {
+  let installedStatus: boolean = false;
+  const toolPaths: object = toolchainConfiguration.toolPaths;
+  for (const key in toolPaths) {
+    // NOTE: (`Key: ${key}, Value: ${toolPaths[key]}`);
+    logExtensionMessage(`* isCompilerInstalled(${compilerId}) checking=[${key}]`);
+    if (compilerId !== undefined && key === compilerId) {
+      installedStatus = true;
+      break;
+    }
+  }
+  logExtensionMessage(`* isCompilerInstalled(${compilerId}) --> (${installedStatus})`);
+  return installedStatus;
+}
 
 async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: boolean, currFspec?: string): Promise<void> {
   // NOTE: this runs on startup and when the active editor changes
@@ -1517,15 +1564,17 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
 
 async function writeToolchainBuildVariables(callerID: string): Promise<void> {
   // NOTE: this runs on startup and when the configuration changes
-  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - ENTRY`);
-
   const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
+  const isInstalledCompiler: boolean = selectedCompilerId !== undefined ? isCompilerInstalled(selectedCompilerId) : false;
+  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) cmpId=[${selectedCompilerId}] - ENTRY`);
+
   const forceUpdateStatus: boolean = selectedCompilerId === PATH_FLEXSPIN ? true : false;
   let binFileName: string | undefined = selectedCompilerId === PATH_FLEXSPIN ? getRuntimeConfigValue('optionsBinaryFname') : undefined;
-  if (binFileName.includes('@0=')) {
-    const filenameParts = binFileName.split('$8000+').filter(Boolean);
+  if (binFileName !== undefined && binFileName.startsWith('@0=')) {
+    const filenameParts: string[] = binFileName.split('$8000+').filter(Boolean);
     binFileName = filenameParts.length > 1 ? filenameParts[1] : filenameParts[0];
   }
+  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) binFileName=[${binFileName}]`);
   await writeToolchainBinaryFnameVariable(callerID, forceUpdateStatus, binFileName); // also set the download filename
 
   // record selected serial port... (or remove entry)
@@ -1538,7 +1587,7 @@ async function writeToolchainBuildVariables(callerID: string): Promise<void> {
   // are we generating a .lst file?
   const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
   //
-  if (selectedCompilerId === PATH_FLEXSPIN) {
+  if (isInstalledCompiler && selectedCompilerId === PATH_FLEXSPIN) {
     // -----------------------------------------------------------
     // flexProp toolset has compiler, loadP2, and flashBinary
     //
@@ -1574,7 +1623,7 @@ async function writeToolchainBuildVariables(callerID: string): Promise<void> {
     }
     await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
     //
-  } else if (selectedCompilerId === PATH_PNUT) {
+  } else if (isInstalledCompiler && selectedCompilerId === PATH_PNUT) {
     // -----------------------------------------------------------
     // PNut toolset has compiler, and loader which are the same!
     //
@@ -1593,7 +1642,7 @@ async function writeToolchainBuildVariables(callerID: string): Promise<void> {
     // this is NOT used in this environment
     await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     //
-  } else if (selectedCompilerId === PATH_PNUT_TS) {
+  } else if (isInstalledCompiler && selectedCompilerId === PATH_PNUT_TS) {
     // -----------------------------------------------------------
     // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
     //
@@ -1624,7 +1673,7 @@ async function writeToolchainBuildVariables(callerID: string): Promise<void> {
     await updateRuntimeConfig('spin2.optionsBuild', undefined);
     await updateRuntimeConfig('spin2.optionsLoader', undefined);
   }
-  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) - EXIT`);
+  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) cmpId=[${selectedCompilerId}] - EXIT`);
 }
 
 function toggleCommand() {
