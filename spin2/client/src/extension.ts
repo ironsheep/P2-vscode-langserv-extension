@@ -264,13 +264,12 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(selectPropPlugFromList, async function () {
       logExtensionMessage('CMD: selectPropPlugFromList');
       runtimeSettingChangeInProgress = true;
-      const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
+      await scanForAndRecordPropPlugs(); // load current list into settings
+      // get settings list
+      const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
       const devicesFound: string[] = [];
-      for (let index = 0; index < deviceNodesDetail.length; index++) {
-        const deviceNodeInfo = deviceNodesDetail[index];
-        const portParts = deviceNodeInfo.split(',');
-        const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
-        const deviceNode: string = portParts[0];
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      for (const [deviceNode, deviceSerial] of Object.entries(deviceNodesFound)) {
         if (isWindows()) {
           // On windows show COMn:SerialNumber
           devicesFound.push(`${deviceNode}:${deviceSerial}`);
@@ -835,45 +834,31 @@ function initializeProviders(): void {
 //   Hook Startup scan for PropPlugs
 //
 async function locatePropPlugs(): Promise<void> {
-  const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
-  const devicesFound: string[] = [];
-  const plugsFoundSetting = {};
-  const RETRY_COUNT: number = 4;
+  await scanForAndRecordPropPlugs(); // load current list into settings
+  // get settings list
+  const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
   const currDeviceNode = toolchainConfiguration.selectedPropPlug;
   let selectionStillExists: boolean = false;
-  for (let index = 0; index < deviceNodesDetail.length; index++) {
-    const deviceNodeInfo = deviceNodesDetail[index];
-    const portParts = deviceNodeInfo.split(',');
-    const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
-    const deviceNode: string = portParts[0];
-    devicesFound.push(deviceNode);
-    const usbPort: UsbSerial = new UsbSerial(deviceNode);
-    // during VSCode startup other extensions can affect our timing... so,
-    //  we may miss getting to the P2 in time after reset.
-    //  so, let's try 4 times over 300 mSec to get the P2 response
-    for (let index = 0; index < RETRY_COUNT; index++) {
-      if (await usbPort.deviceIsPropellerV2()) {
-        plugsFoundSetting[deviceNode] = deviceSerial;
-        if (currDeviceNode && currDeviceNode === deviceNode) {
-          selectionStillExists = true;
-          break;
-        }
-      }
-      await waitMSec(100); // if not P2 found try again in 100msec
+  const devicesNodes: string[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  for (const [deviceNode, deviceSerial] of Object.entries(deviceNodesFound)) {
+    devicesNodes.push(deviceNode);
+    if (currDeviceNode && currDeviceNode === deviceNode) {
+      selectionStillExists = true;
     }
-    usbPort.close();
   }
-  logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
-  // record latest values found
-  await updateConfig('toolchain.propPlug.devicesFound', plugsFoundSetting, eConfigSection.CS_USER);
-  if (devicesFound.length == 1) {
+  logExtensionMessage(`* PLUGs [${devicesNodes}](${devicesNodes.length})`);
+  // record all plug values found
+  await updateConfig('toolchain.propPlug.devicesFound', deviceNodesFound, eConfigSection.CS_USER);
+
+  if (devicesNodes.length == 1) {
     // if only 1 device, select it
-    if (currDeviceNode && currDeviceNode != devicesFound[0]) {
+    if (currDeviceNode && currDeviceNode != devicesNodes[0]) {
       // changing from prior selection, notify user
-      vscode.window.showWarningMessage(`Changing PropPlug to ${devicesFound[0]} from ${currDeviceNode}`);
+      vscode.window.showWarningMessage(`Changing PropPlug to ${devicesNodes[0]} from ${currDeviceNode}`);
     }
-    await updateConfig('toolchain.propPlug.selected', devicesFound[0], eConfigSection.CS_USER);
-  } else if (devicesFound.length == 0) {
+    await updateConfig('toolchain.propPlug.selected', devicesNodes[0], eConfigSection.CS_USER);
+  } else if (devicesNodes.length == 0) {
     // if NO devices, select NONE
     await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
     if (currDeviceNode) {
@@ -888,15 +873,43 @@ async function locatePropPlugs(): Promise<void> {
       // we have a selection but it is no longer present
       await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
       vscode.window.showWarningMessage(
-        `Removed PropPlug ${currDeviceNode} - No longer available, Have ${devicesFound.length} other PropPlugs, press Ctrl+Alt+n to select one`
+        `Removed PropPlug ${currDeviceNode} - No longer available, Have ${devicesNodes.length} other PropPlugs, press Ctrl+Alt+n to select one`
       );
     } else if (selectionStillExists == false) {
       // we don't have a selection and there are more than one so tell user to select
       vscode.window.showInformationMessage(
-        `Found ${devicesFound.length} PropPlugs, please use Ctrl+Alt+n to select one to be used for this workspace`
+        `Found ${devicesNodes.length} PropPlugs, please use Ctrl+Alt+n to select one to be used for this workspace`
       );
     }
   }
+}
+
+async function scanForAndRecordPropPlugs(): Promise<void> {
+  const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
+  const devicesFound: string[] = [];
+  const plugsFoundSetting = {};
+  const RETRY_COUNT: number = 4;
+  for (let index = 0; index < deviceNodesDetail.length; index++) {
+    const deviceNodeInfo = deviceNodesDetail[index];
+    const portParts = deviceNodeInfo.split(',');
+    const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
+    const deviceNode: string = portParts[0];
+    devicesFound.push(deviceNode);
+    const usbPort: UsbSerial = new UsbSerial(deviceNode);
+    // during VSCode startup other extensions can affect our timing... so,
+    //  we may miss getting to the P2 in time after reset.
+    //  so, let's try 4 times over 300 mSec to get the P2 response
+    for (let index = 0; index < RETRY_COUNT; index++) {
+      if (await usbPort.deviceIsPropellerV2()) {
+        plugsFoundSetting[deviceNode] = deviceSerial;
+      }
+      await waitMSec(100); // if not P2 found try again in 100msec
+    }
+    usbPort.close();
+  }
+  logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
+  // record all plug values found
+  await updateConfig('toolchain.propPlug.devicesFound', plugsFoundSetting, eConfigSection.CS_USER);
 }
 
 // ----------------------------------------------------------------------------
