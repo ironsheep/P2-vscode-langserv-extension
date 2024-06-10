@@ -20,7 +20,15 @@ import { editModeConfiguration, reloadEditModeConfiguration } from './providers/
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
-import { activeSpin2Filespec, findDebugPinTx, isCurrentDocumentSpin2, isSpin2Document, isSpin2File, isSpinOrPasmDocument } from './spin.vscode.utils';
+import {
+  activeSpin1or2Filespec,
+  findDebugPinTx,
+  isCurrentDocumentSpin2,
+  isSpin2Document,
+  isSpin2File,
+  isSpin1or2File,
+  isSpinOrPasmDocument
+} from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
 import { isMac, isWindows, loadFileAsUint8Array, loadUint8ArrayFailed, locateExe, locateNonExe, platform, writeBinaryFile } from './fileUtils';
 import { UsbSerial } from './usb.serial';
@@ -89,7 +97,7 @@ function getSetupExtensionClient(context: vscode.ExtensionContext): LanguageClie
     documentSelector: [
       { scheme: 'file', language: 'spin' },
       { scheme: 'file', language: 'spin2' },
-      { scheme: 'file', language: 'p2asm' }
+      { scheme: 'file', language: 'p2asm' } // is here so we can semantic highlight this files
     ],
     synchronize: {
       // Notify the server about file changes to '.clientrc files contained in the workspace
@@ -117,7 +125,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(generateDocumentFileCommand, async () => {
-      docGenerator.logMessage('* generateDocumentFileCommand');
+      docGenerator.logMessage('CMD: generateDocumentFileCommand');
       try {
         // and test it!
         docGenerator.generateDocument();
@@ -136,7 +144,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(generateHierarchyFileCommand, async () => {
-      docGenerator.logMessage('* generateHierarchyFileCommand');
+      docGenerator.logMessage('CMD: generateHierarchyFileCommand');
       try {
         // and test it!
         docGenerator.generateHierarchyDocument();
@@ -156,7 +164,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(generateUSBDocumentFileCommand, async () => {
-      usbDocGenerator.logMessage('* generateUSBDocumentFileCommand');
+      usbDocGenerator.logMessage('CMD: generateUSBDocumentFileCommand');
       try {
         // and test it!
         usbDocGenerator.generateUsbReportDocument();
@@ -242,7 +250,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(generateDocCommentCommand, async () => {
-      docGenerator.logMessage('* generateDocumentCommentCommand');
+      docGenerator.logMessage('CMD: generateDocumentCommentCommand');
       try {
         // and test it!
         const editor = vscode?.window.activeTextEditor;
@@ -284,8 +292,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
         case 1:
           {
             const selectedDevice = devicesFound[0];
+            const selectedPort = comPortFromDevice(devicesFound[0]);
             vscode.window.showInformationMessage(`The only PropPlug ${selectedDevice} was selected for you automatically.`);
-            await updateConfig('toolchain.propPlug.selected', selectedDevice, eConfigSection.CS_USER);
+            await updateConfig('toolchain.propPlug.selected', selectedPort, eConfigSection.CS_USER);
           }
           break;
         case 0:
@@ -297,13 +306,23 @@ function registerCommands(context: vscode.ExtensionContext): void {
           // Show the list of choices to the user.
           vscode.window.showInformationMessage('Select the PropPlug connecting to your P2', ...devicesFound).then(async (userSelectedDevice) => {
             // Save the user's choice in the workspace configuration.
-            await updateConfig('toolchain.propPlug.selected', userSelectedDevice, eConfigSection.CS_USER);
+            const selectedPort = comPortFromDevice(userSelectedDevice);
+            await updateConfig('toolchain.propPlug.selected', selectedPort, eConfigSection.CS_USER);
           });
           break;
       }
       runtimeSettingChangeInProgress = false;
     })
   ); //*/
+
+  function comPortFromDevice(deviceNode: string): string {
+    // on windows the port is COMn:SerialNumber, if this is present we want just the COMn
+    let selectedPort: string = deviceNode;
+    if (selectedPort !== undefined && selectedPort.indexOf(':') != -1) {
+      selectedPort = selectedPort.split(':')[0]; // windows serial port name is before the colon
+    }
+    return selectedPort;
+  }
 
   // ----------------------------------------------------------------------------
   //   Hook to Return an array of compile arguments for use in UserTasks
@@ -314,7 +333,65 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
       let optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
       optionsBuildAr = optionsBuildAr.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg));
-      return optionsBuildAr.join(' ');
+      const compileArgs: string = optionsBuildAr.join(' ');
+      logExtensionMessage(`CMD: getCompileArgments -> [${compileArgs}]`);
+      return compileArgs;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 1st compile argument for use in UserTasks
+  //
+  const getCompileArg1: string = 'spinExtension.getCompArg1';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getCompileArg1, () => {
+      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
+      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
+      const desiredArg = optionsBuildAr.length > 0 ? optionsBuildAr[0] : '';
+      logExtensionMessage(`CMD: getCompileArg1 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 2nd compile argument for use in UserTasks
+  //
+  const getCompileArg2: string = 'spinExtension.getCompArg2';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getCompileArg2, () => {
+      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
+      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
+      const desiredArg = optionsBuildAr.length > 1 ? optionsBuildAr[1] : '';
+      logExtensionMessage(`CMD: getCompileArg2 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 3rd compile argument for use in UserTasks
+  //
+  const getCompileArg3: string = 'spinExtension.getCompArg3';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getCompileArg3, () => {
+      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
+      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
+      const desiredArg = optionsBuildAr.length > 2 ? optionsBuildAr[2] : '';
+      logExtensionMessage(`CMD: getCompileArg3 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 4th compile argument for use in UserTasks
+  //
+  const getCompileArg4: string = 'spinExtension.getCompArg4';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getCompileArg4, () => {
+      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
+      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
+      const desiredArg = optionsBuildAr.length > 3 ? optionsBuildAr[3] : '';
+      logExtensionMessage(`CMD: getCompileArg4 -> [${desiredArg}]`);
+      return desiredArg;
     })
   );
 
@@ -327,7 +404,65 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
       let optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
       optionsLoaderAr = optionsLoaderAr.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg));
-      return optionsLoaderAr.join(' ');
+      const loaderArgs: string = optionsLoaderAr.join(' ');
+      logExtensionMessage(`CMD: getLoaderArgments -> [${loaderArgs}]`);
+      return loaderArgs;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 1st loader argument for use in UserTasks
+  //
+  const getLoaderArg1: string = 'spinExtension.getLoadArg1';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getLoaderArg1, () => {
+      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
+      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
+      const desiredArg = optionsLoaderAr.length > 0 ? optionsLoaderAr[0] : '';
+      logExtensionMessage(`CMD: getLoaderArg1 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 2nd loader argument for use in UserTasks
+  //
+  const getLoaderArg2: string = 'spinExtension.getLoadArg2';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getLoaderArg2, () => {
+      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
+      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
+      const desiredArg = optionsLoaderAr.length > 1 ? optionsLoaderAr[1] : '';
+      logExtensionMessage(`CMD: getLoaderArg2 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 3rd loader argument for use in UserTasks
+  //
+  const getLoaderArg3: string = 'spinExtension.getLoadArg3';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getLoaderArg3, () => {
+      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
+      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
+      const desiredArg = optionsLoaderAr.length > 2 ? optionsLoaderAr[2] : '';
+      logExtensionMessage(`CMD: getLoaderArg3 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 4th loader argument for use in UserTasks
+  //
+  const getLoaderArg4: string = 'spinExtension.getLoadArg4';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getLoaderArg4, () => {
+      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
+      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
+      const desiredArg = optionsLoaderAr.length > 3 ? optionsLoaderAr[3] : '';
+      logExtensionMessage(`CMD: getLoaderArg4 -> [${desiredArg}]`);
+      return desiredArg;
     })
   );
 
@@ -340,13 +475,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
       logExtensionMessage('CMD: toggleCompileWithDebug');
       try {
         runtimeSettingChangeInProgress = true;
-        const binFileName = getRuntimeConfigValue('optionsBinaryFname');
         const isDebugEnabled: boolean = toolchainConfiguration.debugEnabled;
         const newEnableState = isDebugEnabled ? false : true;
         await updateConfig('toolchain.optionsCompile.enableDebug', newEnableState, eConfigSection.CS_WORKSPACE);
-        if (binFileName !== undefined) {
-          //await updateRuntimeConfig('spin2.optionsBinaryFname', binFileName);
-        }
         logExtensionMessage(`* enableDebug (${isDebugEnabled}) -> (${newEnableState})`);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-Debug Problem: error=[${error}]`);
@@ -369,11 +500,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
         runtimeSettingChangeInProgress = true;
         const isFlashEnabled: boolean = toolchainConfiguration.writeFlashEnabled;
         const newEnableState = isFlashEnabled ? false : true;
-        const binFileName = getRuntimeConfigValue('optionsBinaryFname');
         await updateConfig('toolchain.optionsDownload.enableFlash', newEnableState, eConfigSection.CS_WORKSPACE);
-        if (binFileName !== undefined) {
-          //await updateRuntimeConfig('spin2.optionsBinaryFname', binFileName);
-        }
         logExtensionMessage(`* enableFlash (${isFlashEnabled}) -> (${newEnableState})`);
       } catch (error) {
         await vscode.window.showErrorMessage(`TOGGLE-FLASH Problem: error=[${error}]`);
@@ -391,7 +518,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(compileCurrentSpin2File, async () => {
-      logExtensionMessage('* compileCurrentSpin2File');
+      logExtensionMessage('CMD: compileCurrentSpin2File');
       if (await ensureIsGoodCompilerSelection()) {
         const tasks = await vscode.tasks.fetchTasks();
         const taskToRun = tasks.find((task) => task.name === 'compileP2');
@@ -417,7 +544,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       // this compile will fall-back to compile current when there is NO 'topLevel' defined!
       const topFilename = toolchainConfiguration.topFilename;
       const taskName = topFilename !== undefined ? 'compileTopP2' : 'compileP2';
-      logExtensionMessage(`* compileTopSpin2File - topFile=[${topFilename}] task=[${taskName}]`);
+      logExtensionMessage(`CMD: compileTopSpin2File - topFile=[${topFilename}] task=[${taskName}]`);
       if (await ensureIsGoodCompilerSelection()) {
         const tasks = await vscode.tasks.fetchTasks();
         const taskToRun = tasks.find((task) => task.name === taskName);
@@ -442,7 +569,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(downloadTopFile, async () => {
-      logExtensionMessage('* downloadTopFile');
+      logExtensionMessage('CMD: downloadTopFile');
       if (await ensureIsGoodCompilerSelection()) {
         const selctedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
         if (selctedCompiler == PATH_PNUT_TS) {
@@ -965,48 +1092,60 @@ async function locateTools(): Promise<void> {
   platformPaths = platformPaths.sort().filter((item, index, self) => index === self.indexOf(item));
   // now see if we find any tools
   let toolsFound: boolean = false;
+
+  // ---------------
+  //  PNut tools
   const pnutFSpec: string | undefined = await locateExe('pnut_shell.bat', platformPaths);
   if (pnutFSpec !== undefined) {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${pnutFSpec}`);
-    await updateConfig('toolchain.paths.PNut', pnutFSpec, eConfigSection.CS_USER);
   }
+  await updateConfig('toolchain.paths.PNut', pnutFSpec, eConfigSection.CS_USER);
+
+  // ---------------
+  //  PNut_ts tools
   const pnutTsFSpec: string | undefined = await locateExe('pnut_ts', platformPaths);
   if (pnutTsFSpec !== undefined) {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${pnutTsFSpec}`);
-    await updateConfig('toolchain.paths.PNutTs', pnutTsFSpec, eConfigSection.CS_USER);
   }
+  await updateConfig('toolchain.paths.PNutTs', pnutTsFSpec, eConfigSection.CS_USER);
+
+  // ---------------
+  //  FlexProp tools
   const flexSpinFSpec = await locateExe('flexspin', platformPaths);
+  let loadP2FSpec: string | undefined = undefined;
+  let flexFlasherBinFSpec: string | undefined = undefined;
   if (flexSpinFSpec !== undefined) {
     // Update the configuration with the path of the executable.
     toolsFound = true;
     logExtensionMessage(`* TOOL: ${flexSpinFSpec}`);
-    await updateConfig('toolchain.paths.flexspin', flexSpinFSpec, eConfigSection.CS_USER);
     //
     // now look for other FlexProp related parts
     //
     const flexPropBin = path.dirname(flexSpinFSpec);
     const flexPropBoard = path.join(path.dirname(flexPropBin), 'board');
 
-    const loadP2FSpec = await locateExe('loadp2', [flexPropBin]);
+    loadP2FSpec = await locateExe('loadp2', [flexPropBin]);
     if (loadP2FSpec !== undefined) {
       // Update the configuration with the path of the executable.
       toolsFound = true;
       logExtensionMessage(`* TOOL: ${loadP2FSpec}`);
-      await updateConfig('toolchain.paths.loadp2', loadP2FSpec, eConfigSection.CS_USER);
     }
 
-    const flexFlasherBinFSpec = locateNonExe('P2ES_flashloader.bin', [flexPropBoard]);
+    flexFlasherBinFSpec = locateNonExe('P2ES_flashloader.bin', [flexPropBoard]);
     if (flexFlasherBinFSpec !== undefined) {
       // Update the configuration with the path of the executable.
       toolsFound = true;
       logExtensionMessage(`* TOOL: ${flexFlasherBinFSpec}`);
-      await updateConfig('toolchain.paths.flexspinFlashloader', flexFlasherBinFSpec, eConfigSection.CS_USER);
     }
   }
+  await updateConfig('toolchain.paths.flexspin', flexSpinFSpec, eConfigSection.CS_USER);
+  await updateConfig('toolchain.paths.loadp2', loadP2FSpec, eConfigSection.CS_USER);
+  await updateConfig('toolchain.paths.flexspinFlashloader', flexFlasherBinFSpec, eConfigSection.CS_USER);
+
   // now build list of available compilers
   const compilers = {};
   if (flexSpinFSpec !== undefined) {
@@ -1254,9 +1393,10 @@ async function updateStatusBarItems(callerId: string): Promise<void> {
     priorDocumentUri = currDocumentUri;
   }
 
-  if (textDocument !== undefined && isDifferentFile && haveSpin2Document) {
-    // this needs to updated every time we have a new editor with spin2 file
-    await writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', false, textDocument.fileName);
+  if (textDocument !== undefined && isDifferentFile && haveSpin1or2Document) {
+    // this needs to updated every time we have a new editor with spin2/spin file
+    //await writeToolchainBinaryFnameVariable('ACTV-EDITOR-CHG', false, textDocument.fileName); //this didn't update the -2 value when flexspin
+    await writeToolchainBuildVariables('ACTV-EDITOR-CHG', false, textDocument.fileName);
   }
 
   if (isDifferentFile || updateSpin2SBItems || updateModeSBItem) {
@@ -1480,8 +1620,46 @@ async function ensureIsGoodCompilerSelection(): Promise<boolean> {
       `Selected compiler [${selectedCompilerId}] ${errorMessage} [Please update the setting](command:workbench.action.openSettings?%22spinExtension.toolchain.compiler.selected%22)`
     );
     // just leave user to fix it
+  } else {
+    // good compiler, let's see if our source file will work for this compiler
+    const spin1or2Filename: string | undefined = getActiveSourceFilename();
+    let errorMsg: string = '';
+    if (spin1or2Filename === undefined) {
+      // this should never happen with our package.json guards in place on when statements
+      errorMsg = `INTERNAL ERROR: source filename is not defined!`;
+    } else {
+      if (!isSpin1or2File(spin1or2Filename)) {
+        errorMsg = `File [${spin1or2Filename}] ERROR: not a P1 or P2 source file!`;
+      } else if (selectedCompilerId != PATH_FLEXSPIN) {
+        // if we have no source file then we have a .spin file vs. a .spin2 file
+        //   this is not legal for pnut or pnut_ts!
+        if (spin1or2Filename.endsWith('.spin')) {
+          errorMsg = `File [${spin1or2Filename}] ERROR: [${selectedCompilerId}] only supports .spin2 files`;
+        }
+      }
+    }
+    if (errorMsg.length > 0) {
+      goodCompilerSelectionStatus = false;
+      await vscode.window.showErrorMessage(errorMsg);
+      logExtensionMessage(`* ensureIsGoodCompilerSelection() - ${errorMsg}`);
+    }
   }
   return goodCompilerSelectionStatus;
+}
+
+function getActiveSourceFilename(): string | undefined {
+  let fileBaseName: string | undefined = toolchainConfiguration.topFilename;
+  //logExtensionMessage(`* getActiveSourceFilename() - top-fileBaseName=[${fileBaseName}]`);
+  // if no fileBaseName, try to get it from the active file
+  if (fileBaseName === undefined || fileBaseName.length == 0) {
+    fileBaseName = activeSpin1or2Filespec();
+    //logExtensionMessage(`* getActiveSourceFilename() - active-fileBaseName=[${fileBaseName}]`);
+  }
+  if (fileBaseName !== undefined) {
+    fileBaseName = path.basename(fileBaseName);
+  }
+  //logExtensionMessage(`* getActiveSourceFilename() --> [${fileBaseName}]`);
+  return fileBaseName;
 }
 
 function isCompilerInstalled(compilerId: string): boolean {
@@ -1517,14 +1695,14 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
         // this can happen when running flexspin compiler
         fileBaseName = currFspec.replace('.binary', '.spin2');
       } else {
-        fileBaseName = activeSpin2Filespec();
+        fileBaseName = activeSpin1or2Filespec();
         if (fileBaseName !== undefined) {
           fileBaseName = path.basename(fileBaseName);
         }
       }
-      logExtensionMessage(`+ (DBG) ACTIVE fileBaseName=[${fileBaseName}]`);
+      logExtensionMessage(`+ (DBG) wtbf() ACTIVE fileBaseName=[${fileBaseName}]`);
     } else {
-      logExtensionMessage(`+ (DBG) TOP-LEVEL fileBaseName=[${fileBaseName}]`);
+      logExtensionMessage(`+ (DBG) wtbf() TOP-LEVEL fileBaseName=[${fileBaseName}]`);
     }
 
     if (fileBaseName !== undefined) {
@@ -1535,23 +1713,25 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
         // flexProp toolset has compiler, loadP2, and flashBinary
         //
         // build filename to be loaded (is complex name if writing to flash)
-        let flexBinaryFile: string = `${fileBaseName.replace('.spin2', '.binary')}`;
+        const fileSuffix: string = fileBaseName.endsWith('.spin2') ? '.spin2' : '.spin';
+        let flexBinaryFile: string = `${fileBaseName.replace(fileSuffix, '.binary')}`;
         if (writeToFlash) {
           const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
           flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
         }
+        // for pnut_ts we use the source name with a .binary suffix
         await updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
       } else if (selectedCompilerId === PATH_PNUT) {
         // -----------------------------------------------------------
         // PNut toolset has compiler, and loader which are the same!
         //
-        // for pnut we use the top-level source name instead of a .binary name
+        // for pnut we use the top-level source name .spin2 instead of a .bin or .binary name
         await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
       } else if (selectedCompilerId === PATH_PNUT_TS) {
         // -----------------------------------------------------------
         // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
         //
-        // for pnut we use the top-level source name instead of a .binary name
+        // for pnut_ts we use the source name with a .bin suffix
         await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
       }
     } else {
@@ -1562,28 +1742,32 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}), force=(${forceUpdate}${overrideFSpec}) - EXIT`);
 }
 
-async function writeToolchainBuildVariables(callerID: string): Promise<void> {
+async function writeToolchainBuildVariables(callerID: string, forceUpdate?: boolean, currFspec?: string): Promise<void> {
   // NOTE: this runs on startup and when the configuration changes
   const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
   const isInstalledCompiler: boolean = selectedCompilerId !== undefined ? isCompilerInstalled(selectedCompilerId) : false;
   logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) cmpId=[${selectedCompilerId}] - ENTRY`);
 
-  const forceUpdateStatus: boolean = selectedCompilerId === PATH_FLEXSPIN ? true : false;
-  let binFileName: string | undefined = selectedCompilerId === PATH_FLEXSPIN ? getRuntimeConfigValue('optionsBinaryFname') : undefined;
-  if (binFileName !== undefined && binFileName.startsWith('@0=')) {
-    const filenameParts: string[] = binFileName.split('$8000+').filter(Boolean);
-    binFileName = filenameParts.length > 1 ? filenameParts[1] : filenameParts[0];
+  let overrideFileName: string | undefined = currFspec;
+  if (forceUpdate === undefined && currFspec === undefined) {
+    // if we are NOT being overridden, then if FLEXSPIN and if downloading to flash, convert the download name to a base binary name
+    forceUpdate = selectedCompilerId === PATH_FLEXSPIN ? true : false;
+    overrideFileName = selectedCompilerId === PATH_FLEXSPIN ? getRuntimeConfigValue('optionsBinaryFname') : undefined;
+    if (overrideFileName !== undefined && overrideFileName.startsWith('@0=')) {
+      const filenameParts: string[] = overrideFileName.split('$8000+').filter(Boolean);
+      overrideFileName = filenameParts.length > 1 ? filenameParts[1] : filenameParts[0];
+    }
   }
-  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) binFileName=[${binFileName}]`);
-  await writeToolchainBinaryFnameVariable(callerID, forceUpdateStatus, binFileName); // also set the download filename
+  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) overrideFileName=[${overrideFileName}]`);
+  await writeToolchainBinaryFnameVariable(callerID, forceUpdate, overrideFileName); // also set the download filename
 
   // record selected serial port... (or remove entry)
-  const selectedSerial = toolchainConfiguration.selectedPropPlug;
-  await updateRuntimeConfig('spin2.serialPort', selectedSerial);
+  const selectedDeviceNode = toolchainConfiguration.selectedPropPlug;
+  await updateRuntimeConfig('spin2.serialPort', selectedDeviceNode);
 
   const compilingDebug: boolean = toolchainConfiguration.debugEnabled;
   const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
-  const loadSerialPort: string = toolchainConfiguration.selectedPropPlug;
+  const loadSerialPort: string = selectedDeviceNode;
   // are we generating a .lst file?
   const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
   //
@@ -1601,7 +1785,14 @@ async function writeToolchainBuildVariables(callerID: string): Promise<void> {
     // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
     const flexDebugSwitch: string = toolchainConfiguration.flexspinDebugFlag;
     const flexDebugOption: string = compilingDebug ? `${flexDebugSwitch}` : '';
-    const flexBuildOptions: string[] = ['-2', '-Wabs-paths', '-Wmax-errors=99'];
+    const flexBuildOptions: string[] = [];
+    const activeSpin1or2Filename: string | undefined = getActiveSourceFilename();
+    logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) ACTIVEfn=[${activeSpin1or2Filename}]`);
+    if (activeSpin1or2Filename !== undefined && isSpin2File(activeSpin1or2Filename)) {
+      flexBuildOptions.push('-2');
+    }
+    flexBuildOptions.push('-Wabs-paths');
+    flexBuildOptions.push('-Wmax-errors=99');
     if (flexDebugOption.length > 0) {
       flexBuildOptions.push(flexDebugOption);
     }

@@ -54,10 +54,32 @@ export function activeSpin2Filespec(activeEditor?: vscode.TextEditor): string | 
   return desiredFilespec;
 }
 
+export function activeSpin1or2Filespec(activeEditor?: vscode.TextEditor): string | undefined {
+  let desiredFilespec: string | undefined = activeFilespec(activeEditor);
+  // if have active file, check if it is a spin2 file
+  if (!fs.existsSync(desiredFilespec)) {
+    desiredFilespec = undefined;
+  } else if (!isSpin2File(desiredFilespec) && !isSpin1File(desiredFilespec)) {
+    desiredFilespec = undefined;
+  }
+  return desiredFilespec;
+}
+
 export function existingSpin2File(filename: string): string | undefined {
   let desiredName: string | undefined = filename;
   if (!isSpin2File(desiredName)) {
     desiredName = `${desiredName}.spin2`;
+  }
+  if (!fs.existsSync(desiredName)) {
+    desiredName = undefined;
+  }
+  return desiredName;
+}
+
+export function existingSpin1File(filename: string): string | undefined {
+  let desiredName: string | undefined = filename;
+  if (!isSpin1File(desiredName)) {
+    desiredName = `${desiredName}.spin`;
   }
   if (!fs.existsSync(desiredName)) {
     desiredName = undefined;
@@ -166,10 +188,16 @@ export function isSpinFile(fileSpec: string): boolean {
   return spinDocumentStatus;
 }
 
+export function isSpin1or2File(fileSpec: string): boolean {
+  const spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith('.spin') || fileSpec.toLowerCase().endsWith('.spin2');
+  return spinDocumentStatus;
+}
+
 export function isSpin1File(fileSpec: string): boolean {
   const spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith('.spin');
   return spinDocumentStatus;
 }
+
 export function isSpin2File(fileSpec: string): boolean {
   const spinDocumentStatus: boolean = fileSpec.toLowerCase().endsWith('.spin2');
   return spinDocumentStatus;

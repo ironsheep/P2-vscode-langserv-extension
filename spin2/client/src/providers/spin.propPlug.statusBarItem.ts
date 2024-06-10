@@ -42,7 +42,7 @@ export function getPropPlugSerialNumber(): string {
       for (const deviceNode of Object.keys(toolchainConfiguration.deviceNodesFound)) {
         const serialNumber = toolchainConfiguration.deviceNodesFound[deviceNode];
         // Now you can use deviceNode and serialNumber
-        if (deviceName == deviceNode) {
+        if (deviceName.startsWith(deviceNode)) {
           if (isWindows()) {
             // On windows show COMn:SerialNumber
             desiredInterp = `${deviceName}:${serialNumber}`;

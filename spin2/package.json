@@ -78,8 +78,40 @@
         "title": "Spin2: Return an array of compile arguments for use in UserTasks"
       },
       {
+        "command": "spinExtension.getCompArg1",
+        "title": "Spin2: Return 1st compile argument for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getCompArg2",
+        "title": "Spin2: Return 2nd compile argument for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getCompArg3",
+        "title": "Spin2: Return 3rd compile argument for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getCompArg4",
+        "title": "Spin2: Return 4th compile argument for use in UserTasks"
+      },
+      {
         "command": "spinExtension.getLoadArguments",
         "title": "Spin2: Return an array of loader arguments for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getLoadArg1",
+        "title": "Spin2: Return 1st loader argument for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getLoadArg2",
+        "title": "Spin2: Return 2nd loader argument for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getLoadArg3",
+        "title": "Spin2: Return 3rd loader argument for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getLoadArg4",
+        "title": "Spin2: Return 4th loader argument for use in UserTasks"
       },
       {
         "command": "spinExtension.elasticTabstops.indentTabStop",
@@ -683,26 +715,30 @@
       },
       {
         "key": "Ctrl+Shift+c",
-        "windows": "Shift+Ctrl+Alt+c",
+        "win": "Shift+Ctrl+Alt+c",
+        "linux": "Shift+Ctrl+Alt+c",
         "command": "spinExtension.compile.currfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Shift+t",
-        "windows": "Shift+Ctrl+Alt+t",
+        "win": "Shift+Ctrl+Alt+t",
+        "linux": "Shift+Ctrl+Alt+t",
         "command": "spinExtension.compile.topfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Shift+d",
-        "windows": "Shift+Ctrl+Alt+d",
+        "win": "Shift+Ctrl+Alt+d",
+        "linux": "Shift+Ctrl+Alt+d",
         "command": "spinExtension.download.topfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "F11",
+        "linux": "Ctrl+F11",
         "command": "spinExtension.download.topfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && editorLangId == spin2"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+n",
@@ -754,7 +790,7 @@
         "command": "spinExtension.insertMode.toggle",
         "key": "Ctrl+Shift+i",
         "mac": "Cmd+Shift+i",
-        "windows": "Shift+Alt+b",
+        "win": "Shift+Alt+b",
         "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       }
     ],
