@@ -325,21 +325,6 @@ function registerCommands(context: vscode.ExtensionContext): void {
   }
 
   // ----------------------------------------------------------------------------
-  //   Hook to Return an array of compile arguments for use in UserTasks
-  //
-  const getCompileArgments: string = 'spinExtension.getCompileArguments';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileArgments, () => {
-      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
-      let optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      optionsBuildAr = optionsBuildAr.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg));
-      const compileArgs: string = optionsBuildAr.join(' ');
-      logExtensionMessage(`CMD: getCompileArgments -> [${compileArgs}]`);
-      return compileArgs;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
   //   Hook to Return 1st compile argument for use in UserTasks
   //
   const getCompileArg1: string = 'spinExtension.getCompArg1';
@@ -392,21 +377,6 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const desiredArg = optionsBuildAr.length > 3 ? optionsBuildAr[3] : '';
       logExtensionMessage(`CMD: getCompileArg4 -> [${desiredArg}]`);
       return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return an array of loader arguments for use in UserTasks
-  //
-  const getLoaderArgments: string = 'spinExtension.getLoadArguments';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getLoaderArgments, () => {
-      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
-      let optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
-      optionsLoaderAr = optionsLoaderAr.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg));
-      const loaderArgs: string = optionsLoaderAr.join(' ');
-      logExtensionMessage(`CMD: getLoaderArgments -> [${loaderArgs}]`);
-      return loaderArgs;
     })
   );
 

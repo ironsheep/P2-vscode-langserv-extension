@@ -74,10 +74,6 @@
         "title": "Spin2: Toggle current state of download to FLASH enable"
       },
       {
-        "command": "spinExtension.getCompileArguments",
-        "title": "Spin2: Return an array of compile arguments for use in UserTasks"
-      },
-      {
         "command": "spinExtension.getCompArg1",
         "title": "Spin2: Return 1st compile argument for use in UserTasks"
       },
@@ -92,10 +88,6 @@
       {
         "command": "spinExtension.getCompArg4",
         "title": "Spin2: Return 4th compile argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getLoadArguments",
-        "title": "Spin2: Return an array of loader arguments for use in UserTasks"
       },
       {
         "command": "spinExtension.getLoadArg1",
