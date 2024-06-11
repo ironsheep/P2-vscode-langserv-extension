@@ -1788,23 +1788,34 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     const flexBuildOptions: string[] = [];
     const activeSpin1or2Filename: string | undefined = getActiveSourceFilename();
     logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) ACTIVEfn=[${activeSpin1or2Filename}]`);
-    if (activeSpin1or2Filename !== undefined && isSpin2File(activeSpin1or2Filename)) {
+    const haveP2: boolean = activeSpin1or2Filename !== undefined && isSpin2File(activeSpin1or2Filename);
+    //
+    // we are working to keep the options list as 4 our less options!
+    //  this is a limit when sending to user-tasks for now
+    //
+    // it's one of the three following!
+    if (haveP2 && lstOutputEnabled) {
+      flexBuildOptions.push('-2l');
+    } else if (haveP2) {
       flexBuildOptions.push('-2');
+    } else if (lstOutputEnabled) {
+      flexBuildOptions.push('-l');
     }
     flexBuildOptions.push('-Wabs-paths');
     flexBuildOptions.push('-Wmax-errors=99');
     if (flexDebugOption.length > 0) {
       flexBuildOptions.push(flexDebugOption);
     }
-    if (lstOutputEnabled) {
-      flexBuildOptions.push('-l');
-    }
     await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
     // build loader switches
     const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
     const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
-    const loaderOptions: string[] = ['-v']; // verbose for time being....
     const flexspinLoadP2Baudrate: number = toolchainConfiguration.flexspinDownloadBaudrate;
+    //
+    // we are working to keep the options list as 4 our less options!
+    //  this is a limit when sending to user-tasks for now
+    //
+    const loaderOptions: string[] = ['-v']; // verbose for time being....
     loaderOptions.push(`-b${flexspinLoadP2Baudrate}`);
     if (enterTerminalAfter) {
       loaderOptions.push('-t');
@@ -1840,6 +1851,10 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
     await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
     // build compiler switches
+    //
+    // we are working to keep the options list as 4 our less options!
+    //  this is a limit when sending to user-tasks for now
+    //
     // this is -d -O -l, etc.
     const buildOptions: string[] = [];
     if (compilingDebug) {
