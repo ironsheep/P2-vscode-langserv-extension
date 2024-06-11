@@ -16,9 +16,9 @@ We have many functions in our VSCode Spin2 Extension that can be activated from 
 | h | Generate Project Object Hierarchy Doc. | Ctrl+Alt+h | Ctrl+Alt+h | Ctrl+Alt+h
 | u | Generate USB Doc. | Ctrl+Alt+u | Ctrl+Alt+u | Ctrl+Alt+u
 | | --------- **Compile/Download Support Commands** ---------
-| C | Compile Current Spin2 File | Ctrl+Shift+C | Ctrl+Shift+C | Ctrl+Shift+C
-| T | Compile TopLevel Spin2 File | Ctrl+Shift+T | Ctrl+Shift+T | Ctrl+Shift+T
-| D | Download Binary File | Ctrl+Shift+D<br>F11 | Ctrl+Shift+D<br>F11 | Ctrl+Shift+D<br>F11
+| C | Compile Current Spin2 File | Ctrl+Shift+Alt+C | Ctrl+Shift+C | Ctrl+Shift+Alt+C
+| T | Compile TopLevel Spin2 File | Ctrl+Shift+Alt+T | Ctrl+Shift+T | Ctrl+Shift+Alt+T
+| D | Download Binary File | Ctrl+Shift+D<br>Ctrl+F11 | Ctrl+Shift+D<br>F11 | Ctrl+Shift+Alt+D<br>F11
 | f | TOGGLE download to FLASH / RAM | Ctrl+Alt+f | Ctrl+Alt+f | Ctrl+Alt+f
 | g | TOGGLE debug() compile | Ctrl+Alt+g | Ctrl+Alt+g | Ctrl+Alt+g
 | n | Select USB port (when more than one) | Ctrl+Alt+n | Ctrl+Alt+n | Ctrl+Alt+n
@@ -26,10 +26,10 @@ We have many functions in our VSCode Spin2 Extension that can be activated from 
 | tab | indent (move code right) | tab | tab | tab
 | TAB | outdent (move code left) | Shift+TAB | Shift+TAB | Shift+TAB
 | tab | Generate tab-stops comment | Ctrl+Alt+tab | Ctrl+Alt+tab | Ctrl+Alt+tab
-| --- | Rotate Insert Mode \[ ->Align->Overtype->Insert-> \] | Insert | F13 | Insert
+| --- | Rotate Insert Mode \[ ->Align->Overtype->Insert-> \] | Insert | F9 | Insert
 | backspace | Delete char to left of cursor | backspace | backspace | backspace
 | delete | Delete char to right of cursor | delete | delete | delete
-| ---| TOGGLE Insert Mode \[ Insert<->Align \] | Ctrl+Shift+I | Cmd+Shift+I | Ctrl+Shift+I
+| ---| TOGGLE Insert Mode \[ Insert<->Align \] | Ctrl+Alt+Shift+I | Cmd+Shift+I | Ctrl+Alt+I
 
 ### Key Prefixes by platform
 

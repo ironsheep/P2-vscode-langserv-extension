@@ -765,7 +765,7 @@
       {
         "command": "spinExtension.insertMode.rotate",
         "key": "insert",
-        "mac": "F13",
+        "mac": "F9",
         "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       },
       {
@@ -780,9 +780,9 @@
       },
       {
         "command": "spinExtension.insertMode.toggle",
-        "key": "Ctrl+Shift+i",
+        "linux": "Ctrl+Alt+Shift+i",
         "mac": "Cmd+Shift+i",
-        "win": "Shift+Alt+b",
+        "key": "Ctrl+Alt+i",
         "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       }
     ],
