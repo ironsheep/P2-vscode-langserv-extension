@@ -1860,6 +1860,8 @@ function toggleCommand() {
   }
 
   toggleMode(textEditor);
+  const currMode: eEditMode = getMode(textEditor);
+  updateStatusBarInsertModeItem(currMode); // show status bar content
   handleActiveTextEditorChanged(textEditor);
 }
 
@@ -1871,6 +1873,8 @@ function toggleCommand2State() {
   }
 
   toggleMode2State(textEditor); // change states
+  const currMode: eEditMode = getMode(textEditor);
+  updateStatusBarInsertModeItem(currMode); // show status bar content
   handleActiveTextEditorChanged(textEditor); // update the SB
 }
 
