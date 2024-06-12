@@ -1709,10 +1709,10 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
     if (fileBaseName !== undefined) {
       const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
       const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+      const activeSpin1or2Filename: string | undefined = getActiveSourceFilename();
+      logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) ACTIVEfn=[${activeSpin1or2Filename}]`);
+      const haveP2: boolean = activeSpin1or2Filename !== undefined && isSpin2File(activeSpin1or2Filename);
       if (cachedIsCompilerInstalled && selectedCompilerId === PATH_FLEXSPIN) {
-        const activeSpin1or2Filename: string | undefined = getActiveSourceFilename();
-        logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) ACTIVEfn=[${activeSpin1or2Filename}]`);
-        const haveP2: boolean = activeSpin1or2Filename !== undefined && isSpin2File(activeSpin1or2Filename);
         // -----------------------------------------------------------
         // flexProp toolset has compiler, loadP2, and flashBinary
         //
@@ -1725,22 +1725,22 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
         }
         // for pnut_ts we use the source name with a .binary suffix
         await updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
-      } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT) {
+      } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT && haveP2) {
         // -----------------------------------------------------------
         // PNut toolset has compiler, and loader which are the same!
         //
         // for pnut we use the top-level source name .spin2 instead of a .bin or .binary name
         await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
-      } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS) {
+      } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS && haveP2) {
         // -----------------------------------------------------------
         // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
         //
         // for pnut_ts we use the source name with a .bin suffix
         await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
+      } else {
+        // no selected spin2 file, just clear the value
+        await updateRuntimeConfig('spin2.optionsBinaryFname', undefined);
       }
-    } else {
-      // no selected spin2 file, just clear the value
-      await updateRuntimeConfig('spin2.optionsBinaryFname', undefined);
     }
   }
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}), force=(${forceUpdate}${overrideFSpec}) - EXIT`);
@@ -1773,15 +1773,15 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
   const loadSerialPort: string = selectedDeviceNode;
   // are we generating a .lst file?
   const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
+  // what is our active file type
+  const activeSpin1or2Filename: string | undefined = getActiveSourceFilename();
+  logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) ACTIVEfn=[${activeSpin1or2Filename}]`);
+  const haveP2: boolean = activeSpin1or2Filename !== undefined && isSpin2File(activeSpin1or2Filename);
   //
   if (cachedIsCompilerInstalled && selectedCompilerId === PATH_FLEXSPIN) {
     // -----------------------------------------------------------
     // flexProp toolset has compiler, loadP2, and flashBinary
     //
-    const activeSpin1or2Filename: string | undefined = getActiveSourceFilename();
-    logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) ACTIVEfn=[${activeSpin1or2Filename}]`);
-    const haveP2: boolean = activeSpin1or2Filename !== undefined && isSpin2File(activeSpin1or2Filename);
-
     const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_FLEXSPIN];
     await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
     let loaderBinFSpec: string | undefined = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
@@ -1852,7 +1852,7 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     }
     await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
     //
-  } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT) {
+  } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT && haveP2) {
     // -----------------------------------------------------------
     // PNut toolset has compiler, and loader which are the same!
     //
@@ -1871,7 +1871,7 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     // this is NOT used in this environment
     await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
     //
-  } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS) {
+  } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS && haveP2) {
     // -----------------------------------------------------------
     // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
     //
