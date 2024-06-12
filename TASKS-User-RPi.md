@@ -28,7 +28,7 @@ On this Page:
   - [Installing FlexProp](#installing-flexprop)
 - [Tasks in VScode](#tasks-in-vscode) - this provides more detail about vscode tasks and lists work that is still needing to be done 
   - [Adding the P2 Tasks](#adding-the-p2-tasks)
-  - [Adding our Custom Keybindings](#adding-our-custom-keybindings)
+  - [Adding our Custom Keybindings](#custom-keybindings)
   - [Adding our notion of Top-level file for tasks to use](#adding-our-notion-of-top-level-file-for-tasks-to-use)
 
 Additional pages:
