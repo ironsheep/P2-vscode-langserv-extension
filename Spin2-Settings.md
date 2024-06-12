@@ -9,7 +9,7 @@ In general To open the Settings editor, navigate to **[Code]** > **Settings** > 
 
 The Spin2 extension settings are in 3 sections.  If when you get to settings and type in "**SpinExt**" as a filter and you'll see the 3 sections of our new Spin2 Extension settings:
 
-![Settings 1 of 3](./DOCs/Spin2Ext-Settings1of3.png)
+![Settings 1 of 5](./DOCs/stgs-extn.png)
 **FIGURE 1**: Our three sections, with the first section selected
 
 - **Highlight FlexSpin directives** - This enables support for #if, #else, etc. FlexSpin directives
@@ -20,7 +20,7 @@ The Spin2 extension settings are in 3 sections.  If when you get to settings and
 
 Click on the 2nd section to see:
 
-![Settings 2 of 3](./DOCs/Spin2Ext-Settings2of3.png)
+![Settings 2 of 5](./DOCs/stgs-tabstops.png)
 **FIGURE 2**: with he 2nd section selected
 
 - Elastic Tabstops **Enable** - check this to turn ON the Elastic Tabstops feature
@@ -31,7 +31,7 @@ Click on the 2nd section to see:
 
 Click on the 3rd section to see:
 
-![Settings 3 of 3](./DOCs/Spin2Ext-Settings3of3.png)
+![Settings 3 of 5](./DOCs/stgs-insertMode.png)
 **FIGURE 3**: with the 3rd section selected
 
 Insert Mode Adjustments:
@@ -45,6 +45,27 @@ Insert Mode Adjustments:
 - **Secondary Cursor Style** - Adjusts the Overtype cursor
 - **Ternary Cursor Style** - Adjusts the Align cursor
 
+Click on the 4th section to see:
+
+![Settings 4 of 5](./DOCs/stgs-toolchain1.png)
+**FIGURE 4**: with the 4th section selected (only showing first group of entries)
+
+ToolChain Adjustments:
+
+You will be modifying only a couple of the values in this section. The remainder are determined when VSCode starts or when you interact with status-bar controls. The following are the values you will be periodically adjusting.
+
+- **Selected Compiler** - Choose the compiler you wish to use (set for User/Workspace)
+- **Enable listing output**- Enable/disable .lst file output
+- **Enter Terminal After**- select one of [ never, when debug() enabled, or always ]
+- **User Baudrate**- Enter the comms rate for you application serial debug output
+- **Flexspin Debug**- Select between -gbrk and -g
+
+The following are adjusted by clicking on status bar controls:
+
+- **Enable Debug()** - Click on "debug:[ON/off]" StatusBar control
+- **Enable Flash**- Click on "Dnld:[RAM/FLASH]" StatusBar control
+- **Selected PropPlug**- Click on "Plug:..." StatusBar control
+
 ## Our Spin/Spin2 VSCode Key Mapping
 
 In general To open the Settings editor, navigate to **[Code]** > **Settings** > **Keyboard Shortcuts**.
@@ -53,13 +74,18 @@ The kayboard mappings are different on Windows than they are on Mac, RPi or Linu
 
 ### The Key Mapping on Windows:
 
-![Keys 1 of 2](./DOCs/KeysOnWIndows.png)
-**FIGURE 4**: Keyboard Shortcuts screen on Windows.
+![Keys 1 of 3](./DOCs/win-keys.png)
+**FIGURE 5**: Keyboard Shortcuts screen on Windows.
 
-### The Key Mapping on MacOS, RPi, Linux:
+### The Key Mapping on RPi, Linux:
 
-![Keys 2 of 2](./DOCs/keysOnMacRPi.png)
-**FIGURE 5**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
+![Keys 2 of 3](./DOCs/RPi-keys.png)
+**FIGURE 6**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
+
+### The Key Mapping on MacOS:
+
+![Keys 3 of 3](./DOCs/mac-keys.png)
+**FIGURE 7**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
 
 ## License
 

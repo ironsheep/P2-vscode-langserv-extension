@@ -574,7 +574,7 @@
           "spinExtension.toolchain.compiler.selected": {
             "type": "string",
             "default": "",
-            "description": "The your Spin/Spin2 compiler (must be one of the available compiler IDs)"
+            "description": "The Spin/Spin2 compiler to use (must be one of the available compiler IDs, above)"
           },
           "spinExtension.toolchain.optionsCompile.enableDebug": {
             "type": "boolean",
