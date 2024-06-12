@@ -57,14 +57,14 @@ When we assign keys to commands in the `package.json` file we use the following 
 
 In general To open the Settings editor, navigate to **[Code]** > **Settings** > **Keyboard Shortcuts**.
 
-The keyboard mappings are different on Windows than they are on Mac, RPi or Linux. This was our mapping before we added build/download support.
+The keyboard mappings are different on Windows than they are on Mac, RPi or Linux. This was our mapping before we added build/download support.  You can see the NEW mappings at [Our Spin/Spin2 VSCode Key Mapping](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/flasher/Spin2-Settings.md#our-spinspin2-vscode-key-mapping)
 
-### The Key Mapping on Windows:
+### Prior Key Mapping on Windows:
 
 ![Keys 1 of 2](./DOCs/KeysOnWIndows.png)
 **FIGURE 4**: Keyboard Shortcuts screen on Windows.
 
-### The Key Mapping on MacOS, RPi, Linux:
+### Prior Key Mapping on MacOS, RPi, Linux:
 
 ![Keys 2 of 2](./DOCs/keysOnMacRPi.png)
 **FIGURE 5**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
