@@ -45,6 +45,8 @@ Additional pages:
 
 ```text
 Latest Updates:
+12 Jun 2024
+- Updated to reflect new Spin2 Extension built-in compile/download support
 18 Jul 2023
 - Adopting formal install locations
 - Made FlexProp and PNut setup the same steps for each
@@ -256,138 +258,14 @@ In between the [] you can place your new task definitions. You should end up wit
     {
       "label": "compileP2",
       "type": "shell",
-      "osx": {
-        "command": "/Applications/flexprop/bin/flexspin.mac"
-      },
-      "windows": {
-        "command": "flexspin.exe"
-      },
-      "linux": {
-        "command": "/opt/flexprop/bin/flexspin"
-      },
-      "args": ["-2", "-Wabs-paths", "-Wmax-errors=99", "${fileBasename}"],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "compileTopP2",
-      "type": "shell",
-      "osx": {
-        "command": "/Applications/flexprop/bin/flexspin.mac"
-      },
-      "windows": {
-        "command": "flexspin.exe"
-      },
-      "linux": {
-        "command": "/opt/flexprop/bin/flexspin"
-      },
-      "args": ["-2", "-Wabs-paths", "-Wmax-errors=99", "${config:topLevel}.spin2"],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "downloadP2",
-      "type": "shell",
-      "osx": {
-        "command": "/Applications/flexprop/bin/loadp2.mac",
-        "args": ["-b230400", "${config:topLevel}.binary", "-t"]
-      },
-      "windows": {
-        "command": "loadp2.exe",
-        "args": ["-b230400", "${config:topLevel}.binary", "-t"]
-      },
-      "linux": {
-        "command": "/opt/flexprop/bin/loadp2",
-        "args": ["-b230400", "${config:topLevel}.binary", "-t", "-p/dev/ttyUSB0"]
-      },
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "dependsOn": ["compileTopP2"]
-    },
-    {
-      "label": "flashP2",
-      "type": "shell",
-      "osx": {
-        "command": "/Applications/flexprop/bin/loadp2.mac",
-        "args": ["-b230400", "@0=/Applications/flexprop/board/P2ES_flashloader.bin,@8000+${config:topLevel}.binary", "-t", "-k"]
-      },
-      "windows": {
-        "command": "loadp2.exe",
-        "args": ["-b230400", "@0=${env:FlexPropPath}/board/P2ES_flashloader.bin,@8000+${config:topLevel}.binary", "-t", "-k"]
-      },
-      "linux": {
-        "command": "/opt/flexprop/bin/loadp2",
-        "args": ["-b230400", "@0=/opt/flexprop/board/P2ES_flashloader.bin,@8000+${config:topLevel}.binary", "-t", "-p/dev/ttyUSB0"]
-      },
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "dependsOn": ["compileTopP2"]
-    },
-    {
-      "label": "compilePNut2",
-      "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${fileBasename}", "-c"]
-      },
+      "command": "${config:spin2.fSpecCompiler}",
+      "args": [
+        "${command:spinExtension.getCompArg1}",
+        "${command:spinExtension.getCompArg2}",
+        "${command:spinExtension.getCompArg3}",
+        "${command:spinExtension.getCompArg4}",
+        "${fileBasename}"
+      ],
       "problemMatcher": {
         "owner": "Spin2",
         "fileLocation": ["autoDetect", "${workspaceFolder}"],
@@ -403,7 +281,11 @@ In between the [] you can place your new task definitions. You should end up wit
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
-        "clear": true
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
       },
       "group": {
         "kind": "build",
@@ -411,19 +293,21 @@ In between the [] you can place your new task definitions. You should end up wit
       }
     },
     {
-      "label": "compileTopPNut2",
+      "label": "compileTopP2",
       "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${config:topLevel}.spin2", "-c"]
-      },
+      "command": "${config:spin2.fSpecCompiler}",
+      "args": [
+        "${command:spinExtension.getCompArg1}",
+        "${command:spinExtension.getCompArg2}",
+        "${command:spinExtension.getCompArg3}",
+        "${command:spinExtension.getCompArg4}",
+        "${config:spin2.fNameTopLevel}"
+      ],
       "problemMatcher": {
         "owner": "Spin2",
         "fileLocation": ["autoDetect", "${workspaceFolder}"],
         "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
           "line": 2,
           "severity": 3,
@@ -434,7 +318,11 @@ In between the [] you can place your new task definitions. You should end up wit
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
-        "clear": true
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
       },
       "group": {
         "kind": "build",
@@ -442,19 +330,21 @@ In between the [] you can place your new task definitions. You should end up wit
       }
     },
     {
-      "label": "downloadPNut2",
+      "label": "downloadP2",
       "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${config:topLevel}.spin2", "-r"]
-      },
+      "command": "${config:spin2.fSpecLoader}",
+      "args": [
+        "${command:spinExtension.getLoadArg1}",
+        "${command:spinExtension.getLoadArg2}",
+        "${command:spinExtension.getLoadArg3}",
+        "${command:spinExtension.getLoadArg4}",
+        "${config:spin2.optionsBinaryFname}"
+      ],
       "problemMatcher": {
         "owner": "Spin2",
         "fileLocation": ["autoDetect", "${workspaceFolder}"],
         "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
           "line": 2,
           "severity": 3,
@@ -465,74 +355,17 @@ In between the [] you can place your new task definitions. You should end up wit
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
-        "clear": true
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
       },
       "group": {
         "kind": "test",
         "isDefault": true
-      }
-    },
-    {
-      "label": "downloadDebugPNut2",
-      "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${config:topLevel}.spin2", "-rd"]
       },
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "flashPNut2",
-      "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${config:topLevel}.spin2", "-f"]
-      },
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      }
+      "dependsOn": ["compileTopP2"]
     }
   ]
 }
@@ -542,43 +375,34 @@ This provides the following **Build** and **Test** tasks:
 
 Under **Task: Run Build Task**:
 
-- CompileP2 - Compile current file [ctrl-shift-B]
-- CompilePNut2 - Compile current file using PNut
+- CompileP2 - Compile current file 
 - CompileTopP2 - Compile the top-file of this project
-- CompileTopPNut2 - Compile the top-file of this project using PNut
 
 Under **Task: Run Test Task**:
 
-- DownloadP2 - Download the binary to RAM in our connected P2
-- DownloadPNut2 - Download the binary to RAM using PNut
-- DownloadDebugPNut2 - Compile with Debug enabled, then Download the binary to RAM using PNut
-- FlashP2 - Download and write the binary to FLASH in our connected P2
-- FlashPNut2 - Download and write the binary to FLASH using PNut
+- DownloadP2 - Download the binary to RAM/FLASH in our connected P2
 
-As written, **downloadP2** and **flashP2** for flexpsin will always be preceeded by a compileTopP2, while the **downloadPNut2**, **downloadDebugPNut2**, and **flashPNut2** do not have any depedencies as they do their own build of the top-level file.
+As written, **downloadP2** for flexpsin will always be preceeded by a compileTopP2.
 
-The **downloadPNut2** and **flashPNut2** tasks do NOT enable debug support. The option `-r` is run without debug while `-rd` is run with debug. Likewise, the option `-f` is compile and flash without debug while `-fd` is compile and flash with debug. Please adjust these values in the task `args:` sections to your need (using debug or not)
 
-For quick use without your needing to modify anything to enable debug we've added **downloadDebugPNut2** which allows you to compile and run from RAM with Debug enabled.
+### Custom Keybindings
 
-**TODO** ?? let's make debug a custom VSCode setting and use the setting in this script to enable/disable debug compilation/use ??
+This new build system no longer uses custom keybindings. However, when migrating from the older build support we used you should remove any older P2 related keybindings as they can interfere with correct operation of the new build support.
 
-### Adding our Custom Keybindings
+The custom key bindings are found in the `keybindings.json` file. 
 
-To add our custom key bindinds we place new content in the `keybindings.json` file.
-
-To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**". Select it and you should now have a file open in the editor which should contain at least:
-
-```json
-// Place your key bindings in this file to override the defaultsauto[]
-[]
-```
-
-In between the [] you can place your new **key bindings**. You should end up with something like:
+To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**".  Select it and you should now have a file open in the editor which should contain something like:
 
 ```json
 // Place your key bindings in this file to override the defaultsauto[]
 [
+]
+```
+
+If you find entries like the following, then they need to be removed.
+ 
+```json
+
   {
     "key": "ctrl+shift+d",
     "command": "workbench.action.tasks.runTask",
@@ -604,63 +428,11 @@ In between the [] you can place your new **key bindings**. You should end up wit
     "command": "workbench.action.tasks.runTask",
     "args": "flashP2"
   }
-]
+
 ```
 
-This adds new keyboard short cuts to our tasks:
+If you still want to use these keys for build shortcuts, then you should remove the entries, and interactively specify keystrokes in the **Keyboard Shortcuts** editor. It will make entries that are correct for the new build system.
 
-- CompileP2 - Compile current file [ctrl-shift-B], **[F8]**
-- CompileTopP2 - Compile the top-file of this project
-- DownloadP2 - Download the binary to RAM in our connected P2 **[ctrl+shift+d] or [F10]**
-- FlashP2 - Download and write the binary to FLASH in our connected P2 **[ctrl+shift+f] or [F11]**
-
-NOTE: you can see that these key bindings only refer to the FlexProp tasks. In, instead, you'd like them to use the PNut tasks then you can replace the `P2` command suffix with `PNut2` causing the PNut versions to be run for the shortcuts.
-
-Here's an example invoking PNut instead of FlexProp:
-
-```json
-// Place your key bindings in this file to override the defaultsauto[]
-[
-  {
-    "key": "ctrl+shift+d",
-    "command": "workbench.action.tasks.runTask",
-    "args": "downloadPNut2"
-  },
-  {
-    "key": "ctrl+shift+f",
-    "command": "workbench.action.tasks.runTask",
-    "args": "flashPNut2"
-  },
-  {
-    "key": "F8",
-    "command": "workbench.action.tasks.build",
-    "args": "compilePNut2"
-  },
-  {
-    "key": "F10",
-    "command": "workbench.action.tasks.runTask",
-    "args": "downloadPNut2"
-  },
-  {
-    "key": "ctrl+F10",
-    "command": "workbench.action.tasks.runTask",
-    "args": "downloadDebugPNut2"
-  },
-  {
-    "key": "F11",
-    "command": "workbench.action.tasks.runTask",
-    "args": "flashPNut2"
-  }
-]
-```
-
-This adds new keyboard short cuts to our tasks:
-
-- CompilePNut2 - Compile current file [ctrl-shift-B], **[F8]**
-- CompileTopPNut2 - Compile the top-file of this project
-- DownloadPNut2 - Download the binary to RAM in our connected P2 **[ctrl+shift+d] or [F10]**
-- DownloadDebugPNut2 - Compile the project with debug enabled, Download the binary to RAM in our connected P2 **[ctrl+F10]**
-- FlashPNut2 - Download and write the binary to FLASH in our connected P2 **[ctrl+shift+f] or [F11]**
 
 ### Adding our notion of Top-level file for tasks to use
 
@@ -682,11 +454,11 @@ Once we have this file in place, then our `tasks.json` file can access this valu
 
 Now our **CompileTopP2** task can create the toplevel filename using `${config:topLevel}.spin2`
 
-You need to find the line containing "jm_p2-es_matrix_control_demo" and replace this name with the name of your top-level file.
+You need to find the line containing "jm\_p2-es\_matrix\_control_demo" and replace this name with the name of your top-level file.
 
 And our **DownloadP2** task can reference the binary file using `${config:topLevel}.binary`
 
-**NOTE** the PNut flasher is special in that it wants the .spin2 filename not a .binary filename so you'll see `${config:topLevel}.spin2` being used in the **FlashPNut2** task.
+
 
 ## License
 

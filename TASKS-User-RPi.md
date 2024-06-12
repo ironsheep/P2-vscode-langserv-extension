@@ -44,6 +44,8 @@ Additional pages:
 
 ```
 Latest Updates:
+12 Jun 2024
+- Updated to reflect new Spin2 Extension built-in compile/download support
 18 Jul 2023
 - Created this file from TASKS-User.md
 20 Dec 2022
@@ -195,7 +197,7 @@ I edit my ~/.profile and add the path to flexprop.  (*I have multiple groups of 
 ```bash
 # set PATH so it includes optional install of flexprop/bin if it exists
 if [ -d "/opt/flexprop/bin" ] ; then
-    PATH="$PATH:/opt/flexprop/bin"
+    PATH="$PATH:/opt/flexprop/bin:/opt/flexprop"
 fi
 ```
 
@@ -260,138 +262,14 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
     {
       "label": "compileP2",
       "type": "shell",
-      "osx": {
-        "command": "/Applications/flexprop/bin/flexspin.mac"
-      },
-      "windows": {
-        "command": "flexspin.exe"
-      },
-      "linux": {
-        "command": "/opt/flexprop/bin/flexspin"
-      },
-      "args": ["-2", "-Wabs-paths", "-Wmax-errors=99", "${fileBasename}"],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "compileTopP2",
-      "type": "shell",
-      "osx": {
-        "command": "/Applications/flexprop/bin/flexspin.mac"
-      },
-      "windows": {
-        "command": "flexspin.exe"
-      },
-      "linux": {
-        "command": "/opt/flexprop/bin/flexspin"
-      },
-      "args": ["-2", "-Wabs-paths", "-Wmax-errors=99", "${config:topLevel}.spin2"],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "downloadP2",
-      "type": "shell",
-      "osx": {
-        "command": "/Applications/flexprop/bin/loadp2.mac",
-        "args": ["-b230400", "${config:topLevel}.binary", "-t"]
-      },
-      "windows": {
-        "command": "loadp2.exe",
-        "args": ["-b230400", "${config:topLevel}.binary", "-t"]
-      },
-      "linux": {
-        "command": "/opt/flexprop/bin/loadp2",
-        "args": ["-b230400", "${config:topLevel}.binary", "-t", "-p/dev/ttyUSB0"]
-      },
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "dependsOn": ["compileTopP2"]
-    },
-    {
-      "label": "flashP2",
-      "type": "shell",
-      "osx": {
-        "command": "/Applications/flexprop/bin/loadp2.mac",
-        "args": ["-b230400", "@0=/Applications/flexprop/board/P2ES_flashloader.bin,@8000+${config:topLevel}.binary", "-t", "-k"]
-      },
-      "windows": {
-        "command": "loadp2.exe",
-        "args": ["-b230400", "@0=${env:FlexPropPath}/board/P2ES_flashloader.bin,@8000+${config:topLevel}.binary", "-t", "-k"]
-      },
-      "linux": {
-        "command": "/opt/flexprop/bin/loadp2",
-        "args": ["-b230400", "@0=/opt/flexprop/board/P2ES_flashloader.bin,@8000+${config:topLevel}.binary", "-t", "-p/dev/ttyUSB0"]
-      },
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "dependsOn": ["compileTopP2"]
-    },
-    {
-      "label": "compilePNut2",
-      "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${fileBasename}", "-c"]
-      },
+      "command": "${config:spin2.fSpecCompiler}",
+      "args": [
+        "${command:spinExtension.getCompArg1}",
+        "${command:spinExtension.getCompArg2}",
+        "${command:spinExtension.getCompArg3}",
+        "${command:spinExtension.getCompArg4}",
+        "${fileBasename}"
+      ],
       "problemMatcher": {
         "owner": "Spin2",
         "fileLocation": ["autoDetect", "${workspaceFolder}"],
@@ -407,7 +285,11 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
-        "clear": true
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
       },
       "group": {
         "kind": "build",
@@ -415,19 +297,21 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
       }
     },
     {
-      "label": "compileTopPNut2",
+      "label": "compileTopP2",
       "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${config:topLevel}.spin2", "-c"]
-      },
+      "command": "${config:spin2.fSpecCompiler}",
+      "args": [
+        "${command:spinExtension.getCompArg1}",
+        "${command:spinExtension.getCompArg2}",
+        "${command:spinExtension.getCompArg3}",
+        "${command:spinExtension.getCompArg4}",
+        "${config:spin2.fNameTopLevel}"
+      ],
       "problemMatcher": {
         "owner": "Spin2",
         "fileLocation": ["autoDetect", "${workspaceFolder}"],
         "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
           "line": 2,
           "severity": 3,
@@ -438,7 +322,11 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
-        "clear": true
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
       },
       "group": {
         "kind": "build",
@@ -446,19 +334,21 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
       }
     },
     {
-      "label": "downloadPNut2",
+      "label": "downloadP2",
       "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${config:topLevel}.spin2", "-r"]
-      },
+      "command": "${config:spin2.fSpecLoader}",
+      "args": [
+        "${command:spinExtension.getLoadArg1}",
+        "${command:spinExtension.getLoadArg2}",
+        "${command:spinExtension.getLoadArg3}",
+        "${command:spinExtension.getLoadArg4}",
+        "${config:spin2.optionsBinaryFname}"
+      ],
       "problemMatcher": {
         "owner": "Spin2",
         "fileLocation": ["autoDetect", "${workspaceFolder}"],
         "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
           "line": 2,
           "severity": 3,
@@ -469,74 +359,17 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
-        "clear": true
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
       },
       "group": {
         "kind": "test",
         "isDefault": true
-      }
-    },
-    {
-      "label": "downloadDebugPNut2",
-      "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${config:topLevel}.spin2", "-rd"]
       },
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "flashPNut2",
-      "type": "shell",
-      "command": "echo",
-      "args": ["Avail on  windows only!"],
-      "windows": {
-        "command": "pnut_shell.bat",
-        "args": ["${config:topLevel}.spin2", "-f"]
-      },
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s+(warning|error):\\s+(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "clear": true
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      }
+      "dependsOn": ["compileTopP2"]
     }
   ]
 }
@@ -546,23 +379,22 @@ This provides the following **Build** and **Test** tasks:
 
 Under **Task: Run Build Task**: 
 
-- CompileP2 - Compile current file  [ctrl-shift-B]
+- CompileP2 - Compile current file 
 - CompileTopP2 - Compile the top-file of this project
 
 Under **Task: Run Test Task**: 
 
 - DownloadP2 - Download the binary to RAM in our connected P2
-- FlashP2 - Download and write the binary to FLASH in our connected P2
 
-As written, **downloadP2** and **flashP2** for flexpsin will always be preceeded by a compileTopP2.
+As written, **downloadP2** for flexpsin will always be preceeded by a compileTopP2.
 
-**TODO** let's make debug a custom VSCode setting and use the setting in this script to enable/disable debug compilation/use??
+### Custom Keybindings
 
-### Adding our Custom Keybindings
+This new build system no longer uses custom keybindings. However, when migrating from the older build support we used you should remove any older P2 related keybindings as they can interfere with correct operation of the new build support.
 
-To add our custom key bindinds we place new content in the `keybindings.json` file. 
+The custom key bindings are found in the `keybindings.json` file. 
 
-To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**".  Select it and you should now have a file open in the editor which should contain at least:
+To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**".  Select it and you should now have a file open in the editor which should contain something like:
 
 ```json
 // Place your key bindings in this file to override the defaultsauto[]
@@ -570,13 +402,10 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 ]
 ```
 
- In between the [] you can place your new **key bindings**. You should end up with something like:
- 
-**NOTE: in the following you may wish to use `cmd` in place of `ctrl` for macOS to remain consistent with other VSCode settings on your Mac!**
+If you find entries like the following, then they need to be removed.
  
 ```json
-// Place your key bindings in this file to override the defaultsauto[]
-[
+
   {
     "key": "ctrl+shift+d",
     "command": "workbench.action.tasks.runTask",
@@ -602,15 +431,11 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
     "command": "workbench.action.tasks.runTask",
     "args": "flashP2"
   }
-]
+
 ```
 
-This adds new keyboard short cuts to our tasks:
+If you still want to use these keys for build shortcuts, then you should remove the entries, and interactively specify keystrokes in the **Keyboard Shortcuts** editor. It will make entries that are correct for the new build system.
 
-- CompileP2 - Compile current file  [ctrl-shift-B], **[F8]**
-- CompileTopP2 - Compile the top-file of this project
-- DownloadP2 - Download the binary to RAM in our connected P2 **[ctrl+shift+d] or [F10]**
-- FlashP2 - Download and write the binary to FLASH in our connected P2 **[ctrl+shift+f] or [F11]**
 
 ### Adding our notion of Top-level file for tasks to use
 
