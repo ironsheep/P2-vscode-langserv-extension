@@ -20,15 +20,7 @@ import { editModeConfiguration, reloadEditModeConfiguration } from './providers/
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
-import {
-  activeSpin1or2Filespec,
-  findDebugPinTx,
-  isCurrentDocumentSpin2,
-  isSpin2Document,
-  isSpin2File,
-  isSpin1or2File,
-  isSpinOrPasmDocument
-} from './spin.vscode.utils';
+import { activeSpin1or2Filespec, findDebugPinTx, isSpin2Document, isSpin2File, isSpin1or2File, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
 import { isMac, isWindows, loadFileAsUint8Array, loadUint8ArrayFailed, locateExe, locateNonExe, platform, writeBinaryFile } from './fileUtils';
 import { UsbSerial } from './usb.serial';
@@ -495,6 +487,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
         const taskToRun = tasks.find((task) => task.name === 'compileP2');
 
         if (taskToRun) {
+          // TODO: should the following be await or not?
           vscode.tasks.executeTask(taskToRun);
         } else {
           const errorMessage: string = 'Task:compileP2 not found in User-Tasks';
@@ -521,6 +514,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
         const taskToRun = tasks.find((task) => task.name === taskName);
 
         if (taskToRun) {
+          // TODO: should the following be await or not?
           vscode.tasks.executeTask(taskToRun);
         } else {
           const errorMessage: string = `Task:${taskName} not found in User-Tasks`;
@@ -544,6 +538,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       if (await ensureIsGoodCompilerSelection()) {
         const selctedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
         if (selctedCompiler && selctedCompiler == PATH_PNUT_TS) {
+          // TODO: run compileTopP2, first! (implement the dependsOn ourself!)
           logExtensionMessage(`* Running built-in downloader...!`);
           const deviceNode = toolchainConfiguration.selectedPropPlug;
           if (deviceNode !== undefined && deviceNode !== '') {
@@ -622,6 +617,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
           const taskToRun = tasks.find((task) => task.name === 'downloadP2');
 
           if (taskToRun) {
+            // TODO: should the following be await or not?
             vscode.tasks.executeTask(taskToRun);
           } else {
             const errorMessage: string = 'Task:downloadP2 not found in User-Tasks';
