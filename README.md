@@ -40,7 +40,12 @@ The **P1 Forum Thread** containing discussion of [this VSCode support](https://f
 - File navigation from **Outline View**
 - File navigation from **Object Hierarchy View**
 - **Edit Mode** support à la Parallax **Propeller Tool** [Insert, Overtype and Align]
-- Provides rich companion themes for use with non-color backgrounds or with colored backgrounds as well as Syntax only theme (mostly used during semantic highlighting development
+- Provides rich companion themes for use with non-color backgrounds or with colored backgrounds as well as Syntax only theme (mostly used during semantic highlighting development.
+- **Compile/Download Support** built-in:
+   - Auto detection of installed compilers; supports flexspin (and PNut when on Windows)
+   - Status Bar control for enable/disable of debug() compilation.
+   - Status Bar control of download to RAM or FLASH.
+   - Status Bar control over which PropPlug to use.
 
 ### Up next
 We are working on the next updates:
@@ -49,13 +54,10 @@ We are working on the next updates:
 
 These are not yet definate but I'm:
 
-- Looking into adding a setting to our extension allowing one to change a "PNut Enable Debug" setting which would be used when building with on windows with PNut
-- Looking into developing a Task Provider (to be built into our extension) which would recognize the tools installed and the OS and then provide only the tasks appropriate for the OS with the tools installed.
 - Looking into customizable Spin code formatter with features like format on save.
 
 ### Future directions
 
-- Task Provider - *studies the current environment and offers to write the tasks for a given P2 project*
 - Spin2/Pasm2 code formatter/beautifier - *allows us to have standard formatting for code we share! (source code could be formatted on each file save)*
 - Snippets for Spin2/Pasm2 (common code sequences which can be added easily to file being edited (e.g., smart pin setup code for given mode/use)
 - Possible Extension Package for P2 (would include all P2 specific extensions)
@@ -71,13 +73,14 @@ In VSCode search for the "spin2" extension and install it.  It's that easy!  Aft
 There are additional companion documents in this Repository:
 
 1. [Configuring User Tasks - Windows](TASKS-User-win.md) which advises on how to automate your P2 Development when using VScode on **Windows**
-2. [Configuring User Tasks - MacOS](TASKS-User-macOS.md) which advises on how to automate your P2 Development when using VScode on **macOS**
-3. [Configuring User Tasks - Windows|MacOS|RPI](TASKS-User.md) which advises on how to automate your P2 Development when using VScode on **any of the supported platforms**
-4. [Configure VSCode for background coloring by Spin Block](PT-Color-setup.md) how to set up coloring and some additional notes
-4. [VSCode Extensions](EXTENSIONS.md) we find useful in our own P2 development
-5. [Visual Examples - Tabbing](TAB-VisualEx.md) a visual explaination of how our Tabbing feature works (*For those of us, like me, who understand more easily when we see pictures.*)
-6. [Engineering Notes - Tabbing](TAB-SPECs.md) more detailed description of how our Tabbing feature works
-7. Spin2 Extension Details: [Settings](Spin2-Settings.md) and [Keyboard Mapping](Spin2-Settings.md#our-spinspin2-vscode-key-mapping)
+1. [Configuring User Tasks - MacOS](TASKS-User-macOS.md) which advises on how to automate your P2 Development when using VScode on **macOS**
+1. [Configuring User Tasks - RPI](TASKS-User-RPi.md) which advises on how to automate your P2 Development when using VScode on **Raspberry Pi**
+1. [Configure VSCode for background coloring by Spin Block](PT-Color-setup.md) how to set up coloring and some additional notes
+1. [VSCode Extensions](EXTENSIONS.md) we find useful in our own P2 development
+1. [Visual Examples - Tabbing](TAB-VisualEx.md) a visual explaination of how our Tabbing feature works (*For those of us, like me, who understand more easily when we see pictures.*)
+1. [Engineering Notes - Tabbing](TAB-SPECs.md) more detailed description of how our Tabbing feature works
+1. Spin2 Extension Details: [Settings](Spin2-Settings.md) and [Keyboard Mapping](Spin2-Settings.md#our-spinspin2-vscode-key-mapping)
+1. Additional details of new compiler support [ToolChain REF](Spin2-ToolChain.md) 
 
 Also, here are a couple of really useful VSCode sources:
 
