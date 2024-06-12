@@ -10,7 +10,7 @@ Currently the following compilers are runtime detected:
 |  name | executable name | description |
 | --- | --- | --- |
 | flexspin | flexspin.exe, flexspin.mac, flexspin | Compiler provided by FlexProp by Total Spectrum Software, Inc. (Eric R. Smith) <br>**All Platforms**
-| pnut | pnut_v99.exe | Compiler provided by Parallax.com. (Chip Gracey) <br>**Windows only**
+| pnut | pnut_shell.bat | Compiler provided by Parallax.com. (Chip Gracey) <br>**Windows only**
 | pnut_ts | pnut_ts | Compiler provided by Parallax.com, and Iron Sheep Productions, LLC. (Chip Gracey, and Stephen M. Moraco) <br>**All Platforms**
 
 ### Configuration Variables provided for User-Tasks use
@@ -20,10 +20,10 @@ Currently the following compilers are runtime detected:
 | `topLevel` (deprecated) -or-<br>`spin2.fNameTopLevel ` | Filename of the top-level file in your workspace<br>NOTE `topLevel` was filename (without the .spin2 file extension)<br>While `fNameTopLevel` is filename.spin2 (with the extension) | Added **by-hand** during project setup. *This allows downloads to work even when your are not editing the top-level file!*
 | `spin2.fSpecCompiler` |  Absolute path of the selected compiler for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers
 | `spin2.fSpecFlashBinary` | (**flexspin only**) Absolute path of the flashLoader binary for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
-| `spin2.fSpecLoader` | (**flexspin only**) Absolute path of the selected downloader for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
+| `spin2.fSpecLoader` | (**flexspin/PNut only**) Absolute path of the selected downloader for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
 | `spin2.serialPort` | Device Node name (or COM Port) of the selected serial port.|**Runtime discovered**, set when user selects the serial port by clicking on the **VSCode StatusBar** Icon
-| `spin2.optionsBuild` **but use:** <br>`spinExtension.getCompileArguments` which formats the augument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers 
-| `spin2.optionsLoader` **but use:**<br>`spinExtension.getLoadArguments` which formats the augument values correctly| Additional command-line options passed to loader without the binary filename | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
+| `spin2.optionsBuild` **but use:** <br>`spinExtension.getCompileArg[1-4]` which formats the argument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers 
+| `spin2.optionsLoader` **but use:**<br>`spinExtension.getLoadArg[1-4]` which formats the argument values correctly| Additional command-line options passed to loader without the binary filename | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
 | `spin2.optionsBinaryFname` | The name of the **binary file** to be downloaded. <br>-In case of **pnut** the **spin2 file** to be compiled then downloaded.<br>- In case of **flexspin** this will also contain the full directive to load the **flash programming** utility if downloading to FLASH. | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
 | | --- **VSCode built-in variables** ---
 | `fileBasename` | The file opened in the active VSCode text editor (in the active tab). | Provided by VSCode runtime
@@ -48,7 +48,10 @@ This translates now translates into a single entry in the **user tasks** file:
       "type": "shell",
       "command": "${config:spin2.fSpecCompiler}",
       "args": [
-        "${command:spinExtension.getCompileArguments}",
+        "${command:spinExtension.getCompileArg1}",
+        "${command:spinExtension.getCompileArg2}",
+        "${command:spinExtension.getCompileArg3}",
+        "${command:spinExtension.getCompileArg4}",
         "${fileBasename}"
       ],
       "problemMatcher": {
@@ -66,6 +69,7 @@ This translates now translates into a single entry in the **user tasks** file:
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
+        "echo": true,
         "clear": true,
         "close": false,
         "reveal": "always",
@@ -100,7 +104,10 @@ This translates now translates into a single entry in the **user tasks** file:
       "type": "shell",
       "command": "${config:spin2.fSpecCompiler}",
       "args": [
-        "${command:spinExtension.getCompileArguments}",
+        "${command:spinExtension.getCompileArg1}",
+        "${command:spinExtension.getCompileArg2}",
+        "${command:spinExtension.getCompileArg3}",
+        "${command:spinExtension.getCompileArg4}",
         "${config:spin2.fNameTopLevel}"
       ],
       "problemMatcher": {
@@ -118,6 +125,7 @@ This translates now translates into a single entry in the **user tasks** file:
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
+        "echo": true,
         "clear": true,
         "close": false,
         "reveal": "always",
@@ -139,8 +147,10 @@ NOTE: This now supports any runtime selected compiler. The use of `${config:opti
 | Compiler | Command |
 | --- | --- |
 | |--- **Download top-level binary** --- |
-| flexspin to RAM | `loadp2 -b230400 ${config:fNameTopLevel}.binary -t -p{port}`
-| flexspin to FLASH | `loadp2 -b230400 @0=/Applications/flexprop/board/P2ES_flashloader.bin,@8000+${config:fNameTopLevel}.binary -t -p{port}`
+| flexspin to P2 RAM | `loadp2 -b115200  -t -p{port} ${config:fNameTopLevel}.binary`
+| flexspin to P2 FLASH | `loadp2 -b115200  -t -p{port} @0={installDir}/board/P2ES_flashloader.bin,@8000+${config:fNameTopLevel}.binary`<br>`loadp2 -b115200  -t -p{port} -SPI ${config:fNameTopLevel}.binary`
+| flexspin to P1 RAM | `proploader -D baud-rate=115200 -rt -p{port} ${config:fNameTopLevel}.binary`
+| flexspin to P1 FLASH | `proploader -D baud-rate=115200 -ert -p{port} ${config:fNameTopLevel}.binary`
 | pnut to RAM | `pnut_shell.bat ${config:fNameTopLevel}.spin2 -r` <br>*NOTE: -r becomes -rd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
 | pnut to FLASH | `pnut_shell.bat ${config:fNameTopLevel}.spin2 -f` <br>*NOTE: -f becomes -fd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
 | pnut_ts to FLASH/RAM | *NOTE: The pnut_ts loader is built into the Spin2 Extension so is not represented in the Users Tasks file*
@@ -153,7 +163,10 @@ This translates now translates into a single entry in the **user tasks** file:
       "type": "shell",
       "command": "${config:spin2.fSpecLoader}",
       "args": [
-        "${command:spinExtension.getLoadArguments}",
+        "${command:spinExtension.getLoadArg1}",
+        "${command:spinExtension.getLoadArg2}",
+        "${command:spinExtension.getLoadArg3}",
+        "${command:spinExtension.getLoadArg4}",
         "${config:spin2.optionsBinaryFname}"
       ],
       "problemMatcher": {
@@ -171,6 +184,7 @@ This translates now translates into a single entry in the **user tasks** file:
         "panel": "dedicated",
         "focus": false,
         "showReuseMessage": false,
+        "echo": true,
         "clear": true,
         "close": false,
         "reveal": "always",

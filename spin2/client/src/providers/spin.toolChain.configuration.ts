@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 
 export const PATH_FLEXSPIN: string = 'flexspin';
 export const PATH_LOADP2: string = 'loadp2';
+export const PATH_PROPLOADER: string = 'proploader';
 export const PATH_PNUT: string = 'pnut';
 export const PATH_PNUT_TS: string = 'pnut_ts';
 export const PATH_LOADER_BIN: string = 'flashloader';
@@ -54,9 +55,9 @@ const loadToolchainConfiguration = () => {
     }
   }
 
-  let flexspinDownloadBaudrate: number = toolchainConfig.get<number>('optionsDownload.flexspin.baudrate');
-  if (flexspinDownloadBaudrate === undefined) {
-    flexspinDownloadBaudrate = 230400; // defualt value if no value found
+  let userBaudrate: number = toolchainConfig.get<number>('optionsDownload.user.baudrate');
+  if (userBaudrate === undefined) {
+    userBaudrate = 115200; // default value if no value found
   }
   const toolPaths = {};
   const pnutTsPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.PNutTs');
@@ -70,6 +71,10 @@ const loadToolchainConfiguration = () => {
   const loadP2Path: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.loadp2');
   if (loadP2Path !== undefined) {
     toolPaths[PATH_LOADP2] = loadP2Path;
+  }
+  const proploaderPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.proploader');
+  if (proploaderPath !== undefined) {
+    toolPaths[PATH_PROPLOADER] = proploaderPath;
   }
   const flashloaderPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.flexspinFlashloader');
   if (flashloaderPath !== undefined) {
@@ -93,7 +98,7 @@ const loadToolchainConfiguration = () => {
     toolPaths,
     downloadTerminalMode,
     enterTerminalAfterDownload,
-    flexspinDownloadBaudrate
+    userBaudrate
   };
 };
 
@@ -138,7 +143,7 @@ export const reloadToolchainConfiguration = () => {
     objectsAreEqual(toolchainConfiguration.toolPaths, newToolchainConfig.toolPaths) &&
     toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode &&
     toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload &&
-    toolchainConfiguration.flexspinDownloadBaudrate === newToolchainConfig.flexspinDownloadBaudrate
+    toolchainConfiguration.userBaudrate === newToolchainConfig.userBaudrate
   ) {
     return false;
   }
@@ -156,7 +161,7 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.toolPaths = newToolchainConfig.toolPaths;
   toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode;
   toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload;
-  toolchainConfiguration.flexspinDownloadBaudrate === newToolchainConfig.flexspinDownloadBaudrate;
+  toolchainConfiguration.userBaudrate === newToolchainConfig.userBaudrate;
 
   return true;
 };

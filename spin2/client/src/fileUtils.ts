@@ -41,6 +41,13 @@ export function platformExeName(exeName: string): string {
         searchExeName = `${exeName}.exe`;
       }
       break;
+    case 'proploader':
+      if (isMac()) {
+        searchExeName = `${exeName}.mac`;
+      } else if (isWindows()) {
+        searchExeName = `${exeName}.exe`;
+      }
+      break;
     case 'pnut_ts':
       if (isWindows()) {
         searchExeName = `${exeName}.exe`;

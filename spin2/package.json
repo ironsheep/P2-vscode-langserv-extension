@@ -606,12 +606,12 @@
             ],
             "description": "Enter Terminal mode after download completes (select one)"
           },
-          "spinExtension.toolchain.optionsDownload.flexspin.baudrate": {
+          "spinExtension.toolchain.optionsDownload.user.baudrate": {
             "type": "number",
-            "default": 230400,
+            "default": 115200,
             "minimum": 9600,
             "maximum": 2000000,
-            "description": "Flexspin loadP2 command-line option: Download Baudrate (default: 230,400 baud)"
+            "description": "Flexspin loadP2 command-line option: User Baudrate (default: 115,200 baud)"
           },
           "spinExtension.toolchain.paths.PNutTs": {
             "type": "string",
@@ -626,7 +626,12 @@
           "spinExtension.toolchain.paths.loadp2": {
             "type": "string",
             "default": "",
-            "description": "Absolute path of the loadP2 executable"
+            "description": "Absolute path of the loadP2 executable (p2 loader)"
+          },
+          "spinExtension.toolchain.paths.proploader": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the proploader executable (p1 loader)"
           },
           "spinExtension.toolchain.paths.flexspinFlashloader": {
             "type": "string",
@@ -657,7 +662,7 @@
           },
           "spin2.fSpecLoader": {
             "type": "string",
-            "description": "(flexspin only) Absolute path to the selected downloader for this workspace."
+            "description": "(flexspin/pnut only) Absolute path to the selected downloader for this workspace."
           },
           "spin2.serialPort": {
             "type": "string",
