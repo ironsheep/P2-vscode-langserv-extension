@@ -42,7 +42,7 @@ The **P1 Forum Thread** containing discussion of [this VSCode support](https://f
 - **Edit Mode** support à la Parallax **Propeller Tool** [Insert, Overtype and Align]
 - Provides rich companion themes for use with non-color backgrounds or with colored backgrounds as well as Syntax only theme (mostly used during semantic highlighting development.
 - **Compile/Download Support** built-in:
-   - Auto detection of installed compilers; supports flexspin (and PNut when on Windows)
+   - Auto detection of installed compilers; supports **FlexSpin** (and **PNut** when on Windows)
    - Status Bar control for enable/disable of debug() compilation.
    - Status Bar control of download to RAM or FLASH.
    - Status Bar control over which PropPlug to use.
