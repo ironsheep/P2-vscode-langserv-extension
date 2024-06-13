@@ -13,6 +13,10 @@ Currently the following compilers are runtime detected:
 | pnut | pnut_shell.bat | Compiler provided by Parallax.com. (Chip Gracey) <br>**Windows only**
 | pnut_ts | pnut_ts | Compiler provided by Parallax.com, and Iron Sheep Productions, LLC. (Chip Gracey, and Stephen M. Moraco) <br>**All Platforms**
 
+A couple of expected paths per platform and the user's environment variables are used to find the install for each compiler.
+
+*(TBD) add list of paths per platform.*
+
 ### Configuration Variables provided for User-Tasks use
 
 | Name | Purpose | Set by |
@@ -148,7 +152,7 @@ NOTE: This now supports any runtime selected compiler. The use of `${config:opti
 | --- | --- |
 | |--- **Download top-level binary** --- |
 | flexspin to P2 RAM | `loadp2 -b115200  -t -p{port} ${config:fNameTopLevel}.binary`
-| flexspin to P2 FLASH | `loadp2 -b115200  -t -p{port} @0={installDir}/board/P2ES_flashloader.bin,@8000+${config:fNameTopLevel}.binary`<br>`loadp2 -b115200  -t -p{port} -SPI ${config:fNameTopLevel}.binary`
+| flexspin to P2 FLASH | `loadp2 -b115200  -t -p{port} @0={installDir}/board/P2ES_flashloader.bin,@8000+${config:fNameTopLevel}.binary`  -OR-<br>`loadp2 -b115200  -t -p{port} -SPI ${config:fNameTopLevel}.binary`
 | flexspin to P1 RAM | `proploader -D baud-rate=115200 -rt -p{port} ${config:fNameTopLevel}.binary`
 | flexspin to P1 FLASH | `proploader -D baud-rate=115200 -ert -p{port} ${config:fNameTopLevel}.binary`
 | pnut to RAM | `pnut_shell.bat ${config:fNameTopLevel}.spin2 -r` <br>*NOTE: -r becomes -rd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
