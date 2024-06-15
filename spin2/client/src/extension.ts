@@ -374,6 +374,34 @@ function registerCommands(context: vscode.ExtensionContext): void {
   );
 
   // ----------------------------------------------------------------------------
+  //   Hook to Return 5th compile argument for use in UserTasks
+  //
+  const getCompileArg5: string = 'spinExtension.getCompArg5';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getCompileArg5, () => {
+      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
+      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
+      const desiredArg = optionsBuildAr.length > 4 ? optionsBuildAr[4] : '';
+      logExtensionMessage(`CMD: getCompileArg5 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 6th compile argument for use in UserTasks
+  //
+  const getCompileArg6: string = 'spinExtension.getCompArg6';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getCompileArg6, () => {
+      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
+      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
+      const desiredArg = optionsBuildAr.length > 5 ? optionsBuildAr[5] : '';
+      logExtensionMessage(`CMD: getCompileArg6 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
   //   Hook to Return 1st loader argument for use in UserTasks
   //
   const getLoaderArg1: string = 'spinExtension.getLoadArg1';
@@ -425,6 +453,34 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
       const desiredArg = optionsLoaderAr.length > 3 ? optionsLoaderAr[3] : '';
       logExtensionMessage(`CMD: getLoaderArg4 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 4th loader argument for use in UserTasks
+  //
+  const getLoaderArg5: string = 'spinExtension.getLoadArg5';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getLoaderArg5, () => {
+      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
+      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
+      const desiredArg = optionsLoaderAr.length > 4 ? optionsLoaderAr[4] : '';
+      logExtensionMessage(`CMD: getLoaderArg5 -> [${desiredArg}]`);
+      return desiredArg;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook to Return 4th loader argument for use in UserTasks
+  //
+  const getLoaderArg6: string = 'spinExtension.getLoadArg6';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(getLoaderArg6, () => {
+      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
+      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
+      const desiredArg = optionsLoaderAr.length > 5 ? optionsLoaderAr[5] : '';
+      logExtensionMessage(`CMD: getLoaderArg6 -> [${desiredArg}]`);
       return desiredArg;
     })
   );
@@ -1715,7 +1771,7 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
         // build filename to be loaded (is complex name if writing to flash)
         const fileSuffix: string = fileBaseName.endsWith('.spin2') ? '.spin2' : '.spin';
         let flexBinaryFile: string = `${fileBaseName.replace(fileSuffix, '.binary')}`;
-        if (writeToFlash && haveP2) {
+        if (writeToFlash && haveP2 && useLoaderInFilename) {
           const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
           flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
         }
@@ -1741,6 +1797,9 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
   }
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}), force=(${forceUpdate}${overrideFSpec}) - EXIT`);
 }
+
+const useProploaderForP2: boolean = false;
+const useLoaderInFilename: boolean = false;
 
 async function writeToolchainBuildVariables(callerID: string, forceUpdate?: boolean, currFspec?: string): Promise<void> {
   // NOTE: this runs on startup and when the configuration changes
@@ -1785,9 +1844,12 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
       loaderBinFSpec = undefined; // we don't use this on P1 downloads
     }
     await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
-    const p2LoaderFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
-    const p1LoaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PROPLOADER];
-    const loaderFSpec: string = haveP2 ? p2LoaderFSpec : p1LoaderFSpec;
+    const loadp2FSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
+    const proploaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PROPLOADER];
+    let loaderFSpec: string = haveP2 ? loadp2FSpec : proploaderFSpec;
+    if (useProploaderForP2 && haveP2) {
+      loaderFSpec = proploaderFSpec;
+    }
     await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
 
     // build compiler switches
@@ -1800,44 +1862,77 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     //  this is a limit when sending to user-tasks for now
     //
     // it's one of the three following!
-    if (haveP2 && lstOutputEnabled) {
-      flexBuildOptions.push('-2l');
-    } else if (haveP2) {
-      flexBuildOptions.push('-2');
-    } else if (lstOutputEnabled) {
-      flexBuildOptions.push('-l');
+    let compileSglLtrOptions: string = ''; // verbose for time being....
+    if (haveP2) {
+      compileSglLtrOptions = compileSglLtrOptions.concat('2'); // compile for P2
+    } else {
+      compileSglLtrOptions = compileSglLtrOptions.concat('1bc'); // compiles to Spin bytecodes that are executed by the P1 ROM interpreter
     }
+    if (lstOutputEnabled) {
+      compileSglLtrOptions = compileSglLtrOptions.concat('l');
+    }
+    flexBuildOptions.push(`-${compileSglLtrOptions}`);
     flexBuildOptions.push('-Wabs-paths');
     flexBuildOptions.push('-Wmax-errors=99');
+    flexBuildOptions.push('--charset=parallax'); // causes arg4!
+    flexBuildOptions.push('--sizes'); // causes arg5!
     if (flexDebugOption.length > 0) {
       flexBuildOptions.push(flexDebugOption);
+    }
+    if (haveP2 && !useProploaderForP2) {
+      //flexBuildOptions.push('--compress'); // causes arg6!
     }
     await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
     // build loader switches
     const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
     const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
+    const usePSTComptibleTerm: boolean = toolchainConfiguration.termIsPstCompatible;
+    const termType: string = usePSTComptibleTerm ? 'T' : 't';
     const loadP2userBaudrate: number = toolchainConfiguration.userBaudrate;
     //
     // we are working to keep the options list as 4 our less options!
     //  this is a limit when sending to user-tasks for now
     //
+    //  increase the buffer size to 8192 for P2 due to error message without it
+    //  -k seems to have no effect on P2
+    //  code is not running on P2 after download (--compress has no effect on not running)
     const loaderOptions: string[] = [];
     let loaderSglLtrOptions: string = '-v'; // verbose for time being....
     if (haveP2) {
-      // setup loadp2 arguments for P2 download
+      // setup loadp2/proploader arguments for P2 download
       if (enterTerminalAfter) {
-        loaderSglLtrOptions = loaderSglLtrOptions.concat('t');
+        loaderSglLtrOptions = loaderSglLtrOptions.concat(termType);
+      }
+      if (useProploaderForP2) {
+        loaderSglLtrOptions = loaderSglLtrOptions.concat('2');
+        if (writeToFlash) {
+          loaderSglLtrOptions = loaderSglLtrOptions.concat('e'); // write to eeprom
+        }
+      } else {
+        //loaderSglLtrOptions = loaderSglLtrOptions.concat('k'); // wait for user input before exit
+        //loaderSglLtrOptions = loaderSglLtrOptions.concat('n'); // no reset; skip any hardware reset
       }
       loaderOptions.push(loaderSglLtrOptions);
-      loaderOptions.push(`-b${loadP2userBaudrate}`);
+      if (!useProploaderForP2) {
+        loaderOptions.push(`-b${loadP2userBaudrate}`);
+        //loaderOptions.push(`-SINGLE`); // set load mode for single stage
+        loaderOptions.push(`-FIFO`);
+        loaderOptions.push(`8192`);
+        if (writeToFlash) {
+          loaderOptions.push(`-FLASH`);
+        }
+      } else {
+        loaderOptions.push(`-D`);
+        loaderOptions.push(`baud-rate=${loadP2userBaudrate}`);
+      }
     } else {
       // setup proploader arguments for P1 download
+      loaderSglLtrOptions = loaderSglLtrOptions.concat('r'); // run after download
       if (writeToFlash) {
         loaderSglLtrOptions = loaderSglLtrOptions.concat('e'); // write to eeprom
       }
-      loaderSglLtrOptions = loaderSglLtrOptions.concat('r'); // run after download
       if (enterTerminalAfter) {
-        loaderSglLtrOptions = loaderSglLtrOptions.concat('t');
+        loaderSglLtrOptions = loaderSglLtrOptions.concat(termType);
       }
       loaderOptions.push(loaderSglLtrOptions);
       loaderOptions.push(`-D`);

@@ -81,12 +81,20 @@ export class USBDocGenerator {
         const lib1Title: string = 'Using library [serialPort]:';
         fs.appendFileSync(rptFileID, `${lib1Title}${this.endOfLineStr}`); // blank line
         let deviceCount: number = 0;
+        // on macOS, the serialPort library uses /dev/cu.usbserial-xxxxxx
+        // Serial Devices:
+        //  macOS:
+        //    /dev/cu.usbserial-P9cektn7
+        //    /dev/tty.Bluetooth-Incoming-Port
+        //  Windows:
+        //  RPi:
         await SerialPort.list()
           .then((ports) => {
             ports.forEach((port) => {
               deviceCount++;
+              const deviceName: string = port.path ? port.path.replace('/dev/tty.us', '/dev/cu.us') : 'unknown';
               fs.appendFileSync(rptFileID, `-- DEVICE -----${this.endOfLineStr}`);
-              fs.appendFileSync(rptFileID, ` Port: ${port.path}${this.endOfLineStr}`);
+              fs.appendFileSync(rptFileID, ` Port: ${deviceName}${this.endOfLineStr}`);
               fs.appendFileSync(rptFileID, ` Manufacturer: ${port.manufacturer}${this.endOfLineStr}`);
               fs.appendFileSync(rptFileID, ` Serial Number: ${port.serialNumber}${this.endOfLineStr}`);
               fs.appendFileSync(rptFileID, ` Location ID: ${port.locationId}${this.endOfLineStr}`);

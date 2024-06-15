@@ -42,6 +42,7 @@ const loadToolchainConfiguration = () => {
   }
   const lstOutputEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsCompile.enableLstOutput');
   const writeFlashEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableFlash');
+  const termIsPstCompatible: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableCompatibilityPST');
 
   const downloadTerminalMode: string = normalizeStringConfigValue(toolchainConfig, 'optionsDownload.enterTerminalAfter');
   let enterTerminalAfterDownload: boolean = false;
@@ -95,6 +96,7 @@ const loadToolchainConfiguration = () => {
     flexspinDebugFlag,
     lstOutputEnabled,
     writeFlashEnabled,
+    termIsPstCompatible,
     toolPaths,
     downloadTerminalMode,
     enterTerminalAfterDownload,
@@ -140,6 +142,7 @@ export const reloadToolchainConfiguration = () => {
     toolchainConfiguration.flexspinDebugFlag === newToolchainConfig.flexspinDebugFlag &&
     toolchainConfiguration.lstOutputEnabled === newToolchainConfig.lstOutputEnabled &&
     toolchainConfiguration.writeFlashEnabled === newToolchainConfig.writeFlashEnabled &&
+    toolchainConfiguration.termIsPstCompatible === newToolchainConfig.termIsPstCompatible &&
     objectsAreEqual(toolchainConfiguration.toolPaths, newToolchainConfig.toolPaths) &&
     toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode &&
     toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload &&
@@ -158,6 +161,7 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.flexspinDebugFlag = newToolchainConfig.flexspinDebugFlag;
   toolchainConfiguration.lstOutputEnabled = newToolchainConfig.lstOutputEnabled;
   toolchainConfiguration.writeFlashEnabled = newToolchainConfig.writeFlashEnabled;
+  toolchainConfiguration.termIsPstCompatible = newToolchainConfig.termIsPstCompatible;
   toolchainConfiguration.toolPaths = newToolchainConfig.toolPaths;
   toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode;
   toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload;

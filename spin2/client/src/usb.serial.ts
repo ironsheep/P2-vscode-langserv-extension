@@ -52,7 +52,7 @@ export class UsbSerial {
 
     ports.forEach((port) => {
       const serialNumber: string = port.serialNumber;
-      const deviceNode: string = port.path;
+      const deviceNode: string = port.path.replace('/dev/tty.us', '/dev/cu.us');
       if (port.vendorId == '0403' && port.productId == '6015') {
         devicesFound.push(`${deviceNode},${serialNumber}`);
       }
