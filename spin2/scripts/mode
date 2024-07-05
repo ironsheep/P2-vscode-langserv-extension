@@ -4,6 +4,18 @@ SCRIPT_VERSION="1.0"
 
 PARM=$1
 
+MD5BASE=/usr/bin/md5
+OPTSBASE="-r"
+MD5SUM=/usr/bin/md5sum
+OPTSSUM=""
+
+MD5=$MD5BASE
+MD5OPTS=$OPTSBASE
+if [ ! -x "${MD5BASE}" ]; then
+	MD5=$MD5SUM
+	MD5OPTS=$OPTSSUM
+fi
+
 FLAGDIR=./scripts
 MODEFILE=${FLAGDIR}/mode.flg
 
@@ -38,12 +50,12 @@ if [ ! "${PARM}" = "live" ]; then
   fi
 fi
 
-LIVE_MD5_PKG=`md5 -r ${DEST_PKG} | cut -f1 -d" "`
-LIVE_MD5_IGN=`md5 -r ${DEST_IGN} | cut -f1 -d" "`
-LIVE_SRC_MD5_PKG=`md5 -r ${LIVE_SRC_PKG} | cut -f1 -d" "`
-LIVE_SRC_MD5_IGN=`md5 -r ${LIVE_SRC_IGN} | cut -f1 -d" "`
-TEST_SRC_MD5_PKG=`md5 -r ${TEST_SRC_PKG} | cut -f1 -d" "`
-TEST_SRC_MD5_IGN=`md5 -r ${TEST_SRC_IGN} | cut -f1 -d" "`
+LIVE_MD5_PKG=`${MD5} ${MD5OPTS} ${DEST_PKG} | cut -f1 -d" "`
+LIVE_MD5_IGN=`${MD5} ${MD5OPTS} ${DEST_IGN} | cut -f1 -d" "`
+LIVE_SRC_MD5_PKG=`${MD5} ${MD5OPTS} ${LIVE_SRC_PKG} | cut -f1 -d" "`
+LIVE_SRC_MD5_IGN=`${MD5} ${MD5OPTS} ${LIVE_SRC_IGN} | cut -f1 -d" "`
+TEST_SRC_MD5_PKG=`${MD5} ${MD5OPTS} ${TEST_SRC_PKG} | cut -f1 -d" "`
+TEST_SRC_MD5_IGN=`${MD5} ${MD5OPTS} ${TEST_SRC_IGN} | cut -f1 -d" "`
 #echo "${DEST_PKG} -> ${LIVE_MD5_PKG}"
 #echo "${DEST_IGN} -> ${LIVE_MD5_IGN}"
 #echo "${LIVE_SRC_PKG} -> ${LIVE_SRC_MD5_PKG}"
