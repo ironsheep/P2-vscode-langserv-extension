@@ -318,170 +318,47 @@ function registerCommands(context: vscode.ExtensionContext): void {
   }
 
   // ----------------------------------------------------------------------------
-  //   Hook to Return 1st compile argument for use in UserTasks
+  //   Hook to Return all compile arguments and filename for use in UserTasks
   //
-  const getCompileArg1: string = 'spinExtension.getCompArg1';
+  const getCompileArgs: string = 'spinExtension.getCompArguments';
   context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileArg1, () => {
+    vscode.commands.registerCommand(getCompileArgs, () => {
       const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
       const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      const desiredArg = optionsBuildAr.length > 0 ? optionsBuildAr[0] : '';
-      logExtensionMessage(`CMD: getCompileArg1 -> [${desiredArg}]`);
-      return desiredArg;
+      const quotedOptionsBuildAr = optionsBuildAr.map((option) => (option.includes(' ') ? `"${option}"` : option));
+      const buildArgString: string = quotedOptionsBuildAr.join(' ');
+      logExtensionMessage(`CMD: getCompArguments -> [${buildArgString}]`);
+      return buildArgString;
     })
   );
 
   // ----------------------------------------------------------------------------
-  //   Hook to Return 2nd compile argument for use in UserTasks
+  //   Hook to Return all compile arguments and filename for use in UserTasks
   //
-  const getCompileArg2: string = 'spinExtension.getCompArg2';
+  const getCompileAllArgs: string = 'spinExtension.getCompArgumentsWithFilename';
   context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileArg2, () => {
+    vscode.commands.registerCommand(getCompileAllArgs, () => {
       const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
+      const sourceFilename = getActiveSourceFilename();
       const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      const desiredArg = optionsBuildAr.length > 1 ? optionsBuildAr[1] : '';
-      logExtensionMessage(`CMD: getCompileArg2 -> [${desiredArg}]`);
-      return desiredArg;
+      optionsBuildAr.push(sourceFilename);
+      logExtensionMessage(`CMD: getCompArgumentsWithFilename -> [${optionsBuildAr}]`);
+      return optionsBuildAr;
     })
   );
 
   // ----------------------------------------------------------------------------
-  //   Hook to Return 3rd compile argument for use in UserTasks
+  //   Hook to Return all loader arguments and filename for use in UserTasks
   //
-  const getCompileArg3: string = 'spinExtension.getCompArg3';
+  const getLoaderArgs: string = 'spinExtension.getLoaderArguments';
   context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileArg3, () => {
-      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
-      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      const desiredArg = optionsBuildAr.length > 2 ? optionsBuildAr[2] : '';
-      logExtensionMessage(`CMD: getCompileArg3 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 4th compile argument for use in UserTasks
-  //
-  const getCompileArg4: string = 'spinExtension.getCompArg4';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileArg4, () => {
-      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
-      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      const desiredArg = optionsBuildAr.length > 3 ? optionsBuildAr[3] : '';
-      logExtensionMessage(`CMD: getCompileArg4 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 5th compile argument for use in UserTasks
-  //
-  const getCompileArg5: string = 'spinExtension.getCompArg5';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileArg5, () => {
-      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
-      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      const desiredArg = optionsBuildAr.length > 4 ? optionsBuildAr[4] : '';
-      logExtensionMessage(`CMD: getCompileArg5 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 6th compile argument for use in UserTasks
-  //
-  const getCompileArg6: string = 'spinExtension.getCompArg6';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileArg6, () => {
-      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
-      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      const desiredArg = optionsBuildAr.length > 5 ? optionsBuildAr[5] : '';
-      logExtensionMessage(`CMD: getCompileArg6 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 1st loader argument for use in UserTasks
-  //
-  const getLoaderArg1: string = 'spinExtension.getLoadArg1';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getLoaderArg1, () => {
+    vscode.commands.registerCommand(getLoaderArgs, () => {
       const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
       const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
-      const desiredArg = optionsLoaderAr.length > 0 ? optionsLoaderAr[0] : '';
-      logExtensionMessage(`CMD: getLoaderArg1 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 2nd loader argument for use in UserTasks
-  //
-  const getLoaderArg2: string = 'spinExtension.getLoadArg2';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getLoaderArg2, () => {
-      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
-      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
-      const desiredArg = optionsLoaderAr.length > 1 ? optionsLoaderAr[1] : '';
-      logExtensionMessage(`CMD: getLoaderArg2 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 3rd loader argument for use in UserTasks
-  //
-  const getLoaderArg3: string = 'spinExtension.getLoadArg3';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getLoaderArg3, () => {
-      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
-      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
-      const desiredArg = optionsLoaderAr.length > 2 ? optionsLoaderAr[2] : '';
-      logExtensionMessage(`CMD: getLoaderArg3 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 4th loader argument for use in UserTasks
-  //
-  const getLoaderArg4: string = 'spinExtension.getLoadArg4';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getLoaderArg4, () => {
-      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
-      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
-      const desiredArg = optionsLoaderAr.length > 3 ? optionsLoaderAr[3] : '';
-      logExtensionMessage(`CMD: getLoaderArg4 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 4th loader argument for use in UserTasks
-  //
-  const getLoaderArg5: string = 'spinExtension.getLoadArg5';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getLoaderArg5, () => {
-      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
-      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
-      const desiredArg = optionsLoaderAr.length > 4 ? optionsLoaderAr[4] : '';
-      logExtensionMessage(`CMD: getLoaderArg5 -> [${desiredArg}]`);
-      return desiredArg;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
-  //   Hook to Return 4th loader argument for use in UserTasks
-  //
-  const getLoaderArg6: string = 'spinExtension.getLoadArg6';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getLoaderArg6, () => {
-      const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
-      const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
-      const desiredArg = optionsLoaderAr.length > 5 ? optionsLoaderAr[5] : '';
-      logExtensionMessage(`CMD: getLoaderArg6 -> [${desiredArg}]`);
-      return desiredArg;
+      const quotedOptionsLoaderAr = optionsLoaderAr.map((option) => (option.includes(' ') ? `"${option}"` : option));
+      const loaderArgString: string = quotedOptionsLoaderAr.join(' ');
+      logExtensionMessage(`CMD: getLoaderArguments -> [${loaderArgString}]`);
+      return loaderArgString;
     })
   );
 
@@ -591,81 +468,99 @@ function registerCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(downloadTopFile, async () => {
       logExtensionMessage('CMD: downloadTopFile');
+      const activeTopFilename: string = getActiveSourceFilename();
+      const haveP1Download: boolean = activeTopFilename !== undefined && activeTopFilename.endsWith('.spin');
+      let useInternalDownloader: boolean = false;
       if (await ensureIsGoodCompilerSelection()) {
-        const selctedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
-        if (selctedCompiler && selctedCompiler == PATH_PNUT_TS) {
+        const selectedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
+        // using internal downloader for pnut_ts (and flexspin on macOS after discussion with Eric R Smith, 18 Jun)
+        if (selectedCompiler !== undefined) {
+          if (selectedCompiler == PATH_PNUT_TS) {
+            useInternalDownloader = true;
+          } else if (selectedCompiler == PATH_FLEXSPIN && isMac()) {
+            useInternalDownloader = true;
+          }
+        }
+        if (useInternalDownloader) {
           // TODO: run compileTopP2, first! (implement the dependsOn ourself!)
-          logExtensionMessage(`* Running built-in downloader...!`);
-          const deviceNode = toolchainConfiguration.selectedPropPlug;
-          if (deviceNode !== undefined && deviceNode !== '') {
-            // create terminal
-            if (downloaderTerminal === undefined) {
-              downloaderTerminal = vscode.window.createTerminal(`'pnut_ts' Downloader Output`);
-            }
-            // Clear the terminal
-            downloaderTerminal.sendText('clear');
-            // load binary file
-            const filenameToDownload = getRuntimeConfigValue('optionsBinaryFname');
-            let binaryFilespec: string = '';
-            if (filenameToDownload !== undefined && filenameToDownload !== '') {
-              // write file info to terminal
-              const rootDir: string = currenWorkingDir();
-              binaryFilespec = path.join(rootDir, filenameToDownload);
-              let binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
-              const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
-              if (failedToLoad == false) {
-                logExtensionMessage(`  -- load image = (${binaryImage.length}) bytes`);
-                let target: string = 'RAM';
-                const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
-                const needsP2ChecksumVerify: boolean = false;
-                if (writeToFlash) {
-                  target = 'FLASH';
-                  binaryImage = await insertP2FlashLoader(binaryImage);
-                  logExtensionMessage(`  -- load image w/flasher = (${binaryImage.length}) bytes`);
-                  writeBinaryFile(binaryImage, `${binaryFilespec}fext`);
-                  /*
-							  } else {
-								// not flashing append a checksum then ask P2 for verification
-								//
-								// don't enable verify until we get it working
-								needsP2ChecksumVerify = true;
-								const tmpImage = new ObjectImage('temp-image');
-								tmpImage.adopt(binaryImage);
-								tmpImage.padToLong();
-								//const imageSum = 0xdeadf00d; //  TESTING
-								const imageSum = tmpImage.loadRamChecksum();
-								tmpImage.appendLong(imageSum);
-								binaryImage = tmpImage.rawUint8Array.subarray(0, tmpImage.offset);
-								//*/
-                }
-                downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
-                // write to USB PropPlug
-                if (deviceNode !== undefined) {
-                  const usbPort: UsbSerial = new UsbSerial(deviceNode);
-                  if (await usbPort.deviceIsPropellerV2()) {
-                    await usbPort.download(binaryImage, needsP2ChecksumVerify);
-                    downloaderTerminal.sendText(`# DONE`);
-                  } else {
-                    downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
-                  }
-                  await usbPort.close();
-                } else {
-                  downloaderTerminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
-                }
-              } else {
-                downloaderTerminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
-              }
-              // write success or error info to terminal
-            } else {
-              // no filename to download
-              downloaderTerminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
-            }
-            downloaderTerminal.show();
-          } else {
-            const errorMessage: string = `CMD: DOWNLOAD - no propplug selected!`;
+          if (haveP1Download) {
+            const errorMessage: string = `CMD: DOWNLOAD - P1 download on macOS not yet supported!`;
             logExtensionMessage(errorMessage);
             await vscode.window.showErrorMessage(errorMessage);
-            console.error(errorMessage);
+          } else {
+            logExtensionMessage(`* Running built-in downloader...!`);
+            const deviceNode = toolchainConfiguration.selectedPropPlug;
+            if (deviceNode !== undefined && deviceNode !== '') {
+              // create terminal
+              if (downloaderTerminal === undefined) {
+                const compilerName = selectedCompiler == PATH_PNUT_TS ? 'pnut_ts' : 'flexspin';
+                downloaderTerminal = vscode.window.createTerminal(`'${compilerName}' Downloader Output`);
+              }
+              // Clear the terminal
+              downloaderTerminal.sendText('clear');
+              // load binary file
+              let binaryFilespec: string = '';
+              const filenameToDownload: string = getRuntimeConfigValue('optionsBinaryFname');
+              if (filenameToDownload !== undefined && filenameToDownload !== '') {
+                // write file info to terminal
+                const rootDir: string = currenWorkingDir();
+                binaryFilespec = path.join(rootDir, filenameToDownload);
+                let binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
+                const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
+                if (failedToLoad == false) {
+                  logExtensionMessage(`  -- load image = (${binaryImage.length}) bytes`);
+                  let target: string = 'RAM';
+                  const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
+                  const needsP2ChecksumVerify: boolean = false;
+                  if (writeToFlash) {
+                    target = 'FLASH';
+                    binaryImage = await insertP2FlashLoader(binaryImage);
+                    logExtensionMessage(`  -- load image w/flasher = (${binaryImage.length}) bytes`);
+                    writeBinaryFile(binaryImage, `${binaryFilespec}fext`);
+                    /*
+															  } else {
+																// not flashing append a checksum then ask P2 for verification
+																//
+																// don't enable verify until we get it working
+																needsP2ChecksumVerify = true;
+																const tmpImage = new ObjectImage('temp-image');
+																tmpImage.adopt(binaryImage);
+																tmpImage.padToLong();
+																//const imageSum = 0xdeadf00d; //  TESTING
+																const imageSum = tmpImage.loadRamChecksum();
+																tmpImage.appendLong(imageSum);
+																binaryImage = tmpImage.rawUint8Array.subarray(0, tmpImage.offset);
+																//*/
+                  }
+                  downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
+                  // write to USB PropPlug
+                  if (deviceNode !== undefined) {
+                    const usbPort: UsbSerial = new UsbSerial(deviceNode);
+                    if (await usbPort.deviceIsPropellerV2()) {
+                      await usbPort.download(binaryImage, needsP2ChecksumVerify);
+                      downloaderTerminal.sendText(`# DONE`);
+                    } else {
+                      downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
+                    }
+                    await usbPort.close();
+                  } else {
+                    downloaderTerminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
+                  }
+                } else {
+                  downloaderTerminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
+                }
+                // write success or error info to terminal
+              } else {
+                // no filename to download
+                downloaderTerminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
+              }
+              downloaderTerminal.show();
+            } else {
+              const errorMessage: string = `CMD: DOWNLOAD - no propplug selected!`;
+              logExtensionMessage(errorMessage);
+              await vscode.window.showErrorMessage(errorMessage);
+              console.error(errorMessage);
+            }
           }
         } else {
           logExtensionMessage(`* NOT pnut_ts, run download task!`);
@@ -1798,7 +1693,7 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}), force=(${forceUpdate}${overrideFSpec}) - EXIT`);
 }
 
-const useProploaderForP2: boolean = false;
+const useProploaderForP2: boolean = true;
 const useLoaderInFilename: boolean = false;
 
 async function writeToolchainBuildVariables(callerID: string, forceUpdate?: boolean, currFspec?: string): Promise<void> {
@@ -1868,20 +1763,18 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     } else {
       compileSglLtrOptions = compileSglLtrOptions.concat('1bc'); // compiles to Spin bytecodes that are executed by the P1 ROM interpreter
     }
-    if (lstOutputEnabled) {
-      compileSglLtrOptions = compileSglLtrOptions.concat('l');
-    }
     flexBuildOptions.push(`-${compileSglLtrOptions}`);
     flexBuildOptions.push('-Wabs-paths');
     flexBuildOptions.push('-Wmax-errors=99');
-    flexBuildOptions.push('--charset=parallax'); // causes arg4!
-    flexBuildOptions.push('--sizes'); // causes arg5!
+    flexBuildOptions.push('--charset=parallax');
+    flexBuildOptions.push('--sizes');
     if (flexDebugOption.length > 0) {
       flexBuildOptions.push(flexDebugOption);
     }
-    if (haveP2 && !useProploaderForP2) {
-      //flexBuildOptions.push('--compress'); // causes arg6!
+    if (lstOutputEnabled) {
+      flexBuildOptions.push('-l');
     }
+    flexBuildOptions.push('--compress');
     await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
     // build loader switches
     const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
@@ -1900,41 +1793,49 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     let loaderSglLtrOptions: string = '-v'; // verbose for time being....
     if (haveP2) {
       // setup loadp2/proploader arguments for P2 download
-      if (enterTerminalAfter) {
-        loaderSglLtrOptions = loaderSglLtrOptions.concat(termType);
-      }
-      if (useProploaderForP2) {
-        loaderSglLtrOptions = loaderSglLtrOptions.concat('2');
-        if (writeToFlash) {
-          loaderSglLtrOptions = loaderSglLtrOptions.concat('e'); // write to eeprom
+      if (!useProploaderForP2) {
+        // Load P2 using: loadp2{.mac|.exe}
+        if (enterTerminalAfter) {
+          loaderSglLtrOptions = loaderSglLtrOptions.concat(termType);
         }
-      } else {
         //loaderSglLtrOptions = loaderSglLtrOptions.concat('k'); // wait for user input before exit
         //loaderSglLtrOptions = loaderSglLtrOptions.concat('n'); // no reset; skip any hardware reset
-      }
-      loaderOptions.push(loaderSglLtrOptions);
-      if (!useProploaderForP2) {
+        loaderOptions.push(loaderSglLtrOptions);
         loaderOptions.push(`-b${loadP2userBaudrate}`);
-        //loaderOptions.push(`-SINGLE`); // set load mode for single stage
+        loaderOptions.push(`-SINGLE`); // set load mode for single file (use single file loader within loadp2)
         loaderOptions.push(`-FIFO`);
         loaderOptions.push(`8192`);
         if (writeToFlash) {
           loaderOptions.push(`-FLASH`);
         }
       } else {
+        // Load P2 using: proploader{.mac|.exe}
+        loaderOptions.push('-2');
+        loaderOptions.push(loaderSglLtrOptions);
+        loaderOptions.push('-r'); // run after downloading
+        //loaderOptions.push('-k'); // wait for user input before exit
+        //loaderOptions.push('-n'); // no reset; skip any hardware reset
         loaderOptions.push(`-D`);
         loaderOptions.push(`baud-rate=${loadP2userBaudrate}`);
+        if (writeToFlash) {
+          loaderOptions.push('-e'); // write to eeprom
+        }
+        if (enterTerminalAfter) {
+          loaderOptions.push(`-${termType}`); // term or PST term
+        }
       }
     } else {
+      // Load P1 using: proploader{.mac|.exe}
+      // NOTE: proploader doesn't support merging single letter options!
       // setup proploader arguments for P1 download
-      loaderSglLtrOptions = loaderSglLtrOptions.concat('r'); // run after download
+      loaderOptions.push(loaderSglLtrOptions);
+      loaderOptions.push(`-r`); // run after download
       if (writeToFlash) {
-        loaderSglLtrOptions = loaderSglLtrOptions.concat('e'); // write to eeprom
+        loaderOptions.push(`-e`); // write to eeprom
       }
       if (enterTerminalAfter) {
-        loaderSglLtrOptions = loaderSglLtrOptions.concat(termType);
+        loaderOptions.push(`-${termType}`); // term or PST term
       }
-      loaderOptions.push(loaderSglLtrOptions);
       loaderOptions.push(`-D`);
       loaderOptions.push(`baud-rate=${loadP2userBaudrate}`);
     }

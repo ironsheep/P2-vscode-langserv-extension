@@ -74,52 +74,16 @@
         "title": "Spin2: Toggle current state of download to FLASH enable"
       },
       {
-        "command": "spinExtension.getCompArg1",
-        "title": "Spin2: Return 1st compile argument for use in UserTasks"
+        "command": "spinExtension.getCompArgumentsWithFilename",
+        "title": "Spin2: Return all compile arguments for use in UserTasks"
       },
       {
-        "command": "spinExtension.getCompArg2",
-        "title": "Spin2: Return 2nd compile argument for use in UserTasks"
+        "command": "spinExtension.getCompArguments",
+        "title": "Spin2: Return compile arguments (no filename) for use in UserTasks"
       },
       {
-        "command": "spinExtension.getCompArg3",
-        "title": "Spin2: Return 3rd compile argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getCompArg4",
-        "title": "Spin2: Return 4th compile argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getCompArg5",
-        "title": "Spin2: Return 5th compile argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getCompArg6",
-        "title": "Spin2: Return 6th compile argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getLoadArg1",
-        "title": "Spin2: Return 1st loader argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getLoadArg2",
-        "title": "Spin2: Return 2nd loader argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getLoadArg3",
-        "title": "Spin2: Return 3rd loader argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getLoadArg4",
-        "title": "Spin2: Return 4th loader argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getLoadArg5",
-        "title": "Spin2: Return 5th loader argument for use in UserTasks"
-      },
-      {
-        "command": "spinExtension.getLoadArg6",
-        "title": "Spin2: Return 6th loader argument for use in UserTasks"
+        "command": "spinExtension.getLoaderArguments",
+        "title": "Spin2: Return all loader arguments for use in UserTasks"
       },
       {
         "command": "spinExtension.elasticTabstops.indentTabStop",

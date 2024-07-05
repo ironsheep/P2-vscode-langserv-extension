@@ -25,6 +25,7 @@ client/node_modules/**
 !client/node_modules/debug
 !client/node_modules/ms
 !client/node_modules/node-gyp-build
+client/src/ext/**
 client/testFixture/**
 client/out/test/**
 client/src/test/*OFFLINE
