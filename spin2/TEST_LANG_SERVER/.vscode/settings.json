@@ -10,5 +10,7 @@
     "**/.history": true,
     "**/*.taskpaper": true
   },
-  "explorerExclude.backup": {}
+"explorerExclude.backup": {},
+"spinExtension.toolchain.optionsDownload.enableFlash": true,
+"spinExtension.toolchain.optionsCompile.enableDebug": false,
 }

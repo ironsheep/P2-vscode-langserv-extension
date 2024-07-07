@@ -6,7 +6,7 @@ import { eEditMode } from './spin.editMode.mode';
 
 let statusBarItem: vscode.StatusBarItem | null;
 
-export const createStatusBarItem = () => {
+export const createStatusBarInsertModeItem = () => {
   if (statusBarItem != null) {
     return statusBarItem;
   }
@@ -16,12 +16,12 @@ export const createStatusBarItem = () => {
   statusBarItem.text = '?NEED-VALUE?'; // testing
   statusBarItem.show();
 
-  updateStatusBarItem(null); // hide status bar content
+  updateStatusBarInsertModeItem(null); // hide status bar content
 
   return statusBarItem;
 };
 
-export const destroyStatusBarItem = () => {
+export const destroyStatusBarInsertModeItem = () => {
   if (statusBarItem == null) {
     return;
   }
@@ -30,7 +30,7 @@ export const destroyStatusBarItem = () => {
   statusBarItem = null;
 };
 
-export const updateStatusBarItem = (insertMode: eEditMode | null) => {
+export const updateStatusBarInsertModeItem = (insertMode: eEditMode | null) => {
   if (statusBarItem != null) {
     if (insertMode == null) {
       statusBarItem.text = '';

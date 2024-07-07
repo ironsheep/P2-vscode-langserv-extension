@@ -12,11 +12,28 @@
   "engines": {
     "vscode": "^1.75.0"
   },
+  "os": [
+    "win32",
+    "linux",
+    "darwin"
+  ],
+  "cpu": [
+    "x64",
+    "arm64",
+    "ia32"
+  ],
   "dependencies": {
+    "serialport": "^12.0.0",
+    "@serialport/bindings-cpp": "^12.0.1",
+    "@serialport/stream": "12.0.0",
+    "@serialport/parser-readline": "11.0.0",
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.75.1",
     "@vscode/test-electron": "^2.2.3"
+  },
+  "scripts": {
+    "postinstall": "prebuildify --install && electron-rebuild"
   }
 }

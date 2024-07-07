@@ -21,11 +21,14 @@ const stringToCursorStyle = (config: vscode.WorkspaceConfiguration, style: strin
 };
 
 const getActiveConfiguration = (section: string): vscode.WorkspaceConfiguration => {
-  const activeLanguageId = vscode.window.activeTextEditor?.document.languageId;
-  if (activeLanguageId) {
-    const languageScope = { languageId: activeLanguageId };
-    const languageSpecificConfiguration = vscode.workspace.getConfiguration(section, languageScope);
-    return languageSpecificConfiguration;
+  const activeEditor = vscode.window.activeTextEditor;
+  if (activeEditor) {
+    const activeLanguageId = activeEditor.document.languageId;
+    if (activeLanguageId) {
+      const languageScope = { languageId: activeLanguageId };
+      const languageSpecificConfiguration = vscode.workspace.getConfiguration(section, languageScope);
+      return languageSpecificConfiguration;
+    }
   }
   return vscode.workspace.getConfiguration(section);
 };

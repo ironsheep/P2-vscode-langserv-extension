@@ -18,6 +18,23 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.3.0] 2024-06-??
+
+Updates to Compile/Download support
+
+This update improves/simplifies the ability to compile and download code for Spin2 projects
+
+- NEW automatic discovery and support for FlexProp loadp2 download to ram or flash.
+- NEW Automatic toolchain discovery (paths for FlexProp, and PNut are now automatically determined)
+- NEW Automatic PropPlug discovery
+- NEW statusBar control for switching between compile with debug() and without
+- NEW statusBar control for switching between download to FLASH / RAM
+- NEW statusBar control for selecting amongst available PropPlugs
+
+General Repairs
+
+- BUGFIX repair crash when system-settings documents are open at startup
+
 ## [2.2.18] 2024-05-09
 
 - Quick repackage and release to pull cruft out of distribution package (oops!)

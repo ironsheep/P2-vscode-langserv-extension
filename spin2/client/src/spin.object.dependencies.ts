@@ -103,12 +103,8 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     let tmpTopFileBaseName: string | undefined = undefined;
     let topFileChanged: boolean = false;
     const fullConfiguration = vscode.workspace.getConfiguration();
-    //this._logMessage(`+ (DBG) fullConfiguration=${JSON.stringify(fullConfiguration)}`);
-    //this._logMessage(`+ (DBG) fullConfiguration=${fullConfiguration}`);
-    const runtimeConfiguration = vscode.workspace.getConfiguration('runtime');
-    this._logMessage(`+ (DBG) runtimeConfiguration=${JSON.stringify(runtimeConfiguration)}`);
     if (fullConfiguration.has('topLevel')) {
-      tmpTopFileBaseName = vscode.workspace.getConfiguration().get('topLevel'); // this worked!
+      tmpTopFileBaseName = fullConfiguration.get('topLevel'); // this worked!
     } else {
       this._logMessage(`+ (DBG) ObjDep: topLevel key NOT present!`);
     }
@@ -390,7 +386,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
     this._logMessage(`+==+ (DBG) ObjDep: activeEditorChanged(${invokeType})`);
     const initialViewEnabledState: boolean = this.viewEnabledState;
     const topChanged: boolean = this._loadConfigWithTopFileInfo(); // ensure we have latest in case it changed
-    const haveActiveEditor: boolean = vscode.window.activeTextEditor ? true : false;
+    const haveActiveEditor: boolean = vscode.window.activeTextEditor !== undefined ? true : false;
     let editedFileNameChanged: boolean = false;
     let haveSpinFile: boolean = false;
     if (haveActiveEditor) {
@@ -488,14 +484,15 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private _publishTreeState() {
     const currentState: boolean = this.treeState == eTreeState.TS_ExpandTop ? true : false;
     this._logMessage(`* ObjDep: treeState .objectDeps.showingTopOnly=(${currentState})`);
-    vscode.commands.executeCommand('setContext', 'runtime.spinExtension.objectDeps.showingTopOnly', currentState);
+    // post information to out-side world via our CONTEXT
+    vscode.commands.executeCommand('setContext', 'runtime.spin2.objectDeps.showingTopOnly', currentState);
   }
 
   private _publishViewEnableState(desiredEnableState: boolean) {
     this._logMessage(`* ObjDep: treeView .objectDeps.enabled=(${desiredEnableState})`);
     // record new published state
-    // and publish new state
-    vscode.commands.executeCommand('setContext', 'runtime.spinExtension.objectDeps.enabled', desiredEnableState);
+    // post information to out-side world via our CONTEXT
+    vscode.commands.executeCommand('setContext', 'runtime.spin2.objectDeps.enabled', desiredEnableState);
   }
 
   private _collapseStateString(collapseMode: vscode.TreeItemCollapsibleState): string {
@@ -788,7 +785,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
   private _getActiveSpinFile(): string {
     const textEditor = vscode.window.activeTextEditor;
     let foundFSpec: string = '';
-    if (textEditor) {
+    if (textEditor !== undefined) {
       if (textEditor.document.uri.scheme === 'file') {
         const currentlyOpenTabFSpec = textEditor.document.uri.fsPath;
         //var currentlyOpenTabfolderName = path.dirname(currentlyOpenTabFSpec);

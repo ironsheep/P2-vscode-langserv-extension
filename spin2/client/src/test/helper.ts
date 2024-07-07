@@ -14,7 +14,7 @@ export let platformEol: string;
 /**
  * Activates the IronSheep.spin2 extension
  */
-export async function activate(docUri: vscode.Uri) {
+export async function activate(docUri: vscode.Uri): Promise<void> {
   // The extensionId is `publisher.name` from package.json
   const ext = vscode.extensions.getExtension('IronSheepProductionsLLC.spin2')!;
   await ext.activate();
@@ -27,7 +27,7 @@ export async function activate(docUri: vscode.Uri) {
   }
 }
 
-async function sleep(ms: number) {
+async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 

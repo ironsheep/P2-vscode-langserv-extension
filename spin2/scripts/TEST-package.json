@@ -4,7 +4,7 @@
   "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.17",
+  "version": "2.2.19",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -19,6 +19,7 @@
     "spin2",
     "pasm",
     "pasm2",
+    "p2asm",
     "propeller",
     "propeller 2",
     "propeller v2",
@@ -37,12 +38,52 @@
         "title": "Spin2: Generate hierarchy documentation file from spin source"
       },
       {
+        "command": "spinExtension.generate.usb.documentation.file",
+        "title": "Spin2: Generate USB findings report"
+      },
+      {
         "command": "spinExtension.generate.doc.comment",
         "title": "Spin2: Generate and insert documentation comment"
       },
       {
         "command": "spinExtension.generate.documentation.file",
         "title": "Spin2: Generate documentation file from spin source"
+      },
+      {
+        "command": "spinExtension.compile.currfile",
+        "title": "Spin2: Compile current .spin2 file"
+      },
+      {
+        "command": "spinExtension.compile.topfile",
+        "title": "Spin2: Compile project top-level .spin2 file"
+      },
+      {
+        "command": "spinExtension.download.topfile",
+        "title": "Spin2: Download project binary file to P2"
+      },
+      {
+        "command": "spinExtension.select.propplug",
+        "title": "Spin2: Select PropPlug Serial Device for use"
+      },
+      {
+        "command": "spinExtension.toggle.debug",
+        "title": "Spin2: Toggle current state of compile w/debug enable"
+      },
+      {
+        "command": "spinExtension.toggle.flash",
+        "title": "Spin2: Toggle current state of download to FLASH enable"
+      },
+      {
+        "command": "spinExtension.getCompArgumentsWithFilename",
+        "title": "Spin2: Return all compile arguments for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getCompArguments",
+        "title": "Spin2: Return compile arguments (no filename) for use in UserTasks"
+      },
+      {
+        "command": "spinExtension.getLoaderArguments",
+        "title": "Spin2: Return all loader arguments for use in UserTasks"
       },
       {
         "command": "spinExtension.elasticTabstops.indentTabStop",
@@ -61,16 +102,16 @@
         "title": "Spin2: Rotate through modes: Insert - Overtype - Align"
       },
       {
-        "command": "spinExtension.insertMode.toggle",
-        "title": "Spin2: Toggle between modes: Insert - Align"
-      },
-      {
         "command": "spinExtension.insertMode.deleteLeft",
         "title": "Spin2: Align mode Delete Left"
       },
       {
         "command": "spinExtension.insertMode.deleteRight",
         "title": "Spin2: Align mode Delete Right"
+      },
+      {
+        "command": "spinExtension.insertMode.toggle",
+        "title": "Spin2: Toggle between modes: Insert - Align"
       },
       {
         "command": "spinExtension.objectDependencies.refreshEntry",
@@ -107,11 +148,7 @@
           "spinExtension.trace.server": {
             "scope": "window",
             "type": "string",
-            "enum": [
-              "off",
-              "messages",
-              "verbose"
-            ],
+            "enum": ["off", "messages", "verbose"],
             "default": "off",
             "description": "Traces the communication between VSCode client and the spin2 language server."
           },
@@ -145,11 +182,7 @@
           "spinExtension.elasticTabstops.choice": {
             "type": "string",
             "default": "PropellerTool",
-            "enum": [
-              "PropellerTool",
-              "IronSheep",
-              "User1"
-            ],
+            "enum": ["PropellerTool", "IronSheep", "User1"],
             "description": "Select the set of Tabstops you wish to use."
           },
           "spinExtension.elasticTabstops.blocks.PropellerTool": {
@@ -163,78 +196,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  78,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 78, 80]
               },
               "var": {
-                "tabStops": [
-                  2,
-                  8,
-                  22,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 22, 32, 56, 80]
               },
               "obj": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 80]
               },
               "pub": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  8,
-                  14,
-                  24,
-                  32,
-                  48,
-                  56,
-                  80
-                ]
+                "tabStops": [8, 14, 24, 32, 48, 56, 80]
               }
             }
           },
@@ -249,87 +226,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  4,
-                  8,
-                  16,
-                  20,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
               },
               "var": {
-                "tabStops": [
-                  4,
-                  12,
-                  24,
-                  28,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 12, 24, 28, 32, 44, 56, 68, 80]
               },
               "obj": {
-                "tabStops": [
-                  4,
-                  8,
-                  16,
-                  20,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
               },
               "pub": {
-                "tabStops": [
-                  4,
-                  8,
-                  12,
-                  16,
-                  20,
-                  24,
-                  28,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  4,
-                  8,
-                  12,
-                  16,
-                  20,
-                  24,
-                  28,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  4,
-                  16,
-                  20,
-                  24,
-                  28,
-                  48,
-                  52,
-                  56,
-                  60,
-                  64,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 16, 20, 24, 28, 48, 52, 56, 60, 64, 68, 80]
               }
             }
           },
@@ -344,80 +256,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  76,
-                  77,
-                  78,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 76, 77, 78, 80]
               },
               "var": {
-                "tabStops": [
-                  2,
-                  8,
-                  22,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 22, 32, 56, 80]
               },
               "obj": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 80]
               },
               "pub": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  8,
-                  14,
-                  24,
-                  32,
-                  48,
-                  56,
-                  80
-                ]
+                "tabStops": [8, 14, 24, 32, 48, 56, 80]
               }
             }
           }
@@ -439,7 +293,7 @@
           "spinExtension.insertMode.enableAlign": {
             "type": "boolean",
             "default": true,
-            "description": "Enable  Editor \"Align\" behavior."
+            "description": "Enable Editor \"Align\" behavior."
           },
           "spinExtension.insertMode.secondaryCursorStyle": {
             "type": "string",
@@ -483,18 +337,162 @@
             "description": "Label text in the status bar shown during \"Align\" Mode (may be empty to hide the status.)"
           }
         }
+      },
+      {
+        "title": "Spin/Spin2 ToolChain Configuration",
+        "properties": {
+          "spinExtension.toolchain.propPlug.selected": {
+            "type": "string",
+            "default": "",
+            "description": "The selected device connecting to your P2"
+          },
+          "spinExtension.toolchain.propPlug.devicesFound": {
+            "type": "object",
+            "default": {},
+            "description": "Discovered PropPlug Device Nodes and their associated Serial Number",
+            "additionalProperties": {
+              "type": "string",
+              "description": "S/N for the propPlug Device Node"
+            }
+          },
+          "spinExtension.toolchain.compiler.installationsFound": {
+            "type": "object",
+            "default": {},
+            "description": "Discovered Compiler installation paths and their associated Compiler ID",
+            "additionalProperties": {
+              "type": "string",
+              "description": "ID of Compiler found at installation path"
+            }
+          },
+          "spinExtension.toolchain.compiler.selected": {
+            "type": "string",
+            "default": "",
+            "description": "The Spin/Spin2 compiler to use (must be one of the available compiler IDs, above)"
+          },
+          "spinExtension.toolchain.optionsCompile.enableDebug": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable compile of Spin2 debug() statements"
+          },
+          "spinExtension.toolchain.optionsCompile.flexspin.debug": {
+            "type": "string",
+            "default": "-gbrk",
+            "description": "Flexspin command-line option to use to enable conpile of Debug() statements [-gbrk for normal, or -g for printf]"
+          },
+          "spinExtension.toolchain.optionsCompile.enableLstOutput": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable generation of Spin2 listing (.lst) output from compile"
+          },
+          "spinExtension.toolchain.optionsDownload.enableFlash": {
+            "type": "boolean",
+            "default": false,
+            "description": "Download to FLASH when enabled (otherwise to RAM)"
+          },
+          "spinExtension.toolchain.optionsDownload.enableCompatibilityPST": {
+            "type": "boolean",
+            "default": false,
+            "description": "Use pst-compatible terminal after the download"
+          },
+          "spinExtension.toolchain.optionsDownload.enterTerminalAfter": {
+            "type": "string",
+            "default": "never",
+            "enum": ["never", "only when debug() compile enabled", "always"],
+            "description": "Enter Terminal mode after download completes (select one)"
+          },
+          "spinExtension.toolchain.optionsDownload.user.baudrate": {
+            "type": "number",
+            "default": 115200,
+            "minimum": 9600,
+            "maximum": 2073600,
+            "description": "Flexspin loadP2 command-line option: User Baudrate (default: 115,200 baud)"
+          },
+          "spinExtension.toolchain.paths.PNutTs": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the pnut_ts executable"
+          },
+          "spinExtension.toolchain.paths.flexspin": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the flexspin executable"
+          },
+          "spinExtension.toolchain.paths.loadp2": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the loadP2 executable (p2 loader)"
+          },
+          "spinExtension.toolchain.paths.proploader": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the proploader executable (p1 loader)"
+          },
+          "spinExtension.toolchain.paths.flexspinFlashloader": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the P2ES_flashloader.bin file"
+          },
+          "spinExtension.toolchain.paths.PNut": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the pnut_shell.bat file (windows only)"
+          }
+        }
+      },
+      {
+        "title": "Spin2 Workspace Build Environment",
+        "properties": {
+          "spin2.fNameTopLevel": {
+            "type": "string",
+            "description": "Top-level filename with .spin2 extension"
+          },
+          "spin2.fSpecCompiler": {
+            "type": "string",
+            "description": "Absolute path to the selected compiler for this workspace."
+          },
+          "spin2.fSpecFlashBinary": {
+            "type": "string",
+            "description": "(flexspin only) Absolute path to the flashLoader binary for this workspace."
+          },
+          "spin2.fSpecLoader": {
+            "type": "string",
+            "description": "(flexspin/pnut only) Absolute path to the selected downloader for this workspace."
+          },
+          "spin2.serialPort": {
+            "type": "string",
+            "description": "Device Node name (or COM Port) of the selected serial port."
+          },
+          "spin2.optionsBuild": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Build options without the source filename."
+          },
+          "spin2.optionsLoader": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Additional command-line options passed to loader."
+          },
+          "spin2.optionsBinaryFname": {
+            "type": "string",
+            "description": "The name of the binary file to be downloaded. (Content varies by compiler.)"
+          }
+        }
       }
     ],
     "keybindings": [
       {
-        "key": "Ctrl+Alt+r",
+        "key": "Ctrl+Alt+h",
         "command": "spinExtension.generate.hierarchy.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+d",
         "command": "spinExtension.generate.documentation.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+c",
@@ -502,41 +500,89 @@
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
+        "key": "Ctrl+Alt+u",
+        "command": "spinExtension.generate.usb.documentation.file",
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Shift+c",
+        "win": "Shift+Ctrl+Alt+c",
+        "linux": "Shift+Ctrl+Alt+c",
+        "command": "spinExtension.compile.currfile",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Shift+t",
+        "win": "Shift+Ctrl+Alt+t",
+        "linux": "Shift+Ctrl+Alt+t",
+        "command": "spinExtension.compile.topfile",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Shift+d",
+        "win": "Shift+Ctrl+Alt+d",
+        "linux": "Shift+Ctrl+Alt+d",
+        "command": "spinExtension.download.topfile",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "F11",
+        "linux": "Ctrl+F11",
+        "command": "spinExtension.download.topfile",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Alt+n",
+        "command": "spinExtension.select.propplug",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Alt+g",
+        "command": "spinExtension.toggle.debug",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
+        "key": "Ctrl+Alt+f",
+        "command": "spinExtension.toggle.flash",
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+      },
+      {
         "key": "tab",
         "command": "spinExtension.elasticTabstops.indentTabStop",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorHoverVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       },
       {
         "key": "Shift+tab",
         "command": "spinExtension.elasticTabstops.outdentTabStop",
-        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       },
       {
         "key": "Ctrl+Alt+tab",
         "command": "spinExtension.elasticTabstops.generate.tabStops.comment",
-        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       },
       {
         "command": "spinExtension.insertMode.rotate",
         "key": "insert",
-        "mac": "F13",
-        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
+        "mac": "F9",
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       },
       {
         "command": "spinExtension.insertMode.deleteLeft",
         "key": "backspace",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       },
       {
         "command": "spinExtension.insertMode.deleteRight",
         "key": "delete",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       },
       {
         "command": "spinExtension.insertMode.toggle",
-        "key": "Ctrl+Shift+i",
+        "linux": "Ctrl+Alt+Shift+i",
         "mac": "Cmd+Shift+i",
-        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spinExtension.elasticTabstops.enable == true"
+        "key": "Ctrl+Alt+i",
+        "when": "editorFocus && (editorLangId == spin || editorLangId == spin2) && runtime.spin2.elasticTabstops.enabled == true"
       }
     ],
     "menus": {
@@ -548,12 +594,12 @@
         },
         {
           "command": "spinExtension.objectDependencies.expandAll",
-          "when": "view == spinExtension.objectDependencies && runtime.spinExtension.objectDeps.showingTopOnly == true",
+          "when": "view == spinExtension.objectDependencies && runtime.spin2.objectDeps.showingTopOnly == true",
           "group": "navigation"
         },
         {
           "command": "spinExtension.objectDependencies.collapseAll",
-          "when": "view == spinExtension.objectDependencies && runtime.spinExtension.objectDeps.showingTopOnly == false",
+          "when": "view == spinExtension.objectDependencies && runtime.spin2.objectDeps.showingTopOnly == false",
           "group": "navigation"
         }
       ]
@@ -600,27 +646,21 @@
     "languages": [
       {
         "id": "spin2",
-        "aliases": [
-          "spin2",
-          "Spin2",
-          "SPIN2"
-        ],
-        "extensions": [
-          ".spin2"
-        ],
+        "aliases": ["spin2", "Spin2", "SPIN2"],
+        "extensions": [".spin2"],
         "configuration": "./spin2.language-configuration.json"
       },
       {
         "id": "spin",
-        "aliases": [
-          "spin",
-          "Spin",
-          "SPIN"
-        ],
-        "extensions": [
-          ".spin"
-        ],
+        "aliases": ["spin", "Spin", "SPIN"],
+        "extensions": [".spin"],
         "configuration": "./spin1.language-configuration.json"
+      },
+      {
+        "id": "p2asm",
+        "aliases": ["p2asm", "P2Asm", "P2ASM"],
+        "extensions": [".p2asm"],
+        "configuration": "./spin2.language-configuration.json"
       }
     ],
     "semanticTokenTypes": [
@@ -694,12 +734,8 @@
     "semanticTokenScopes": [
       {
         "scopes": {
-          "returnValue": [
-            "meta.returntype.spin"
-          ],
-          "storageType": [
-            "storage.type.pasm.spin2"
-          ]
+          "returnValue": ["meta.returntype.spin"],
+          "storageType": ["storage.type.pasm.spin2"]
         }
       }
     ],
@@ -710,7 +746,7 @@
           "name": "Object Dependencies",
           "icon": "$(type-hierarchy)",
           "contextualTitle": "Propeller Spin2 Development",
-          "when": "runtime.spinExtension.objectDeps.enabled"
+          "when": "runtime.spin2.objectDeps.enabled == true"
         }
       ]
     },
@@ -723,6 +759,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile && npm run compile:grammar",
+    "precompile": "mkdir -p ./client/out/ext && cp -p ./client/src//ext/*.obj ./client/out/ext",
     "compile": "tsc -b",
     "compile:grammar": "npx js-yaml syntaxes/spin2.tmLanguage.YAML-tmLanguage > syntaxes/spin2.tmLanguage.json && npx js-yaml syntaxes/spin1.tmLanguage.YAML-tmLanguage > syntaxes/spin1.tmLanguage.json ",
     "watch": "tsc -b -w",
@@ -731,10 +768,9 @@
     "pretest": "npm run compile && npm run lint",
     "test": "sh ./scripts/e2e.sh"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/mocha": "^9.1.0",
-    "@types/node": "^16.18.34",
+    "@types/node": "^20.12.12",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
     "eslint": "^8.56.0",
@@ -746,5 +782,8 @@
     "eslint-plugin-promise": "^6.1.1",
     "mocha": "^9.2.1",
     "typescript": "^5.1.3"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0"
   }
 }

@@ -1,18 +1,21 @@
 .gitignore
+**/.DS_Store
 .vscode/**
 .history/**
 .devcontainer/**
 node_modules/**
 scripts/**
 server/**
-*NEW
-*ORIG
-*REF*
 !server/out/server.js
 client/**
+# Include all platform binaries
+!client/prebuilds/**/*
 !client/out/extension.js
 EarlyTesting/**
 EarlyTesting.md
+*NEW
+*ORIG
+*REF*
 **/*.ts
 **/*.map
 **/*.lst
@@ -20,6 +23,9 @@ EarlyTesting.md
 **/tsconfig.base.json
 contributing.md
 .travis.yml
+updVscode
+TEST_PNUT_TS/
+CPU-PROFILE-WORK/
 TEST_LANG_SERVER/**
 DOCs/**
 !spin2.language-configuration.json
@@ -33,6 +39,7 @@ themes/*
 !themes/isp-spin-dark-bg-theme.json
 !themes/isp-spin-light-bg-theme.json
 !themes/isp-spin-syntax-theme.json
+images/.DS_Store
 !images/**
 !README.md
 !CHANGELOG.md

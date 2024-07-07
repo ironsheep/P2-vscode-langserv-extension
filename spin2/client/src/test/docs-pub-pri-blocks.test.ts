@@ -21,10 +21,7 @@ async function testSemanticTokens(docUri: vscode.Uri, expectedSemanticTokenList:
   await activate(docUri);
 
   // Executing the command `vscode.executeCompletionItemProvider` to simulate triggering completion
-  const actualSemanticTokenList = (await vscode.commands.executeCommand(
-    'vscode.provideDocumentSemanticTokens',
-    docUri
-  )) as SemanticTokens;
+  const actualSemanticTokenList = (await vscode.commands.executeCommand('vscode.provideDocumentSemanticTokens', docUri)) as SemanticTokens;
   //console.log(`spin2-actualSemanticTokenList is ${JSON.stringify(actualSemanticTokenList)})`);
   //console.log(`spin2-actualSemanticTokenList is ${JSON.stringify(actualSemanticTokenList)})`);
   console.log(`* EXPECT expectedSemanticTokenList is [${showObject(expectedSemanticTokenList)}]`);
