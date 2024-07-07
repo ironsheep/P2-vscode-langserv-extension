@@ -251,124 +251,123 @@ In between the [] you can place your new task definitions. You should end up wit
 
 ```json
 {
-  // See https://go.microsoft.com/fwlink/?LinkId=733558
-  // for the documentation about the tasks.json format
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "compileP2",
-      "type": "shell",
-      "command": "${config:spin2.fSpecCompiler}",
-      "args": [
-        "${command:spinExtension.getCompArg1}",
-        "${command:spinExtension.getCompArg2}",
-        "${command:spinExtension.getCompArg3}",
-        "${command:spinExtension.getCompArg4}",
-        "${fileBasename}"
-      ],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "echo": true,
-        "clear": true,
-        "close": false,
-        "reveal": "always",
-        "revealProblems": "onProblem"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
+        // See https://go.microsoft.com/fwlink/?LinkId=733558
+        // for the documentation about the tasks.json format
+        "version": "2.0.0",
+        "tasks": [
+          {
+            "label": "compileP2",
+            "type": "shell",
+            "command": "${config:spin2.fSpecCompiler}",
+            "args": [
+              {
+                "value": "${command:spinExtension.getCompArguments}",
+                "quoting": "weak"
+              },
+              "${fileBasename}"
+            ],
+            "problemMatcher": {
+              "owner": "Spin2",
+              "fileLocation": ["autoDetect", "${workspaceFolder}"],
+              "pattern": {
+                "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+                "file": 1,
+                "line": 2,
+                "severity": 3,
+                "message": 4
+              }
+            },
+            "presentation": {
+              "panel": "dedicated",
+              "focus": false,
+              "showReuseMessage": false,
+              "echo": true,
+              "clear": true,
+              "close": false,
+              "reveal": "always",
+              "revealProblems": "onProblem"
+            },
+            "group": {
+              "kind": "build",
+              "isDefault": true
+            }
+          },
+          {
+            "label": "compileTopP2",
+            "type": "shell",
+            "command": "${config:spin2.fSpecCompiler}",
+            "args": [
+              {
+                "value": "${command:spinExtension.getCompArguments}",
+                "quoting": "weak"
+              },
+              "${config:spin2.fNameTopLevel}"
+            ],
+            "problemMatcher": {
+              "owner": "Spin2",
+              "fileLocation": ["autoDetect", "${workspaceFolder}"],
+              "pattern": {
+                "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+                "file": 1,
+                "line": 2,
+                "severity": 3,
+                "message": 4
+              }
+            },
+            "presentation": {
+              "panel": "dedicated",
+              "focus": false,
+              "showReuseMessage": false,
+              "echo": true,
+              "clear": true,
+              "close": false,
+              "reveal": "always",
+              "revealProblems": "onProblem"
+            },
+            "group": {
+              "kind": "build",
+              "isDefault": true
+            }
+          },
+          {
+            "label": "downloadP2",
+            "type": "shell",
+            "command": "${config:spin2.fSpecLoader}",
+            "args": [
+              {
+                "value": "${command:spinExtension.getLoaderArguments}",
+                "quoting": "weak"
+              },
+              "${config:spin2.optionsBinaryFname}"
+            ],
+            "problemMatcher": {
+              "owner": "Spin2",
+              "fileLocation": ["autoDetect", "${workspaceFolder}"],
+              "pattern": {
+                "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+                "file": 1,
+                "line": 2,
+                "severity": 3,
+                "message": 4
+              }
+            },
+            "presentation": {
+              "panel": "dedicated",
+              "focus": false,
+              "showReuseMessage": false,
+              "echo": true,
+              "clear": true,
+              "close": false,
+              "reveal": "always",
+              "revealProblems": "onProblem"
+            },
+            "group": {
+              "kind": "test",
+              "isDefault": true
+            }
+          }
+        ]
       }
-    },
-    {
-      "label": "compileTopP2",
-      "type": "shell",
-      "command": "${config:spin2.fSpecCompiler}",
-      "args": [
-        "${command:spinExtension.getCompArg1}",
-        "${command:spinExtension.getCompArg2}",
-        "${command:spinExtension.getCompArg3}",
-        "${command:spinExtension.getCompArg4}",
-        "${config:spin2.fNameTopLevel}"
-      ],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "echo": true,
-        "clear": true,
-        "close": false,
-        "reveal": "always",
-        "revealProblems": "onProblem"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "downloadP2",
-      "type": "shell",
-      "command": "${config:spin2.fSpecLoader}",
-      "args": [
-        "${command:spinExtension.getLoadArg1}",
-        "${command:spinExtension.getLoadArg2}",
-        "${command:spinExtension.getLoadArg3}",
-        "${command:spinExtension.getLoadArg4}",
-        "${config:spin2.optionsBinaryFname}"
-      ],
-      "problemMatcher": {
-        "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-          "file": 1,
-          "line": 2,
-          "severity": 3,
-          "message": 4
-        }
-      },
-      "presentation": {
-        "panel": "dedicated",
-        "focus": false,
-        "showReuseMessage": false,
-        "echo": true,
-        "clear": true,
-        "close": false,
-        "reveal": "always",
-        "revealProblems": "onProblem"
-      },
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      },
-      "dependsOn": ["compileTopP2"]
-    }
-  ]
-}
 ```
 
 This provides the following **Build** and **Test** tasks:
@@ -399,7 +398,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 ]
 ```
 
-If you find entries like the following, then they need to be removed.
+**NOTE**: If you find entries like the following, then they need to be **removed**.
  
 ```json
 
