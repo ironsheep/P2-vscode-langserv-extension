@@ -683,21 +683,25 @@
     "keybindings": [
       {
         "key": "Ctrl+Alt+h",
+        "mac": "Ctrl+Alt+Cmd+h",
         "command": "spinExtension.generate.hierarchy.file",
         "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+d",
+        "mac": "Ctrl+Alt+Cmd+d",
         "command": "spinExtension.generate.documentation.file",
         "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+c",
+        "mac": "Ctrl+Alt+Cmd+c",
         "command": "spinExtension.generate.doc.comment",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+u",
+        "mac": "Ctrl+Alt+Cmd+u",
         "command": "spinExtension.generate.usb.documentation.file",
         "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
@@ -730,16 +734,19 @@
       },
       {
         "key": "Ctrl+Alt+n",
+        "mac": "Ctrl+Alt+Cmd+n",
         "command": "spinExtension.select.propplug",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+g",
+        "mac": "Ctrl+Alt+Cmd+g",
         "command": "spinExtension.toggle.debug",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+f",
+        "mac": "Ctrl+Alt+Cmd+f",
         "command": "spinExtension.toggle.flash",
         "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
