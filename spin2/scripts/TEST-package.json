@@ -2,7 +2,6 @@
   "name": "spin2",
   "displayName": "Spin2",
   "description": "P1 and P2 Spin/Pasm Syntax/Semantic Highlighting w/Code Outline, Object Outline and Custom tabbing support",
-  "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
   "version": "2.2.19",
@@ -14,11 +13,6 @@
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension/issues"
   },
   "publisher": "IronSheepProductionsLLC",
-  "preview": true,
-  "galleryBanner": {
-    "color": "#003060",
-    "theme": "dark"
-  },
   "categories": [],
   "keywords": [
     "spin",
@@ -684,12 +678,12 @@
       {
         "key": "Ctrl+Alt+h",
         "command": "spinExtension.generate.hierarchy.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+d",
         "command": "spinExtension.generate.documentation.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+c",
@@ -699,7 +693,7 @@
       {
         "key": "Ctrl+Alt+u",
         "command": "spinExtension.generate.usb.documentation.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Shift+c",

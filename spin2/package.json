@@ -678,12 +678,12 @@
       {
         "key": "Ctrl+Alt+h",
         "command": "spinExtension.generate.hierarchy.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+d",
         "command": "spinExtension.generate.documentation.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+c",
@@ -693,7 +693,7 @@
       {
         "key": "Ctrl+Alt+u",
         "command": "spinExtension.generate.usb.documentation.file",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Shift+c",
@@ -995,5 +995,8 @@
     "eslint-plugin-promise": "^6.1.1",
     "mocha": "^9.2.1",
     "typescript": "^5.1.3"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0"
   }
 }

@@ -4,9 +4,9 @@ SCRIPT_VERSION="1.0"
 
 PARM=$1
 
-MD5BASE=/usr/bin/md5
+MD5BASE=/sbin/md5  # macOS M2 Ultra
 OPTSBASE="-r"
-MD5SUM=/usr/bin/md5sum
+MD5SUM=/usr/bin/md5sum # aarch64 GNU/Linux
 OPTSSUM=""
 
 MD5=$MD5BASE
