@@ -76,8 +76,8 @@ To complete your setup so you can use FlexProp on your mac under VScode you'll n
 One time:
 
 - Install FlexProp for all users to use on your Mac
-- Add our tasks to the user tasks.json file (*works across all your P2 projects*)</br>(*Make sure the paths to your compiler and loader binaries are correct*)
-- Install our common keybinding (*works across all your P2 projects*)
+- Add our tasks to the user tasks.json file (*works across all your P2 projects*)</br>(*NOTE: there is no longer any tool-path informaton in this file!*)
+- Remove any old compile/download keybindings you may have.
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
     - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
     - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
