@@ -1693,7 +1693,7 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}), force=(${forceUpdate}${overrideFSpec}) - EXIT`);
 }
 
-const useProploaderForP2: boolean = true;
+const useProploaderForP2: boolean = false;
 const useLoaderInFilename: boolean = false;
 
 async function writeToolchainBuildVariables(callerID: string, forceUpdate?: boolean, currFspec?: string): Promise<void> {

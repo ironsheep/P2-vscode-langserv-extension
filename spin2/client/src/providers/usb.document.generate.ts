@@ -12,7 +12,7 @@ import * as path from 'path';
 import { isSpin1File, isSpin2File } from '../spin.vscode.utils';
 
 export class USBDocGenerator {
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
   private endOfLineStr: string = '\r\n';
   private workingFolder: string = '';
