@@ -18,6 +18,12 @@ The **P2 Forum Thread** containing discussion of [this VSCode support](https://f
 
 The **P1 Forum Thread** containing discussion of [this VSCode support](https://forums.parallax.com/discussion/175207/visual-studio-code-supports-p1-development-on-windows-mac-linux-yes-rpi#latest)
 
+## New ToolChain support in v2.30
+
+This new release adds runtime detection of compilers and support for switching compilers for a given project.
+
+Step-by-step, one-time, migration of your environment to v2.3.0 covered in our [Migrate Checklist](Migrate-v230.md) page.  Please visit this page to adjust your setup for this new version.
+
 ## Features
 - Full **language server based** support for both P1 (spin/pasm) and P2 (spin2/pasm2) languages
 - **Parse detected errors** are reported for each document when referenced/opened. If "**Error Lens**" extension is installed these errors are shown on the offending line of code.
