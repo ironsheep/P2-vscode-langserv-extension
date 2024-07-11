@@ -1,0 +1,332 @@
+FEATURE Code Folding - DONE:
+	- IF @done(2023-12-23)
+	- REPEAT @done(2023-12-23)
+	- CASE @done(2023-12-23)
+	- CODE Blocks (CON, VAR, DAT, PUB, PRI, ORG) @done(2023-11-27)
+	- "..." @done(2023-11-27)
+	- In-line PASM @done(2023-11-27)
+	- {{ }} doc blocks @done(2023-11-27)
+	- block of line-doc comments @done(2023-11-27)
+	
+FEATURE Formatting:
+	Figure out settings set thereof - start with JM's settings
+	
+	- Format File (documentFormattingProvider)  <- GOAL
+	
+	- Format Selected Lines (documentRangeFormattingProvider)
+	- Format Code as user types (documentTypeFormattingProvider)
+	
+	Formatter settings:
+		NOTE: formatter aligns to chosen tab-set!
+		NOTE: re-align on file-save
+		
+		PRIORITY IMPLEMENTATION:
+			- remove triple (or more) blank lines [default: TRUE]
+			- spaces between operators [default: TRUE]  no space around .. range operator!
+				- don't inject whitespace between +/- and following number when not already present
+				- when removing extra whitespace always leave last space!
+				- inject space when multiple operators are not a proper multiple 
+			- space after ... line continuation when tic/brace comments follow [default: TRUE]
+			- PUB/PRI declaration - whitespace after commas, around : and |
+				- space after comma within Parameter list [default: TRUE]
+				- space after comma within Returns list [default: TRUE]
+				- space after comma within Locals list [default: TRUE]
+				- newlines after PUB/PRI before doc comment
+			- lines between methods/blocks [default: 2]
+			- align to earliest/nearest tabstop [default: TRUE] - keep relative indentation!!!!
+			- align trailing comment to earliest/nearest tabstop [default: TRUE] - pick earliest marker for entire code block
+			- PASM tabstop alignment
+			
+			LATER IMPLEMENTATION:
+				- CON names - force uppercase - [default: TRUE]
+				- VAR names - force lowercase - [default: FALSE]
+				- OBJ names/filenames - force lowercase - [default: FALSE]
+				- PUB/PRI names - force lowercase - [default: FALSE]
+				- spaces within parens [default: FALSE]
+				- spaces outside of parens [default FALSE]
+				- align startof line comment vertically [default: TRUE]
+			
+	JM Settings:
+			VERTICAL bar 100 chars / line (inclu comments)
+			Spin keywords, symbols all lower-case
+			Symbol names 30 characters
+			Block indentation, two spaces
+			Common libraries must remain commen no forks between apps
+			First function shall be called main()
+			Main() will call setup() to init I/O
+			For P1 return variable will be explicitly named
+			Two-blank line between methods
+			CON
+				names are upper-case with underscores
+			VAR
+				names lowercase preferred with trailing numbers  as desired, may use camel-case
+			DAT
+				PascalCase for variable names (leading capital letter)
+			OBJ
+				names are lowerCase, filename are lowercase, numbers allowed, no other characters
+			PUB/PRI
+				names lowercase, underscores between words (snake case)
+				functions that do a thing should be named for the thing
+				functions that return a value should be named for what they return
+			PASM
+				labels are like function names
+				constants and vars formatted as in spin def'n above
+			
+			
+			
+P2LF Demo 231018-14:00L:
+	- show creating new project
+		- copy files by  had to demo folder with code open
+	- show browsing older projects
+
+Spin2-LSP-000 TODOs:
+	REFERENCE:
+		- Ex: adding a custom request to back-end server:
+		- In intersystems-language-server do
+			- Search for "intersystems/refactor/listOverridableMembers" to see all code parts needed
+	
+	BUGs:
+		- BUG -CRASH- when parsing:  SPIN1_asSpin2/test_spin.spin2      ->  FLOAT/TRUNC/ROUND in OBJ!
+		- BUG -CRASH- when parsing:  spin/test_spin.spin                           ->  FLOAT/TRUNC/ROUND in OBJ!
+		
+	FIXES REQUIRING RESEACH:
+		- BUG 1CogKbM_neoyume.spin2 - line(3363-3376)  processing skipped, why??s
+		
+	TODO CHECK AGAINST OUR COMPILERS:
+		- ?? can BLOCK prefixes have comment markers adjacent to them?  (check our compilers)
+		
+	PARSER ISSUES:
+		- BUG: see in_ps2_snes.spin - this is comment handling NOT being correct yet
+		- PUB ----  ' BUG!!!  FIXME: better error: not a valid pub/pri method name
+		- BUG: "hides name" check should NOT include method names! (but check with compliler)
+		- NEW code comments should be checked against variable names (params, ret values, locals) 
+		- BUG highlight: PropV2-Shared/P2/
+			- P2-withPNut/PNut_v43_files/clock_setter.spin2(27) - rcslow is not highlighted
+			- P2-withPNut/PNut_v43_files/DEBUG_PLOT_Sprites.spin2(618) - code within {}code{} not highlighting correctly (errors)
+			- P2-withPNut/PNut_v43_files/Zoom_ADC_and_DAC_Presentations/Simple_ADC_32.spin2(15) - no highting of 2 vars!!!
+			- P2-PORTING/MCP2515-v2 Engine P2/MCP2515-SPI Engine.spin2  {...} block comment not highlighed correctly
+		- BUG: neoyume_lower.spin2 - don't generate errors in non-active code when conditional assembly!
+		
+	---//-----------URGENT FIX BEFORE RELEASE------\\------!:
+		
+		- Review fixes for FLEXSPIN in neoyume_lower.spin2: all we want to do is done and working?
+		- FALSE duplicate symbol error when symbol defined in #if/#else/#endif
+		- CONSTANTS not loading from #import file
+		- BUG error file-not-found NOT generated ALL FILE lines!!!???
+		- Occasional object hier not loading on first file open, or is this Block list that's not loading?  (verify do both work now?)
+		- Clear Ada's issues (github)
+		
+		- fix object hier loader - needs to work with every file change, is crashing!! @done(2024-04-06)
+		- fix object hier tree - needs [+] [-] working! @done(2024-04-06)
+		- bult-in pin symbols NOT highlighting in config.spin2 @done(2024-04-08)
+		- PNut fix variable on VAR line being missed! @done(2024-04-06)
+		- PNut fix comment problem:  }text{ text @done(2024-04-06)
+		
+	---\\-----------URGENT FIX BEFORE RELEASE------//------!:
+		
+		
+		
+	Go To parsing/locating issues:
+		-  TEST  GOTO Only sometimes (???) works for Spin1 functions without arguments
+		- TODO add declaration line fixup for local-label token
+		
+	FlexSpin ENHANCEMENTs:
+		Missing support for various flexspin-isms
+			- "__builtin_movbyts" and friends (an easy way out would be to just suppress errors for all functions beginning in __builtin)
+			- __andthen__ and __orelse__ operators (from a parser standpoint equivalent to regular AND and OR)
+			- ASM/ENDASM and ORGH/END styles of inline assembly
+			- Including C files as OBJs
+			- Looser Spin1/Spin2 divide (being able to define/call functions without parens in Spin2 etc)
+			- BUG: "P1 pasm local name [:] not supported in P2 pasm" when using ? : operator in PASM
+			- There's no way to set library path?
+				- If you can't find the object, maybe, uh, not turn every use of that object into another error? That's just noise.
+			- #include is not processed properly (causing tons of undefined symbol errors)
+			- no path to spin files allowed in object decl
+			- no param initialization allows in spin2
+			- no method calls without () in spin2
+		
+	Overall ENHANCEMENTs:
+		- VALIDATE count of parameters in method calls!
+		- HMMMM: coloring of abort?   colored as flowcontrol... should it be colored as a method?  Not sure....
+		- FEATURE add code formatting
+			- assign levels to each line
+			- insert spaces to tab for each level found
+		- FEATURE add completions for:
+			- OBJECT. ref Method(), Constant
+			- PASM conditionals
+				- assign levels to each line
+				- specify range for each level
+					- CON 1 level only, line continuations fold into single line
+					- OBJ 1 level only
+					- VAR 1 level only
+					- DAT
+						- vars 1 level
+						- PASM
+							- pasm blocks fold
+							- pasm global labels fold
+					- PUB/PRI
+						- each indent level folds
+						- continued lines fold
+						- inline PASM blocks fold
+			- SPIN flow control
+			- PASM instructions
+			- PASM operands
+		- FEATURE add code suggestions:
+			- case
+			- repeat, couple forms
+		
+	RELEASE Prep: (every time!):
+	- TEST Ensure tabbing is working once again after the port
+	- TEST Ensure editor background coloring is working once again after the port
+	- TEST Ensure settings all look good/read well
+	- TEST Ensure keyboard mappings all look good/read well
+	
+	DONE:
+		- BUG spin1/spin2 Highlight symbols aren't highlighted when line has trailing comment @done(2023-09-29)
+		- BUG hover text should recognize local pasm labels spin1/spin2 @done(2023-09-29)
+		- BUG PUB/PRI Signature in hover text not formatting multi-lines correctly @done(2023-09-29)
+		- BUG server-side get config loading @done(2023-09-30)
+		- TODO MISSING editor BG Coloring!   How to? @done(2023-09-30)
+			- Add new request from server? to get color ranges? @done(2023-09-30)
+		- TODO how to request info load for included files @done(2023-10-02)
+		- TODO determine when/how to scan project dir @done(2023-10-02)
+		- TODO how to connect included files data to current file @done(2023-10-02)
+		- FEATURE record and report diagnostics found during highlight @done(2023-10-03)
+		- PARSER: fix test_inline_pasm.spin2 -  BAD error text for use illegal inline pasm directives @done(2023-10-03)
+		- PARSER: fix debug_coloring_examples.spin2 -  detecting errors within debug() strings! @done(2023-10-04)
+		- PARSER: fix 220421-fixes.spin2 -  detecting errors within debug() strings! @done(2023-10-04)
+		- PARSER: fix 220415-fixes.spin2 -  detecting errors within debug() strings! @done(2023-10-04)
+		- PARSER: fix bg_color_test.spin2 -  detecting errors on bad method names! @done(2023-10-04)
+		- PARSER: fix color_samples.spin2 -  BAD error text for use of :loop P1 symbol @done(2023-10-05)
+		- TODO mark public interface items during parse! @done(2023-10-07)
+		- TODO formalize config settings distribution @done(2023-10-07)
+		- PARSER: fix 220808-fixes.spin2 - missing highlights @done(2023-10-09)
+		- PARSER: fix 221206-fixes.spin2 - missing highlights @done(2023-10-09)
+		- PARSER: fix 230105-fixes.spin2 - missing highlights should be errors! @done(2023-10-09)
+		- PARSER: fix 230609-fixes.spin2 - bad ERRORs: P2 Spin missing declaration !! Obviously false !! @done(2023-10-09)
+		- BUG fix false error/diagnostic reports! @done(2023-10-09)
+		- CLEAN UP so that after all files are close - a new open parses correctly @done(2023-10-12)
+		- PARSER: fix docs-obj-blocks .spin2- internal crash!!! lot's of zeros! @done(2023-10-12)
+		- PARSER: fix 1CogKbM_neoyume.spin2 - 3 highlight issues @done(2023-10-12)
+		- TODO top-level file dir is the one to be searched for included files @done(2023-10-13)
+		- TODO flag w/error: missing spin object reference files @done(2023-10-13)
+		- Comment presentation not reliable in hover text, nor signature help @done(2023-10-14)
+		- FEATURE need to get hover texts from included files:   e.g.,  flash.mount() @done(2023-10-14)
+		- enable error reporting in P1 @done(2023-10-14)
+		- BUG spin1 use of built-ins with missing () NOT flagged @done(2023-10-14)
+		- BUG spin1 missing data file not flagged @done(2023-10-14)
+		- FEATURE need to get signature help from included files:   e.g.,  flash.mount() - PARTIALLY DONE @done(2023-10-16)
+		- FEATURE get source DECLARATION lines from OBJ-INSTANCE doc. NOT current doc. (pub/pri done, now do constants) @done(2023-10-16)
+		- BUG fix fileopen crashes, lack of highlighting... @done(2023-10-16)
+		- BUG allow white-space in file names (P1 obex: 1.8 MHz SPI Slave/demo.spin) @done(2023-10-22)
+		- BUG failing to open .spin include files?!!! ( (P1 obex: 1MBbaud FullDuplexSerial (Fixed baud-rate)/asm_write_ex.spin) @done(2023-10-22)
+		- PARSER: fix chk_debug_scroll_param.spin2 -  use of "SCROLL" in debug statement @done(2023-10-22)
+		- BUG not passing warning count to messsage getter! @done(2023-10-22)
+		- BUG: coloring is changing colors on var names dat prefix @done(2023-10-23)
+		- BUG fix enum declaration parsing @done(2023-10-23)
+		- NOT BUG/WORKED case insensative matching of object constants and methods @done(2023-10-23)
+		- BUG in parsing long's in Chip's code @done(2023-10-23)
+		- BUG parsing REG use in debug() @done(2023-10-23)
+		- BUG: not loading new windows with background coloring set! @done(2023-10-24)
+		- FEATURE add go to/peek definition
+		- GOTO Appears to not work with any PASM symbol used as an immediate (as-in "jmp #something" or "mov x, #CONSTANT") @done(2023-10-29)
+		- GOTO In Spin1, doesn't work for constants from other objects (methods work fine) @done(2023-10-29)
+		- GOTO Does not work for functions called with abort anchor @done(2023-11-01)
+		- BUG CRASH on megaume_upper.spin2 (https://github.com/IRQsome/MegaYume) @done(2023-11-03)
+			- NEW add handling of obj override "..." @done(2023-11-03)
+			- BUG fix parsing of if {comment} var == value @done(2023-11-03)
+		- BUG: "P1 pasm local name [:] not supported in P2 pasm" when using ? : operator in PASM (ignore if this is flexspin'ism) @done(2023-10-30)
+		- BUG: pasm P2 parser offset to single-letter vars NOT correct - P2videodrv.spin2 line(1192,1419,2070) @done(2023-11-01)
+		- BUG: ternary operator is Spin2!  NOT FlexSpin! @done(2023-11-01)
+		- BUG: https://github.com/Wuerfel21/usbnew/blob/master/hidpad_to_vga.spin2
+			- no path to spin files allowed in object decl @done(2023-10-30)
+			- no param initialization allows in spin2 @done(2023-10-30)
+			- no method calls without () in spin2 @done(2023-10-30)
+			- BUG!!!   line(11) object overrides not parsing right of = (in this case FALSE and TRUE should be undefined symbol errors) @done(2023-10-30)
+			- BUG!!!   line(25,26) method calls in data declaration not be highlighted reliably, hover text not correct @done(2023-10-30)
+			- BUG flag paramter= in PUB/PRI as error, BUT define param token so reduce later errorrs @done(2023-10-30)
+		- BUG: https://github.com/IRQsome/NeoYume/blob/master/NeoVGA.spin2#L445 @done(2023-10-29)
+		- BUG: https://gitlab.com/irqsome/retronitus-dx/-/raw/master/songs/HollowPath.spin?ref_type=heads @done(2023-10-30)
+			- BUG can't jump to TRG_0  - won't if no white space, oops! @done(2023-11-03)
+		- BUG: https://github.com/IRQsome/NeoYume/blob/master/psram16drv.spin2     @done(2023-11-03)
+		- BUG 220325-fixes.spin2 - line(95)ramp_slo_  Missing declaration is FALSE! (ugh, missed local pasm label in search) @done(2023-11-04)
+		- BUG finish adding tracking of .label or :label line numbers and then code to ask for nearest earlier def'n! @done(2023-11-04)
+		- TEST Ensure flexspin support is working after the port (controllable from settings) @done(2023-10-14)
+		-  TEST GOTO For local variables, shows all variables of that name in any function. It should just show the actual relevant one (other LSPs do this correctly) @done(2023-11-04)
+		-  TEST GOTO Goes to the line the definition is on, instead of to the actual definition (somewhat relevant with #0,A,B,C style constants) @done(2023-11-04)
+		- GOTO BUG local labels - there will be dupes, go to should go to the one between global labels which is also nearest @done(2023-11-04)
+		- REGRESSION: same in Spin2/user_sample_cluso99.spin2 @done(2023-11-05)
+		- CRASH:   SPIN1_asSpin2/test_pasm.spin2 @done(2023-11-04)
+		- CRASH:  Spin2/chk_code_comment_demo.spin2 @done(2023-11-04)
+		- CRASH: Spin2/jm_fullduplexserial.spin2 @done(2023-11-04)
+		- REGRESSION: SPIN1_asSpin2/221206-fixes.spin2 @done(2023-11-05)
+			- Ln20,21, 29, (code on BLOCK LINES) highlighting incorrectly, INCORRECT error @done(2023-11-05)
+		- REGRESSION:  Spin2/practice_tabbing.spin2    @done(2023-11-05)
+			- Ln#108,31,26 ERROR highlights are shifted left by 1 or 2 chars @done(2023-11-05)
+			- Ln#1 CON _clkfreq = all highlighted in RED @done(2023-11-05)
+		- REGRESSION: lines with {cmt} on them are being skipped instead of processed! @done(2023-11-06)
+		- P2 Obex: ansi_vga_text/ansi.spin2 - missing hilight line(83) @done(2023-11-06)
+		- P2 Obex: isp_hub75_matrix/isp_hub75_color.spin2 line(189)   bad error (should have defined the label!) @done(2023-11-06)
+		- P2 Obex: isp_hub75_matrix/isp_hwGeometryspin2 line(333-348)   bad error (should have defined the label!) @done(2023-11-06)
+		- PROPAGATE theme changes to all themes! @done(2023-11-06)
+		- BUG: https://github.com/Wuerfel21/usbnew/blob/master/padmap_parser.spin2 @done(2023-11-06)
+			- BUG {{ }} doc comment starting on OBJ/CON/DAT/VAR/PUB/PRI line not recognized! @done(2023-11-06)
+			- BUG see also: Spin2/Jeff Test.spin2 @done(2023-11-06)
+		- REGRESSION: Spin2/neoyume_lower.spin2 @done(2023-11-08)
+			- Ln#3199-3211   ERROR highlights are shifted left by 1 or 2 chars @done(2023-11-08)
+		- REGRESSION: chips latest flash code. Demo not finding all flash.methods()!!! @done(2023-11-08)
+		- BUG: OUTLINE OBJECT not respecting commented-out blocks @done(2023-12-23)
+		- BUG add byte(), word(), long() method call override coloring @done(2023-12-29)
+		- Add conditional select of LSTRING() support @done(2023-12-29)
+		- BUG - ERROR  byte() long() word() lstring() unless {Spin2_v43} and %"acbd" and AUTO @done(2023-12-29)
+		- Add %"" parsing/highlight (or already working?) @done(2023-12-29)
+		- BUG conditional select of LSTRING() support should switch on/off with file change and/or version-spec change @done(2023-12-30)
+		- BUG don't allow method() hover text for storage constants BYTE, WORD, LONG @done(2023-12-30)
+		- BUG generate warning when constant is re-declared! (compiler doesn't) @done(2023-12-30)
+		- BUG generate warning when VAR variable is re-declared! (compiler doesn't) @done(2023-12-30)
+		- BUG generate warning when DAT variable is re-declared! (compiler doesn't) @done(2023-12-30)
+		- Line continuation handling in OBJ section - "..."  but please ignore these in comments! @done(2024-01-11)
+		- Line continuation handling in CON section - "..."  but please ignore these in comments! @done(2024-01-11)
+		- FEATURE add line-continuation handling @done(2023-12-23)
+		- FEATURE add code folding @done(2023-12-23)
+		- BUG initial section at top of file not highlighting as CON @done(2023-12-23)
+		
+		
+
+TEXT SAVES:
+	nothing here for now...
+	
+	KB8JLI QON:
+	What is the most unique physical situation you found yourself in when using an HT?
+	(alternate: )
+	
+	
+	
+	code work:
+	- calc inverse
+	- send inverse down
+	- loop to top
+	
+	
+	- send X,Y pairs
+	- # x defaults to zero
+	- send X
+	- save X
+	- row: get inverse
+	- next: send curr inverse
+	- sub 1 from inverse
+	- if not zero send same X
+	- diffX: swp
+	- add 1
+	- mov acc,right
+	- swp
+	- jmp row
+	- sameX: swp
+	- mov acc,right
+	- swp
+	- jmp next
+	
+In some ways, I feel I should apologize for unintentionally helping down this road to namespace growth and the issues surrounding it. This was not my intent.
+
+Yes, I can in the VSCode extension handle anything we decide to do with the language, as will @ersmith  and @macca.  While I am not building a compiler, the VSCode parsers are quite rich.
+My reason for suggesting the change was solely due to the amount of code that needed to be put in place and the runtime differences between the two approaches.

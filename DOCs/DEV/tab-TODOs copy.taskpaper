@@ -1,0 +1,289 @@
+P1 -> P2 Porting Notes:
+	- pub/pri - Add parens
+	- obj#namedConstant - convert to obj.namedConstant 
+	- cognew() - to cogspin() or coginit()
+	- object method calls need parens!
+	- locknew - to locknew()
+	- lockclr - to lockrel()
+	- NOT lockset(nLck) - to locktry(nLck) == -1
+	- waitcnt() - to some form of wait*()
+	- pasm 'par' - to 'ptra'
+	- movs P1 - to P2... alts of next instru
+	- movd P1 - to P2...altd of next instru
+	- :labels P1 - to .labels P2
+	- and     arg0, #1  wz,nr - to  testb   arg0, #1   wz
+	- => in P1 - is >= in P2
+	- mask |< pin (in P1) is mask := 1 << pin (in P2)
+	- rol <-= (in P1) is ROL (in P2)
+BUGs - Things I'd like to fix:
+	SPIN2 Semantic:
+	- Method call of PUB/PRI without parens, not flagged @done(2023-01-04)
+	- Object Method call of PUB/PRI without parens, not flagged
+	- '' comment on pub/pri not lt green!! @done(2023-01-04)
+	- flag :pasmNames in P2 file @done(2023-01-04)
+	- flag P1 instruct as bad labels! @done(2023-01-04)
+	
+	Tabbing issues:
+		- Tab with selected text does NOTHING when already at tab stop (should move one more) - no wjust moves cursor @done(2022-12-17)
+		- BUG tab in align mode should never remove all spaces between moving and non-moving text @done(2022-12-17)
+		- cusor not positioned correctly at end @done(2022-12-17)
+		- cursor on `end` line in PUB/PRI when inserting tab-comment should generate DAT comment (not PUB/PRI) @done(2022-12-17)
+		- backspace going too far (removed whole tab) @done(2022-12-16)
+		- org/end   asm/endasm  - make sure both align in DAT tabstops @done(2022-12-17)
+	
+	Highlight Issues:
+		Spin1/Pasm1 Issues:
+			- .label not allowed in pasm1  - flag as ILLEGAL @done(2022-12-16)
+			- flag :label spin1 as label static @done(2022-12-16)
+		Spin2/Pasm2 Issues:
+			- :label not allowed in pasm2  - flag as ILLEGAL @done(2022-12-16)
+			- flag .label spin2 as label static @done(2022-12-16)
+		Both 1, 2 Issues:
+			- Improve SYNTAX recognition of:
+				- users methods
+				- var variable names
+				- dat variable names
+				- dat pasm labels
+		
+		
+Discussion w/Ada 22Dec2022:
+		- _ret_ @done(2022-12-23)
+		- org/end should be PRI/PUB tabstops @done(2022-12-22)
+		- intellisense/suggestion - see if when clause can detect.... @done(2022-12-23)
+		- nesting block comments is BAD!
+		
+		
+		- Find set of flexspin conditionals and mark them correcly  (keyword.control.directive) @done(2022-12-23)
+				SEE: https://github.com/totalspectrum/spin2cpp/blob/master/doc/spin.md
+				#define
+				#ifdef
+				#ifndef
+				#else
+				#ELSEIFDEF
+				#ELSEIFNDEF
+				#ERROR
+				#INCLUDE
+				#WARN
+				#UNDEF
+				
+				#define value
+				
+				#ifdef value    These values's occasionally show up as enum membmers?
+		
+		- Add global labels to outline!
+			- Ctrl+shift+O (outline)
+			- Ctrl+shift+P  start with @:  then you get outline symbols
+		
+		- FlexSpin support - conditional enable @done(2022-12-23)
+			- preprocessor directives @done(2022-12-23)
+		
+		- propeller tool click on constant, tell svalue
+		
+		- right mouse go to definition!, show refereces, etc.
+		- display method signature when in params of method
+		- hover help text
+			
+		
+		- Workspace-wide symbol search?  How do i feed that?  
+
+Specs for Propeller Tool like behavior:
+	
+	What we should do:
+		
+		TAB shifts text to right by one tab stop
+		SHIFT+TAB shifts left by one tab stop
+		
+		What about:
+			INSERT
+			OVERTYPE
+			ALIGN
+		
+	Selections:
+		Insert Point (no Selection):
+			- if at WHITE, skip white-space to right of cursor to first non-white
+			- insert spaces to next tab stop (cursor ends up at left char of non-white)
+		Single Line Selection:
+			- partial line (column mode ignored)
+				- cursor is last char of Selection
+					- if at NON-WHITE move to left most NON-WHITE
+					- else move to right to first NON-WHITE
+					- this found NON-WHITE  start of Selection
+				- if left of Selection is WHITE then we are replacing white part of Selection
+				- treat as Insert Point
+			- entire line (column mode ignored)
+				- set insert point as beginning of line
+				- skip white-space to right of cursor to first non-white
+				- treat as Insert Point
+		Multi-line:
+			- multi-line {NOT-column-mode)
+				- reset Selection to all full lines
+				- set insert point as start of Selection of left most non-white in group of lines
+				- align Selection start of non-white to this column (afterwhich: tab all lines the same)
+			- multi-line COLUMN MODE
+				- set insert point as start of Selection of left most non-white in group of lines
+				- align Selection start of non-white to this column (afterwhich: tab all lines the same)
+		
+		
+VSCode behavior (non-spin2):
+	VSCode TABBING Behavior:
+		[TIP1] insert point in non-white
+			- tab inserts spaces to next tab-stop to left of cursor, splits chars at cursor
+		[TIP2] insert point in white
+			- tab inserts spaces to next tab-stop to left of cursor
+		[TSE1] selection all non-white
+			- The entire selection is removed and a single tab is inserted to the left of the cursor
+		[TSE2] selection all white
+			- The entire selection is removed and a single tab is inserted to the left of the cursor
+		[TSE3] selection start in non-white end in white
+			- The entire selection is removed and a single tab is inserted to the left of the cursor
+		[TSE4] selection start in white end in non-white
+			- The entire selection is removed and a single tab is inserted to the left of the cursor
+		[TML1] multiple full lines
+			- All lines moved right one tab stop (all lines maintain their current indent relative to each other)
+		[TML2] multiple full lines w/partial last line
+			- All lines moved right one tab stop (all lines maintain their current indent relative to each other)
+		[TML3] multiple full lines w/partial first and last lines
+			- All lines moved right one tab stop (all lines maintain their current indent relative to each other)
+		[TML4] two lines: partial first and last lines
+			- All lines moved right one tab stop (all lines maintain their current indent relative to each other)
+		
+	VSCode UNTABBING Behavior:
+		[UIP1] insert point in non-white
+			- entire line is shifted left to next tab stop, cursor remains where it was in line
+		[UIP2] insert point in white
+			- entire line is shifted left to next tab stop, cursor remains where it was in line
+		[USE1] selection all non-white
+			- entire line is shifted left to next tab stop, cursor remains where it was in line
+		[USE2] selection all white
+			- 3 outcomes:
+				- (1) 1st text is left of selected white but there is whitespace to left of 1st text
+					- entire line is shifted left to next tab stop, cursor remains where it was in line
+				- (2) 1st text is right of selected white
+					- entire line is shifted left to next tab stop, cursor remains where it was in line
+				- (3) 1st text is left of selected white but 1st text is flush at left edge of line
+						- NOTHING happens!
+		[USE3] selection start in non-white end in white
+			- 2 outcomes:
+				- (1) 1st text is indented from left edge
+						- entire line is shifted left to next tab stop, cursor remains where it was in line
+				- (2) 1st text is flush at left edge
+					- NOTHING happens!
+		[USE4] selection start in white end in non-white
+			- 2 outcomes:
+				- (1) 1st text is indented from left edge
+						- entire line is shifted left to next tab stop, cursor remains where it was in line
+				- (2) 1st text is flush at left edge
+					- NOTHING happens!
+		[UML1] multiple full lines
+			- All lines in section region treated:
+				- if text is line is already at left edge - nothing happens
+				- for any lines not at left edge they move left one tab stop 
+				- (all lines maintain their current indent relative to each other)
+		[UML2] multiple full lines w/partial last line
+			- All lines in section region treated:
+				- if text is line is already at left edge - nothing happens
+				- for any lines not at left edge they move left one tab stop 
+				- (all lines maintain their current indent relative to each other)
+		[UML3] multiple full lines w/partial first and last lines
+			- All lines in section region treated:
+				- if text is line is already at left edge - nothing happens
+				- for any lines not at left edge they move left one tab stop 
+				- (all lines maintain their current indent relative to each other)
+		[UML4] two lines: partial first and last lines
+			- All lines in section region treated:
+				- if text is line is already at left edge - nothing happens
+				- for any lines not at left edge they move left one tab stop 
+				- (all lines maintain their current indent relative to each other)
+	
+Test Cases:
+		TAB:
+			- [TIP1] insert point: in NON-WHITE
+				- (place cursor here)
+				- should move text at cursor, splitting text
+			- [TIP2] insert point: in WHITE
+				- (place cursor at left-edge of text to right, OR END-OF-LINE)
+				- should move text at cursor, or just append spaces to next tab
+			- [TSE1] selection (All NON-WHITE)
+				- (should location left edge of NON-WHITE (to left) and and place cursor there)
+			- [TSE2] selection (starts WHITE, ends NON-WHITE)
+				- (should location left edge of NON-WHITE, within selection, set cursor there)
+			- [TSE3] selection (starts NON-WHITE, ends WHITE)
+				- (should location left edge of NON-WHITE before start of selection, set cursor there) 
+			- [TSE4] selection (All WHITE)
+				- (should place cursor at left-edge of text to right)
+					- selected text should be removed
+					- next tab is calc from left of selection, not cursor
+					- remove or insert text based on closer-in TAB
+				- (OR DO NOTHING if no more text to right)
+			- [TML1] Multi-line (FAKE SINGLE LINE)
+				- (should location left edge of NON-WHITE, skipping WHITE at left of line, set cursor there) 
+			
+		SHIFT+TAB:
+			- [UIP1] insert point: in NON-WHITE
+				- (place cursor at left-edge of text (to left), OR BEGIN-OF-LINE)
+				- just remove spaces from cursor to prior tab
+			- [UIP2] insert point: in WHITE
+				- (place cursor at left-edge of text (to right), OR END-OF-LINE)
+				- just remove spaces from cursor to prior tab
+			- [USE1] selection (All NON-WHITE)
+				- (place cursor at left-edge of text (to left), OR BEGIN-OF-LINE)
+				- just remove spaces from cursor to prior tab
+			- [USE2] selection (starts WHITE, ends NON-WHITE)
+				- (should location left edge of NON-WHITE, within selection, set cursor there)
+				- just remove spaces from cursor to prior tab
+			- [USE3] selection (starts NON-WHITE, ends WHITE)
+				- (place cursor at left-edge of text (to left), OR BEGIN-OF-LINE)
+				- just remove spaces from cursor to prior tab
+			- [USE4] selection (All WHITE)
+				- (place cursor at left-edge of text (to right), OR END-OF-LINE)
+				- just remove spaces from cursor to prior tab
+			- [UML1] Multi-line (FAKE SINGLE LINE)
+				- (place cursor at left-edge of text (from start of line to right), OR END-OF-LINE)
+				- just remove spaces from cursor to prior tab
+		
+What text gets shifted is different based on the Selection (Cases 1-5):
+			
+		(1) No Selection, just insert-cursor
+			TAB moves chars to right of cursor to the right
+			SHIFT+TAB moves chars to right of cursor to the left 
+					Text is free to move left as long as only whitespace is being replaced by the move, meaning if text moves left and gets near any
+					text, which was already left of the cursor, the movement should stop, leaving 1 space character between the 
+					existing text and the new text coming from the right.  (let's not create new names and compile failures by sliding text left into existing text)
+					Shifting text left stops at beginning of the line, meaning text does not wrap to the line above
+		
+		(2) Part of line selected (range of chars on a single line) (indent/outdent remainder of the text on the line which is to the right of the cursor)
+			Treat this as the cursor is placed to left of 1st char in range then do insert-cursor moves
+			
+			I'm saying this for the following reasons:
+				VSCode today on partial Selection SHIFT+TAB moves the entire line to the left but on TAB replaces the text with whitespace.
+				Tab-use within our use-case means we are aligning code so I really think appearing to lose code we slaved over due to our 
+				selecting text and typing TAB is counterproductive.
+		
+		(3) Whole line is selected (indent/outdent whole lines)
+			Treat this a cursor is placed to the left of 1st non-whitespace char in line then do insert-cursor moves
+		
+		(4) Multiple line partial-Selection (range of chars but on two or more lines) (indent/outdent whole lines)
+			Treat this as multiple-whole-lines are selected. The cursor position is considered to be left of 1st non-whitespace char on 1st selected line (this is how to know which
+			tab-stop is next for the left or right move)
+		
+		(5) Multiple whole lines are selected (indent/outdent whole lines)
+			Treat this a cursor is placed to the left of 1st non-whitespace char on 1st selected line then do insert-cursor moves but for all lines in the Selection
+		
+		NOTE: In this behavior specification TAB char never replaces text, only positions text.
+		
+	What about these patterns:
+		Case radix
+								10 : xxx         
+						20 : xxx           
+				30 : xxx             
+							40 : xxx          
+		
+		- When untabbling multiple lines what happens to lines that left margin is the left of the first?
+		- Do I find the left most margin of the set and apply that to induvial lines?
+		- DO I take the left margin of the idvidual line and apply that to its respective line?
+		I think finding the left most margin makes that most sense as that will preserve the structure
+		
+		me:
+			Excellent question and I really like your answer for this purpose.  
+			While the user is responsible for making good choices we shouldn't adversely affect the indenting of code blocks if we don't have to.
+			Let's change the spec to be left-most char of all lines selected as you suggest.

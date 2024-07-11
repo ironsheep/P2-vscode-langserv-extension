@@ -1,0 +1,177 @@
+Signature Help Video:
+	- show signature help for built-ins
+	- show signature help for user methods (PUB / PRI)
+	- show signature help for user methods (PUB / PRI) without doc
+	- show after adding doc
+
+Help TeleCon:
+	- video setup: @done(2023-07-18)
+	- Forward quickbytes punchlist to Jeff/Ari @done(2023-07-14)
+	- Merketing with AI image generation - connect Steve. @done(2023-07-18)
+	- review Chip's tasks file...   then merge it and post at repo and send to Jeff...
+	- show commmenting in settings.json with topeLevel... 
+	- activate FlexProp, PNut
+	- activate download to RAM/FLASH
+	- activate debug enable
+	
+	Tasks bug:
+		https://github.com/microsoft/vscode/issues/94654
+		
+	Wed talk:
+		- A. show updated quickbytes
+		- B. talk of which compilers on which platform
+			- Flexspin and pnut...compilers on each machine
+		- C. show new features
+		- D. talk of what's next
+	
+
+Hover text/Signature Help:
+	TODO:
+		- P1 semantic highlight: flag illegal 2nd and more return values? (only 1 allowed)
+		- P2 : (symbol) send   --> should be (method pointer) send()
+		- P2? P1? Fix hover over local variables?    NOT WORKING???
+		- Flag local vars/params,return NOT used?!
+		
+	LATER RELEASEs:
+		- Add docs for: { much more spin2 }
+			- symbols for debug displays : colors, paramater names, etc.
+			- PASM flag-bit actions
+			- PASM flag conditions
+		- Add mech for pasm instructions using Ada data (.json file)
+		- Add diagnostics? (for flaming-red things) ?? maybe 2nd release ??
+		
+	BEFORE RELEASE:
+		
+	DONE:
+		- Gather groups of single line comments as if were block comment (both ' ' and ' forms) @done(2023-06-20)
+		- When creating symbol def'n also record comment for it (preceeding lines or trailing-same-line) @done(2023-06-21)
+		- When displaying token include comment for token if any @done(2023-06-21)
+		- BUG  fix broken p1 coloring @done(2023-06-21)
+		- BUG  need to handle single line doc comments for method documentation!!! @done(2023-06-21)
+		- Add descr. for BYTE,WORD, LONG, FILL* ALIGN*, FILE, REG, etc. @done(2023-06-21)
+		- OBJ namespaces should show object filename in comments @done(2023-06-23)
+		- FILE labelNames should show filename in comments @done(2023-06-23)
+		- *** FINISH adding object related filename! *** @done(2023-06-23)
+		- End of processing a non-comment line should clear preceeding comment storage! @done(2023-06-23)
+		- FIX blank line not terminating single line non-doc comment gather! @done(2023-06-23)
+		- FIX blank line not terminating single line doc comment gather! @done(2023-06-23)
+		- PUB methods should only get DOC-COMMENTS (PRI can get non-doc and doc) @done(2023-06-23)
+		- BUGFIX return file 0325 @done(2023-06-24)
+		- BUGFIX enum file 0820 @done(2023-06-24)
+		- BUGFIX object members in file 0404 @done(2023-06-24)
+		- Add gather of object .CONSTANTS and .methodNames() so we can provide hover info @done(2023-06-24)
+		- trunc, float, round, etc. @done(2023-06-24)
+		- addpins, etc. @done(2023-06-24)
+		- pin mode constants @done(2023-06-24)
+		- org, end, fit, etc. @done(2023-06-24)
+		- separate built-in search within debug() vs. not-within (only return debug stuff withing debug statements. @done(2023-06-24)
+			- term types can only be found in debug() statements! @done(2023-06-25)
+		- - BUGIFX isPositionInComment() BROKEN for debug() lines containing multiple strings! @done(2023-06-25)
+		- BUGFIX the get strings[] is NOT working... loops! @done(2023-06-25)
+		- OOPS if TERM-TYPE is variable name let it be varaible name @done(2023-06-25)
+		- BUGFIX some debug left on, turn it OFF @done(2023-06-26)
+		- Cache .label local labels for Hover use @done(2023-06-26)
+		- BUGFIX pickup mulitline comment (non-doc only) for symbols (vars, const, labels, etc.) @done(2023-06-26)
+		- Need signatures for float() round() and trunc() @done(2023-06-27)
+		- respecify local/global as object public / object private @done(2023-06-27)
+		- Pick up param,return,local docs from block comments @done(2023-07-10)
+		- Add docs for: { much more spin2 } @done(2023-07-10)
+			- DON'T add event name constants !!! ( or get descriptions from Chip, then add) @done(2023-07-10)
+		- Add signature help @done(2023-07-10)
+		- P1 BUGFIX result should be colored green @done(2023-07-11)
+		- P1 fix doc gen when no params but return value on PUB/PRI @done(2023-07-11)
+		- P1 DocGen strip of locals in PUB/PRI line @done(2023-07-12)
+		- P1 finish FILE/object filename references in hover info @done(2023-07-15)
+		- P2 add empty method doc comments @done(2023-07-15)
+		- P1 add empty method doc comments @done(2023-07-15)
+		- P2 finish showing hover for debug display name @done(2023-07-15)
+		- Accumulate our term "name of display type" symbols for hover display @done(2023-07-15)
+		- P1 label coloring broken (not p2 instruction names!) - TEST test_notSpin1.spin @done(2023-07-15)
+		- P1 parse lockup - TEST 221206-fixes.spin @done(2023-07-15)
+		
+		
+
+Object Dependencies TreeView:
+	TODO:
+		- Add collapse icon and command @done(2023-06-12)
+			- (2) [+] CLICK: Make collapse/expand work
+		- (3) what was this ???  I don't remember... ???
+		- (4) SELECT: Make active window change move cursor in object dependency view
+		- (5) WELCOME: Fix welcome message for "OBJECT DEPENDENCIES" view when empty
+		
+	Done:
+		- get debug logging working @done(2023-06-12)
+		- add collapse icon and command @done(2023-06-12)
+		- add refresh icon and command @done(2023-06-12)
+			- Make refresh work @done(2023-06-12)
+		- get load objects working @done(2023-06-12)
+		- "No symbols found in document `filename`" @done(2023-06-12)
+			- let's use: "No Spin2 object references found in document `filename`" @done(2023-06-12)
+		- Add ICON to each object in list! @done(2023-06-12)
+		- Show content in treeview only when spin2 doc open @done(2023-06-13)
+		- Filter out comments from all obj processing! @done(2023-06-13)
+		- (1) CLICK: Get element click to open/activate editor window @done(2023-06-13)
+		- (6)Top always shows subs?! - YES on first open @done(2023-06-13)
+	
+
+Evaluation of LangServer Capabilities vs. what we would use:
+	Capabilities we WANT to implement:
+		registerDocumentHighlightProvider - DocumentHighlight:
+			- YES
+			- FILE WIDE!
+		registerDocumentSymbolProvider - DocumentSymbol:
+			- YES
+			- FILE WIDE!
+		registerFoldingRangeProvider - FoldingRange: (better code folding):
+			- YES
+			- FILE WIDE!
+			- Implementation NOTES:
+				- each section (CON, VAR, DAT, OBJ, PUB, PRI)
+				- each top level of block of indented code (just top levels for initial release)
+		createDiagnosticCollection - PublishDiagnostics: (errors):
+			- YES
+			- FILE WIDE! (notes say better is PROJECT WIDE)
+		registerCompletionItemProvider - Completion & Completion Resolve:
+			- YES
+			- PROJECT WIDE/FILE WIDE
+		DONE registerHoverProvider - Hover:
+			- YES
+			- PROJECT WIDE/FILE WIDE
+			- DO DO THIS! Let's implement as file wide initially (built-ins spin/constants, local pub/pri in file)
+		DONE registerSignatureHelpProvider - SignatureHelp:
+			- YES
+			- PROJECT WIDE/FILE WIDE
+		registerDefinitionProvider - Definition:
+			- YES
+			- PROJECT WIDE/FILE WIDE
+		registerTypeDefinitionProvider - TypeDefinition:
+			- YES
+			- PROJECT WIDE/FILE WIDE
+		registerImplementationProvider - Implementation:
+			- YES
+			- PROJECT WIDE/FILE WIDE
+		registerReferenceProvider - References:
+			- YES
+			- PROJECT WIDE
+		registerRenameProvider - Rename & Prepare Rename:
+			- YES
+			- PROJECT WIDE
+		registerWorkspaceSymbolProvider - workspaceSymbolProvider:
+			- YES
+			- PROJECT WIDE
+	Capabilities we MIGHT implement:
+		registerCodeActionsProvider - CodeAction:
+			- MAYBE IN FUTURE ??? for some cases? need to generate list of possibles | NOTE: "refactoring" would be in here!
+		registerDocumentLinkProvider - DocumentLink & DocumentLink Resolve:
+			- MAYBE IN FUTURE ???
+		registerDocumentFormattingEditProvider - Formatting:
+			- MAYBE IN FUTURE ???
+	Capabilities we WON'T implement:
+		registerCodeLensProvider - CodeLens & CodeLens Resolve:
+			- NO
+		registerColorProvider - DocumentColor & Color Presentation:
+			- NO
+		registerDocumentRangeFormattingEditProvider - RangeFormatting:
+			- NO
+		registerOnTypeFormattingEditProvider - OnTypeFormatting:
+			- NO
