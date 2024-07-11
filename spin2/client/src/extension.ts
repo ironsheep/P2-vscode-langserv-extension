@@ -535,14 +535,37 @@ function registerCommands(context: vscode.ExtensionContext): void {
                   downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
                   // write to USB PropPlug
                   if (deviceNode !== undefined) {
-                    const usbPort: UsbSerial = new UsbSerial(deviceNode);
-                    if (await usbPort.deviceIsPropellerV2()) {
-                      await usbPort.download(binaryImage, needsP2ChecksumVerify);
-                      downloaderTerminal.sendText(`# DONE`);
-                    } else {
-                      downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
+                    let usbPort: UsbSerial;
+                    try {
+                      usbPort = new UsbSerial(deviceNode);
+                      if (usbPort.deviceIsPropellerV2()) {
+                        await usbPort.download(binaryImage, needsP2ChecksumVerify);
+                        downloaderTerminal.sendText(`# DONE`);
+                      } else {
+                        downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
+                      }
+                      //this.testDownloadFile(usbPort);
+                    } catch (error) {
+                      if (error instanceof Error) {
+                        this.logMessage(`Dnld: Error thown: ${error.toString()}`);
+                      } else {
+                        // Handle the case where error is not an Error object
+                        this.logMessage(`Dnld: Non-error thrown: ${JSON.stringify(error)}`);
+                      } // Re-throw the error if you want to fail
+                    } finally {
+                      if (usbPort !== undefined) {
+                        try {
+                          await usbPort.close(); // we're done with this port
+                        } catch (error) {
+                          if (error instanceof Error) {
+                            this.logMessage(`Dnld: close Error thown: ${error.toString()}`);
+                          } else {
+                            // Handle the case where error is not an Error object
+                            this.logMessage(`Dnld: close Non-error thrown: ${JSON.stringify(error)}`);
+                          } // Re-throw the error if you want to fail
+                        }
+                      }
                     }
-                    await usbPort.close();
                   } else {
                     downloaderTerminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
                   }
@@ -947,17 +970,40 @@ async function scanForAndRecordPropPlugs(): Promise<void> {
     const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
     const deviceNode: string = portParts[0];
     devicesFound.push(deviceNode);
-    const usbPort: UsbSerial = new UsbSerial(deviceNode);
-    // during VSCode startup other extensions can affect our timing... so,
-    //  we may miss getting to the P2 in time after reset.
-    //  so, let's try 4 times over 300 mSec to get the P2 response
-    for (let index = 0; index < RETRY_COUNT; index++) {
-      if (await usbPort.deviceIsPropellerV2()) {
-        plugsFoundSetting[deviceNode] = deviceSerial;
+    let usbPort: UsbSerial;
+    try {
+      usbPort = new UsbSerial(deviceNode);
+      // during VSCode startup other extensions can affect our timing... so,
+      //  we may miss getting to the P2 in time after reset.
+      //  so, let's try 4 times over 300 mSec to get the P2 response
+      for (let index = 0; index < RETRY_COUNT; index++) {
+        if (await usbPort.deviceIsPropellerV2()) {
+          plugsFoundSetting[deviceNode] = deviceSerial;
+        }
+        await waitMSec(100); // if not P2 found try again in 100msec
       }
-      await waitMSec(100); // if not P2 found try again in 100msec
+      //this.testDownloadFile(usbPort);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logMessage(`Scan4Plug: Connect Error thown: ${error.toString()}`);
+      } else {
+        // Handle the case where error is not an Error object
+        this.logMessage(`Scan4Plug: Connect Non-error thrown: ${JSON.stringify(error)}`);
+      } // Re-throw the error if you want to fail
+    } finally {
+      if (usbPort !== undefined) {
+        try {
+          await usbPort.close(); // we're done with this port
+        } catch (error) {
+          if (error instanceof Error) {
+            this.logMessage(`Scan4Plug: Close Error thown: ${error.toString()}`);
+          } else {
+            // Handle the case where error is not an Error object
+            this.logMessage(`Scan4Plug: Close Non-error thrown: ${JSON.stringify(error)}`);
+          } // Re-throw the error if you want to fail
+        }
+      }
     }
-    usbPort.close();
   }
   logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
   // record all plug values found

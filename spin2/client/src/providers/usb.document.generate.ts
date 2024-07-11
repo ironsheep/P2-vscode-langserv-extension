@@ -135,12 +135,34 @@ export class USBDocGenerator {
           fs.appendFileSync(rptFileID, `Found PropPlug S/N #${deviceSerial} at [${deviceNode}]${this.endOfLineStr}`); // blank line
 
           let [deviceString, deviceErrorString] = ['', ''];
-          const usbPort: UsbSerial = new UsbSerial(deviceNode);
-          if (usbPort.deviceIsPropellerV2()) {
-            [deviceString, deviceErrorString] = usbPort.getIdStringOrError();
-          } // initiate request
-          //this.testDownloadFile(usbPort);
-          usbPort.close(); // we're done with this port
+          let usbPort: UsbSerial;
+          try {
+            usbPort = new UsbSerial(deviceNode);
+            if (usbPort.deviceIsPropellerV2()) {
+              [deviceString, deviceErrorString] = usbPort.getIdStringOrError();
+            } // initiate request
+            //this.testDownloadFile(usbPort);
+          } catch (error) {
+            if (error instanceof Error) {
+              this.logMessage(`UsbDoc: Error thown: ${error.toString()}`);
+            } else {
+              // Handle the case where error is not an Error object
+              this.logMessage(`UsbDoc: Non-error thrown: ${JSON.stringify(error)}`);
+            } // Re-throw the error if you want to fail
+          } finally {
+            if (usbPort !== undefined) {
+              try {
+                await usbPort.close(); // we're done with this port
+              } catch (error) {
+                if (error instanceof Error) {
+                  this.logMessage(`UsbDoc: Error thown: ${error.toString()}`);
+                } else {
+                  // Handle the case where error is not an Error object
+                  this.logMessage(`UsbDoc: Non-error thrown: ${JSON.stringify(error)}`);
+                } // Re-throw the error if you want to fail
+              }
+            }
+          }
 
           this.logMessage(`* deviceString=[${deviceString}], deviceErrorString=[${deviceErrorString}]`); // blank line
           let idResult: string = deviceString;
