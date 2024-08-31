@@ -13,7 +13,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from **[Windows](TASKS_USer.md)**, **MacOS** (this page), and **[RaspiOS](TASKS_USer.md)** (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **FlexProp** and **PNut** (*PNut is widows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut-TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -34,6 +34,7 @@ On this Page:
 Additional pages:
 
 - [TOP Level README](README.md) - Back to the top page of this repo
+- [Migrate to v2.3.0](Migrate-v230.md) - checklist to ensure you have migrated to our latest configuration which supports locating installed compilers and compiling and downloading with any of the installed compilers to your USB attached P2
 - [Setup focused on Windows only](TASKS-User-win.md) - All **Windows** notes 
 - [Setup focused on RPi only](TASKS-User-RPi.md) - All **Raspberry Pi** notes 
 - [VSCode REF: Tasks](https://code.visualstudio.com/docs/editor/tasks) - Offsite: VSCode Documentation for reference
@@ -44,7 +45,9 @@ Additional pages:
 
 ```
 Latest Updates:
-12 Jun 2024
+31 Aug 2024
+- Add PNut-TS notes and installation
+- 12 Jun 2024
 - Updated to reflect new Spin2 Extension built-in compile/download support
 18 Jul 2023
 - Misc updates to keep these pages in sync
@@ -87,13 +90,31 @@ For each P2 Project:
 - Install a settings.json file identiyfing the project top-level file
     - Make sure the name of your top-level file is correctly placed in this settings.json file
 
+## Enabling P2 Code Development with PNut-TS on macOS
+
+Additionally, you can use PNut-TS on your mac under VScode you'll need to:
+
+One time:
+
+- Install PNut-TS for all users to use on your Mac
+- Add our tasks to the user tasks.json file (*works across all your P2 projects*)
+- Remove any old compile/download keybindings you may have.
+- Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
+    - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
+    - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
+
+For each P2 Project:
+
+- Install a settings.json file identiyfing the project top-level file
+    - Make sure the name of your top-level file is correctly placed in this settings.json file
+
 ## Being consistent in your machine configuration
 
 I have mostly macs for development but I also have a Windows machine and a number of Raspberry PIs (derived from Debian Linux distro.) and even some larger Ubuntu Machines (also derived from Debian Linux distro.).  If you, like me, intend to be able to run VSCode on many of your development machines and you want to make your life easier then there are a couple of things we know already that can help you.
 
 - **Synchronize your VSCode settings and extensions** automatically by installing and using the **Settings Sync** VScode extension. Any changes you make to one machine then will be sync'd to your other VScode machines.
 
-- **Be very consistent in where you install tools** for each type of OS.  (e.g., for all Windows machines make sure you install say, FlexProp, in the same location on each Windows machine.) By being consistant your tasks will run no matter which machine your are running on. 
+- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut-TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
 There is nothing worse than trying to remember where you installed a specific tool on the machine you are currently logged into. Because you install say FlexProp in the same place on all your Raspberry Pi's you will know where to find it no matter which RPi you are logged in to.
 
     - All like operating systems should have a specific tool installed in the same location on each. (e.g., all Windows machines have FlexProp installed in one location, all macOS machines have FlexProp installed in a different location that on Windows but it is the same location across all Macs, etc.)
@@ -124,6 +145,47 @@ If I'm updating to a new verison I do the following:
 
 **NOTE:** We use this move-aside technique for updating the FlexProp compiler.  When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code.  Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version.  *You can always skip this move-aside step if you don't care about this issue.*
 
+### Installing PNut-TS on macOS
+
+On MacOS  machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown and upacking the zip file to produce a .dmg install image.  
+
+We double-click on the .dmg file to mount it. It opens a window, then, in the window, we drag the pnut_ts/ folder into the /Applications folder. Then the close the window and eject (unmount) the installer .dmg file.
+
+#### Install PNut-TS
+
+Architecture specific PNut-TS .zip files available for RPIi/Linux:
+
+| Archive Name | Operating System | Architecture | Unpack Leaves
+| --- | --- | --- | --- |
+| macos-arm64.zip| MacOS | Arm 64 bit | macos-arm64.dmg
+| macos-x64.zip| MacOS | Intel x86-64 bit | macos-x64.dmg
+
+Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+
+If you have an intel-based mac then get the x64 .zip file, if you have an Apple-silicon-based make then get the arm64 .zip file.
+
+- Once you have your selected .zip file then double click on it to extract the .dmg file.
+- next double-click on the .dmg file to mount this image. Accept the license agreement. 
+- * after accespting the agreemnt a window showing to folders appears
+- In the new window, drag the pnut_ts folder to the Applications folder.
+- Close this window
+- Eject the .dmg mounted image
+
+#### Update PNut-TS
+
+If I'm updating to a new verison I do the following:
+
+- Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+- Dounble click on the .zip file to extract the .dmg file
+- Remove the `/Applications/pnut_ts-prior` folder (move to trash)
+- Rename the `/Applications/pnut_ts` folder to `/Applications/pnut_ts-prior` 
+- Double click on the .dmg file to mount it. Accept the license agreement. A window opens showing two folders.
+- In the window drag the new pnut_ts folder to the Applications folder
+- Close the window
+- Eject the .dmg image
+
+**NOTE:** We use this move-aside technique for updating the PNut-TS compiler.  When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code.  Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version.  *You can always skip this move-aside step if you don't care about this issue.*
+
 ### Setting paths for your P2 Compilers/Tools on macOS
 
 On MacOS this is really shell dependent. I tend to stick with [Bash](https://www.gnu.org/software/bash/manual/html_node/Introduction.html) as I've used it for many 10s of years now.  [zsh](https://scriptingosx.com/2019/06/moving-to-zsh/) (ZShell) is the new shell on the block (*well, new to mac's not a new shell*.) I avoided moving to it but the concepts are the same.
@@ -132,6 +194,12 @@ On my Macs I install the flexprop folder into my /Applications folder.  I then e
 
 ```bash
 export PATH=${PATH}:/Applications/flexprop/bin:/Applications/flexprop
+```
+
+If i have install PNut-TS then I also add its path:
+
+```bash
+export PATH=${PATH}:/Applications/pnut_ts
 ```
 
 From here on when I start new terminal windows we can invoke the flexprop binaries by name without using the path to them.

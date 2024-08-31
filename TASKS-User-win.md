@@ -82,7 +82,7 @@ One time:
 
 - Install FlexProp for all users to use on your windows machine
 - Add our tasks to the user tasks.json file (_works across all your P2 projects_)
-- Install our common keybinding (works across all your P2 projects)
+- Remove any old compile/download keybindings you may have.
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
   - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
   - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
@@ -100,7 +100,7 @@ One time:
 
 - Install PNut-TS for all users to use on your windows machine
 - Add our tasks to the user tasks.json file (_works across all your P2 projects_)
-- Install our common keybinding (works across all your P2 projects)
+- Remove any old compile/download keybindings you may have.
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
   - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
   - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
@@ -117,7 +117,7 @@ To complete your setup so you can use PNut on your Windows machine under VScode 
 One time:
 
 - Install a tasks.json file (_works across all your P2 projects_)
-- Install a common keybinding (_works across all your P2 projects_)
+- Remove any old compile/download keybindings you may have.
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
   - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
   - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
