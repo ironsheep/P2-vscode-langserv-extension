@@ -164,7 +164,7 @@ SYSFS{idProduct}==”6001”, SYSFS{idVendor}==”0403”, RUN+=”/sbin/modprob
 
 After this file was saved, I rebooted the RPi.  After the RPi came back up I plugged in the PropPlug I saw /dev/ttyUSB0 appear as my PropPlug.  
 
-### Installing FlexProp
+### Installing FlexProp on RPi/Linux
 
 On the Raspberry Pi platform we'll use `git(1)` to download the FlexProp source, unlike on the MacOS and Windows machines where we instead get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and upacking the zip file to produce a `flexprop` folder containing the new version.  
 
@@ -205,7 +205,7 @@ git pull
 sudo make install INSTALL=/opt/flexprop
 ```
 
-### Installing PNut-TS
+### Installing PNut-TS on RPi/Linux
 
 On the Raspberry Pi platform we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new compiler and its documents.
 

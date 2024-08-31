@@ -145,7 +145,7 @@ I have mostly macs for development but I also have a Windows machine and a numbe
 
 [**Optional**] if you want to remote into your windows machine from a another desktop running VSCode on your network then you want to install OpenSSH client and server by following: [Install OpenSSH](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse?tabs=gui).
 
-### Installing FlexProp
+### Installing FlexProp on Windows
 
 On Windows machines we get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and unpacking the zip file to produce a `FlexProp` folder containing the new version.
 
@@ -173,7 +173,7 @@ Like we do on the other platforms here's the suggested update strategy:
 
 **NOTE:** We use this move-aside technique for updating the FlexProp compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
 
-### Installing PNut-TS
+### Installing PNut-TS on Windows
 
 On Windows machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new version.
 
@@ -208,7 +208,7 @@ Like we do on the other platforms here's the suggested update strategy:
 
 **NOTE:** We use this move-aside technique for updating the PNut-TS compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
 
-### Installing PNut
+### Installing PNut on Windows
 
 The PNut compiler/debug tool does not have a standard install location. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed PNut and then [add a new PATH element](#os-windows) using the windows settings app. to point to where your binaries ended up on your file system.
 
