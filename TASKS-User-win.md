@@ -12,7 +12,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from **Windows** (_this page_), [**MacOS**](TASKS-User-macOS.md), and [**RaspiOS**](TASKS-User.md) (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **flexprop** and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut_TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -45,6 +45,8 @@ Additional pages:
 
 ```text
 Latest Updates:
+31 Aug 2024
+- Add PNut_TS notes and installation
 12 Jun 2024
 - Updated to reflect new Spin2 Extension built-in compile/download support
 18 Jul 2023
@@ -78,7 +80,25 @@ To complete your setup so you can use FlexProp on your Windows machine under VSc
 One time:
 
 - Install FlexProp for all users to use on your windows machine
-- Add our tasks to the user tasks.json file (_works across all your P2 projects_)</br>(_Make sure the paths to your compiler and loader binaries are correct_)
+- Add our tasks to the user tasks.json file (_works across all your P2 projects_)
+- Install our common keybinding (works across all your P2 projects)
+- Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
+  - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
+  - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
+
+For each P2 Project:
+
+- Install a settings.json file identifying the project top-level file
+  - Make sure the name of your top-level file is correctly placed in this settings.json file
+
+## Enabling P2 Code Development with PNut_TS
+
+To complete your setup so you can use PNut_TS on your Windows machine under VScode you'll need to:
+
+One time:
+
+- Install PNut_TS for all users to use on your windows machine
+- Add our tasks to the user tasks.json file (_works across all your P2 projects_)
 - Install our common keybinding (works across all your P2 projects)
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
   - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
@@ -96,7 +116,6 @@ To complete your setup so you can use PNut on your Windows machine under VScode 
 One time:
 
 - Install a tasks.json file (_works across all your P2 projects_)
-  - _Make sure the names of your compiler and loader binaries are correct (we use the .bat file to run PNut, we don't refer to PNut.exe directly!)_
 - Install a common keybinding (_works across all your P2 projects_)
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
   - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
@@ -121,6 +140,10 @@ I have mostly macs for development but I also have a Windows machine and a numbe
 
 ## Development Machine Setup and Configuration
 
+### Setup and Configure for P2 development
+
+[**Optional**] if you want to remote into your windows machine from a another desktop running VSCode on your network then you want to install OpenSSH client and server by following: [Install OpenSSH](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse?tabs=gui).
+
 ### Installing FlexProp
 
 On Windows machines we get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and unpacking the zip file to produce a `FlexProp` folder containing the new version.
@@ -129,17 +152,13 @@ On Windows machines we get the latest binaries by downloading a `flexprop-{versi
 
 Next we move this new version into place.
 
-### Setup and Configure for P2 development
-
-[**Optional**] if you want to remote into your windows machine from a another desktop running VSCode on your network then you want to install OpenSSH client and server by following: [Install OpenSSH](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse?tabs=gui).
-
 #### Install FlexProp
 
 Get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases).
 
 We are making a new program install location in these steps. We can't use `C:\Program Files (x86)` as FlexProp expects to be able to write to its own directory. So, Create a new program files directory called `C:\Programs\TotalSpectrum\FlexProp` and unpack the .zip file into that directory. Make sure that this directory is writable.
 
-Finish up by then [add a new PATH element](#os-windows) and make sure to also create the new Environment Variable `FlexPropPath=C:\Programs\TotalSpectrum\FlexProp`. _The User Tasks expect this environment variable to exist. They use it to locate the flash utility binary file._
+Finish up by adding `C:\Programs\TotalSpectrum\FlexProp` to PATH as described in [add a new PATH element](#os-windows).
 
 #### Update FlexProp
 
@@ -153,6 +172,41 @@ Like we do on the other platforms here's the suggested update strategy:
 
 **NOTE:** We use this move-aside technique for updating the FlexProp compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
 
+### Installing PNut_TS
+
+On Windows machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new version.
+
+**NOTE**: _The PNut\_TS tool-set does not have a standard install location on Windows. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
+
+Next we move this new version into place.
+
+#### Install PNut_TS
+
+Architecture specific PNut_TS .zip files available for Windows:
+
+| Archive Name | Operating System | Architecture | Unpack Leaves
+| --- | --- | --- | --- |
+| win-arm64.zip| Windows | Arm 64 bit | pnut_ts/
+| win-x64.zip| Windows | Intel x86-64 bit | pnut_ts/
+
+Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+
+We are making a new program install location in these steps. We are going to use the same root directory as FlexProp but we have a new vendor. So, Create a new program files directory called `C:\Programs\IronSheepProductions\` and unpack the .zip file into that directory. Depnding upon which command you use to do this you may have created a folder named after the .zip file. If this happens then inside that folder is the pnut\_ts folder. Just move it out of the .zip-named folder into this folder. Then remove the now empty .zip-named folder.  In the end you should have a `C:\Programs\IronSheepProductions\pnut_ts\` folder with a pnut_ts.exe file within it along with other documentation.
+
+Finish up by adding `C:\Programs\IronSheepProductions\pnut_ts` to PATH as described in [add a new PATH element](#os-windows).
+
+#### Update PNut_TS
+
+Like we do on the other platforms here's the suggested update strategy:
+
+- Download and zip the latest version from [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+- Remove any `C:\Programs\IronSheepProductions\pnut_ts-prior` (the prior version of PNut_TS)
+- Rename your existing `C:\Programs\IronSheepProductions\pnut_ts` folder to `C:\Programs\IronSheepProductions\pnut_ts-prior`
+- Create a new empty directory `C:\Programs\IronSheepProductions\pnut_ts` 
+- Unpack the latest downloaded .zip into the newly re-created `C:\Programs\IronSheepProductions\pnut_ts` folder
+
+**NOTE:** We use this move-aside technique for updating the PNut_TS compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
+
 ### Installing PNut
 
 The PNut compiler/debug tool does not have a standard install location. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed PNut and then [add a new PATH element](#os-windows) using the windows settings app. to point to where your binaries ended up on your file system.
@@ -161,13 +215,13 @@ The PNut compiler/debug tool does not have a standard install location. So we wi
 
 Download the latest .zip file from [PNut/Spin2 Latest Version](https://forums.parallax.com/discussion/171196/.../p1?_ga=2.41234594.1818840425.1671330006-1649768518.1600891894) Forum thread into my **Downloads** folder. Unpack the .zip into its own folder.
 
-Propeller Tool installs into `C:\Program Files (x86)\Parallax Inc\Propeller Tool\`. But we are going to install PNut along side our FlexSpin compiler. So I just created a sibling directory: `C:\Programs\Parallax Inc\PNut\` and copied all of the unpacked files into that directory.
+Propeller Tool installs into `C:\Program Files (x86)\Parallax Inc\Propeller Tool\`. So I just created a sibling directory: `C:\Program Files (x86)\Parallax Inc\PNut` and copied all of the unpacked files into that directory.
 
 **NOTE:** _if you experience problems with the tasks running PNut it is generally that the .bat files are not identifying the PNut executable by the correct name. At each install check the content of `\PNut\pnut_shell.bat` and `\PNut\pnut_report.bat` and make sure the PNut versioned name is correct with what's in the folder. Occasionally Chip forgets to modify these .bat files before release._
 
 I right-mouse on the PNut\_{version}.exe file and select "**Pin to taskbar**".
 
-I then [add a new PATH element](#os-windows) using the windows settings app. to point to where your binaries ended up on your file system. In my case I added a path segment pointing to `C:\Programs\Parallax Inc\PNut\`. Lastly, make sure to also create the new Environment Variable `PNutPath=C:\Programs\Parallax Inc\PNut`. Our task automated processes, in the future, will use this to determine where things are installed.
+I then [add a new PATH element](#os-windows) using the windows settings app. to point to where your binaries ended up on your file system. In my case I added a path segment pointing to ``C:\Program Files (x86)\Parallax Inc\PNut``. 
 
 #### Update PNut
 
@@ -176,25 +230,29 @@ I haven't found the need to keep any prior version. I simply:
 - Download the latest version of PNut from [PNut/Spin2 Latest Version](https://forums.parallax.com/discussion/171196/.../p1?_ga=2.41234594.1818840425.1671330006-1649768518.1600891894) into my **Downloads** folder
 - Unpack the .zip file
 - In my taskbar I right-mouse on the PNut icon and select "**Unpin from taskbar**"
-- Select all content within `C:\Programs\Parallax Inc\PNut\` and Delete it
-- Move all of unpacked content into the now empty folder `C:\Programs\Parallax Inc\PNut\`
+- Select all content within `C:\Program Files (x86)\Parallax Inc\PNut\` and Delete it
+- Move all of unpacked content into the now empty folder `C:\Program Files (x86)\Parallax Inc\PNut`
 - I right-mouse on the newly copied PNut\_{version}.exe file and select "**Pin to taskbar**".
 
 **NOTE:** _if you experience problems with the tasks running PNut it is generally that the .bat files are not identifying the PNut executable by the correct name. At each install check the content of `\PNut\pnut_shell.bat` and `\PNut\pnut_report.bat` and make sure the PNut versioned name is correct with what's in the folder. Occasionally Chip forgets to modify these .bat files before release._
 
 ### Setting paths for your P2 Compilers/Tools
 
+Once we've installed our compiler(s) we need to make sure that all users can use them from the command line. We do this by adding the path to each compiler to the System Envrironment settings PATH variable.
+
+We have three compilers mentioned above. If you are using the paths i use then we have:
+
+| Compiler | Path
+| --- | --- |
+|  FlexProp | C:\Programs\TotalSpectrum\FlexProp
+| PNut_TS | C:\Programs\IronSheepProductions\pnut_ts
+| PNut | C:\Program Files (x86)\Parallax Inc\PNut
+
 #### OS: Windows
 
-On windows the search path for programs is maintained by the **Windows Settings App.** Open Window Settings and search for "environment" and you should see two choices: "**Edit the system environment variables**" and "**Edit environment variables for your account**". If you want the tools to work for all users on this Windows machine (Preferred) then adjust the PATH values by editing the system environment variables. If, instead, you only need the tools to work for your account then edit the environment variables for your account.
+On windows the search path for programs is maintained by the **Windows Settings App.** Open Window Settings and search for "environment" and you should see two choices: "**Edit the system environment variables**" and "**Edit environment variables for your account**". If you want the tools to work for all users on this Windows machine (Preferred) then adjust the PATH values by editing the "**system environment variables**". If, instead, you only need the tools to work for your account then edit the "environment variables for your account".
 
-You will do this for each of FlexProp and PNut (which ever ones you use, either or both.)
-
-If you are using FlexProp and/or PNut, in addition to modifying the PATH variable, you will also need to add a new Environment Variable which points to the FlexProp and PNut install folders.
-
-In the same section you modified for path (system environment or your account environment) using [New...] add a new environment variable `FlexPropPath` (and/or `PNutPath`) which you will set to your install folder using the [Browse Directory...] button after pressing [New...] and typing in the `FlexPropPath` (or `PNutPath`) name. The tasks we define will use this environment variable to locate the binary file it needs when downloading to FLASH.
-
-If you are setting up PNut too, then add a new environment variable for `PNutPath` as well.
+If you routinely install these compilers in the same place
 
 **NOTE** _the above is referring to **Windows 10** settings names. On earlier versions of Windows the concept is the same. Locate the environment values and make the appropriate changes._
 

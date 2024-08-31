@@ -12,7 +12,7 @@ OBJ
 
 DAT
 
-pullUP   long   serIO.PU_1K5
+pullUP2   long   serIO.PU_1K5
 
 PUB pullUpValueForEnum(ePullupRqst) : pullup | localVar
 '' ...

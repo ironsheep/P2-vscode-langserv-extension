@@ -25,9 +25,9 @@ VAR stack[30], clocks, sample, states
 PUB go() | i, x, y, m, n
 ' lines 172-...
     debug(`plot p title 'Five Buttons on a Single Pin' size 430 600 backcolor white update)
-    debug(`p set `(sch_x,sch_y-60) blue text 'clocks: `(clocks)')   ' <--- untermnated string not highlighted
+    debug(`p set `(sch_x,sch_y-60) blue text 'clocks: `(clocks)')   ' <--- untermnated string not highlighted (terminated now)
     debug(`p set `(sch_x,sch_y-80) text 'sample: `(sample)')
-    debug(`p set `(sch_x,sch_y-100) text 'states: `ubin_byte_(n)')
+    debug(`p set `(sch_x,sch_y-100) text 'states: `ubin_byte_(n)')  ' <--- BUG (n) not highlighted
     debug(`p update `dly(20))
 
 

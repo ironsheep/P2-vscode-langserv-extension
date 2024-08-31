@@ -12,7 +12,7 @@ Ajusting your environment:
 1. Replace your user-tasks file: **Tasks: Open User Tasks**
 2. Remove your existing keyboard bindings: **Preferences: Open Keyboard Shortcuts (JSON)**
 3. Ensure your compiler has been located correctly
-4. (PNut on Windows users) Optionally replace the pnut_shell.bat file
+4. (PNut on Windows users) Replace the pnut_shell.bat file (If your distribution has the old one)
 
 Once this is done, then you are ready to continue developing for the P2 as you were before. Additionally, compile and download to your P2 should be much more simple.
 
@@ -232,9 +232,9 @@ To validate that you can build P1 and P2 code let's review the Spin2 Exension se
 
 If you don't see all the compilers in this list then you want to adjust the installations so that they can be found before proceeding!  For installation instructions you will need to refer to:
 
-1. [Installation on Windows](TASKS-User-macOS.md#development-machine-setup-and-configuration) 
+1. [Installation on Windows](TASKS-User-win.md#development-machine-setup-and-configuration) 
 1. [Installation on MacOS](TASKS-User-macOS.md#development-machine-setup-and-configuration) 
-1. [Installation on RPI](TASKS-User-RPi.md#development-machine-setup-and-configuration) 
+1. [Installation on RPi/Linux](TASKS-User-RPi.md#development-machine-setup-and-configuration) 
 
 If you see all of your compilers then you are ready to move on to Step 4 (or you are done if you are not on windows.)
 
