@@ -12,7 +12,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from **Windows** (_this page_), [**MacOS**](TASKS-User-macOS.md), and [**RaspiOS**](TASKS-User.md) (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **flexprop**, **PNut_TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut-TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -47,7 +47,7 @@ Additional pages:
 ```text
 Latest Updates:
 31 Aug 2024
-- Add PNut_TS notes and installation
+- Add PNut-TS notes and installation
 12 Jun 2024
 - Updated to reflect new Spin2 Extension built-in compile/download support
 18 Jul 2023
@@ -92,13 +92,13 @@ For each P2 Project:
 - Install a settings.json file identifying the project top-level file
   - Make sure the name of your top-level file is correctly placed in this settings.json file
 
-## Enabling P2 Code Development with PNut_TS
+## Enabling P2 Code Development with PNut-TS
 
-To complete your setup so you can use PNut_TS on your Windows machine under VScode you'll need to:
+To complete your setup so you can use PNut-TS on your Windows machine under VScode you'll need to:
 
 One time:
 
-- Install PNut_TS for all users to use on your windows machine
+- Install PNut-TS for all users to use on your windows machine
 - Add our tasks to the user tasks.json file (_works across all your P2 projects_)
 - Install our common keybinding (works across all your P2 projects)
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
@@ -133,7 +133,7 @@ I have mostly macs for development but I also have a Windows machine and a numbe
 
 - **Synchronize your VSCode settings and extensions** automatically by installing and using the **Settings Sync** VScode extension. Any changes you make to one machine then will be sync'd to your other VScode machines.
 
-- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut_TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
+- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut-TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
   There is nothing worse than trying to remember where you installed a specific tool on the machine you are currently logged into. Because you install say FlexProp in the same place on all your Raspberry Pi's you will know where to find it no matter which RPi you are logged in to.
 
   - All like operating systems should have a specific tool installed in the same location on each. (e.g., all Windows machines have FlexProp installed in one location, all macOS machines have FlexProp installed in a different location that on Windows but it is the same location across all Macs, etc.)
@@ -173,40 +173,40 @@ Like we do on the other platforms here's the suggested update strategy:
 
 **NOTE:** We use this move-aside technique for updating the FlexProp compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
 
-### Installing PNut_TS
+### Installing PNut-TS
 
-On Windows machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new version.
+On Windows machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new version.
 
 **NOTE**: _The PNut\_TS tool-set does not have a standard install location on Windows. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
 
 Next we move this new version into place.
 
-#### Install PNut_TS
+#### Install PNut-TS
 
-Architecture specific PNut_TS .zip files available for Windows:
+Architecture specific PNut-TS .zip files available for Windows:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
 | win-arm64.zip| Windows | Arm 64 bit | pnut_ts/
 | win-x64.zip| Windows | Intel x86-64 bit | pnut_ts/
 
-Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
 We are making a new program install location in these steps. We are going to use the same root directory as FlexProp but we have a new vendor. So, Create a new program files directory called `C:\Programs\IronSheepProductions\` and unpack the .zip file into that directory. Depnding upon which command you use to do this you may have created a folder named after the .zip file. If this happens then inside that folder is the pnut\_ts folder. Just move it out of the .zip-named folder into this folder. Then remove the now empty .zip-named folder.  In the end you should have a `C:\Programs\IronSheepProductions\pnut_ts\` folder with a pnut_ts.exe file within it along with other documentation.
 
 Finish up by adding `C:\Programs\IronSheepProductions\pnut_ts` to PATH as described in [add a new PATH element](#os-windows).
 
-#### Update PNut_TS
+#### Update PNut-TS
 
 Like we do on the other platforms here's the suggested update strategy:
 
-- Download and zip the latest version from [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
-- Remove any `C:\Programs\IronSheepProductions\pnut_ts-prior` (the prior version of PNut_TS)
+- Download and zip the latest version from [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+- Remove any `C:\Programs\IronSheepProductions\pnut_ts-prior` (the prior version of PNut-TS)
 - Rename your existing `C:\Programs\IronSheepProductions\pnut_ts` folder to `C:\Programs\IronSheepProductions\pnut_ts-prior`
 - Create a new empty directory `C:\Programs\IronSheepProductions\pnut_ts` 
 - Unpack the latest downloaded .zip into the newly re-created `C:\Programs\IronSheepProductions\pnut_ts` folder
 
-**NOTE:** We use this move-aside technique for updating the PNut_TS compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
+**NOTE:** We use this move-aside technique for updating the PNut-TS compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
 
 ### Installing PNut
 
@@ -246,7 +246,7 @@ We have three compilers mentioned above. If you are using the paths i use then w
 | Compiler | Path
 | --- | --- |
 |  FlexProp | C:\Programs\TotalSpectrum\FlexProp
-| PNut_TS | C:\Programs\IronSheepProductions\pnut_ts
+| PNut-TS | C:\Programs\IronSheepProductions\pnut_ts
 | PNut | C:\Program Files (x86)\Parallax Inc\PNut
 
 #### OS: Windows

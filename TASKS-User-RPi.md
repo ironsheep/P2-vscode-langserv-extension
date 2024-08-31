@@ -13,7 +13,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from [**Windows**](TASKS-User-win.md), [**MacOS**](TASKS-User-macOS.md), and **RaspiOS** (_this page_) (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **flexprop**, **PNut_TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut-TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -46,7 +46,7 @@ Additional pages:
 ```
 Latest Updates:
 31 Aug 2024
-- Add PNut_TS notes and installation
+- Add PNut-TS notes and installation
 12 Jun 2024
 - Updated to reflect new Spin2 Extension built-in compile/download support
 18 Jul 2023
@@ -91,13 +91,13 @@ For each P2 Project:
 - Install a settings.json file identiyfing the project top-level file
     - Make sure the name of your top-level file is correctly placed in this settings.json file
 
-## Enabling P2 Code Development with PNut_TS on Raspberry Pi
+## Enabling P2 Code Development with PNut-TS on Raspberry Pi
 
-To complete your setup so you can use PNut_TS on your Raspberry Pi under VScode you'll need to:
+To complete your setup so you can use PNut-TS on your Raspberry Pi under VScode you'll need to:
 
 One time:
 
-- Install PNut_TS for all users to use on your RPi
+- Install PNut-TS for all users to use on your RPi
 - Enable USB PropPlug recognition on RPi
 - Add our tasks to the user tasks.json file (*works across all your P2 projects*)
 - Install our common keybinding (*works across all your P2 projects*)
@@ -116,7 +116,7 @@ I have mostly macs for development but I also have a Windows machine and a numbe
 
 - **Synchronize your VSCode settings and extensions** automatically by installing and using the **Settings Sync** VScode extension. Any changes you make to one machine then will be sync'd to your other VScode machines.
 
-- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut_TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
+- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut-TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
   There is nothing worse than trying to remember where you installed a specific tool on the machine you are currently logged into. Because you install say FlexProp in the same place on all your Raspberry Pi's you will know where to find it no matter which RPi you are logged in to.
 
   - All like operating systems should have a specific tool installed in the same location on each. (e.g., all Windows machines have FlexProp installed in one location, all macOS machines have FlexProp installed in a different location that on Windows but it is the same location across all Macs, etc.)
@@ -205,25 +205,25 @@ git pull
 sudo make install INSTALL=/opt/flexprop
 ```
 
-### Installing PNut_TS
+### Installing PNut-TS
 
-On the Raspberry Pi platform we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new compiler and its documents.
+On the Raspberry Pi platform we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new compiler and its documents.
 
 **NOTE**: _The PNut\_TS tool-set does not have a standard install location on Windows. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
 
 Next we move this new version into place.
 
 
-#### Install PNut_TS: RaspiOS
+#### Install PNut-TS: RaspiOS
 
-Architecture specific PNut_TS .zip files available for RPIi/Linux:
+Architecture specific PNut-TS .zip files available for RPIi/Linux:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
 | linux-arm64.zip | Linux, RPi | Arm 64 bit | pnut_ts/
 | linux-x64.zip| Linux | Intel x86-64 bit | pnut_ts/
 
-Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
 We are making a new program install location in these steps. We are going to use the same root directory as FlexProp. So, unzip the downloaded file and move the new folder into place:
 
@@ -231,16 +231,16 @@ We are making a new program install location in these steps. We are going to use
  # unzip folder
  unzip {os-arch}.zip  # should leave a new folder pnut_ts/
  # move the new folder to our /opt tree, right along side flexprop
- sudo mv pnut_Ts /opt
+ sudo mv pnut_ts /opt
  ```
 
  (**NOTE** *We use `sudo` because the normal user is not able to write in the /opt tree.*)
 
 Additionally, I [added a new PATH element](#setting-paths-for-your-p2-compilerstools) in my ~/.profile file to point to the pnut_ts directory.  Now if you are running interactively on this RPi you can reference the pnut-ts executable by name and it will run.
 
-#### Update PNut_TS: RaspiOS
+#### Update PNut-TS: RaspiOS
 
-If I'm updating to a new verison I do the following after downloading the latest version from [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.:
+If I'm updating to a new verison I do the following after downloading the latest version from [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.:
 
 ```bash
 # remove old prior version
@@ -248,7 +248,7 @@ sudo rm -rf /opt/pnut_ts-prior
 # move current to prior
 sudo mv /opt/pnut_ts /opt/pnut_ts-prior
 # navigate to source tree
-cd {downloadFolder}   # to location where you downloaded the latest .zip of PNut_TS
+cd {downloadFolder}   # to location where you downloaded the latest .zip of PNut-TS
 # extract the new pnut_ts folder
 unzip {os-arch}.zip   # should leave a new folder pnut_ts/
 # move folder into place
@@ -277,7 +277,7 @@ if [ -d "/opt/flexprop/bin" ] ; then
 fi
 ```
 
-If you installed PNut_TS you will also want to do this for it as well.
+If you installed PNut-TS you will also want to do this for it as well.
 
 Here I edit my ~/.profile and add the path to pnut_ts.
 
