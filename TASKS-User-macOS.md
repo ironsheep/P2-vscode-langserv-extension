@@ -153,7 +153,7 @@ We double-click on the .dmg file to mount it. It opens a window, then, in the wi
 
 #### Install PNut-TS
 
-Architecture specific PNut-TS .zip files available for RPIi/Linux:
+Architecture specific PNut-TS .zip files available for MacOS:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
