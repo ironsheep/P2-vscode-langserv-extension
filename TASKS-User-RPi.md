@@ -13,7 +13,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from [**Windows**](TASKS-User-win.md), [**MacOS**](TASKS-User-macOS.md), and **RaspiOS** (_this page_) (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **flexprop** and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut_TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -34,6 +34,7 @@ On this Page:
 Additional pages:
 
 - [TOP Level README](README.md) - Back to the top page of this repo
+- [Migrate to v2.3.0](Migrate-v230.md) - checklist to ensure you have migrated to our latest configuration which supports locating installed compilers and compiling and downloading with any of the installed compilers to your USB attached P2
 - [Setup focused on Windows only](TASKS-User-win.md) - All **Windows** notes 
 - [Setup focused on macOS only](TASKS-User-macOS.md) - All **macOS** notes 
 - [VSCode REF: Tasks](https://code.visualstudio.com/docs/editor/tasks) - Offsite: VSCode Documentation for reference
@@ -44,6 +45,8 @@ Additional pages:
 
 ```
 Latest Updates:
+31 Aug 2024
+- Add PNut_TS notes and installation
 12 Jun 2024
 - Updated to reflect new Spin2 Extension built-in compile/download support
 18 Jul 2023
@@ -77,7 +80,26 @@ One time:
 
 - Install FlexProp for all users to use on your RPi
 - Enable USB PropPlug recognition on RPi
-- Add our tasks to the user tasks.json file (*works across all your P2 projects*)</br>(*Make sure the paths to your compiler and loader binaries are correct*)
+- Add our tasks to the user tasks.json file (*works across all your P2 projects*)
+- Install our common keybinding (*works across all your P2 projects*)
+- Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
+    - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
+    - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
+
+For each P2 Project:
+
+- Install a settings.json file identiyfing the project top-level file
+    - Make sure the name of your top-level file is correctly placed in this settings.json file
+
+## Enabling P2 Code Development with PNut_TS on Raspberry Pi
+
+To complete your setup so you can use PNut_TS on your Raspberry Pi under VScode you'll need to:
+
+One time:
+
+- Install PNut_TS for all users to use on your RPi
+- Enable USB PropPlug recognition on RPi
+- Add our tasks to the user tasks.json file (*works across all your P2 projects*)
 - Install our common keybinding (*works across all your P2 projects*)
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
     - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
@@ -103,21 +125,16 @@ I have mostly macs for development but I also have a Windows machine and a numbe
 
 ## Development Machine Setup and Configuration
 
-### Installing FlexProp
 
-On the Raspberry Pi platform we'll use `git(1)` to download the FlexProp souce, unlike on the MacOS and Windows machines where we instead get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and upacking the zip file to produce a `flexprop` folder containing the new version.  
+### Setup and Configure for P2 development: RaspiOS
 
-**NOTE**: *The flexprop toolset does not have a standard install location. So we will likely have many locations amongst all of us P2 users.  You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system.  Alternatively, it should be safe to just follow what I do in these instructions explictly.  This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same.*
+#### The Rasperry Pi OS (RaspiOS)
 
-#### Setup and Configure for P2 development: RaspiOS
-
-##### The Rasperry Pi OS (RaspiOS)
-
-On my raspberry Pi's I run **rspios** as distributed by [raspberrypi.org](https://www.raspberrypi.org/) from the [downloads page](https://www.raspberrypi.org/software/operating-systems)
+On my raspberry Pi's I run **raspios** as distributed by [raspberrypi.org](https://www.raspberrypi.org/) from the [downloads page](https://www.raspberrypi.org/software/operating-systems)
 
 I tend to want the best performance from my gear so on my RPi-3's and RPi-4's I tend to run the 64bit raspios.
 
-I've been doing this for quite a while and have a small farm of RPi's. I tend to place the image on a uSD card and then boot from it initially with a keyboard and screen attached.  I then "welcome" my new machine to my network and time zone and give it a hostname unique and generally fortelling of this purpose of this new RPi.  I also end up running the classic update sequence to ensure my new machine has the latest software available as well as all the latest security patches:
+I've been doing this for quite a while and have a small farm of RPi's. I tend to place the image on a uSD card and then boot from it initially with a keyboard and screen attached.  I then "welcome" my new machine to my network and time zone and give it a hostname unique and generally fortelling of this purpose of this new RPi. I enable the SSH and VNC services to enable me to access these RPis remotely.  I also end up running the classic update sequence to ensure my new machine has the latest software available as well as all the latest security patches:
 
 ```bash
 # my update process which I run each time when I first log into my machine after a bit of time away
@@ -127,7 +144,7 @@ $ sudo apt-get dist-upgrade
 
 After the new RPi can boot and automatically attach to my network I then remove the screen and keyboard.  I run most my RPi's remotely and "headless" (meaning no screen/keyboard attached.)
 
-##### Using the Parallax PropPlug on Raspbery Pi's
+#### Using the Parallax PropPlug on Raspbery Pi's
 
 The Parallax PropPlug has a custom parallax VID:PID USB pair and as such is not, by default, recognized by raspiOS when you first plug in the PropPlug.
 
@@ -147,7 +164,13 @@ SYSFS{idProduct}==”6001”, SYSFS{idVendor}==”0403”, RUN+=”/sbin/modprob
 
 After this file was saved, I rebooted the RPi.  After the RPi came back up I plugged in the PropPlug I saw /dev/ttyUSB0 appear as my PropPlug.  
 
-##### Install flexprop: RaspiOS
+### Installing FlexProp
+
+On the Raspberry Pi platform we'll use `git(1)` to download the FlexProp source, unlike on the MacOS and Windows machines where we instead get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and upacking the zip file to produce a `flexprop` folder containing the new version.  
+
+**NOTE**: *The flexprop toolset does not have a standard install location. So we will likely have many locations amongst all of us P2 users.  You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system.  Alternatively, it should be safe to just follow what I do in these instructions explictly.  This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same.*
+
+#### Install flexprop: RaspiOS
 
 Installing the flexprop toolset on the Raspberry Pi (*raspos, or any debian derivative, Ubuntu, etc.*) is a breeze when you follow [Eric's instructions that just work!](https://github.com/totalspectrum/flexprop#building-from-source)
 
@@ -163,7 +186,7 @@ In my case, I used Eric's suggestion to instruct the build/install process to in
 Additionally, I [added a new PATH element](#setting-paths-for-your-p2-compilerstools) in my ~/.profile file to point to the flexprop bin directory.  Now if you are running interactively on this RPi you can reference the flexprop or loadp2 executables by name and they will run.
 
 
-##### Update flexprop: RaspiOS
+#### Update flexprop: RaspiOS
 
 If I'm updating to a new verison I do the following:
 
@@ -180,6 +203,59 @@ make clean
 git pull
 # build flexprop then install flexprop in /opt/flexprop
 sudo make install INSTALL=/opt/flexprop
+```
+
+### Installing PNut_TS
+
+On the Raspberry Pi platform we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new compiler and its documents.
+
+**NOTE**: _The PNut\_TS tool-set does not have a standard install location on Windows. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
+
+Next we move this new version into place.
+
+
+#### Install PNut_TS: RaspiOS
+
+Architecture specific PNut_TS .zip files available for RPIi/Linux:
+
+| Archive Name | Operating System | Architecture | Unpack Leaves
+| --- | --- | --- | --- |
+| linux-arm64.zip | Linux, RPi | Arm 64 bit | pnut_ts/
+| linux-x64.zip| Linux | Intel x86-64 bit | pnut_ts/
+
+Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+
+We are making a new program install location in these steps. We are going to use the same root directory as FlexProp. So, unzip the downloaded file and move the new folder into place:
+
+ ```bash
+ # unzip folder
+ unzip {os-arch}.zip  # should leave a new folder pnut_ts/
+ # move the new folder to our /opt tree, right along side flexprop
+ sudo mv pnut_Ts /opt
+ ```
+
+ (**NOTE** *We use `sudo` because the normal user is not able to write in the /opt tree.*)
+
+Additionally, I [added a new PATH element](#setting-paths-for-your-p2-compilerstools) in my ~/.profile file to point to the pnut_ts directory.  Now if you are running interactively on this RPi you can reference the pnut-ts executable by name and it will run.
+
+#### Update PNut_TS: RaspiOS
+
+If I'm updating to a new verison I do the following after downloading the latest version from [PNut_TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.:
+
+```bash
+# remove old prior version
+sudo rm -rf /opt/pnut_ts-prior
+# move current to prior
+sudo mv /opt/pnut_ts /opt/pnut_ts-prior
+# navigate to source tree
+cd {downloadFolder}   # to location where you downloaded the latest .zip of PNut_TS
+# extract the new pnut_ts folder
+unzip {os-arch}.zip   # should leave a new folder pnut_ts/
+# move folder into place
+sudo mv pnut_ts /opt  # move the new folder to our /opt tree, right along side flexprop
+# remove the .zip as it's no longer needed
+rm {os-arch}.zip
+cd -                  # return to the directory you were in before you entered {downloadFolder} 
 ```
 
 ### Setting paths for your P2 Compilers/Tools
@@ -201,7 +277,18 @@ if [ -d "/opt/flexprop/bin" ] ; then
 fi
 ```
 
-From here on when I start new terminal windows we can invoke the flexprop binaries by name without using the path to them.
+If you installed PNut_TS you will also want to do this for it as well.
+
+Here I edit my ~/.profile and add the path to pnut_ts.
+
+```bash
+# set PATH so it includes optional install of pnut_ts if it exists
+if [ -d "/opt/pnut_ts" ] ; then
+    PATH="$PATH:/opt/pnut_ts"
+fi
+```
+
+From here on when I start new terminal windows we can invoke the flexprop binaries or pnut_ts by name without using the path to them.
 
 ## Tasks in VScode
 
