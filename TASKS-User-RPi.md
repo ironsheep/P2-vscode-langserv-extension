@@ -116,7 +116,7 @@ I have mostly macs for development but I also have a Windows machine and a numbe
 
 - **Synchronize your VSCode settings and extensions** automatically by installing and using the **Settings Sync** VScode extension. Any changes you make to one machine then will be sync'd to your other VScode machines.
 
-- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install say, FlexProp, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
+- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut_TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
   There is nothing worse than trying to remember where you installed a specific tool on the machine you are currently logged into. Because you install say FlexProp in the same place on all your Raspberry Pi's you will know where to find it no matter which RPi you are logged in to.
 
   - All like operating systems should have a specific tool installed in the same location on each. (e.g., all Windows machines have FlexProp installed in one location, all macOS machines have FlexProp installed in a different location that on Windows but it is the same location across all Macs, etc.)
