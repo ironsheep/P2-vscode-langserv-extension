@@ -85,6 +85,14 @@ Spin2-LSP-000 TODOs:
 		- In intersystems-language-server do
 			- Search for "intersystems/refactor/listOverridableMembers" to see all code parts needed
 	
+	USB Issues Before Release:
+	- MacOS:
+		- proploader communicates plug but doesn't start code running after download
+		- loadp2 communicates plug but doesn't start code running after download, also Error no checksum rcvd!
+	- Windows:
+		- loadp2 error opening comN port!
+	
+	
 	BUGs:
 		- BUG -CRASH- when parsing:  SPIN1_asSpin2/test_spin.spin2      ->  FLOAT/TRUNC/ROUND in OBJ!
 		- BUG -CRASH- when parsing:  spin/test_spin.spin                           ->  FLOAT/TRUNC/ROUND in OBJ!
