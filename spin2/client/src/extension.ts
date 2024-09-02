@@ -260,10 +260,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook GENERATE list of USB Serial (Proplug) Devices
   //
-  const selectPropPlugFromList: string = 'spinExtension.select.propplug';
+  const selectPropPlugFromListCommand: string = 'spinExtension.select.propplug';
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(selectPropPlugFromList, async function () {
+    vscode.commands.registerCommand(selectPropPlugFromListCommand, async function () {
       logExtensionMessage('CMD: selectPropPlugFromList');
       runtimeSettingChangeInProgress = true;
       await scanForAndRecordPropPlugs(); // load current list into settings
@@ -320,9 +320,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook to Return all compile arguments and filename for use in UserTasks
   //
-  const getCompileArgs: string = 'spinExtension.getCompArguments';
+  const getCompileArgsCommand: string = 'spinExtension.getCompilerArguments';
   context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileArgs, () => {
+    vscode.commands.registerCommand(getCompileArgsCommand, () => {
       const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
       const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
       const quotedOptionsBuildAr = optionsBuildAr.map((option) => (option.includes(' ') ? `"${option}"` : option));
@@ -333,26 +333,11 @@ function registerCommands(context: vscode.ExtensionContext): void {
   );
 
   // ----------------------------------------------------------------------------
-  //   Hook to Return all compile arguments and filename for use in UserTasks
-  //
-  const getCompileAllArgs: string = 'spinExtension.getCompArgumentsWithFilename';
-  context.subscriptions.push(
-    vscode.commands.registerCommand(getCompileAllArgs, () => {
-      const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
-      const sourceFilename = getActiveSourceFilename();
-      const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      optionsBuildAr.push(sourceFilename);
-      logExtensionMessage(`CMD: getCompArgumentsWithFilename -> [${optionsBuildAr}]`);
-      return optionsBuildAr;
-    })
-  );
-
-  // ----------------------------------------------------------------------------
   //   Hook to Return all loader arguments and filename for use in UserTasks
   //
-  const getLoaderArgs: string = 'spinExtension.getLoaderArguments';
+  const getLoaderArgsCommand: string = 'spinExtension.getLoaderArguments';
   context.subscriptions.push(
-    vscode.commands.registerCommand(getLoaderArgs, () => {
+    vscode.commands.registerCommand(getLoaderArgsCommand, () => {
       const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
       const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
       const quotedOptionsLoaderAr = optionsLoaderAr.map((option) => (option.includes(' ') ? `"${option}"` : option));
@@ -365,9 +350,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook TOGGLE compile w/Debug and update display
   //
-  const toggleCompileWithDebug: string = 'spinExtension.toggle.debug';
+  const toggleCompileWithDebugCommand: string = 'spinExtension.toggle.debug';
   context.subscriptions.push(
-    vscode.commands.registerCommand(toggleCompileWithDebug, async () => {
+    vscode.commands.registerCommand(toggleCompileWithDebugCommand, async () => {
       logExtensionMessage('CMD: toggleCompileWithDebug');
       try {
         runtimeSettingChangeInProgress = true;
@@ -387,10 +372,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook TOGGLE download to FLASH and update display
   //
-  const toggleDownloadToFlash: string = 'spinExtension.toggle.flash';
+  const toggleDownloadToFlashCommand: string = 'spinExtension.toggle.flash';
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(toggleDownloadToFlash, async () => {
+    vscode.commands.registerCommand(toggleDownloadToFlashCommand, async () => {
       logExtensionMessage('CMD: toggleDownloadToFlash');
       try {
         runtimeSettingChangeInProgress = true;
@@ -410,10 +395,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook Compile current .spin2 file
   //
-  const compileCurrentSpin2File: string = 'spinExtension.compile.currfile';
+  const compileCurrentSpin2FileCommand: string = 'spinExtension.compile.currfile';
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(compileCurrentSpin2File, async () => {
+    vscode.commands.registerCommand(compileCurrentSpin2FileCommand, async () => {
       logExtensionMessage('CMD: compileCurrentSpin2File');
       if (await ensureIsGoodCompilerSelection()) {
         const tasks = await vscode.tasks.fetchTasks();
@@ -434,10 +419,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook Compile TOP .spin2 file
   //
-  const compileTopSpin2File: string = 'spinExtension.compile.topfile';
+  const compileTopSpin2FileCommand: string = 'spinExtension.compile.topfile';
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(compileTopSpin2File, async () => {
+    vscode.commands.registerCommand(compileTopSpin2FileCommand, async () => {
       // this compile will fall-back to compile current when there is NO 'topLevel' defined!
       const topFilename = toolchainConfiguration.topFilename;
       const taskName = topFilename !== undefined ? 'compileTopP2' : 'compileP2';
@@ -461,12 +446,12 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // ----------------------------------------------------------------------------
   //   Hook Download TOP binary file
   //
-  const downloadTopFile: string = 'spinExtension.download.topfile';
+  const downloadTopFileCommand: string = 'spinExtension.download.topfile';
 
   let downloaderTerminal: vscode.Terminal | undefined = undefined;
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(downloadTopFile, async () => {
+    vscode.commands.registerCommand(downloadTopFileCommand, async () => {
       logExtensionMessage('CMD: downloadTopFile');
       const activeTopFilename: string = getActiveSourceFilename();
       const haveP1Download: boolean = activeTopFilename !== undefined && activeTopFilename.endsWith('.spin');
@@ -477,8 +462,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
         if (selectedCompiler !== undefined) {
           if (selectedCompiler == PATH_PNUT_TS) {
             useInternalDownloader = true;
-          } else if (selectedCompiler == PATH_FLEXSPIN && isMac()) {
-            useInternalDownloader = true;
+            //} else if (selectedCompiler == PATH_FLEXSPIN && isMac()) {
+            //    useInternalDownloader = true;
           }
         }
         if (useInternalDownloader) {
@@ -774,9 +759,15 @@ echo $? >${outputFile}.status
   //*/
 
   // ----------------------------------------------------------------------------
+  //   Set Up our ToolChain enabled state
+  //
+  // post information to out-side world via our CONTEXT at startup
+  vscode.commands.executeCommand('setContext', 'runtime.spin2.toolchain.enabled', toolchainConfiguration.advancedToolChainEnabled);
+
+  // ----------------------------------------------------------------------------
   //   Set Up our TAB Formatting
   //
-  // post information to out-side world via our CONTEXT
+  // post information to out-side world via our CONTEXT at startup
   vscode.commands.executeCommand('setContext', 'runtime.spin2.elasticTabstops.enabled', tabFormatter.isEnabled());
 
   // ----------------------------------------------------------------------------
@@ -1026,10 +1017,10 @@ async function locateTools(): Promise<void> {
   if (isWindows()) {
     const envDirs = envPath.split(':').filter(Boolean);
     // C:\Program Files (x86)\Parallax Inc\PNut
-    // C:\Program Files (x86)\IronSheepProductionsLLC\pnut_ts
-    //  C:\Programs\TotalSpectrum\flexprop
+    // C:\Programs\IronSheepProductions\pnut_ts
+    // C:\Programs\TotalSpectrum\flexprop
     const appFlexProp = path.join(`${path.sep}Programs`, 'TotalSpectrum', 'flexprop', 'bin');
-    const appPNutTS = path.join(`${path.sep}Program Files (x86)`, 'IronSheepProductionsLLC', 'pnut_ts');
+    const appPNutTS = path.join(`${path.sep}Programs`, 'IronSheepProductions', 'pnut_ts');
     const appParallax = path.join(`${path.sep}Program Files (x86)`, 'Parallax Inc');
     const appPNut = path.join(`${appParallax}`, 'PNut');
     platformPaths = [...envDirs, appParallax, appPNut, appPNutTS, appFlexProp];
@@ -1418,7 +1409,8 @@ function showHideLoaderSBControls(textDocument: vscode.TextDocument) {
     haveCompilerAndDocument = true;
   }
 
-  if (haveCompilerAndDocument) {
+  // advanced toolchain support must be enabled
+  if (haveCompilerAndDocument && toolchainConfiguration.advancedToolChainEnabled) {
     updateStatusBarCompileDebugItem(true);
     updateStatusBarFlashDownloadItem(true);
     updateStatusBarPropPlugItem(true);
@@ -1739,7 +1731,7 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}), force=(${forceUpdate}${overrideFSpec}) - EXIT`);
 }
 
-const useProploaderForP2: boolean = false;
+const useProploaderForP2: boolean = true; // WARNING (REMOVE BEFORE FLIGHT) Ensure is desired value
 const useLoaderInFilename: boolean = false;
 
 async function writeToolchainBuildVariables(callerID: string, forceUpdate?: boolean, currFspec?: string): Promise<void> {
@@ -1839,7 +1831,7 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     let loaderSglLtrOptions: string = '-v'; // verbose for time being....
     if (haveP2) {
       // setup loadp2/proploader arguments for P2 download
-      if (!useProploaderForP2) {
+      if (useProploaderForP2 == false) {
         // Load P2 using: loadp2{.mac|.exe}
         if (enterTerminalAfter) {
           loaderSglLtrOptions = loaderSglLtrOptions.concat(termType);

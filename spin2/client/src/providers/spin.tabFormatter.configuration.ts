@@ -68,5 +68,8 @@ export const reloadTabConfiguration = () => {
   // and copy our new tab stops too
   tabConfiguration.blocks = newTabConfiguration.blocks;
 
+  // post information to out-side world via our CONTEXT at config change
+  vscode.commands.executeCommand('setContext', 'runtime.spin2.elasticTabstops.enabled', tabConfiguration.enable);
+
   return true;
 };

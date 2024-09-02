@@ -1,0 +1,34 @@
+' -----------------------------------------------
+' things noticed during testing of pnut_ts
+' -----------------------------------------------
+CON
+    REGION_SIZE = 4096
+    DISPLAY_SIZE = 4096
+    TEXT_SIZE = -5
+    COLOR_SIZE = 5e-4
+
+VAR
+    '' BAD /4's should be green constant
+    long color[4]     ' long array
+    long region[REGION_SIZE/4]     ' text region structure
+    long display[DISPLAY_SIZE/4]   ' display structure
+
+
+' -----------------------------------------------
+
+PRI init(cog, basePin, vsyncPin, output, flags, timing) : id | displayFlags
+
+'' BAD highlight of wrapping comments
+' start a VGA display output, pointing it to the first (and only) region for its display list, and auto allocate it a COG
+    id := initDisplay(cog,        { the cogid to use (-1 = auto-allocate)
+}                       @display,       { the display structure address in HUB RAM
+}                       output,         { video output type (VGA/DVI etc)
+}                       basePin,        { base pin number (hsync pin) of DVI pin group
+}                       vsyncPin,       { VSYNC pin (not used for DVI)
+}                       displayFlags,   { display flags
+}                       0,              { optional external memory mailbox address in HUB RAM (0=none)
+}                       )
+
+PRI initDisplay(cog, pDisplay, output, basePin, syncPin, flags, mbox) : id | displayFlags
+
+' -----------------------------------------------

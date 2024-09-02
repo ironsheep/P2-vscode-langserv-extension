@@ -48,23 +48,36 @@ Insert Mode Adjustments:
 Click on the 4th section to see:
 
 ![Settings 4 of 5](./DOCs/stgs-toolchain1.png)
-**FIGURE 4**: with the 4th section selected (only showing first group of entries)
+**FIGURE 4**: with the 4th section selected (showing first group of entries)
 
 ToolChain Adjustments:
 
 You will be modifying only a couple of the values in this section. The remainder are determined when VSCode starts or when you interact with status-bar controls. The following are the values you will be periodically adjusting.
 
+- **Enable Advanced Toolchain support** - This enables all of the toolchain behaviors (off by default)
+- **Installations Found** - Lists which compilers were found to be installed on this machine
 - **Selected Compiler** - Choose the compiler you wish to use (set for User/Workspace)
 - **Enable listing output**- Enable/disable .lst file output
+- **Flexspin Debug**- Select between -gbrk and -g
+- **Enable Compatibility PST**- selects which terminal behavior will be used
 - **Enter Terminal After**- select one of [ never, when debug() enabled, or always ]
 - **User Baudrate**- Enter the comms rate for you application serial debug output
-- **Flexspin Debug**- Select between -gbrk and -g
 
 The following are adjusted by clicking on status bar controls:
 
 - **Enable Debug()** - Click on "debug:[ON/off]" StatusBar control
 - **Enable Flash**- Click on "Dnld:[RAM/FLASH]" StatusBar control
-- **Selected PropPlug**- Click on "Plug:..." StatusBar control
+
+![Settings 4 of 5](./DOCs/stgs-toolchain2.png)
+**FIGURE 5**: with the 4th section selected (showing second group of entries)
+
+The 'paths' entries are all runtime configured. **Please do not adjust any of these paths.**
+
+- **Prop Plug: devices found**- lists which prop plugs are plugged into usb ports
+
+The following is adjusted by clicking on status bar controls:
+
+- **Prop Plug: Selected**- Shows which prop plug you are downloading to. Click on "plug:[name, N/A]" StatusBar control to change this.
 
 ## Our Spin/Spin2 VSCode Key Mapping
 

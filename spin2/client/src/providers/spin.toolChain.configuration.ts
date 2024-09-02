@@ -40,6 +40,7 @@ const loadToolchainConfiguration = () => {
   if (flexspinDebugFlag === undefined) {
     flexspinDebugFlag = '-gbrk'; // default value if no value found
   }
+  const advancedToolChainEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'advanced.enable');
   const lstOutputEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsCompile.enableLstOutput');
   const writeFlashEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableFlash');
   const termIsPstCompatible: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableCompatibilityPST');
@@ -94,6 +95,7 @@ const loadToolchainConfiguration = () => {
     selectedCompilerID,
     debugEnabled,
     flexspinDebugFlag,
+    advancedToolChainEnabled,
     lstOutputEnabled,
     writeFlashEnabled,
     termIsPstCompatible,
@@ -140,6 +142,7 @@ export const reloadToolchainConfiguration = () => {
     toolchainConfiguration.selectedCompilerID === newToolchainConfig.selectedCompilerID &&
     toolchainConfiguration.debugEnabled === newToolchainConfig.debugEnabled &&
     toolchainConfiguration.flexspinDebugFlag === newToolchainConfig.flexspinDebugFlag &&
+    toolchainConfiguration.advancedToolChainEnabled === newToolchainConfig.advancedToolChainEnabled &&
     toolchainConfiguration.lstOutputEnabled === newToolchainConfig.lstOutputEnabled &&
     toolchainConfiguration.writeFlashEnabled === newToolchainConfig.writeFlashEnabled &&
     toolchainConfiguration.termIsPstCompatible === newToolchainConfig.termIsPstCompatible &&
@@ -159,6 +162,7 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.selectedCompilerID = newToolchainConfig.selectedCompilerID;
   toolchainConfiguration.debugEnabled = newToolchainConfig.debugEnabled;
   toolchainConfiguration.flexspinDebugFlag = newToolchainConfig.flexspinDebugFlag;
+  toolchainConfiguration.advancedToolChainEnabled = newToolchainConfig.advancedToolChainEnabled;
   toolchainConfiguration.lstOutputEnabled = newToolchainConfig.lstOutputEnabled;
   toolchainConfiguration.writeFlashEnabled = newToolchainConfig.writeFlashEnabled;
   toolchainConfiguration.termIsPstCompatible = newToolchainConfig.termIsPstCompatible;
@@ -166,6 +170,9 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode;
   toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload;
   toolchainConfiguration.userBaudrate === newToolchainConfig.userBaudrate;
+
+  // post information to out-side world via our CONTEXT at config change
+  vscode.commands.executeCommand('setContext', 'runtime.spin2.toolchain.enabled', toolchainConfiguration.advancedToolChainEnabled);
 
   return true;
 };
