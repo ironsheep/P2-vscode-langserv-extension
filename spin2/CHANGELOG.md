@@ -20,7 +20,7 @@ Possible next additions:
 
 ## [2.3.0] 2024-08-??
 
-Updates to Compile/Download support
+Updates to Compile/Download support for P2
 
 This update improves/simplifies the ability to compile and download code for Spin2 projects
 
@@ -30,11 +30,12 @@ This update improves/simplifies the ability to compile and download code for Spi
 - NEW statusBar control for switching between compile with debug() and without
 - NEW statusBar control for switching between download to FLASH / RAM
 - NEW statusBar control for selecting amongst available PropPlugs
-- Setting to enable this new spin2 support (disabled by defult)
+- NEW Setting to enable this new spin2 support (disabled by defult)
 
 General Repairs
 
 - BUGFIX repair crash when system-settings documents are open at startup
+- BUGFIX Semantic Highlighting: improved VAR section index coloring
 
 ## [2.2.18] 2024-05-09
 

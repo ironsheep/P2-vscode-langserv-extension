@@ -122,11 +122,9 @@ repository:
     name: constant.numeric.decimal.spin2
     patterns:
       - name: constant.numeric.base10.spin2
-        match: '([\+\-][0-9][0-9_]*)\b'
+        match: '\b[\+\-]?([0-9][0-9_]*)\b'
       - name: constant.numeric.base10.spin2
-        match: '\b([0-9][0-9_]*)\b'
-      - name: constant.numeric.base10.spin2
-        match: '\b([0-9]+)[eE][\+\-]?[0-9]+\b'
+        match: '\b([0-9][0-9_]*)[eE][\+\-]?[0-9]+\b'
   includes_dat:
     name: keyword.control.include.spin2
     match: '(?i)\bFILE\b'
@@ -329,7 +327,6 @@ repository:
     patterns:
       - include: "#comment"
       - include: "#constants"
-      - include: "#array_index"
       - include: "#number"
       - include: "#string"
       - include: "#spin2_field_operations"
@@ -439,7 +436,7 @@ repository:
       - include: "#number"
       - include: "#array_index"
       - include: "#pasm_storage_alignment"
-      - match: '(?i)\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\s*(\w+)(\[.*\])?'
+      - match: '(?i)\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\s*(\w+)(\[.*\])?\b'
         captures:
           "1": { name: storage.type.spin2 }
           "2": { name: variable.name.var.spin2 }

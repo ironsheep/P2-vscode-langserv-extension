@@ -16,7 +16,7 @@ OBJ
 ' non-doc comment
 '' doc comment too
 
-    child1 : "child" | MULTIPLIER = 3, COUNT = 5        ' override child constants
+    child1 : "dummy_child" | MULTIPLIER = 3, COUNT = 5        ' override child constants
 
 OBJ
 ' non-doc comment

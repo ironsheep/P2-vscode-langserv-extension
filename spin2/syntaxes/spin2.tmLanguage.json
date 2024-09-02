@@ -255,15 +255,11 @@
       "patterns": [
         {
           "name": "constant.numeric.base10.spin2",
-          "match": "([\\+\\-][0-9][0-9_]*)\\b"
+          "match": "\\b[\\+\\-]?([0-9][0-9_]*)\\b"
         },
         {
           "name": "constant.numeric.base10.spin2",
-          "match": "\\b([0-9][0-9_]*)\\b"
-        },
-        {
-          "name": "constant.numeric.base10.spin2",
-          "match": "\\b([0-9]+)[eE][\\+\\-]?[0-9]+\\b"
+          "match": "\\b([0-9][0-9_]*)[eE][\\+\\-]?[0-9]+\\b"
         }
       ]
     },
@@ -681,9 +677,6 @@
           "include": "#constants"
         },
         {
-          "include": "#array_index"
-        },
-        {
           "include": "#number"
         },
         {
@@ -904,7 +897,7 @@
           "include": "#pasm_storage_alignment"
         },
         {
-          "match": "(?i)\\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\\s*(\\w+)(\\[.*\\])?",
+          "match": "(?i)\\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\\s*(\\w+)(\\[.*\\])?\\b",
           "captures": {
             "1": {
               "name": "storage.type.spin2"

@@ -8,20 +8,21 @@ VAR CogNum                  ' The default variable size is LONG (32 bits).
     Avar, Bvar, Cvar
 
     BYTE StringChr          ' byte variable (8 bits)
-    BYTE StringBuff[64]     ' byte variable array (64 bytes)
+    BYTE StringBuff2[$40]     ' byte variable array (64 bytes) SYNTAX BUG
     BYTE a,b,c[1000],d      ' comma-separated declarations
 
     WORD CurrentCycle       ' word variable (16 bits)
-    WORD Cycles[200]        ' word variable array (200 words)
+    WORD Cycles4[200]        ' word variable array (200 words) SYNTAX BUG
 
 
     WORD e,f[5],g,h[10]         ' comma-separated declarations
 
     LONG Value                  ' long variable
-    LONG Values[15]             ' long variable array (15 longs)
-    LONG i[100],j,k,l           ' comma-separated declarations
+    LONG Values[15]             ' long variable array (15 longs) SYNTAX BUG
+    LONG i[100],j,k,l           ' comma-separated declarations SYNTAX BUG
 
     ALIGNW                      ' word-align to hub memory, advances variable pointer as necessary
 
     ALIGNL                      ' long-align to hub memory, advances variable pointer as necessary
-    BYTE Bitmap[640*480]        ' ..useful for making long-aligned buffers for FIFO-wrapping
+    BYTE Bitmap[640 * 480]        ' ..useful for making long-aligned buffers for FIFO-wrapping SYNTAX BUG
+    BYTE Bitmap2[640*480]        ' ..useful for making long-aligned buffers for FIFO-wrapping SYNTAX BUG
