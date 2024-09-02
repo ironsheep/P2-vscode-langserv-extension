@@ -88,17 +88,17 @@ The kayboard mappings are different on Windows than they are on Mac, RPi or Linu
 ### The Key Mapping on Windows:
 
 ![Keys 1 of 3](./DOCs/win-keys.png)
-**FIGURE 5**: Keyboard Shortcuts screen on Windows.
+**FIGURE 6**: Keyboard Shortcuts screen on Windows.
 
 ### The Key Mapping on RPi, Linux:
 
 ![Keys 2 of 3](./DOCs/RPi-keys.png)
-**FIGURE 6**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
+**FIGURE 7**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
 
 ### The Key Mapping on MacOS:
 
 ![Keys 3 of 3](./DOCs/mac-keys.png)
-**FIGURE 7**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
+**FIGURE 8**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
 
 ## License
 
