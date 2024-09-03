@@ -47,7 +47,7 @@ Step-by-step, one-time, migration of your environment to v2.3.0 is covered in ou
 - File navigation from **Object Hierarchy View**
 - **Edit Mode** support à la Parallax **Propeller Tool** [Insert, Overtype and Align]
 - Provides rich companion themes for use with non-color backgrounds or with colored backgrounds as well as Syntax only theme (mostly used during semantic highlighting development.
-- **Compile/Download Support** built-in:
+- **P1 Compile only, P2 Compile/Download Support** built-in:
    - Auto detection of installed compilers; supports **FlexSpin**, **pnut_ts** (and **PNut** when on Windows)
    - Status Bar control for enable/disable of debug() compilation.
    - Status Bar control of download to RAM or FLASH.
@@ -56,6 +56,7 @@ Step-by-step, one-time, migration of your environment to v2.3.0 is covered in ou
 ### Up next
 We are working on the next updates:
 
+- Add ability to use external loaders/terminal for P1 & P2
 - Improve Hover support (more doc details such as pasm code help)
 
 These are not yet definate but I'm:
@@ -72,7 +73,7 @@ These are not yet definate but I'm:
 
 In VSCode search for the "spin2" extension and install it.  It's that easy!  After installation you will be notified to download and install a new version as new versions are released.
 
-**Note:** This extension replaces the [Spin by Entomy](https://marketplace.visualstudio.com/items?itemName=Entomy.spin) vscode extension. While either can be used, our version provides more comprehensive Syntax highlighting (as the former has not been maintained) and this extension adds full Semantic Highlighting, Outlining, and Tab support with InsertModes, Document generation, etc. The older Spin extension can now be uninstalled with no loss of functionality.
+**Note:** This extension fully replaces the [Spin by Entomy](https://marketplace.visualstudio.com/items?itemName=Entomy.spin) vscode extension. While either can be used, our version provides more comprehensive Syntax highlighting (as the former has not been maintained) and this extension adds full Semantic Highlighting, Outlining, and Tab support with InsertModes, Document generation, etc. The older Spin extension can now be uninstalled with no loss of functionality.
 
 ## VSCode Environment
 
