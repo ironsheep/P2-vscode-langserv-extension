@@ -22,7 +22,7 @@ The **P1 Forum Thread** containing discussion of [this VSCode support](https://f
 
 This new release adds runtime detection of compilers and support for switching compilers for a given project.
 
-Step-by-step, one-time, migration of your environment to v2.3.0 covered in our [Migrate Checklist](Migrate-v230.md) page.  Please visit this page to adjust your setup for this new version.
+Step-by-step, one-time, migration of your environment to v2.3.0 is covered in our [Migrate Checklist](Migrate-v230.md) page.  Please visit this page to adjust your setup for this new version.
 
 ## Features
 - Full **language server based** support for both P1 (spin/pasm) and P2 (spin2/pasm2) languages
@@ -48,7 +48,7 @@ Step-by-step, one-time, migration of your environment to v2.3.0 covered in our [
 - **Edit Mode** support à la Parallax **Propeller Tool** [Insert, Overtype and Align]
 - Provides rich companion themes for use with non-color backgrounds or with colored backgrounds as well as Syntax only theme (mostly used during semantic highlighting development.
 - **Compile/Download Support** built-in:
-   - Auto detection of installed compilers; supports **FlexSpin** (and **PNut** when on Windows)
+   - Auto detection of installed compilers; supports **FlexSpin**, **pnut_ts** (and **PNut** when on Windows)
    - Status Bar control for enable/disable of debug() compilation.
    - Status Bar control of download to RAM or FLASH.
    - Status Bar control over which PropPlug to use.

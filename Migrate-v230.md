@@ -5,7 +5,7 @@
 
 # Migrate from v2.2.x to v2.3.0
 
-The old user-tasks file and the old keyboard bindings should work with the setting: `Spin Extension->Toolchain->Advanced:Enable` **unchecked**.  By default this setting is unchecked (Disabled.)
+The old user-tasks file and the old keyboard bindings should work with the setting: `Spin Extension->Toolchain->Advanced:Enable` **unchecked** (disabled.)  By default this setting is unchecked (Disabled.)
 
 However, to use the new Spin2 advanced toolchain features you will want to enable this setting.  The remainder of this page walks you through making these changes.
 
