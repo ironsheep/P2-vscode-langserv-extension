@@ -18,24 +18,23 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.3.0] 2024-08-??
+## [2.3.0] 2024-09-03
 
 Updates to Compile/Download support for P2
 
 This update improves/simplifies the ability to compile and download code for Spin2 projects
 
-- NEW automatic discovery and support for FlexProp loadp2 download to ram or flash.
-- NEW Automatic toolchain discovery (paths for FlexProp, PNut, and pnut_ts are now automatically determined)
+- NEW Automatic Toolchain discovery (paths for FlexProp, PNut, and pnut_ts are now automatically determined)
 - NEW Automatic PropPlug discovery
 - NEW statusBar control for switching between compile with debug() and without
 - NEW statusBar control for switching between download to FLASH / RAM
-- NEW statusBar control for selecting amongst available PropPlugs
-- NEW Setting to enable this new spin2 support (disabled by defult)
+- NEW statusBar control for selecting amongst available USB attached PropPlugs
+- NEW Setting to enable all this new spin2 toolchain support (disabled by defult)
 
 General Repairs
 
-- BUGFIX repair crash when system-settings documents are open at startup
-- BUGFIX Semantic Highlighting: improved VAR section index coloring
+- BUGFIX Repair crash when system-settings documents are open at startup
+- BUGFIX Spin2 Semantic Highlighting: fixed VAR section index coloring
 
 ## [2.2.18] 2024-05-09
 
