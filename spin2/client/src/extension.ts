@@ -50,7 +50,7 @@ enum eConfigSection {
   CS_WORKSPACE
 }
 
-const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
@@ -1731,7 +1731,7 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
   logExtensionMessage(`* writeToolchainBinFnameVariable(${callerID}), force=(${forceUpdate}${overrideFSpec}) - EXIT`);
 }
 
-const useProploaderForP2: boolean = true; // WARNING (REMOVE BEFORE FLIGHT) Ensure is desired value
+const useProploaderForP2: boolean = false; // WARNING (REMOVE BEFORE FLIGHT) Ensure is desired value
 const useLoaderInFilename: boolean = false;
 
 async function writeToolchainBuildVariables(callerID: string, forceUpdate?: boolean, currFspec?: string): Promise<void> {

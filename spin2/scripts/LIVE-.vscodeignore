@@ -23,9 +23,6 @@ EarlyTesting.md
 **/tsconfig.base.json
 contributing.md
 .travis.yml
-updVscode
-TEST_PNUT_TS/
-CPU-PROFILE-WORK/
 TEST_LANG_SERVER/**
 DOCs/**
 !spin2.language-configuration.json
@@ -45,3 +42,6 @@ images/.DS_Store
 !CHANGELOG.md
 !LICENSE
 !copyright
+CPU-PROFILE-WORK
+TEST_PNUT_TS
+updVscode

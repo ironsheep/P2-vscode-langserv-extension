@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.91",
+  "version": "2.2.19",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -154,11 +154,7 @@
           "spinExtension.trace.server": {
             "scope": "window",
             "type": "string",
-            "enum": [
-              "off",
-              "messages",
-              "verbose"
-            ],
+            "enum": ["off", "messages", "verbose"],
             "default": "off",
             "description": "Traces the communication between VSCode client and the spin2 language server."
           },
@@ -192,11 +188,7 @@
           "spinExtension.elasticTabstops.choice": {
             "type": "string",
             "default": "PropellerTool",
-            "enum": [
-              "PropellerTool",
-              "IronSheep",
-              "User1"
-            ],
+            "enum": ["PropellerTool", "IronSheep", "User1"],
             "description": "Select the set of Tabstops you wish to use."
           },
           "spinExtension.elasticTabstops.blocks.PropellerTool": {
@@ -210,78 +202,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  78,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 78, 80]
               },
               "var": {
-                "tabStops": [
-                  2,
-                  8,
-                  22,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 22, 32, 56, 80]
               },
               "obj": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 80]
               },
               "pub": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  8,
-                  14,
-                  24,
-                  32,
-                  48,
-                  56,
-                  80
-                ]
+                "tabStops": [8, 14, 24, 32, 48, 56, 80]
               }
             }
           },
@@ -296,87 +232,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  4,
-                  8,
-                  16,
-                  20,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
               },
               "var": {
-                "tabStops": [
-                  4,
-                  12,
-                  24,
-                  28,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 12, 24, 28, 32, 44, 56, 68, 80]
               },
               "obj": {
-                "tabStops": [
-                  4,
-                  8,
-                  16,
-                  20,
-                  32,
-                  44,
-                  56,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
               },
               "pub": {
-                "tabStops": [
-                  4,
-                  8,
-                  12,
-                  16,
-                  20,
-                  24,
-                  28,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  4,
-                  8,
-                  12,
-                  16,
-                  20,
-                  24,
-                  28,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  4,
-                  16,
-                  20,
-                  24,
-                  28,
-                  48,
-                  52,
-                  56,
-                  60,
-                  64,
-                  68,
-                  80
-                ]
+                "tabStops": [4, 16, 20, 24, 28, 48, 52, 56, 60, 64, 68, 80]
               }
             }
           },
@@ -391,80 +262,22 @@
             },
             "default": {
               "con": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  76,
-                  77,
-                  78,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 76, 77, 78, 80]
               },
               "var": {
-                "tabStops": [
-                  2,
-                  8,
-                  22,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 22, 32, 56, 80]
               },
               "obj": {
-                "tabStops": [
-                  2,
-                  8,
-                  16,
-                  18,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 8, 16, 18, 32, 56, 80]
               },
               "pub": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "pri": {
-                "tabStops": [
-                  2,
-                  4,
-                  6,
-                  8,
-                  10,
-                  12,
-                  14,
-                  16,
-                  32,
-                  56,
-                  80
-                ]
+                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
               },
               "dat": {
-                "tabStops": [
-                  8,
-                  14,
-                  24,
-                  32,
-                  48,
-                  56,
-                  80
-                ]
+                "tabStops": [8, 14, 24, 32, 48, 56, 80]
               }
             }
           }
@@ -534,6 +347,11 @@
       {
         "title": "Spin/Spin2 ToolChain Configuration",
         "properties": {
+          "spinExtension.toolchain.advanced.enable": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the Propller 2 Advanced toolchain features."
+          },
           "spinExtension.toolchain.propPlug.selected": {
             "type": "string",
             "default": "",
@@ -590,11 +408,7 @@
           "spinExtension.toolchain.optionsDownload.enterTerminalAfter": {
             "type": "string",
             "default": "never",
-            "enum": [
-              "never",
-              "only when debug() compile enabled",
-              "always"
-            ],
+            "enum": ["never", "only when debug() compile enabled", "always"],
             "description": "Enter Terminal mode after download completes (select one)"
           },
           "spinExtension.toolchain.optionsDownload.user.baudrate": {
@@ -703,52 +517,52 @@
         "key": "Ctrl+Alt+u",
         "mac": "Ctrl+Alt+Cmd+u",
         "command": "spinExtension.generate.usb.documentation.file",
-        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !suggestWidgetVisible && !editorTabMovesFocus && runtime.spin2.toolchain.enabled == true && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Shift+c",
         "win": "Shift+Ctrl+Alt+c",
         "linux": "Shift+Ctrl+Alt+c",
         "command": "spinExtension.compile.currfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && runtime.spin2.toolchain.enabled == true && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Shift+t",
         "win": "Shift+Ctrl+Alt+t",
         "linux": "Shift+Ctrl+Alt+t",
         "command": "spinExtension.compile.topfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && runtime.spin2.toolchain.enabled == true && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Shift+d",
         "win": "Shift+Ctrl+Alt+d",
         "linux": "Shift+Ctrl+Alt+d",
         "command": "spinExtension.download.topfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && runtime.spin2.toolchain.enabled == true && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "F11",
         "linux": "Ctrl+F11",
         "command": "spinExtension.download.topfile",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && runtime.spin2.toolchain.enabled == true && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+n",
         "mac": "Ctrl+Alt+Cmd+n",
         "command": "spinExtension.select.propplug",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && runtime.spin2.toolchain.enabled == true && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+g",
         "mac": "Ctrl+Alt+Cmd+g",
         "command": "spinExtension.toggle.debug",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && runtime.spin2.toolchain.enabled == true && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "Ctrl+Alt+f",
         "mac": "Ctrl+Alt+Cmd+f",
         "command": "spinExtension.toggle.flash",
-        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && (editorLangId == spin || editorLangId == spin2)"
+        "when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible && !editorTabMovesFocus && runtime.spin2.toolchain.enabled == true && (editorLangId == spin || editorLangId == spin2)"
       },
       {
         "key": "tab",
@@ -850,38 +664,20 @@
     "languages": [
       {
         "id": "spin2",
-        "aliases": [
-          "spin2",
-          "Spin2",
-          "SPIN2"
-        ],
-        "extensions": [
-          ".spin2"
-        ],
+        "aliases": ["spin2", "Spin2", "SPIN2"],
+        "extensions": [".spin2"],
         "configuration": "./spin2.language-configuration.json"
       },
       {
         "id": "spin",
-        "aliases": [
-          "spin",
-          "Spin",
-          "SPIN"
-        ],
-        "extensions": [
-          ".spin"
-        ],
+        "aliases": ["spin", "Spin", "SPIN"],
+        "extensions": [".spin"],
         "configuration": "./spin1.language-configuration.json"
       },
       {
         "id": "p2asm",
-        "aliases": [
-          "p2asm",
-          "P2Asm",
-          "P2ASM"
-        ],
-        "extensions": [
-          ".p2asm"
-        ],
+        "aliases": ["p2asm", "P2Asm", "P2ASM"],
+        "extensions": [".p2asm"],
         "configuration": "./spin2.language-configuration.json"
       }
     ],
@@ -956,12 +752,8 @@
     "semanticTokenScopes": [
       {
         "scopes": {
-          "returnValue": [
-            "meta.returntype.spin"
-          ],
-          "storageType": [
-            "storage.type.pasm.spin2"
-          ]
+          "returnValue": ["meta.returntype.spin"],
+          "storageType": ["storage.type.pasm.spin2"]
         }
       }
     ],
@@ -999,7 +791,6 @@
     "test-compile": "tsc -p ./",
     "test": "sh ./scripts/e2e.sh"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/mocha": "^9.1.0",
     "@types/node": "^20.12.12",
@@ -1015,5 +806,6 @@
     "eslint-plugin-promise": "^6.1.1",
     "mocha": "^9.2.1",
     "typescript": "^5.1.3"
-  }
+  },
+  "dependencies": {}
 }

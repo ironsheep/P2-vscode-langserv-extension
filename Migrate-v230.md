@@ -5,20 +5,28 @@
 
 # Migrate from v2.2.x to v2.3.0
 
-Adjustng your confiuraation to work well with Spin2 v2.3.0 is both simple and required.  The old user-tasks file just won't work and the old keyboard bindings also no-longer work. Fortunately adjusting your environment to work with the new ToolChain support is quick and easy and should be a one-time event for you.
+The old user-tasks file and the old keyboard bindings should work with the setting: `Spin Extension->Toolchain->Advanced:Enable` **unchecked**.  By default this setting is unchecked (Disabled.)
+
+However, to use the new Spin2 advanced toolchain features you will want to enable this setting.  The remainder of this page walks you through making these changes.
+
+## Migration overview
+
+Adjustng your configuraation to work well with Spin2 v2.3.0 is both simple and required.  The old user-tasks file just won't work and the old keyboard bindings also no-longer work. Fortunately adjusting your environment to work with the new ToolChain support is quick and easy and should be a one-time event for you.
 
 Ajusting your environment:
 
+1. Enable the Propeller 2 Advanced toolchain features: by clicking `Spin Extension->Toolchain->Advanced:Enable`  
 1. Replace your user-tasks file: **Tasks: Open User Tasks**
-2. Remove your existing keyboard bindings: **Preferences: Open Keyboard Shortcuts (JSON)**
-3. Ensure your compiler has been located correctly
-4. (PNut on Windows users) Replace the pnut_shell.bat file (If your distribution has the old one)
+1. Remove your existing keyboard bindings: **Preferences: Open Keyboard Shortcuts (JSON)**
+1. Ensure your compiler(s) has/have been located correctly
+1. (PNut on Windows users) Replace the pnut_shell.bat file with new version (If your distribution has the old one)
+
 
 Once this is done, then you are ready to continue developing for the P2 as you were before. Additionally, compile and download to your P2 should be much more simple.
 
-You can also now toggle debug() on/off as well as toggle download to RAM / FLASH with simple keystrokes.
+You can also now toggle debug() on/off as well as toggle download to RAM / FLASH with simple keystrokes. (Enable listing output is still in extension settings.)
 
-## 1. Replace your user tasks file
+## 2. Replace your user tasks file
 
 The tasks we use with our P2 development live in the central "User Tasks" .json file. 
 
@@ -174,7 +182,7 @@ As written, **downloadP2** for flexpsin will always be preceeded by a compileTop
 **NOTE**: This now supports any runtime selected compiler. The use of `${command:spinExtension.getCompArguments}` makes it possible since the spin2 extension knows what compiler is selected.  Likewise, the use of `${command:spinExtension.getLoaderArguments}` make it possible to select a download tool from among those installed.  *Although initially we are only using the built-in downloader as we are still working out issues with the downloaders.*
 
 
-## 2. Remove any P2 Custom Keybindings
+## 3. Remove any P2 Custom Keybindings
 
 The Spin2 extension now provides built-in comamnds to run the tasks in the User-Tasks file. To prevent any interference we need to remove the custom keybindings for User Tasks that you may put in place.
 
@@ -224,21 +232,21 @@ All of the entries which contain a '...tasks.runTask' value are things we need t
 
 If you happen to have some non-P2 bindings you can leave these in this file. **We remove any P2 bindings as they will interfere with the new build mechanism!**
 
-## 3. Ensure your compiler has been located correctly
+## 4. Ensure your compiler has been located correctly
 
-The Spin2 extension now has automatic toolset discovery. Once the compilers have been discovered then you choose which compiler to use for all of your P1 and P2 projects. You can then also override this setting for any project you wish to use another of your installed compilers. 
+The Spin2 extension now has automatic toolset discovery. Once the compilers have been discovered then you choose which compiler to use for all of your P2 projects. You can then also override this setting for any project you wish to use another of your installed compilers. 
 
-To validate that you can build P1 and P2 code let's review the Spin2 Exension settings. There's a new page of setting where the compilers found are listed. Let's open `Settings -> Extensions -> Spin2 -> Spin/Spin2 ToolChain Configuration`. At the top of this settings page you'll see a list of **Installations Found**.  If you have flexspin installed, you should see flexspin in this list. Likewise, if you are on Windows and you have a version of PNut (say PNut_v43 installed) then you should see PNut installed.
+To validate that you can build P2 code let's review the Spin2 Exension settings. There's a new page of setting where the compilers found are listed. Let's open `Settings -> Extensions -> Spin2 -> Spin/Spin2 ToolChain Configuration`. At the top of this settings page you'll see a list of **Installations Found**.  If you have flexspin installed, you should see flexspin in this list. Likewise, if you are on Windows and you have a version of PNut (say PNut_v43 installed) then you should see PNut installed.
 
 If you don't see all the compilers in this list then you want to adjust the installations so that they can be found before proceeding!  For installation instructions you will need to refer to:
 
-1. [Installation on Windows](TASKS-User-win.md#development-machine-setup-and-configuration) 
-1. [Installation on MacOS](TASKS-User-macOS.md#development-machine-setup-and-configuration) 
-1. [Installation on RPi/Linux](TASKS-User-RPi.md#development-machine-setup-and-configuration) 
+1. [Machine Setup and Configuration Windows](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-win.md#development-machine-setup-and-configuration) 
+1. [Machine Setup and Configuration MacOS](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-macOS.md#development-machine-setup-and-configuration) 
+1. [Machine Setup and Configuration RPi/Linux](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-RPi.md#development-machine-setup-and-configuration) 
 
 If you see all of your compilers then you are ready to move on to Step 4 (or you are done if you are not on windows.)
 
-## 4. New build system on Windows requires an updated pnut_shell.bat
+## 5. New build system on Windows requires an updated pnut_shell.bat
 
 This build system generates parameters with switches first then filename. PNut wants these to be filename then switch values. I've updated the `pnut_shell.bat` script which ships with PNut to always present the options to `pnut_v99.exe` in the desired order.
 
@@ -298,6 +306,9 @@ I'll have Chip distribute this version with all pnut distributions for here on o
 
 **NOTE**: The `pnut_v43` value in this new file MUST match your exact PNut version! If is does not then this script will NOT work!  Please edit this file if it doesn't match.
 
+## Congratulations
+
+That's it you should be ready to use all compilers on your plaform to build, download and run P2 code using VSCode.
 
 ## License
 

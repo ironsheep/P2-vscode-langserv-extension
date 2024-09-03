@@ -9,7 +9,7 @@ import { waitMSec, waitSec } from './timerUtils';
 const DEFAULT_DOWNLOAD_BAUD = 2000000;
 
 export class UsbSerial {
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
   private endOfLineStr: string = '\r\n';
   private _deviceNode: string = '';

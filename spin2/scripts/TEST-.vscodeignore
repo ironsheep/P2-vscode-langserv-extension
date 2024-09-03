@@ -1,11 +1,14 @@
+.gitignore
+**/.DS_Store
 .vscode/**
 .history/**
 .devcontainer/**
 scripts/**
-EarlyTesting.md
 EarlyTesting/
+EarlyTesting.md
 b4-project-files.lst
 fter-project-files.lst
+package-REF.json
 **/*.ts
 **/*NEW
 **/*ORIG
@@ -13,7 +16,6 @@ fter-project-files.lst
 **/.DS_Store
 **/*.tgz
 **/*.map
-.gitignore
 **/tsconfig.json
 **/tsconfig.base.json
 contributing.md
@@ -47,8 +49,12 @@ themes/*
 !themes/isp-spin-dark-bg-theme.json
 !themes/isp-spin-light-bg-theme.json
 !themes/isp-spin-syntax-theme.json
-!images/*
+images/.DS_Store
+!images/**
 !README.md
 !CHANGELOG.md
 !LICENSE
 !copyright
+CPU-PROFILE-WORK
+TEST_PNUT_TS
+updVscode
