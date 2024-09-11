@@ -147,6 +147,30 @@ If I'm updating to a new verison I do the following:
 
 ### Installing PNut-TS on macOS
 
+#### (Hopefully Temporary) Install of Node.js runtime
+
+The packaging o PNut-TS for macOS for some reason, doesn't run (I'm working to understand this.) So as a workaround we install a Node.js runtime so we can run our compiler.
+
+To see if you have Node.js installed (or to check what version you have installed) run:
+
+```bash
+$ node -v
+v20.17.0   # output on authors Mac
+$
+```
+
+If you don't have it installed then visit [Download Node.js®](https://nodejs.org/en/download/prebuilt-installer) and download the installer appropriate to you Mac Processor. I For example, I run Apple Silicon and I've tested with v20.17.0 (LTS) on macOS running Arm64, and it just works. This installs in `/usr/local/bin/` so you will want to make sure `/usr/local/bin/` is in your PATH.  Check this with:
+
+```bash
+$ whereis node
+node: /usr/local/bin/node /usr/local/share/man/man1/node.1   # output on authors Mac
+$
+```
+
+Once you have node running and it's found in your PATH then you can proceed with installing PNut-TS.
+
+#### Now installing PNut-TS
+
 On MacOS  machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown and upacking the zip file to produce a .dmg install image.  
 
 We double-click on the .dmg file to mount it. It opens a window, then, in the window, we drag the pnut_ts/ folder into the /Applications folder. Then the close the window and eject (unmount) the installer .dmg file.
