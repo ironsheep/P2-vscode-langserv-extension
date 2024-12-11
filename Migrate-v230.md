@@ -58,7 +58,7 @@ If you have anything else in this file pertaining to P2 development then you wan
             "command": "${config:spin2.fSpecCompiler}",
             "args": [
               {
-                "value": "${command:spinExtension.getCompArguments}",
+                "value": "${command:spinExtension.getCompilerArguments}",
                 "quoting": "weak"
               },
               "${fileBasename}"
@@ -95,7 +95,7 @@ If you have anything else in this file pertaining to P2 development then you wan
             "command": "${config:spin2.fSpecCompiler}",
             "args": [
               {
-                "value": "${command:spinExtension.getCompArguments}",
+                "value": "${command:spinExtension.getCompilerArguments}",
                 "quoting": "weak"
               },
               "${config:spin2.fNameTopLevel}"
@@ -180,7 +180,7 @@ Under **Task: Run Test Task**:
 
 As written, **downloadP2** for flexpsin will always be preceeded by a compileTopP2.
 
-**NOTE**: This now supports any runtime selected compiler. The use of `${command:spinExtension.getCompArguments}` makes it possible since the spin2 extension knows what compiler is selected.  Likewise, the use of `${command:spinExtension.getLoaderArguments}` make it possible to select a download tool from among those installed.  *Although initially we are only using the built-in downloader as we are still working out issues with the downloaders.*
+**NOTE**: This now supports any runtime selected compiler. The use of `${command:spinExtension.getCompilerArguments}` makes it possible since the spin2 extension knows what compiler is selected.  Likewise, the use of `${command:spinExtension.getLoaderArguments}` make it possible to select a download tool from among those installed.  *Although initially we are only using the built-in downloader as we are still working out issues with the downloaders.*
 
 
 ## 3. Remove any P2 Custom Keybindings
