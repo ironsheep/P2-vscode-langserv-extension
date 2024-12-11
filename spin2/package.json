@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.99",
+  "version": "2.3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -78,10 +78,6 @@
       {
         "command": "spinExtension.toggle.flash",
         "title": "Spin2: Toggle current state of download to FLASH enable"
-      },
-      {
-        "command": "spinExtension.getCompArgumentsWithFilename",
-        "title": "Spin2: Return all compile arguments for use in UserTasks"
       },
       {
         "command": "spinExtension.getCompilerArguments",

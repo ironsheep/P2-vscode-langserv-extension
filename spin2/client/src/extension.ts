@@ -330,7 +330,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
       const quotedOptionsBuildAr = optionsBuildAr.map((option) => (option.includes(' ') ? `"${option}"` : option));
       const buildArgString: string = quotedOptionsBuildAr.join(' ');
-      logExtensionMessage(`CMD: getCompArguments -> [${buildArgString}]`);
+      logExtensionMessage(`CMD: getCompilerArguments -> [${buildArgString}]`);
       return buildArgString;
     })
   );

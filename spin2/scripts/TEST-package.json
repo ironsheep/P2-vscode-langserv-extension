@@ -80,10 +80,6 @@
         "title": "Spin2: Toggle current state of download to FLASH enable"
       },
       {
-        "command": "spinExtension.getCompArgumentsWithFilename",
-        "title": "Spin2: Return all compile arguments for use in UserTasks"
-      },
-      {
         "command": "spinExtension.getCompilerArguments",
         "title": "Spin2: Return compile arguments (no filename) for use in UserTasks"
       },
