@@ -309,7 +309,7 @@ I'll have Chip distribute this version with all pnut distributions for here on o
 
 ## 6. Test your new environment with a quick build-and run
 
-Let's test your new setup. You will need to have flexspin or pnut_ts installed and have selected one of these compilers and you will need a P2 with PropPlug connected to your machine and powered on.
+Let's test your new setup. You will need to have flexspin, or flexspin and pnut_ts, installed and have selected one of these compilers and you will need a P2 with PropPlug connected to your machine and powered on.
 
 - Download a short test project [TermDemo.zip](DOCs/DEV/TermDemo.zip) and unpack it.
 - Open the folder you unpacked it into with VSCode.
