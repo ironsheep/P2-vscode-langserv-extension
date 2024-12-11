@@ -458,12 +458,19 @@ function registerCommands(context: vscode.ExtensionContext): void {
       logExtensionMessage('CMD: downloadTopFile');
       const activeTopFilename: string = getActiveSourceFilename();
       const haveP1Download: boolean = activeTopFilename !== undefined && activeTopFilename.endsWith('.spin');
+      const haveFlexspin: boolean = toolchainConfiguration.flexspinInstalled;
+      let downloadCanProceed: boolean = true;
       if (await ensureIsGoodCompilerSelection()) {
         const selectedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
         // using internal downloader for pnut_ts (and flexspin on macOS after discussion with Eric R Smith, 18 Jun)
         if (selectedCompiler !== undefined) {
           if (selectedCompiler == PATH_PNUT_TS) {
             useInternalDownloader = false; // this is disabled for v3.0.0 release
+            if (haveFlexspin == false) {
+              downloadCanProceed = false;
+              logExtensionMessage(`* WARNING flexspin NOT found, aborting download`);
+              await vscode.window.showErrorMessage('ERROR: unable to download to P2 without flexspin compiler installed');
+            }
           }
         }
         if (useInternalDownloader) {
@@ -609,7 +616,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
               console.error(errorMessage);
             }
           }
-        } else {
+        } else if (downloadCanProceed) {
           logExtensionMessage(`* NOT pnut_ts (or v3.0.0 pnut_ts), run download task!`);
           const tasks = await vscode.tasks.fetchTasks();
           const taskToRun = tasks.find((task) => task.name === 'downloadP2');
@@ -1935,8 +1942,9 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
     // FIXME: let's make this conditional upon using internal loader or not (external is loadp2!!)
     if (haveFlexspin == false) {
+      logExtensionMessage(`* WARNING flexspin NOT found, setting up for internal downloader`);
       useInternalDownloader = true;
-      logExtensionMessage(`* WARNING flexspin NOT found, forcing use of internal downloader`);
+      //await vscode.window.showErrorMessage('ERROR: unable to download to P2 without flexspin compiler installed');
     }
     if (useInternalDownloader) {
       // -----------------------------------------------------------
