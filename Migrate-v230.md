@@ -233,11 +233,11 @@ All of the entries which contain a '...tasks.runTask' value are things we need t
 
 If you happen to have some non-P2 bindings you can leave these in this file. **We remove any P2 bindings as they will interfere with the new build mechanism!**
 
-## 4. Ensure your compiler has been located correctly
+## 4. Ensure your compilers have been located correctly
 
 The Spin2 extension now has automatic toolset discovery. Once the compilers have been discovered then you choose which compiler to use for all of your P2 projects. You can then also override this setting for any project you wish to use another of your installed compilers. 
 
-To validate that you can build P2 code let's review the Spin2 Exension settings. There's a new page of setting where the compilers found are listed. Let's open `Settings -> Extensions -> Spin2 -> Spin/Spin2 ToolChain Configuration`. At the top of this settings page you'll see a list of **Installations Found**.  If you have flexspin installed, you should see flexspin in this list. Likewise, if you are on Windows and you have a version of PNut (say PNut_v43 installed) then you should see PNut installed.
+To validate that you can build P2 code let's review the Spin2 Exension settings. There's a new page of setting where the compilers found are listed. Let's open `Settings -> Extensions -> Spin2 -> Spin/Spin2 ToolChain Configuration`. At the top of this settings page you'll see a list of **Installations Found**.  If you have flexspin installed, you should see `flexspin` in this list. If you are on Windows and you have a version of PNut (say PNut_v43 installed) then you should see `PNut` installed, and lastly, if you have pnut_ts installed is should show `pnut_ts`.
 
 If you don't see all the compilers in this list then you want to adjust the installations so that they can be found before proceeding!  For installation instructions you will need to refer to:
 
@@ -306,6 +306,23 @@ if exist "%spinfile%" (
 I'll have Chip distribute this version with all pnut distributions for here on out (replacing the old one.)
 
 **NOTE**: The `pnut_v43` value in this new file MUST match your exact PNut version! If is does not then this script will NOT work!  Please edit this file if it doesn't match.
+
+## 6. Test your new environment with a quick build-and run
+
+Let's test your new setup. You will need to have flexspin or pnut_ts installed and have selected one of these compilers and you will need a P2 with PropPlug connected to your machine and powered on.
+
+- Download a short test project [TermDemo.zip](DOCs/DEV/TermDemo.zip) and unpack it.
+- Open the folder you unpacked it into with VSCode.
+- Open the file `demo_wait4term.spin2`
+- Ensure you have download to RAM selected in the status bar
+- Ensure that your PropPlug shows in the status bar
+- Go to spin2 extension settings `Spin/Spin2 ToolChain Configuration` and verify that **Enter Terminal After** is set to either `Always` or `Only when debug() is enabled`.
+- Compile the file (^+SHIFT+C in MacOS)
+- Download the file to your P2 (^+SHIFT+D in MacOS)
+- You should now be prompted, in the new terminal window, with `( Entering terminal mode. Press Ctrl-] or Ctrl-Z to exit. ))`
+- Now press RETURN/ENTER and the P2 should respond with `Hi from P2 after Wait-for-term!`
+
+If this all works your set up and ready to go!
 
 ## One last thing
 

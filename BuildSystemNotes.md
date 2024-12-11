@@ -44,6 +44,26 @@ We have a single key sequence for downloading to the P1 or P2. And just like the
 
 If you find the VSCode status bar not affecting these behaviors during download, please check that you haven't set these settings in the **User Settings (.json)** file. If they get set there, the code seems to have a problem overriding these User Settings. They should only be in **Workspace settings (.json)**, not User Settings. As soon as I can find a means to detect this, I'll add runtime warnings, if not prevention and cleanup of this condition. 
 
+## Locating your current keybindings or settings
+
+There are a number of ways to get to your Keyboard bindings or to your settings. Here's one of the ways I use more often lately:
+
+On the bottom left of your VSCode window:
+<p align="center">
+  <img src="./DOCs/settingsIcon.png" width="70"><br>
+    <caption><B>Click on the Gear Icon</B></caption><br>
+</p>
+
+
+Now from the pop-up menu you can select `Settings` OR `Keyboard Shortcuts`:
+<p align="center">
+  <img src="./DOCs/settingMenu.png" width="300"><br>
+    <caption><B>Select from the Gear Menu</B></caption><br>
+</p>
+
+Again there a more ways to do this. This is just one of them.
+
+
 ## Did I miss anything?
 
 If you have questions about something not covered here let me know and I'll add more narrative here.

@@ -86,6 +86,12 @@ Spin2-LSP-000 TODOs:
 			- Search for "intersystems/refactor/listOverridableMembers" to see all code parts needed
 	
 	USB Issues Before Release:
+	- zip file, clean up src, link to page @done(2024-12-11)
+	- verify build/run with term @done(2024-12-11)
+	- verify each compiler install @done(2024-12-11)
+	- quick: how to: locate keyboard bindings @done(2024-12-11)
+	- test RPi
+	- test Windows
 	- BUG terminal is being sent to loadp2 when debug NOT enabled (appears to be VSC SB toggle not updating settings correctly)
 		- DONT EVER SET USER DEBUG ENABLE (it prevents the status bar from working)
 	- Get a terminal listener working for pnut_ts ( @done(2024-12-10)
