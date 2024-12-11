@@ -313,10 +313,10 @@ Let's test your new setup. You will need to have flexspin or pnut_ts installed a
 
 - Download a short test project [TermDemo.zip](DOCs/DEV/TermDemo.zip) and unpack it.
 - Open the folder you unpacked it into with VSCode.
+- Go to spin2 extension settings `Spin/Spin2 ToolChain Configuration` and verify that **Enter Terminal After** is set to either `Always` or `Only when debug() is enabled`.
 - Open the file `demo_wait4term.spin2`
 - Ensure you have download to RAM selected in the status bar
 - Ensure that your PropPlug shows in the status bar
-- Go to spin2 extension settings `Spin/Spin2 ToolChain Configuration` and verify that **Enter Terminal After** is set to either `Always` or `Only when debug() is enabled`.
 - Now, in your status bar, toggle Debug to `ON` (if it was `off`)
 - Compile the file (^+SHIFT+C in MacOS)
 - Download the file to your P2 (^+SHIFT+D in MacOS)
