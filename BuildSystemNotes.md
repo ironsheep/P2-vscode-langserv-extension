@@ -40,6 +40,23 @@ We are still certifying the download to P1 with flexspin but you may find it alr
 
 We have a single key sequence for downloading to the P1 or P2. And just like the Compile key sequences this is also not the same on all platofrms, the modifiers are different on each platform.
 
+## Settings: User or Workspace
+
+When working with settings it's even more important, with the latest build feature, that you are aware of when you are adjusting `User Settings` or `Workspace Settings`. There is a tab for each at the top of your settings page:
+
+<p align="center">
+  <img src="./DOCs/settingsHeader.png" width="400"><br>
+    <caption><B>Ensure you are in User or Workspace intentionally!</B></caption><br>
+</p>
+
+`User` settings are for all projects where you are using VSCode. `Workspace` settings are for the current workspace (project or folder.)
+
+The current build settings, compiler paths, command line switches, etc. are stored only in `Workspace` settings. 
+
+**NOTE**: This is why when you visit the `Spin2 -> Spin2 Workspace Build Environment` the fields will all be empty if you have `User` tab selected. But if you, instead, select `Workspace` then most of them are filled in.
+
+**NOTE2**: WARNING By the way, never adjust these `Spin2 -> Spin2 Workspace Build Environment` settings by hand. This is all managed by the `Spin2 Extension` at runtime.
+
 ## Toggle Debug On/Off or RAM/FLASH
 
 If you find the VSCode status bar not affecting these behaviors during download, please check that you haven't set these settings in the **User Settings (.json)** file. If they get set there, the code seems to have a problem overriding these User Settings. They should only be in **Workspace settings (.json)**, not User Settings. As soon as I can find a means to detect this, I'll add runtime warnings, if not prevention and cleanup of this condition. 

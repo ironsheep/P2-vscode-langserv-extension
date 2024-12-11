@@ -2,9 +2,11 @@
 **/.DS_Store
 .vscode/**
 .history/**
+**/.history
 .devcontainer/**
 node_modules/**
 scripts/**
+TEST-P2-TERM/**
 server/**
 !server/out/server.js
 client/**
@@ -13,12 +15,15 @@ client/**
 !client/out/extension.js
 EarlyTesting/**
 EarlyTesting.md
+INSTALL.md
 *NEW
 *ORIG
 *REF*
 **/*.ts
 **/*.map
 **/*.lst
+**/*.gz
+**/*.tgz
 **/tsconfig.json
 **/tsconfig.base.json
 contributing.md
