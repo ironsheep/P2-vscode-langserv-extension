@@ -87,6 +87,17 @@ const loadToolchainConfiguration = () => {
     toolPaths[PATH_PNUT] = pnutPath;
   }
 
+  let flexspinInstalled: boolean = false;
+  if (PATH_LOADER_BIN in toolPaths) {
+    flexspinInstalled = true;
+  } else if (PATH_PROPLOADER in toolPaths) {
+    flexspinInstalled = true;
+  } else if (PATH_LOADP2 in toolPaths) {
+    flexspinInstalled = true;
+  } else if (PATH_FLEXSPIN in toolPaths) {
+    flexspinInstalled = true;
+  }
+
   return {
     topFilename,
     deviceNodesFound,
@@ -102,7 +113,8 @@ const loadToolchainConfiguration = () => {
     toolPaths,
     downloadTerminalMode,
     enterTerminalAfterDownload,
-    userBaudrate
+    userBaudrate,
+    flexspinInstalled
   };
 };
 
@@ -149,7 +161,8 @@ export const reloadToolchainConfiguration = () => {
     objectsAreEqual(toolchainConfiguration.toolPaths, newToolchainConfig.toolPaths) &&
     toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode &&
     toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload &&
-    toolchainConfiguration.userBaudrate === newToolchainConfig.userBaudrate
+    toolchainConfiguration.userBaudrate === newToolchainConfig.userBaudrate &&
+    toolchainConfiguration.flexspinInstalled === newToolchainConfig.flexspinInstalled
   ) {
     return false;
   }
@@ -167,9 +180,10 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.writeFlashEnabled = newToolchainConfig.writeFlashEnabled;
   toolchainConfiguration.termIsPstCompatible = newToolchainConfig.termIsPstCompatible;
   toolchainConfiguration.toolPaths = newToolchainConfig.toolPaths;
-  toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode;
-  toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload;
-  toolchainConfiguration.userBaudrate === newToolchainConfig.userBaudrate;
+  toolchainConfiguration.downloadTerminalMode = newToolchainConfig.downloadTerminalMode;
+  toolchainConfiguration.enterTerminalAfterDownload = newToolchainConfig.enterTerminalAfterDownload;
+  toolchainConfiguration.userBaudrate = newToolchainConfig.userBaudrate;
+  toolchainConfiguration.flexspinInstalled = newToolchainConfig.flexspinInstalled;
 
   // post information to out-side world via our CONTEXT at config change
   vscode.commands.executeCommand('setContext', 'runtime.spin2.toolchain.enabled', toolchainConfiguration.advancedToolChainEnabled);

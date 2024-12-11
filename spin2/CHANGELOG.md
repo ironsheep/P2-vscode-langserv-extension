@@ -9,6 +9,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 Work to appear in upcoming releases:
 
 - Work on fixes to any reported issues
+- Spin2 highlighting updates for v45, v46, and v47
 
 Possible next additions:
 
@@ -29,6 +30,8 @@ This update improves/simplifies the ability to compile and download code for Spi
 - NEW statusBar control for switching between compile with debug() and without
 - NEW statusBar control for switching between download to FLASH / RAM
 - NEW statusBar control for selecting amongst available USB attached PropPlugs
+- NEW Setting to selected preferred compiler for all projects
+- NEW this Setting can be overridden for each specific workspace (project)
 - NEW Setting to enable all this new spin2 toolchain support (disabled by defult)
 
 General Repairs

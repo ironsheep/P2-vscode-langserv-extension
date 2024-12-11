@@ -41,6 +41,8 @@ import {
 import { ObjectImage } from './imageUtils';
 import { getFlashLoaderBin } from './spin.vscode.fileUtils';
 import { waitMSec } from './timerUtils';
+import { UsbSerialTerminal } from './usb.serial.terminal';
+import { LoaderPseudoterminal } from './pseudo.terminal';
 
 let client: LanguageClient;
 let spin2Context: vscode.ExtensionContext;
@@ -68,6 +70,7 @@ const logExtensionMessage = (message: string): void => {
   }
 };
 
+let useInternalDownloader: boolean = false;
 let runtimeSettingChangeInProgress: boolean = false;
 
 function getSetupExtensionClient(context: vscode.ExtensionContext): LanguageClient {
@@ -448,22 +451,19 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //
   const downloadTopFileCommand: string = 'spinExtension.download.topfile';
 
-  let downloaderTerminal: vscode.Terminal | undefined = undefined;
+  let downloaderTerminal: LoaderPseudoterminal | undefined = undefined;
 
   context.subscriptions.push(
     vscode.commands.registerCommand(downloadTopFileCommand, async () => {
       logExtensionMessage('CMD: downloadTopFile');
       const activeTopFilename: string = getActiveSourceFilename();
       const haveP1Download: boolean = activeTopFilename !== undefined && activeTopFilename.endsWith('.spin');
-      let useInternalDownloader: boolean = false;
       if (await ensureIsGoodCompilerSelection()) {
         const selectedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
         // using internal downloader for pnut_ts (and flexspin on macOS after discussion with Eric R Smith, 18 Jun)
         if (selectedCompiler !== undefined) {
           if (selectedCompiler == PATH_PNUT_TS) {
-            useInternalDownloader = true;
-            //} else if (selectedCompiler == PATH_FLEXSPIN && isMac()) {
-            //    useInternalDownloader = true;
+            useInternalDownloader = false; // this is disabled for v3.0.0 release
           }
         }
         if (useInternalDownloader) {
@@ -479,7 +479,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
               // create terminal
               if (downloaderTerminal === undefined) {
                 const compilerName = selectedCompiler == PATH_PNUT_TS ? 'pnut_ts' : 'flexspin';
-                downloaderTerminal = vscode.window.createTerminal(`'${compilerName}' Downloader Output`);
+                // OLD downloaderTerminal = vscode.window.createTerminal(`'${compilerName}' Downloader Output`);
+                downloaderTerminal = new LoaderPseudoterminal(`'${compilerName}' Downloader Output`);
               }
               // Clear the terminal
               downloaderTerminal.sendText('clear');
@@ -503,53 +504,92 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     logExtensionMessage(`  -- load image w/flasher = (${binaryImage.length}) bytes`);
                     writeBinaryFile(binaryImage, `${binaryFilespec}fext`);
                     /*
-															  } else {
-																// not flashing append a checksum then ask P2 for verification
-																//
-																// don't enable verify until we get it working
-																needsP2ChecksumVerify = true;
-																const tmpImage = new ObjectImage('temp-image');
-																tmpImage.adopt(binaryImage);
-																tmpImage.padToLong();
-																//const imageSum = 0xdeadf00d; //  TESTING
-																const imageSum = tmpImage.loadRamChecksum();
-																tmpImage.appendLong(imageSum);
-																binaryImage = tmpImage.rawUint8Array.subarray(0, tmpImage.offset);
-																//*/
+                    } else {
+                    // not flashing append a checksum then ask P2 for verification
+                    //
+                    // don't enable verify until we get it working
+                    needsP2ChecksumVerify = true;
+                    const tmpImage = new ObjectImage('temp-image');
+                    tmpImage.adopt(binaryImage);
+                    tmpImage.padToLong();
+                    //const imageSum = 0xdeadf00d; //  TESTING
+                    const imageSum = tmpImage.loadRamChecksum();
+                    tmpImage.appendLong(imageSum);
+                    binaryImage = tmpImage.rawUint8Array.subarray(0, tmpImage.offset);
+                    //*/
                   }
                   downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
                   // write to USB PropPlug
                   if (deviceNode !== undefined) {
                     let usbPort: UsbSerial;
+                    let errMsg: string = '';
+                    let noDownloadError: boolean = true;
                     try {
                       usbPort = new UsbSerial(deviceNode);
-                      if (usbPort.deviceIsPropellerV2()) {
+                      if (await usbPort.deviceIsPropellerV2()) {
                         await usbPort.download(binaryImage, needsP2ChecksumVerify);
                         downloaderTerminal.sendText(`# DONE`);
+                        //await usbPort.changeBaudRate(115200);
                       } else {
                         downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
+                        noDownloadError = false;
                       }
                       //this.testDownloadFile(usbPort);
                     } catch (error) {
+                      noDownloadError = false;
                       if (error instanceof Error) {
-                        this.logMessage(`Dnld: Error thown: ${error.toString()}`);
+                        errMsg = `Dnld: Error thrown: ${error.toString()}`;
                       } else {
                         // Handle the case where error is not an Error object
-                        this.logMessage(`Dnld: Non-error thrown: ${JSON.stringify(error)}`);
+                        errMsg = `Dnld: Non-error thrown: ${JSON.stringify(error)}`;
                       } // Re-throw the error if you want to fail
                     } finally {
+                      if (errMsg.length > 0) {
+                        this.logMessage(errMsg);
+                        downloaderTerminal.sendText(`# ERROR: ${errMsg}`);
+                      }
                       if (usbPort !== undefined) {
                         try {
                           await usbPort.close(); // we're done with this port
                         } catch (error) {
+                          noDownloadError = false;
                           if (error instanceof Error) {
-                            this.logMessage(`Dnld: close Error thown: ${error.toString()}`);
+                            errMsg = `Dnld: close Error thrown: ${error.toString()}`;
                           } else {
                             // Handle the case where error is not an Error object
-                            this.logMessage(`Dnld: close Non-error thrown: ${JSON.stringify(error)}`);
+                            errMsg = `Dnld: close Non-error thrown: ${JSON.stringify(error)}`;
                           } // Re-throw the error if you want to fail
                         }
+                        if (errMsg.length > 0) {
+                          this.logMessage(errMsg);
+                          downloaderTerminal.sendText(`# ERROR: ${errMsg}`);
+                        }
                       }
+                    }
+                    // if we want terminal after download then switch to handing terminal I/O <-> USB
+                    if (noDownloadError && toolchainConfiguration.enterTerminalAfterDownload) {
+                      const userBaudRate: number = toolchainConfiguration.userBaudrate;
+                      const usbTermPort = new UsbSerialTerminal(deviceNode, userBaudRate);
+                      downloaderTerminal.sendText(`# ---- switching to P2 I/O ----`);
+                      // Listen for the terminal-closed event
+                      downloaderTerminal.onDidClose(() => {
+                        this.logMessage('Dnld: LoaderPseudoterminal instance closed');
+                        // shutdown the USB port
+                        usbTermPort.close();
+                      });
+                      // listen for data from P2
+                      usbTermPort.on('line', (line: string) => {
+                        this.logMessage('Dnld: Received line:', line);
+                        // send to terminal window
+                        downloaderTerminal.sendText(line);
+                      });
+
+                      // listen for data from terminal keyboard entry
+                      downloaderTerminal.on('line', (line: string) => {
+                        this.logMessage('Dnld: Received data from terminal:', line);
+                        // send to USB port
+                        usbTermPort.write(line);
+                      });
                     }
                   } else {
                     downloaderTerminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
@@ -562,7 +602,6 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 // no filename to download
                 downloaderTerminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
               }
-              downloaderTerminal.show();
             } else {
               const errorMessage: string = `CMD: DOWNLOAD - no propplug selected!`;
               logExtensionMessage(errorMessage);
@@ -571,13 +610,20 @@ function registerCommands(context: vscode.ExtensionContext): void {
             }
           }
         } else {
-          logExtensionMessage(`* NOT pnut_ts, run download task!`);
+          logExtensionMessage(`* NOT pnut_ts (or v3.0.0 pnut_ts), run download task!`);
           const tasks = await vscode.tasks.fetchTasks();
           const taskToRun = tasks.find((task) => task.name === 'downloadP2');
 
           if (taskToRun) {
-            // TODO: should the following be await or not?
-            vscode.tasks.executeTask(taskToRun);
+            // We select between based on compiling with debug and/or terminal after download setting...
+            const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
+            logExtensionMessage(`* downloadP2 - enterTerminalAfter=(${enterTerminalAfter})`);
+            if (enterTerminalAfter) {
+              runTaskAndFocusTerminal(taskToRun);
+            } else {
+              // TODO: should the following be await or not? (seems to not be needed?)
+              vscode.tasks.executeTask(taskToRun);
+            }
           } else {
             const errorMessage: string = 'Task:downloadP2 not found in User-Tasks';
             await vscode.window.showErrorMessage(errorMessage);
@@ -587,6 +633,38 @@ function registerCommands(context: vscode.ExtensionContext): void {
       }
     })
   );
+
+  // try #1
+  /*
+  async function runTaskAndFocusTerminal(taskToRun: vscode.Task) {
+    const taskExecution = await vscode.tasks.executeTask(taskToRun);
+
+    const taskProcessStartListener = vscode.tasks.onDidStartTaskProcess((event) => {
+      if (event.execution === taskExecution) {
+        //const terminal = vscode.window.terminals.find((t) => t.creationOptions.name === event.terminalId); // BAD
+        const terminal = event.execution.terminal;
+        if (terminal) {
+          terminal.show(true);
+        }
+        taskProcessStartListener.dispose();
+      }
+    });
+  }
+  */
+
+  async function runTaskAndFocusTerminal(taskToRun: vscode.Task) {
+    const taskExecution = await vscode.tasks.executeTask(taskToRun);
+
+    // Wait a short time for the terminal to be created
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Find the terminal associated with the task
+    const taskTerminal = vscode.window.terminals.find((terminal) => terminal.name.includes(taskExecution.task.name));
+
+    if (taskTerminal) {
+      taskTerminal.show();
+    }
+  }
 
   async function insertP2FlashLoader(binaryImage: Uint8Array): Promise<Uint8Array> {
     // PNut insert_flash_loader:
@@ -868,7 +946,7 @@ function initializeProviders(): void {
   // in reference: VSCode-PowerPC-Syntax this preparsed files in workspace
   // TODO: might we need something like this? or is it done in the server?
   /*
-	    vscode.window.withProgress({
+        vscode.window.withProgress({
         location: ProgressLocation.Notification,
         title: 'ASM File Support',
         cancellable: false
@@ -893,7 +971,7 @@ function initializeProviders(): void {
         });
     });
 
-	*/
+    */
 }
 
 // ----------------------------------------------------------------------------
@@ -976,7 +1054,7 @@ async function scanForAndRecordPropPlugs(): Promise<void> {
       //this.testDownloadFile(usbPort);
     } catch (error) {
       if (error instanceof Error) {
-        this.logMessage(`Scan4Plug: Connect Error thown: ${error.toString()}`);
+        this.logMessage(`Scan4Plug: Connect Error thrown: ${error.toString()}`);
       } else {
         // Handle the case where error is not an Error object
         this.logMessage(`Scan4Plug: Connect Non-error thrown: ${JSON.stringify(error)}`);
@@ -987,7 +1065,7 @@ async function scanForAndRecordPropPlugs(): Promise<void> {
           await usbPort.close(); // we're done with this port
         } catch (error) {
           if (error instanceof Error) {
-            this.logMessage(`Scan4Plug: Close Error thown: ${error.toString()}`);
+            this.logMessage(`Scan4Plug: Close Error thrown: ${error.toString()}`);
           } else {
             // Handle the case where error is not an Error object
             this.logMessage(`Scan4Plug: Close Non-error thrown: ${JSON.stringify(error)}`);
@@ -1255,7 +1333,7 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   /*   EXAMPLE
-	    vscode.workspace.onDidSaveTextDocument(e => {
+        vscode.workspace.onDidSaveTextDocument(e => {
         getAsmFile(e.uri.fsPath)
             .then(file => {
                 const filePath: string = file[0] as string;
@@ -1264,7 +1342,7 @@ export function activate(context: vscode.ExtensionContext) {
                 asmReferenceProvider.parseSingleFile(filePath);
             });
     }, null, context.subscriptions);
-	*/
+    */
 
   // Start the client. This will also launch the server
   logExtensionMessage(`* Starting extension client/server`);
@@ -1314,7 +1392,7 @@ function handleVisibleTextEditorChanged(textEditors: vscode.TextEditor[]) {
       if (editor !== undefined) {
         handleActiveTextEditorChanged(editor, 'INTERNAL');
       }
-	  */
+      */
     }
   }
 }
@@ -1777,12 +1855,8 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
       loaderBinFSpec = undefined; // we don't use this on P1 downloads
     }
     await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
-    const loadp2FSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
-    const proploaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PROPLOADER];
-    let loaderFSpec: string = haveP2 ? loadp2FSpec : proploaderFSpec;
-    if (useProploaderForP2 && haveP2) {
-      loaderFSpec = proploaderFSpec;
-    }
+    //
+    const loaderFSpec: string = buildLoaderFSpec(haveP2, useProploaderForP2);
     await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
 
     // build compiler switches
@@ -1814,72 +1888,8 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     }
     flexBuildOptions.push('--compress');
     await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
-    // build loader switches
-    const desiredPort = loadSerialPort !== undefined ? `-p${loadSerialPort}` : '';
-    const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
-    const usePSTComptibleTerm: boolean = toolchainConfiguration.termIsPstCompatible;
-    const termType: string = usePSTComptibleTerm ? 'T' : 't';
-    const loadP2userBaudrate: number = toolchainConfiguration.userBaudrate;
     //
-    // we are working to keep the options list as 4 our less options!
-    //  this is a limit when sending to user-tasks for now
-    //
-    //  increase the buffer size to 8192 for P2 due to error message without it
-    //  -k seems to have no effect on P2
-    //  code is not running on P2 after download (--compress has no effect on not running)
-    const loaderOptions: string[] = [];
-    let loaderSglLtrOptions: string = '-v'; // verbose for time being....
-    if (haveP2) {
-      // setup loadp2/proploader arguments for P2 download
-      if (useProploaderForP2 == false) {
-        // Load P2 using: loadp2{.mac|.exe}
-        if (enterTerminalAfter) {
-          loaderSglLtrOptions = loaderSglLtrOptions.concat(termType);
-        }
-        //loaderSglLtrOptions = loaderSglLtrOptions.concat('k'); // wait for user input before exit
-        //loaderSglLtrOptions = loaderSglLtrOptions.concat('n'); // no reset; skip any hardware reset
-        loaderOptions.push(loaderSglLtrOptions);
-        loaderOptions.push(`-b${loadP2userBaudrate}`);
-        loaderOptions.push(`-SINGLE`); // set load mode for single file (use single file loader within loadp2)
-        loaderOptions.push(`-FIFO`);
-        loaderOptions.push(`8192`);
-        if (writeToFlash) {
-          loaderOptions.push(`-FLASH`);
-        }
-      } else {
-        // Load P2 using: proploader{.mac|.exe}
-        loaderOptions.push('-2');
-        loaderOptions.push(loaderSglLtrOptions);
-        loaderOptions.push('-r'); // run after downloading
-        //loaderOptions.push('-k'); // wait for user input before exit
-        //loaderOptions.push('-n'); // no reset; skip any hardware reset
-        loaderOptions.push(`-D`);
-        loaderOptions.push(`baud-rate=${loadP2userBaudrate}`);
-        if (writeToFlash) {
-          loaderOptions.push('-e'); // write to eeprom
-        }
-        if (enterTerminalAfter) {
-          loaderOptions.push(`-${termType}`); // term or PST term
-        }
-      }
-    } else {
-      // Load P1 using: proploader{.mac|.exe}
-      // NOTE: proploader doesn't support merging single letter options!
-      // setup proploader arguments for P1 download
-      loaderOptions.push(loaderSglLtrOptions);
-      loaderOptions.push(`-r`); // run after download
-      if (writeToFlash) {
-        loaderOptions.push(`-e`); // write to eeprom
-      }
-      if (enterTerminalAfter) {
-        loaderOptions.push(`-${termType}`); // term or PST term
-      }
-      loaderOptions.push(`-D`);
-      loaderOptions.push(`baud-rate=${loadP2userBaudrate}`);
-    }
-    if (desiredPort.length > 0) {
-      loaderOptions.push(desiredPort);
-    }
+    const loaderOptions: string[] = await buildLoaderSwitches(haveP2, writeToFlash, loadSerialPort);
     await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
     //
   } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT && haveP2) {
@@ -1903,9 +1913,11 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     //
   } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS && haveP2) {
     // -----------------------------------------------------------
-    // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
+    // pnut_ts only has the compiler (loader is built-into Spin2 Extension or we use loadp2)
     //
     const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
+    const haveFlexspin: boolean = toolchainConfiguration.flexspinInstalled;
+
     await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
     // build compiler switches
     //
@@ -1921,10 +1933,34 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
       buildOptions.push('-l');
     }
     await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
-    // these are NOT used in this environment
-    await updateRuntimeConfig('spin2.optionsLoader', undefined);
-    await updateRuntimeConfig('spin2.fSpecLoader', undefined);
-    await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    // FIXME: let's make this conditional upon using internal loader or not (external is loadp2!!)
+    if (haveFlexspin == false) {
+      useInternalDownloader = true;
+      logExtensionMessage(`* WARNING flexspin NOT found, forcing use of internal downloader`);
+    }
+    if (useInternalDownloader) {
+      // -----------------------------------------------------------
+      // pnut_ts Compiler, using Spin2 Extension internal loader
+      //
+      // these are NOT used in this environment
+      await updateRuntimeConfig('spin2.optionsLoader', undefined);
+      await updateRuntimeConfig('spin2.fSpecLoader', undefined);
+      await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+    } else {
+      // -----------------------------------------------------------
+      // pnut_ts Compiler, use flexProp toolset loadP2, and flashBinary
+      //
+      // build flasher binary FileSpec
+      const loaderBinFSpec: string | undefined = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
+      await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
+      // build loader FileSpec
+      const useOnlyP2: boolean = true;
+      const loaderFSpec: string = buildLoaderFSpec(useOnlyP2, useProploaderForP2);
+      await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+      // build loader switches
+      const loaderOptions: string[] = await buildLoaderSwitches(useOnlyP2, writeToFlash, loadSerialPort);
+      await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
+    }
     //
   } else {
     // -----------------------------------------------------------
@@ -1937,6 +1973,91 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     await updateRuntimeConfig('spin2.optionsLoader', undefined);
   }
   logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) cmpId=[${selectedCompilerId}] - EXIT`);
+}
+
+function buildLoaderFSpec(haveP2, useProploaderForP2): string {
+  // build loader FileSpec
+  const loadp2FSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
+  const proploaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PROPLOADER];
+  let loaderFSpec: string = haveP2 ? loadp2FSpec : proploaderFSpec;
+  if (useProploaderForP2 && haveP2) {
+    loaderFSpec = proploaderFSpec;
+  }
+  return loaderFSpec;
+}
+
+async function buildLoaderSwitches(haveP2: boolean, writeToFlash: boolean, serialPort: string): Promise<string[]> {
+  // build loader switches
+  const desiredPort = serialPort !== undefined ? `-p${serialPort}` : '';
+  const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
+  const usePSTComptibleTerm: boolean = toolchainConfiguration.termIsPstCompatible;
+  const termType: string = usePSTComptibleTerm ? 'T' : 't';
+  const loadP2userBaudrate: number = toolchainConfiguration.userBaudrate;
+  //
+  // we are working to keep the options list as 4 our less options!
+  //  this is a limit when sending to user-tasks for now
+  //
+  //  increase the buffer size to 8192 for P2 due to error message without it
+  //  -k seems to have no effect on P2
+  //  code is not running on P2 after download (--compress has no effect on not running)
+  const loaderOptions: string[] = [];
+  let loaderSglLtrOptions: string = ''; // '-v'; // verbose for time being....
+  if (haveP2) {
+    // setup loadp2/proploader arguments for P2 download
+    if (useProploaderForP2 == false) {
+      // Load P2 using: loadp2{.mac|.exe}
+      if (enterTerminalAfter) {
+        const termOption: string = `-${termType}`; // term or PST term
+        loaderSglLtrOptions = loaderSglLtrOptions.concat(termOption);
+      }
+      //loaderSglLtrOptions = loaderSglLtrOptions.concat('k'); // wait for user input before exit
+      //loaderSglLtrOptions = loaderSglLtrOptions.concat('n'); // no reset; skip any hardware reset
+      if (loaderSglLtrOptions.length > 0) {
+        loaderOptions.push(loaderSglLtrOptions);
+      }
+      //loaderOptions.push(`-v`); // TEST TEST TEST
+      loaderOptions.push(`-b${loadP2userBaudrate}`);
+      loaderOptions.push(`-SINGLE`); // set load mode for single file (use single file loader within loadp2)
+      loaderOptions.push(`-FIFO`);
+      loaderOptions.push(`8192`);
+      if (writeToFlash) {
+        loaderOptions.push(`-FLASH`);
+      }
+    } else {
+      // Load P2 using: proploader{.mac|.exe}
+      loaderOptions.push('-2');
+      loaderOptions.push(loaderSglLtrOptions);
+      loaderOptions.push('-r'); // run after downloading
+      //loaderOptions.push('-k'); // wait for user input before exit
+      //loaderOptions.push('-n'); // no reset; skip any hardware reset
+      loaderOptions.push(`-D`);
+      loaderOptions.push(`baud-rate=${loadP2userBaudrate}`);
+      if (writeToFlash) {
+        loaderOptions.push('-e'); // write to eeprom
+      }
+      if (enterTerminalAfter) {
+        loaderOptions.push(`-${termType}`); // term or PST term
+      }
+    }
+  } else {
+    // Load P1 using: proploader{.mac|.exe}
+    // NOTE: proploader doesn't support merging single letter options!
+    // setup proploader arguments for P1 download
+    loaderOptions.push(loaderSglLtrOptions);
+    loaderOptions.push(`-r`); // run after download
+    if (writeToFlash) {
+      loaderOptions.push(`-e`); // write to eeprom
+    }
+    if (enterTerminalAfter) {
+      loaderOptions.push(`-${termType}`); // term or PST term
+    }
+    loaderOptions.push(`-D`);
+    loaderOptions.push(`baud-rate=${loadP2userBaudrate}`);
+  }
+  if (desiredPort.length > 0) {
+    loaderOptions.push(desiredPort);
+  }
+  return loaderOptions;
 }
 
 function toggleCommand() {

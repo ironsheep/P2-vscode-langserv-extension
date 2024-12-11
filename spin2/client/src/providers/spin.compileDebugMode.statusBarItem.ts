@@ -49,12 +49,7 @@ export const updateStatusBarCompileDebugItem = (showItem: boolean | null) => {
       }
       if (sbiText === undefined || sbiText == null) sbiText = '';
 
-      // preparation for https://github.com/DrMerfy/vscode-overtype/issues/2
-      // if (editModeConfiguration.showCapsLockState && capsLockOn) {
-      //     statusBarItem.text = sbiText.toUpperCase();
-      // } else {
       statusBarItem.text = sbiText;
-      // }
 
       statusBarItem.show();
     }

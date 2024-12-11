@@ -52,6 +52,7 @@ Step-by-step, one-time, migration of your environment to v2.3.0 is covered in ou
    - Status Bar control for enable/disable of debug() compilation.
    - Status Bar control of download to RAM or FLASH.
    - Status Bar control over which PropPlug to use.
+   - Settings for selecting default and workspace-specific compiler
 
 ### Up next
 We are working on the next updates:

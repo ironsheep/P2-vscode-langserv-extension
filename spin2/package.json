@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.2.19",
+  "version": "2.2.99",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -154,7 +154,11 @@
           "spinExtension.trace.server": {
             "scope": "window",
             "type": "string",
-            "enum": ["off", "messages", "verbose"],
+            "enum": [
+              "off",
+              "messages",
+              "verbose"
+            ],
             "default": "off",
             "description": "Traces the communication between VSCode client and the spin2 language server."
           },
@@ -188,7 +192,11 @@
           "spinExtension.elasticTabstops.choice": {
             "type": "string",
             "default": "PropellerTool",
-            "enum": ["PropellerTool", "IronSheep", "User1"],
+            "enum": [
+              "PropellerTool",
+              "IronSheep",
+              "User1"
+            ],
             "description": "Select the set of Tabstops you wish to use."
           },
           "spinExtension.elasticTabstops.blocks.PropellerTool": {
@@ -202,22 +210,78 @@
             },
             "default": {
               "con": {
-                "tabStops": [2, 8, 16, 18, 32, 56, 78, 80]
+                "tabStops": [
+                  2,
+                  8,
+                  16,
+                  18,
+                  32,
+                  56,
+                  78,
+                  80
+                ]
               },
               "var": {
-                "tabStops": [2, 8, 22, 32, 56, 80]
+                "tabStops": [
+                  2,
+                  8,
+                  22,
+                  32,
+                  56,
+                  80
+                ]
               },
               "obj": {
-                "tabStops": [2, 8, 16, 18, 32, 56, 80]
+                "tabStops": [
+                  2,
+                  8,
+                  16,
+                  18,
+                  32,
+                  56,
+                  80
+                ]
               },
               "pub": {
-                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
+                "tabStops": [
+                  2,
+                  4,
+                  6,
+                  8,
+                  10,
+                  12,
+                  14,
+                  16,
+                  32,
+                  56,
+                  80
+                ]
               },
               "pri": {
-                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
+                "tabStops": [
+                  2,
+                  4,
+                  6,
+                  8,
+                  10,
+                  12,
+                  14,
+                  16,
+                  32,
+                  56,
+                  80
+                ]
               },
               "dat": {
-                "tabStops": [8, 14, 24, 32, 48, 56, 80]
+                "tabStops": [
+                  8,
+                  14,
+                  24,
+                  32,
+                  48,
+                  56,
+                  80
+                ]
               }
             }
           },
@@ -232,22 +296,87 @@
             },
             "default": {
               "con": {
-                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
+                "tabStops": [
+                  4,
+                  8,
+                  16,
+                  20,
+                  32,
+                  44,
+                  56,
+                  68,
+                  80
+                ]
               },
               "var": {
-                "tabStops": [4, 12, 24, 28, 32, 44, 56, 68, 80]
+                "tabStops": [
+                  4,
+                  12,
+                  24,
+                  28,
+                  32,
+                  44,
+                  56,
+                  68,
+                  80
+                ]
               },
               "obj": {
-                "tabStops": [4, 8, 16, 20, 32, 44, 56, 68, 80]
+                "tabStops": [
+                  4,
+                  8,
+                  16,
+                  20,
+                  32,
+                  44,
+                  56,
+                  68,
+                  80
+                ]
               },
               "pub": {
-                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
+                "tabStops": [
+                  4,
+                  8,
+                  12,
+                  16,
+                  20,
+                  24,
+                  28,
+                  32,
+                  56,
+                  80
+                ]
               },
               "pri": {
-                "tabStops": [4, 8, 12, 16, 20, 24, 28, 32, 56, 80]
+                "tabStops": [
+                  4,
+                  8,
+                  12,
+                  16,
+                  20,
+                  24,
+                  28,
+                  32,
+                  56,
+                  80
+                ]
               },
               "dat": {
-                "tabStops": [4, 16, 20, 24, 28, 48, 52, 56, 60, 64, 68, 80]
+                "tabStops": [
+                  4,
+                  16,
+                  20,
+                  24,
+                  28,
+                  48,
+                  52,
+                  56,
+                  60,
+                  64,
+                  68,
+                  80
+                ]
               }
             }
           },
@@ -262,22 +391,80 @@
             },
             "default": {
               "con": {
-                "tabStops": [2, 8, 16, 18, 32, 56, 76, 77, 78, 80]
+                "tabStops": [
+                  2,
+                  8,
+                  16,
+                  18,
+                  32,
+                  56,
+                  76,
+                  77,
+                  78,
+                  80
+                ]
               },
               "var": {
-                "tabStops": [2, 8, 22, 32, 56, 80]
+                "tabStops": [
+                  2,
+                  8,
+                  22,
+                  32,
+                  56,
+                  80
+                ]
               },
               "obj": {
-                "tabStops": [2, 8, 16, 18, 32, 56, 80]
+                "tabStops": [
+                  2,
+                  8,
+                  16,
+                  18,
+                  32,
+                  56,
+                  80
+                ]
               },
               "pub": {
-                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
+                "tabStops": [
+                  2,
+                  4,
+                  6,
+                  8,
+                  10,
+                  12,
+                  14,
+                  16,
+                  32,
+                  56,
+                  80
+                ]
               },
               "pri": {
-                "tabStops": [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
+                "tabStops": [
+                  2,
+                  4,
+                  6,
+                  8,
+                  10,
+                  12,
+                  14,
+                  16,
+                  32,
+                  56,
+                  80
+                ]
               },
               "dat": {
-                "tabStops": [8, 14, 24, 32, 48, 56, 80]
+                "tabStops": [
+                  8,
+                  14,
+                  24,
+                  32,
+                  48,
+                  56,
+                  80
+                ]
               }
             }
           }
@@ -408,7 +595,11 @@
           "spinExtension.toolchain.optionsDownload.enterTerminalAfter": {
             "type": "string",
             "default": "never",
-            "enum": ["never", "only when debug() compile enabled", "always"],
+            "enum": [
+              "never",
+              "only when debug() compile enabled",
+              "always"
+            ],
             "description": "Enter Terminal mode after download completes (select one)"
           },
           "spinExtension.toolchain.optionsDownload.user.baudrate": {
@@ -664,20 +855,38 @@
     "languages": [
       {
         "id": "spin2",
-        "aliases": ["spin2", "Spin2", "SPIN2"],
-        "extensions": [".spin2"],
+        "aliases": [
+          "spin2",
+          "Spin2",
+          "SPIN2"
+        ],
+        "extensions": [
+          ".spin2"
+        ],
         "configuration": "./spin2.language-configuration.json"
       },
       {
         "id": "spin",
-        "aliases": ["spin", "Spin", "SPIN"],
-        "extensions": [".spin"],
+        "aliases": [
+          "spin",
+          "Spin",
+          "SPIN"
+        ],
+        "extensions": [
+          ".spin"
+        ],
         "configuration": "./spin1.language-configuration.json"
       },
       {
         "id": "p2asm",
-        "aliases": ["p2asm", "P2Asm", "P2ASM"],
-        "extensions": [".p2asm"],
+        "aliases": [
+          "p2asm",
+          "P2Asm",
+          "P2ASM"
+        ],
+        "extensions": [
+          ".p2asm"
+        ],
         "configuration": "./spin2.language-configuration.json"
       }
     ],
@@ -752,8 +961,12 @@
     "semanticTokenScopes": [
       {
         "scopes": {
-          "returnValue": ["meta.returntype.spin"],
-          "storageType": ["storage.type.pasm.spin2"]
+          "returnValue": [
+            "meta.returntype.spin"
+          ],
+          "storageType": [
+            "storage.type.pasm.spin2"
+          ]
         }
       }
     ],

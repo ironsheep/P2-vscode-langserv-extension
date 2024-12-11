@@ -1,6 +1,7 @@
 # VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
 
 ![Project Maintenance][maintenance-shield]
+
 [![License][license-shield]](LICENSE) 
 
 # Migrate from v2.2.x to v2.3.0
@@ -306,9 +307,13 @@ I'll have Chip distribute this version with all pnut distributions for here on o
 
 **NOTE**: The `pnut_v43` value in this new file MUST match your exact PNut version! If is does not then this script will NOT work!  Please edit this file if it doesn't match.
 
+## One last thing
+
+I've put together another page with some notes worth mentioning after I wrote all of this. If you haven't read that page yet, please review [v2.3.x Build System Notes](BuildSystemNotes.md)
+
 ## Congratulations
 
-That's it you should be ready to use all compilers on your plaform to build, download and run P2 code using VSCode.
+That's it you should be ready to use all compilers on your platform to build, download and run P2 code using VSCode.
 
 ## License
 

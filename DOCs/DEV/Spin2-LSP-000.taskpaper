@@ -86,9 +86,13 @@ Spin2-LSP-000 TODOs:
 			- Search for "intersystems/refactor/listOverridableMembers" to see all code parts needed
 	
 	USB Issues Before Release:
+	- BUG terminal is being sent to loadp2 when debug NOT enabled (appears to be VSC SB toggle not updating settings correctly)
+		- DONT EVER SET USER DEBUG ENABLE (it prevents the status bar from working)
+	- Get a terminal listener working for pnut_ts ( @done(2024-12-10)
+	- just use loadp2?! @done(2024-12-10)
 	- MacOS:
-		- proploader communicates plug but doesn't start code running after download
-		- loadp2 communicates plug but doesn't start code running after download, also Error no checksum rcvd!
+		- proploader communicates with plug but doesn't start code running after download
+		- loadp2 communicates plug but doesn't start code running after download, also Error no checksum rcvd! @done(2024-12-10)
 	- Windows:
 		- loadp2 error opening comN port!
 	
