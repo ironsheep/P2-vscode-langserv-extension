@@ -52,7 +52,7 @@ enum eConfigSection {
   CS_WORKSPACE
 }
 
-const isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
@@ -1129,65 +1129,70 @@ async function locateTools(): Promise<void> {
     platformPaths = [...envDirs, userBin, userLocalBin, optFlexpropBin, optPNutTS];
   }
   // and ensure there is only one occurance of each path in list
-  platformPaths = platformPaths.sort().filter((item, index, self) => index === self.indexOf(item));
+  //platformPaths = platformPaths.sort().filter((item, index, self) => index === self.indexOf(item));
+  //platformPaths = platformPaths
+  //    .map((item) => item.toLowerCase()) // Convert all items to lowercase
+  //    .sort()
+  //    .filter((item, index, self) => index === self.indexOf(item)); // Remove duplicates
+  //
+  // Create a map of lowercase paths to original paths
+  const lowerCaseMap = new Map<string, string>();
+  platformPaths.forEach((item) => {
+    lowerCaseMap.set(item.toLowerCase(), item);
+  });
+
+  // Filter the original paths based on the uniqueness of their lowercase counterparts
+  platformPaths = Array.from(lowerCaseMap.values());
   // now see if we find any tools
   let toolsFound: boolean = false;
 
   // ---------------
   //  PNut tools
-  const pnutFSpec: string | undefined = await locateExe('pnut_shell.bat', platformPaths);
+  const pnutFSpec: string | undefined = await getSingleLocation('pnut_shell.bat', platformPaths);
   if (pnutFSpec !== undefined) {
-    // Update the configuration with the path of the executable.
     toolsFound = true;
-    logExtensionMessage(`* TOOL: ${pnutFSpec}`);
   }
   await updateConfig('toolchain.paths.PNut', pnutFSpec, eConfigSection.CS_USER);
 
   // ---------------
   //  PNut_ts tools
-  const pnutTsFSpec: string | undefined = await locateExe('pnut_ts', platformPaths);
+  const pnutTsFSpec: string | undefined = await getSingleLocation('pnut_ts', platformPaths);
   if (pnutTsFSpec !== undefined) {
-    // Update the configuration with the path of the executable.
     toolsFound = true;
-    logExtensionMessage(`* TOOL: ${pnutTsFSpec}`);
   }
   await updateConfig('toolchain.paths.PNutTs', pnutTsFSpec, eConfigSection.CS_USER);
 
   // ---------------
   //  FlexProp tools
-  const flexSpinFSpec = await locateExe('flexspin', platformPaths);
+  const flexSpinFSpec = await getSingleLocation('flexspin', platformPaths);
   let loadP2FSpec: string | undefined = undefined;
   let proploaderFSpec: string | undefined = undefined;
   let flexFlasherBinFSpec: string | undefined = undefined;
   if (flexSpinFSpec !== undefined) {
     // Update the configuration with the path of the executable.
     toolsFound = true;
-    logExtensionMessage(`* TOOL: ${flexSpinFSpec}`);
     //
     // now look for other FlexProp related parts
     //
     const flexPropBin = path.dirname(flexSpinFSpec);
     const flexPropBoard = path.join(path.dirname(flexPropBin), 'board');
 
-    loadP2FSpec = await locateExe('loadp2', [flexPropBin]);
+    loadP2FSpec = await getSingleLocation('loadp2', [flexPropBin]);
     if (loadP2FSpec !== undefined) {
       // Update the configuration with the path of the executable.
       toolsFound = true;
-      logExtensionMessage(`* TOOL: ${loadP2FSpec}`);
     }
 
-    proploaderFSpec = await locateExe('proploader', [flexPropBin]);
+    proploaderFSpec = await getSingleLocation('proploader', [flexPropBin]);
     if (proploaderFSpec !== undefined) {
       // Update the configuration with the path of the executable.
       toolsFound = true;
-      logExtensionMessage(`* TOOL: ${proploaderFSpec}`);
     }
 
     flexFlasherBinFSpec = locateNonExe('P2ES_flashloader.bin', [flexPropBoard]);
     if (flexFlasherBinFSpec !== undefined) {
       // Update the configuration with the path of the executable.
       toolsFound = true;
-      logExtensionMessage(`* TOOL: ${flexFlasherBinFSpec}`);
     }
   }
   await updateConfig('toolchain.paths.flexspin', flexSpinFSpec, eConfigSection.CS_USER);
@@ -1218,6 +1223,24 @@ async function locateTools(): Promise<void> {
   }
   logExtensionMessage(`* TOOL: platform=[${platform()}]`);
   logExtensionMessage(`* TOOL: platformPaths=[${platformPaths}]`);
+}
+
+async function getSingleLocation(exeName: string, platformPaths: string[]): Promise<string | undefined> {
+  let exeFSpec: string | undefined = undefined;
+  let allFSpecs: string[] = [];
+  [exeFSpec, allFSpecs] = await locateExe(exeName, platformPaths);
+  if (allFSpecs.length > 1) {
+    const errorMessage: string = `ERROR TOOL: ${exeName} found in multiple locations [${allFSpecs}]`;
+    logExtensionMessage(`* ${errorMessage}`);
+    await vscode.window.showErrorMessage(errorMessage);
+  } else if (exeFSpec !== undefined) {
+    // Update the configuration with the path of the executable.
+    logExtensionMessage(`* TOOL: ${exeFSpec}`);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return new Promise((resolve, reject) => {
+    resolve(exeFSpec);
+  });
 }
 
 async function updateConfig(path: string, value: string | string[] | boolean | object, section: eConfigSection): Promise<void> {

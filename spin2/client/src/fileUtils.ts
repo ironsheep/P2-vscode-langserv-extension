@@ -81,21 +81,28 @@ export function locateNonExe(fileName: string, possibleLocations: string[]): str
   return fileFSpec;
 }
 
-export async function locateExe(exeName: string, possibleLocations: string[]): Promise<string | undefined> {
+export async function locateExe(exeName: string, possibleLocations: string[]): Promise<[string | undefined, string[]]> {
   let exeFSpec: string | undefined = undefined;
+  const allFSpecs: string[] = [];
+
+  // FIXME: adjust to reutrn all values found not just first
   const searchExeName = platformExeName(exeName);
   for (let index = 0; index < possibleLocations.length; index++) {
     const searchDir = possibleLocations[index];
     const searchFSpec = path.join(searchDir, searchExeName);
     const isExecutable = await executableExists(searchFSpec);
     if (isExecutable) {
-      exeFSpec = searchFSpec;
-      break;
+      if (exeFSpec === undefined) {
+        // return first found
+        exeFSpec = searchFSpec;
+      }
+      // return all found
+      allFSpecs.push(searchFSpec);
     }
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return new Promise((resolve, reject) => {
-    resolve(exeFSpec);
+    resolve([exeFSpec, allFSpecs]);
   });
 }
 
