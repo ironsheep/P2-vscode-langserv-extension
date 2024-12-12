@@ -33,6 +33,7 @@ This update improves/simplifies the ability to compile and download code for Spi
 - NEW Setting to selected preferred compiler for all projects
 - NEW this Setting can be overridden for each specific workspace (project)
 - NEW Setting to enable all this new spin2 toolchain support (disabled by defult)
+- NEW Replacement User Tasks file is now universal (all supported compilers)
 
 General Repairs
 
