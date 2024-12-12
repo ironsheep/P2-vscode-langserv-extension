@@ -19,7 +19,15 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.3.0] 2024-09-03
+## [2.3.1] 2024-12-12
+
+Minor updates to Compiler detection for P1/P2
+
+- Error if multiple installations are found for a given tool
+- Reducing search to unique paths (no dupes from PATH values)
+- Extension logging is enabled for now to help us diagnose new-user installations
+
+## [2.3.0] 2024-12-11
 
 Updates to Compile/Download support for P2
 
