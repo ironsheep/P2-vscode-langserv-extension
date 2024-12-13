@@ -102,6 +102,12 @@ There should be a TOOL: line indicating each compiler or loader executable found
 
 **Remember**: If you changed your PATH value then remember to shutdown and reload VSCode from within a new terminal that sees the new PATH value.
 
+## Well Heck!  Settings Sync for !Win (not a win)
+
+In the no good deed goes unpunished category, we have the fact that now that I'm tracking build parameters for each workspace in the workspace `.vscode/settings.json` file, it seems that the newly minted VSCode settings sync mechanisms which I use to keep VSCode in sync across all of my machines is now griping about not being able to merge the workspace files on the different machines. Merging would be really bad as each different OS uses different compilers, loaders, command-line switches, etc.
+
+Well, I'm looking into how to solve this...
+
 ## Did I miss anything?
 
 If you have questions about something not covered here let me know and I'll add more narrative here.
