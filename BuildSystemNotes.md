@@ -80,6 +80,27 @@ Now from the pop-up menu you can select `Settings` OR `Keyboard Shortcuts`:
 
 Again there a more ways to do this. This is just one of them.
 
+## Why didn't the VSCode Spin2 Extension find my compiler?
+
+When running the Spin2 extension built with output logging enabled you should should find two new pull-down values in the OUTPUT tab of the terminal window:
+
+<p align="center">
+  <img src="./DOCs/outputTabDropdown.png" width="200"><br>
+    <caption><B>Pop-up menu with two new Extension Logs</b>
+</p>
+
+From the pop-up menu in the OUTPUT tab, select the item **Spin/Spin2 Extension DEBUG** log, then you are seeing the log we want to see.
+
+Now do a search in that window (CMD+F on macOS) and type in `TOOL:` and select case-sensitivity in the search dialog.  You should then see somthing like this:
+
+<p align="center">
+  <img src="./DOCs/tool-inLogs.png" width="900"><br>
+    <caption><B>Terminal Window with OUTPUT tab selected and viewing </B></caption><br>
+</p>
+
+There should be a TOOL: line indicating each compiler or loader executable found.  If some of them are missing then you can look in the `TOOL: platofrmPaths=[...]` list to see exactly what PATH values are being seen by the extension.  
+
+**Remember**: If you changed your PATH value then remember to shutdown and reload VSCode from within a new terminal that sees the new PATH value.
 
 ## Did I miss anything?
 
