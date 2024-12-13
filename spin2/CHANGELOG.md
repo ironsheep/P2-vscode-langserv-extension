@@ -19,6 +19,13 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.3.2] 2024-12-12
+
+Minor updates to Compiler detection for P1/P2 on Windows
+
+- Repair parsing of PATH on windows and how expected location paths are created
+- Extension logging is enabled for now to help us diagnose new-user installations
+
 ## [2.3.1] 2024-12-12
 
 Minor updates to Compiler detection for P1/P2

@@ -1100,17 +1100,17 @@ async function locateTools(): Promise<void> {
   const optLocalBin = path.join(`${path.sep}opt`, 'local', 'bin');
   let platformPaths: string[] = [];
   if (isWindows()) {
-    const envDirs = envPath.split(':').filter(Boolean);
+    const envDirs = envPath.split(';').filter(Boolean); // Windows is ';' separated
     // C:\Program Files (x86)\Parallax Inc\PNut
     // C:\Programs\IronSheepProductions\pnut_ts
     // C:\Programs\TotalSpectrum\flexprop
-    const appFlexProp = path.join(`${path.sep}Programs`, 'TotalSpectrum', 'flexprop', 'bin');
-    const appPNutTS = path.join(`${path.sep}Programs`, 'IronSheepProductions', 'pnut_ts');
-    const appParallax = path.join(`${path.sep}Program Files (x86)`, 'Parallax Inc');
+    const appFlexProp = path.join(`C:${path.sep}Programs`, 'TotalSpectrum', 'flexprop', 'bin');
+    const appPNutTS = path.join(`C:${path.sep}Programs`, 'IronSheepProductions', 'pnut_ts');
+    const appParallax = path.join(`C:${path.sep}Program Files (x86)`, 'Parallax Inc');
     const appPNut = path.join(`${appParallax}`, 'PNut');
     platformPaths = [...envDirs, appParallax, appPNut, appPNutTS, appFlexProp];
   } else if (isMac()) {
-    const envDirs = envPath.split(':').filter(Boolean);
+    const envDirs = envPath.split(':').filter(Boolean); // macOS is ':' separated
     // /Applications/flexprop/bin
     // /Applications
     // ~/Applications
@@ -1123,7 +1123,7 @@ async function locateTools(): Promise<void> {
     // assume linux, RPi
     //  /opt/flexprop
     //  /opt/pnut_ts
-    const envDirs = envPath.split(':').filter(Boolean);
+    const envDirs = envPath.split(':').filter(Boolean); // linux is ':' separated
     const optPNutTS = path.join(`${path.sep}opt`, 'pnut_ts');
     const optFlexpropBin = path.join(`${path.sep}opt`, 'flexprop', 'bin');
     platformPaths = [...envDirs, userBin, userLocalBin, optFlexpropBin, optPNutTS];
