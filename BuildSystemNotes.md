@@ -108,6 +108,38 @@ In the no good deed goes unpunished category, we have the fact that now that I'm
 
 Well, I'm looking into how to solve this...
 
+### Solved?!
+
+I think i found the answer. I've added the following to my user settings.json file:
+
+```
+  "settingsSync.ignoredSettings": [
+    "spinExtension.toolchain.optionsCompile.enableDebug",
+    "spinExtension.toolchain.compiler.installationsFound",
+    "spinExtension.toolchain.propPlug.devicesFound",
+    "spinExtension.toolchain.optionsDownload.flexspin.baudrate",
+    "spinExtension.toolchain.compiler.selected",
+    "spinExtension.toolchain.optionsDownload.user.baudrate",
+    "spinExtension.toolchain.optionsDownload.enterTerminalAfter",
+    "spinExtension.toolchain.paths.PNutTs",
+    "spinExtension.toolchain.paths.flexspin",
+    "spinExtension.toolchain.paths.loadp2",
+    "spinExtension.toolchain.paths.proploader",
+    "spinExtension.toolchain.paths.flexspinFlashloader",
+    "spin2.fNameTopLevel",
+    "spin2.fSpecCompiler",
+    "spin2.fSpecFlashBinary",
+    "spin2.fSpecLoader",
+    "spin2.serialPort",
+    "spin2.optionsBuild",
+    "spin2.optionsLoader",
+    "spin2.optionsBinaryFname"
+  ],
+
+```
+
+Please let me know if you still have problems with settings symc between machines after adding these section to your User settings.json file.
+
 ## Did I miss anything?
 
 If you have questions about something not covered here let me know and I'll add more narrative here.
