@@ -1,0 +1,903 @@
+'' =================================================================================================
+''
+''   File....... isp_steering_2wheel.spin2
+''   Purpose.... Object providing control interface for steering a twin-bldc-motor platform
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2022 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... Feb 2022
+''   Updated.... 21 Jul 2022
+''
+'' =================================================================================================
+CON { forward our interface constants }
+
+  ' board connection Enum
+    MOTOR_TYPE     = user.MOTOR_TYPE
+
+  ' board connection Enum
+    PINS_P0_P15     = ltWheel.PINS_P0_P15
+    PINS_P8_P23     = ltWheel.PINS_P8_P23
+    PINS_P16_P31    = ltWheel.PINS_P16_P31
+    PINS_P32_P47    = ltWheel.PINS_P32_P47
+    PINS_P40_P55    = ltWheel.PINS_P40_P55
+
+    ' Driver Supported Voltages Enum
+    '  Lipo battery sizes: 2s-7.4v, 3s-11.1v, 4s-14.8v, 5s-18.5v, 6s-22.2v, 7s-25.9v
+    PWR_6p0V      = ltWheel.PWR_6p0V
+    PWR_7p4V    = ltWheel.PWR_7p4V
+    PWR_11p1V   = ltWheel.PWR_11p1V
+    PWR_12p0V     = ltWheel.PWR_12p0V
+    PWR_14p8V   = ltWheel.PWR_14p8V
+    PWR_18p5V   = ltWheel.PWR_18p5V
+    PWR_22p2V   = ltWheel.PWR_22p2V
+    PWR_24p0V     = ltWheel.PWR_24p0V
+    PWR_25p9V     = ltWheel.PWR_25p9V
+
+  ' Driver Distance-Units Enum
+    DDU_Unknown     = ltWheel.DDU_Unknown
+    DDU_IN          = ltWheel.DDU_IN
+    DDU_MM          = ltWheel.DDU_MM
+    DDU_CM          = ltWheel.DDU_CM
+    DDU_FT          = ltWheel.DDU_FT
+    DDU_M           = ltWheel.DDU_M
+    DDU_KM          = ltWheel.DDU_KM
+    DDU_MI          = ltWheel.DDU_MI
+
+  ' Driver Rotation-Units Enum
+    DRU_Unknown     = ltWheel.DRU_Unknown
+    DRU_DEGREES     = ltWheel.DRU_DEGREES
+    DRU_ROTATIONS   = ltWheel.DRU_ROTATIONS
+    DRU_HALL_TICKS  = ltWheel.DRU_HALL_TICKS
+
+  ' Driver Time-Unit Enum
+    DTU_Unknown     = ltWheel.DTU_Unknown
+    DTU_MILLISEC    = ltWheel.DTU_MILLISEC
+    DTU_SEC         = ltWheel.DTU_SEC
+
+  ' Driver Status Enum
+    DS_Unknown      = ltWheel.DS_Unknown
+    DS_MOVING       = ltWheel.DS_MOVING
+    DS_HOLDING      = ltWheel.DS_HOLDING
+    DS_OFF          = ltWheel.DS_OFF
+
+  ' Driver State Enum
+    DCS_Unknown     = ltWheel.DCS_Unknown
+    DCS_STOPPED     = ltWheel.DCS_STOPPED
+    DCS_SPIN_UP     = ltWheel.DCS_SPIN_UP
+    DCS_AT_SPEED    = ltWheel.DCS_AT_SPEED
+    DCS_SPIN_DN     = ltWheel.DCS_SPIN_DN
+    DCS_SLOW_TO_CHG = ltWheel.DCS_SLOW_TO_CHG
+    DCS_FAULTED     = ltWheel.DCS_FAULTED
+    DCS_ESTOP       = ltWheel.DCS_ESTOP
+
+    ' return value when user makes bad choice
+    INVALID_MOTOR       = ltWheel.INVALID_MOTOR
+
+    ' return value when user makes bad choice
+    INVALID_PIN_BASE    = ltWheel.INVALID_PIN_BASE
+
+    ' return value when user makes bad choice
+    INVALID_VOLTAGE     = ltWheel.INVALID_VOLTAGE
+
+    ' return value when user makes bad choice
+    INVALID_DET_MODE     = ltWheel.INVALID_DET_MODE
+
+OBJ { our Motors }
+
+    ltWheel     :   "isp_bldc_motor"                    ' left wheel drive
+    rtWheel     :   "isp_bldc_motor"                    ' right wheel drive
+    user        :   "isp_bldc_motor_userconfig"         ' driver configuration
+    distConv    :   "isp_dist_utils"                    ' distance conversion utils
+
+PUB null()
+
+'' This is not a top-level object
+
+PUB start(leftBasePin, rightBasePin, driveVoltage, leftDetectMode, rightDetectMode) : ok | ltcog, rtcog, ticsPerRotation
+'' Start our drive cogs connected to our left and right motor control pin-sets
+    ticks1ms   := (clkfreq / 1_000)
+    ticks1us   := (clkfreq / 1_000_000)
+    ticks125ms := ticks1ms * 125
+
+    ' iff HDMI is needed, then we need this!
+    'if clkfreq <> 270_000_000
+    '    debug("!! ERROR bad CLOCK value")
+    '    repeat ' halt here
+
+    ltcog := ltWheel.startEx(leftBasePin, driveVoltage, leftDetectMode, true)
+    ltWheel.testSetMotorId(@"ltMot")
+    rtcog := rtWheel.startEx(rightBasePin, driveVoltage, rightDetectMode, true)
+    rtWheel.testSetMotorId(@"rtMot")
+    rtWheel.forwardIsReverse()
+    cogmask := (1<<(ltcog-1))|(1<<(rtcog-1))
+    waitms(100)
+    debug(" sendatn: ", sdec(ltcog-1), " ", sdec(rtcog-1))
+    cogatn(cogmask)                                     ' sync the 2 motor cogs
+
+    _, ticsPerRotation := ltWheel.hallTicInfoForMotor()
+    if user.WHEEL_DIA_IN_INCH <> 0                      ' use wheel diameter independent of motor type
+        circInMM_x10 := distConv.circInMMforDiaInInchFloat(user.WHEEL_DIA_IN_INCH) * 10
+        tickInMM_x10 := circInMM_x10 / ticsPerRotation
+
+    ' init user tracking vars
+    motorStopHallTicks := 0
+    motorStopMSecs := 0
+    rqstPower := 0
+    rqstLtPower := 0
+    rqstRtPower := 0
+    rqstDirection := 0
+    userCutoff := FALSE
+    notUsed := 0
+
+    ok := senseCog := cogspin(NEWCOG, taskPostionSense(), @taskStack) + 1
+    if senseCog == 0    ' did fail?
+        debug("!! ERROR filed to start Position Sense task")
+
+PUB stop()
+'' Stop our left/right drive and Sense cogs and release allocated pins
+    if senseCog     ' stop motor reads
+        cogstop(senseCog - 1)
+        senseCog := 0
+
+    ltWheel.stop()
+    rtWheel.stop()
+
+PUB setAcceleration(rate)
+'' Updates the ramping speed of the motors
+    ltWheel.setAcceleration(rate)
+    rtWheel.setAcceleration(rate)
+
+PUB setMaxSpeed(speed)
+'' Limit top-speed to {speed}
+    ltWheel.setMaxSpeed(speed)
+    rtWheel.setMaxSpeed(speed)
+
+PUB setMaxSpeedForDistance(speed)
+'' Limit top-speed of driveDistance() operations to {speed}
+    ltWheel.setMaxSpeedForDistance(speed)
+    rtWheel.setMaxSpeedForDistance(speed)
+
+PUB calibrate()
+'' NOT WORKING: (we may need this?)
+'' have motor drivers determine fixed-offset constants
+    ltWheel.calibrate()
+    rtWheel.calibrate()
+
+PUB holdAtStop(bEnable)
+'' Informs the motor drivers to actively hold position (bEnable=true) or coast (bEnable=false) at end of motion
+    ltWheel.holdAtStop(bEnable)
+    rtWheel.holdAtStop(bEnable)
+
+PUB resetTracking()
+'' Resets the position tracking values returned by getDistance() and getRotations()
+''  Effectively: use current position as home from now on
+    ltWheel.resetWindowAccumulators()
+    rtWheel.resetWindowAccumulators()
+
+CON { --- Subsystem Control --- }
+
+PUB driveDirection(power, direction)
+'' Control the speed and direction of your robot using the {power} and {direction} inputs.
+'' Turns both motors on at {power, [(-100) to 100]} but adjusted by {direction, [(-100) to 100]}.
+'' AFFECTED BY: setAcceleration(), setMaxSpeed(), holdAtStop()
+    rqstPower, rqstDirection := power, direction        ' calculate effective power based on direction
+    driveAtPower(calcPowerForDirection(power, direction))
+
+PUB driveForDistance(leftDistance, rightDistance, eDistanceUnits) | shorterDistance, maxLtSpeed, maxRtSpeed
+'' Control the forward direction or rate of turn of your robot using the {leftDistance} and {rightDistance} inputs.
+'' Turn both motors on then turn them off again when either reaches the specified distance {leftDistance} or
+''  {rightDistance}, where {*distance} is in {distanceUnits} [DDU_IN, DDU_FT, DDU_CM, or DDU_M].
+'' AFFECTED BY: setAcceleration(), setMaxSpeedForDistance(), holdAtStop()
+    shorterDistance := leftDistance < rightDistance ? leftDistance : rightDistance
+    stopAfterDistance(shorterDistance, eDistanceUnits)
+    maxLtSpeed := ltWheel.getMaxSpeedForDistance()
+    maxRtSpeed := rtWheel.getMaxSpeedForDistance()
+    driveAtPower(maxLtSpeed, maxRtSpeed)
+
+PUB driveAtPower(leftPower, rightPower)
+'' Control the speed and direction of your robot using the {leftPower} and {rightPower} inputs.
+'' Turns left motor on at {leftPower} and right at {rightPower}. Where {*Power} are in the range [(-100) to 100].
+'' AFFECTED BY: setAcceleration(), setMaxSpeed(), holdAtStop()
+    rqstLtPower, rqstRtPower := leftPower, rightPower
+
+    ltWheel.driveAtPowerEx(rqstLtPower, true)
+    rtWheel.driveAtPowerEx(rqstRtPower, true)
+    cogatn(cogmask)                                     ' sync the 2 motor cogs
+    ltWheel.SyncStatus()                                ' make sure both motors have taken value
+    rtWheel.SyncStatus()
+
+PUB stopAfterRotation(nRotationCount, eRotationUnits) | degreesPerTic, ticsPerRotation
+'' Stops both motors, after either of the motors reaches {rotationCount} of {rotationUnits} [DRU_HALL_TICKS, DRU_DEGREES, or DRU_ROTATIONS].
+'' USE WITH: driveDirection(), drive()
+'' USE WITH:  driveAtPower()
+'' Will ABORT if {rotationCount} < 1
+    if nRotationCount < 1
+        debug("! ERROR: invalid RotationCount Value:", udec_long(nRotationCount), " - must be > 0!")
+        ' FIXME: UNDONE should be more than ticks needed for spin-up/down ramps!!!
+        abort
+
+    degreesPerTic, ticsPerRotation := ltWheel.hallTicInfoForMotor()
+
+    ' convert rotation info to ticks (will stop at ticks limit)
+    motorStopHallTicks := 0
+    case eRotationUnits
+        DRU_HALL_TICKS:
+            motorStopHallTicks := nRotationCount
+        DRU_DEGREES:
+            ' ticks = degrees / 4
+            motorStopHallTicks := nRotationCount / degreesPerTic
+        DRU_ROTATIONS:
+            ' ticks = rotations * 90
+            motorStopHallTicks := nRotationCount * ticsPerRotation
+        other:
+            debug("! ERROR: invalid rotationUnits Value:", udec_long(eRotationUnits))
+            abort
+    debug(" stopAfterRotation: ", udec(nRotationCount), " ", udec(degreesPerTic), " ", udec(ticsPerRotation), " ", udec(motorStopHallTicks))
+
+
+'' Stops both motors, after either of the motors reaches {distance} specified in {distanceUnits} [DDU_IN or DDU_MM].
+'' USE WITH: driveDirection(), drive()
+PUB stopAfterDistance(nDistance, eDistanceUnits) | fValue
+'' Stops the motors after one of them reaches {distance} specified in {distanceUnits} [DDU_MM, DDU_CM, DDU_IN, DDU_FT, DDU_M].
+'' USE WITH:  driveAtPower()
+'' Will ABORT if {distance} < 1
+    if nDistance < 1
+        debug("! ERROR: invalid Distance Value:", udec_long(nDistance), " - must be > 0!")
+        ' FIXME: UNDONE should be more than ticks needed for spin-up/down ramps!!!
+        abort
+
+    ' if user configured wheel-diameter is 0.0 then tickInMM_x10 is 0
+    ' if so, abort this method as we can't do this!
+    if tickInMM_x10 == 0
+        debug("! ERROR: distance calcs not supported as wheel dia. is ZERO!!")
+        abort
+
+    ' convert distance to ticks (will stop at ticks limit)
+    ' Distance is translated to Hall ticks and compared with left and right motor hall ticks
+    ' The motor ticks are from start but reset on fault or estop.
+    ' So, need to getDistance and add required distance to it, to stop after a distance
+    ' So, call getDistance, then driveAtPower to start moving and then stopAfterDistance with total distance to stop.
+    ' If a fault occurs, will stop immedetely and hall ticks are reset on the faulting motor.
+    ' getDistance returns each motor separately. So use largest return distance to calculate stopAfterDistance
+    case eDistanceUnits
+        DDU_MM:
+            motorStopHallTicks := (nDistance * 10) / tickInMM_x10
+        DDU_CM:
+            motorStopHallTicks := (nDistance * 10 * 10) / tickInMM_x10
+        DDU_IN:
+            fValue := distConv.fIn2mm(nDistance)
+            motorStopHallTicks := round(fValue *. 10.0) / tickInMM_x10
+        DDU_FT:
+            fValue := distConv.fIn2mm(nDistance * 12)
+            motorStopHallTicks := round(fValue *. 10.0) / tickInMM_x10
+        DDU_M:
+            motorStopHallTicks := (nDistance * 100 * 10) / tickInMM_x10
+        other:
+            debug("! ERROR: invalid distanceUnits Stop Value:", udec_long(eDistanceUnits))
+            abort
+
+'' Stops both motors, after either of the motors reaches {distance} specified in {distanceUnits} [DDU_IN or DDU_MM].
+'' USE WITH: driveDirection(), drive()
+PUB stopAfterTime(nTime, eTimeUnits) | timeNow
+'' Stops the motors after {time} specified in {timeUnits} [DTU_MILLISEC or DTU_SEC] has elapsed.
+'' USE WITH:  driveAtPower()
+'' Will ABORT if {time} < 1
+    if nTime < 1
+        debug("! ERROR: invalid nTime Value:", udec_long(nTime), " - must be > 0!")
+        ' FIXME: UNDONE should be more than time needed for spin-up/down ramps!!!
+        abort
+
+    case eTimeUnits
+        DTU_MILLISEC:
+        DTU_SEC:
+        other:
+            debug("! ERROR: invalid timeUnits Value:", udec_long(eTimeUnits))
+            abort
+
+    if eTimeUnits == DTU_SEC
+        timeNow := getms()
+        motorStopMSecs := timeNow + (nTime * 1_000)
+        if motorStopMSecs == 0
+          motorStopMSecs := 1
+    else
+        timeNow := getms()
+        motorStopMSecs := timeNow + nTime
+        if motorStopMSecs == 0
+          motorStopMSecs := 1
+
+    if motorStopMSecs > 0
+        debug("* stop motor at ", udec_long(motorStopMSecs), ", now: ", udec_long(timeNow))
+
+PUB stopMotors()
+'' Stops both motors, killing any motion that was still in progress
+'' AFFECTED BY:holdAtStop()
+    rqstPower := rqstLtPower := rqstRtPower := 0
+    ltWheel.stopMotor()
+    rtWheel.stopMotor()
+
+PUB emergencyCutoff()
+'' EMERGENCY-Stop - Immediately stop both motors, killing any motion that was still in progress
+    rqstPower := rqstLtPower := rqstRtPower := 0
+    userCutoff := TRUE
+    ltWheel.emergencyCutoff()
+    rtWheel.emergencyCutoff()
+
+PUB clearEmergency()
+'' Remove emergency override allowing motors to be driven again
+' used by wheels*.spin2 methods
+    userCutoff := FALSE
+    ltWheel.clearEmergency()
+    rtWheel.clearEmergency()
+    debug("--------clear EMERGENCY--------")
+
+CON { --- Subsystem Status --- }
+
+PUB getDistance(eDistanceUnits) : leftDistanceInUnits, rightDistanceInUnits
+'' Returns the distance in {distanceUnits} [DDU_MM, DDU_CM, DDU_IN, DDU_FT, DDU_M, DDU_KM, DDU_MI] travelled by each motor since last reset
+    debug("- gdi ", sdec_long(ltWheel.getposTrkHallTicks()), sdec_long(rtWheel.getposTrkHallTicks()))
+    leftDistanceInUnits := convertDistance(ltWheel.getposTrkHallTicks(), eDistanceUnits)
+    rightDistanceInUnits := convertDistance(rtWheel.getposTrkHallTicks(), eDistanceUnits)
+
+PRI convertDistance(nValue, eDistanceUnits) : nDistanceInUnits | fValue
+' Returns the distance in {distanceUnits} [DDU_MM, DDU_CM, DDU_IN, DDU_FT, DDU_M, DDU_KM, DDU_MI] travelled by this motor since last reset
+    nDistanceInUnits := 0
+    if tickInMM_x10 <> 0
+        fValue := float(nValue) *. float(tickInMM_x10)
+        case eDistanceUnits
+            DDU_MM:
+                nDistanceInUnits := round(fValue)
+            DDU_CM:
+                nDistanceInUnits := round(fValue /. 10.0)
+            DDU_M:
+                nDistanceInUnits := round(fValue /. 1000.0)                                             ' in M
+            DDU_KM:
+                nDistanceInUnits := round(fValue /. 1000.0 /. 1000.0)                                   ' in kM
+            DDU_IN:
+                nDistanceInUnits := round(distConv.fMm2inFloat(fValue))            '
+            DDU_FT:
+                nDistanceInUnits := round(distConv.fMm2inFloat(fValue) /. 12.0)                         ' in FT
+            DDU_MI:
+                nDistanceInUnits := round(distConv.fMm2inFloat(fValue) /. 12.0 /. 5280.0)               ' in MI
+    else
+        debug("! ERROR: distance calcs not supported as wheel dia. is ZERO!!")
+
+PUB getRotationCount(eRotationUnits) : leftRotationCount, rightRotationCount
+'' Returns accumulated {*RotationCount} in {rotationUnits} [DRU_DEGREES, DRU_ROTATIONS], since last reset, for each of the motors.
+    debug("- grc ", sdec_long(ltWheel.getposTrkHallTicks()), sdec_long(rtWheel.getposTrkHallTicks()))
+    leftRotationCount := convertRotationCount(ltWheel.getposTrkHallTicks(), eRotationUnits)
+    rightRotationCount := convertRotationCount(rtWheel.getposTrkHallTicks(), eRotationUnits)
+
+PRI convertRotationCount(nValue, eRotationUnits) : rotationCount | degreesPerTic, ticsPerRotation
+' Returns accumulated {rotationCount} in {rotationUnits} [DRU_DEGREES, DRU_ROTATIONS, or DRU_HALL_TICKS], since last reset, for this motor.
+    rotationCount := -1
+
+    degreesPerTic, ticsPerRotation := ltWheel.hallTicInfoForMotor()
+
+    case eRotationUnits
+        DRU_HALL_TICKS:
+            rotationCount := nValue
+        DRU_DEGREES:
+            ' degrees = ticks * 15, 4
+            rotationCount := nValue * degreesPerTic
+        DRU_ROTATIONS:
+            ' rotations = ticks / 24, 90
+            rotationCount := nValue / ticsPerRotation
+
+PUB getPower() : leftPower, rightPower
+'' Returns the last specified power value [-100 thru +100] for each of the motors (will be zero if the motor is stopped).
+    leftPower := ltWheel.getPower()
+    rightPower := rtWheel.getPower()
+
+PUB getCurrent() : nLtAmps, nLtWatts, nRtAmps, nRtWatts
+'' Returns the latest current sense values for each motor
+    nLtAmps, nLtWatts := ltWheel.getCurrent()
+    nRtAmps, nRtWatts := rtWheel.getCurrent()
+
+PUB getStatus() : eLeftStatus, eRightStatus
+'' Returns status of motor drive state for each motor: enumerated constant: DS_MOVING, DS_HOLDING or DS_OFF
+    eLeftStatus := ltWheel.getStatus()
+    eRightStatus := rtWheel.getStatus()
+
+PRI getDriverState() : eLeftState, eRightState
+' Returns status of motor-driver state for each motor: enumerated constants: DCS_*
+    eLeftState := ltWheel.getDriverState()
+    eRightState := rtWheel.getDriverState()
+
+DAT { fault tracking }
+
+ltFaultSeenMS    long  0
+rtFaultSeenMS    long  0
+
+PRI getFaultStatus() : bLeftStatus, bRightStatus | bLeftSignal, bRightSignal
+' Returns status of motor-driver fault-state for each motor: T/F
+    bLeftStatus := ltWheel.isFaulted()
+    bRightStatus := rtWheel.isFaulted()
+
+    bLeftSignal := ltWheel.isFaultSignal()
+    bRightSignal := rtWheel.isFaultSignal()
+
+    ' if fault appears then let it stay for 3*1000 mSec
+    ' . after that, clear it
+
+    if bLeftSignal == TRUE and ltFaultSeenMS == 0
+        ltFaultSeenMS := getms() + 3000
+        if ltFaultSeenMS == 0                                                   ' just in case happens to add to 0
+          ltFaultSeenMS := 1
+        debug(" -------------- LtMotr See FAULT! --------------")
+    elseif bLeftSignal == TRUE and ltFaultSeenMS <> 0 and getms() > ltFaultSeenMS
+        debug(" -------------- LtMotr Cleared FAULT --------------")
+        ltWheel.clearFaultSignal()
+        ltFaultSeenMS := 0
+
+    if bRightSignal == TRUE and rtFaultSeenMS == 0
+        rtFaultSeenMS := getms() + 3000
+        if rtFaultSeenMS == 0                                                   ' just in case happens to add to 0
+          rtFaultSeenMS := 1
+        debug(" -------------- RtMotr See FAULT! --------------")
+    elseif bRightSignal == TRUE and rtFaultSeenMS <> 0 and getms() > rtFaultSeenMS
+        debug(" -------------- RtMotr Cleared FAULT --------------")
+        rtWheel.clearFaultSignal()
+        rtFaultSeenMS := 0
+
+PUB getMaxSpeed() : nSpeed
+'' Returns the last specified {maxSpeed}
+    ' NOTE: they both contain same value so return only right-wheel value
+    'nSpeed := ltWheel.getMaxSpeed()  ' return last specified user value
+    nSpeed := rtWheel.getMaxSpeed()  ' return last specified user value
+
+PUB getMaxSpeedForDistance() : nSpeed4dist
+'' Returns the last specified {maxSpeedForDistance}
+    ' NOTE: they both contain same value so return only right-wheel value
+    'nSpeed4dist := ltWheel.getMaxSpeed()  ' return last specified user value
+    nSpeed4dist := rtWheel.getMaxSpeed()  ' return last specified user value
+
+PUB getLeftDebugData() : nGroups, pGroupTitles, pGroupNames, pGroupVarCts, pGroupVars
+'' Return pointers to HDMI-debug data structures for LEFT motor-object instance
+    nGroups, pGroupTitles, pGroupNames, pGroupVarCts, pGroupVars := ltWheel.getDebugData()
+
+PUB getRightDebugData() : nGroups, pGroupTitles, pGroupNames, pGroupVarCts, pGroupVars
+'' Return pointers to HDMI-debug data structures for LEFT motor-object instance
+    nGroups, pGroupTitles, pGroupNames, pGroupVarCts, pGroupVars := rtWheel.getDebugData()
+
+CON { --- PUBLIC Utility Methods --- }
+
+PUB validBasePinForChoice(userBasePin) : legalBasePin
+'' VALIDATE users' base-pin choice returns legalBasePin or INVALID_PIN_BASE
+    legalBasePin := ltWheel.validBasePinForChoice(userBasePin)
+
+PUB validVoltageForChoice(userVoltage) : legalVoltage
+'' VALIDATE users' voltage choice returns legalVoltage or INVALID_VOLTAGE
+    legalVoltage := ltWheel.validVoltageForChoice(userVoltage)
+
+PUB validMotorForChoice(userMotor) : legalMotor
+'' VALIDATE users' motor choice returns legalMotor or INVALID_MOTOR
+    legalMotor := ltWheel.validMotorForChoice(userMotor)
+
+PUB validDetectModeForChoice(userDetMode) : legalMode
+'' VALIDATE users' detection mode choice returns legalMode or INVALID_DET_MODE
+    legalMode := ltWheel.validDetectModeForChoice(userDetMode)
+
+CON { --- PRIVATE Utility Methods --- }
+
+PRI calcPowerForDirection(power, direction) : ltPower, rtPower | limitPwr, limitDir, reducedPower
+' determine porportional power based on direction
+    limitPwr :=  -100 #> power <# 100
+    limitDir :=  -100 #> direction <# 100
+    reducedPower := ((100 - abs(limitDir)) * limitPwr) / 100                    ' calculate reduced power for turning
+    {
+      Let's better handle small changes of direction
+      when turning towards a direction
+        motor on other side stays at power
+        motor on direction towards reduces in power as direction increases
+        e.g. if turning towards right, left motor stays at power, right motor is reduced
+        Note: doesn't spin in place, since reduced power motor doesn't reverse
+    }
+    ltPower := ((limitDir <= 0)) ? limitPwr : reducedPower                      ' which side if either should be reducedpower
+    rtPower := ((limitDir >= 0)) ? limitPwr : reducedPower
+    debug("* calcPowerForDirection(", sdec_long(power), ", ", sdec_long(direction), ") -> ", sdec_long(ltPower), sdec_long(rtPower))
+
+PUB isReady() : bState
+'' Return T/F where T means the both motor cogs are running
+    bState := ltWheel.isReady() and rtWheel.isReady()
+
+PUB isStopped() : bState
+'' Return T/F where T means the both motors are stopped
+    bState := ltWheel.isStopped() and rtWheel.isStopped()
+
+PUB isStarting() : bState
+'' Return T/F where T means the either motor is spinning up
+    bState := ltWheel.isStarting() or rtWheel.isStarting()
+
+PUB isTurning() : bState
+'' Return T/F where T means the either motor is rotating
+    bState := ltWheel.isTurning() or rtWheel.isTurning()
+
+CON { -- TASK position tracking -- }
+
+    STACK_SIZE_LONGS = 64 ' WARNING! we exceed stack at 48!
+
+    ' at 125 ms
+    SENSE_LOOP_HZ = 8
+
+VAR { time values & arrays }
+
+    long    ticks1ms
+    long    ticks1us
+    long    ticks125ms
+
+    long    senseCog
+
+    long    taskStack[STACK_SIZE_LONGS]
+
+VAR { Data for Motor Position Tracking }
+    long    deltaTicks
+    long    circInMM_x10
+    long    tickInMM_x10
+    '  --------------------------
+
+    ' USER REQUESTS
+    '  Position Tracking vars
+    long    motorStopHallTicks
+    long    motorStopMSecs
+    '  Drive vars
+    long    rqstPower
+    long    rqstDirection
+    long    rqstLtPower
+    long    rqstRtPower
+    long    userCutoff
+
+    ' bitmask of motor cogs, used to sync updated to the 2 motors
+    long    cogmask
+
+    long    notUsed
+
+CON { test pins for LA measurement }
+'{
+' if not using Logic Analyzer uncomment these routines
+PRI LAINIT()
+
+PRI LALOOPSTART()
+
+PRI LALOOPEND()
+'}
+{
+' if using Logic Analyzer uncomment these routines
+    ' PIN_56 - PIN_63
+    TEST_BASE_PIN        = 56
+    TEST_PINS_ALL        = TEST_BASE_PIN addpins 7
+    TEST_PIN_SNS_LOOP    = TEST_BASE_PIN + 0                                    ' LA grey
+    TEST_PIN_SNS_LP_ACTV = TEST_BASE_PIN + 1                                    ' LA red
+
+PRI LAINIT()
+    pinlow(TEST_PIN_SNS_LOOP)
+    pinlow(TEST_PIN_SNS_LP_ACTV)
+
+PRI LALOOPSTART()
+    pintoggle(TEST_PIN_SNS_LOOP)                                                ' set HI
+    pintoggle(TEST_PIN_SNS_LP_ACTV)                                             ' start of active side
+    pintoggle(TEST_PIN_SNS_LOOP)                                                ' set low   - start of loop
+
+PRI LALOOPEND()
+    pintoggle(TEST_PIN_SNS_LP_ACTV)                                             ' end of active side
+'}
+
+PRI updateWindowAccumulators()
+    ltWheel.updateWindowAccumulators()
+    rtWheel.updateWindowAccumulators()
+
+PRI taskPostionSense() | senseStartTicks, eStopState
+' TASK: every 1/8 Sec (8Hz) read motor pos and calculate RPM and countOf90ths/Sec
+    LAINIT()
+
+    eStopState := false
+    ltWheel.resetWindowAccumulators()
+    rtWheel.resetWindowAccumulators()
+
+    repeat
+        senseStartTicks := getct()
+
+        ' Q: Do we want to reset both accum on a fault?
+        ' if MOTOR FAULT or estop, reset our tracker
+        if ltWheel.getDriverState() == DCS_FAULTED or  ltWheel.getDriverState() == DCS_ESTOP
+            ltWheel.resetWindowAccumulators()
+
+        if rtWheel.getDriverState() == DCS_FAULTED or  rtWheel.getDriverState() == DCS_ESTOP
+            rtWheel.resetWindowAccumulators()
+
+        showDriveStatesOnChange()
+
+        LALOOPSTART()
+
+        ' PROCESS left/right motor
+        updateWindowAccumulators()
+
+        ' if user set time/distance to stop then stop if we are past the time or distance
+        ' if both time and distance is used, first check until time is passed and then check distance
+        if motorStopMSecs > 0 and (getms() > motorStopMSecs)
+            stopMotors()
+            motorStopMSecs := 0 ' and clear user request
+        elseif motorStopHallTicks > 0
+            'debug(" taskPostionSense: ", udec(motorStopHallTicks), " ", udec(ltWheel.getposTrkHallTicks()), " ", udec(rtWheel.getposTrkHallTicks()))
+            if (ltWheel.getposTrkHallTicks() > motorStopHallTicks or rtWheel.getposTrkHallTicks() > motorStopHallTicks)
+                stopMotors()
+                motorStopHallTicks := 0 ' and clear user request
+
+        LALOOPEND()
+        ' ------------------------------------------
+        ' iff driver reports e-stop then clear the emergency stop request
+        '  user will request it again if needed
+        ' NOTE: we leave e_stop set for at least 1/4 second before clearing!
+        if isEmergency()
+            if eStopState == true
+                clearEmergency()
+            !!= eStopState                                                      ' toggle stop flag
+
+        ' keep track of runtime for this sensor loop (for debug, HDMI, etc.)
+        deltaTicks := getct() - senseStartTicks
+
+        ' code uses about 1_880 ticks. This is little over 9 uS  @200MHz clock
+        '   wait remainder of 125 mSec before next sample
+        waitct(senseStartTicks + ticks125ms)    ' wait to create "sense" time-base
+
+PRI isEmergency() : bEmergencyState
+' return T/F where T means one or both wheels are in emergency cutoff state
+    bEmergencyState := ltWheel.isEmergency()
+    if not bEmergencyState
+        bEmergencyState := rtWheel.isEmergency()
+    if bEmergencyState
+        debug("--------WHEEL in EMERGENCY!!--------")
+
+PUB showDriveStates()
+'' for TESTING dump curr drive states
+    reportMotorStatus()
+    reportDrvStatus()
+    reportFaultStatus()
+
+PRI reportDrvStatus() | ltState, rtState
+    ltState, rtState := getDriverState()
+    showDriverState(ltState, @"ltMot")
+    showDriverState(rtState, @"rtMot")
+
+PRI reportMotorStatus() | ltStatus, rtStatus
+    ltStatus, rtStatus := getStatus()
+    showStatus(ltStatus, @"ltMot")
+    showStatus(rtStatus, @"rtMot")
+
+PRI reportFaultStatus() | bLeftStatus, bRightStatus
+    bLeftStatus, bRightStatus := getFaultStatus()
+    showFaultStatus(bLeftStatus, @"ltMot", false)       ' false = only show if faulted
+    showFaultStatus(bRightStatus, @"rtMot", false)
+
+PRI showDriveStatesOnChange()
+    reportDrvStatusOnChange()
+    reportMotorStatusOnChange()
+    reportMotorFaultOnChange()
+
+PRI reportDrvStatusOnChange() | ltState, rtState
+    ltState, rtState := getDriverState()
+    if priorLtState <> ltState
+        showDriverState(ltState, @"ltMot")
+        priorLtState := ltState
+
+    if priorRtState <> rtState
+        showDriverState(rtState, @"rtMot")
+        priorRtState := rtState
+
+PRI reportMotorStatusOnChange() | ltStatus, rtStatus
+    ltStatus, rtStatus := getStatus()
+    if priorLtStatus <> ltStatus
+        showStatus(ltStatus, @"ltMot")
+        priorLtStatus := ltStatus
+
+    if priorRtStatus <> rtStatus
+        showStatus(rtStatus, @"rtMot")
+        priorRtStatus := rtStatus
+
+PRI reportMotorFaultOnChange() | bLeftStatus, bRightStatus
+    bLeftStatus, bRightStatus := getFaultStatus()
+    if priorLtFault <> bLeftStatus
+        showFaultStatus(bLeftStatus, @"ltMot", true)       ' force output
+        priorLtFault := bLeftStatus
+
+    if priorRtFault <> bRightStatus
+        showFaultStatus(bRightStatus, @"rtMot", true)
+        priorRtFault := bRightStatus
+
+DAT { debug strings }
+
+    dsUnknown       BYTE    "dsUnk",0
+    dsMOVING        BYTE    "dsMov",0
+    dsHOLDING       BYTE    "dsHld",0
+    dsOFF           BYTE    "dsOff",0
+    dsOther         BYTE    "?ds0x"
+    dsOtherVal      BYTE    "00-[CODE]?",0
+
+    dcsUnknown      BYTE    "dcsUnk",0
+    dcsSTOPPED      BYTE    "dcsSTOPPED",0
+    dcsSPIN_UP      BYTE    "dcsSPIN_UP",0
+    dcsAT_SPEED     BYTE    "dcsAT_SPEED",0
+    dcsSPIN_DN      BYTE    "dcsSPIN_DN",0
+    dcsSLOW_TO_CHG  BYTE    "dcsSLOW_TO_CHG",0
+    dcsFAULTED      BYTE    "dcsFAULTED",0
+    dcsESTOP        BYTE    "dcsESTOP",0
+    dcsOther        BYTE    "?dcs0x"
+    dcsOtherVal     BYTE    "00-[CODE]?",0
+
+    pStatVal        LONG    0
+    priorLtStatus   LONG    -1
+    priorRtStatus   LONG    -1
+    priorLtState    LONG    -1
+    priorRtState    LONG    -1
+    priorLtFault   LONG    -3
+    priorRtFault   LONG    -3
+
+
+PRI showDriverState(eState, pMsg)
+    case eState
+        DCS_Unknown:
+            pStatVal := @dcsUnknown
+        DCS_STOPPED:
+            pStatVal := @dcsSTOPPED
+        DCS_SPIN_UP:
+            pStatVal := @dcsSPIN_UP
+        DCS_AT_SPEED:
+            pStatVal := @dcsAT_SPEED
+        DCS_SPIN_DN:
+            pStatVal := @dcsSPIN_DN
+        DCS_SLOW_TO_CHG:
+            pStatVal := @dcsSLOW_TO_CHG
+        DCS_FAULTED:
+            pStatVal := @dcsFAULTED
+        DCS_ESTOP:
+            pStatVal := @dcsESTOP
+        other:
+            placeAsciiDigits(@dcsOtherVal, eState)
+            pStatVal := @dcsOther
+    debug("- STATE ", zstr_(pMsg), ": ", zstr_(pStatVal))
+
+PRI showStatus(eStatus, pMsg)
+    case eStatus
+        DS_Unknown:
+            pStatVal := @dsUnknown
+        DS_MOVING:
+            pStatVal := @dsMOVING
+        DS_HOLDING:
+            pStatVal := @dsHOLDING
+        DS_OFF:
+            pStatVal := @dsOFF
+        other:
+            placeAsciiDigits(@dsOtherVal, eStatus)
+            pStatVal := @dsOther
+    debug("- STATUS ", zstr_(pMsg), ": ", zstr_(pStatVal))
+
+PRI showFaultStatus(bStatus, pMsg, bForceOutput)
+    if bStatus == true
+        debug("- FAULT! ", zstr_(pMsg))
+    elseif bStatus == false and bForceOutput == true
+        debug("- no FAULT ", zstr_(pMsg))
+
+PRI placeAsciiDigits(pStrBytes, byt) | hiNyb, lowNyb
+        hiNyb := byt & $f0 >> 4 + $30
+        if hiNyb > $39
+            hiNyb += 7
+        lowNyb := byt & $0f      + $30
+        if lowNyb > $39
+            lowNyb += 7
+        BYTE [pStrBytes][0] := hiNyb
+        BYTE [pStrBytes][1] := lowNyb
+
+
+PRI MAX(a,b) : nMax
+' return max of a or b
+    nMax := (a > b) ? a : b
+
+CON { --- HDMI Debug Support --- }
+
+CON { Constants for HDMI Debug }
+
+    DBG_GROUPS_CT = 1
+    DBG_MAX_VARS_IN_GROUP = 7
+
+VAR { Data Structure for HDMI Debug }
+
+    LONG    pTitlesAr[DBG_GROUPS_CT + 1]    ' first value is max vars
+    LONG    pVarCtAr[DBG_GROUPS_CT]
+    LONG    pNamesAr[DBG_GROUPS_CT * DBG_MAX_VARS_IN_GROUP]
+    LONG    pValsAr[DBG_GROUPS_CT*DBG_MAX_VARS_IN_GROUP]
+
+DAT { Literals for HDMI Debug }
+
+showHDMIDebug   LONG    FALSE
+
+' user stearing data
+'---+-----------+---+---+---+-------------------+---+---+---+---+---+-----------+
+nameTitle1      BYTE    "Steering",0
+name10          BYTE    "power",0
+name11          BYTE    "direc.",0
+name12          BYTE    "ltPwr",0
+name13          BYTE    "rtPwr",0
+name14          BYTE    "stpTck",0
+name15          BYTE    "stpmSec",0
+name16          BYTE    "Cutoff",0
+nextAddr1
+dataLen1        LONG    @nextAddr1 - @nameTitle1
+
+PRI loadDisplayList() | nGrpOffset, nValsGrpOffset, nVarsInGroup
+' do internal one-time setup of driver debug data
+    nGrpOffset := 0
+    nVarsInGroup := 7
+    LONG[@pTitlesAr][nGrpOffset] := @nameTitle1
+    LONG[@pVarCtAr][nGrpOffset] := nVarsInGroup
+    ' populate the empty name/value ptr tables
+    nValsGrpOffset := nGrpOffset * DBG_MAX_VARS_IN_GROUP
+    LONG[@pNamesAr][nValsGrpOffset + 0] := @name10
+    LONG[@pNamesAr][nValsGrpOffset + 1] := @name11
+    LONG[@pNamesAr][nValsGrpOffset + 2] := @name12
+    LONG[@pNamesAr][nValsGrpOffset + 3] := @name13
+    LONG[@pNamesAr][nValsGrpOffset + 4] := @name14
+    LONG[@pNamesAr][nValsGrpOffset + 5] := @name15
+    LONG[@pNamesAr][nValsGrpOffset + 6] := @name16
+    LONG[@pValsAr][nValsGrpOffset + 0] := @rqstPower
+    LONG[@pValsAr][nValsGrpOffset + 1] := @rqstDirection
+    LONG[@pValsAr][nValsGrpOffset + 2] := @rqstLtPower
+    LONG[@pValsAr][nValsGrpOffset + 3] := @rqstRtPower
+    LONG[@pValsAr][nValsGrpOffset + 4] := @motorStopHallTicks
+    LONG[@pValsAr][nValsGrpOffset + 5] := @motorStopMSecs
+    LONG[@pValsAr][nValsGrpOffset + 6] := @userCutoff
+
+    ' tell our table size to reader
+    nGrpOffset := 1
+    LONG[@pTitlesAr][nGrpOffset] := DBG_MAX_VARS_IN_GROUP
+
+PUB getDebugData() : nGroups, pGroupTitles, pGroupNames, pGroupVarCts, pGroupVars | tmpAbsPtr
+'' Return pointers to HDMI-debug data structures for this motor-object instance
+    loadDisplayList()
+    nGroups := DBG_GROUPS_CT
+    pGroupTitles := @pTitlesAr         ' pStr = long[pTitlesAr][grpIdx]
+    pGroupVarCts := @pVarCtAr          ' nNbrGrpVars = long[pVarCtAr][grpIdx]
+    pGroupNames := @pNamesAr           ' pGrpNameAr = long[pNamesAr][grpIdx], pVarName = long[pNameAr][varIdx]  where varIdx is from 0 to nNbrGrpVars - 1
+    pGroupVars := @pValsAr             ' pGrpLongVar = long[pValsAr][grpIdx][varIdx]  where varIdx is from 0 to nNbrGrpVars - 1
+    if showHDMIDebug
+        debug("* -------------")
+        debug("* NAMEs SOURCE1: ", uhex_long(@nameTitle1), uhex_byte_array(@nameTitle1, dataLen1))
+        debug("* -------------")
+        debug("* Steer DL title: ", uhex_long(@pTitlesAr), uhex_long_array(@pTitlesAr, DBG_GROUPS_CT + 1))
+        debug("* Steer DL VarCt: ", uhex_long(@pVarCtAr), uhex_long_array(@pVarCtAr, DBG_GROUPS_CT))
+        debug("* Steer DL Names: ", uhex_long(@pNamesAr), uhex_long_array(@pNamesAr, DBG_GROUPS_CT * DBG_MAX_VARS_IN_GROUP))
+        debug("* Steer DL Values: ", uhex_long(@pValsAr), uhex_long_array(@pValsAr, DBG_GROUPS_CT * DBG_MAX_VARS_IN_GROUP))
+        debug("* -------------")
+        debug("* Steer PARM values: ", uhex_long(@nGroups), uhex_long_array(@nGroups, 5))
+        debug("* -------------")
+        debug("* Steer Sent: ", udec(nGroups), uhex_long(pGroupTitles), uhex_long(pGroupNames), uhex_long(pGroupVarCts), uhex_long(pGroupVars))
+        debug("* =============")
+
+
+
+CON { license }
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2022 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+}}

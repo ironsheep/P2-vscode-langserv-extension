@@ -1,0 +1,262 @@
+'' =================================================================================================
+''
+''   File....... isp_bldc_motor_userconfig.spin2
+''   Purpose.... User Configuration of BLDC Motor Drivers
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2022 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... Mar 2022
+''   Updated.... 16 Sep 2023
+''
+''  (This FILE only contains hardware constants, NO CODE, is used by the BLDC Motor driver software)
+'' =================================================================================================
+''
+''  NOTE: ADJUST THIS FILE to describe the Voltage at which you are driving the motors and
+''    where the driver boards are connected
+''
+''  !!  Make your changes ONLY at (2) below !!
+''
+
+CON { Hardware Description }
+
+' =================================================================================================
+'  (1) Fixed CONSTANTS known by BLDC Motor Driver
+' -------------------------------------------------------------------------------------------------
+'     --- DO NOT ADJUST ---
+
+' Names of supported Motors
+#0, MOTR_6_5_INCH, MOTR_DOCO_4KRPM
+
+' Names of supported PinGroups
+'   (added NO_USE) to make enum work, but you can't connect to it. ;-)
+#0[8], PINS_P0_P15, PINS_P8_P23, PINS_P16_P31, PINS_NO_USE_P24_P39, PINS_P32_P47, PINS_P40_P55
+
+' Names of supported voltages
+#0, PWR_Unknown, PWR_6p0V, PWR_7p4V, PWR_11p1V, PWR_12p0V, PWR_14p8V, PWR_18p5V, PWR_22p2V, PWR_24p0V, PWR_25p9V
+'  NOTE: Lipo battery sizes: 2s-7.4v, 3s-11.1v, 4s-14.8v, 5s-18.5v, 6s-22.2v, 7s-25.9v
+'
+' Board Detection Mode for BLDC driver boards
+#30, BRD_AUTO_DET, BRD_REV_A, BRD_REV_B
+
+
+' ADDING SUPPORT as we go...
+'   WARNING: NOT SUPPORTED YET:  (if you use a NOT SUPPORTED value, motor won't go...)
+'      NO SUPPORT FOR   PWR_6p0V
+'      NO SUPPORT FOR   PWR_7p4V
+'      NO SUPPORT FOR   PWR_24p0V
+'
+
+'     --- DO NOT ADJUST ---
+' =================================================================================================
+
+' Motor Facts:
+
+'   ---- 6.5" Wheel - BLDC built-in
+'      4 degrees per hall tic
+'
+'   ---- Bare Motor - docoEng.com
+'    24 hall tics / per rotation
+'    15 degr per hall tic
+'
+
+'  6.5" wheel
+'    1 wheel revolution is 360 degrees
+'   90 tics per 360 degrees
+'    4 degrees per hall tic
+'    6 tics per tic-cycle
+'   15 tic-cycles per 360 degrees
+'    1 tic-cycle is 24 degrees
+'     750 Max RPM, 24V
+
+'  docoEng.com 4k RPM 24v motor
+'    1 shaft revolution is 360 degrees
+'   24 tics per 360 degrees
+'   15 degrees per hall tic
+'    6 tics per tic-cycle
+'    4 tic-cycles per 360 degrees
+'    1 tic-cycle is 90 degrees
+'   4,000 max RPM,  24V
+
+' Configuration Variables:
+'
+'  Describe which motor you connected:
+'   MOTOR_TYPE = {supported motor id/name}
+'
+'  Describe a single motor system with:
+'   ONLY_MOTOR_BASE = {base pin group}
+'
+'  Alternatively, Describe a dual motor system with:
+'   LEFT_MOTOR_BASE = {base pin group name}
+'   RIGHT_MOTOR_BASE = {base pin group name}
+'
+'  Describe the power you are driving the motors with:
+'   DRIVE_VOLTAGE = {supported voltage name}
+'
+'  Describe the diameter of your wheels
+'   WHEEL_DIA_IN_INCH = {fractional diameter in inches}
+'    NOTE: value of zero disables diameter based motor sensor control and status
+'
+'  This driver can automatically recognize the RevA and RevB boards.
+'  Configure Board detection for a single motor system with:
+'   ONLY_BOARD_TYPE = {autodetect or override}
+'
+'  Alternatively, Configure Board detection for a dual motor system with:
+'   LEFT_BOARD_TYPE = {autodetect or override}
+'   RIGHT_BOARD_TYPE = {autodetect or override}
+'
+'  We suggest you always use BRD_AUTO_DET
+'
+'  If for some reason you wish to force a given board type you can override this
+'  board detection with : [ BRD_REV_A | BRD_REV_B ]
+'
+'    BE WARNED! specifying a type which does NOT match your hardware will cause the
+'    driver to NOT WORK!
+' -------------------------------------------------------------------------------------------------
+'   (2) Please configure your settings below here
+' -------------------------------------------------------------------------------------------------
+
+
+'          Add your seeting here!
+'
+'     Simple, copy closest set from below...
+'     then make final edits to match your hardware configuration.
+
+
+
+' -------------------------------------------------------------------------------------------------
+' AUTHORs  TEST configuration (single Motor)
+' -------------------------------------------------------------------------------------------------
+{
+
+    MOTOR_TYPE = MOTR_DOCO_4KRPM
+
+    ONLY_MOTOR_BASE = PINS_P16_P31
+
+    DRIVE_VOLTAGE = PWR_12p0V
+
+    WHEEL_DIA_IN_INCH = 0.0   ' no wheel attached (floating point constant)
+
+    ONLY_BOARD_TYPE = BRD_AUTO_DET
+'}
+
+' =================================================================================================
+'   Example settings
+' =================================================================================================
+
+' -------------------------------------------------------------------------------------------------
+' AUTHORs  TEST configuration (single Motor)
+' -------------------------------------------------------------------------------------------------
+{
+    MOTOR_TYPE = MOTR_DOCO_4KRPM
+
+    ONLY_MOTOR_BASE = PINS_P16_P31
+
+    DRIVE_VOLTAGE = PWR_12p0V
+
+    WHEEL_DIA_IN_INCH = 0.0   ' no wheel attached (floating point constant)
+
+    ONLY_BOARD_TYPE = BRD_AUTO_DET
+'}
+
+' -------------------------------------------------------------------------------------------------
+' AUTHORs  TEST configuration (single Motor)
+' -------------------------------------------------------------------------------------------------
+{
+    MOTOR_TYPE = MOTR_6_5_INCH
+
+    ONLY_MOTOR_BASE = PINS_P16_P31
+
+    DRIVE_VOLTAGE = PWR_12p0V
+
+    WHEEL_DIA_IN_INCH = 6.5   ' 6.5 inches (floating point constant)
+
+    ONLY_BOARD_TYPE = BRD_AUTO_DET
+'}
+
+' -------------------------------------------------------------------------------------------------
+' AUTHORs  TEST configuration (dual Motor) using Mini Edge Breakout Board (#64019)
+' -------------------------------------------------------------------------------------------------
+'{
+    MOTOR_TYPE = MOTR_6_5_INCH
+
+    LEFT_MOTOR_BASE = PINS_P0_P15
+    RIGHT_MOTOR_BASE = PINS_P16_P31
+
+    DRIVE_VOLTAGE = PWR_18p5V
+
+    WHEEL_DIA_IN_INCH = 6.5   ' 6.5 inches (floating point constant)
+
+    LEFT_BOARD_TYPE = BRD_AUTO_DET
+    RIGHT_BOARD_TYPE = BRD_AUTO_DET
+'}
+
+' -------------------------------------------------------------------------------------------------
+' AUTHORs  TEST configuration (dual Motor) using  Edge Breakout Board (#64029)
+' -------------------------------------------------------------------------------------------------
+{
+    MOTOR_TYPE = MOTR_6_5_INCH
+
+    LEFT_MOTOR_BASE = PINS_P16_P31
+    RIGHT_MOTOR_BASE = PINS_P32_P47
+
+    DRIVE_VOLTAGE = PWR_18p5V
+
+    WHEEL_DIA_IN_INCH = 6.5   ' 6.5 inches (floating point constant)
+
+    LEFT_BOARD_TYPE = BRD_AUTO_DET
+    RIGHT_BOARD_TYPE = BRD_AUTO_DET
+'}
+
+' -------------------------------------------------------------------------------------------------
+' TEST configuration (dual Doco Motors w/3" wheels)
+' -------------------------------------------------------------------------------------------------
+{
+    MOTOR_TYPE = MOTR_DOCO_4KRPM
+
+    LEFT_MOTOR_BASE = PINS_P16_P31
+    RIGHT_MOTOR_BASE = PINS_P32_P47
+
+    DRIVE_VOLTAGE = PWR_11p1V
+
+    WHEEL_DIA_IN_INCH = 3.0   ' 3.0 inches (floating point constant)
+
+    LEFT_BOARD_TYPE = BRD_AUTO_DET
+    RIGHT_BOARD_TYPE = BRD_AUTO_DET
+'}
+
+
+' ------------------------ Adjust your configuration ABOVE here -------------------------------------
+'
+
+PUB null()      '' This is not a top level object
+
+CON { license }
+
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2022 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+
+}}
