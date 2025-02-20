@@ -905,9 +905,9 @@ export class Spin1DocumentSemanticParser {
               // recognize constant name getting initialized via assignment
               // get line parts - we only care about first one
               const lineParts: string[] = conDeclarationLine.split(/[ \t=]/).filter(Boolean);
-              this._logCON('  -- GetCONDecl assign lineParts=[' + lineParts + '](' + lineParts.length + ')');
+              this._logCON(`  -- GetCONDecl SPLIT lineParts=[${lineParts}](${lineParts.length})`);
               const newName = lineParts[0];
-              if (newName.charAt(0).match(/[a-zA-Z_]/)) {
+              if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/)) {
                 this._logCON('  -- GLBL GetCONDecl newName=[' + newName + ']');
                 // remember this object name so we can annotate a call to it
                 const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
@@ -3110,8 +3110,9 @@ export class Spin1DocumentSemanticParser {
       } else {
         // have single declaration per line
         const newName = lineParts[0];
-        if (newName.charAt(0).match(/[a-zA-Z_]/)) {
-          this._logVAR('  -- GLBL rvdl2 newName=[' + newName + ']');
+        this._logVAR(`  -- GLBL rvdl2 possible newName=[${newName}]`);
+        if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/)) {
+          this._logVAR(`  -- GLBL rvdl2 newName=[${newName}]`);
           const nameOffset: number = line.indexOf(newName, currentOffset);
           this._recordToken(tokenSet, line, {
             line: lineIdx,

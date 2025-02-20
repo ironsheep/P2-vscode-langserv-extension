@@ -1461,9 +1461,9 @@ export class Spin2DocumentSemanticParser {
               // recognize constant name getting initialized via assignment
               // get line parts - we only care about first one
               const lineParts: string[] = conDeclarationLine.split(/[ \t=]/).filter(Boolean);
-              this._logCON('  -- GetCONDeclMulti assign lineParts=[' + lineParts + '](' + lineParts.length + ')');
+              this._logCON(`  -- GetCONDeclMulti SPLIT lineParts=[${lineParts.join(',')}](${lineParts.length})`);
               const newName = lineParts[0];
-              if (newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
+              if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
                 this._logCON('  -- GLBL GetCONDeclMulti newName=[' + newName + ']');
                 // remember this object name so we can annotate a call to it
                 //const nameOffset = line.indexOf(newName, currSingleLineOffset); // FIXME: UNDONE, do we have to dial this in?
@@ -1567,9 +1567,9 @@ export class Spin2DocumentSemanticParser {
               // recognize constant name getting initialized via assignment
               // get line parts - we only care about first one
               const lineParts: string[] = conDeclarationLine.split(/[ \t=]/).filter(Boolean);
-              this._logCON('  -- GetCONDecl assign lineParts=[' + lineParts + '](' + lineParts.length + ')');
+              this._logCON('  -- GetCONDecl SPLIT lineParts=[' + lineParts + '](' + lineParts.length + ')');
               const newName = lineParts[0];
-              if (newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
+              if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
                 // if this line is NOT disabled, record new global (or error with DUPLICATE)
                 const lineIsDisabled: boolean = this.semanticFindings.preProcIsLineDisabled(lineNbr);
                 this._logCON(`  -- GLBL GetCONDecl newName=[${newName}], lineIsDisabled=(${lineIsDisabled})`);
@@ -6479,12 +6479,13 @@ export class Spin2DocumentSemanticParser {
         }
       } else {
         // have single declaration per line
+        this._logVAR(`  -- GLBL rvdl2 SPLIT lineParts=[${lineParts.join(',')}](${lineParts.length})`);
         let nameSet: string[] = [lineParts[0]];
         if (lineParts[0].includes('[')) {
           nameSet = lineParts[0].split(/[[\]}]/).filter(Boolean);
         }
         let newName: string = nameSet[0];
-        if (newName.charAt(0).match(/[a-zA-Z_]/)) {
+        if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR(`  -- GLBL rvdl2 newName=[${newName}]`);
           const nameOffset: number = line.indexOf(newName, currentOffset);
           this._recordToken(tokenSet, line, {

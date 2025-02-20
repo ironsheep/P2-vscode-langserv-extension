@@ -32,7 +32,7 @@ export class Spin2ObjectReferenceParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showCON: boolean = true;
   private showOBJ: boolean = true;
   private showPAsmCode: boolean = true;
@@ -280,12 +280,13 @@ export class Spin2ObjectReferenceParser {
           // recognize constant name getting initialized via assignment
           // get line parts - we only care about first one
           const lineParts: string[] = line
-            .substr(currentOffset)
+            .substring(currentOffset)
             .split(/[ \t=]/)
             .filter(Boolean);
+          this._logCON(`  -- GLBL GetCONDecl SPLIT lineParts=[${lineParts.join(',')}](${lineParts.length})`);
           const newName = lineParts[0];
-          if (newName.charAt(0).match(/[a-zA-Z_]/)) {
-            this._logCON('  -- GLBL GetCONDecl newName=[' + newName + ']');
+          if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/)) {
+            this._logCON(`  -- GLBL GetCONDecl newName=[${newName}]`);
             // remember this object name so we can annotate a call to it
           }
           const containsObjectReferences: boolean = nonCommentConstantLine.indexOf('.') != -1;
