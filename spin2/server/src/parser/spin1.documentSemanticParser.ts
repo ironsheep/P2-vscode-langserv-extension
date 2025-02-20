@@ -1441,7 +1441,7 @@ export class Spin1DocumentSemanticParser {
             directive.toLowerCase() == '#ifndef' ||
             directive.toLowerCase() == '#elseifdef' ||
             directive.toLowerCase() == '#elseifndef';
-          if (hasSymbol && symbolName != undefined) {
+          if (hasSymbol && symbolName !== undefined) {
             const nameOffset = line.indexOf(symbolName, currentOffset);
             this._logPreProc('  -- GLBL symbolName=[' + symbolName + ']');
             let referenceDetails: RememberedToken | undefined = undefined;
@@ -1449,7 +1449,7 @@ export class Spin1DocumentSemanticParser {
               referenceDetails = this.semanticFindings.getGlobalToken(symbolName);
               this._logPreProc('  --  FOUND preProc global ' + this._rememberdTokenString(symbolName, referenceDetails));
             }
-            if (referenceDetails != undefined) {
+            if (referenceDetails !== undefined) {
               // record a constant declaration!
               const updatedModificationSet: string[] =
                 directive.toLowerCase() == '#define' ? referenceDetails.modifiersWith('declaration') : referenceDetails.modifiers;
@@ -1564,7 +1564,7 @@ export class Spin1DocumentSemanticParser {
             referenceDetails = this.semanticFindings.getGlobalToken(lhsConstantName);
             this._logCON('  --  FOUND rcdl lhs global ' + this._rememberdTokenString(lhsConstantName, referenceDetails));
           }
-          if (referenceDetails != undefined) {
+          if (referenceDetails !== undefined) {
             // this is a constant declaration!
             const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
             this._recordToken(tokenSet, line, {
@@ -1633,7 +1633,7 @@ export class Spin1DocumentSemanticParser {
                 referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                 this._logCON('  --  FOUND rcds rhs global ' + this._rememberdTokenString(namePart, referenceDetails));
               }
-              if (referenceDetails != undefined) {
+              if (referenceDetails !== undefined) {
                 // this is a constant reference!
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
@@ -1759,7 +1759,7 @@ export class Spin1DocumentSemanticParser {
           referenceDetails = this.semanticFindings.getGlobalToken(newName);
           this._logMessage(`  --  FOUND rddl global name=[${newName}], referenceDetails=(${referenceDetails})`);
         }
-        if (referenceDetails != undefined) {
+        if (referenceDetails !== undefined) {
           // add back in our declaration flag
           const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
           this._recordToken(tokenSet, line, {
@@ -1901,7 +1901,7 @@ export class Spin1DocumentSemanticParser {
                 this._logDAT('  --  FOUND DAT value global name=[' + namePart + ']');
               }
             }
-            if (referenceDetails != undefined) {
+            if (referenceDetails !== undefined) {
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -1976,7 +1976,7 @@ export class Spin1DocumentSemanticParser {
           referenceDetails = this.semanticFindings.getGlobalToken(labelName);
           this._logPASM(`  --  FOUND DATpasm global name=[${labelName}] referenceDetails=(${referenceDetails})`);
         }
-        if (referenceDetails != undefined) {
+        if (referenceDetails !== undefined) {
           const nameOffset = line.indexOf(labelName, currentOffset);
           this._logPASM(`  --  DAT PAsm ${referenceDetails.type}=[${labelName}], ofs=(${nameOffset})`);
           const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
@@ -2083,7 +2083,7 @@ export class Spin1DocumentSemanticParser {
                   referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                   this._logPASM('  --  FOUND DATpasm global name=[' + namePart + ']');
                 }
-                if (referenceDetails != undefined) {
+                if (referenceDetails !== undefined) {
                   this._logPASM('  --  DAT PAsm name=[' + namePart + '](' + (nameOffset + 1) + ')');
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
@@ -2381,7 +2381,7 @@ export class Spin1DocumentSemanticParser {
                   referenceDetails = this.semanticFindings.getGlobalToken(namedIndexPart);
                   this._logSPIN('  --  FOUND PUB/PRI global name=[' + namedIndexPart + ']');
                 }
-                if (referenceDetails != undefined) {
+                if (referenceDetails !== undefined) {
                   this._logSPIN('  --  lcl-idx variableName=[' + namedIndexPart + '](' + (nameOffset + 1) + ')');
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
@@ -2599,7 +2599,7 @@ export class Spin1DocumentSemanticParser {
                     referenceDetails = this.semanticFindings.getGlobalToken(variableNamePart);
                     this._logSPIN(`  --  FOUND SPIN global name=[${variableNamePart}]`);
                   }
-                  if (referenceDetails != undefined) {
+                  if (referenceDetails !== undefined) {
                     const modificationArray: string[] = referenceDetails.modifiersWith('modification');
                     this._logSPIN(`  --  SPIN variableName=[${variableNamePart}], ofs=(${nameOffset})`);
                     this._recordToken(tokenSet, line, {
@@ -2664,7 +2664,7 @@ export class Spin1DocumentSemanticParser {
                 referenceDetails = this.semanticFindings.getGlobalToken(cleanedVariableName);
                 this._logSPIN(`  --  FOUND globel name=[${cleanedVariableName}]`);
               }
-              if (referenceDetails != undefined) {
+              if (referenceDetails !== undefined) {
                 const modificationArray: string[] = referenceDetails.modifiersWith('modification');
                 this._logSPIN(`  -- spin: simple variableName=[${cleanedVariableName}], ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, line, {
@@ -2802,7 +2802,7 @@ export class Spin1DocumentSemanticParser {
             referenceDetails = this.semanticFindings.getGlobalToken(namePart);
             this._logSPIN('  --  FOUND spinRHS global name=[' + namePart + ']');
           }
-          if (referenceDetails != undefined) {
+          if (referenceDetails !== undefined) {
             this._logSPIN('  --  SPIN RHS name=[' + namePart + '](' + (nameOffset + 1) + ')');
             this._recordToken(tokenSet, line, {
               line: lineIdx,
@@ -2931,7 +2931,7 @@ export class Spin1DocumentSemanticParser {
                 const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(nameReference);
                 // Token offsets must be line relative so search entire line...
                 const nameOffset = line.indexOf(nameReference, currentOffset);
-                if (referenceDetails != undefined) {
+                if (referenceDetails !== undefined) {
                   //const updatedModificationSet: string[] = this._modifiersWithout(referenceDetails.modifiers, "declaration");
                   this._logOBJ('  --  FOUND OBJ global name=[' + nameReference + ']');
                   this._recordToken(tokenSet, line, {
@@ -3017,7 +3017,7 @@ export class Spin1DocumentSemanticParser {
             } else {
               this._logMessage(`  --  rObjRef MISSING global name=[${newName}]`);
             }
-            if (referenceDetails != undefined) {
+            if (referenceDetails !== undefined) {
               this._logVAR('  -- GLBL found rvdl newName=[' + newName + ']');
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
@@ -3072,7 +3072,7 @@ export class Spin1DocumentSemanticParser {
                   const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(namePart);
                   const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + '#' + possibleNameSet[1];
                   nameOffset = line.indexOf(searchString, currentOffset);
-                  if (referenceDetails != undefined) {
+                  if (referenceDetails !== undefined) {
                     this._logVAR('  --  FOUND VAR global name=[' + namePart + ']');
                     this._recordToken(tokenSet, line, {
                       line: lineIdx,
@@ -3157,7 +3157,7 @@ export class Spin1DocumentSemanticParser {
         } else {
           this._logMessage(`  --  rObjRef MISSING global name=[${objInstanceName}]`);
         }
-        if (referenceDetails != undefined) {
+        if (referenceDetails !== undefined) {
           //this._logPASM('  --  Debug() colorize name=[' + newParameter + ']');
           bGeneratedReference = true;
           this._recordToken(tokenSet, line, {
@@ -3180,7 +3180,7 @@ export class Spin1DocumentSemanticParser {
               referenceDetails = extObjFindings.getPublicToken(objReferencedName);
               this._logMessage(`  --  LookedUp Object-global token [${objReferencedName}] got [${referenceDetails}]`);
             }
-            if (referenceDetails != undefined) {
+            if (referenceDetails !== undefined) {
               // have matching external reference, now validate it
               const tokenTypeID: string = isMethod ? 'method' : 'variable';
               let referenceTypeID: string = referenceDetails.type;
@@ -3656,7 +3656,7 @@ export class Spin1DocumentSemanticParser {
 
   private _rememberdTokenString(tokenName: string, aToken: RememberedToken | undefined): string {
     let desiredInterp: string = '  -- token=[len:' + tokenName.length + ' [' + tokenName + '](undefined)';
-    if (aToken != undefined) {
+    if (aToken !== undefined) {
       desiredInterp = '  -- token=[len:' + tokenName.length + ' [' + tokenName + '](' + aToken.type + '[' + aToken.modifiers + '])]';
     }
     return desiredInterp;

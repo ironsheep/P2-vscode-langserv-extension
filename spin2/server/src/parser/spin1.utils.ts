@@ -1861,7 +1861,7 @@ export class Spin1ParseUtils {
 
   public isDatOrPAsmLabel(name: string): boolean {
     let haveLabelStatus: boolean = false;
-    if (name.length > 0) {
+    if (name !== undefined && name.length > 0) {
       haveLabelStatus = name.charAt(0).match(/[a-zA-Z_.:]/) ? true : false;
       if (haveLabelStatus) {
         if (this.isDatNFileStorageType(name)) {

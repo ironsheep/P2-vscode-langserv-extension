@@ -128,7 +128,7 @@ export default class SemanticTokensProvider implements Provider {
 
   private _tokenString(tokenIdx: number, aToken: IParsedToken): string {
     let desiredInterp: string = `  -- token(${aToken.line + 1},${aToken.startCharacter})=[idx:${tokenIdx}][len:${aToken.length}](undefined)`;
-    if (aToken != undefined) {
+    if (aToken !== undefined) {
       desiredInterp = `  -- token(${aToken.line + 1},${aToken.startCharacter})=[idx:${tokenIdx}][len:${aToken.length}](${aToken.ptTokenType}[${
         aToken.ptTokenModifiers
       }])]`;

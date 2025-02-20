@@ -76,7 +76,7 @@ export class Spin2ParseUtils {
     // count and return the number of columns of white space at start of line
     // NOTE: expands tabs appropriate to editor settings!
     let insetCount: number = 0;
-    if (line.length > 0) {
+    if (line !== undefined && line.length > 0) {
       let nonWhite: boolean = false;
       for (let index = 0; index < line.length; index++) {
         const char = line.charAt(index);
