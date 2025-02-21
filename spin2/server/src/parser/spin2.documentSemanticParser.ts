@@ -1746,7 +1746,7 @@ export class Spin2DocumentSemanticParser {
     // get line parts - we only care about first one
     const datPAsmRHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     if (datPAsmRHSStr.length > 0) {
-      const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(datPAsmRHSStr);
+      const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(datPAsmRHSStr); // XYZZY
       this._logPASM(`  - Ln#${lineNbr} GetDATPAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
       // handle name in 1 column
       const haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
@@ -3414,6 +3414,7 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isBinaryOperator(namePart) &&
                     !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                     !this.parseUtils.isCoginitReservedSymbol(namePart) &&
+                    !this.parseUtils.isTaskReservedSymbol(namePart) &&
                     !this.parseUtils.isP2AsmModczOperand(namePart) &&
                     !this.parseUtils.isDebugMethod(namePart) &&
                     !this.parseUtils.isStorageType(namePart) &&
@@ -4612,6 +4613,7 @@ export class Spin2DocumentSemanticParser {
                       !this.parseUtils.isSpinBuiltinMethod(namePart) &&
                       !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                       !this.parseUtils.isCoginitReservedSymbol(namePart) &&
+                      !this.parseUtils.isTaskReservedSymbol(namePart) &&
                       !this.parseUtils.isDebugMethod(namePart) &&
                       !this.parseUtils.isDebugControlSymbol(namePart) &&
                       !this.parseUtils.isDebugInvocation(namePart)
@@ -4917,6 +4919,7 @@ export class Spin2DocumentSemanticParser {
                 !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                 !this.parseUtils.isSpinSpecialMethod(namePart) &&
                 !this.parseUtils.isCoginitReservedSymbol(namePart) &&
+                !this.parseUtils.isTaskReservedSymbol(namePart) &&
                 !this.parseUtils.isDebugMethod(namePart) &&
                 !this.parseUtils.isDebugControlSymbol(namePart) &&
                 !bIsDebugLine &&
@@ -5276,6 +5279,7 @@ export class Spin2DocumentSemanticParser {
                       !this.parseUtils.isSpinBuiltinMethod(namePart) &&
                       !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                       !this.parseUtils.isCoginitReservedSymbol(namePart) &&
+                      !this.parseUtils.isTaskReservedSymbol(namePart) &&
                       !this.parseUtils.isDebugMethod(namePart) &&
                       !this.parseUtils.isDebugControlSymbol(namePart) &&
                       !this.parseUtils.isDebugInvocation(namePart)
@@ -5516,125 +5520,137 @@ export class Spin2DocumentSemanticParser {
                   ptTokenModifiers: referenceDetails.modifiers
                 });
               } else {
-                const methodFollowString: string = line.substring(nameOffset + namePart.length);
-                this._logSPIN(`  --  C methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
-                if (this.parseUtils.isSpinBuiltinMethod(namePart) && isMethodCall(methodFollowString)) {
-                  this._logSPIN(`  --  override with method coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namePart.length,
-                    ptTokenType: 'function',
-                    ptTokenModifiers: ['support']
-                  });
-                } else if (this.parseUtils.isFloatConversion(namePart) && !isMethodCall(methodFollowString)) {
-                  this._logSPIN(`  --  SPIN MISSING PARENS name=[${namePart}]`);
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namePart.length,
-                    ptTokenType: 'method',
-                    ptTokenModifiers: ['builtin', 'missingDeclaration']
-                  });
-                  this.semanticFindings.pushDiagnosticMessage(
-                    lineIdx,
-                    nameOffset,
-                    nameOffset + namePart.length,
-                    eSeverity.Error,
-                    'P2 Spin missing parens'
-                  );
-                } else if (this.parseUtils.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
-                  // have unknown name!? is storage type spec?
-                  this._logSPIN('  --  SPIN RHS storageType=[' + namePart + ']');
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namePart.length,
-                    ptTokenType: 'storageType',
-                    ptTokenModifiers: []
-                  });
-                } else if (
-                  this.parseUtils.isSpinBuiltinMethod(namePart) &&
-                  !isMethodCall(methodFollowString) &&
-                  !this.parseUtils.isSpinNoparenMethod(namePart)
-                ) {
-                  this._logSPIN(`  --  SPIN MISSING PARENS name=[${namePart}]`);
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namePart.length,
-                    ptTokenType: 'method',
-                    ptTokenModifiers: ['builtin', 'missingDeclaration']
-                  });
-                  this.semanticFindings.pushDiagnosticMessage(
-                    lineIdx,
-                    nameOffset,
-                    nameOffset + namePart.length,
-                    eSeverity.Error,
-                    'P2 Spin missing parens'
-                  );
-                }
-                // we use bIsDebugLine in next line so we don't flag debug() arguments!
-                else if (
-                  !this.parseUtils.isSpinReservedWord(namePart) &&
-                  !this.parseUtils.isSpinBuiltinMethod(namePart) &&
-                  !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
-                  !this.parseUtils.isSpinSpecialMethod(namePart) &&
-                  !this.parseUtils.isCoginitReservedSymbol(namePart) &&
-                  !this.parseUtils.isDebugMethod(namePart) &&
-                  !this.parseUtils.isDebugControlSymbol(namePart) &&
-                  !bIsDebugLine &&
-                  !this.parseUtils.isDebugInvocation(namePart)
-                ) {
-                  // NO DEBUG FOR ELSE, most of spin control elements come through here!
-                  //else {
-                  //    this._logSPIN('  -- UNKNOWN?? name=[' + namePart + '] - name-get-breakage??');
-                  //}
-
-                  this._logSPIN('  --  SPIN MISSING rhs name=[' + namePart + ']');
+                if (this.parseUtils.isTaskReservedSymbol(namePart)) {
+                  this._logSPIN(`  --  override with constant coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
                     startCharacter: nameOffset,
                     length: namePart.length,
                     ptTokenType: 'variable',
-                    ptTokenModifiers: ['missingDeclaration']
+                    ptTokenModifiers: ['declaration', 'readonly']
                   });
-                  if (this.parseUtils.isP1SpinMethod(namePart)) {
+                } else {
+                  const methodFollowString: string = line.substring(nameOffset + namePart.length);
+                  this._logSPIN(`  --  C methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                  if (this.parseUtils.isSpinBuiltinMethod(namePart) && isMethodCall(methodFollowString)) {
+                    this._logSPIN(`  --  override with method coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: 'function',
+                      ptTokenModifiers: ['support']
+                    });
+                  } else if (this.parseUtils.isFloatConversion(namePart) && !isMethodCall(methodFollowString)) {
+                    this._logSPIN(`  --  SPIN MISSING PARENS name=[${namePart}]`);
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: 'method',
+                      ptTokenModifiers: ['builtin', 'missingDeclaration']
+                    });
                     this.semanticFindings.pushDiagnosticMessage(
                       lineIdx,
                       nameOffset,
                       nameOffset + namePart.length,
                       eSeverity.Error,
-                      `P1 Spin method [${namePart}()] not allowed in P2 Spin`
+                      'P2 Spin missing parens'
                     );
-                  } else if (this.parseUtils.isP1AsmVariable(namePart)) {
+                  } else if (this.parseUtils.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
+                    // have unknown name!? is storage type spec?
+                    this._logSPIN('  --  SPIN RHS storageType=[' + namePart + ']');
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: 'storageType',
+                      ptTokenModifiers: []
+                    });
+                  } else if (
+                    this.parseUtils.isSpinBuiltinMethod(namePart) &&
+                    !isMethodCall(methodFollowString) &&
+                    !this.parseUtils.isSpinNoparenMethod(namePart)
+                  ) {
+                    this._logSPIN(`  --  SPIN MISSING PARENS name=[${namePart}]`);
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: 'method',
+                      ptTokenModifiers: ['builtin', 'missingDeclaration']
+                    });
                     this.semanticFindings.pushDiagnosticMessage(
                       lineIdx,
                       nameOffset,
                       nameOffset + namePart.length,
                       eSeverity.Error,
-                      `P1 Pasm reserved word [${namePart}] not allowed in P2 Spin`
-                    );
-                  } else if (this.parseUtils.isP1SpinVariable(namePart)) {
-                    this.semanticFindings.pushDiagnosticMessage(
-                      lineIdx,
-                      nameOffset,
-                      nameOffset + namePart.length,
-                      eSeverity.Error,
-                      `P1 Spin variable [${namePart}] not allowed in P2 Spin`
-                    );
-                  } else {
-                    const errorMsg: string = methodFollowString ? `P2 Spin E missing method declaration` : `P2 Spin E missing declaration`;
-                    this.semanticFindings.pushDiagnosticMessage(
-                      lineIdx,
-                      nameOffset,
-                      nameOffset + namePart.length,
-                      eSeverity.Error,
-                      `${errorMsg} [${namePart}]`
+                      'P2 Spin missing parens'
                     );
                   }
+                  // we use bIsDebugLine in next line so we don't flag debug() arguments!
+                  else if (
+                    !this.parseUtils.isSpinReservedWord(namePart) &&
+                    !this.parseUtils.isSpinBuiltinMethod(namePart) &&
+                    !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
+                    !this.parseUtils.isSpinSpecialMethod(namePart) &&
+                    !this.parseUtils.isCoginitReservedSymbol(namePart) &&
+                    !this.parseUtils.isTaskReservedSymbol(namePart) &&
+                    !this.parseUtils.isDebugMethod(namePart) &&
+                    !this.parseUtils.isDebugControlSymbol(namePart) &&
+                    !bIsDebugLine &&
+                    !this.parseUtils.isDebugInvocation(namePart)
+                  ) {
+                    // NO DEBUG FOR ELSE, most of spin control elements come through here!
+                    //else {
+                    //    this._logSPIN('  -- UNKNOWN?? name=[' + namePart + '] - name-get-breakage??');
+                    //}
+
+                    this._logSPIN('  --  SPIN MISSING rhs name=[' + namePart + ']');
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['missingDeclaration']
+                    });
+                    if (this.parseUtils.isP1SpinMethod(namePart)) {
+                      this.semanticFindings.pushDiagnosticMessage(
+                        lineIdx,
+                        nameOffset,
+                        nameOffset + namePart.length,
+                        eSeverity.Error,
+                        `P1 Spin method [${namePart}()] not allowed in P2 Spin`
+                      );
+                    } else if (this.parseUtils.isP1AsmVariable(namePart)) {
+                      this.semanticFindings.pushDiagnosticMessage(
+                        lineIdx,
+                        nameOffset,
+                        nameOffset + namePart.length,
+                        eSeverity.Error,
+                        `P1 Pasm reserved word [${namePart}] not allowed in P2 Spin`
+                      );
+                    } else if (this.parseUtils.isP1SpinVariable(namePart)) {
+                      this.semanticFindings.pushDiagnosticMessage(
+                        lineIdx,
+                        nameOffset,
+                        nameOffset + namePart.length,
+                        eSeverity.Error,
+                        `P1 Spin variable [${namePart}] not allowed in P2 Spin`
+                      );
+                    } else {
+                      const errorMsg: string = methodFollowString ? `P2 Spin E missing method declaration` : `P2 Spin E missing declaration`;
+                      this.semanticFindings.pushDiagnosticMessage(
+                        lineIdx,
+                        nameOffset,
+                        nameOffset + namePart.length,
+                        eSeverity.Error,
+                        `${errorMsg} [${namePart}]`
+                      );
+                    }
+                  }
+                  currNameLength = namePart.length;
                 }
-                currNameLength = namePart.length;
               }
               nameOffset += currNameLength + 1;
               currentOffset += currNameLength + 1;
@@ -7352,6 +7368,15 @@ export class Spin2DocumentSemanticParser {
               this._logPASM(`  --  Debug() unknown newParameter=[${newParameter}]`);
               const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
               if (paramIsSymbolName && this.parseUtils.isDebugMethod(newParameter) && newParameter.toLowerCase().startsWith('bool')) {
+                this._logDEBUG(`  -- new version debug function=[${newParameter}]`);
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: symbolOffset,
+                  length: newParameter.length,
+                  ptTokenType: 'debug',
+                  ptTokenModifiers: ['function']
+                });
+              } else if (paramIsSymbolName && this.parseUtils.isDebugMethod(newParameter) && newParameter.toLowerCase().startsWith('c_z')) {
                 this._logDEBUG(`  -- new version debug function=[${newParameter}]`);
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,

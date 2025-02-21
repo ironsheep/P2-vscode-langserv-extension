@@ -1228,7 +1228,11 @@ export class Spin2ParseUtils {
   };
 
   private _tableDebugMethodsBool_v44: { [Identifier: string]: TMethodTuple } = {
-    bool: ['BOOL(value)', ' Output "TRUE" if value is not 0 or "FALSE" if 0.', ['value - zero or non-zero value']]
+    bool: ['BOOL(value)', 'Output "TRUE" if value is not 0 or "FALSE" if 0.', ['value - zero or non-zero value']]
+  };
+
+  private _tableDebugMethodsBool_v46: { [Identifier: string]: string[] } = {
+    c_z: ['C_Z', 'Output the C and Z flags as "C=? Z=?". Useful in PASM code.']
   };
 
   private _tableDebugMethodsUnsignedDec: { [Identifier: string]: TMethodTuple } = {
@@ -1447,6 +1451,10 @@ export class Spin2ParseUtils {
       // if {Spin2_v44} or greater then also search this table
       reservedStatus = nameKey in this._tableDebugMethodsBool_v44;
     }
+    if (!reservedStatus && this.requestedSpinVersion(46)) {
+      // if {Spin2_v46} or greater then also search this table
+      reservedStatus = nameKey in this._tableDebugMethodsBool_v46;
+    }
     if (!reservedStatus) {
       reservedStatus = nameKey in this._tableDebugMethodsSignedDec;
     }
@@ -1499,6 +1507,10 @@ export class Spin2ParseUtils {
         // if {Spin2_v44} or greater then also search this table
         desiredDocText.category = 'Boolean Output';
         methodDescr = this._tableDebugMethodsBool_v44[nameKey];
+      } else if (this.requestedSpinVersion(46) && nameKey in this._tableDebugMethodsBool_v46) {
+        // if {Spin2_v46} or greater then also search this table
+        desiredDocText.category = 'FLAGs Output';
+        protoWDescr = this._tableDebugMethodsBool_v46[nameKey];
       } else if (nameKey in this._tableDebugMethodsSignedDec) {
         desiredDocText.category = 'Signed Decimal Output';
         methodDescr = this._tableDebugMethodsSignedDec[nameKey];
@@ -1564,6 +1576,12 @@ export class Spin2ParseUtils {
     const reservedStatus: boolean = nameKey in this._tableDebugInvokeSymbols;
     return reservedStatus;
   }
+  private _tableDebugControlSymbols_v46: { [Identifier: string]: string } = {
+    debug_mask:
+      '(no default) Assigning a 32-bit mask value to this symbol allows individual DEBUG statements to be gated according to the state of a  particular mask bit. This is done by placing a mask bit number (0..31) in brackets, immediately after the DEBUG keyword and before any parameters: DEBUG[MaskBitNumber]{(parameters…)} . If the particular mask bit is high, the DEBUG will be compiled, otherwise it will be ignored.',
+    debug_disable: '(no default) Assigning a non-0 value to this symbol will disable all DEBUG statements in the file/object.',
+    _autoclk: '_AUTOCLK = 0 prevents the clock setter code from being prepended. Code runs in RCFAST mode in this case.'
+  };
 
   private _tableDebugControlSymbols: { [Identifier: string]: string } = {
     download_baud: '(default 2_000_000)<br>Sets the download baud rate',
@@ -1588,7 +1606,10 @@ export class Spin2ParseUtils {
 
   public isDebugControlSymbol(name: string): boolean {
     const nameKey: string = name.toLowerCase();
-    const reservedStatus: boolean = nameKey in this._tableDebugControlSymbols;
+    let reservedStatus: boolean = nameKey in this._tableDebugControlSymbols;
+    if (!reservedStatus && this.requestedSpinVersion(46)) {
+      reservedStatus = nameKey in this._tableDebugControlSymbols_v46;
+    }
     return reservedStatus;
   }
 
@@ -1607,6 +1628,9 @@ export class Spin2ParseUtils {
       if (nameKey in this._tableDebugControlSymbols) {
         desiredDocText.category = 'Debug Symbol';
         desiredDocText.description = this._tableDebugControlSymbols[nameKey];
+      } else if (this.requestedSpinVersion(46) && nameKey in this._tableDebugControlSymbols_v46) {
+        desiredDocText.category = 'Debug Symbol';
+        desiredDocText.description = this._tableDebugControlSymbols_v46[nameKey];
       }
     }
     return desiredDocText;
@@ -1772,6 +1796,11 @@ export class Spin2ParseUtils {
     newcog: '%01_0000, Starts an available cog'
   };
 
+  private _tableSpinTaskSymbols_v47: { [Identifier: string]: string } = {
+    newtask: '-1, Next available task. For use with TASKSPIN()',
+    thistask: '-1, Current task. For use with TASKSTOP() and TASKHALT()'
+  };
+
   private _tableSpinMethodPointerSymbols: { [Identifier: string]: TMethodTuple } = {
     send: [
       'SEND(userParam)',
@@ -1819,6 +1848,9 @@ export class Spin2ParseUtils {
         desiredDocText.category = 'Cogexec';
         desiredDocText.description = this._tableSpinCogexecSymbols[nameKey];
       }
+    } else if (this.isTaskReservedSymbol(name) && this.requestedSpinVersion(47)) {
+      desiredDocText.category = 'Task';
+      desiredDocText.description = this._tableSpinTaskSymbols_v47[nameKey];
     } else if (nameKey in this._tableSpinNumericSymbols) {
       desiredDocText.category = 'Numeric';
       desiredDocText.description = this._tableSpinNumericSymbols[nameKey];
@@ -1847,6 +1879,15 @@ export class Spin2ParseUtils {
     let reservedStatus: boolean = nameKey in this._tableSpinCoginitSymbols;
     if (!reservedStatus) {
       reservedStatus = nameKey in this._tableSpinCogexecSymbols;
+    }
+    return reservedStatus;
+  }
+
+  public isTaskReservedSymbol(name: string): boolean {
+    let reservedStatus: boolean = false;
+    if (this.languageVersion >= 47) {
+      const nameKey: string = name.toLowerCase();
+      reservedStatus = nameKey in this._tableSpinTaskSymbols_v47;
     }
     return reservedStatus;
   }
@@ -2399,6 +2440,41 @@ export class Spin2ParseUtils {
     sizeof: ['SIZEOF(structure)', 'returns the size of the structure in bytes.']
   };
 
+  private _tableSpinEnhancements_v47: { [Identifier: string]: TMethodTuple } = {
+    taskspin: [
+      'TASKSPIN(Task,Method({parameters}),Stack_address) : TaskId',
+      'Initializes a Spin2 task, similarly to how COGSPIN initializes a Spin2 cog.',
+      [
+        'Task - Task = 0..31 for a fixed task or -1 (NEWTASK) for the first free task.',
+        'Method({parameters}) - address of method to run as task and parameters to pass to it.',
+        'Stack_address - pointer to LONG array to be used as the stack',
+        'TaskId - TaskId = 0..31 if successful or -1 if no task free'
+      ]
+    ],
+    tasknext: ['TASKNEXT()', 'Switches to the next unhalted task.', []],
+    taskstop: [
+      'TASKSTOP(taskId)',
+      'Switches to the next unhalted task.',
+      ['taskId - Task = 0..31 for a fixed task or -1 (THISTASK) for the current task.']
+    ],
+    taskhalt: [
+      'TASKHALT(taskId)',
+      'Halts a task until TASKCONT allows it to continue.',
+      ['taskId - Task = 0..31 for a fixed task or -1 (THISTASK) for the current task.']
+    ],
+    taskcont: [
+      'TASKCONT(taskId)',
+      'Continues a task that was halted by TASKHALT.',
+      ['taskId - Task = 0..31 for a fixed task or -1 for the current task.']
+    ],
+    taskchk: [
+      'TASKCHK(taskId) : status',
+      'Checks the status of a task.',
+      ['taskId - Task = 0..31.', 'status - Returns 0 if the task is free, 1 if the task is running, or 2 if the task is halted.']
+    ],
+    taskid: ['TASKID() : taskId', 'Returns the ID of the current task.', ['taskId - Task = 0..31.']]
+  };
+
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
     // NOTE: this does NOT support signature help! (paramaters are not highlighted for signature help due to ':' being param separater)
     lookup: [
@@ -2518,6 +2594,10 @@ export class Spin2ParseUtils {
       // requested version is v45 or greater
       reservedStatus = nameKey in this._tableSpinEnhancements_v45;
     }
+    if (!reservedStatus && this.requestedSpinVersion(47)) {
+      // requested version is v45 or greater
+      reservedStatus = nameKey in this._tableSpinEnhancements_v47;
+    }
     this._logMessage(`sp2u:  -- iVerAM(${name}) = (${reservedStatus})`);
     return reservedStatus;
   }
@@ -2579,6 +2659,10 @@ export class Spin2ParseUtils {
         // if {Spin2_v44} or greater then also search this table
         desiredDocText.category = 'Structure Method';
         protoWDescr = this._tableSpinEnhancements_v45[nameKey];
+      } else if (this.requestedSpinVersion(47) && nameKey in this._tableSpinEnhancements_v47) {
+        // if {Spin2_v44} or greater then also search this table
+        desiredDocText.category = 'Task Method';
+        methodDescr = this._tableSpinEnhancements_v47[nameKey];
       } else if (nameKey in this._tableSpinIndexValueMethods) {
         desiredDocText.category = 'Hub Method';
         protoWDescr = this._tableSpinIndexValueMethods[nameKey];
