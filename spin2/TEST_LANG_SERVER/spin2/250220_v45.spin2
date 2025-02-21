@@ -1,0 +1,12 @@
+' code examples that require v44
+'
+' {Spin2_v45}
+var
+   long  is_v44
+
+pub main()
+    ' following should be RED ERRORS
+    fill()
+    copy()
+    swap()
+    comp()

@@ -1,0 +1,21 @@
+' code examples that require v44
+'
+' {Spin2_v44}
+var
+   long  is_v44
+
+pub main()
+    debug("testing v44", BOOL(is_v44))
+    debug("testing v44", BOOL_(is_v44))
+
+    fill()  ' hover what to do with these?
+    copy()
+    swap()
+    comp()
+
+    byteswap() ' these are good now
+    wordswap()
+    longswap()
+    bytecomp()
+    wordcomp()
+    longcomp()

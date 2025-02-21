@@ -1,15 +1,16 @@
 Spin/Spin2 files in FOLDER:
- Root /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-extensions/spin2:
- TEST:
-
- 001-2:  TEST/spin:
+	Root /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-extensions/spin2:
+	TEST:
+	- fix highlight of v44 BOOL and BOOL_ (version recog. is working)
+	
+	001-2:  TEST/spin:
 		- 221206-fixes.spin [1,1]
 		- test_declarations.spin [2,1]
 		- test_notSpin1.spin [3,1]
 		- test_pasm.spin [4,1]
 		- test_spin.spin [5,1]
-
- 002-2:  TEST/spin2:
+	
+	002-2:  TEST/spin2:
 		- 1CogKbM_neoyume.spin2 [6,1]
 		- 220316-fixes.spin2 [7,1]
 		- 220325-fixes.spin2 [8,1]
@@ -50,8 +51,8 @@ Spin/Spin2 files in FOLDER:
 		- test_spin2_methods.spin2 [43,1]
 		- user_sample_cluso99.spin2 [44,1]
 Stats for FOLDER:
- Root /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-extensions/spin2:
- TEST:
+	Root /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-extensions/spin2:
+	TEST:
 	2 directories containing: 
 		44 Unique filenames
 		(44 Unique files where content is diff.)

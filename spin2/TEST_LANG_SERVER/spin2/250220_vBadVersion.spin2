@@ -1,0 +1,14 @@
+' code examples that require newer versions
+'
+' {Spin2_v43}
+var
+   long  is_vLater
+
+pub main()
+    debug("requires v44", BOOL(is_vLater))
+    debug("requires v44", BOOL_(is_vLater))
+
+    fill()
+    copy()
+    swap()
+    comp()
