@@ -1,8 +1,6 @@
-' code examples that require v44
+' code examples that require v45
 '
 ' {Spin2_v45}
-var
-   long  is_v44
 
 pub main()
     ' following should be RED ERRORS
@@ -10,3 +8,33 @@ pub main()
     copy()
     swap()
     comp()
+
+
+CON
+    STRUCT sPoint(byte x, byte y)
+    STRUCT sLine(sPoint a, sPoint b, byte color)
+    LineCount = 100
+
+VAR
+    sLine Line[LineCount] 'Line is an array of sLine structures
+
+PUB go() | i
+    debug(`plot myplot size 256 256 hsv8x update)
+    repeat
+        repeat LineCount with i
+            Line[i].a.x := getrnd() ' set up random lines
+            Line[i].a.y := getrnd()
+            Line[i].b.x := getrnd()
+            Line[i].b.y := getrnd()
+            Line[i].color := getrnd()
+        drawLines(@Line, LineCount)                  ' draw them by passing Line base-structure address
+
+    debug("sLine is ", udec_(sizeof(Line)), " bytes long")
+
+PRI drawLines(^sLine pLine, count) | i 'pLine is a structure pointer of type sLine
+    debug(`myplot clear linesize 2)
+    repeat count with i
+        debug(`myplot color `(pLine[i].color))
+        debug(`myplot set `(pLine[i].a.x, pLine[i].a.y))
+        debug(`myplot line `(pLine[i].b.x, pLine[i].b.y))
+    debug(`myplot update)

@@ -1,6 +1,12 @@
 ' code examples that require newer versions
 '
 ' {Spin2_v43}
+CON
+    DEBUG_MASK = $0000_0001
+    DEBUG_DISABLE = 1
+
+    _AUTOCLK = 0
+
 var
    long  is_vLater
 
@@ -12,3 +18,26 @@ pub main()
     copy()
     swap()
     comp()
+
+' --------------------------
+
+VAR
+    LONG  taskStack[64]
+
+PUB main2()
+
+    ' methods
+    taskspin(NEWTASK, myTask(), @taskStack)
+    tasknext()
+    taskstop(THISTASK)
+    taskhalt(THISTASK)
+    taskcont()
+    taskchk()
+    taskid()
+
+    NEWTASK  ' CONSTANT
+    THISTASK ' CONSTANT
+
+    taskhlt ' Register
+
+PRI myTask()

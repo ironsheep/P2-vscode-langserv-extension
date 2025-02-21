@@ -1,0 +1,25 @@
+' code examples that require v47
+'
+' {Spin2_v47}
+
+' --------- TASK METHODS ---------
+VAR
+    LONG  taskStack[64]
+
+PUB main()
+
+    ' methods
+    taskspin(NEWTASK, myTask(), @taskStack)
+    tasknext()
+    taskstop(THISTASK)
+    taskhalt(THISTASK)
+    taskcont()
+    taskchk()
+    taskid()
+
+    NEWTASK  ' CONSTANT
+    THISTASK ' CONSTANT
+
+    taskhlt ' Register
+
+PRI myTask()

@@ -1,8 +1,34 @@
+HIGHLIGHT Language Specific Uprades:
+	v44:
+		- fix highlight of v44 BOOL and BOOL_ (version recog. is working) @done(2025-02-21)
+	v45:
+		- struct @done(2025-02-21)
+		- sizeof() @done(2025-02-21)
+	v46:
+		- C_Z in PUB/PRI/DAT pasm @done(2025-02-21)
+		- C_Z hover text @done(2025-02-21)
+		- DEBUG_MASK  hover @done(2025-02-21)
+		- DEBUG_DISABLE @done(2025-02-21)
+		- _AUTOCLK @done(2025-02-21)
+		- debug[]() signature hover [] made it think it's debug standalone
+		- RETYPES in VAR on same line BYTE/LONG/WORD (STRUCT) v46
+	v47:
+		- task methods @done(2025-02-21)
+		- task constants @done(2025-02-21)
+		- task register:  taskhlt
+	v48:
+		- proprocessor directives
+	v49:
+		- debug LOGIC - RANGE keyword
+		- structs referenced from objects
+	v50:
+	- debug PLOT crop layer
+	- DAT   DITTO, like REP
+	- DAT   DITTO END
+
 Spin/Spin2 files in FOLDER:
 	Root /Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-extensions/spin2:
-	TEST:
-	- fix highlight of v44 BOOL and BOOL_ (version recog. is working)
-	
+	TEST/:
 	001-2:  TEST/spin:
 		- 221206-fixes.spin [1,1]
 		- test_declarations.spin [2,1]

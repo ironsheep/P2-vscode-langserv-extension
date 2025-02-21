@@ -1,0 +1,26 @@
+' code examples that require v48
+'
+' {Spin2_v48}
+
+' -----------------   Conditional Compilation   -----------------
+PUB main()
+#define F1
+
+#undef F2
+
+#ifdef F1
+    debug("F1 is defined")
+
+#ifndef F2
+    debug("F2 is not defined")
+
+#elseifdef var
+
+#elseifndef var2
+
+#else
+
+#endif
+
+ifdef __DEBUG__
+    debug("we are cpmpiling with debug enabled")
