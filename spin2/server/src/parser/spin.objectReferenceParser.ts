@@ -32,7 +32,7 @@ export class Spin2ObjectReferenceParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showCON: boolean = true;
   private showOBJ: boolean = true;
   private showPAsmCode: boolean = true;
@@ -48,6 +48,7 @@ export class Spin2ObjectReferenceParser {
     this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
     this.configuration = this.ctx.parserConfig; // ensure we have latest
     if (this.isDebugLogEnabled) {
+      this.parseUtils.enableLogging(this.ctx);
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel

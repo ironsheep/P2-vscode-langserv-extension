@@ -1,5 +1,5 @@
 'use strict';
-// src/parser/spin2.utils.ts
+// src/parser/spin.extension.utils.ts
 
 import * as lsp from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';

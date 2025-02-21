@@ -80,7 +80,7 @@ export class Formatter {
       if (this.debugOutputChannel === undefined) {
         //Create output channel
         this.debugOutputChannel = vscode.window.createOutputChannel('Spin/Spin2 Format DEBUG');
-        this.logMessage('Spin/Spin2 Format log started.');
+        this.logMessage('Spin/Spin2 Tab Format log started.');
       } else {
         this.logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }

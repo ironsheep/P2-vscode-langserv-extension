@@ -27,6 +27,7 @@ export class Spin1DocumentSymbolParser {
   public constructor(protected readonly ctx: Context) {
     this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
     if (this.isDebugLogEnabled) {
+      this.parseUtils.enableLogging(this.ctx);
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel

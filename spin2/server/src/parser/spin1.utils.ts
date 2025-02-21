@@ -25,6 +25,13 @@ export class Spin1ParseUtils {
     }
   }
 
+  public setSpinVersion(requiredVersion: number): void {
+    if (requiredVersion != 1) {
+      // silence compiler warning
+    }
+    this._logMessage(`sp1u:  -- set SpinVersion() NOT used for spin1`);
+  }
+
   public getNonInlineCommentLine(line: string): string {
     // NEW remove {comment} and {{comment}} single-line elements too
     let nonInlineCommentStr: string = line;

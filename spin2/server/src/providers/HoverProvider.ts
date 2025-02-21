@@ -19,17 +19,18 @@ import { eBuiltInType, isMethodCall } from '../parser/spin.common';
 import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class HoverProvider implements Provider {
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private symbolsFound: DocumentFindings = new DocumentFindings(); // this gets replaced
   private parseUtils: Spin1ParseUtils | Spin2ParseUtils = new Spin2ParseUtils();
   private extensionUtils: ExtensionUtils;
-  private spin1File: boolean = false;
+  private haveSpin1File: boolean = false;
 
   constructor(protected readonly ctx: Context) {
     this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
     if (this.isDebugLogEnabled) {
+      this.parseUtils.enableLogging(this.ctx);
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         this._logMessage('Spin Hover log started.');
@@ -51,8 +52,13 @@ export default class HoverProvider implements Provider {
     }
     this.symbolsFound = documentFindings;
     this.symbolsFound.enableLogging(this.ctx, this.isDebugLogEnabled);
-    this.spin1File = isSpin1File(docFSpec);
-    this.parseUtils = this.spin1File ? new Spin1ParseUtils() : new Spin2ParseUtils();
+    this.haveSpin1File = isSpin1File(docFSpec);
+    this.parseUtils = this.haveSpin1File ? new Spin1ParseUtils() : new Spin2ParseUtils();
+    this.parseUtils.enableLogging(this.ctx);
+    if (!this.haveSpin1File) {
+      // forward version so we can use correct built-in tables
+      this.parseUtils.setSpinVersion(documentFindings.documentVersion);
+    }
 
     return this.provideHover(processed.document, position);
   }
@@ -255,7 +261,7 @@ export default class HoverProvider implements Provider {
       } while (cursorCharPosn > 0);
       const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith('pub') || sourceLine.toLowerCase().startsWith('pri');
       // ensure we don't recognize debug() in spin1 files!
-      const isDebugLine: boolean = this.spin1File ? false : sourceLine.toLowerCase().startsWith('debug(');
+      const isDebugLine: boolean = this.haveSpin1File ? false : sourceLine.toLowerCase().startsWith('debug(');
 
       let bFoundSomething: boolean = false; // we've no answer
       const filterType: eSearchFilterType = isMethodCall ? eSearchFilterType.FT_METHOD : eSearchFilterType.FT_NOT_METHOD;
@@ -404,14 +410,14 @@ export default class HoverProvider implements Provider {
           const bHaveParams = builtInFindings.parameters && builtInFindings.parameters.length > 0 ? true : false;
           const bHaveReturns = builtInFindings.returns && builtInFindings.returns.length > 0 ? true : false;
           // ensure we don't recognize debug() in spin1 files!
-          if (this.spin1File == false && searchWord.toLowerCase() == 'debug' && sourceLine.toLowerCase().startsWith('debug(')) {
+          if (this.haveSpin1File == false && searchWord.toLowerCase() == 'debug' && sourceLine.toLowerCase().startsWith('debug(')) {
             bISdebugStatement = true;
           }
           this._logMessage(`+ Hvr: bISdebugStatement=[${bISdebugStatement}], sourceLine=[${sourceLine}]`);
           let mdLines: string[] = [];
           bFoundSomething = true;
           defInfo.declarationlines = [];
-          const langIdString: string = this.spin1File ? 'Spin' : 'Spin2';
+          const langIdString: string = this.haveSpin1File ? 'Spin' : 'Spin2';
           this._logMessage(
             `+ Hvr: searchWord=[${searchWord}], descr=(${builtInFindings.description}), type=[${langIdString} built-in], cat=[${builtInFindings.category}]`
           );
@@ -443,7 +449,7 @@ export default class HoverProvider implements Provider {
           } else if (builtInFindings.type == eBuiltInType.BIT_PASM_DIRECTIVE) {
             defInfo.declarationlines = ['(built-in directive) ' + builtInFindings.signature];
             subTitleText = `: *${langIdString} built-in*`;
-          } else if (this.spin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_SYMBOL) {
+          } else if (this.haveSpin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_SYMBOL) {
             this._logMessage(`+ Hvr: builtInFindings.type=[eBuiltInType.BIT_DEBUG_SYMBOL]`);
             if (bISdebugStatement) {
               defInfo.declarationlines = ['(DEBUG method) ' + builtInFindings.signature];
@@ -456,7 +462,7 @@ export default class HoverProvider implements Provider {
               defInfo.declarationlines = ['(DEBUG symbol) ' + searchWord];
               subTitleText = `: *${langIdString} debug built-in*`;
             }
-          } else if (this.spin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_METHOD) {
+          } else if (this.haveSpin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_METHOD) {
             this._logMessage(`+ Hvr: builtInFindings.type=[eBuiltInType.BIT_DEBUG_METHOD]`);
             defInfo.declarationlines = ['(DEBUG method) ' + builtInFindings.signature];
             subTitleText = `: *${langIdString} debug built-in*`;

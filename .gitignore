@@ -216,3 +216,4 @@ spin2/updVscode
 spin2/client/prebuilds
 spin2/TEST-P2-TERM/
 spin2/TEST_LANG_SERVER/.vscode/
+spin2/TEST_LANG_SERVER/BLDC_TEST/.vscode/settings.json

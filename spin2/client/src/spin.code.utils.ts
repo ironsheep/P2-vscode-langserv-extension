@@ -18,7 +18,7 @@ export enum eParseState {
 }
 
 export class SpinCodeUtils {
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false;
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
   public constructor() {}

@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -89,6 +89,7 @@ export class Spin2DocumentSemanticParser {
   private currentFilespec: string = '';
   private isSpin1Document: boolean = false;
   private directory: string = '';
+  private desiredDocVersion: number = 0;
 
   private bRecordTrailingComments: boolean = false; // initially, we don't generate tokens for trailing comments on lines
   private bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
@@ -98,6 +99,7 @@ export class Spin2DocumentSemanticParser {
     this.configuration = ctx.parserConfig;
     this.editorConfiguration = ctx.editorConfig;
     if (this.isDebugLogEnabled) {
+      this.parseUtils.enableLogging(this.ctx);
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
@@ -106,6 +108,11 @@ export class Spin2DocumentSemanticParser {
         this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }
     }
+  }
+
+  get docVersion(): number {
+    this._logMessage(`* docVersion() -> (${this.desiredDocVersion})`);
+    return this.desiredDocVersion;
   }
 
   //async provideDocumentSemanticTokens(document: vscode.TextDocument, cancelToken: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
@@ -130,6 +137,7 @@ export class Spin2DocumentSemanticParser {
 
     // retrieve tokens to highlight, post to DocumentFindings
     let allTokens = this._parseText(document.getText());
+    findings.documentVersion = this.desiredDocVersion;
     const endingLangVersion: number = this.parseUtils.selectedSpinVersion();
     if (startingLangVersion != endingLangVersion) {
       this._logMessage(`* Spin2 LANG VERSION chg [${startingLangVersion} -> ${endingLangVersion}]`);
@@ -205,6 +213,8 @@ export class Spin2DocumentSemanticParser {
         this.bHuntingForVersion = false; // done we found it
         const newLangVersion: number = versionFromSpinLanguageSpec(trimmedLine, this.ctx);
         if (newLangVersion != startingLangVersion || newLangVersion != this.parseUtils.selectedSpinVersion()) {
+          this.desiredDocVersion = newLangVersion;
+          // forward version so we can use correct built-in tables
           this.parseUtils.setSpinVersion(newLangVersion);
           this._logMessage(`  -- found Spin2 NEW LANG VERSION (${newLangVersion}), stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
         } else {
@@ -7329,7 +7339,7 @@ export class Spin2DocumentSemanticParser {
               this._logPASM('  --  FOUND global name=[' + newParameter + ']');
             }
             if (referenceDetails !== undefined) {
-              //this._logPASM('  --  Debug() colorize name=[' + newParameter + ']');
+              this._logPASM(`  --  Debug() colorize name=[${newParameter}]`);
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: symbolOffset,
@@ -7339,8 +7349,18 @@ export class Spin2DocumentSemanticParser {
               });
             } else {
               // handle unknown-name case
+              this._logPASM(`  --  Debug() unknown newParameter=[${newParameter}]`);
               const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
-              if (
+              if (paramIsSymbolName && this.parseUtils.isDebugMethod(newParameter) && newParameter.toLowerCase().startsWith('bool')) {
+                this._logDEBUG(`  -- new version debug function=[${newParameter}]`);
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: symbolOffset,
+                  length: newParameter.length,
+                  ptTokenType: 'debug',
+                  ptTokenModifiers: ['function']
+                });
+              } else if (
                 paramIsSymbolName &&
                 !this.parseUtils.isDebugMethod(newParameter) &&
                 !this.parseUtils.isBinaryOperator(newParameter) &&

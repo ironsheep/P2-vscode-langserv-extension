@@ -13,6 +13,7 @@ export default class SemanticTokensProvider implements Provider {
 
   private tokenTypesLegend = [
     'comment',
+    'debug',
     'string',
     'keyword',
     'number',
@@ -49,6 +50,7 @@ export default class SemanticTokensProvider implements Provider {
     'disabled',
     'documentation',
     'readonly',
+    'function',
     'static',
     'abstract',
     'deprecated',
@@ -63,7 +65,7 @@ export default class SemanticTokensProvider implements Provider {
     'illegalUse'
   ];
 
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   //private namedRegs: lsp.CompletionItem[];
@@ -81,7 +83,7 @@ export default class SemanticTokensProvider implements Provider {
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel
-        this._logMessage('Spin2 Semantic log started.');
+        this._logMessage('Spin2 Tokens log started.');
       } else {
         this._logMessage('\n\n------------------   NEW FILE ----------------\n\n');
       }

@@ -12,7 +12,7 @@ import { eParseState } from './spin.common';
 //   OUTLINE Provider
 //
 //   process given Spin2 document generating OutLineSymbols and recording them in
-//    the DocumentFindings object assiciated with this file
+//    the DocumentFindings object associated with this file
 //
 export class Spin2DocumentSymbolParser {
   private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -24,6 +24,7 @@ export class Spin2DocumentSymbolParser {
 
   public constructor(protected readonly ctx: Context) {
     if (this.isDebugLogEnabled) {
+      this.parseUtils.enableLogging(this.ctx);
       if (this.bLogStarted == false) {
         this.bLogStarted = true;
         //Create output channel

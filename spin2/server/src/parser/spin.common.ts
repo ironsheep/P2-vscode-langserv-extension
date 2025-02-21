@@ -98,7 +98,7 @@ export function containsSpinLanguageSpec(line: string, ctx: Context | undefined 
   // return T/F where T means {Spin2_v##} was found in given string
   const languageVersionRegEx = /\{Spin2_v/i; // our version specification (just look for left edge)
   const findStatus: boolean = languageVersionRegEx.test(line);
-  //_logMessage(`* containsSpinLanguageSpec() -> (${findStatus})`, ctx);
+  _logMessage(`* containsSpinLanguageSpec() -> (${findStatus})`, ctx);
   return findStatus;
 }
 

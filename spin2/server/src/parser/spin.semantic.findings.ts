@@ -197,13 +197,15 @@ export class DocumentFindings {
 
   // tracking object outline
   private outlineSymbols: OutLineSymbol[] = [];
-
   private semanticTokens: IParsedToken[] = [];
 
   // tracking includes (both OBJ (object use) and #include use)
   private objectFilenameByInstanceName = new Map<string, string>();
   // here we track which file #include's what file(s)
   private includedFilenameByIncluderFilename = new Map<string, string[]>();
+
+  // tracking document Spin2 version
+  private documentSpin2Version: number = 0;
 
   private ctx: Context | undefined;
   private docUri: string = '--uri-not-set--';
@@ -230,6 +232,15 @@ export class DocumentFindings {
     this.declarationInfoByLocalTokenName = new Map<string, RememberedTokenDeclarationInfo>();
     // and for P2
     this.methodLocalPasmTokens = new NameScopedTokenSet('methPasmTOK');
+  }
+
+  set documentVersion(version: number) {
+    this._logMessage(`* findings documentVersion set to ${version}`);
+    this.documentSpin2Version = version;
+  }
+
+  get documentVersion(): number {
+    return this.documentSpin2Version;
   }
 
   public get uri(): string {

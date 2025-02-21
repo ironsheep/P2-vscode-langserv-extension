@@ -27,7 +27,7 @@ export enum eSearchFilterType {
 }
 
 export class Spin2ParseUtils {
-  private utilsLogEnabled: boolean = true;
+  private utilsLogEnabled: boolean = false;
   private ctx: Context | undefined = undefined;
   private languageVersion: number = 0;
 
@@ -49,11 +49,13 @@ export class Spin2ParseUtils {
     if (requiredVersion >= 0 && requiredVersion <= 999) {
       const newVersion: number = requiredVersion < 43 ? 0 : requiredVersion;
       if (newVersion != this.languageVersion) {
-        this._logMessage(`  -- set SpinVersion() (${this.languageVersion}) -> (${newVersion})`);
+        this._logMessage(`sp2u:  -- set SpinVersion() (${this.languageVersion}) -> (${newVersion})`);
       } else {
-        this._logMessage(`  -- set SpinVersion() (${this.languageVersion})`);
+        this._logMessage(`sp2u:  -- set SpinVersion() (${this.languageVersion})`);
       }
       this.languageVersion = newVersion;
+    } else {
+      this._logMessage(`sp2u:  -- set SpinVersion() (${requiredVersion} out of range!)`);
     }
   }
 
@@ -69,6 +71,7 @@ export class Spin2ParseUtils {
 
   public requestedSpinVersion(requiredVersion: number): boolean {
     const supportedStatus: boolean = this.languageVersion >= requiredVersion ? true : false;
+    this._logMessage(`sp2u:  -- langV=${this.languageVersion}, requestedSpinVersion(${requiredVersion}) -> ${supportedStatus}`);
     return supportedStatus;
   }
 
@@ -192,7 +195,7 @@ export class Spin2ParseUtils {
         //
         badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        this._logMessage(`  -- RdsQS A trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        this._logMessage(`sp2u:  -- RdsQS A trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         // FIXME: TODO: splice instead of search / replace (will work in face of dupe strings)
       } else {
         // ----------------------------------------
@@ -201,11 +204,11 @@ export class Spin2ParseUtils {
         // remove front
         badElement = trimmedLine.substring(quoteStartOffset, nextTicEscape); // no +1 leave tic there
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        this._logMessage(`  -- RdsQS B trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        this._logMessage(`sp2u:  -- RdsQS B trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
         let closeParenOffset: number = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
         if (closeParenOffset == -1) {
-          this._logMessage(`  -- RdsQS FAILED A to locate close paren of \`() clause`);
+          this._logMessage(`sp2u:  -- RdsQS FAILED A to locate close paren of \`() clause`);
           break;
         }
 
@@ -215,11 +218,11 @@ export class Spin2ParseUtils {
           // yes remove string from `() to `()...
           badElement = trimmedLine.substring(closeParenOffset + 1, nextTicEscape);
           trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-          this._logMessage(`  -- RdsQS C trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+          this._logMessage(`sp2u:  -- RdsQS C trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
           closeParenOffset = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
           if (closeParenOffset == -1) {
-            this._logMessage(`  -- RdsQS FAILED B to locate close paren of \`() clause`);
+            this._logMessage(`sp2u:  -- RdsQS FAILED B to locate close paren of \`() clause`);
             break;
           }
           // locate a next tic-escape, if it's in our same string we'll continue in this loop
@@ -227,14 +230,14 @@ export class Spin2ParseUtils {
         }
         // if our tic-escape loop bailed we need to as well
         if (closeParenOffset == -1) {
-          this._logMessage(`  -- RdsQS FAILED C to locate close paren of \`() clause`);
+          this._logMessage(`sp2u:  -- RdsQS FAILED C to locate close paren of \`() clause`);
           break;
         }
         // ----------------------------------------
         // have string from last escape to end quote
         badElement = trimmedLine.substring(closeParenOffset + 1, quoteEndOffset + 1);
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        this._logMessage(`  -- RdsQS D trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        this._logMessage(`sp2u:  -- RdsQS D trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
         // if we have `( followed by ) then skip this close, look for next
         nextTicEscape = this._nextTicEscape(trimmedLine, closeParenOffset + 1);
@@ -446,7 +449,7 @@ export class Spin2ParseUtils {
           const inLineComment: string = cleanedLine.substring(doubleBraceBeginOffset, doubleBraceEndOffset + 2);
           cleanedLine = cleanedLine.replace(inLineComment, ' '.repeat(inLineComment.length));
           //didReplace = true;
-          //this._logMessage(`  -- RInCmt {{cmt}} [${cleanedLine}]`);
+          //this._logMessage(`sp2u:  -- RInCmt {{cmt}} [${cleanedLine}]`);
         }
       }
       //} while (cleanedLine.indexOf("{{") != -1);
@@ -460,7 +463,7 @@ export class Spin2ParseUtils {
           const inLineComment: string = cleanedLine.substring(singleBraceBeginOffset, singleBraceEndOffset + 1);
           cleanedLine = cleanedLine.replace(inLineComment, ' '.repeat(inLineComment.length));
           //didReplace = true;
-          //this._logMessage(`  -- RInCmt {cmt} [${cleanedLine}]`);
+          //this._logMessage(`sp2u:  -- RInCmt {cmt} [${cleanedLine}]`);
         }
       }
       //} while (cleanedLine.indexOf("{") != -1);
@@ -470,8 +473,8 @@ export class Spin2ParseUtils {
       }
 
       //if (didReplace) {
-      //  this._logMessage(`  -- gLWoInLnC line [${line}]`);
-      //  this._logMessage(`  --                [${cleanedLine}]`);
+      //  this._logMessage(`sp2u:  -- gLWoInLnC line [${line}]`);
+      //  this._logMessage(`sp2u:  --                [${cleanedLine}]`);
       //}
     }
     return cleanedLine;
@@ -495,8 +498,8 @@ export class Spin2ParseUtils {
       cleanedLine = this.getLineWithoutInlineComments(cleanedLine);
 
       //if (didReplace) {
-      //  this._logMessage(`  -- RInLnCmt line [${line}]`);
-      //  this._logMessage(`  --               [${cleanedLine}]`);
+      //  this._logMessage(`sp2u:  -- RInLnCmt line [${line}]`);
+      //  this._logMessage(`sp2u:  --               [${cleanedLine}]`);
       //}
     }
     return cleanedLine;
@@ -531,7 +534,7 @@ export class Spin2ParseUtils {
         const inLineComment: string = cleanedLine.substring(0, doubleBraceEndOffset + 2);
         cleanedLine = cleanedLine.replace(inLineComment, ' '.repeat(inLineComment.length));
         //didReplace = true;
-        //this._logMessage(`  -- RInCmt ^cmt}} [${cleanedLine}]`);
+        //this._logMessage(`sp2u:  -- RInCmt ^cmt}} [${cleanedLine}]`);
       }
       //   REPLACE ^...} when NO { before it on start of line (unless there's an earlier ' comment)
       const singleBraceEndOffset: number = checkLine.indexOf('}', startingOffset);
@@ -540,12 +543,12 @@ export class Spin2ParseUtils {
         const inLineComment: string = cleanedLine.substring(0, singleBraceEndOffset + 1);
         cleanedLine = cleanedLine.replace(inLineComment, ' '.repeat(inLineComment.length));
         //didReplace = true;
-        //this._logMessage(`  -- RInCmt ^cmt} [${cleanedLine}]`);
+        //this._logMessage(`sp2u:  -- RInCmt ^cmt} [${cleanedLine}]`);
       }
 
       //if (didReplace) {
-      //  this._logMessage(`  -- RInLnCmt line [${line}]`);
-      //  this._logMessage(`  --               [${cleanedLine}]`);
+      //  this._logMessage(`sp2u:  -- RInLnCmt line [${line}]`);
+      //  this._logMessage(`sp2u:  --               [${cleanedLine}]`);
       //}
     }
     return cleanedLine;
@@ -575,7 +578,7 @@ export class Spin2ParseUtils {
 
       // do we have a comment?
       //if (beginCommentOffset != -1) {
-      //  this._logMessage(` - p2 gRWoTTC ofs=${startingOffset}, line=[${line}](${line.length})`);
+      //  this._logMessage(`sp2u: - p2 gRWoTTC ofs=${startingOffset}, line=[${line}](${line.length})`);
       //}
       const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset : line.length;
       //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
@@ -583,14 +586,14 @@ export class Spin2ParseUtils {
       //this._logMessage('- gnclr lineWithoutTrailingCommentStr=[' + startingOffset + ']');
       if (lineWithoutTrailingCommentStr.trim().length == 0) {
         lineWithoutTrailingCommentStr = '';
-        //this._logMessage(`  -- gRWoTTC line forced to EMPTY`);
+        //this._logMessage(`sp2u:  -- gRWoTTC line forced to EMPTY`);
       }
       //if (line.substr(startingOffset) !== lineWithoutTrailingCommentStr) {
-      //  this._logMessage(`  -- gRWoTTC line [${line}](${line.length})`);
-      //  this._logMessage(`  --              [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
+      //  this._logMessage(`sp2u:  -- gRWoTTC line [${line}](${line.length})`);
+      //  this._logMessage(`sp2u:  --              [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
       //}
       //} else {
-      //this._logMessage(` - gRWoTTC SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
+      //this._logMessage(`sp2u: - gRWoTTC SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
     }
     return lineWithoutTrailingCommentStr;
   }
@@ -625,7 +628,7 @@ export class Spin2ParseUtils {
 
       // do we have a comment?
       //if (beginCommentOffset != -1) {
-      //  this._logMessage(` - p2 gNCLR ofs=${startingOffset}, line=[${line}](${line.length})`);
+      //  this._logMessage(`sp2u: - p2 gNCLR ofs=${startingOffset}, line=[${line}](${line.length})`);
       //}
       const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset : line.length;
       //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
@@ -633,14 +636,14 @@ export class Spin2ParseUtils {
       //this._logMessage('- gnclr lineWithoutTrailingCommentStr=[' + startingOffset + ']');
       if (lineWithoutTrailingCommentStr.trim().length == 0) {
         lineWithoutTrailingCommentStr = '';
-        //this._logMessage(`  -- gNCLR line forced to EMPTY`);
+        //this._logMessage(`sp2u:  -- gNCLR line forced to EMPTY`);
       }
       //if (line.substr(startingOffset) !== lineWithoutTrailingCommentStr) {
-      //  this._logMessage(`  -- gNCLR line [${line}](${line.length})`);
-      //  this._logMessage(`  --            [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
+      //  this._logMessage(`sp2u:  -- gNCLR line [${line}](${line.length})`);
+      //  this._logMessage(`sp2u:  --            [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
       //}
       //} else {
-      //  this._logMessage(` - gNCLR SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
+      //  this._logMessage(`sp2u: - gNCLR SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
     }
     return lineWithoutTrailingCommentStr;
   }
@@ -870,6 +873,7 @@ export class Spin2ParseUtils {
   }
 
   public docTextForDebugBuiltIn(name: string): IBuiltinDescription {
+    this._logMessage(`sp2u: - docTextForDebugBuiltIn [${name}])`);
     let desiredDocText: IBuiltinDescription = this._docTextForSpinDebugBuiltInMethod(name);
     if (desiredDocText.found) {
       desiredDocText.type = eBuiltInType.BIT_DEBUG_METHOD;
@@ -896,6 +900,7 @@ export class Spin2ParseUtils {
   }
 
   public docTextForBuiltIn(name: string, typeFilter: eSearchFilterType): IBuiltinDescription {
+    this._logMessage(`sp2u: - docTextForBuiltIn [${name}](${eSearchFilterType[typeFilter]})`);
     let desiredDocText: IBuiltinDescription = this._docTextForSpinBuiltInVariable(name);
     if (desiredDocText.found) {
       desiredDocText.type = eBuiltInType.BIT_VARIABLE;
@@ -945,6 +950,7 @@ export class Spin2ParseUtils {
         }
       }
     }
+    this._logMessage(`sp2u:  -- docTextForBuiltIn [${name}](${JSON.stringify(desiredDocText, null, 2)})`);
     return desiredDocText;
   }
 
@@ -1221,6 +1227,10 @@ export class Spin2ParseUtils {
     ]
   };
 
+  private _tableDebugMethodsBool_v44: { [Identifier: string]: TMethodTuple } = {
+    bool: ['BOOL(value)', ' Output "TRUE" if value is not 0 or "FALSE" if 0.', ['value - zero or non-zero value']]
+  };
+
   private _tableDebugMethodsUnsignedDec: { [Identifier: string]: TMethodTuple } = {
     udec: ['UDEC(value)', 'Output as auto-sized unsigned decimal value (0 - 4_294_967_295)', ['value - BYTE, WORD or LONG value']],
     udec_byte: ['UDEC_BYTE(byteValue)', 'Output BYTE as unsigned decimal value (0 - 255)', ['byteValue - 8-bit value']],
@@ -1433,6 +1443,10 @@ export class Spin2ParseUtils {
     if (!reservedStatus) {
       reservedStatus = nameKey in this._tableDebugMethodsUnsignedDec;
     }
+    if (!reservedStatus && this.requestedSpinVersion(44)) {
+      // if {Spin2_v44} or greater then also search this table
+      reservedStatus = nameKey in this._tableDebugMethodsBool_v44;
+    }
     if (!reservedStatus) {
       reservedStatus = nameKey in this._tableDebugMethodsSignedDec;
     }
@@ -1481,6 +1495,10 @@ export class Spin2ParseUtils {
       } else if (nameKey in this._tableDebugMethodsUnsignedDec) {
         desiredDocText.category = 'Unsigned Decimal Output';
         methodDescr = this._tableDebugMethodsUnsignedDec[nameKey];
+      } else if (this.requestedSpinVersion(44) && nameKey in this._tableDebugMethodsBool_v44) {
+        // if {Spin2_v44} or greater then also search this table
+        desiredDocText.category = 'Boolean Output';
+        methodDescr = this._tableDebugMethodsBool_v44[nameKey];
       } else if (nameKey in this._tableDebugMethodsSignedDec) {
         desiredDocText.category = 'Signed Decimal Output';
         methodDescr = this._tableDebugMethodsSignedDec[nameKey];
@@ -2308,26 +2326,77 @@ export class Spin2ParseUtils {
     long: ['LONG(1e-6,1e-3,1.0,1e3,1e6,-50,BYTE $FF)', ' Compose a string of longs, return address of string. BYTE/WORD size overrides allowed.']
   };
 
-  private _tableSpinEnhancements_v44: { [Identifier: string]: string[] } = {
-    byteswap: ['BYTESWAP(AddrA, AddrB, Count)', 'Swap Count bytes of data starting at AddrA and AddrB.'],
-    wordswap: ['WORDSWAP(AddrA, AddrB, Count)', 'Swap Count words of data starting at AddrA and AddrB.'],
-    longswap: ['LONGSWAP(AddrA, AddrB, Count)', 'Swap Count longs of data starting at AddrA and AddrB.'],
+  private _tableSpinEnhancements_v44: { [Identifier: string]: TMethodTuple } = {
+    byteswap: [
+      'BYTESWAP(AddrA, AddrB, Count)',
+      'Swap Count bytes of data starting at AddrA and AddrB.',
+      ['AddrA - address of first BYTE array', 'AddrB - address of second BYTE array', 'Count - number of BYTEs to swap']
+    ],
+    wordswap: [
+      'WORDSWAP(AddrA, AddrB, Count)',
+      'Swap Count words of data starting at AddrA and AddrB.',
+      ['AddrA - address of first WORD array', 'AddrB - address of second WORD array', 'Count - number of WORDs to swap']
+    ],
+    longswap: [
+      'LONGSWAP(AddrA, AddrB, Count)',
+      'Swap Count longs of data starting at AddrA and AddrB.',
+      ['AddrA - address of first LONG array', 'AddrB - address of second LONG array', 'Count - number of LONGs to swap']
+    ],
     bytecomp: [
       'BYTECOMP(AddrA, AddrB, Count) : Match',
-      'Compare Count bytes of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.'
+      'Compare Count bytes of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.',
+      [
+        'AddrA - address of first byte array',
+        'AddrB - address of second byte array',
+        'Count - number of BYTEs to compare',
+        'Match - -1 if match or 0 if mismatch'
+      ]
     ],
     wordcomp: [
       'WORDCOMP(AddrA, AddrB, Count) : Match',
-      'Compare Count words of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.'
+      'Compare Count words of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.',
+      [
+        'AddrA - address of first byte array',
+        'AddrB - address of second byte array',
+        'Count - number of WORDs to compare',
+        'Match - -1 if match or 0 if mismatch'
+      ]
     ],
     longcomp: [
       'LONGCOMP(AddrA, AddrB, Count) : Match',
-      'Compare Count longs of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.'
+      'Compare Count longs of data starting at AddrA and AddrB, return -1 if match or 0 if mismatch.',
+      [
+        'AddrA - address of first byte array',
+        'AddrB - address of second byte array',
+        'Count - number of LONGs to compare',
+        'Match - -1 if match or 0 if mismatch'
+      ]
+    ]
+  };
+
+  private _tableSpinEnhancements_v44_replaced: { [Identifier: string]: TMethodTuple } = {
+    // only used if version is EXACTLY v44
+    fill: ['FILL(StructA, ByteValue)', 'Fill StructA with ByteValue.', ['StructA - structure to be filled', 'ByteValue - value to fill with']],
+    copy: [
+      'COPY(StructA, StructB)',
+      'Copy contents of StructB into StructA.',
+      ['StructA - structure to be filled', 'StructB - structure to be copied']
     ],
-    fill: ['FILL(StructA, ByteValue)', 'Fill StructA with ByteValue.'],
-    copy: ['COPY(StructA, StructB)', 'Copy contents of StructB into StructA.'],
-    swap: ['SWAP(StructA, StructB)', 'Swap contents of StructA and StructB.'],
-    comp: ['COMP(StructA, StructB) : Match', 'Compare contents of StructA and StructB, return -1 if match or 0 if mismatch.']
+    swap: [
+      'SWAP(StructA, StructB)',
+      'Swap contents of StructA and StructB.',
+      ['StructA - structure to be swapped', 'StructB - structure to be swapped']
+    ],
+    comp: [
+      'COMP(StructA, StructB) : Match',
+      'Compare contents of StructA and StructB, return -1 if match or 0 if mismatch.',
+      ['StructA - structure to be compared', 'StructB - structure to be compared'],
+      ['Match - -1 if match or 0 if mismatch']
+    ]
+  };
+
+  private _tableSpinEnhancements_v45: { [Identifier: string]: string[] } = {
+    sizeof: ['SIZEOF(structure)', 'returns the size of the structure in bytes.']
   };
 
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
@@ -2408,7 +2477,7 @@ export class Spin2ParseUtils {
         }
       }
     }
-    this._logMessage(`  -- iSBM(${name}) = (${reservedStatus})`);
+    this._logMessage(`sp2u:  -- iSBM(${name}) = (${reservedStatus})`);
     return reservedStatus;
   }
 
@@ -2420,8 +2489,11 @@ export class Spin2ParseUtils {
     if (this.exactSpinVersion(42)) {
       // in version v42 we added some keywords, they were renamed in v43!
       reservedStatus = nameKey in this._tableSpinEnhancements_v42_replaced;
+    } else if (this.exactSpinVersion(44)) {
+      // in version v44 we added some keywords, they were replaced with operators in v45!
+      reservedStatus = nameKey in this._tableSpinEnhancements_v44_replaced;
     }
-    this._logMessage(`  -- iVerSM(${name}) = (${reservedStatus})`);
+    this._logMessage(`sp2u:  -- iVerSM(${name}) = (${reservedStatus})`);
     return reservedStatus;
   }
 
@@ -2442,7 +2514,11 @@ export class Spin2ParseUtils {
       // requested version is v44 or greater
       reservedStatus = nameKey in this._tableSpinEnhancements_v44;
     }
-    this._logMessage(`  -- iVerAM(${name}) = (${reservedStatus})`);
+    if (!reservedStatus && this.requestedSpinVersion(45)) {
+      // requested version is v45 or greater
+      reservedStatus = nameKey in this._tableSpinEnhancements_v45;
+    }
+    this._logMessage(`sp2u:  -- iVerAM(${name}) = (${reservedStatus})`);
     return reservedStatus;
   }
 
@@ -2494,7 +2570,15 @@ export class Spin2ParseUtils {
       } else if (this.requestedSpinVersion(44) && nameKey in this._tableSpinEnhancements_v44) {
         // if {Spin2_v44} or greater then also search this table
         desiredDocText.category = 'Memory Method';
-        protoWDescr = this._tableSpinEnhancements_v44[nameKey];
+        methodDescr = this._tableSpinEnhancements_v44[nameKey];
+      } else if (this.exactSpinVersion(44) && nameKey in this._tableSpinEnhancements_v44_replaced) {
+        // if {Spin2_v44} or greater then also search this table
+        desiredDocText.category = 'Structure Method';
+        methodDescr = this._tableSpinEnhancements_v44_replaced[nameKey];
+      } else if (this.requestedSpinVersion(45) && nameKey in this._tableSpinEnhancements_v45) {
+        // if {Spin2_v44} or greater then also search this table
+        desiredDocText.category = 'Structure Method';
+        protoWDescr = this._tableSpinEnhancements_v45[nameKey];
       } else if (nameKey in this._tableSpinIndexValueMethods) {
         desiredDocText.category = 'Hub Method';
         protoWDescr = this._tableSpinIndexValueMethods[nameKey];
@@ -2516,6 +2600,7 @@ export class Spin2ParseUtils {
         desiredDocText.description = protoWDescr[1];
       }
     }
+    this._logMessage(`sp2u:  -- _docTextForSpinBuiltInMethod(${name}) = (${JSON.stringify(desiredDocText, null, 2)})`);
     return desiredDocText;
   }
 
@@ -3304,6 +3389,10 @@ export class Spin2ParseUtils {
     wordfit: 'like WORD for use in DAT sections, but verifies word data are -$8000 to $FFFF'
   };
 
+  private _tableSpinStorageTypes_v45: { [Identifier: string]: string } = {
+    struct: 'structured storage'
+  };
+
   private _tableSpinStorageSpecials: { [Identifier: string]: string[] } = {
     res: ['RES n', "reserve n register(s), advance cog address by n, don't advance hub address"],
     file: ['FileDat  FILE "Filename"', 'include binary file, "FileDat" is a BYTE symbol that points to file']
@@ -3327,6 +3416,10 @@ export class Spin2ParseUtils {
       desiredDocText.found = true;
       desiredDocText.category = 'Storage Types';
       desiredDocText.description = this._tableSpinStorageTypes[nameKey];
+    } else if (this.requestedSpinVersion(45) && nameKey in this._tableSpinStorageTypes_v45) {
+      desiredDocText.found = true;
+      desiredDocText.category = 'Storage Types';
+      desiredDocText.description = this._tableSpinStorageTypes_v45[nameKey];
     } else if (nameKey in this._tableSpinAlignment) {
       desiredDocText.found = true;
       desiredDocText.category = 'DAT Alignment';
@@ -3480,7 +3573,7 @@ export class Spin2ParseUtils {
     if (nameStatus == false && bHasColorMode) {
       nameStatus = this.isDebugBitmapColorMode(newParameter);
     }
-    //this.logDEBUG("  -- _isNameWithTypeFeed(" + newParameter + ", " + displayType + ") = " + nameStatus);
+    //this._logMessage("  -- _isNameWithTypeFeed(" + newParameter + ", " + displayType + ") = " + nameStatus);
     return nameStatus;
   }
 

@@ -51,7 +51,7 @@ export interface FindingsAtPostion {
 }
 
 export default class DefinitionProvider implements Provider {
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
   private extensionUtils: ExtensionUtils;
 
