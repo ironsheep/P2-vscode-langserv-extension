@@ -84,9 +84,20 @@ export function haveDebugLine(line: string, startsWith: boolean = false): boolea
   return startsWith ? debugStatementOpenStartRegEx.test(line) : debugStatementOpenRegEx.test(line);
 }
 
-export function isMethodCall(line: string): boolean {
+export function isMethodCall(line: string, ctx: Context | undefined = undefined): boolean {
   const methodOpenRegEx = /^\s*\(/; // match zero or more whitespace before '(' from left edge of string
-  return methodOpenRegEx.test(line);
+  const foundMethodCallStatus: boolean = methodOpenRegEx.test(line);
+  _logMessage(`spCom: isMethodCall([${line}]) -> (${foundMethodCallStatus})`, ctx);
+
+  return foundMethodCallStatus;
+}
+
+export function isMaskedDebugMethodCall(line: string, ctx: Context | undefined = undefined): boolean {
+  const methodOpenRegEx = /^\[[0-9]+\]\s*\(/; // match indexvalue before zero or more whitespace before '(' from left edge of string
+  const foundMethodCallStatus: boolean = methodOpenRegEx.test(line);
+  _logMessage(`spCom: isMaskedDebugMethodCall([${line}]) -> (${foundMethodCallStatus})`, ctx);
+
+  return foundMethodCallStatus;
 }
 
 export function isMethodCallEmptyParens(line: string): boolean {

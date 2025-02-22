@@ -13,7 +13,7 @@ export default class SemanticTokensProvider implements Provider {
 
   private tokenTypesLegend = [
     'comment',
-    'debug',
+    'debug', // with 'function' modifier
     'string',
     'keyword',
     'number',

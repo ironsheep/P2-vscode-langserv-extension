@@ -23,7 +23,8 @@ export enum eSearchFilterType {
   Unknown = 0,
   FT_NO_PREFERENCE,
   FT_METHOD,
-  FT_NOT_METHOD
+  FT_NOT_METHOD,
+  FT_METHOD_MASK // debug[0](...)
 }
 
 export class Spin2ParseUtils {
@@ -737,6 +738,10 @@ export class Spin2ParseUtils {
     varbase: 'Object base pointer, @VARBASE is VAR base, used by method-pointer calls'
   };
 
+  private _tableSpinTaskRegisters_v47: { [Identifier: string]: string } = {
+    taskhlt: 'Register which holds the HALT bits (in reverse order)'
+  };
+
   private _tableSpinCogRegisters: { [Identifier: string]: string } = {
     pr0: 'Spin2 <-> PASM communication',
     pr1: 'Spin2 <-> PASM communication',
@@ -784,6 +789,12 @@ export class Spin2ParseUtils {
       } else if (nameKey in this._tableSpinCogRegisters) {
         desiredDocText.category = 'Cog Register';
         desiredDocText.description = this._tableSpinCogRegisters[nameKey];
+      } else if (this.requestedSpinVersion(46) && nameKey in this._tableClockControlSymbols_v46) {
+        desiredDocText.category = 'Clock Control Symbol';
+        desiredDocText.description = this._tableClockControlSymbols_v46[nameKey];
+      } else if (this.requestedSpinVersion(47) && nameKey in this._tableSpinTaskRegisters_v47) {
+        desiredDocText.category = 'Task Register';
+        desiredDocText.description = this._tableSpinTaskRegisters_v47[nameKey];
       }
     }
     return desiredDocText;
@@ -797,6 +808,12 @@ export class Spin2ParseUtils {
     }
     if (!reservedStatus) {
       reservedStatus = nameKey in this._tableSpinCogRegisters;
+    }
+    if (!reservedStatus && this.languageVersion >= 46) {
+      reservedStatus = nameKey in this._tableClockControlSymbols_v46;
+    }
+    if (!reservedStatus && this.languageVersion >= 47) {
+      reservedStatus = nameKey in this._tableSpinTaskRegisters_v47;
     }
     return reservedStatus;
   }
@@ -872,8 +889,8 @@ export class Spin2ParseUtils {
     return desiredDocText;
   }
 
-  public docTextForDebugBuiltIn(name: string): IBuiltinDescription {
-    this._logMessage(`sp2u: - docTextForDebugBuiltIn [${name}])`);
+  public docTextForDebugBuiltIn(name: string, typeFilter: eSearchFilterType = eSearchFilterType.FT_NO_PREFERENCE): IBuiltinDescription {
+    this._logMessage(`sp2u: - docTextForDebugBuiltIn([${name}], ${eSearchFilterType[typeFilter]}) - ENTRY`);
     let desiredDocText: IBuiltinDescription = this._docTextForSpinDebugBuiltInMethod(name);
     if (desiredDocText.found) {
       desiredDocText.type = eBuiltInType.BIT_DEBUG_METHOD;
@@ -881,7 +898,16 @@ export class Spin2ParseUtils {
       desiredDocText = this._docTextForSpinBuiltInDebugDisplayType(name);
       if (desiredDocText.found) {
         desiredDocText.type = eBuiltInType.BIT_DEBUG_SYMBOL;
-      } else if (name.toLowerCase() == 'debug') {
+      } else if (!desiredDocText.found && name.toLowerCase() == 'debug' && typeFilter == eSearchFilterType.FT_METHOD_MASK) {
+        desiredDocText.found = true;
+        desiredDocText.type = eBuiltInType.BIT_DEBUG_SYMBOL;
+        desiredDocText.signature = 'debug[bitPosition](...)';
+        desiredDocText.category = 'Debug Output';
+        let description: string =
+          'Run output commands that serially transmit the state of variables and equations as your application runs.  Each time a DEBUG statement is encountered during execution, the debugging program is invoked and it outputs the message for that statement.';
+        description = description + '<br>*(Affected by DEBUG_PIN_TX symbol)*';
+        desiredDocText.description = description;
+      } else if (!desiredDocText.found && name.toLowerCase() == 'debug' && typeFilter == eSearchFilterType.FT_METHOD) {
         desiredDocText.found = true;
         desiredDocText.type = eBuiltInType.BIT_DEBUG_SYMBOL;
         desiredDocText.signature = 'debug(...)';
@@ -895,17 +921,18 @@ export class Spin2ParseUtils {
         desiredDocText = this.docTextForBuiltIn(name, eSearchFilterType.FT_NO_PREFERENCE);
       }
     }
+    this._logMessage(`sp2u: - docTextForDebugBuiltIn([${name}], ${eSearchFilterType[typeFilter]}) -> [${JSON.stringify(desiredDocText, null, 2)}]`);
 
     return desiredDocText;
   }
 
-  public docTextForBuiltIn(name: string, typeFilter: eSearchFilterType): IBuiltinDescription {
-    this._logMessage(`sp2u: - docTextForBuiltIn [${name}](${eSearchFilterType[typeFilter]})`);
+  public docTextForBuiltIn(name: string, typeFilter: eSearchFilterType = eSearchFilterType.FT_NO_PREFERENCE): IBuiltinDescription {
+    this._logMessage(`sp2u: - docTextForBuiltIn([${name}], ${eSearchFilterType[typeFilter]})`);
     let desiredDocText: IBuiltinDescription = this._docTextForSpinBuiltInVariable(name);
     if (desiredDocText.found) {
       desiredDocText.type = eBuiltInType.BIT_VARIABLE;
     } else {
-      desiredDocText = this._docTextForSpinBuiltInMethod(name);
+      desiredDocText = this._docTextForSpinBuiltInMethod(name, typeFilter);
       if (desiredDocText.found && typeFilter != eSearchFilterType.FT_NOT_METHOD) {
         desiredDocText.type = eBuiltInType.BIT_METHOD;
       } else {
@@ -933,7 +960,7 @@ export class Spin2ParseUtils {
               if (desiredDocText.found && typeFilter != eSearchFilterType.FT_METHOD) {
                 desiredDocText.type = eBuiltInType.BIT_TYPE;
               } else {
-                desiredDocText = this._docTextForSpinDebugBuiltInInvoke(name);
+                desiredDocText = this._docTextForSpinXYZZYDebugBuiltInInvoke(name);
                 if (desiredDocText.found) {
                   desiredDocText.type = eBuiltInType.BIT_DEBUG_SYMBOL;
                 } else {
@@ -950,7 +977,7 @@ export class Spin2ParseUtils {
         }
       }
     }
-    this._logMessage(`sp2u:  -- docTextForBuiltIn [${name}](${JSON.stringify(desiredDocText, null, 2)})`);
+    this._logMessage(`sp2u:  -- docTextForBuiltIn [${name}],(${eSearchFilterType[typeFilter]}) -> (${JSON.stringify(desiredDocText, null, 2)})`);
     return desiredDocText;
   }
 
@@ -1484,6 +1511,7 @@ export class Spin2ParseUtils {
 
   private _docTextForSpinDebugBuiltInMethod(name: string): IBuiltinDescription {
     const bIsUnderscoreSuffix: boolean = name.endsWith('_') ? true : false;
+    // remove triling underscore
     const nameKey: string = bIsUnderscoreSuffix ? name.substring(0, name.length - 1).toLowerCase() : name.toLowerCase();
     const desiredDocText: IBuiltinDescription = {
       found: false,
@@ -1511,6 +1539,10 @@ export class Spin2ParseUtils {
         // if {Spin2_v46} or greater then also search this table
         desiredDocText.category = 'FLAGs Output';
         protoWDescr = this._tableDebugMethodsBool_v46[nameKey];
+      } else if (this.requestedSpinVersion(46) && nameKey in this._tableDebugMaskInvoke_v46) {
+        // if {Spin2_v46} or greater then also search this table
+        desiredDocText.category = 'DEBUG output Conditionally compiled';
+        methodDescr = this._tableDebugMaskInvoke_v46[nameKey];
       } else if (nameKey in this._tableDebugMethodsSignedDec) {
         desiredDocText.category = 'Signed Decimal Output';
         methodDescr = this._tableDebugMethodsSignedDec[nameKey];
@@ -1561,13 +1593,16 @@ export class Spin2ParseUtils {
         desiredDocText.description = protoWDescr[1] + '<br>**(WARNING Underscore Suffix is NOT allowed)**'; // bold
       }
     }
+    this._logMessage(`sp2u:  _docTextForSpinDebugBuiltInMethod(${nameKey}) -> [${JSON.stringify(desiredDocText, null, 2)}]`);
     return desiredDocText;
   }
 
   private _tableDebugInvokeSymbols: { [Identifier: string]: string } = {
     debug: "invoke this cog's PASM-level debugger",
     debug_main:
-      'each cog\'s PASM-level debugger will initially be invoked when a COGINIT occurs, and it will be ready to single-step through main (non-interrupt) code. In this case, DEBUG commands will be ignored, until you select "DEBUG" sensitivity in the debugger.',
+      "each cog's PASM-level debugger will initially be invoked when a COGINIT occurs, and it will be ready to single-step" +
+      ' through main (non-interrupt) code. In this case, DEBUG commands will be ignored, until you select "DEBUG" sensitivity' +
+      ' in the debugger. In this case, DEBUG commands will be ignored, until you select "DEBUG" sensitivity in the debugger.',
     debug_coginit: "each cog's PASM-level debugger will initially be invoked when a COGINIT occurs"
   };
 
@@ -1576,11 +1611,22 @@ export class Spin2ParseUtils {
     const reservedStatus: boolean = nameKey in this._tableDebugInvokeSymbols;
     return reservedStatus;
   }
+
   private _tableDebugControlSymbols_v46: { [Identifier: string]: string } = {
     debug_mask:
-      '(no default) Assigning a 32-bit mask value to this symbol allows individual DEBUG statements to be gated according to the state of a  particular mask bit. This is done by placing a mask bit number (0..31) in brackets, immediately after the DEBUG keyword and before any parameters: DEBUG[MaskBitNumber]{(parameters…)} . If the particular mask bit is high, the DEBUG will be compiled, otherwise it will be ignored.',
-    debug_disable: '(no default) Assigning a non-0 value to this symbol will disable all DEBUG statements in the file/object.',
-    _autoclk: '_AUTOCLK = 0 prevents the clock setter code from being prepended. Code runs in RCFAST mode in this case.'
+      '(no default) Assigning a 32-bit mask value to this symbol allows individual DEBUG statements to be gated according' +
+      ' to the state of a  particular mask bit. This is done by placing a mask bit number (0..31) in brackets, immediately' +
+      ' after the DEBUG keyword and before any parameters: DEBUG[MaskBitNumber]{(parameters…)} . If the particular mask bit' +
+      ' is high, the DEBUG will be compiled, otherwise it will be ignored.',
+    debug_disable: '(no default) Assigning a non-0 value to this symbol will disable all DEBUG statements in the file/object.'
+  };
+
+  private _tableDebugMaskInvoke_v46: { [Identifier: string]: TMethodTuple } = {
+    debug: [
+      'DEBUG[bitPosition](...)',
+      'Compile debug statement if the specified mask bit(s) are set in DEBUG_MASK',
+      ['bitPosition - position of bit that must be set in DEBUG_MASK for this statement to be compiled']
+    ]
   };
 
   private _tableDebugControlSymbols: { [Identifier: string]: string } = {
@@ -1636,7 +1682,8 @@ export class Spin2ParseUtils {
     return desiredDocText;
   }
 
-  private _docTextForSpinDebugBuiltInInvoke(name: string): IBuiltinDescription {
+  private _docTextForSpinXYZZYDebugBuiltInInvoke(name: string): IBuiltinDescription {
+    //this._logMessage(`* _docTextForSpinDebugBuiltInInvoke([${name}])`);
     const nameKey: string = name.toLowerCase();
     const desiredDocText: IBuiltinDescription = {
       found: false,
@@ -1653,6 +1700,7 @@ export class Spin2ParseUtils {
         desiredDocText.description = this._tableDebugInvokeSymbols[nameKey];
       }
     }
+    this._logMessage(`* _docTextForSpinDebugBuiltInInvoke([${name}]) => [${JSON.stringify(desiredDocText, null, 2)}]`);
     return desiredDocText;
   }
 
@@ -1775,6 +1823,10 @@ export class Spin2ParseUtils {
     return reservedStatus;
   }
 
+  private _tableClockControlSymbols_v46: { [Identifier: string]: string } = {
+    _autoclk: '_AUTOCLK = 0 prevents the clock setter code from being prepended. Code runs in RCFAST mode in this case.'
+  };
+
   private _tableSpinNumericSymbols: { [Identifier: string]: string } = {
     false: '%0000_0000, Same as 0',
     true: '%FFFF_FFFF, Same as -1',
@@ -1888,6 +1940,15 @@ export class Spin2ParseUtils {
     if (this.languageVersion >= 47) {
       const nameKey: string = name.toLowerCase();
       reservedStatus = nameKey in this._tableSpinTaskSymbols_v47;
+    }
+    return reservedStatus;
+  }
+
+  public isTaskReservedRegisterName(name: string): boolean {
+    let reservedStatus: boolean = false;
+    if (this.languageVersion >= 47) {
+      const nameKey: string = name.toLowerCase();
+      reservedStatus = nameKey in this._tableSpinTaskRegisters_v47;
     }
     return reservedStatus;
   }
@@ -2447,32 +2508,31 @@ export class Spin2ParseUtils {
       [
         'Task - Task = 0..31 for a fixed task or -1 (NEWTASK) for the first free task.',
         'Method({parameters}) - address of method to run as task and parameters to pass to it.',
-        'Stack_address - pointer to LONG array to be used as the stack',
-        'TaskId - TaskId = 0..31 if successful or -1 if no task free'
-      ]
+        'Stack_address - pointer to LONG array to be used as the stack'
+      ],
+      ['TaskId - TaskId = 0..31 if successful or -1 if no task free']
     ],
     tasknext: ['TASKNEXT()', 'Switches to the next unhalted task.', []],
     taskstop: [
       'TASKSTOP(taskId)',
       'Switches to the next unhalted task.',
-      ['taskId - Task = 0..31 for a fixed task or -1 (THISTASK) for the current task.']
+      ['taskId - Task = 0..31 for a fixed task or -1 (THISTASK) for the current task.'],
+      []
     ],
     taskhalt: [
       'TASKHALT(taskId)',
       'Halts a task until TASKCONT allows it to continue.',
-      ['taskId - Task = 0..31 for a fixed task or -1 (THISTASK) for the current task.']
+      ['taskId - Task = 0..31 for a fixed task or -1 (THISTASK) for the current task.'],
+      []
     ],
-    taskcont: [
-      'TASKCONT(taskId)',
-      'Continues a task that was halted by TASKHALT.',
-      ['taskId - Task = 0..31 for a fixed task or -1 for the current task.']
-    ],
+    taskcont: ['TASKCONT(taskId)', 'Continues a task that was halted by TASKHALT.', ['taskId - Task = 0..31.'], []],
     taskchk: [
       'TASKCHK(taskId) : status',
       'Checks the status of a task.',
-      ['taskId - Task = 0..31.', 'status - Returns 0 if the task is free, 1 if the task is running, or 2 if the task is halted.']
+      ['taskId - Task = 0..31.'],
+      ['status - Returns 0 if the task is free, 1 if the task is running, or 2 if the task is halted.']
     ],
-    taskid: ['TASKID() : taskId', 'Returns the ID of the current task.', ['taskId - Task = 0..31.']]
+    taskid: ['TASKID() : taskId', 'Returns the ID of the current task.', [], ['taskId - Task = 0..31.']]
   };
 
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
@@ -2602,7 +2662,7 @@ export class Spin2ParseUtils {
     return reservedStatus;
   }
 
-  private _docTextForSpinBuiltInMethod(name: string): IBuiltinDescription {
+  private _docTextForSpinBuiltInMethod(name: string, typeFilter: eSearchFilterType = eSearchFilterType.FT_NO_PREFERENCE): IBuiltinDescription {
     const nameKey: string = name.toLowerCase();
     const desiredDocText: IBuiltinDescription = {
       found: false,

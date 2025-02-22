@@ -274,7 +274,9 @@ export default class SignatureHelpProvider implements Provider {
     const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith('pub') || sourceLine.toLowerCase().startsWith('pri');
     const isPrivate: boolean = sourceLine.toLowerCase().startsWith('pri');
     // spin1 doesn't support debug()
-    const isDebugLine: boolean = this.haveSpin1File == false && sourceLine.toLowerCase().startsWith('debug(');
+    const isDebugLine: boolean = this.haveSpin1File
+      ? false
+      : sourceLine.toLowerCase().startsWith('debug(') || sourceLine.toLowerCase().startsWith('debug[');
     this._logMessage(
       `+ Sig: getSymbolDetails() isSignatureLine=(${isSignatureLine}), isDebugLine=(${isDebugLine}), isObjectReference=(${isObjectReference})`
     );
@@ -282,7 +284,7 @@ export default class SignatureHelpProvider implements Provider {
     let bFoundSomething: boolean = false; // we've no answer
     const builtInFindings: IBuiltinDescription = isDebugLine
       ? this.parseUtils.docTextForDebugBuiltIn(searchWord)
-      : this.parseUtils.docTextForBuiltIn(searchWord, eSearchFilterType.FT_NO_PREFERENCE);
+      : this.parseUtils.docTextForBuiltIn(searchWord);
     if (!builtInFindings.found) {
       this._logMessage(`+ Sig: built-in=[${searchWord}], NOT found!`);
     } else {
@@ -405,7 +407,7 @@ export default class SignatureHelpProvider implements Provider {
       // no token, let's check for built-in language parts
       if (builtInFindings.found) {
         let bISdebugStatement: boolean = false;
-        if (searchWord.toLowerCase() == 'debug' && sourceLine.toLowerCase().startsWith('debug(')) {
+        if (searchWord.toLowerCase() == 'debug' && (sourceLine.toLowerCase().startsWith('debug(') || sourceLine.toLowerCase().startsWith('debug['))) {
           bISdebugStatement = true;
         }
         this._logMessage(`+ Sig: bISdebugStatement=[${bISdebugStatement}], sourceLine=[${sourceLine}]`);

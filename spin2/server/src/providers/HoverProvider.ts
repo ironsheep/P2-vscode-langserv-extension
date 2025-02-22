@@ -15,7 +15,7 @@ import { IDefinitionInfo, ExtensionUtils } from '../parser/spin.extension.utils'
 import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
 import { Spin2ParseUtils, eSearchFilterType } from '../parser/spin2.utils';
 import { Spin1ParseUtils } from '../parser/spin1.utils';
-import { eBuiltInType, isMethodCall } from '../parser/spin.common';
+import { eBuiltInType, isMaskedDebugMethodCall, isMethodCall } from '../parser/spin.common';
 import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class HoverProvider implements Provider {
@@ -159,7 +159,8 @@ export default class HoverProvider implements Provider {
     const sourcePosition: Position = adjustedPos[3];
     const fileBasename = path.basename(document.uri);
     const methodFollowString: string = declarationLine.substring(wordStart.character + hoverSource.length);
-    const bMethodCall: boolean = isMethodCall(methodFollowString);
+    const bMethodCall: boolean = isMethodCall(methodFollowString, this.ctx);
+    const bMaskedMethodCall: boolean = isMaskedDebugMethodCall(methodFollowString, this.ctx);
     this._logMessage(`+ Hvr: methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
 
     this._logMessage(
@@ -167,7 +168,7 @@ export default class HoverProvider implements Provider {
     );
 
     this._logMessage(`+ Hvr: definitionLocation() EXIT after getting symbol details`);
-    return this.getSymbolDetails(document, sourcePosition, objectRef, hoverSource, bMethodCall);
+    return this.getSymbolDetails(document, sourcePosition, objectRef, hoverSource, bMethodCall, bMaskedMethodCall);
   }
 
   private _objectNameFromDeclaration(line: string): string {
@@ -218,7 +219,8 @@ export default class HoverProvider implements Provider {
     position: Position,
     objRef: string,
     searchWord: string,
-    isMethodCall: boolean
+    isMethodCall: boolean,
+    isMaskedMethodCall: boolean
   ): Promise<IDefinitionInfo | null> {
     return new Promise((resolve, reject) => {
       const defInfo: IDefinitionInfo = {
@@ -261,12 +263,17 @@ export default class HoverProvider implements Provider {
       } while (cursorCharPosn > 0);
       const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith('pub') || sourceLine.toLowerCase().startsWith('pri');
       // ensure we don't recognize debug() in spin1 files!
-      const isDebugLine: boolean = this.haveSpin1File ? false : sourceLine.toLowerCase().startsWith('debug(');
+      const isDebugLine: boolean = this.haveSpin1File
+        ? false
+        : sourceLine.toLowerCase().startsWith('debug(') || sourceLine.toLowerCase().startsWith('debug[');
 
       let bFoundSomething: boolean = false; // we've no answer
-      const filterType: eSearchFilterType = isMethodCall ? eSearchFilterType.FT_METHOD : eSearchFilterType.FT_NOT_METHOD;
+      let filterType: eSearchFilterType = isMethodCall ? eSearchFilterType.FT_METHOD : eSearchFilterType.FT_NOT_METHOD;
+      if (isMaskedMethodCall) {
+        filterType = eSearchFilterType.FT_METHOD_MASK;
+      }
       const builtInFindings = isDebugLine
-        ? this.parseUtils.docTextForDebugBuiltIn(searchWord)
+        ? this.parseUtils.docTextForDebugBuiltIn(searchWord, filterType)
         : this.parseUtils.docTextForBuiltIn(searchWord, filterType);
       if (!builtInFindings.found) {
         this._logMessage(`+ Hvr: built-in=[${searchWord}], NOT found!`);
@@ -410,7 +417,11 @@ export default class HoverProvider implements Provider {
           const bHaveParams = builtInFindings.parameters && builtInFindings.parameters.length > 0 ? true : false;
           const bHaveReturns = builtInFindings.returns && builtInFindings.returns.length > 0 ? true : false;
           // ensure we don't recognize debug() in spin1 files!
-          if (this.haveSpin1File == false && searchWord.toLowerCase() == 'debug' && sourceLine.toLowerCase().startsWith('debug(')) {
+          if (
+            this.haveSpin1File == false &&
+            searchWord.toLowerCase() == 'debug' &&
+            (sourceLine.toLowerCase().startsWith('debug(') || sourceLine.toLowerCase().startsWith('debug['))
+          ) {
             bISdebugStatement = true;
           }
           this._logMessage(`+ Hvr: bISdebugStatement=[${bISdebugStatement}], sourceLine=[${sourceLine}]`);

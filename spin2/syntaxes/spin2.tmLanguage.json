@@ -248,7 +248,7 @@
     },
     "debug_functions": {
       "name": "support.function.debug.methods.spin2",
-      "match": "(?i)\\b(FDEC(_ARRAY|_REG_ARRAY)?|(S|U)(DEC|HEX|BIN)(_BYTE|_LONG|_WORD|_REG_ARRAY|_BYTE_ARRAY|_LONG_ARRAY|_WORD_ARRAY)?(_)?|ZSTR(_)?|LSTR(_)?|debug|DEBUG_(BAUD|COGS|DELAY|DISPLAY_LEFT|DISPLAY_TOP|ENABLE|HEIGHT|LEFT|LOG_SIZE|PIN_TX|PIN_RX|TIMESTAMP|TOP|WIDTH|WINDOWS_OFF)|DLY|PC_(KEY|MOUSE)|DOWNLOAD_BAUD)\\b"
+      "match": "(?i)\\b(FDEC(_ARRAY|_REG_ARRAY)?|(S|U)(DEC|HEX|BIN)(_BYTE|_LONG|_WORD|_REG_ARRAY|_BYTE_ARRAY|_LONG_ARRAY|_WORD_ARRAY)?(_)?|ZSTR(_)?|LSTR(_)?|debug(_main|_coginit)?|DEBUG_(BAUD|COGS|DELAY|DISPLAY_LEFT|DISPLAY_TOP|ENABLE|HEIGHT|LEFT|LOG_SIZE|PIN_TX|PIN_RX|TIMESTAMP|TOP|WIDTH|WINDOWS_OFF)|DLY|PC_(KEY|MOUSE)|DOWNLOAD_BAUD)\\b"
     },
     "decimal_number": {
       "name": "constant.numeric.decimal.spin2",

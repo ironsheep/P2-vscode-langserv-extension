@@ -5520,7 +5520,7 @@ export class Spin2DocumentSemanticParser {
                   ptTokenModifiers: referenceDetails.modifiers
                 });
               } else {
-                if (this.parseUtils.isTaskReservedSymbol(namePart)) {
+                if (this.parseUtils.isTaskReservedSymbol(namePart) || this.parseUtils.isTaskReservedRegisterName(namePart)) {
                   this._logSPIN(`  --  override with constant coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
@@ -6416,8 +6416,19 @@ export class Spin2DocumentSemanticParser {
               newName = nameParts[0];
             }
           }
-          // in the following, let's not register a name with a trailing ']' this is part of an array size calculation!
-          if (newName.charAt(0).match(/[a-zA-Z_]/) && newName.indexOf(']') == -1) {
+          if (this.parseUtils.isStorageType(newName)) {
+            this._logVAR('  -- GLBL ADD storage newName=[' + newName + ']');
+            const nameOffset: number = line.indexOf(newName, currentOffset);
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: newName.length,
+              ptTokenType: 'storageType',
+              ptTokenModifiers: []
+            });
+            currentOffset = nameOffset + newName.length;
+          } else if (newName.charAt(0).match(/[a-zA-Z_]/) && newName.indexOf(']') == -1) {
+            // in the following, let's not register a name with a trailing ']' this is part of an array size calculation!
             this._logVAR('  -- GLBL ADD rvdl newName=[' + newName + ']');
             const nameOffset: number = line.indexOf(newName, currentOffset);
             this._recordToken(tokenSet, line, {
