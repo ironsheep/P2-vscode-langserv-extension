@@ -19,6 +19,16 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.3.4] 2025-02-22
+
+Bugfixes and Spin2 Lanugage upgrades
+
+- Repair parser crashes (#17)
+- Prevent some toolChain-related actions when toolChain support not enabled (#16)
+- Add language support for Spin2 v44, v45, v46, and v47
+
+NOTE: the new types created with structure support are not yet highlighted. This is upcoming along with v48, v49, etc. support.
+
 ## [2.3.2] 2024-12-12
 
 Minor updates to Compiler detection for P1/P2 on Windows
