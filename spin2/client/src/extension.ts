@@ -52,7 +52,7 @@ enum eConfigSection {
   CS_WORKSPACE
 }
 
-const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
@@ -1353,8 +1353,10 @@ export function activate(context: vscode.ExtensionContext) {
   initializeProviders();
   // NOPE! handleDidChangeConfiguration();
   locateTools(); // load toolchain settings
-  locatePropPlugs(); // load Serial Port Settings
-  isCompilerInstalled(toolchainConfiguration.selectedCompilerID);
+  if (toolchainConfiguration.advancedToolChainEnabled) {
+    locatePropPlugs(); // load Serial Port Settings
+    isCompilerInstalled(toolchainConfiguration.selectedCompilerID);
+  }
 
   if (firstEditorChangeEvent) {
     firstEditorChangeEvent = false;

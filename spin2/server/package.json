@@ -1,7 +1,7 @@
 {
   "name": "spin2-server",
   "description": "Spin2 implementation of our language server in node.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "IronSheep",
   "license": "MIT",
   "publisher": "IronSheepProductionsLLC",

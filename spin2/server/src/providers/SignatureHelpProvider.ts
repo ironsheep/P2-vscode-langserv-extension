@@ -18,7 +18,7 @@ import { IBuiltinDescription, eBuiltInType } from '../parser/spin.common';
 import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class SignatureHelpProvider implements Provider {
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private symbolsFound: DocumentFindings = new DocumentFindings(); // this gets replaced

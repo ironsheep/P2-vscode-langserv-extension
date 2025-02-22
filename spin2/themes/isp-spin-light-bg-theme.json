@@ -615,6 +615,7 @@
     "comment.line.documentation": "#329432",
     "comment.block.documentation": "#329432",
     "customLiteral": "#000000",
+    "debug.function": "#b96c00",
     "displayName": "#5d59a0",
     "displayType": "#b37746",
     "enumMember": "#a051a0",

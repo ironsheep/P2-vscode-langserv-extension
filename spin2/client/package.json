@@ -3,7 +3,7 @@
   "description": "VSCode part of a language server",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "publisher": "IronSheepProductionsLLC",
   "repository": {
     "type": "git",
@@ -34,6 +34,6 @@
     "@vscode/test-electron": "^2.2.3"
   },
   "scripts": {
-    "postinstall": "prebuildify --install && electron-rebuild"
+    "postinstall": "#prebuildify --install && electron-rebuild"
   }
 }

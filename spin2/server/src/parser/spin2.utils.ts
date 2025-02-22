@@ -898,13 +898,14 @@ export class Spin2ParseUtils {
       desiredDocText = this._docTextForSpinBuiltInDebugDisplayType(name);
       if (desiredDocText.found) {
         desiredDocText.type = eBuiltInType.BIT_DEBUG_SYMBOL;
+        // FIXME: UNDONE: move the following values into method tables!!!
       } else if (!desiredDocText.found && name.toLowerCase() == 'debug' && typeFilter == eSearchFilterType.FT_METHOD_MASK) {
         desiredDocText.found = true;
         desiredDocText.type = eBuiltInType.BIT_DEBUG_SYMBOL;
         desiredDocText.signature = 'debug[bitPosition](...)';
         desiredDocText.category = 'Debug Output';
         let description: string =
-          'Run output commands that serially transmit the state of variables and equations as your application runs.  Each time a DEBUG statement is encountered during execution, the debugging program is invoked and it outputs the message for that statement.';
+          'Compile debug statement if the specified mask bit(s) are set in DEBUG_MASK. {bitPosition} is position of bit that must be set in DEBUG_MASK for this statement to be compiled. If compiled, run output commands that serially transmit the state of variables and equations as your application runs.  Each time a DEBUG statement is encountered during execution, the debugging program is invoked and it outputs the message for that statement.';
         description = description + '<br>*(Affected by DEBUG_PIN_TX symbol)*';
         desiredDocText.description = description;
       } else if (!desiredDocText.found && name.toLowerCase() == 'debug' && typeFilter == eSearchFilterType.FT_METHOD) {

@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -3135,19 +3135,19 @@ export class Spin2DocumentSemanticParser {
             if (allowLocal) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
               if (showDebug && referenceDetails) {
-                this._logMessage(`  --  FOUND local name=[${namePart}], referenceDetails=(${referenceDetails})`);
+                this._logMessage(`  --  FOUND local name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
               }
               if (!referenceDetails) {
                 referenceDetails = this.semanticFindings.getLocalPAsmTokenForLine(lineNbr, namePart);
                 if (showDebug && referenceDetails) {
-                  this._logMessage(`  --  FOUND local pasm name=[${namePart}], referenceDetails=(${referenceDetails})`);
+                  this._logMessage(`  --  FOUND local pasm name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                 }
               }
             }
             if (!referenceDetails) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
               if (showDebug && referenceDetails) {
-                this._logMessage(`  --  FOUND global name=[${namePart}], referenceDetails=(${referenceDetails})`);
+                this._logMessage(`  --  FOUND global name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
               }
             }
             if (referenceDetails) {
@@ -4465,10 +4465,10 @@ export class Spin2DocumentSemanticParser {
                   let referenceDetails: RememberedToken | undefined = undefined;
                   if (this.semanticFindings.isLocalToken(variableNamePart)) {
                     referenceDetails = this.semanticFindings.getLocalTokenForLine(variableNamePart, symbolPosition.line + 1);
-                    this._logSPIN(`  --  FOUND local name=[${variableNamePart}], referenceDetails=(${referenceDetails})`);
+                    this._logSPIN(`  --  FOUND local name=[${variableNamePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                   } else if (this.semanticFindings.isGlobalToken(variableNamePart)) {
                     referenceDetails = this.semanticFindings.getGlobalToken(variableNamePart);
-                    this._logSPIN(`  --  FOUND global name=[${variableNamePart}], referenceDetails=(${referenceDetails})`);
+                    this._logSPIN(`  --  FOUND global name=[${variableNamePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                   }
                   if (referenceDetails !== undefined) {
                     const modificationArray: string[] = referenceDetails.modifiersWith('modification');
@@ -4547,10 +4547,10 @@ export class Spin2DocumentSemanticParser {
                   let referenceDetails: RememberedToken | undefined = undefined;
                   if (this.semanticFindings.isLocalToken(namePart)) {
                     referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, symbolPosition.line + 1);
-                    this._logSPIN(`  --  FOUND local name=[${namePart}], referenceDetails=(${referenceDetails})`);
+                    this._logSPIN(`  --  FOUND local name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                   } else if (this.semanticFindings.isGlobalToken(namePart)) {
                     referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-                    this._logSPIN(`  --  FOUND global name=[${namePart}], referenceDetails=(${referenceDetails})`);
+                    this._logSPIN(`  --  FOUND global name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                     if (referenceDetails !== undefined && referenceDetails?.type == 'method') {
                       const addressOf = `@${namePart}`;
                       // if it's not a legit method call, kill the reference
@@ -4824,11 +4824,11 @@ export class Spin2DocumentSemanticParser {
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, symbolPosition.line + 1);
-              this._logSPIN(`  --  FOUND Local name=[${namePart}], referenceDetails=(${referenceDetails})`);
+              this._logSPIN(`  --  FOUND Local name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
             }
             if (!referenceDetails && this.semanticFindings.isGlobalToken(namePart)) {
               referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-              this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${referenceDetails})`);
+              this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
               if (referenceDetails !== undefined && referenceDetails?.type == 'method') {
                 const addressOf = `@${namePart}`;
                 const methodFollowString: string = multiLineSet.line.substring(nameOffset + namePart.length);
@@ -5488,17 +5488,17 @@ export class Spin2DocumentSemanticParser {
               if (this.semanticFindings.isLocalToken(namePart)) {
                 referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
                 if (referenceDetails) {
-                  this._logSPIN(`  --  FOUND Local name=[${namePart}], referenceDetails=(${referenceDetails})`);
+                  this._logSPIN(`  --  FOUND Local name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                 } else {
-                  this._logSPIN(`  --  EXISTS Local name=[${namePart}], BUT referenceDetails=(${referenceDetails})`);
+                  this._logSPIN(`  --  EXISTS Local name=[${namePart}], BUT referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                 }
               }
               if (!referenceDetails && this.semanticFindings.isGlobalToken(namePart)) {
                 referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                 if (referenceDetails) {
-                  this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${referenceDetails})`);
+                  this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                 } else {
-                  this._logSPIN(`  --  EXISTS Global name=[${namePart}], BUT referenceDetails=(${referenceDetails})`);
+                  this._logSPIN(`  --  EXISTS Global name=[${namePart}], BUT referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                 }
                 if (referenceDetails !== undefined && referenceDetails?.type == 'method') {
                   const addressOf = `@${namePart}`;
@@ -5695,7 +5695,7 @@ export class Spin2DocumentSemanticParser {
           let referenceDetails: RememberedToken | undefined = undefined;
           if (this.semanticFindings.isLocalToken(possSymbolName)) {
             referenceDetails = this.semanticFindings.getLocalTokenForLine(possSymbolName, lineNbr);
-            this._logSPIN(`  --  FOUND local name=[${possSymbolName}], referenceDetails=(${referenceDetails})`);
+            this._logSPIN(`  --  FOUND local name=[${possSymbolName}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
           } else if (this.semanticFindings.isGlobalToken(possSymbolName)) {
             referenceDetails = this.semanticFindings.getGlobalToken(possSymbolName);
             this._logSPIN(`  --  FOUND global name=[${possSymbolName}, referenceDetails=[${referenceDetails}]]`);
@@ -6680,16 +6680,16 @@ export class Spin2DocumentSemanticParser {
                 let referenceDetails: RememberedToken | undefined = undefined;
                 if (this.semanticFindings.hasLocalPAsmTokenForMethod(this.currentMethodName, newParameter)) {
                   referenceDetails = this.semanticFindings.getLocalPAsmTokenForMethod(this.currentMethodName, newParameter);
-                  this._logPASM(`  --  FOUND local PASM name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+                  this._logPASM(`  --  FOUND local PASM name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                 } else if (this.semanticFindings.isLocalToken(newParameter)) {
                   referenceDetails = this.semanticFindings.getLocalTokenForLine(newParameter, symbolPosition.line + 1);
-                  this._logPASM(`  --  FOUND local name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+                  this._logPASM(`  --  FOUND local name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                 } else if (this.semanticFindings.isGlobalToken(newParameter)) {
                   referenceDetails = this.semanticFindings.getGlobalToken(newParameter);
-                  this._logPASM(`  --  FOUND global name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+                  this._logPASM(`  --  FOUND global name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                 }
                 if (referenceDetails !== undefined) {
-                  this._logPASM(`  --  SPIN/PAsm add name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+                  this._logPASM(`  --  SPIN/PAsm add name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                   this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                     line: symbolPosition.line,
                     startCharacter: symbolPosition.character,
@@ -6837,13 +6837,13 @@ export class Spin2DocumentSemanticParser {
                   let referenceDetails: RememberedToken | undefined = undefined;
                   if (this.semanticFindings.hasLocalPAsmTokenForMethod(this.currentMethodName, newParameter)) {
                     referenceDetails = this.semanticFindings.getLocalPAsmTokenForMethod(this.currentMethodName, newParameter);
-                    this._logDEBUG(`  --  FOUND local PASM name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+                    this._logDEBUG(`  --  FOUND local PASM name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                   } else if (this.semanticFindings.isLocalToken(newParameter)) {
                     referenceDetails = this.semanticFindings.getLocalTokenForLine(newParameter, symbolPosition.line + 1);
-                    this._logDEBUG(`  --  FOUND local name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+                    this._logDEBUG(`  --  FOUND local name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                   } else if (this.semanticFindings.isGlobalToken(newParameter)) {
                     referenceDetails = this.semanticFindings.getGlobalToken(newParameter);
-                    this._logDEBUG(`  --  FOUND global name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+                    this._logDEBUG(`  --  FOUND global name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                   }
                   if (referenceDetails !== undefined) {
                     this._logDEBUG(`  --  SPIN debug newParameter=[${newParameter}]`);
@@ -6943,13 +6943,13 @@ export class Spin2DocumentSemanticParser {
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.hasLocalPAsmTokenForMethod(this.currentMethodName, newParameter)) {
               referenceDetails = this.semanticFindings.getLocalPAsmTokenForMethod(this.currentMethodName, newParameter);
-              this._logDEBUG(`  --  FOUND local PASM name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+              this._logDEBUG(`  --  FOUND local PASM name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
             } else if (this.semanticFindings.isLocalToken(newParameter)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(newParameter, symbolPosition.line + 1);
-              this._logDEBUG(`  --  FOUND local name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+              this._logDEBUG(`  --  FOUND local name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
             } else if (this.semanticFindings.isGlobalToken(newParameter)) {
               referenceDetails = this.semanticFindings.getGlobalToken(newParameter);
-              this._logDEBUG(`  --  FOUND global name=[${newParameter}], referenceDetails=(${referenceDetails})`);
+              this._logDEBUG(`  --  FOUND global name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
             }
             if (referenceDetails !== undefined) {
               //this._logPASM('  --  Debug() colorize name=[' + newParameter + ']');
@@ -8281,11 +8281,11 @@ export class Spin2DocumentSemanticParser {
           tempName = name.slice(0, -1); // remove last char
         }
         // 2nd split
-        if (!tempName.includes('.') && (tempName.includes('[') || tempName.includes(']'))) {
+        if (!tempName.includes('.') && /[[]|[\]]/.test(tempName)) {
           const moreParts: string[] = tempName.split(/[[\]]/).filter(Boolean);
-          for (let index = 0; index < moreParts.length; index++) {
-            const namePart = moreParts[index];
-            reducedLineParts.push(namePart);
+          this._logMessage(`   --- gnwsplna tempName=[${tempName}] -> moreParts=[${moreParts}](${moreParts.length})`);
+          if (moreParts.length > 0) {
+            reducedLineParts.push(...moreParts);
           }
         } else {
           reducedLineParts.push(tempName);
@@ -8293,6 +8293,24 @@ export class Spin2DocumentSemanticParser {
       }
     }
     this._logMessage(`   --- gnwsplna reducedLineParts=[${reducedLineParts}](${reducedLineParts.length})`);
+    // sigh... these were missed:
+    //  handle case1: LONG[pValues][serialQueue.ENT_PARM2_IDX] where this is one single name
+    //  handle case2: LONG [pValues][serialQueue.ENT_PARM2_IDX] where this is one single name
+    if (/\]\s*\[/.test(line)) {
+      const srcStrings: string[] = reducedLineParts;
+      reducedLineParts = [];
+      for (let index = 0; index < srcStrings.length; index++) {
+        const currString = srcStrings[index];
+        if (/[[]|[\]]/.test(currString)) {
+          const moreParts: string[] = currString.split(/[[\]]/).filter(Boolean);
+          if (moreParts.length > 0) {
+            reducedLineParts.push(...moreParts);
+          }
+        } else {
+          reducedLineParts.push(currString);
+        }
+      }
+    }
     return {
       lineNoQuotes: nonEqualsLine,
       lineParts: reducedLineParts
