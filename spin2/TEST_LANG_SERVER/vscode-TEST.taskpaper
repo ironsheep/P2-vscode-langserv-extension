@@ -4,13 +4,15 @@ HIGHLIGHT Language Specific Uprades:
 	v45:
 		- struct @done(2025-02-21)
 		- sizeof() @done(2025-02-21)
+		- highlight new types created by structure
+		- allow struct type ref in passed params
 	v46:
 		- C_Z in PUB/PRI/DAT pasm @done(2025-02-21)
 		- C_Z hover text @done(2025-02-21)
 		- DEBUG_MASK  hover @done(2025-02-21)
 		- DEBUG_DISABLE @done(2025-02-21)
 		- _AUTOCLK @done(2025-02-21)
-		- debug[]() signature hover [] made it think it's debug standalone
+		- debug[]() signature hover [] made it think it's debug standalone @done(2025-02-22)
 		- RETYPES in VAR on same line BYTE/LONG/WORD (STRUCT) v46 @done(2025-02-21)
 	v47:
 		- task methods @done(2025-02-21)
