@@ -10,13 +10,16 @@ CON
 
 VAR
 
-    BYTE a,b,c,  WORD, d, e, f,  LONG g,h,i ' types on same line now allowed
+    BYTE a,b,c,  WORD d, e, f,  LONG g,h,i ' types on same line now allowed
 
 pub main()
     debug[0]("this emitted if bit 0 of DEBUG_MASK is set")
 
     debug("testing v44", C_Z)
 
+    debug
+    debug_main
+    debug_coginit
 
 CON
     MA_PCM_ASHIFT = 2

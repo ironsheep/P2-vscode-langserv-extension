@@ -11,11 +11,11 @@ HIGHLIGHT Language Specific Uprades:
 		- DEBUG_DISABLE @done(2025-02-21)
 		- _AUTOCLK @done(2025-02-21)
 		- debug[]() signature hover [] made it think it's debug standalone
-		- RETYPES in VAR on same line BYTE/LONG/WORD (STRUCT) v46
+		- RETYPES in VAR on same line BYTE/LONG/WORD (STRUCT) v46 @done(2025-02-21)
 	v47:
 		- task methods @done(2025-02-21)
 		- task constants @done(2025-02-21)
-		- task register:  taskhlt
+		- task register:  taskhlt @done(2025-02-21)
 	v48:
 		- proprocessor directives
 	v49:

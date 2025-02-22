@@ -6,7 +6,7 @@
 VAR
     LONG  taskStack[64]
 
-PUB main()
+PUB main() | taskBits, status, currId
 
     ' methods
     taskspin(NEWTASK, myTask(), @taskStack)
@@ -14,12 +14,12 @@ PUB main()
     taskstop(THISTASK)
     taskhalt(THISTASK)
     taskcont()
-    taskchk()
-    taskid()
+    status := taskchk(THISTASK)
+    currId := taskid()
 
     NEWTASK  ' CONSTANT
     THISTASK ' CONSTANT
 
-    taskhlt ' Register
+    taskBits := taskhlt ' Register
 
 PRI myTask()
