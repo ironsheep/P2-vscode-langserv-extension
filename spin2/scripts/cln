@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
 
-(set -x;cd ./out;rm -rf *;cd -)
-(set -x;cd ./client/out;rm -rf *;cd -)
-(set -x;cd ./server/out;rm -rf *;cd -)
+# Function to purge the contents of a directory
+purge_directory() {
+  local target_dir="$1"
+  if [ -d "$target_dir" ]; then
+    (set -x; cd "$target_dir"; rm -rf *; cd -)
+  fi
+}
 
-cd ./node_modules;rm -rf *;cd -
-cd ./client/node_modules;rm -rf *;cd -
-cd ./server/node_modules;rm -rf *;cd -
+# to clean, purge the following dirs
+purge_directory "./out"
+purge_directory "./client/out"
+purge_directory "./server/out"
+purge_directory "./node_modules"
+purge_directory "./client/node_modules"
+purge_directory "./server/node_modules"
 
 (set -x;rm -f package-lock.json)
 (set -x;rm -f ./client/package-lock.json)
 (set -x;rm -f ./server/package-lock.json)
+
+echo "cln done, run npm install, then vsce package

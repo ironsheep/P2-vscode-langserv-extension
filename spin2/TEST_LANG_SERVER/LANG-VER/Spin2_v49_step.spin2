@@ -1,0 +1,14 @@
+{Spin2_v49}
+
+OBJ m : "Spin2_v49_step_child"
+
+CON struct mpoint = m.point
+
+PUB go() | m.point a, mpoint b
+
+  a.x := 1
+  a.y := 2
+  b.x := 3
+  b.y := 4
+
+  debug(sdec(a,b))

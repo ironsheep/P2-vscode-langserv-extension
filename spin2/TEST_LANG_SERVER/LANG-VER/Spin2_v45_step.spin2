@@ -1,0 +1,67 @@
+{Spin2_v45}
+
+CON STRUCT point(x,y), STRUCT line(point a, point b)
+
+VAR A[100], B[100], line vline[10]
+
+PUB go() | line pline
+
+  byteswap(@A, @B, 100*4)
+  wordswap(@A, @B, 100*2)
+  longswap(@A, @B, 100)
+
+  pinwrite(0, bytecomp(@A, @B, 100*4))
+  pinwrite(0, wordcomp(@A, @B, 100*2))
+  pinwrite(0, longcomp(@A, @B, 100))
+
+  debug(`SCOPE s samples 32)
+  debug(`s 'x' AUTO)
+  repeat 32
+    debug(`s `(getrnd() & 255))
+
+  debug(bool(0,1))
+
+  pline := 1,2,3,4
+  DoLine(pline)
+
+
+
+PRI DoLine(line pline) | line pline2
+
+  debug(sdec(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
+
+  pline2 := 5,6,7,8
+
+  pline :=: pline2
+  debug(sdec_(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
+  debug(sdec_(pline2, pline2.a.x, pline2.a.y, pline2.b.x, pline2.b.y))
+
+  debug(bool_(pline <> pline2, pline == pline2))
+
+  pline2.a.x := 10
+  pline2.a.y := 11
+  pline2.b.x := 12
+  pline2.b.y := 13
+  debug(sdec(pline2))
+
+  pline := pline2
+  debug(sdec(pline))
+
+  pline ~
+  debug(sdec_(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
+
+  pline ~~
+  debug(sdec_(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
+
+  debug(sdec(sizeof(pline)))
+
+  DoPtrs(@pline2.a.x, @pline2.b.y, @pline2)
+
+
+PRI DoPtrs(^long ax, ^byte bx, ^line px)
+
+  debug(sdec(ax, ++ax, ax, ax--, ax, ax[++], ax[++], ax, [--]ax, [--]ax, [ax]+=8, ax))
+
+  debug(sdec(bx, ++bx, bx, bx--, bx, [bx]-=8, bx))
+
+  debug(sdec(px, [--]px, [++]px))

@@ -19,6 +19,13 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.3.5] 2025-04-??
+
+Spin2 Lanugage upgrades
+
+- Add language support for Spin2 v48, 49, 50, 51
+- Highlight new types created as STRCUTures
+
 ## [2.3.4] 2025-02-22
 
 Bugfixes and Spin2 Lanugage upgrades

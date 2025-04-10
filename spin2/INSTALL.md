@@ -2,7 +2,7 @@
 
 >This is a [Visual Studio Code](https://code.visualstudio.com/download) extension. It is best installed from the [on-line extensions marketplace](https://marketplace.visualstudio.com/items?itemName=ironsheep.spin2), or from inside VS Code `Preferences/Extensions` and search for `spin2`.
 
-_Alternatively_, you might have downloaded a .vsix file from our forums. This can be installed from the command line as shown in the next section. 
+_Alternatively_, you might have downloaded a .vsix file from our forums. This can be installed from the command line as shown in the next section.
 
 _Lastly_, the extension can be built and installed manually by following the steps in section entitled "Build the extension". This should only be required for developers.
 

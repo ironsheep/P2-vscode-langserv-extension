@@ -2,7 +2,7 @@
 
 ![Project Maintenance][maintenance-shield]
 
-[![License][license-shield]](LICENSE) 
+[![License][license-shield]](LICENSE)
 
 ## Early Testing of the new Language-Server based VSCode Extension
 
@@ -22,7 +22,6 @@ Additional pages:
 
 - [TOP Level README](../README.md) - Back to the top page of this repo
 
-
 ## [S-] Setup
 
 There are a couple of steps to remove the older Spin2 extension versionn, install the new, and enable the "**Error Lens**" extension. Once you do this you are ready to run VScode as you normally do.
@@ -34,7 +33,7 @@ We are updating the extensions. So let's first shutdown all VSCode instances the
 ### [S1] Remove any existing Spin2 extensions
 
 - Browse to where your VSCode extensions are installed: See [Where are extensions installed?](https://code.visualstudio.com/docs/editor/extension-marketplace#_common-questions)
-- Remove all ironsheep versions `ironsheepproductionsllc.spin2-*` 
+- Remove all ironsheep versions `ironsheepproductionsllc.spin2-*`
   - (NOTE: **ironsheepproductionsllc.spin2-1.9.16/** is the latest, remove it too!)
 
 ### [S2] Install the new version from the command line
@@ -78,14 +77,13 @@ When you DO have error Lens installed and enabled then your error messages are a
 
 If you don't use Propeller Tool like background coloring then select one of:
 
-
 1. **Spin2 Ironsheep Light** - Light Mode no backround coloring
 1. **Spin2 Ironsheep Dark** - Dark Mode no backround coloring
 
 If, instead you do use Propeller Tool background coloring then select one of these (and also enable backgroudn coloring in settings [See: Help with settings](#r2-help-with-settings)):
 
-1. **Spin2 Ironsheep Light for background Color** - Light Mode use with **Propeller Tool** coloring 
-2. **Spin2 Ironsheep Dark for background Color** - Dark Mode use with **Propeller Tool** coloring 
+1. **Spin2 Ironsheep Light for background Color** - Light Mode use with **Propeller Tool** coloring
+2. **Spin2 Ironsheep Dark for background Color** - Dark Mode use with **Propeller Tool** coloring
 
 To activate a theme, open the Color Theme Selector, navigate to **Code** > **Settings** > **Theme** > **Color Theme** and then arrow down to the desired theme.
 
@@ -136,14 +134,14 @@ Create an email addressed to me. Describe what's wrong. Include the screen shot 
 I'll get your email. Open the code file so that I see what you are seeing.  Once I do see it I'll work to understand why it's doing what it is.  If this is not correct I'll fix it. If it is the best we can do, then I'll explain that too.
 
 
-## Reference 
+## Reference
 
-### [R1] Restore old version 
+### [R1] Restore old version
 
 #### Remove the LSP based Extension under test
 
 - Browse to where your VSCode extensions are installed: See [Where are extensions installed?](https://code.visualstudio.com/docs/editor/extension-marketplace#_common-questions)
-- Remove all ironsheep versions `ironsheepproductionsllc.spin2-2.*` 
+- Remove all ironsheep versions `ironsheepproductionsllc.spin2-2.*`
 
 #### Re Install the Marketplace Spin2 extension
 
@@ -172,18 +170,18 @@ The Spin2 extension provides **5 themes**. 2 for light mode and 3 for dark mode.
 #### For Light Mode
 
 1. **Spin2 Ironsheep Light** - Light Mode no backround coloring
-2. **Spin2 Ironsheep Light for background Color** - Light Mode use with **Propeller Tool** coloring 
+2. **Spin2 Ironsheep Light for background Color** - Light Mode use with **Propeller Tool** coloring
 
 #### For Dark Mode
 
 1. **Spin2 Ironsheep Dark** - Dark Mode no backround coloring
-2. **Spin2 Ironsheep Dark for background Color** - Dark Mode use with **Propeller Tool** coloring 
+2. **Spin2 Ironsheep Dark for background Color** - Dark Mode use with **Propeller Tool** coloring
 3. **Spin2 Ironsheep Syntax (only)** - this turns off all Semantic Highlighting leaving only the **Syntax highlighting**.
 
 
 ## License
 
-Licensed under the MIT License. 
+Licensed under the MIT License.
 
 Follow these links for more information:
 

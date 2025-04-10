@@ -1,0 +1,20 @@
+{Spin2_v47}
+
+CON _clkfreq = 200_000_000, somereg = ina
+
+VAR stk[30*32]
+
+PUB start() | i, task
+
+  repeat 32 with i
+    task := taskspin(newtask, LED(i), @stk[i*30])
+    debug(sdec(task))
+
+  debug("Ending: ", udec(taskid()), ", Other tasks are running")
+
+PRI LED(id)
+  debug("Started: ", udec(taskid()))
+  repeat 20_000 * id
+    pintoggle(id)
+    tasknext()
+  debug("Ending: ", udec(taskid()))

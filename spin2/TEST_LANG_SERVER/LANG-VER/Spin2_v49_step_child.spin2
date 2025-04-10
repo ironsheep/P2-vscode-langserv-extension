@@ -1,0 +1,5 @@
+{Spin2_v49}
+
+CON struct point(x,y)
+
+PUB go()

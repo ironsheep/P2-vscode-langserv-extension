@@ -1,0 +1,12 @@
+{Spin2_v46}
+
+CON debug_mask = %0101
+
+VAR byte a, word b, long c
+
+PUB go()
+
+  debug[0]("Bit0", C_Z)
+  debug[1]("Bit1", C_Z)
+  debug[2]("Bit2", C_Z)
+  debug[3]("Bit3", C_Z)
