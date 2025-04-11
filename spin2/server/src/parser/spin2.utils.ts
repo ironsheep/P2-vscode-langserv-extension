@@ -809,10 +809,10 @@ export class Spin2ParseUtils {
     if (!reservedStatus) {
       reservedStatus = nameKey in this._tableSpinCogRegisters;
     }
-    if (!reservedStatus && this.languageVersion >= 46) {
+    if (!reservedStatus && this.requestedSpinVersion(46)) {
       reservedStatus = nameKey in this._tableClockControlSymbols_v46;
     }
-    if (!reservedStatus && this.languageVersion >= 47) {
+    if (!reservedStatus && this.requestedSpinVersion(47)) {
       reservedStatus = nameKey in this._tableSpinTaskRegisters_v47;
     }
     return reservedStatus;
@@ -865,9 +865,15 @@ export class Spin2ParseUtils {
     } else if (nameKey in this._tableSpinBinaryOperators) {
       desiredDocText.category = 'Binary Operators';
       desiredDocText.description = this._tableSpinBinaryOperators[nameKey];
+    } else if (this.requestedSpinVersion(51) && nameKey in this._tableSpinBinaryOperators_v51) {
+      desiredDocText.category = 'Binary Operators';
+      desiredDocText.description = this._tableSpinBinaryOperators_v51[nameKey];
     } else if (nameKey in this._tableSpinUnaryOperators) {
       desiredDocText.category = 'Unary Operators';
       desiredDocText.description = this._tableSpinUnaryOperators[nameKey];
+    } else if (this.requestedSpinVersion(51) && nameKey in this._tableSpinUnaryOperators_v51) {
+      desiredDocText.category = 'Unary Operators';
+      desiredDocText.description = this._tableSpinUnaryOperators_v51[nameKey];
     } else if (nameKey in this._tableSmartPinNames) {
       desiredDocText.category = 'Smart Pin Configuration';
       desiredDocText.description = this._tableSmartPinNames[nameKey];
@@ -1723,10 +1729,17 @@ export class Spin2ParseUtils {
     or: 'Logical OR (x <> 0 OR y <> 0, returns FALSE (0) or TRUE (-1))',
     xor: 'Logical XOR (x <> 0 XOR y <> 0, returns FALSE (0) or TRUE (-1))'
   };
+  // MAYBE??: add signature forms for all but last 3, logicals
+  private _tableSpinBinaryOperators_v51: { [Identifier: string]: string } = {
+    pow: 'Floating-point x-to-power-of-y function'
+  };
 
   public isBinaryOperator(name: string): boolean {
     const nameKey: string = name.toLowerCase();
-    const reservedStatus: boolean = nameKey in this._tableSpinBinaryOperators;
+    let reservedStatus: boolean = nameKey in this._tableSpinBinaryOperators;
+    if (this.requestedSpinVersion(51) && nameKey in this._tableSpinBinaryOperators_v51) {
+      reservedStatus = true;
+    }
     return reservedStatus;
   }
 
@@ -1744,9 +1757,21 @@ export class Spin2ParseUtils {
     qexp: 'Logarithm to unsigned value'
   };
 
+  private _tableSpinUnaryOperators_v51: { [Identifier: string]: string } = {
+    log: 'Floating-point natural logarithm function',
+    log2: 'Floating-point base-2 logarithm function',
+    log10: 'Floating-point base-10 logarithm function',
+    exp: 'Floating-point e-to-power-of-x function',
+    exp2: 'Floating-point 2-to-power-of-x function',
+    exp10: 'Floating-point 10-to-power-of-x function'
+  };
+
   public isUnaryOperator(name: string): boolean {
     const nameKey: string = name.toLowerCase();
-    const reservedStatus: boolean = nameKey in this._tableSpinUnaryOperators;
+    let reservedStatus: boolean = nameKey in this._tableSpinUnaryOperators;
+    if (this.requestedSpinVersion(51) && nameKey in this._tableSpinUnaryOperators_v51) {
+      reservedStatus = true;
+    }
     return reservedStatus;
   }
 
@@ -1938,7 +1963,7 @@ export class Spin2ParseUtils {
 
   public isTaskReservedSymbol(name: string): boolean {
     let reservedStatus: boolean = false;
-    if (this.languageVersion >= 47) {
+    if (this.requestedSpinVersion(47)) {
       const nameKey: string = name.toLowerCase();
       reservedStatus = nameKey in this._tableSpinTaskSymbols_v47;
     }
@@ -1947,7 +1972,7 @@ export class Spin2ParseUtils {
 
   public isTaskReservedRegisterName(name: string): boolean {
     let reservedStatus: boolean = false;
-    if (this.languageVersion >= 47) {
+    if (this.requestedSpinVersion(47)) {
       const nameKey: string = name.toLowerCase();
       reservedStatus = nameKey in this._tableSpinTaskRegisters_v47;
     }
@@ -2499,6 +2524,7 @@ export class Spin2ParseUtils {
   };
 
   private _tableSpinEnhancements_v45: { [Identifier: string]: string[] } = {
+    // used in DAT, VAR, PUB, and PRI blocks
     sizeof: ['SIZEOF(structure)', 'returns the size of the structure in bytes.']
   };
 
@@ -2855,20 +2881,11 @@ export class Spin2ParseUtils {
   }
 
   public isP2AsmReservedWord(name: string): boolean {
+    const nameKey = name.toLowerCase();
     const pasmReservedswordsOfNote: string[] = [
-      'ijmp1',
-      'ijmp2',
-      'ijmp3',
-      'iret1',
-      'iret2',
-      'iret3',
-      'ptra',
-      'ptrb',
       'addpins',
       'clkfreq_',
       'clkmode_',
-      'pa',
-      'pb',
       'clkfreq',
       'clkmode',
       '_clkfreq',
@@ -2879,19 +2896,20 @@ export class Spin2ParseUtils {
       'round',
       'float',
       'trunc',
-      'dira',
-      'dirb',
-      'ina',
-      'inb',
-      'outa',
-      'outb',
       'fvar',
       'fvars',
       'addbits',
       'true',
       'false'
     ];
-    const reservedStatus: boolean = pasmReservedswordsOfNote.indexOf(name.toLowerCase()) != -1;
+    let reservedStatus: boolean = pasmReservedswordsOfNote.indexOf(nameKey) != -1;
+    if (!reservedStatus) {
+      reservedStatus == nameKey in this._tableSpinCogRegisters;
+    } else if (this.requestedSpinVersion(46) && nameKey in this._tableClockControlSymbols_v46) {
+      reservedStatus = true;
+    } else if (this.requestedSpinVersion(47) && nameKey in this._tableSpinTaskRegisters_v47) {
+      reservedStatus = true;
+    }
     return reservedStatus;
   }
 
@@ -3535,6 +3553,7 @@ export class Spin2ParseUtils {
   };
 
   private _tableSpinStorageTypes_v45: { [Identifier: string]: string } = {
+    // found in CON only!!
     struct: 'structured storage'
   };
 

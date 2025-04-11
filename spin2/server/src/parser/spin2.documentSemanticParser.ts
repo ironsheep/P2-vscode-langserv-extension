@@ -14,7 +14,9 @@ import {
   IParsedToken,
   eSeverity,
   eDefinitionType,
-  ePreprocessState
+  ePreprocessState,
+  IStructMember,
+  RememberedStructure
 } from './spin.semantic.findings';
 import { Spin2ParseUtils } from './spin2.utils';
 import { isSpin1File } from './lang.utils';
@@ -64,7 +66,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -1445,7 +1447,7 @@ export class Spin2DocumentSemanticParser {
         this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
       } else {
         this._logCON(`  -- GetCONDeclMulti nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`);
-        const haveEnumDeclaration: boolean = this._isEnumDeclarationLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
+        const haveEnumDeclaration: boolean = this._isEnumDeclarationMultiLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
         const isAssignment: boolean = nonCommentConstantLine.indexOf('=') != -1;
         if (!haveEnumDeclaration && isAssignment) {
           this.conEnumInProgress = false;
@@ -1534,6 +1536,70 @@ export class Spin2DocumentSemanticParser {
     }
   }
 
+  private splitLinesWithPossibleStruct(line: string): string[] {
+    let desiredSepLines: string[] = line.split(',').filter(Boolean);
+    // if this version support structures then we need to split out the struct declarations into separate lines
+    if (this.parseUtils.requestedSpinVersion(45)) {
+      const lineParts: string[] = line.toUpperCase().split(/[ \t]/).filter(Boolean);
+      if (lineParts.length > 0 && lineParts.includes('STRUCT')) {
+        // have structures in this version
+        // break out these declarations as lines not parts of strctures
+        // Ex: STRUCT point(x,y), STRUCT line(point a, point b), TYPE = 7
+        desiredSepLines = [];
+        let currentPart = '';
+        let parenthesesCount = 0;
+
+        for (const char of line) {
+          if (char === ',' && parenthesesCount === 0) {
+            desiredSepLines.push(currentPart.trim());
+            currentPart = '';
+          } else {
+            if (char === '(') parenthesesCount++;
+            if (char === ')') parenthesesCount--;
+            currentPart += char;
+          }
+        }
+
+        if (currentPart) {
+          desiredSepLines.push(currentPart.trim());
+        }
+      }
+    }
+    return desiredSepLines;
+  }
+
+  private parseStructDeclaration(structLine: string): { isValidStatus: boolean; structName: string; members: IStructMember[] } {
+    const structRegex = /STRUCT\s+(\w+)\s*\(([^)]+)\)/i; // Matches STRUCT name(member1, member2, ...)
+    const match = structLine.match(structRegex);
+    let isValidStatus: boolean = false;
+    let structName: string = ''; // The name of the structure
+    let members: IStructMember[] = []; // The raw members string (e.g., "LONG x, LONG y[10]")
+
+    if (match) {
+      isValidStatus = true;
+      structName = match[1]; // The name of the structure
+
+      const membersRaw = match[2]; // The raw members string (e.g., "LONG x, LONG y[10]")
+      // Split members and parse each one
+      members = membersRaw.split(',').map((member) => {
+        const memberParts = member.trim().match(/(\w+)?\s*(\w+)(?:\[(\d+)\])?/); // Matches {type} name [arraySize]
+        if (!memberParts) {
+          this._logMessage(`Invalid member declaration: ${member}`);
+          return { name: '', type: '', arraySize: 0 }; // Invalid member, return EMPTY
+        }
+
+        const [, type = 'LONG', name, arraySize] = memberParts; // Default type is LONG if not specified
+        return {
+          name,
+          type,
+          arraySize: arraySize ? parseInt(arraySize, 10) : 1 // Default array size is 1 if not specified
+        };
+      });
+    }
+
+    return { isValidStatus, structName, members };
+  }
+
   private _getCON_Declaration(startingOffset: number, lineNbr: number, line: string): void {
     // HAVE    DIGIT_NO_VALUE = -2   ' digit value when NOT [0-9]
     //  -or-   _clkfreq = CLK_FREQ   ' set system clock
@@ -1551,7 +1617,7 @@ export class Spin2DocumentSemanticParser {
         this._logCON(
           `  -- GetCONDecl isPreProc=(${isPreprocessorStatement}), nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`
         );
-        const haveEnumDeclaration: boolean = this._isEnumDeclarationLine(lineNbr - 1, 0, nonCommentConstantLine);
+        const haveEnumDeclaration: boolean = this._isEnumDeclarationSingleLine(lineNbr - 1, 0, nonCommentConstantLine);
         const isAssignment: boolean = nonCommentConstantLine.indexOf('=') != -1;
         if (!haveEnumDeclaration && isAssignment) {
           this.conEnumInProgress = false;
@@ -1561,16 +1627,16 @@ export class Spin2DocumentSemanticParser {
         this._logCON(`  -- GetCONDecl conEnumInProgress=(${this.conEnumInProgress}), haveEnumDeclaration=(${haveEnumDeclaration})`);
         if (!haveEnumDeclaration && !this.conEnumInProgress) {
           const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(',') != -1;
-          this._logCON('  -- declNotEnum containsMultiStatements=[' + containsMultiStatements + ']');
+          this._logCON(`  -- declNotEnum containsMultiStatements=(${containsMultiStatements})`);
           let statements: string[] = [nonCommentConstantLine];
           if (containsMultiStatements) {
-            statements = nonCommentConstantLine.split(',').filter(Boolean);
+            statements = this.splitLinesWithPossibleStruct(nonCommentConstantLine);
           }
           this._logCON(`  -- statements=[${statements}](${statements.length})`);
 
           for (let index = 0; index < statements.length; index++) {
             const conDeclarationLine: string = statements[index].trim();
-            this._logCON('  -- GetCONDecl conDeclarationLine=[' + conDeclarationLine + ']');
+            this._logCON(`  -- GetCONDecl conDeclarationLine=[${conDeclarationLine}][${index}]`);
             currentOffset = line.indexOf(conDeclarationLine, 0);
             const assignmentOffset: number = conDeclarationLine.indexOf('=');
             if (assignmentOffset != -1) {
@@ -1607,6 +1673,28 @@ export class Spin2DocumentSemanticParser {
                   const token = new RememberedToken('variable', lineNbr - 1, nameOffset, ['readonly']);
                   this._declarationComment();
                   this._logMessage(`* SKIP token setGLobal for disabled ln#(${lineNbr}) token=[${this._rememberdTokenString(newName, token)}]`);
+                }
+              }
+            } else {
+              // if v45 or later then we could have a struct declaration
+              if (this.parseUtils.requestedSpinVersion(45)) {
+                // recognize structure getting delcared
+                //  Ex1: STRUCT point(x,y)
+                //    this declares a structure 'point' with 2 members LONG x and LONG y
+                //  Ex2: STRUCT line(point a, point b)
+                //    this declares a structure 'line' with 2 members POINT a and POINT b, each of which have 2 members LONG x and LONG y
+                //
+                // strcture declaration  structName (member1, member2,...) where memberN is optional {type} followed by name with optional [number of instances]
+                const structDeclaration = this.parseStructDeclaration(conDeclarationLine);
+                if (!structDeclaration.isValidStatus) {
+                  this._logCON(`  -- GetCONDecl ERROR unknown=[${conDeclarationLine}]`);
+                } else {
+                  const nameOffset = line.indexOf(conDeclarationLine, 0); // FIXME: UNDONE, do we have to dial this in?
+                  //this._logCON(`  -- GetCONDecl structDeclaration=[${JSON.stringify(structDeclaration, null, 2)}]`);
+                  const structure = new RememberedStructure(structDeclaration.structName, lineNbr - 1, nameOffset, structDeclaration.members);
+                  // FIXME: UNDONE, how to handle duplicate structure names?
+                  // FIXME: UNDONE, ensure structure containing other structures, has other structures recorded before use!
+                  this.semanticFindings.setStructure(structure);
                 }
               }
             }
@@ -2262,7 +2350,11 @@ export class Spin2DocumentSemanticParser {
     return tokenSet;
   }
 
-  private _isEnumDeclarationLine(lineIdx: number, startingOffset: number, line: string): boolean {
+  private _isEnumDeclarationSingleLine(lineIdx: number, startingOffset: number, line: string): boolean {
+    return this._isEnumDeclarationMultiLine(lineIdx, startingOffset, line, true);
+  }
+
+  private _isEnumDeclarationMultiLine(lineIdx: number, startingOffset: number, line: string, singleLine: boolean = false): boolean {
     // BOTH P1 and P2 determination: if CON line is start enum declaration
     const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
@@ -2272,7 +2364,7 @@ export class Spin2DocumentSemanticParser {
       enumDeclStatus = false;
     }
     // if not yet sure...
-    if (isPreprocessorStatement == false && enumDeclStatus == false) {
+    if (isPreprocessorStatement == false && enumDeclStatus == false && singleLine == false) {
       // don't know what this line is, yet
       const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(',') != -1;
       let statements: string[] = [nonCommentConstantLine];
@@ -2303,7 +2395,7 @@ export class Spin2DocumentSemanticParser {
     let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
     const nonCommentConstantLine = multiLineSet.line;
     if (nonCommentConstantLine.length > 0) {
-      const haveEnumDeclaration: boolean = this._isEnumDeclarationLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
+      const haveEnumDeclaration: boolean = this._isEnumDeclarationMultiLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
       const isAssignment: boolean = nonCommentConstantLine.indexOf('=') != -1;
       if (!haveEnumDeclaration && isAssignment) {
         this.conEnumInProgress = false;
@@ -2631,7 +2723,7 @@ export class Spin2DocumentSemanticParser {
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const nonCommentConstantLine = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
     if (nonCommentConstantLine.length > 0) {
-      const haveEnumDeclaration: boolean = this._isEnumDeclarationLine(lineIdx, 0, nonCommentConstantLine);
+      const haveEnumDeclaration: boolean = this._isEnumDeclarationSingleLine(lineIdx, 0, nonCommentConstantLine);
       const isAssignment: boolean = nonCommentConstantLine.indexOf('=') != -1;
       if (!haveEnumDeclaration && isAssignment) {
         this.conEnumInProgress = false;
@@ -2645,16 +2737,17 @@ export class Spin2DocumentSemanticParser {
       let statements: string[] = [nonCommentConstantLine];
       if (!haveEnumDeclaration && !this.conEnumInProgress) {
         if (containsMultiStatements) {
-          statements = nonCommentConstantLine.split(',').filter(Boolean);
+          statements = this.splitLinesWithPossibleStruct(nonCommentConstantLine);
         }
         this._logCON(`  -- assignments statements=[${statements}](${statements.length})`);
         for (let index = 0; index < statements.length; index++) {
           const conDeclarationLine: string = statements[index].trim();
-          this._logCON('  -- conDeclarationLine=[' + conDeclarationLine + ']');
+          this._logCON(`  -- conDeclarationLine=[${conDeclarationLine}][${index}]`);
           currentOffset = line.indexOf(conDeclarationLine, currentOffset);
           // locate key indicators of line style
           const isAssignment: boolean = conDeclarationLine.indexOf('=') != -1;
-          if (!isAssignment) {
+          const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && conDeclarationLine.toUpperCase().indexOf('STRUCT') != -1;
+          if (!isAssignment && !isStructDecl) {
             if (!this.parseUtils.isDebugInvocation(conDeclarationLine)) {
               this.semanticFindings.pushDiagnosticMessage(
                 lineIdx,
@@ -2663,6 +2756,75 @@ export class Spin2DocumentSemanticParser {
                 eSeverity.Error,
                 `P2 Spin Syntax: Missing '=' part of assignment [${conDeclarationLine}]`
               );
+            }
+          } else if (isStructDecl) {
+            this._logCON(`  -- conDeclarationLine=[${conDeclarationLine}][${index}]`);
+            const baseOffset: number = line.indexOf(conDeclarationLine, 0);
+            const structDeclaration = this.parseStructDeclaration(conDeclarationLine);
+            if (structDeclaration.isValidStatus) {
+              // color 'STRUCT' keyword
+              // this is a constant declaration!
+              const structKeyWord: string = 'STRUCT';
+              this._logMessage(`  -- structName=[${structKeyWord}], ofs=(${baseOffset})`);
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: baseOffset,
+                length: structKeyWord.length,
+                ptTokenType: 'keyword',
+                ptTokenModifiers: []
+              });
+              // color struct Name
+              const nameOffset: number = line.indexOf(structDeclaration.structName, baseOffset);
+              this._logMessage(`  -- structName=[${structDeclaration.structName}], ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: structDeclaration.structName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['readonly']
+              });
+
+              // for each member...
+              let currPartOffset: number = nameOffset + structDeclaration.structName.length;
+              for (let index = 0; index < structDeclaration.members.length; index++) {
+                const member = structDeclaration.members[index];
+                //   color member type
+                const typeStr: string = member.type;
+                //let isStructName: boolean = false;
+                switch (member.type.toLocaleLowerCase()) {
+                  case 'long':
+                  case 'byte':
+                  case 'word':
+                    break;
+                  default:
+                    //isStructName = true;
+                    break;
+                }
+                const typeOffset = line.indexOf(typeStr, currPartOffset);
+                this._logMessage(`  -- memberType=[${typeStr}], ofs=(${typeOffset})`);
+                if (typeOffset != -1) {
+                  this._recordToken(tokenSet, line, {
+                    line: lineIdx,
+                    startCharacter: typeOffset,
+                    length: typeStr.length,
+                    ptTokenType: 'storageType',
+                    ptTokenModifiers: []
+                    //   color member name
+                  });
+                  currPartOffset = typeOffset + typeStr.length;
+                }
+                //   color member name
+                const memberNameOffset = line.indexOf(member.name, currPartOffset);
+                this._logMessage(`  -- memberName=[${member.name}], ofs=(${memberNameOffset})`);
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: memberNameOffset,
+                  length: member.name.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['readonly']
+                });
+                currPartOffset = memberNameOffset + member.name.length;
+              }
             }
           } else {
             // -------------------------------------------

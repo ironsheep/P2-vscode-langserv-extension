@@ -152,6 +152,7 @@ export interface IFoldSpan {
 //   CLASS DocumentFindings
 export class DocumentFindings {
   private globalTokens;
+  private globalStructures;
   private includeGlobalTokens;
   private methodLocalTokens;
   private instanceId: string = `ID:${new Date().getTime()}`;
@@ -226,6 +227,7 @@ export class DocumentFindings {
 
     this._logMessage("* Global, Local, MethodScoped Token repo's ready");
     this.globalTokens = new TokenSet('gloTOK');
+    this.globalStructures = new StructureSet('gloSTRUCT');
     this.includeGlobalTokens = new TokenSet('gloTOKIncl');
     this.methodLocalTokens = new NameScopedTokenSet('methLocTOK');
     this.declarationInfoByGlobalTokenName = new Map<string, RememberedTokenDeclarationInfo>();
@@ -272,6 +274,7 @@ export class DocumentFindings {
     // we're studying a new document forget everything!
     this._logMessage(`  -- FND-clear clearIncludesToo=(${clearIncludesToo})`);
     this.globalTokens.clear();
+    this.globalStructures.clear();
     this.methodLocalTokens.clear();
     this.methodLocalPasmTokens.clear();
     this.objectFilenameByInstanceName.clear();
@@ -307,6 +310,7 @@ export class DocumentFindings {
     this.isDebugLogEnabled = doEnable;
     this.ctx = ctx;
     this.globalTokens.enableLogging(ctx, doEnable);
+    this.globalStructures.enableLogging(ctx, doEnable);
     this.includeGlobalTokens.enableLogging(ctx, doEnable);
     this.methodLocalTokens.enableLogging(ctx, doEnable);
     this.methodLocalPasmTokens.enableLogging(ctx, doEnable);
@@ -1780,6 +1784,11 @@ export class DocumentFindings {
     return desiredToken;
   }
 
+  public setStructure(structure: RememberedStructure): void {
+    this.globalStructures.rememberStructure(structure);
+    this._logMessage(`  -- NEW-struct ${structure.name} -> ${structure.toString()}`);
+  }
+
   public getLocalTokens(tokenName: string): RememberedToken[] {
     const desiredTokens: RememberedToken[] = [];
     if (this.isLocalToken(tokenName)) {
@@ -2090,6 +2099,60 @@ export class DocumentFindings {
 }
 
 // ----------------------------------------------------------------------------
+//  Structures
+//   CLASS StrctureSet
+//
+export class StructureSet {
+  public constructor(idString: string) {
+    //this.bLogEnabled = isLogging;
+    //this.debugOutputChannel = logHandle;
+    this.id = idString;
+    this._logMessage(`* ${this.id} ready`);
+  }
+
+  private id: string = '';
+  private rememberedStructuresByName = new Map<string, RememberedStructure>();
+  private ctx: Context | undefined = undefined;
+  private bLogEnabled: boolean = false;
+
+  public enableLogging(ctx: Context, doEnable: boolean = true): void {
+    this.bLogEnabled = doEnable;
+    this.ctx = ctx;
+  }
+
+  get length(): number {
+    return this.rememberedStructuresByName.size;
+  }
+
+  public rememberStructure(structure: RememberedStructure) {
+    const nameKey: string = structure.name.toLowerCase();
+    if (!this.rememberedStructuresByName.has(nameKey)) {
+      this.rememberedStructuresByName.set(nameKey, structure);
+      this._logMessage(`* ${this.id} #${this.rememberedStructuresByName.size}: ${structure.name} -> ${structure.toString()}`);
+    }
+  }
+
+  public isStructureName(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    return this.rememberedStructuresByName.has(nameKey);
+  }
+
+  public clear(): void {
+    this.rememberedStructuresByName.clear();
+    this._logMessage(`* ${this.id} clear(), now ${this.length} structures`);
+  }
+
+  private _logMessage(message: string): void {
+    if (this.bLogEnabled) {
+      // Write to output window.
+      if (this.ctx) {
+        this.ctx.connection.console.log(message);
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
 //  Global or Local tokens
 //   CLASS TokenSet
 //
@@ -2374,6 +2437,109 @@ export class NameScopedTokenSet {
       desiredTokenSet = this.methodScopedTokenSetByMethodKey.get(desiredMethodKey);
     }
     return desiredTokenSet;
+  }
+}
+
+// ----------------------------------------------------------------------------
+//   CLASS RememberedStructure
+export interface IStructMember {
+  name: string;
+  type: string;
+  arraySize: number;
+}
+
+enum eMemberType {
+  MT_Unknown,
+  MT_Byte,
+  MT_Word,
+  MT_Long,
+  MT_Structure
+}
+
+export class RememberedStructureMember {
+  private _type: eMemberType;
+  private _name: string;
+  private _instanceCount: number;
+
+  constructor(name: string, type: eMemberType, count: number) {
+    this._name = name;
+    this._type = type;
+    this._instanceCount = count;
+  }
+
+  get name(): string {
+    return this._name;
+  }
+
+  get type(): eMemberType {
+    return this._type;
+  }
+
+  get typeString(): string {
+    return eMemberType[this._type];
+  }
+
+  get instaceCount(): number {
+    return this._instanceCount;
+  }
+}
+
+export class RememberedStructure {
+  private _name: string;
+  private _members: RememberedStructureMember[] = [];
+  private _lineIndex: number;
+  private _charOffset: number;
+
+  constructor(name: string, lineIndex: number, charOffset: number, members: IStructMember[]) {
+    this._name = name;
+    this._lineIndex = lineIndex;
+    this._charOffset = charOffset;
+    for (let idx = 0; idx < members.length; idx++) {
+      const memberInfo: IStructMember = members[idx];
+      const memberType: eMemberType = this.validType(memberInfo.type);
+      const memberName: string = memberInfo.name;
+      const memberInstances: number = memberInfo.arraySize;
+      const member: RememberedStructureMember = new RememberedStructureMember(memberName, memberType, memberInstances);
+      this._members.push(member);
+    }
+  }
+
+  get name(): string {
+    return this._name;
+  }
+
+  public toString(): string {
+    let desiredString: string = `STRUCT ${this._name} (`;
+    for (let idx = 0; idx < this._members.length; idx++) {
+      const member: RememberedStructureMember = this._members[idx];
+      desiredString += `${member.typeString} ${member.name}`;
+      if (member.instaceCount > 1) {
+        desiredString += `[${member.instaceCount}]`;
+      }
+      if (idx < this._members.length - 1) {
+        desiredString += ', ';
+      }
+    }
+    desiredString += ')';
+    return desiredString;
+  }
+
+  private validType(type: string): eMemberType {
+    let memberType: eMemberType = eMemberType.MT_Unknown;
+    switch (type.toLowerCase()) {
+      case 'byte':
+        memberType = eMemberType.MT_Byte;
+        break;
+      case 'word':
+        memberType = eMemberType.MT_Word;
+        break;
+      case 'long':
+        memberType = eMemberType.MT_Long;
+        break;
+      default:
+        memberType = eMemberType.MT_Structure;
+    }
+    return memberType;
   }
 }
 
