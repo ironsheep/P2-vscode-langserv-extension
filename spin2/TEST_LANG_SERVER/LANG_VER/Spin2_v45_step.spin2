@@ -1,8 +1,10 @@
 {Spin2_v45}
 
-CON STRUCT point(x,y), STRUCT line(point a, point b)
+CON STRUCT point(x,y), STRUCT line(point a, point b), TYPE = 7
+  CLK = 5
+  BITS = 32
 
-VAR A[100], B[100], line vline[10]
+VAR long A[100], B[100], line vline[10]
 
 PUB go() | line pline
 
