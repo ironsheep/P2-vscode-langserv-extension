@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.3.4",
+  "version": "2.3.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -985,24 +985,22 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run prebuild && npm run esbuild-base -- --minify",
-    "esbuild-base": "esbuild ./client/src/extension.ts ./server/src/server.ts  --bundle --outdir=. --entry-names=[dir]/../out/[name] --external:vscode --format=cjs --platform=node",
-    "esbuild": "npm run prebuild && npm run esbuild-base -- --sourcemap",
-    "esbuild-watch": "npm run prebuild && npm run esbuild-base -- --sourcemap --watch",
+    "vscode:prepublish": "npm run compile && npm run compile:grammar",
+    "precompile": "mkdir -p ./client/out/ext && cp -p ./client/src//ext/*.obj ./client/out/ext && npm run makeprebuild",
     "makeprebuild": "mkdir -p ./client/prebuilds && cp -pr ./client/node_modules/@serialport/bindings-cpp/prebuilds/* ./client/prebuilds/",
-    "prebuild": "npm run compile && npm run compile:grammar && npm run makeprebuild",
     "compile": "tsc -b",
     "compile:grammar": "npx js-yaml syntaxes/spin2.tmLanguage.YAML-tmLanguage > syntaxes/spin2.tmLanguage.json && npx js-yaml syntaxes/spin1.tmLanguage.YAML-tmLanguage > syntaxes/spin1.tmLanguage.json ",
     "watch": "tsc -b -w",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
     "pretest": "npm run compile && npm run lint",
-    "test-compile": "tsc -p ./",
-    "test": "sh ./scripts/e2e.sh"
+    "test": "sh ./scripts/e2e.sh",
+    "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
+    "posttest": "npm run clean"
   },
   "devDependencies": {
-    "@types/mocha": "^9.1.0",
-    "@types/node": "^20.12.12",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.10.10",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
     "esbuild": "^0.19.12",
@@ -1013,8 +1011,7 @@
     "eslint-plugin-n": "^16.6.1",
     "eslint-plugin-prettier": "^5.1.2",
     "eslint-plugin-promise": "^6.1.1",
-    "mocha": "^9.2.1",
+    "mocha": "^10.8.2",
     "typescript": "^5.1.3"
-  },
-  "dependencies": {}
+  }
 }
