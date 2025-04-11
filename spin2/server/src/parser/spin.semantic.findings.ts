@@ -1789,6 +1789,11 @@ export class DocumentFindings {
     this._logMessage(`  -- NEW-struct ${structure.name} -> ${structure.toString()}`);
   }
 
+  public isStructure(structureName: string): boolean {
+    const foundStatus: boolean = this.globalStructures.isStructureName(structureName);
+    return foundStatus;
+  }
+
   public getLocalTokens(tokenName: string): RememberedToken[] {
     const desiredTokens: RememberedToken[] = [];
     if (this.isLocalToken(tokenName)) {

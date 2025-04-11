@@ -2124,7 +2124,7 @@ export class Spin2DocumentSemanticParser {
       //this._logVAR("  - Ln#" + lineNbr + " GetVarDecl remainingNonCommentLineStr=[" + remainingNonCommentLineStr + "]");
       const isMultiDeclaration: boolean = remainingNonCommentLineStr.includes(',');
       const lineParts: string[] = this.parseUtils.getNonWhiteDataDeclarationLineParts(remainingNonCommentLineStr);
-      const hasGoodType: boolean = lineParts.length > 0 && this.parseUtils.isStorageType(lineParts[0]);
+      const hasGoodType: boolean = lineParts.length > 0 && this.isStorageType(lineParts[0]);
       this._logVAR(`  - Ln#${lineNbr} GetVarDecl lineParts=[${lineParts}](${lineParts.length})`);
       let nameSet: string[] = [];
       if (hasGoodType && lineParts.length > 1) {
@@ -3107,7 +3107,7 @@ export class Spin2DocumentSemanticParser {
     this._logDAT(`- rptDataDeclLn lineParts=[${lineParts}](${lineParts.length})`);
     // remember this object name so we can annotate a call to it
     if (lineParts.length > 1) {
-      if (this.parseUtils.isStorageType(lineParts[0]) || lineParts[0].toUpperCase() == 'FILE' || lineParts[0].toUpperCase() == 'ORG') {
+      if (this.isStorageType(lineParts[0]) || lineParts[0].toUpperCase() == 'FILE' || lineParts[0].toUpperCase() == 'ORG') {
         // if we start with storage type (or FILE, or ORG), not name, process rest of line for symbols
         currentOffset = line.indexOf(lineParts[0], currentOffset);
         const allowLocalVarStatus: boolean = false;
@@ -3579,7 +3579,7 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isTaskReservedSymbol(namePart) &&
                     !this.parseUtils.isP2AsmModczOperand(namePart) &&
                     !this.parseUtils.isDebugMethod(namePart) &&
-                    !this.parseUtils.isStorageType(namePart) &&
+                    !this.isStorageType(namePart) &&
                     !bIsAlsoDebugLine
                   ) {
                     this._logPASM('  --  DAT PAsm MISSING name=[' + namePart + '], ofs=(' + nameOffset + ')');
@@ -4078,7 +4078,7 @@ export class Spin2DocumentSemanticParser {
               ); // TOKEN SET in _report()
             } else {
               // have modifier!
-              if (this.parseUtils.isStorageType(localName)) {
+              if (this.isStorageType(localName)) {
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -4205,10 +4205,32 @@ export class Spin2DocumentSemanticParser {
         const paramNameRaw: string = parameterNames[index].trim();
         let paramName: string = paramNameRaw;
         const hasFlexSpinDefaultValue: boolean = paramName.includes('=');
-        const nameOffset = line.indexOf(paramName, currentOffset);
+        let nameOffset = line.indexOf(paramName, currentOffset);
         if (hasFlexSpinDefaultValue) {
           const assignmentParts: string[] = paramName.split('=');
           paramName = assignmentParts[0].trim();
+        }
+        let typeName: string = '';
+        // if we have structures we can have a structure name as a parameter type
+        if (this.parseUtils.requestedSpinVersion(45)) {
+          if (paramName.includes(' ')) {
+            const nameParts: string[] = paramName.split(' ');
+            if (nameParts.length > 1) {
+              typeName = nameParts[0];
+              paramName = nameParts[1];
+            }
+          }
+          // if we have a strcture typename color it!
+          if (typeName.length > 0 && this.semanticFindings.isStructure(typeName)) {
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: typeName.length,
+              ptTokenType: 'storageType',
+              ptTokenModifiers: []
+            });
+            nameOffset += typeName.length + 1; // skip past space
+          }
         }
         this._logSPIN(`  -- paramName=[${paramName}], ofs=(${nameOffset})`);
         // check to see if param name is hiding global variable
@@ -4440,7 +4462,7 @@ export class Spin2DocumentSemanticParser {
             }
           } else {
             nameOffset = line.indexOf(localName, localVariableOffset);
-            this._logSPIN('  -- localName=[' + localName + '], ofs=(' + nameOffset + ')');
+            this._logSPIN(`  -- localName=[${localName}], ofs=(${nameOffset})`);
             if (index == nameParts.length - 1) {
               // have name
               // check to see if local name is hiding global variable
@@ -4477,7 +4499,7 @@ export class Spin2DocumentSemanticParser {
               ); // TOKEN SET in _report()
             } else {
               // have modifier!
-              if (this.parseUtils.isStorageType(localName)) {
+              if (this.isStorageType(localName)) {
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
                   startCharacter: nameOffset,
@@ -4615,7 +4637,7 @@ export class Spin2DocumentSemanticParser {
                   }
                 }
                 this._logSPIN(`  -- variableNamePart=[${variableNamePart}], ofs=(${nameOffset})`);
-                if (this.parseUtils.isStorageType(variableNamePart)) {
+                if (this.isStorageType(variableNamePart)) {
                   this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                     line: symbolPosition.line,
                     startCharacter: symbolPosition.character,
@@ -4680,7 +4702,7 @@ export class Spin2DocumentSemanticParser {
             const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             if (
               cleanedVariableName.charAt(0).match(/[a-zA-Z_]/) &&
-              !this.parseUtils.isStorageType(cleanedVariableName) &&
+              !this.isStorageType(cleanedVariableName) &&
               !this.parseUtils.isSpinSpecialMethod(cleanedVariableName)
             ) {
               this._logSPIN(`  --  SPIN cleanedVariableName=[${cleanedVariableName}], ofs=(${nameOffset})`);
@@ -4738,7 +4760,7 @@ export class Spin2DocumentSemanticParser {
                     //const searchKey: string = namePart.toLowerCase();
                     //const isMethodNoParen: boolean = searchKey == 'return' || searchKey == 'abort';
                     // have unknown name!? is storage type spec?
-                    if (this.parseUtils.isStorageType(namePart)) {
+                    if (this.isStorageType(namePart)) {
                       this._logSPIN(`  --  SPIN RHS storageType=[${namePart}]`);
                       this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                         line: symbolPosition.line,
@@ -4960,15 +4982,11 @@ export class Spin2DocumentSemanticParser {
             if (possibleName.includes('.')) {
               possibleNameSet = possibleName.split(/[.[\]]/).filter(Boolean);
               const origNameSet = possibleNameSet;
-              if (possibleNameSet.length == 2 && this.parseUtils.isStorageType(possibleNameSet[1])) {
+              if (possibleNameSet.length == 2 && this.isStorageType(possibleNameSet[1])) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out " "
               } else if (possibleNameSet.length == 2 && !possibleNameSet[1].charAt(0).match(/[a-zA-Z_]/)) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out "header.[00..02]"
-              } else if (
-                possibleNameSet.length > 2 &&
-                this.parseUtils.isStorageType(possibleNameSet[1]) &&
-                !possibleNameSet[2].charAt(0).match(/[a-zA-Z_]/)
-              ) {
+              } else if (possibleNameSet.length > 2 && this.isStorageType(possibleNameSet[1]) && !possibleNameSet[2].charAt(0).match(/[a-zA-Z_]/)) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out "variable.[long|word|byte][idx]"
               }
               this._logSPIN(`  --  origNameSet=[${origNameSet}] -> possibleNameSet=[${possibleNameSet}]`);
@@ -5042,7 +5060,7 @@ export class Spin2DocumentSemanticParser {
                   eSeverity.Error,
                   'P2 Spin missing parens'
                 );
-              } else if (this.parseUtils.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
+              } else if (this.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
                 // have unknown name!? is storage type spec?
                 this._logSPIN(`  --  SPIN RHS storageType=[${namePart}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -5141,7 +5159,7 @@ export class Spin2DocumentSemanticParser {
               // determine if this is method has '(' or constant name
               const constantPart: string = possibleNameSet[1];
               currNameLength = constantPart.length;
-              if (!this.parseUtils.isStorageType(constantPart)) {
+              if (!this.isStorageType(constantPart)) {
                 // FIXME: UNDONE remove when syntax see this correctly
                 //const nameOffset: number = line.indexOf(constantPart, currSingleLineOffset);
                 symbolPosition = multiLineSet.locateSymbol(constantPart, currSingleLineOffset);
@@ -5291,7 +5309,7 @@ export class Spin2DocumentSemanticParser {
                   }
                 }
                 this._logSPIN('  -- variableNamePart=[' + variableNamePart + '], ofs=(' + nameOffset + ')');
-                if (this.parseUtils.isStorageType(variableNamePart)) {
+                if (this.isStorageType(variableNamePart)) {
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
                     startCharacter: nameOffset,
@@ -5354,7 +5372,7 @@ export class Spin2DocumentSemanticParser {
             let nameOffset = line.indexOf(cleanedVariableName, currentOffset);
             if (
               cleanedVariableName.charAt(0).match(/[a-zA-Z_]/) &&
-              !this.parseUtils.isStorageType(cleanedVariableName) &&
+              !this.isStorageType(cleanedVariableName) &&
               !this.parseUtils.isSpinSpecialMethod(cleanedVariableName)
             ) {
               this._logSPIN('  --  SPIN cleanedVariableName=[' + cleanedVariableName + '], ofs=(' + nameOffset + ')');
@@ -5405,7 +5423,7 @@ export class Spin2DocumentSemanticParser {
                     // have unknown name!? is storage type spec?
                     const methodFollowString: string = line.substring(nameOffset + namePart.length);
                     this._logSPIN(`  --  A methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
-                    if (this.parseUtils.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
+                    if (this.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
                       this._logSPIN('  --  SPIN RHS storageType=[' + namePart + ']');
                       this._recordToken(tokenSet, line, {
                         line: lineIdx,
@@ -5616,15 +5634,11 @@ export class Spin2DocumentSemanticParser {
             if (possibleName.includes('.')) {
               possibleNameSet = possibleName.split(/[.[\]]/).filter(Boolean);
               const origNameSet = possibleNameSet;
-              if (possibleNameSet.length == 2 && this.parseUtils.isStorageType(possibleNameSet[1])) {
+              if (possibleNameSet.length == 2 && this.isStorageType(possibleNameSet[1])) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out " "
               } else if (possibleNameSet.length == 2 && !possibleNameSet[1].charAt(0).match(/[a-zA-Z_]/)) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out "header.[00..02]"
-              } else if (
-                possibleNameSet.length > 2 &&
-                this.parseUtils.isStorageType(possibleNameSet[1]) &&
-                !possibleNameSet[2].charAt(0).match(/[a-zA-Z_]/)
-              ) {
+              } else if (possibleNameSet.length > 2 && this.isStorageType(possibleNameSet[1]) && !possibleNameSet[2].charAt(0).match(/[a-zA-Z_]/)) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out "variable.[long|word|byte][idx]"
               }
               this._logSPIN(`  --  origNameSet=[${origNameSet}] -> possibleNameSet=[${possibleNameSet}]`);
@@ -5719,7 +5733,7 @@ export class Spin2DocumentSemanticParser {
                       eSeverity.Error,
                       'P2 Spin missing parens'
                     );
-                  } else if (this.parseUtils.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
+                  } else if (this.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
                     // have unknown name!? is storage type spec?
                     this._logSPIN('  --  SPIN RHS storageType=[' + namePart + ']');
                     this._recordToken(tokenSet, line, {
@@ -6553,6 +6567,9 @@ export class Spin2DocumentSemanticParser {
 	  return desiredNumericStatus;
 	}
 	*/
+  private isStorageType(possibleType: string): boolean {
+    return this.parseUtils.isStorageType(possibleType) || this.semanticFindings.isStructure(possibleType);
+  }
 
   private _reportVAR_DeclarationLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
@@ -6565,7 +6582,7 @@ export class Spin2DocumentSemanticParser {
       this._logVAR(`  -- rptVarDecl lineParts=[${lineParts}]`);
       // remember this object name so we can annotate a call to it
       //const isMultiDeclaration: boolean = remainingNonCommentLineStr.includes(',');
-      const hasStorageType: boolean = this.parseUtils.isStorageType(lineParts[0]);
+      const hasStorageType: boolean = this.isStorageType(lineParts[0]);
       if (lineParts.length > 1) {
         const startIndex: number = hasStorageType ? 1 : 0;
         for (let index = startIndex; index < lineParts.length; index++) {
@@ -6578,7 +6595,7 @@ export class Spin2DocumentSemanticParser {
               newName = nameParts[0];
             }
           }
-          if (this.parseUtils.isStorageType(newName)) {
+          if (this.isStorageType(newName)) {
             this._logVAR('  -- GLBL ADD storage newName=[' + newName + ']');
             const nameOffset: number = line.indexOf(newName, currentOffset);
             this._recordToken(tokenSet, line, {
@@ -6959,7 +6976,7 @@ export class Spin2DocumentSemanticParser {
             let nameOffset: number = 0;
             for (let idx = firstParamIdx; idx < lineParts.length; idx++) {
               newParameter = lineParts[idx];
-              if (newParameter.indexOf("'") != -1 || this.parseUtils.isStorageType(newParameter)) {
+              if (newParameter.indexOf("'") != -1 || this.isStorageType(newParameter)) {
                 currSingleLineOffset += newParameter.length;
                 continue; // skip this name (it's part of a string!)
               } else if (newParameter.indexOf('#') != -1) {
@@ -7074,7 +7091,7 @@ export class Spin2DocumentSemanticParser {
             currSingleLineOffset += newParameter.length;
             continue;
           }
-          if (newParameter.toLowerCase() == 'debug' || this.parseUtils.isStorageType(newParameter)) {
+          if (newParameter.toLowerCase() == 'debug' || this.isStorageType(newParameter)) {
             currSingleLineOffset += newParameter.length;
             continue;
           }
@@ -7389,7 +7406,7 @@ export class Spin2DocumentSemanticParser {
             let newParameter: string = '';
             for (let idx = firstParamIdx; idx < lineParts.length; idx++) {
               newParameter = lineParts[idx];
-              if (newParameter.indexOf("'") != -1 || this.parseUtils.isStorageType(newParameter)) {
+              if (newParameter.indexOf("'") != -1 || this.isStorageType(newParameter)) {
                 symbolOffset += newParameter.length;
                 continue; // skip this name (it's part of a string!)
               } else if (newParameter.indexOf('#') != -1) {
@@ -7500,7 +7517,7 @@ export class Spin2DocumentSemanticParser {
           if (!paramIsSymbolName) {
             continue;
           }
-          if (newParameter.toLowerCase() == 'debug' || this.parseUtils.isStorageType(newParameter)) {
+          if (newParameter.toLowerCase() == 'debug' || this.isStorageType(newParameter)) {
             continue;
           }
           symbolOffset = line.indexOf(newParameter, symbolOffset); // walk this past each
@@ -7812,7 +7829,7 @@ export class Spin2DocumentSemanticParser {
             let objInstanceName: string = possibleNameSet[0];
             const referencePart: string = possibleNameSet[1];
             // NO if either side is storage type
-            if (this.parseUtils.isStorageType(objInstanceName) || this.parseUtils.isStorageType(referencePart)) {
+            if (this.isStorageType(objInstanceName) || this.isStorageType(referencePart)) {
               bGeneratedReference = false;
             }
             // NO if either side is not legit symbol
