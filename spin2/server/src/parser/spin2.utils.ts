@@ -805,6 +805,15 @@ export class Spin2ParseUtils {
     return desiredDocText;
   }
 
+  public isSpinRegister(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    let reservedStatus: boolean = nameKey in this._tableSpinCogRegisters;
+    if (!reservedStatus && this.requestedSpinVersion(47)) {
+      reservedStatus = nameKey in this._tableSpinTaskRegisters_v47;
+    }
+    return reservedStatus;
+  }
+
   public isSpinBuiltInVariable(name: string): boolean {
     const nameKey: string = name.toLowerCase();
     let reservedStatus: boolean = nameKey in this._tableSpinHubLocations;

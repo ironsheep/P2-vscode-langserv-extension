@@ -2524,6 +2524,17 @@ export class Spin2DocumentSemanticParser {
                 nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
                 let referenceDetails: RememberedToken | undefined = undefined;
                 this._logCON(`  -- namePart=[${namePart}], ofs=(${nameOffset})`);
+                // register constants in CON are new...  highlight them if new version
+                if (this.parseUtils.isSpinRegister(namePart)) {
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: namePart.length,
+                    ptTokenType: 'variable',
+                    ptTokenModifiers: ['readonly']
+                  });
+                  continue;
+                }
                 if (this.semanticFindings.isGlobalToken(namePart)) {
                   referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                   this._logCON(`  --  FOUND rcds rhs global ${this._rememberdTokenString(namePart, referenceDetails)}`);
@@ -2883,7 +2894,7 @@ export class Spin2DocumentSemanticParser {
             const fistEqualOffset: number = conDeclarationLine.indexOf('=');
             const assignmentRHSStr = conDeclarationLine.substring(fistEqualOffset + 1).trim();
             currentOffset = line.indexOf(assignmentRHSStr, fistEqualOffset); // skip to RHS of assignment
-            this._logCON('  -- CON assignmentRHSStr=[' + assignmentRHSStr + ']');
+            this._logCON(`  -- CON assignmentRHSStr=[${assignmentRHSStr}]`);
             const possNames: string[] = this.parseUtils.getNonWhiteCONLineParts(assignmentRHSStr);
             this._logCON(`  -- CON possNames=[${possNames}](${possNames.length})`);
             for (let index = 0; index < possNames.length; index++) {
@@ -2907,6 +2918,18 @@ export class Spin2DocumentSemanticParser {
                 nameOffset = line.indexOf(searchString, currentOffset); // skip to RHS of assignment
                 let referenceDetails: RememberedToken | undefined = undefined;
                 this._logCON(`  -- namePart=[${namePart}], ofs=(${nameOffset})`);
+                // register constants in CON are new...  highlight them if new version
+                if (this.parseUtils.isSpinRegister(namePart)) {
+                  this._recordToken(tokenSet, line, {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: namePart.length,
+                    ptTokenType: 'variable',
+                    ptTokenModifiers: ['readonly']
+                  });
+                  currentOffset = nameOffset + namePart.length;
+                  continue;
+                }
                 if (this.semanticFindings.isGlobalToken(namePart)) {
                   referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                   this._logCON('  --  FOUND rcds rhs global ' + this._rememberdTokenString(namePart, referenceDetails));
@@ -5095,6 +5118,19 @@ export class Spin2DocumentSemanticParser {
             this._logSPIN(
               `  --  SPIN RHS    nameOffset=(${nameOffset}), offsetInNonStringRHS=(${offsetInNonStringRHS}), currSingleLineOffset=(${currSingleLineOffset})`
             );
+            // if new  debug method in later version then highlight it
+            if (this.parseUtils.isNewlyAddedDebugSymbol(namePart)) {
+              this._logSPIN(`  --  SPIN new DEBUG name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: namePart.length,
+                ptTokenType: 'debug',
+                ptTokenModifiers: ['function']
+              });
+              nameOffset += namePart.length;
+              continue;
+            }
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, symbolPosition.line + 1);

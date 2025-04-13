@@ -12,8 +12,8 @@ FEATURE Structure coloring:
 	v46:
 		- fix C_Z debug color as UDEC() @done(2025-04-13)
 	v47:
-		- fix REG use in CON  Ln#3
-		- fix taskid() in debug() Tic / nonTic Ln#13, 16, 26
+		- fix REG use in CON  Ln#3 @done(2025-04-13)
+		- fix taskid() in debug() Tic / nonTic Ln#13, 16, 26 @done(2025-04-13)
 	v49:
 		- Fix struct import from included object!
 	v50:
