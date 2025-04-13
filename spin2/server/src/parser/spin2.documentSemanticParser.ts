@@ -1835,7 +1835,7 @@ export class Spin2DocumentSemanticParser {
     // get line parts - we only care about first one
     const datPAsmRHSStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     if (datPAsmRHSStr.length > 0) {
-      const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(datPAsmRHSStr); // XYZZY
+      const lineParts: string[] = this.parseUtils.getNonWhiteLineParts(datPAsmRHSStr);
       this._logPASM(`  - Ln#${lineNbr} GetDATPAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
       // handle name in 1 column
       const haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
@@ -3285,7 +3285,7 @@ export class Spin2DocumentSemanticParser {
               }
             }
             if (this.semanticFindings.isStructure(possibleName)) {
-              // highlight structure name XYZZY
+              // highlight structure name
               this._logMessage(`  -- DATval structure [${possibleName}] named=[${labelName}]`);
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
@@ -4161,7 +4161,7 @@ export class Spin2DocumentSemanticParser {
     }
 
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
-    // highlight pointer parameters more correctly XYZZY
+    // highlight pointer parameters more correctly
     const methodFollowString: string = line.substring(startNameOffset + methodName.length);
     this._logSPIN(`  -- rptPubPriSig() methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
     const bHaveSpin2Method: boolean = isMethodCall(methodFollowString);
@@ -5765,6 +5765,19 @@ export class Spin2DocumentSemanticParser {
               }
               currNameLength = namePart.length;
               nameOffset = line.indexOf(namePart, nameOffset);
+              // if new  debug method in later version then highlight it
+              if (this.parseUtils.isNewlyAddedDebugSymbol(namePart)) {
+                this._logSPIN(`  --  SPIN new DEBUG name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: namePart.length,
+                  ptTokenType: 'debug',
+                  ptTokenModifiers: ['function']
+                });
+                nameOffset += namePart.length;
+                continue;
+              }
               this._logSPIN(`  --  processing name(s) namePart=[${namePart}](${namePart.length})`);
               let referenceDetails: RememberedToken | undefined = undefined;
               if (this.semanticFindings.isLocalToken(namePart)) {
@@ -6713,7 +6726,6 @@ export class Spin2DocumentSemanticParser {
           );
           // highlight optional type
           if (newType !== undefined) {
-            // XYZZY VAR work
             // highlight a VAR type use
             const isStorageType: boolean = this.isStorageType(newType);
             this._logVAR(`  -- GLBL ADD storageType=[${newType}], ofs=(${nameOffset}), isStorageType=(${isStorageType})`);
@@ -7978,7 +7990,7 @@ export class Spin2DocumentSemanticParser {
               });
             }
             if (possibleNameSet.length > 1) {
-              // we have .constant namespace suffix  // XYZZY XYZZY OFFSETS NEED REWORK!!!
+              // we have .constant namespace suffix  // XYZZY OFFSETS NEED REWORK!!!
               // determine if this is method has '(' or is constant name
               // we need to allow objInstance.CONSTANT and fail objectInstance[index].CONSTANT
               const refParts: string[] = possibleNameSet[1].split(/[ ()*+,\-/[\]]/).filter(Boolean);

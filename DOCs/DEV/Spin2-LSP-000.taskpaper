@@ -10,7 +10,7 @@ FEATURE Structure coloring:
 		- Fix sizeof() in SPIN @done(2025-04-12)
 		- Fix Ptrs declares as parameters in PUB/PRI @done(2025-04-12)
 	v46:
-		- fix C_Z debug color as UDEC()
+		- fix C_Z debug color as UDEC() @done(2025-04-13)
 	v47:
 		- fix REG use in CON  Ln#3
 		- fix taskid() in debug() Tic / nonTic Ln#13, 16, 26

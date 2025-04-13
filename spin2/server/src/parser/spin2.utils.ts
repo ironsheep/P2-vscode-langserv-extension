@@ -1479,6 +1479,21 @@ export class Spin2ParseUtils {
     ]
   };
 
+  public isNewlyAddedDebugSymbol(name: string): boolean {
+    const bIsUnderscoreSuffix: boolean = name.endsWith('_') ? true : false;
+    const nameKey: string = bIsUnderscoreSuffix ? name.substring(0, name.length - 1).toLowerCase() : name.toLowerCase();
+    let reservedStatus: boolean = false;
+    if (!reservedStatus && this.requestedSpinVersion(44)) {
+      // if {Spin2_v44} or greater then also search this table
+      reservedStatus = nameKey in this._tableDebugMethodsBool_v44;
+    }
+    if (!reservedStatus && this.requestedSpinVersion(46)) {
+      // if {Spin2_v46} or greater then also search this table
+      reservedStatus = nameKey in this._tableDebugMethodsBool_v46;
+    }
+    return reservedStatus;
+  }
+
   public isDebugMethod(name: string): boolean {
     const bIsUnderscoreSuffix: boolean = name.endsWith('_') ? true : false;
     const nameKey: string = bIsUnderscoreSuffix ? name.substring(0, name.length - 1).toLowerCase() : name.toLowerCase();
