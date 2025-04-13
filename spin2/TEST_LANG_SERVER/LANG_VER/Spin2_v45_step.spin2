@@ -1,10 +1,14 @@
 {Spin2_v45}
 
-CON STRUCT point(x,y), STRUCT line(point a, point b), TYPE = 7
-  CLK = 5
-  BITS = 32
+CON STRUCT point(x,y), STRUCT line(point a, point b)
+  PINS = 34
 
-VAR long A[100], B[100], line vline[10]
+VAR byte A[100], B[100], line vline[10]
+
+DAT
+myLine  LINE ' no intial values allow on line NOTE: if struct, the force label color to data not jump point
+        LONG    4,5 ' init line.a.x, line.a.y
+        LONG    6,7 ' init line.b.x, line.b.y
 
 PUB go() | line pline
 
@@ -26,13 +30,13 @@ PUB go() | line pline
   pline := 1,2,3,4
   DoLine(pline)
 
-
-
-PRI DoLine(line pline) | line pline2
+PRI DoLine(line pline) : point aRet, point bRet | line pline2
 
   debug(sdec(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
 
   pline2 := 5,6,7,8
+
+  myline :=: pline2
 
   pline :=: pline2
   debug(sdec_(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
@@ -58,6 +62,11 @@ PRI DoLine(line pline) | line pline2
   debug(sdec(sizeof(pline)))
 
   DoPtrs(@pline2.a.x, @pline2.b.y, @pline2)
+
+  aRet := pline2.a
+  bRet := pline2.b
+
+  aRet.x := 20
 
 
 PRI DoPtrs(^long ax, ^byte bx, ^line px)

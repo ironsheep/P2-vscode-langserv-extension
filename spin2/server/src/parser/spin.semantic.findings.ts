@@ -205,6 +205,9 @@ export class DocumentFindings {
   // here we track which file #include's what file(s)
   private includedFilenameByIncluderFilename = new Map<string, string[]>();
 
+  // list of all structure instance names
+  private structureNameByInstanceName = new Map<string, string>();
+
   // tracking document Spin2 version
   private documentSpin2Version: number = 0;
 
@@ -281,6 +284,7 @@ export class DocumentFindings {
     this.declarationLineCache.clear();
     this.declarationLocalLabelLineCache.clear();
     this.declarationGlobalLabelListCache = [];
+    this.structureNameByInstanceName.clear();
     this.blockComments = [];
     this.fakeComments = [];
     // clear our method-span pieces
@@ -1789,8 +1793,44 @@ export class DocumentFindings {
     this._logMessage(`  -- NEW-struct ${structure.name} -> ${structure.toString()}`);
   }
 
+  public getStructure(structureType: string): RememberedStructure | undefined {
+    const desiredStructure: RememberedStructure | undefined = this.globalStructures.getStructureNamed(structureType);
+    return desiredStructure;
+  }
+
+  public setStructureInstance(structureType: string, instanceName: string): void {
+    const typeKey: string = structureType.toLowerCase();
+    const instanceKey: string = instanceName.toLowerCase();
+    if (this.isStructure(typeKey)) {
+      if (!this.structureNameByInstanceName.has(instanceKey)) {
+        this.structureNameByInstanceName.set(instanceKey, typeKey);
+      }
+    } else {
+      this._logMessage(`  -- ERROR STRUCT ${structureType} is unknown!!`);
+    } // XYZZY
+
+    this._logMessage(`  -- NEW-struct-instance ${instanceName} is STRUCT ${structureType}`);
+  }
+
+  public getTypeForStructureInstance(instanceName: string): string | undefined {
+    let desiredType: string | undefined = undefined;
+    const instanceKey: string = instanceName.toLowerCase();
+    if (this.isStructureInstance(instanceKey)) {
+      desiredType = this.structureNameByInstanceName.get(instanceKey);
+    }
+    this._logMessage(`  -- getTypeForStructureInstance(${instanceName}) -> (${desiredType})`);
+    return desiredType;
+  }
+
   public isStructure(structureName: string): boolean {
-    const foundStatus: boolean = this.globalStructures.isStructureName(structureName);
+    const nameKey: string = structureName.toLowerCase();
+    const foundStatus: boolean = this.globalStructures.isStructureName(nameKey);
+    return foundStatus;
+  }
+
+  public isStructureInstance(instanceName: string): boolean {
+    const instanceKey: string = instanceName.toLowerCase();
+    const foundStatus: boolean = this.structureNameByInstanceName.has(instanceKey);
     return foundStatus;
   }
 
@@ -2142,6 +2182,12 @@ export class StructureSet {
     return this.rememberedStructuresByName.has(nameKey);
   }
 
+  public getStructureNamed(name: string): RememberedStructure | undefined {
+    const nameKey: string = name.toLowerCase();
+    const desiredStrcture: RememberedStructure | undefined = this.rememberedStructuresByName.get(nameKey);
+    return desiredStrcture;
+  }
+
   public clear(): void {
     this.rememberedStructuresByName.clear();
     this._logMessage(`* ${this.id} clear(), now ${this.length} structures`);
@@ -2464,12 +2510,14 @@ enum eMemberType {
 export class RememberedStructureMember {
   private _type: eMemberType;
   private _name: string;
+  private _structName: string;
   private _instanceCount: number;
 
-  constructor(name: string, type: eMemberType, count: number) {
+  constructor(name: string, type: eMemberType, count: number, structName: string = '') {
     this._name = name;
     this._type = type;
     this._instanceCount = count;
+    this._structName = structName;
   }
 
   get name(): string {
@@ -2484,8 +2532,15 @@ export class RememberedStructureMember {
     return eMemberType[this._type];
   }
 
-  get instaceCount(): number {
+  get isStructure(): boolean {
+    return this._type == eMemberType.MT_Structure ? true : false;
+  }
+
+  get instanceCount(): number {
     return this._instanceCount;
+  }
+  get structName(): string {
+    return this._structName;
   }
 }
 
@@ -2502,9 +2557,10 @@ export class RememberedStructure {
     for (let idx = 0; idx < members.length; idx++) {
       const memberInfo: IStructMember = members[idx];
       const memberType: eMemberType = this.validType(memberInfo.type);
+      const structName: string = memberType == eMemberType.MT_Structure ? memberInfo.type : '';
       const memberName: string = memberInfo.name;
       const memberInstances: number = memberInfo.arraySize;
-      const member: RememberedStructureMember = new RememberedStructureMember(memberName, memberType, memberInstances);
+      const member: RememberedStructureMember = new RememberedStructureMember(memberName, memberType, memberInstances, structName);
       this._members.push(member);
     }
   }
@@ -2513,13 +2569,41 @@ export class RememberedStructure {
     return this._name;
   }
 
+  public hasMemberNamed(name: string): boolean {
+    let hasMemberStatus: boolean = false;
+    for (let index = 0; index < this._members.length; index++) {
+      const member = this._members[index];
+      if (member.name.toUpperCase() === name.toUpperCase()) {
+        hasMemberStatus = true;
+        break;
+      }
+    }
+    return hasMemberStatus;
+  }
+
+  public memberNamed(name: string): RememberedStructureMember | undefined {
+    let desiredMember: RememberedStructureMember | undefined = undefined;
+    for (let index = 0; index < this._members.length; index++) {
+      const member = this._members[index];
+      if (member.name.toUpperCase() === name.toUpperCase()) {
+        desiredMember = member;
+        break;
+      }
+    }
+    return desiredMember;
+  }
+
   public toString(): string {
     let desiredString: string = `STRUCT ${this._name} (`;
     for (let idx = 0; idx < this._members.length; idx++) {
       const member: RememberedStructureMember = this._members[idx];
-      desiredString += `${member.typeString} ${member.name}`;
-      if (member.instaceCount > 1) {
-        desiredString += `[${member.instaceCount}]`;
+      if (member.type == eMemberType.MT_Structure) {
+        desiredString += `${member.typeString}(${member.structName}) ${member.name}`;
+      } else {
+        desiredString += `${member.typeString} ${member.name}`;
+      }
+      if (member.instanceCount > 1) {
+        desiredString += `[${member.instanceCount}]`;
       }
       if (idx < this._members.length - 1) {
         desiredString += ', ';

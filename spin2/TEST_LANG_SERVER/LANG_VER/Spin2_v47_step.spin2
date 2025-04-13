@@ -12,9 +12,15 @@ PUB start() | i, task
 
   debug("Ending: ", udec(taskid()), ", Other tasks are running")
 
-PRI LED(id)
+PRI LED(id) | taskStatus, possId
   debug("Started: ", udec(taskid()))
   repeat 20_000 * id
     pintoggle(id)
     tasknext()
+    taskstop(id)
+    taskhalt(thistask)
+    taskcont(id)
+    taskStatus := taskchk(id) ' ret free=0, running=1, halted=2
+    taskhlt~
+    possId := taskid()
   debug("Ending: ", udec(taskid()))

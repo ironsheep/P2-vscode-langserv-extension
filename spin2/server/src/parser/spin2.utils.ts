@@ -140,6 +140,11 @@ export class Spin2ParseUtils {
     return lineParts == null ? [] : lineParts;
   }
 
+  public getCommaDelimitedLineParts(line: string): string[] {
+    const lineParts: string[] | null = line.split(/\s*,\s*/);
+    return lineParts == null ? [] : lineParts;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public removeDebugSingleQuotedStrings(line: string, showDebug: boolean = true): string {
     // remove single-quoted strings from keyword processing
@@ -2660,7 +2665,7 @@ export class Spin2ParseUtils {
     return reservedStatus;
   }
 
-  private isVersionAddedMethod(name: string): boolean {
+  public isVersionAddedMethod(name: string): boolean {
     // a number of keywords are added by later versions
     //  this routine checks all added keywords allowed by the file-specific version
     const nameKey: string = name.toLowerCase();

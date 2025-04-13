@@ -1,3 +1,35 @@
+FEATURE Structure coloring:
+	v45:
+		- record PARAM instance of struct @done(2025-04-12)
+		- record RETURN instance of struct @done(2025-04-12)
+		- record LOCAL instance of struct @done(2025-04-12)
+		- record DAT instance of struct @done(2025-04-12)
+		- record VAR instance of struct @done(2025-04-12)
+		- SPIN Add highlight of dotted structure references (with name presence checking!) @done(2025-04-12)
+		- DAT structures: color label not as jump label but data label @done(2025-04-12)
+		- Fix sizeof() in SPIN @done(2025-04-12)
+		- Fix Ptrs declares as parameters in PUB/PRI @done(2025-04-12)
+	v46:
+		- fix C_Z debug color as UDEC()
+	v47:
+		- fix REG use in CON  Ln#3
+		- fix taskid() in debug() Tic / nonTic Ln#13, 16, 26
+	v49:
+		- Fix struct import from included object!
+	v50:
+		- Fix ORGH and END in in-line PASM
+		- Fix DITTO and DITTO END coloring in DAT sections
+		- CAN DITTO be in in-line pasm, too?  if so, fix coloring there too!
+	v51:
+		- Fix sizeof() in DAT data declaration
+		- Fix coloring of POW,LOG[2,10], EXP[2,10] functions
+	
+	UPCOMING:
+		- Add Constants to OBJ I/F DOC
+		- Add Structures, too
+		- Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
+		- If sizeof() validate varibale is a structure instance
+	
 FEATURE Code Folding - DONE:
 	- IF @done(2023-12-23)
 	- REPEAT @done(2023-12-23)

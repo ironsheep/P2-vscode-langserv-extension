@@ -2,8 +2,37 @@
 
 CON struct x(a,b,c), struct y(x xcopy[3])
 
+  RESULT1 = 2.0 pow 3.0
+  RESULT2 = log2 16.0
+  RESULT3 = exp2 16.0
+  RESULT4 = log10 1000.0
+  RESULT5 = exp10 3.0
+  RESULT6 = log 10.0
+  RESULT7 = exp 1.0
+
+DAT
+
+ xSize    long  sizeof(x)
+          long  2.0 pow 3.0
+          long  log2 16.0
+          long  exp2 16.0
+          long  log10 1000.0
+          long  exp10 3.0
+          long  log 10.0
+          long  exp 1.0
 
 PUB go() | a,b,c,m
+
+  debug(fdec(a pow b))
+
+  debug(fdec(log2 a))
+  debug(fdec(exp2 b))
+
+  debug(fdec(log10 a))
+  debug(fdec(exp10 b))
+
+  debug(fdec(log a))
+  debug(fdec(exp b))
 
   debug(fdec(2.0 pow 3.0))
 
@@ -16,10 +45,10 @@ PUB go() | a,b,c,m
   debug(fdec(log 10.0))
   debug(fdec(exp 1.0))
 
-  a,_[3],b,_,c := bla()
+  a, _[3], b, _, c := bla()
   debug(sdec(a,b,c))
 
-  a,_,b,_[x],c := bla()
+  a, _, b, _[x], c := bla()
   debug(sdec(a,b,c))
 
   m := @blab

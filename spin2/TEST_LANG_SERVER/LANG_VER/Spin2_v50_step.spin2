@@ -13,7 +13,7 @@ PUB go() | a,b
 
   debug(sdec(a))
 
-  debug(zstr(@\"string\rHello\x7F\r"))
+  debug(zstr(@\"string\rHello\x7F\r")) ' note to self: let's highlight control chars in this form of string!
 
 
 DAT	ditto	4
