@@ -1,4 +1,4 @@
-FEATURE Structure coloring:
+FEATURE Latest Language Ver Updates:
 	v45:
 		- record PARAM instance of struct @done(2025-04-12)
 		- record RETURN instance of struct @done(2025-04-12)
@@ -16,6 +16,7 @@ FEATURE Structure coloring:
 		- fix taskid() in debug() Tic / nonTic Ln#13, 16, 26 @done(2025-04-13)
 	v49:
 		- Fix struct import from included object!
+		- Fix structure declaration using '='
 	v50:
 		- Fix ORGH and END in in-line PASM
 		- Fix DITTO and DITTO END coloring in DAT sections
@@ -28,7 +29,7 @@ FEATURE Structure coloring:
 		- Add Constants to OBJ I/F DOC
 		- Add Structures to OBJ I/F DOC
 		- Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
-		- If sizeof() validate varibale is a structure instance
+		- If sizeof(): Validate variable is a structure instance
 		- Hover of structure name should show structure def'n 
 			- (and point to source where declared?)
 	
