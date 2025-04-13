@@ -21,14 +21,16 @@ FEATURE Structure coloring:
 		- Fix DITTO and DITTO END coloring in DAT sections
 		- CAN DITTO be in in-line pasm, too?  if so, fix coloring there too!
 	v51:
-		- Fix sizeof() in DAT data declaration
-		- Fix coloring of POW,LOG[2,10], EXP[2,10] functions
+		- Fix sizeof() in DAT data declaration @done(2025-04-13)
+		- Fix coloring of POW,LOG[2,10], EXP[2,10] functions @done(2025-04-13)
 	
 	UPCOMING:
 		- Add Constants to OBJ I/F DOC
-		- Add Structures, too
+		- Add Structures to OBJ I/F DOC
 		- Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
 		- If sizeof() validate varibale is a structure instance
+		- Hover of structure name should show structure def'n 
+			- (and point to source where declared?)
 	
 FEATURE Code Folding - DONE:
 	- IF @done(2023-12-23)

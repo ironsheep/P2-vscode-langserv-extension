@@ -274,12 +274,15 @@ export class Spin2DocumentSymbolParser {
             }
           } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
             // Detect start of INLINE PASM - org detect
-            // NOTE: The directives ORGH, ALIGNW, ALIGNL, and FILE are not allowed within in-line PASM code.
+            // NOTE: The directives ALIGNW, ALIGNL, and FILE are not allowed within in-line PASM code.
             if (trimmedLine.length > 0) {
               this._logMessage('    scan inPub/inPri Ln#' + (i + 1) + ' nonCommentLine=[' + nonCommentLine + ']');
               const lineParts: string[] = nonCommentLine.split(/[ \t]/).filter(Boolean);
-              if (lineParts.length > 0 && (lineParts[0].toUpperCase() == 'ORG' || lineParts[0].toUpperCase() == 'ORGF')) {
-                // Only ORG, not ORGF or ORGH
+              if (
+                lineParts.length > 0 &&
+                (lineParts[0].toUpperCase() == 'ORG' || lineParts[0].toUpperCase() == 'ORGH' || lineParts[0].toUpperCase() == 'ORGF')
+              ) {
+                // Only ORG, ORGH, not ORGF
                 this._logMessage('  - (' + (i + 1) + '): outline PUB/PRI line trimmedLine=[' + trimmedLine + ']');
                 prePasmState = currState;
                 currState = eParseState.inPAsmInline;

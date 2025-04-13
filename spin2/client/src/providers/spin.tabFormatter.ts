@@ -60,8 +60,8 @@ export class Formatter {
 
   readonly blockIdentifierREgEx1 = /^(?<block>^(con|var|obj|pub|pri|dat))[\s{']/i;
   readonly blockIdentifierREgEx2 = /^(?<block>^(con|var|obj|pub|pri|dat))$/i;
-  readonly orgIdentifierREgEx1 = /^(?<org>\s*(org|orgf|asm))\s+/i;
-  readonly orgIdentifierREgEx2 = /^(?<org>\s*(org|orgf|asm))$/i;
+  readonly orgIdentifierREgEx1 = /^(?<org>\s*(org|orgf|orgh|asm))\s+/i;
+  readonly orgIdentifierREgEx2 = /^(?<org>\s*(org|orgf|orgh|asm))$/i;
   readonly endIdentifierREgEx1 = /^(?<end>\s*(end|endasm))\s+/i;
   readonly endIdentifierREgEx2 = /^(?<end>\s*(end|endasm))$/i;
 

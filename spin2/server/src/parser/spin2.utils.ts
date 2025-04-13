@@ -1804,6 +1804,18 @@ export class Spin2ParseUtils {
     return reservedStatus;
   }
 
+  public isNewBinaryOrUnaryOperator(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    let reservedStatus: boolean = false;
+    if (!reservedStatus && this.requestedSpinVersion(51) && nameKey in this._tableSpinBinaryOperators_v51) {
+      reservedStatus = true;
+    }
+    if (!reservedStatus && this.requestedSpinVersion(51) && nameKey in this._tableSpinUnaryOperators_v51) {
+      reservedStatus = true;
+    }
+    return reservedStatus;
+  }
+
   private _tableSpinFloatConversions: { [Identifier: string]: TMethodTuple } = {
     float: [
       'FLOAT(x): floatValue',

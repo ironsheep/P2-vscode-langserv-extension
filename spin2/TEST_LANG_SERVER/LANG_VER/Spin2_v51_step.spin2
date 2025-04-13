@@ -2,6 +2,8 @@
 
 CON struct x(a,b,c), struct y(x xcopy[3])
 
+  RESULT1a = not 4
+  RESULT1b = trunc(4.0)
   RESULT1 = 2.0 pow 3.0
   RESULT2 = log2 16.0
   RESULT3 = exp2 16.0
