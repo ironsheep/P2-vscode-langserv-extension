@@ -1061,10 +1061,10 @@ async function scanForAndRecordPropPlugs(): Promise<void> {
       //this.testDownloadFile(usbPort);
     } catch (error) {
       if (error instanceof Error) {
-        this.logMessage(`Scan4Plug: Connect Error thrown: ${error.toString()}`);
+        logExtensionMessage(`Scan4Plug: Connect Error thrown: ${error.toString()}`);
       } else {
         // Handle the case where error is not an Error object
-        this.logMessage(`Scan4Plug: Connect Non-error thrown: ${JSON.stringify(error)}`);
+        logExtensionMessage(`Scan4Plug: Connect Non-error thrown: ${JSON.stringify(error)}`);
       } // Re-throw the error if you want to fail
     } finally {
       if (usbPort !== undefined) {
@@ -1072,10 +1072,10 @@ async function scanForAndRecordPropPlugs(): Promise<void> {
           await usbPort.close(); // we're done with this port
         } catch (error) {
           if (error instanceof Error) {
-            this.logMessage(`Scan4Plug: Close Error thrown: ${error.toString()}`);
+            logExtensionMessage(`Scan4Plug: Close Error thrown: ${error.toString()}`);
           } else {
             // Handle the case where error is not an Error object
-            this.logMessage(`Scan4Plug: Close Non-error thrown: ${JSON.stringify(error)}`);
+            logExtensionMessage(`Scan4Plug: Close Non-error thrown: ${JSON.stringify(error)}`);
           } // Re-throw the error if you want to fail
         }
       }
