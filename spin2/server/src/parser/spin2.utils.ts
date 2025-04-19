@@ -1160,10 +1160,7 @@ export class Spin2ParseUtils {
 
   public isBuiltInSmartPinReservedWord(name: string): boolean {
     const nameKey: string = name.toLowerCase();
-    let reservedStatus: boolean = false;
-    if (!reservedStatus) {
-      reservedStatus = nameKey in this._tableSmartPinNames;
-    }
+    const reservedStatus: boolean = nameKey in this._tableSmartPinNames;
     return reservedStatus;
   }
 
