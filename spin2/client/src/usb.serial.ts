@@ -299,7 +299,6 @@ export class UsbSerial {
     this._serialPort.on('error', (err) => this.handleSerialError(err.message));
     this._serialPort.on('open', () => this.handleSerialOpen());
 
-    //this._serialParser.on('data', (data) => this.handleSerialRx(data));
     this.startReadListener();
   }
 
@@ -399,7 +398,7 @@ export class UsbSerial {
 
   private stopReadListener() {
     // stop waiting for any returned data
-    this._serialParser.off('data', () => this.handleSerialRx());
+    this._serialParser.off('data', (data) => this.handleSerialRx(data));
   }
 
   /*

@@ -47,7 +47,7 @@ export const updateStatusBarFlashDownloadItem = (showItem: boolean | null) => {
         sbiText = 'Dnld: RAM';
         statusBarItem.tooltip = 'Download to RAM, click to change to FLASH';
       }
-      if (sbiText === undefined || sbiText == null) sbiText = '';
+      if (sbiText === undefined) sbiText = '';
 
       // preparation for https://github.com/DrMerfy/vscode-overtype/issues/2
       // if (editModeConfiguration.showCapsLockState && capsLockOn) {

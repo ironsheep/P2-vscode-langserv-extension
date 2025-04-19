@@ -47,7 +47,7 @@ export const updateStatusBarCompileDebugItem = (showItem: boolean | null) => {
         sbiText = 'Debug: off';
         statusBarItem.tooltip = 'NOT compiling with DEBUG, click to enable';
       }
-      if (sbiText === undefined || sbiText == null) sbiText = '';
+      if (sbiText === undefined) sbiText = '';
 
       statusBarItem.text = sbiText;
 

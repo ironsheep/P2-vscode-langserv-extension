@@ -50,7 +50,7 @@ export const updateStatusBarInsertModeItem = (insertMode: eEditMode | null) => {
         sbiText = editModeConfiguration.labelAlignMode;
         statusBarItem.tooltip = 'Align Mode, click to change to Insert Mode';
       }
-      if (sbiText === undefined || sbiText == null) sbiText = '';
+      if (sbiText === undefined) sbiText = '';
 
       // preparation for https://github.com/DrMerfy/vscode-overtype/issues/2
       // if (editModeConfiguration.showCapsLockState && capsLockOn) {
