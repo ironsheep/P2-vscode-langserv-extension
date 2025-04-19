@@ -141,11 +141,11 @@ export class UsbSerialTerminal extends EventEmitter {
   public async close(): Promise<void> {
     // (alternate suggested by perplexity search)
     // release the usb port
-    if (this._serialPort && this._serialPort.isOpen) {
+    if (this._serialPort !== undefined && this._serialPort.isOpen) {
       await waitMSec(50);
     }
     return new Promise((resolve, reject) => {
-      if (this._serialPort && this._serialPort.isOpen) {
+      if (this._serialPort !== undefined && this._serialPort.isOpen) {
         this._serialPort.close((err) => {
           if (err) {
             this.logMessage(`  -- close() Error: ${err.message}`);
@@ -195,7 +195,7 @@ export class UsbSerialTerminal extends EventEmitter {
   private stopReadListener() {
     // stop waiting for any returned data
     this.logMessage(`* USBSerTerm stopReadListener()`);
-    this._serialParser.off('data', () => this.handleSerialRx());
+    this._serialParser.off('data', (data) => this.handleSerialRx(data));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

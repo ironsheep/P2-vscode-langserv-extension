@@ -13,7 +13,7 @@ PUB start() | i, task
   debug("Ending: ", udec(taskid()), ", Other tasks are running")
 
 PRI LED(id) | taskStatus, possId
-  debug("Started: ", udec(taskid()))
+  debug("Started: ", udec(taskid())) ' BUG fix this color!!!
   repeat 20_000 * id
     pintoggle(id)
     tasknext()

@@ -2945,7 +2945,7 @@ export class Spin2ParseUtils {
     ];
     let reservedStatus: boolean = pasmReservedswordsOfNote.indexOf(nameKey) != -1;
     if (!reservedStatus) {
-      reservedStatus == nameKey in this._tableSpinCogRegisters;
+      reservedStatus = nameKey in this._tableSpinCogRegisters;
     } else if (this.requestedSpinVersion(46) && nameKey in this._tableClockControlSymbols_v46) {
       reservedStatus = true;
     } else if (this.requestedSpinVersion(47) && nameKey in this._tableSpinTaskRegisters_v47) {

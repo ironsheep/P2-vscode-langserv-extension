@@ -16,6 +16,7 @@ PUB go() | a,b
   debug(zstr(@\"string\rHello\x7F\r")) ' note to self: let's highlight control chars in this form of string!
 
 
-DAT	ditto	4
+DAT	ditto	4  ' COLOR like ORG/ORGH/END (pasm directive!)
 	long	$77777777+$$
 	ditto	end
+        rep

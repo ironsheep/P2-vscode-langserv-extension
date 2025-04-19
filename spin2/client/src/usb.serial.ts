@@ -166,7 +166,7 @@ export class UsbSerial {
   }
 
   public async resetPort(): Promise<void> {
-    if (this._serialPort && this._serialPort.isOpen) {
+    if (this._serialPort !== undefined && this._serialPort.isOpen) {
       await this.close();
     }
     this.loadSerialPort();
@@ -252,13 +252,13 @@ export class UsbSerial {
     // (alternate suggested by perplexity search)
     // release the usb port
     this.logMessage(`* USBSer closing...`);
-    if (this._serialPort && this._serialPort.isOpen) {
+    if (this._serialPort !== undefined && this._serialPort.isOpen) {
       await waitMSec(10); // 500 allowed prop to restart? use 10 mSec instead
     }
     // Remove all listeners to prevent memory leaks
     this._serialPort.removeAllListeners();
     return new Promise((resolve, reject) => {
-      if (this._serialPort && this._serialPort.isOpen) {
+      if (this._serialPort !== undefined && this._serialPort.isOpen) {
         this._serialPort.close((err) => {
           if (err) {
             this.logMessage(`  -- close() Error: ${err.message}`);

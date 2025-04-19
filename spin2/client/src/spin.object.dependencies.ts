@@ -1251,7 +1251,7 @@ export class Dependency extends vscode.TreeItem {
     this._basename = label.toString(); // save 'given' name
     this.id = userId;
     if (label !== undefined) {
-      this._basename = label.toString().replace('.spin2', '');
+      this._basename = this._basename.replace('.spin2', '');
       this._basename = this._basename.replace('.spin', '');
     }
     if (objName.includes('top-file')) {

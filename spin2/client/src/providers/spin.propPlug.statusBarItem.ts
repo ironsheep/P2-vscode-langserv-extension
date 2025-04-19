@@ -81,7 +81,7 @@ export const updateStatusBarPropPlugItem = (showItem: boolean | null) => {
         const additionalText: string = availablePlugCount > 1 ? ', Click to change' : '';
         statusBarItem.tooltip = `Downloading via PropPlug S/N ${StateOrSN}${additionalText}`;
       }
-      if (sbiText === undefined || sbiText == null) sbiText = '';
+      if (sbiText === undefined) sbiText = '';
 
       statusBarItem.text = sbiText;
 

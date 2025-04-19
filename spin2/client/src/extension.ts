@@ -527,79 +527,75 @@ function registerCommands(context: vscode.ExtensionContext): void {
                   }
                   downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
                   // write to USB PropPlug
-                  if (deviceNode !== undefined) {
-                    let usbPort: UsbSerial;
-                    let errMsg: string = '';
-                    let noDownloadError: boolean = true;
-                    try {
-                      usbPort = new UsbSerial(deviceNode);
-                      if (await usbPort.deviceIsPropellerV2()) {
-                        await usbPort.download(binaryImage, needsP2ChecksumVerify);
-                        downloaderTerminal.sendText(`# DONE`);
-                        //await usbPort.changeBaudRate(115200);
-                      } else {
-                        downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
-                        noDownloadError = false;
-                      }
-                      //this.testDownloadFile(usbPort);
-                    } catch (error) {
+                  let usbPort: UsbSerial;
+                  let errMsg: string = '';
+                  let noDownloadError: boolean = true;
+                  try {
+                    usbPort = new UsbSerial(deviceNode);
+                    if (await usbPort.deviceIsPropellerV2()) {
+                      await usbPort.download(binaryImage, needsP2ChecksumVerify);
+                      downloaderTerminal.sendText(`# DONE`);
+                      //await usbPort.changeBaudRate(115200);
+                    } else {
+                      downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
                       noDownloadError = false;
-                      if (error instanceof Error) {
-                        errMsg = `Dnld: Error thrown: ${error.toString()}`;
-                      } else {
-                        // Handle the case where error is not an Error object
-                        errMsg = `Dnld: Non-error thrown: ${JSON.stringify(error)}`;
-                      } // Re-throw the error if you want to fail
-                    } finally {
+                    }
+                    //this.testDownloadFile(usbPort);
+                  } catch (error) {
+                    noDownloadError = false;
+                    if (error instanceof Error) {
+                      errMsg = `Dnld: Error thrown: ${error.toString()}`;
+                    } else {
+                      // Handle the case where error is not an Error object
+                      errMsg = `Dnld: Non-error thrown: ${JSON.stringify(error)}`;
+                    } // Re-throw the error if you want to fail
+                  } finally {
+                    if (errMsg.length > 0) {
+                      this.logMessage(errMsg);
+                      downloaderTerminal.sendText(`# ERROR: ${errMsg}`);
+                    }
+                    if (usbPort !== undefined) {
+                      try {
+                        await usbPort.close(); // we're done with this port
+                      } catch (error) {
+                        noDownloadError = false;
+                        if (error instanceof Error) {
+                          errMsg = `Dnld: close Error thrown: ${error.toString()}`;
+                        } else {
+                          // Handle the case where error is not an Error object
+                          errMsg = `Dnld: close Non-error thrown: ${JSON.stringify(error)}`;
+                        } // Re-throw the error if you want to fail
+                      }
                       if (errMsg.length > 0) {
                         this.logMessage(errMsg);
                         downloaderTerminal.sendText(`# ERROR: ${errMsg}`);
                       }
-                      if (usbPort !== undefined) {
-                        try {
-                          await usbPort.close(); // we're done with this port
-                        } catch (error) {
-                          noDownloadError = false;
-                          if (error instanceof Error) {
-                            errMsg = `Dnld: close Error thrown: ${error.toString()}`;
-                          } else {
-                            // Handle the case where error is not an Error object
-                            errMsg = `Dnld: close Non-error thrown: ${JSON.stringify(error)}`;
-                          } // Re-throw the error if you want to fail
-                        }
-                        if (errMsg.length > 0) {
-                          this.logMessage(errMsg);
-                          downloaderTerminal.sendText(`# ERROR: ${errMsg}`);
-                        }
-                      }
                     }
-                    // if we want terminal after download then switch to handing terminal I/O <-> USB
-                    if (noDownloadError && toolchainConfiguration.enterTerminalAfterDownload) {
-                      const userBaudRate: number = toolchainConfiguration.userBaudrate;
-                      const usbTermPort = new UsbSerialTerminal(deviceNode, userBaudRate);
-                      downloaderTerminal.sendText(`# ---- switching to P2 I/O ----`);
-                      // Listen for the terminal-closed event
-                      downloaderTerminal.onDidClose(() => {
-                        this.logMessage('Dnld: LoaderPseudoterminal instance closed');
-                        // shutdown the USB port
-                        usbTermPort.close();
-                      });
-                      // listen for data from P2
-                      usbTermPort.on('line', (line: string) => {
-                        this.logMessage('Dnld: Received line:', line);
-                        // send to terminal window
-                        downloaderTerminal.sendText(line);
-                      });
+                  }
+                  // if we want terminal after download then switch to handing terminal I/O <-> USB
+                  if (noDownloadError && toolchainConfiguration.enterTerminalAfterDownload) {
+                    const userBaudRate: number = toolchainConfiguration.userBaudrate;
+                    const usbTermPort = new UsbSerialTerminal(deviceNode, userBaudRate);
+                    downloaderTerminal.sendText(`# ---- switching to P2 I/O ----`);
+                    // Listen for the terminal-closed event
+                    downloaderTerminal.onDidClose(() => {
+                      this.logMessage('Dnld: LoaderPseudoterminal instance closed');
+                      // shutdown the USB port
+                      usbTermPort.close();
+                    });
+                    // listen for data from P2
+                    usbTermPort.on('line', (line: string) => {
+                      this.logMessage('Dnld: Received line:', line);
+                      // send to terminal window
+                      downloaderTerminal.sendText(line);
+                    });
 
-                      // listen for data from terminal keyboard entry
-                      downloaderTerminal.on('line', (line: string) => {
-                        this.logMessage('Dnld: Received data from terminal:', line);
-                        // send to USB port
-                        usbTermPort.write(line);
-                      });
-                    }
-                  } else {
-                    downloaderTerminal.sendText(`# ERROR: No PropPlug selected (spinExtension.toolchain.propPlug.selected not set)`);
+                    // listen for data from terminal keyboard entry
+                    downloaderTerminal.on('line', (line: string) => {
+                      this.logMessage('Dnld: Received data from terminal:', line);
+                      // send to USB port
+                      usbTermPort.write(line);
+                    });
                   }
                 } else {
                   downloaderTerminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
@@ -1762,7 +1758,7 @@ function isCompilerInstalled(compilerId: string | undefined): boolean {
     for (const key in toolPaths) {
       // NOTE: (`Key: ${key}, Value: ${toolPaths[key]}`);
       logExtensionMessage(`* isCompilerInstalled(${compilerId}) checking=[${key}]`);
-      if (compilerId !== undefined && key === compilerId) {
+      if (key === compilerId) {
         installedStatus = true;
         break;
       }
