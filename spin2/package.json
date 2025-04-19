@@ -893,6 +893,11 @@
         "description": "A parameter type of returnValue."
       },
       {
+        "id": "directive",
+        "superType": "type",
+        "description": "A SPIN-inLine / PASM Directive."
+      },
+      {
         "id": "storageType",
         "superType": "type",
         "description": "A built-in storage type"
@@ -962,6 +967,9 @@
           ],
           "storageType": [
             "storage.type.pasm.spin2"
+          ],
+          "directive": [
+            "storage.modifier.spin2"
           ]
         }
       }

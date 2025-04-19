@@ -853,6 +853,22 @@ export class Spin2ParseUtils {
     fit: ['FIT [value]', 'test to make sure hub/cog address has not exceeded {value}']
   };
 
+  private _tableSpinPAsmLangParts_v50: { [Identifier: string]: string[] } = {
+    // DAT/InLine PASM
+    ditto: [
+      "DITTO [[value]|END]', 'DITTO count' is used to start a generative block (count=0 generates no code).‬<br>'DITTO END' terminates a generative block."
+    ]
+  };
+
+  public isSpinPAsmLangDirective(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    let reservedStatus: boolean = nameKey in this._tableSpinPAsmLangParts;
+    if (!reservedStatus && this.requestedSpinVersion(50)) {
+      reservedStatus = nameKey in this._tableSpinPAsmLangParts_v50;
+    }
+    return reservedStatus;
+  }
+
   private _docTextForSpinBuiltInLanguagePart(name: string): IBuiltinDescription {
     const nameKey: string = name.toLowerCase();
     const desiredDocText: IBuiltinDescription = {
@@ -900,6 +916,11 @@ export class Spin2ParseUtils {
     } else if (nameKey in this._tableSpinPAsmLangParts) {
       desiredDocText.category = 'DAT HubExec/CogExec Directives';
       const protoWDescr: string[] = this._tableSpinPAsmLangParts[nameKey];
+      desiredDocText.signature = protoWDescr[0];
+      desiredDocText.description = protoWDescr[1]; // bold
+    } else if (this.requestedSpinVersion(50) && nameKey in this._tableSpinPAsmLangParts_v50) {
+      desiredDocText.category = 'DAT / Inline PASM Directives';
+      const protoWDescr: string[] = this._tableSpinPAsmLangParts_v50[nameKey];
       desiredDocText.signature = protoWDescr[0];
       desiredDocText.description = protoWDescr[1]; // bold
     }
@@ -3523,6 +3544,8 @@ export class Spin2ParseUtils {
       } else if (this.isBadP1AsmEffectOrConditional(name) && !this.isBadP1AsmEffect(name)) {
         haveLabelStatus = false;
       } else if (this.isP1AsmInstruction(name)) {
+        haveLabelStatus = false;
+      } else if (this.isSpinPAsmLangDirective(name)) {
         haveLabelStatus = false;
       }
     }

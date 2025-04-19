@@ -2,7 +2,7 @@
 
 OBJ m : "Spin2_v49_step_child"
 
-CON struct mpoint = m.point
+CON struct mpoint = m.point   ' FIXME: allow struct's from children!
 
 PUB go() | m.point a, mpoint b
 

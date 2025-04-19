@@ -14,6 +14,7 @@ export default class SemanticTokensProvider implements Provider {
   private tokenTypesLegend = [
     'comment',
     'debug', // with 'function' modifier
+    'directive',
     'string',
     'keyword',
     'number',
@@ -65,7 +66,7 @@ export default class SemanticTokensProvider implements Provider {
     'illegalUse'
   ];
 
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   //private namedRegs: lsp.CompletionItem[];

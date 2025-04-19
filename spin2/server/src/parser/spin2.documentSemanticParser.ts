@@ -34,6 +34,7 @@ import {
 } from './spin.common';
 import { fileInDirExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
+import { version } from 'os';
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -639,9 +640,11 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inPAsmInline) {
         // process pasm (assembly) lines
         if (bHaveLineToProcess) {
-          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
+          const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+          this._logPASM(
+            `- Ln#${lineNbr} pre-scan InLinePasm line lineParts=[${lineParts}](${lineParts.length}), trimmedNonCommentLine=[${trimmedNonCommentLine}]`
+          );
           if (lineParts.length > 0 && (lineParts[0].toUpperCase() == 'END' || lineParts[0].toUpperCase() == 'ENDASM')) {
-            this._logPASM('- Ln#' + lineNbr + ' pre-scan SPIN PASM line trimmedLine=[' + trimmedLine + ']');
             // record start of PASM code inline
             this.semanticFindings.recordPasmEnd(i);
             currState = prePAsmState;
@@ -693,7 +696,7 @@ export class Spin2DocumentSemanticParser {
             (lineParts[0].toUpperCase() == 'ORG' || lineParts[0].toUpperCase() == 'ORGH' || lineParts[0].toUpperCase() == 'ASM')
           ) {
             // Only ORG, ORGH, not ORGF
-            this._logPASM(`- Ln#${lineNbr} pre-scan PUB/PRI line trimmedLine=[${trimmedLineToParse}]`);
+            this._logPASM(`- Ln#${lineNbr} pre-scan PUB/PRI InLinePasm START line trimmedLine=[${trimmedLineToParse}]`);
             // record start of PASM code NOT inline
             this.semanticFindings.recordPasmStart(i, true); // true = IS inline
             prePAsmState = currState;
@@ -952,27 +955,12 @@ export class Spin2DocumentSemanticParser {
           this._logPASM(`- process DAT SECTION Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
           if (line.length > 3) {
             if (trimmedLine.length > 6) {
-              const nonCommentLineRemainder: string = this.parseUtils.getNonCommentLineRemainder(0, trimmedLine);
-              let orgStr: string = 'ORGH';
-              let orgOffset: number = nonCommentLineRemainder.toUpperCase().indexOf(orgStr); // ORGH
-              if (orgOffset == -1) {
-                orgStr = 'ORGF';
-                orgOffset = nonCommentLineRemainder.toUpperCase().indexOf(orgStr); // ORGF
-                if (orgOffset == -1) {
-                  orgStr = 'ORG';
-                  orgOffset = nonCommentLineRemainder.toUpperCase().indexOf(orgStr); // ORG
-                }
-              }
+              const [orgOffset, orgStr, nonCommentLine] = this.orgOffsetInline(trimmedLine);
               if (orgOffset != -1) {
-                // let's double check this is NOT in quoted string
-                const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(nonCommentLineRemainder);
-                orgOffset = nonStringLine.toUpperCase().indexOf(orgStr); // ORG, ORGF, ORGH
-              }
-              if (orgOffset != -1) {
-                this._logPASM('- Ln#' + lineNbr + ' scan DAT line nonCommentLineRemainder=[' + nonCommentLineRemainder + ']');
+                this._logPASM('- Ln#' + lineNbr + ' scan DAT line nonCommentLine=[' + nonCommentLine + ']');
 
                 // process remainder of ORG line
-                const nonCommentOffset = line.indexOf(nonCommentLineRemainder, 0);
+                const nonCommentOffset = line.indexOf(nonCommentLine, 0);
                 // lineNumber, currentOffset, line, allowLocalVarStatus, this.showPAsmCode
                 const allowLocalVarStatus: boolean = false;
                 const NOT_DAT_PASM: boolean = false;
@@ -1029,22 +1017,8 @@ export class Spin2DocumentSemanticParser {
         // process a line in a data section
         this._logPASM(`- process DAT Ln#${lineNbr}  trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
-          const nonCommentLineRemainder: string = this.parseUtils.getNonCommentLineRemainder(0, trimmedLine);
-          let orgStr: string = 'ORGH';
-          let orgOffset: number = nonCommentLineRemainder.toUpperCase().indexOf(orgStr); // ORGH
-          if (orgOffset == -1) {
-            orgStr = 'ORGF';
-            orgOffset = nonCommentLineRemainder.toUpperCase().indexOf(orgStr); // ORGF
-            if (orgOffset == -1) {
-              orgStr = 'ORG';
-              orgOffset = nonCommentLineRemainder.toUpperCase().indexOf(orgStr); // ORG
-            }
-          }
-          if (orgOffset != -1) {
-            // let's double check this is NOT in quoted string
-            const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(nonCommentLineRemainder);
-            orgOffset = nonStringLine.toUpperCase().indexOf(orgStr); // ORG, ORGF, ORGH
-          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const [orgOffset, orgStr, nonCommentLine] = this.orgOffsetInline(trimmedLine);
           if (orgOffset != -1) {
             // process ORG line allowing label to be present
             const partialTokenSet: IParsedToken[] = this._reportDAT_DeclarationLine(i, 0, line);
@@ -1091,9 +1065,11 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inPAsmInline) {
         // process pasm (assembly) lines
         if (bHaveLineToProcess) {
-          this._logPASM('- process SPIN2 PASM Ln#' + lineNbr + '  trimmedLine=[' + trimmedLine + ']');
-          const lineParts: string[] = trimmedLine.split(/[ \t]/).filter(Boolean);
-          if (lineParts.length > 0 && (lineParts[0].toUpperCase() == 'END' || lineParts[0].toUpperCase() == 'ENDASM')) {
+          const lineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+          this._logPASM(
+            `- Ln#${lineNbr} SPIN2 InLinePasm line lineParts=[${lineParts}](${lineParts.length}), trimmedNonCommentLine=[${trimmedNonCommentLine}]`
+          );
+          if (lineParts.length > 0 && (lineParts[0].toUpperCase() == 'ENDASM' || lineParts[0].toUpperCase() == 'END')) {
             currState = prePAsmState;
             this._logState(`- scan Ln#${lineNbr} POP currState=[${eParseState[currState]}]`);
             if (lineParts[0].toUpperCase() == 'ENDASM' && !this.configuration.highlightFlexspinDirectives) {
@@ -1113,9 +1089,21 @@ export class Spin2DocumentSemanticParser {
                 eSeverity.Error,
                 `P2 Spin - FlexSpin PreProcessor Directive [${lineParts[0]}] not supported!`
               );
+            } else if (lineParts[0].toUpperCase() == 'END') {
+              // color our 'ditto end' token
+              const nameOffset: number = line.indexOf(lineParts[0]);
+              this._logPASM('  --  SPIN inlinePASM add name=[' + lineParts[1] + ']');
+              this._recordToken(tokenSet, line, {
+                line: lineNbr - 1,
+                startCharacter: nameOffset,
+                length: lineParts[0].length,
+                ptTokenType: 'directive',
+                ptTokenModifiers: []
+              });
             }
             // and ignore rest of this line
           } else {
+            // process pasm code
             const partialTokenSet: IParsedToken[] = this._reportSPIN_PAsmCode(i, 0, line);
             this._reportNonDupeTokens(partialTokenSet, '=> inlinePASM: ', line, tokenSet);
           }
@@ -1135,7 +1123,7 @@ export class Spin2DocumentSemanticParser {
             lineParts.length > 0 &&
             (lineParts[0].toUpperCase() == 'ORG' || lineParts[0].toUpperCase() == 'ORGH' || lineParts[0].toUpperCase() == 'ASM')
           ) {
-            this._logPASM(`- Ln#${lineNbr} PUB/PRI line Multi line=[${continuedLineSet.line}]`);
+            this._logPASM(`- Ln#${lineNbr} PUB/PRI InLinePasm START Multi line=[${continuedLineSet.line}]`);
             // Only ORG, ORGH, not ORGF,
             prePAsmState = currState;
             currState = eParseState.inPAsmInline;
@@ -1177,10 +1165,10 @@ export class Spin2DocumentSemanticParser {
             (lineParts[0].toUpperCase() == 'ORG' || lineParts[0].toUpperCase() == 'ORGH' || lineParts[0].toUpperCase() == 'ASM')
           ) {
             // Only ORG, ORGH, not ORGF
+            this._logPASM(`- Ln#${lineNbr} PUB/PRI  InLinePasm START line trimmedLine=[${trimmedLine}]`);
             prePAsmState = currState;
             currState = eParseState.inPAsmInline;
             // even tho' we are processsing it as if we know it we still flag it is FrexSpin NOT Enabled
-            this._logPASM(`- Ln#${lineNbr} PUB/PRI line trimmedLine=[${trimmedLine}]`);
             if (lineParts[0].toUpperCase() == 'ASM' && !this.configuration.highlightFlexspinDirectives) {
               // report this unsupported line (FlexSpin)
               const nameOffset: number = line.indexOf(lineParts[0]);
@@ -1219,6 +1207,23 @@ export class Spin2DocumentSemanticParser {
       }
     }
     return tokenSet;
+  }
+
+  private orgOffsetInline(line: string): [number, string, string] {
+    const nonCommentLineRemainder: string = this.parseUtils.getNonCommentLineRemainder(0, line);
+    // let's double check this is NOT in quoted string
+    const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(nonCommentLineRemainder).toUpperCase();
+    let orgStr: string = 'ORGH';
+    let orgOffset: number = nonStringLine.indexOf(orgStr); // ORGH
+    if (orgOffset == -1) {
+      orgStr = 'ORGF';
+      orgOffset = nonStringLine.indexOf(orgStr); // ORGF
+      if (orgOffset == -1) {
+        orgStr = 'ORG';
+        orgOffset = nonStringLine.indexOf(orgStr); // ORG
+      }
+    }
+    return [orgOffset, orgStr, nonCommentLineRemainder];
   }
 
   private _haveUnmatchCloseOnLine(line: string, searchChar: string): [boolean, number] {
@@ -2115,13 +2120,27 @@ export class Spin2DocumentSemanticParser {
           // we have a label which type is it?
           declType = labelName.startsWith('.') ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
         }
-        this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
-        this.semanticFindings.setLocalPAsmTokenForMethod(
-          this.currentMethodName,
-          labelName,
-          new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers),
-          this._declarationComment()
-        );
+        if (!this.semanticFindings.hasLocalPAsmTokenForMethod(this.currentMethodName, labelName)) {
+          this._logPASM(`  -- Inline PASM report NEW pasm token=[${labelName}], within method=[${this.currentMethodName}]]`);
+          this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
+          this.semanticFindings.setLocalPAsmTokenForMethod(
+            this.currentMethodName,
+            labelName,
+            new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers),
+            this._declarationComment()
+          );
+        } else {
+          // report duplicate symbol
+          this._logPASM(`  -- Inline PASM report ERROR pasm token=[${labelName}], within method=[${this.currentMethodName}]] already exists!`);
+          const nameOffset = line.indexOf(labelName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+          this.semanticFindings.pushDiagnosticMessage(
+            lineNbr - 1,
+            nameOffset,
+            nameOffset + labelName.length,
+            eSeverity.Error,
+            `P2 Spin Duplicate symbol Declaration: found earlier [${this.currentMethodName} ${labelName}()]`
+          );
+        }
       }
     }
   }
@@ -3153,6 +3172,7 @@ export class Spin2DocumentSemanticParser {
     this._logDAT(`- rptDataDeclLn lineParts=[${lineParts}](${lineParts.length})`);
     // remember this object name so we can annotate a call to it
     if (lineParts.length > 1) {
+      // line starts with [storage type | FILE | ORG]
       if (this.isStorageType(lineParts[0]) || lineParts[0].toUpperCase() == 'FILE' || lineParts[0].toUpperCase() == 'ORG') {
         // if we start with storage type (or FILE, or ORG), not name, process rest of line for symbols
         currentOffset = line.indexOf(lineParts[0], currentOffset);
@@ -3168,8 +3188,8 @@ export class Spin2DocumentSemanticParser {
         );
         this._reportNonDupeTokens(partialTokenSet, '=> DATvalue: ', line, tokenSet);
       } else {
-        // this is line with name, storageType, and initial value
-        this._logDAT('  -- rptDatDecl lineParts=[' + lineParts + ']');
+        // this is line with name, storageType, and initial value  XYZZY DITTO
+        this._logDAT(`  -- rptDatDecl lineParts=[${lineParts}](${lineParts.length})`);
         const newName = lineParts[0];
         const nameOffset: number = line.indexOf(newName, currentOffset);
         let referenceDetails: RememberedToken | undefined = undefined;
@@ -3178,8 +3198,8 @@ export class Spin2DocumentSemanticParser {
           this._logMessage('  --  FOUND rddl global name=[' + newName + ']');
         }
         if (referenceDetails !== undefined) {
-          // add back in our declaration flag
-          const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
+          // highlight label declaration
+          const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration'); // add back in our declaration flag
           this._recordToken(tokenSet, line, {
             line: lineIdx,
             startCharacter: nameOffset,
@@ -3187,6 +3207,60 @@ export class Spin2DocumentSemanticParser {
             ptTokenType: referenceDetails.type,
             ptTokenModifiers: modifiersWDecl
           });
+        } else if (newName.toUpperCase() == 'DITTO') {
+          // if version 50 color DITTO
+          this._logPASM('  --  DAT DITTO directive=[' + newName + ']');
+          let nameOffset: number = line.indexOf(newName, currentOffset);
+          if (this.parseUtils.requestedSpinVersion(50)) {
+            // color our 'ditto' token
+            this._logPASM('  --  DAT add name=[' + newName + ']');
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: newName.length,
+              ptTokenType: 'directive',
+              ptTokenModifiers: []
+            });
+            if (lineParts[1].toUpperCase() == 'END') {
+              // color our 'ditto end' token
+              nameOffset = line.indexOf(lineParts[1], nameOffset + newName.length);
+              this._logPASM('  --  DAT add name=[' + lineParts[1] + ']');
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: lineParts[1].length,
+                ptTokenType: 'directive',
+                ptTokenModifiers: []
+              });
+            }
+          } else {
+            // if NOT version 50  DITTO and DITTO END are illegal
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: newName.length,
+              ptTokenType: 'variable',
+              ptTokenModifiers: ['illegalUse']
+            });
+            this.semanticFindings.pushDiagnosticMessage(
+              lineIdx,
+              nameOffset,
+              nameOffset + newName.length,
+              eSeverity.Error,
+              `Illegal P2 DAT PASM directive [${newName}]`
+            );
+            if (lineParts[1].toUpperCase() == 'END') {
+              // color our 'ditto end' token
+              nameOffset = line.indexOf(lineParts[1], nameOffset + newName.length);
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: lineParts[1].length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['illegalUse']
+              });
+            }
+          }
         } else if (!this.parseUtils.isP2AsmReservedSymbols(newName) && !this.parseUtils.isP2AsmInstruction(newName)) {
           this._logDAT('  --  DAT rDdl MISSING name=[' + newName + ']');
           this._recordToken(tokenSet, line, {
@@ -3415,6 +3489,7 @@ export class Spin2DocumentSemanticParser {
                 !this.parseUtils.isDatNFileStorageType(namePart) &&
                 !this.parseUtils.isBinaryOperator(namePart) &&
                 !this.parseUtils.isUnaryOperator(namePart) &&
+                !this.parseUtils.isSpinPAsmLangDirective(namePart) &&
                 !this.parseUtils.isBuiltinStreamerReservedWord(namePart)
               ) {
                 if (showDebug) {
@@ -6136,7 +6211,7 @@ export class Spin2DocumentSemanticParser {
     const inLinePAsmRHSStr = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
     if (inLinePAsmRHSStr.length > 0) {
       const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
-      this._logPASM('  -- reportInLinePAsmDecl lineParts=[' + lineParts + ']');
+      this._logPASM(`  -- reportInLinePAsmDecl lineParts=[${lineParts}](${lineParts.length})`);
       //const bIsAlsoDebugLine: boolean = inLinePAsmRHSStr.toLowerCase().indexOf("debug(") != -1 ? true : false;
       const bIsAlsoDebugLine: boolean = haveDebugLine(inLinePAsmRHSStr);
       if (bIsAlsoDebugLine) {
@@ -6204,6 +6279,60 @@ export class Spin2DocumentSemanticParser {
               eSeverity.Error,
               `Illegal P2 Spin inline-pasm directive [${possibleDirective}]`
             );
+          } else if (possibleDirective.toUpperCase() == 'DITTO') {
+            // if version 50 color DITTO
+            this._logPASM('  --  SPIN inlinePAsm DITTO directive=[' + possibleDirective + ']');
+            let nameOffset: number = line.indexOf(possibleDirective, currentOffset);
+            if (this.parseUtils.requestedSpinVersion(50)) {
+              // color our 'ditto' token
+              this._logPASM('  --  SPIN inlinePASM add name=[' + possibleDirective + ']');
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: possibleDirective.length,
+                ptTokenType: 'directive',
+                ptTokenModifiers: []
+              });
+              if (lineParts[1].toUpperCase() == 'END') {
+                // color our 'ditto end' token
+                nameOffset = line.indexOf(lineParts[1], nameOffset + possibleDirective.length);
+                this._logPASM('  --  SPIN inlinePASM add name=[' + lineParts[1] + ']');
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: lineParts[1].length,
+                  ptTokenType: 'directive',
+                  ptTokenModifiers: []
+                });
+              }
+            } else {
+              // if NOT version 50  DITTO and DITTO END are illegal
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: possibleDirective.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['illegalUse']
+              });
+              this.semanticFindings.pushDiagnosticMessage(
+                lineIdx,
+                nameOffset,
+                nameOffset + possibleDirective.length,
+                eSeverity.Error,
+                `Illegal P2 Spin inline-pasm directive [${possibleDirective}]`
+              );
+              if (lineParts[1].toUpperCase() == 'END') {
+                // color our 'ditto end' token
+                nameOffset = line.indexOf(lineParts[1], nameOffset + possibleDirective.length);
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: lineParts[1].length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['illegalUse']
+                });
+              }
+            }
           } else {
             if (lineParts.length > minNonLabelParts) {
               currentOffset = line.indexOf(lineParts[minNonLabelParts - 1], currentOffset) + lineParts[minNonLabelParts - 1].length + 1;

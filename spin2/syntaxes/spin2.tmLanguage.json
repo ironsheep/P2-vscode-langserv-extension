@@ -557,8 +557,8 @@
     },
     "pasm_language_inline": {
       "name": "meta.block.pasm.language.inline.spin2",
-      "begin": "(?i)\\b(ORG|ASM)\\b",
-      "end": "(?i)\\b(END|ENDASM)\\b",
+      "begin": "(?i)^\\s*\\b(ORG|ASM)\\b",
+      "end": "(?i)^\\s*\\b(END|ENDASM)\\b",
       "beginCaptures": {
         "1": {
           "name": "storage.modifier.spin2"
