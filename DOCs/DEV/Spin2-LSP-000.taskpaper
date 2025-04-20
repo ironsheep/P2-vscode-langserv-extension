@@ -18,19 +18,20 @@ FEATURE Latest Language Ver Updates:
 		- Fix struct import from included object!
 		- Fix structure declaration using '='
 	v50:
-		- Fix ORGH and END in in-line PASM
-		- Fix DITTO and DITTO END coloring in DAT sections
-		- CAN DITTO be in in-line pasm, too?  if so, fix coloring there too!
+		- Fix ORGH and END in in-line PASM @done(2025-04-20)
+		- ERROR on ORGH in SPIN2 if < v50!
+		- Fix DITTO and DITTO END coloring in DAT sections @done(2025-04-19)
+		- CAN DITTO be in in-line pasm, too?  if so, fix coloring there too! @done(2025-04-19)
 	v51:
 		- Fix sizeof() in DAT data declaration @done(2025-04-13)
 		- Fix coloring of POW,LOG[2,10], EXP[2,10] functions @done(2025-04-13)
 	
 	UPCOMING:
-		- Add Constants to OBJ I/F DOC
-		- Add Structures to OBJ I/F DOC
-		- Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
-		- If sizeof(): Validate variable is a structure instance
-		- Hover of structure name should show structure def'n 
+		- v43 Add Constants to OBJ I/F DOC
+		- v45 Add Structures to OBJ I/F DOC
+		- v50 Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
+		- v51 If sizeof(): Validate variable is a structure instance
+		- v45 Hover of structure name should show structure def'n 
 			- (and point to source where declared?)
 	
 FEATURE Code Folding - DONE:

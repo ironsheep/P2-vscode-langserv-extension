@@ -23,4 +23,3 @@ PUB go() | a,b
 DAT	ditto	4  ' COLOR like ORG/ORGH/END (pasm directive!)
 	long	$77777777+$$
 	ditto	end
-        rep
