@@ -5221,6 +5221,16 @@ export class Spin2DocumentSemanticParser {
                   currSingleLineOffset = nameOffset + namePart.length;
                 }
               } else if (this._isPossibleStructureReference(cleanedVariableName)) {
+                const bHaveStructReference: boolean = this._reportStructureReference(
+                  cleanedVariableName,
+                  symbolPosition.line,
+                  symbolPosition.character,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  tokenSet
+                );
+                if (bHaveStructReference) {
+                  currSingleLineOffset = nameOffset + cleanedVariableName.length;
+                }
               } else {
                 let referenceDetails: RememberedToken | undefined = undefined;
                 //nameOffset = line.indexOf(cleanedVariableName, currSingleLineOffset);
@@ -6289,6 +6299,7 @@ export class Spin2DocumentSemanticParser {
             // found object ref. include it in length
             currNameLength = possibleName.length;
           }
+        } else if (this._isPossibleStructureReference(possibleName)) {
         } else if (possibleName.startsWith('.')) {
           const externalMethodName: string = possibleName.replace('.', '');
           currNameLength = externalMethodName.length;
@@ -7227,6 +7238,30 @@ export class Spin2DocumentSemanticParser {
           nameSet = lineParts[0].split(/[[\]}]/).filter(Boolean);
         }
         let newName: string = nameSet[0];
+        let typeName: string = '';
+        if (newName.includes(' ')) {
+          nameSet = lineParts[0].split(/ \t/).filter(Boolean);
+          if (nameSet.length > 1) {
+            typeName = nameSet[0];
+            newName = nameSet[1];
+          }
+        }
+        this._logVAR(`  -- GLBL rvdl2 SPLIT2 typeName=[${typeName}], newName=[${newName}`);
+        if (typeName.length > 0 && this.isStorageType(typeName)) {
+          const nameOffset: number = line.indexOf(typeName, currentOffset);
+          this._logMessage(`  -- have Storage type! typeName=[${typeName}], ofs=(${nameOffset})`);
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: typeName.length,
+            ptTokenType: 'storageType',
+            ptTokenModifiers: []
+          });
+          if (this.parseUtils.requestedSpinVersion(45) && this.semanticFindings.isStructure(typeName)) {
+            // at v45, we allow structures as types for local vars!
+            this.semanticFindings.recordStructureInstance(typeName, newName); // VAR
+          }
+        }
         if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR(`  -- GLBL rvdl2 newName=[${newName}]`);
           const nameOffset: number = line.indexOf(newName, currentOffset);
@@ -8244,17 +8279,26 @@ export class Spin2DocumentSemanticParser {
       // now report descent into structure members
       const structureType: string | undefined = this.semanticFindings.getTypeForStructureInstance(structInstanceName);
       if (structureType === undefined) {
-        this._logMessage(`  --  rptStruRef() ERROR: no structure TYPE for [${structInstanceName}]`);
+        this._logSPIN(`  --  rptStruRef() ERROR: no structure TYPE for [${structInstanceName}]`);
       } else {
         const topStructure: RememberedStructure | undefined = this.semanticFindings.getStructure(structureType);
         if (topStructure === undefined) {
-          this._logMessage(`  --  rptStruRef() ERROR: no structure INFO for [${structInstanceName}]`);
+          this._logSPIN(`  --  rptStruRef() ERROR: no structure INFO for [${structInstanceName}]`);
         } else {
-          this._logMessage(`  --  rptStruRef() TOP is [${topStructure.toString()}]`);
+          this._logSPIN(`  --  rptStruRef() TOP is [${topStructure.toString()}]`);
           let currStructure: RememberedStructure = topStructure;
           for (let index = 0; index < memberNameSet.length; index++) {
             // record member name coloring
-            const memberName = memberNameSet[index];
+            let memberName: string = memberNameSet[index];
+            if (memberName.includes('[') || memberName.includes(']')) {
+              // yes remove array suffix
+              const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(memberName);
+              const localNameParts: string[] = lineInfo.lineParts;
+              this._logSPIN(`  -- rptStruRef() element w/Index localNameParts=[${localNameParts}]`);
+              this._logSPIN(`  -- rptStruRef() ERROR need code to handle index coloring! [${memberName}]`);
+              memberName = localNameParts[0];
+              // FIXME: UNDONE XYZZY add code to colorize index value if non-constant
+            }
             let mbrTokenType = referenceDetails !== undefined ? referenceDetails.type : '';
             let mbrTokenModifiers = referenceDetails !== undefined ? referenceDetails.modifiers : [];
             const hasMemberName: boolean = currStructure.hasMemberNamed(memberName);

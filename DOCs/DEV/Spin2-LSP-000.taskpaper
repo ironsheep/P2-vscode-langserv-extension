@@ -30,6 +30,11 @@ FEATURE Latest Language Ver Updates:
 	v51:
 		- Fix sizeof() in DAT data declaration @done(2025-04-13)
 		- Fix coloring of POW,LOG[2,10], EXP[2,10] functions @done(2025-04-13)
+	math128:
+		- fix indexed structure elem reference @done(2025-04-21)
+	v51_misc:
+		- fix multi-line declaration of structure
+		- fix structure index coloring
 	
 	UPCOMING:
 		- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the dont' use comment on line for this block
