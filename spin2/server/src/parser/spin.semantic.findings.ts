@@ -878,7 +878,7 @@ export class DocumentFindings {
     let tokenPosition: Position = { line: -1, character: -1 };
     if (this.isGlobalToken(tokenName)) {
       referenceDetails = this.getGlobalToken(tokenName);
-      if (referenceDetails) {
+      if (referenceDetails !== undefined) {
         if (isPossibleLocalLabel && referenceDetails.type === 'label') {
           tokenPosition = this._getBestLocalLabelPostionForPosition(postion, tokenName);
         } else {
@@ -907,15 +907,15 @@ export class DocumentFindings {
       if (localMethodName) {
         // get local tokens scoped to method
         let referenceDetails: RememberedToken | undefined = this.getLocalTokenForMethod(localMethodName, tokenName);
-        if (referenceDetails) {
+        if (referenceDetails !== undefined) {
           this._logMessage(`  -- appLoc-Token FOUND forMethod token=[${tokenName}]`);
         } else {
           referenceDetails = this.getLocalPAsmTokenForMethod(localMethodName, tokenName);
-          if (referenceDetails) {
+          if (referenceDetails !== undefined) {
             this._logMessage(`  -- appLoc-Token FOUND PAsmForMethod token=[${tokenName}]`);
           }
         }
-        if (referenceDetails) {
+        if (referenceDetails !== undefined) {
           if (isPossibleLocalLabel && referenceDetails.type === 'label') {
             tokenPosition = this._getBestLocalLabelPostionForPosition(postion, tokenName);
           } else {
@@ -941,7 +941,7 @@ export class DocumentFindings {
         const referenceSet: RememberedToken[] = this.getLocalTokens(tokenName);
         for (let index = 0; index < referenceSet.length; index++) {
           referenceDetails = referenceSet[index];
-          if (referenceDetails) {
+          if (referenceDetails !== undefined) {
             const tokenPosition: Position = {
               line: referenceDetails.lineIndex,
               character: referenceDetails.charIndex
