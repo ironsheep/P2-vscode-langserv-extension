@@ -1788,7 +1788,7 @@ export class DocumentFindings {
     return desiredToken;
   }
 
-  public setStructure(structure: RememberedStructure): void {
+  public recordStructureDefn(structure: RememberedStructure): void {
     this.globalStructures.rememberStructure(structure);
     this._logMessage(`  -- NEW-struct ${structure.name} -> ${structure.toString()}`);
   }
@@ -1798,18 +1798,17 @@ export class DocumentFindings {
     return desiredStructure;
   }
 
-  public setStructureInstance(structureType: string, instanceName: string): void {
+  public recordStructureInstance(structureType: string, instanceName: string): void {
     const typeKey: string = structureType.toLowerCase();
     const instanceKey: string = instanceName.toLowerCase();
     if (this.isStructure(typeKey)) {
       if (!this.structureNameByInstanceName.has(instanceKey)) {
         this.structureNameByInstanceName.set(instanceKey, typeKey);
+        this._logMessage(`  -- NEW-struct-instance ${instanceName} is STRUCT ${structureType}`);
       }
     } else {
       this._logMessage(`  -- ERROR STRUCT ${structureType} is unknown!!`);
-    } // XYZZY
-
-    this._logMessage(`  -- NEW-struct-instance ${instanceName} is STRUCT ${structureType}`);
+    }
   }
 
   public getTypeForStructureInstance(instanceName: string): string | undefined {
@@ -1825,6 +1824,7 @@ export class DocumentFindings {
   public isStructure(structureName: string): boolean {
     const nameKey: string = structureName.toLowerCase();
     const foundStatus: boolean = this.globalStructures.isStructureName(nameKey);
+    this._logMessage(`  -- isStructure(${structureName}) -> (${foundStatus})`);
     return foundStatus;
   }
 
@@ -2569,6 +2569,11 @@ export class RememberedStructure {
     return this._name;
   }
 
+  public setName(newName: string) {
+    // override name of structure
+    this._name = newName;
+  }
+
   public hasMemberNamed(name: string): boolean {
     let hasMemberStatus: boolean = false;
     for (let index = 0; index < this._members.length; index++) {
@@ -2579,6 +2584,30 @@ export class RememberedStructure {
       }
     }
     return hasMemberStatus;
+  }
+
+  get isStructureReference(): boolean {
+    // check if this is a reference to a structure
+    let isStructRef: boolean = false;
+    if (this._members.length == 1) {
+      const member = this._members[0];
+      if (member.isStructure) {
+        isStructRef = true;
+      }
+    }
+    return isStructRef;
+  }
+
+  get structureReferenceName(): string {
+    // return name of referenced structure
+    let structRefName: string = '';
+    if (this._members.length == 1) {
+      const member = this._members[0];
+      if (member.isStructure) {
+        structRefName = member.name;
+      }
+    }
+    return structRefName;
   }
 
   public memberNamed(name: string): RememberedStructureMember | undefined {

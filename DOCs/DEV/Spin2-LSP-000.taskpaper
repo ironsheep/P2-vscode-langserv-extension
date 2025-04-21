@@ -13,11 +13,11 @@ FEATURE Latest Language Ver Updates:
 		- fix C_Z debug color as UDEC() @done(2025-04-13)
 	v47:
 		- fix REG use in CON  Ln#3 @done(2025-04-13)
-		- fix taskid() in debug() Tic / nonTic Ln#13, 16, 26 @done(2025-04-13)
+		- fix taskid() in debug() Tic / nonTic Ln#13, 16, 26
 	v49:
 		- Fix struct import from included object! @done(2025-04-20)
 		- Fix structure declaration using '=' @done(2025-04-20)
-		- Fix use of obj.structcures as local types (partial)
+		- Fix use of obj.structcures as local types (partial) @done(2025-04-21)
 		- Fix use of obj.structcures as param types
 		- Fix use of obj.structcures as return types
 		- Fix Error GEN for use of obj.con/obj.method() in PUB/PRI decl line

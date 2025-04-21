@@ -1634,7 +1634,7 @@ export class Spin2DocumentSemanticParser {
     //  -or-   _clkfreq = CLK_FREQ   ' set system clock
     // NEW: multi line enums with no punctuation, ends at blank line (uses this.conEnumInProgress)
     //
-    this._logCON(`  - Ln#${lineNbr} GetCONDecl startingOffset=(${startingOffset}), line=[${line}](${line.length})`);
+    this._logCON(`  - Ln#${lineNbr} GetCONDecl() startingOffset=(${startingOffset}), line=[${line}](${line.length})`);
     const isPreprocessorStatement: boolean = this.parseUtils.lineStartsWithFlexspinPreprocessorDirective(line);
     if (isPreprocessorStatement == false && line.substring(startingOffset).length > 1) {
       //skip Past Whitespace
@@ -1644,7 +1644,7 @@ export class Spin2DocumentSemanticParser {
         this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
       } else {
         this._logCON(
-          `  -- GetCONDecl isPreProc=(${isPreprocessorStatement}), nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`
+          `  -- GetCONDecl() isPreProc=(${isPreprocessorStatement}), nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`
         );
         const haveEnumDeclaration: boolean = this._isEnumDeclarationSingleLine(lineNbr - 1, 0, nonCommentConstantLine);
         const isAssignment: boolean = nonCommentConstantLine.indexOf('=') != -1;
@@ -1654,7 +1654,7 @@ export class Spin2DocumentSemanticParser {
         } else {
           this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
         }
-        this._logCON(`  -- GetCONDecl conEnumInProgress=(${this.conEnumInProgress}), haveEnumDeclaration=(${haveEnumDeclaration})`);
+        this._logCON(`  -- GetCONDecl() conEnumInProgress=(${this.conEnumInProgress}), haveEnumDeclaration=(${haveEnumDeclaration})`);
         if (!haveEnumDeclaration && !this.conEnumInProgress) {
           const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(',') != -1;
           this._logCON(`  -- declNotEnum containsMultiStatements=(${containsMultiStatements})`);
@@ -1666,9 +1666,9 @@ export class Spin2DocumentSemanticParser {
 
           for (let index = 0; index < statements.length; index++) {
             const conDeclarationLine: string = statements[index].trim();
-            this._logCON(`  -- GetCONDecl conDeclarationLine=[${conDeclarationLine}][${index}]`);
+            this._logCON(`  -- GetCONDecl() conDeclarationLine=[${conDeclarationLine}][${index}]`);
             currentOffset = line.indexOf(conDeclarationLine, 0);
-            const isAssignment: boolean = nonCommentConstantLine.indexOf('=') != -1;
+            const isAssignment: boolean = conDeclarationLine.indexOf('=') != -1;
             //const assignmentOffset: number = conDeclarationLine.indexOf('=');
             const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && nonCommentConstantLine.toUpperCase().indexOf('STRUCT') != -1;
             if (isAssignment && !isStructDecl) {
@@ -1676,12 +1676,12 @@ export class Spin2DocumentSemanticParser {
               // recognize constant name getting initialized via assignment
               // get line parts - we only care about first one
               const lineParts: string[] = conDeclarationLine.split(/[ \t=]/).filter(Boolean);
-              this._logCON('  -- GetCONDecl SPLIT lineParts=[' + lineParts + '](' + lineParts.length + ')');
+              this._logCON('  -- GetCONDecl() SPLIT lineParts=[' + lineParts + '](' + lineParts.length + ')');
               const newName = lineParts[0];
               if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
                 // if this line is NOT disabled, record new global (or error with DUPLICATE)
                 const lineIsDisabled: boolean = this.semanticFindings.preProcIsLineDisabled(lineNbr);
-                this._logCON(`  -- GLBL GetCONDecl newName=[${newName}], lineIsDisabled=(${lineIsDisabled})`);
+                this._logCON(`  -- GLBL GetCONDecl() newName=[${newName}], lineIsDisabled=(${lineIsDisabled})`);
                 const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
                 if (!lineIsDisabled) {
                   // remember this object name so we can annotate a call to it
@@ -1716,18 +1716,42 @@ export class Spin2DocumentSemanticParser {
               //  Ex2: STRUCT line(point a, point b)
               //    this declares a structure 'line' with 2 members POINT a and POINT b, each of which have 2 members LONG x and LONG y
               //
-              // structure declaration  structName (member1, member2,...) where memberN is optional {type} followed by name with optional [number of instances]
+              // structure declaration  structName (member1, member2,...) where
+              // //      memberN is optional {type} followed by name with optional [number of instances]
               const structDeclaration = this.parseStructDeclaration(conDeclarationLine);
               if (!structDeclaration.isValidStatus) {
-                this._logCON(`  -- GetCONDecl ERROR unknown=[${conDeclarationLine}]`);
+                this._logCON(`  -- GetCONDecl() ERROR unknown=[${conDeclarationLine}]`);
               } else {
                 const structName: string = structDeclaration.structName;
-                this._logCON(`  -- GLBL GetCONDecl newName=[${structName}], lineIsDisabled=(???)`);
+                this._logCON(`  -- GLBL GetCONDecl() newName=[${structName}], isAssignment=(${isAssignment}), lineIsDisabled=(???)`);
                 const declarationOffset = line.indexOf(conDeclarationLine, 0); // FIXME: UNDONE, do we have to dial this in?
-                //this._logCON(`  -- GetCONDecl structDeclaration=[${JSON.stringify(structDeclaration, null, 2)}]`);
-                const structure = new RememberedStructure(structName, lineNbr - 1, declarationOffset, structDeclaration.members);
+                //this._logCON(`  -- GetCONDecl() structDeclaration=[${JSON.stringify(structDeclaration, null, 2)}]`);
+                let structure = new RememberedStructure(structName, lineNbr - 1, declarationOffset, structDeclaration.members);
+                const newStructName: string = structure.name;
+                let isTypeFromChildObject: boolean = false;
+                let objectRefName: string = '';
+                if (isAssignment && structure.isStructureReference) {
+                  // if reference to a structure, then get the structure being referenced to be recorded
+                  const refName: string = structure.structureReferenceName;
+                  if (refName.includes('.')) {
+                    const refStructure = this.getStructureFromObjectReference(refName);
+                    if (refStructure !== undefined) {
+                      structure = refStructure;
+                      structure.setName(newStructName); // set to new instance name
+                      isTypeFromChildObject = true;
+                      objectRefName = refName;
+                    }
+                  } else if (this.semanticFindings.isStructure(refName)) {
+                    const tmpStructure = this.semanticFindings.getStructure(refName);
+                    if (tmpStructure !== undefined) {
+                      structure = tmpStructure;
+                      structure.setName(newStructName); // set to new instance name
+                    }
+                  }
+                }
+                this._logCON(`  -- GLBL GetCONDecl() struct is now [${structure.toString()}]`);
                 const nameOffset = line.indexOf(structName, declarationOffset);
-                // FIXME: UNDONE, how to handle duplicate structure names?
+                // Handle duplicate structure names
                 // remember this object name so we can annotate a call to it
                 const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(structName);
                 if (referenceDetails !== undefined) {
@@ -1740,13 +1764,23 @@ export class Spin2DocumentSemanticParser {
                   );
                 } else {
                   // FIXME: UNDONE, ensure structure containing other structures, has other structures recorded before use!
-                  this.semanticFindings.setStructure(structure);
+                  this.semanticFindings.recordStructureDefn(structure);
                   this.semanticFindings.recordDeclarationLine(line, lineNbr);
                   this.semanticFindings.setGlobalToken(
                     structName,
                     new RememberedToken('variable', lineNbr - 1, nameOffset, ['readonly']),
                     this._declarationComment()
                   );
+                  // if we reference a structure from another object, then we need to remember it too
+                  if (isTypeFromChildObject) {
+                    structure.setName(objectRefName); // set to new instance name
+                    this.semanticFindings.recordStructureDefn(structure);
+                    this.semanticFindings.setGlobalToken(
+                      objectRefName,
+                      new RememberedToken('variable', lineNbr - 1, nameOffset, ['readonly']),
+                      this._declarationComment()
+                    );
+                  }
                 }
               }
             }
@@ -1757,7 +1791,7 @@ export class Spin2DocumentSemanticParser {
           // this works: #0, HV_1, HV_2, HV_3, HV_4, HV_MAX = HV_4
           // this doesn't: #2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7
           const lineParts: string[] = nonCommentConstantLine.split(/[ \t,]/).filter(Boolean);
-          this._logCON(`  -- GetCONDecl enumDecl lineParts=[${lineParts}](${lineParts.length})`);
+          this._logCON(`  -- GetCONDecl() enumDecl lineParts=[${lineParts}](${lineParts.length})`);
           //this._logCON('  -- lineParts=[' + lineParts + ']');
           for (let index = 0; index < lineParts.length; index++) {
             let enumConstant: string = lineParts[index];
@@ -3512,7 +3546,7 @@ export class Spin2DocumentSemanticParser {
               currentOffset = nameOffset + possibleName.length;
               // if is structure record instance of structure
               if (this.semanticFindings.isStructure(possibleName)) {
-                this.semanticFindings.setStructureInstance(possibleName, labelName);
+                this.semanticFindings.recordStructureInstance(possibleName, labelName); // DAT
               }
               continue;
             } else if (this.parseUtils.isVersionAddedMethod(possibleName)) {
@@ -4503,7 +4537,7 @@ export class Spin2DocumentSemanticParser {
             });
             nameOffset += typeName.length + 1; // skip past space
             // FIXME: should this be method scoped structure instance?
-            this.semanticFindings.setStructureInstance(typeName, paramName);
+            this.semanticFindings.recordStructureInstance(typeName, paramName); // PUB/PRI
           }
         }
         nameOffset = line.indexOf(paramName, nameOffset);
@@ -4635,7 +4669,7 @@ export class Spin2DocumentSemanticParser {
             ptTokenModifiers: ['declaration', 'local']
           });
           // remember that this variable is a structure instance
-          this.semanticFindings.setStructureInstance(typeName, returnValueName);
+          this.semanticFindings.recordStructureInstance(typeName, returnValueName); // PUB/PRI
         }
         // remember so we can ID references
         this.semanticFindings.setLocalTokenForMethod(
@@ -4665,181 +4699,210 @@ export class Spin2DocumentSemanticParser {
         localVarNames = [localVarStr];
       }
       this._logSPIN(`  -- Line localVarNames=[${localVarNames}](${localVarNames.length})`);
+      let structureType: string = '';
       for (let index = 0; index < localVarNames.length; index++) {
         const localVariableName = localVarNames[index].trim();
         const localVariableOffset = line.indexOf(localVariableName, currentOffset);
-        let structureType: string = '';
         this._logSPIN(`  -- processing Line localVariableName=[${localVariableName}]`);
-        let nameParts: string[] = [];
+        let nameParts: string[] = [localVariableName];
+        let possAlignType: string = '';
+        let possStorageType: string = '';
+        let possLocalVarName: string = localVariableName;
         if (localVariableName.includes(' ')) {
           // have name with storage and/or alignment operators
           nameParts = localVariableName.split(' ');
-        } else {
-          // have single name
-          nameParts = [localVariableName];
-        }
-        this._logSPIN(`  -- Line nameParts=[${nameParts}](${nameParts.length})`);
-        let nameOffset: number = 0;
-        for (let index = 0; index < nameParts.length; index++) {
-          let localName = nameParts[index];
-          // have name similar to scratch[12]?
-          if (localName.includes('[') || localName.includes(']')) {
-            // yes remove array suffix
-            const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(localName);
-            const localNameParts: string[] = lineInfo.lineParts;
-            this._logSPIN('  -- post[] localNameParts=[' + localNameParts + ']');
-            localName = localNameParts[0];
-            for (let index = 0; index < localNameParts.length; index++) {
-              const namedIndexPart = localNameParts[index];
-              nameOffset = line.indexOf(namedIndexPart, currentOffset);
-              if (namedIndexPart.charAt(0).match(/[a-zA-Z_]/)) {
-                this._logSPIN(`  -- checking namedIndexPart=[${namedIndexPart}]`);
-                if (this._isPossibleObjectReference(namedIndexPart)) {
-                  // go register object reference!
-                  const bHaveObjReference = this._reportObjectReference(namedIndexPart, lineIdx, currentOffset, line, tokenSet);
-                  if (bHaveObjReference) {
-                    currentOffset = nameOffset + namedIndexPart.length;
-                    continue;
-                  }
-                }
-                let referenceDetails: RememberedToken | undefined = undefined;
-                if (this.semanticFindings.isLocalToken(namedIndexPart)) {
-                  referenceDetails = this.semanticFindings.getLocalTokenForLine(namedIndexPart, lineNbr);
-                  this._logSPIN(`  --  FOUND local name=[${namedIndexPart}] found: ${referenceDetails !== undefined}`);
-                } else if (this.semanticFindings.isGlobalToken(namedIndexPart)) {
-                  referenceDetails = this.semanticFindings.getGlobalToken(namedIndexPart);
-                  this._logSPIN(`  --  FOUND global name=[${namedIndexPart}] found: ${referenceDetails !== undefined}`);
-                }
-                if (referenceDetails !== undefined) {
-                  this._logSPIN('  --  lcl-idx variableName=[' + namedIndexPart + '], ofs=(' + nameOffset + ')');
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namedIndexPart.length,
-                    ptTokenType: referenceDetails.type,
-                    ptTokenModifiers: referenceDetails.modifiers
-                  });
-                } else {
-                  if (
-                    !this.parseUtils.isSpinReservedWord(namedIndexPart) &&
-                    !this.parseUtils.isSpinBuiltinMethod(namedIndexPart) &&
-                    !this.parseUtils.isBuiltinStreamerReservedWord(namedIndexPart) &&
-                    !this.parseUtils.isDebugMethod(namedIndexPart) &&
-                    !this.parseUtils.isDebugControlSymbol(namedIndexPart)
-                  ) {
-                    // found new local variable name, register it
-                    this._logSPIN('  --  SPIN NEW local varname=[' + namedIndexPart + '], ofs=(' + nameOffset + ')');
-                    // check to see if local name is hiding global variable
-                    if (this._hidesGlobalVariable(namedIndexPart)) {
-                      this._recordToken(tokenSet, line, {
-                        line: lineIdx,
-                        startCharacter: nameOffset,
-                        length: namedIndexPart.length,
-                        ptTokenType: 'variable',
-                        ptTokenModifiers: ['illegalUse']
-                      });
-                      this.semanticFindings.pushDiagnosticMessage(
-                        lineIdx,
-                        nameOffset,
-                        nameOffset + namedIndexPart.length,
-                        eSeverity.Error,
-                        `P2 Spin local [${namedIndexPart}] hides global variable of same name`
-                      );
-                    } else {
-                      this._recordToken(tokenSet, line, {
-                        line: lineIdx,
-                        startCharacter: nameOffset,
-                        length: namedIndexPart.length,
-                        ptTokenType: 'variable',
-                        ptTokenModifiers: ['declaration', 'local']
-                      });
-                    }
-                    // remember so we can ID references
-                    this.semanticFindings.setLocalTokenForMethod(
-                      methodName,
-                      namedIndexPart,
-                      new RememberedToken('variable', lineNbr - 1, nameOffset, ['local']),
-                      this._declarationComment()
-                    ); // TOKEN SET in _report()
-                  }
-                }
-              }
-              currentOffset = nameOffset + namedIndexPart.length;
-            }
+          if (nameParts.length > 2) {
+            // have align[wl] storageType name
+            possAlignType = nameParts[0];
+            possStorageType = nameParts[1];
+            possLocalVarName = nameParts[2];
+          } else if (this.parseUtils.isAlignType(nameParts[0])) {
+            // have align[wl] name
+            possAlignType = nameParts[0];
+            possLocalVarName = nameParts[1];
           } else {
-            nameOffset = line.indexOf(localName, localVariableOffset);
-            this._logSPIN(`  -- localName=[${localName}], ofs=(${nameOffset})`);
-            if (index == nameParts.length - 1) {
-              // have name
-              // check to see if local name is hiding global variable
-              if (this._hidesGlobalVariable(localName)) {
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: localName.length,
-                  ptTokenType: 'variable',
-                  ptTokenModifiers: ['illegalUse']
-                });
-                this.semanticFindings.pushDiagnosticMessage(
-                  lineIdx,
-                  nameOffset,
-                  nameOffset + localName.length,
-                  eSeverity.Error,
-                  `P2 Spin local [${localName}] hides global variable of same name`
-                );
-              } else {
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: localName.length,
-                  ptTokenType: 'variable',
-                  ptTokenModifiers: ['declaration', 'local']
-                });
-                if (structureType.length > 0) {
-                  // remember that this variable is a structure instance
-                  this.semanticFindings.setStructureInstance(structureType, localName);
-                }
-              }
-              // remember so we can ID references
-              this.semanticFindings.setLocalTokenForMethod(
-                methodName,
-                localName,
-                new RememberedToken('variable', lineNbr - 1, nameOffset, ['local']),
-                this._declarationComment()
-              ); // TOKEN SET in _report()
-            } else {
-              // have modifier!
-              this._logMessage(`  -- have storage type! localName=[${localName}], ofs=(${nameOffset})`);
-              if (this.isStorageType(localName)) {
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: localName.length,
-                  ptTokenType: 'storageType',
-                  ptTokenModifiers: []
-                });
-                if (this.parseUtils.requestedSpinVersion(45) && this.semanticFindings.isStructure(localName)) {
-                  // at v45, we allow structures as types for local vars!
-                  structureType = localName;
-                }
-              } else if (this.parseUtils.isAlignType(localName)) {
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: localName.length,
-                  ptTokenType: 'storageType',
-                  ptTokenModifiers: []
-                });
-              } else if (this.parseUtils.requestedSpinVersion(49) && localName.includes('.') && this._isPossibleObjectReference(localName)) {
-                // at v49, we allow object.structure reference!
-                //  NOTE: the following "",true);"" changes _reportObjectReference() to ONLY report object.type references!
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const bHaveObjReference = this._reportObjectReference(localName, lineIdx, currentOffset, line, tokenSet, true);
-              }
-            }
-            currentOffset = nameOffset + localName.length;
+            // have storageType name
+            possStorageType = nameParts[0];
+            possLocalVarName = nameParts[1];
           }
         }
+        this._logSPIN(`  -- Line nameParts=[${nameParts}](${nameParts.length})`);
+        this._logSPIN(`  -- Line align=[${possAlignType}], storage=[${possStorageType}], varName=[${possLocalVarName}]`);
+        let nameOffset: number = 0;
+        // have name similar to scratch[12]?
+        //
+        // handle index value, first
+        //
+        if (possLocalVarName.includes('[') || possLocalVarName.includes(']')) {
+          // yes remove array suffix
+          const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(possLocalVarName);
+          const localNameParts: string[] = lineInfo.lineParts;
+          this._logSPIN(`  -- post[] localNameParts=[${localNameParts}]`);
+          possLocalVarName = localNameParts[0];
+          for (let index = 0; index < localNameParts.length; index++) {
+            const namedIndexPart = localNameParts[index];
+            nameOffset = line.indexOf(namedIndexPart, currentOffset);
+            if (namedIndexPart.charAt(0).match(/[a-zA-Z_]/)) {
+              this._logSPIN(`  -- checking namedIndexPart=[${namedIndexPart}]`);
+              if (this._isPossibleObjectReference(namedIndexPart)) {
+                // go register object reference!
+                const bHaveObjReference = this._reportObjectReference(namedIndexPart, lineIdx, currentOffset, line, tokenSet);
+                if (bHaveObjReference) {
+                  currentOffset = nameOffset + namedIndexPart.length;
+                  continue;
+                }
+              }
+              let referenceDetails: RememberedToken | undefined = undefined;
+              if (this.semanticFindings.isLocalToken(namedIndexPart)) {
+                referenceDetails = this.semanticFindings.getLocalTokenForLine(namedIndexPart, lineNbr);
+                this._logSPIN(`  --  FOUND local name=[${namedIndexPart}] found: ${referenceDetails !== undefined}`);
+              } else if (this.semanticFindings.isGlobalToken(namedIndexPart)) {
+                referenceDetails = this.semanticFindings.getGlobalToken(namedIndexPart);
+                this._logSPIN(`  --  FOUND global name=[${namedIndexPart}] found: ${referenceDetails !== undefined}`);
+              }
+              if (referenceDetails !== undefined) {
+                this._logSPIN('  --  lcl-idx variableName=[' + namedIndexPart + '], ofs=(' + nameOffset + ')');
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: namedIndexPart.length,
+                  ptTokenType: referenceDetails.type,
+                  ptTokenModifiers: referenceDetails.modifiers
+                });
+              } else {
+                if (
+                  !this.parseUtils.isSpinReservedWord(namedIndexPart) &&
+                  !this.parseUtils.isSpinBuiltinMethod(namedIndexPart) &&
+                  !this.parseUtils.isBuiltinStreamerReservedWord(namedIndexPart) &&
+                  !this.parseUtils.isDebugMethod(namedIndexPart) &&
+                  !this.parseUtils.isDebugControlSymbol(namedIndexPart)
+                ) {
+                  // found new local variable name, register it
+                  this._logSPIN(`  --  SPIN NEW local varname=[${namedIndexPart}], ofs=(${nameOffset})`);
+                  // check to see if local name is hiding global variable
+                  if (this._hidesGlobalVariable(namedIndexPart)) {
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namedIndexPart.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['illegalUse']
+                    });
+                    this.semanticFindings.pushDiagnosticMessage(
+                      lineIdx,
+                      nameOffset,
+                      nameOffset + namedIndexPart.length,
+                      eSeverity.Error,
+                      `P2 Spin local [${namedIndexPart}] hides global variable of same name`
+                    );
+                  } else {
+                    this._recordToken(tokenSet, line, {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namedIndexPart.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['declaration', 'local']
+                    });
+                  }
+                  // remember so we can ID references
+                  this.semanticFindings.setLocalTokenForMethod(
+                    methodName,
+                    namedIndexPart,
+                    new RememberedToken('variable', lineNbr - 1, nameOffset, ['local']),
+                    this._declarationComment()
+                  ); // TOKEN SET in _report()
+                }
+              }
+            }
+          }
+        }
+        //
+        // handle align value
+        //
+        if (possAlignType.length > 0) {
+          if (this.parseUtils.isAlignType(possAlignType)) {
+            nameOffset = line.indexOf(possAlignType, currentOffset);
+            this._logMessage(`  -- have Align type! localName=[${possAlignType}], ofs=(${nameOffset})`);
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: possAlignType.length,
+              ptTokenType: 'storageType',
+              ptTokenModifiers: []
+            });
+          }
+        }
+        //
+        // handle storage type
+        //
+        if (possStorageType.length > 0) {
+          structureType = '';
+          // have modifier!
+          nameOffset = line.indexOf(possStorageType, localVariableOffset);
+          if (this.isStorageType(possStorageType)) {
+            this._logMessage(`  -- have Storage type! localName=[${possStorageType}], ofs=(${nameOffset})`);
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: possStorageType.length,
+              ptTokenType: 'storageType',
+              ptTokenModifiers: []
+            });
+            if (this.parseUtils.requestedSpinVersion(45) && this.semanticFindings.isStructure(possStorageType)) {
+              // at v45, we allow structures as types for local vars!
+              structureType = possStorageType;
+            }
+          } else if (this.parseUtils.requestedSpinVersion(49) && possStorageType.includes('.') && this._isPossibleObjectReference(possStorageType)) {
+            // at v49, we allow object.structure reference!
+            //  NOTE: the following "",true);"" changes _reportObjectReference() to ONLY report object.type references!
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const bHaveObjReference = this._reportObjectReference(possStorageType, lineIdx, currentOffset, line, tokenSet, true);
+            structureType = possStorageType;
+          }
+        }
+        //
+        // handle local variable
+        //
+        nameOffset = line.indexOf(possLocalVarName, localVariableOffset);
+        this._logSPIN(`  -- localName=[${possLocalVarName}], ofs=(${nameOffset})`);
+        // have name
+        // check to see if local name is hiding global variable
+        if (this._hidesGlobalVariable(possLocalVarName)) {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: possLocalVarName.length,
+            ptTokenType: 'variable',
+            ptTokenModifiers: ['illegalUse']
+          });
+          this.semanticFindings.pushDiagnosticMessage(
+            lineIdx,
+            nameOffset,
+            nameOffset + possLocalVarName.length,
+            eSeverity.Error,
+            `P2 Spin local [${possLocalVarName}] hides global variable of same name`
+          );
+        } else {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: nameOffset,
+            length: possLocalVarName.length,
+            ptTokenType: 'variable',
+            ptTokenModifiers: ['declaration', 'local']
+          });
+          if (structureType.length > 0) {
+            // remember that this variable is a structure instance
+            this.semanticFindings.recordStructureInstance(structureType, possLocalVarName); // PUB/PRI
+          }
+        }
+        // remember so we can ID references
+        this.semanticFindings.setLocalTokenForMethod(
+          methodName,
+          possLocalVarName,
+          new RememberedToken('variable', lineNbr - 1, nameOffset, ['local']),
+          this._declarationComment()
+        ); // TOKEN SET in _report()
+        currentOffset = nameOffset + possLocalVarName.length;
       }
     }
     return tokenSet;
@@ -7065,7 +7128,7 @@ export class Spin2DocumentSemanticParser {
             currentOffset = nameOffset + newType.length;
             // if is structure record instance of structure
             if (this.semanticFindings.isStructure(newType)) {
-              this.semanticFindings.setStructureInstance(newType, newName);
+              this.semanticFindings.recordStructureInstance(newType, newName); // VAR
             }
           }
           // highlight symbol name
@@ -8263,6 +8326,23 @@ export class Spin2DocumentSemanticParser {
       (hasSymbolDotIndexedSymbol || hasSymbolDotSymbol || hasSymbolHashSymbol || hasPercentHashSymbol);
     this._logMessage(`  --  isObjRef() possibleRef=[${possibleRef}] -> (${refFoundStatus})`);
     return refFoundStatus;
+  }
+
+  private getStructureFromObjectReference(dotReference: string): RememberedStructure | undefined {
+    let structureFindings: RememberedStructure | undefined = undefined;
+    const possibleNameSet: string[] = dotReference.trimStart().split(/[.#%]/).filter(Boolean);
+    if (possibleNameSet.length > 1) {
+      const objInstanceName = possibleNameSet[0];
+      const structName = possibleNameSet[1];
+      this._logMessage(`  --  gsfObjRef possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
+      if (this.semanticFindings.isNameSpace(objInstanceName)) {
+        const nameSpaceFindings: DocumentFindings | undefined = this.semanticFindings.getFindingsForNamespace(objInstanceName);
+        if (nameSpaceFindings !== undefined && nameSpaceFindings.isStructure(structName)) {
+          structureFindings = nameSpaceFindings.getStructure(structName);
+        }
+      }
+    }
+    return structureFindings;
   }
 
   private _reportObjectReference(

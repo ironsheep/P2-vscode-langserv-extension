@@ -2,9 +2,10 @@
 
 OBJ m : "Spin2_v49_step_child"
 
-CON struct mpoint = m.point, struct point(x,y), struct square(point tlCrnr, point brCrnr), struct polygon(point crnr[6])
+CON struct mpoint = m.point, struct myPoint(x,y), struct square(myPoint tlCrnr, myPoint brCrnr), struct polygon(myPoint crnr[6])
 
-PUB go(m.point a) : m.point retA | m.point a, mpoint b, polygon c, m.QLEN b
+'PUB go(m.point a) : m.point retA | m.point a, mpoint b, polygon c, m.QLEN b
+PUB go() | m.point a, mpoint b, polygon c
 
   a.x := 1
   a.y := 2
