@@ -4,14 +4,15 @@ OBJ m : "Spin2_v49_step_child"
 
 CON struct mpoint = m.point, struct myPoint(x,y), struct square(myPoint tlCrnr, myPoint brCrnr), struct polygon(myPoint crnr[6])
 
-'PUB go(m.point a) : m.point retA | m.point a, mpoint b, polygon c, m.QLEN b
-PUB go() | m.point a, mpoint b, polygon c      ' FIXME: bad coloring of m.point
+PUB go(m.point pa, myPoint pb) : myPoint retA, m.point retB  | m.point la, mpoint lb, polygon lc
 
-  a.x := 1
-  a.y := 2
-  b.x := 3
-  b.y := 4
+  la.x := 1
+  la.y := 2
+  lb.x := 3
+  lb.y := 4
 
-  c[4] := 5,6
+  lc[4] := 5,6
+  retA := pa
+  retB := pb
 
-  debug(sdec(a,b))
+  debug(sdec(la,lb))

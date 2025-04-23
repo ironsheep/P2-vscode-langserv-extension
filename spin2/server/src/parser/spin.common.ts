@@ -455,7 +455,7 @@ export class ContinuedLines {
       const trimmedLineContentOnly: string = isLineContinued ? rawPossContLine.slice(0, -3).trimEnd() : rawPossContLine.trimEnd();
       const remainingString: string =
         index == 0 ? trimmedLineContentOnly.substring(remainingOffset) : trimmedLineContentOnly.trimStart().substring(remainingOffset);
-      //*
+      /*
       this._logMessage(
         `    --- ContLn: ls() - PREP rawIdx=(${rawIdx}), remOffset=(${remainingOffset}), currLnLen=(${currLineLength}), isLineCont=(${isLineContinued})`
       );
@@ -466,7 +466,7 @@ export class ContinuedLines {
       if (remainingOffset >= accumLength) {
         // not in this line... go to next...
         rawIdx++;
-        //*
+        /*
         this._logMessage(
           `    --- ContLn: ls() - NOT-LINE (remOffset=(${remainingOffset}) >= accumLength=(${accumLength})) rawIdx=(${rawIdx}), remOffset=(${remainingOffset - accumLength}), isLineCont=(${isLineContinued})`
         );
@@ -476,14 +476,14 @@ export class ContinuedLines {
         // if not found in remainder of line... go to next
         rawIdx++;
         remainingOffset = 0;
-        //*/
+        /*/
         this._logMessage(
           `    --- ContLn: ls() - NOT-LINE rawIdx=(${rawIdx}), remOffset=(${remainingOffset}), currLnLen=(${currLineLength}), isLineCont=(${isLineContinued}) line=[${this.rawLines[rawIdx]}]`
         );
         //*/
       } else {
         // must be in this line!
-        //*/
+        /*/
         this._logMessage(
           `    --- ContLn: ls() - THIS-LINE rawIdx=(${rawIdx}), remOffset=(${remainingOffset}), currLnLen=(${currLineLength}), isLineCont=(${isLineContinued}) line=[${this.rawLines[rawIdx]}]`
         );

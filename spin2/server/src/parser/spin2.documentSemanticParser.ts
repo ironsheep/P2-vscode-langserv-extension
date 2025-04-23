@@ -948,12 +948,14 @@ export class Spin2DocumentSemanticParser {
           // process SINGLE-LINE method signature
           let partialTokenSet: IParsedToken[] = [];
           if (trimmedLine.length > 3) {
+            /*
             this._logCON(`- PUB_PRI (SGL-onCPUB_PRIline) Ln#${lineNbr} trimmedLine=[${line}](${line.length})`);
             continuedLineSet.clear();
             continuedLineSet.addLine(line, lineNbr - 1);
             partialTokenSet = this._reportPUB_PRI_SignatureMultiLine(3, continuedLineSet);
             continuedLineSet.clear();
-            //partialTokenSet = this._reportPUB_PRI_Signature(i, 3, line);
+			//*/
+            partialTokenSet = this._reportPUB_PRI_Signature(i, 3, line);
           }
           this._reportNonDupeTokens(partialTokenSet, '=> PUB/PRI: ', line, tokenSet);
         } else if (currState == eParseState.inCon) {
@@ -1569,7 +1571,7 @@ export class Spin2DocumentSemanticParser {
               //
               // structure declaration  structName (member1, member2,...) where
               // //      memberN is optional {type} followed by name with optional [number of instances]
-              const structDeclaration = this.parseStructDeclaration(multiLineSet.line);
+              const structDeclaration = this.parseStructDeclaration(conDeclarationLine);
               if (!structDeclaration.isValidStatus) {
                 this._logCON(`  -- GetCDLMulti() ERROR unknown=[${conDeclarationLine}]`);
               } else {
@@ -4818,6 +4820,7 @@ export class Spin2DocumentSemanticParser {
       );
       this._logSPIN('  -- rptPubPriSig() SPIN1 methodName=[' + methodName + '], startNameOffset=(' + startNameOffset + ')');
     }
+    // -----------------------------------
     // record definition of method
     // -----------------------------------
     //   Parameters
@@ -4867,55 +4870,67 @@ export class Spin2DocumentSemanticParser {
             }
           }
           // if we have a structure typename color it!
-          if (typeName.length > 0 && this.semanticFindings.isStructure(typeName) && !this.parseUtils.isStorageType(typeName)) {
-            nameOffset = line.indexOf(typeName, nameOffset);
+          if (typeName.length > 0) {
+            let foundObjectRef: boolean = false;
+            if (this._isPossibleObjectReference(typeName) && this.parseUtils.requestedSpinVersion(49)) {
+              // go register object TYPE-ONLY reference!
+              foundObjectRef = this._reportObjectReference(typeName, lineIdx, nameOffset, line, tokenSet, true);
+            }
+            if (!foundObjectRef) {
+              // this should be structure or B/W/L type
+              // if Structure type name, color it!
+              if (this.semanticFindings.isStructure(typeName) && !this.parseUtils.isStorageType(typeName)) {
+                nameOffset = line.indexOf(typeName, nameOffset);
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: typeName.length,
+                  ptTokenType: 'storageType',
+                  ptTokenModifiers: []
+                });
+                nameOffset += typeName.length + 1; // skip past space
+                // FIXME: should this be method scoped structure instance?
+                this.semanticFindings.recordStructureInstance(typeName, paramName); // PUB/PRI
+              }
+            }
+          }
+          // now color paramter variable name!
+          nameOffset = line.indexOf(paramName, nameOffset);
+          this._logSPIN(`  -- paramName=[${paramName}], ofs=(${nameOffset})`);
+          // check to see if param name is hiding global variable
+          if (this._hidesGlobalVariable(paramName)) {
             this._recordToken(tokenSet, line, {
               line: lineIdx,
               startCharacter: nameOffset,
-              length: typeName.length,
-              ptTokenType: 'storageType',
-              ptTokenModifiers: []
+              length: paramName.length,
+              ptTokenType: 'parameter',
+              ptTokenModifiers: ['illegalUse']
             });
-            nameOffset += typeName.length + 1; // skip past space
-            // FIXME: should this be method scoped structure instance?
-            this.semanticFindings.recordStructureInstance(typeName, paramName); // PUB/PRI
+            this.semanticFindings.pushDiagnosticMessage(
+              lineIdx,
+              nameOffset,
+              nameOffset + paramName.length,
+              eSeverity.Error,
+              `P2 Spin parameter [${paramName}] hides global variable of same name`
+            );
+          } else {
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: paramName.length,
+              ptTokenType: 'parameter',
+              ptTokenModifiers: ['declaration', 'readonly', 'local']
+            });
+            nameOffset += paramName.length + 1;
           }
+          // remember so we can ID references
+          this.semanticFindings.setLocalTokenForMethod(
+            methodName,
+            paramName,
+            new RememberedToken('parameter', lineNbr - 1, nameOffset, ['readonly', 'local']),
+            this._declarationComment()
+          ); // TOKEN SET in _report()
         }
-        nameOffset = line.indexOf(paramName, nameOffset);
-        this._logSPIN(`  -- paramName=[${paramName}], ofs=(${nameOffset})`);
-        // check to see if param name is hiding global variable
-        if (this._hidesGlobalVariable(paramName)) {
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: paramName.length,
-            ptTokenType: 'parameter',
-            ptTokenModifiers: ['illegalUse']
-          });
-          this.semanticFindings.pushDiagnosticMessage(
-            lineIdx,
-            nameOffset,
-            nameOffset + paramName.length,
-            eSeverity.Error,
-            `P2 Spin parameter [${paramName}] hides global variable of same name`
-          );
-        } else {
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: paramName.length,
-            ptTokenType: 'parameter',
-            ptTokenModifiers: ['declaration', 'readonly', 'local']
-          });
-          nameOffset += paramName.length + 1;
-        }
-        // remember so we can ID references
-        this.semanticFindings.setLocalTokenForMethod(
-          methodName,
-          paramName,
-          new RememberedToken('parameter', lineNbr - 1, nameOffset, ['readonly', 'local']),
-          this._declarationComment()
-        ); // TOKEN SET in _report()
 
         if (hasFlexSpinDefaultValue) {
           this.semanticFindings.pushDiagnosticMessage(
@@ -4974,18 +4989,52 @@ export class Spin2DocumentSemanticParser {
             }
           }
           // if we have a structure typename color it!
-          if (typeName.length > 0 && this.semanticFindings.isStructure(typeName)) {
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: typeName.length,
-              ptTokenType: 'storageType',
-              ptTokenModifiers: []
-            });
-            nameOffset += typeName.length + 1; // skip past space
+          if (typeName.length > 0) {
+            let foundObjectRef: boolean = false;
+            if (this._isPossibleObjectReference(typeName) && this.parseUtils.requestedSpinVersion(49)) {
+              // go register object TYPE-ONLY reference!
+              foundObjectRef = this._reportObjectReference(typeName, lineIdx, nameOffset, line, tokenSet, true);
+              if (!foundObjectRef) {
+                nameOffset += typeName.length + 1; // skip past space
+              }
+            }
+            if (!foundObjectRef) {
+              // this should be structure or B/W/L type
+              // if Structure type name, color it!
+              if (this.semanticFindings.isStructure(typeName) && !this.parseUtils.isStorageType(typeName)) {
+                nameOffset = line.indexOf(typeName, nameOffset);
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: typeName.length,
+                  ptTokenType: 'storageType',
+                  ptTokenModifiers: []
+                });
+                // FIXME: should this be method scoped structure instance?
+                this.semanticFindings.recordStructureInstance(typeName, returnValueName); // PUB/PRI
+                nameOffset += typeName.length + 1; // skip past space
+              } else {
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: typeName.length,
+                  ptTokenType: 'parameter',
+                  ptTokenModifiers: ['illegalUse']
+                });
+                this.semanticFindings.pushDiagnosticMessage(
+                  lineIdx,
+                  nameOffset,
+                  nameOffset + typeName.length,
+                  eSeverity.Error,
+                  `P2 Spin return-value unkown type [${typeName}]`
+                );
+                typeName = ''; // didnt find usable type
+              }
+            }
           }
         }
         // check to see if return name is hiding global variable
+        nameOffset = line.indexOf(returnValueName, nameOffset);
         if (this._hidesGlobalVariable(returnValueName)) {
           this._recordToken(tokenSet, line, {
             line: lineIdx,
@@ -5009,8 +5058,10 @@ export class Spin2DocumentSemanticParser {
             ptTokenType: 'returnValue',
             ptTokenModifiers: ['declaration', 'local']
           });
-          // remember that this variable is a structure instance
-          this.semanticFindings.recordStructureInstance(typeName, returnValueName); // PUB/PRI
+          if (typeName.length > 0) {
+            // remember that this return variable is a structure instance
+            this.semanticFindings.recordStructureInstance(typeName, returnValueName); // PUB/PRI
+          }
         }
         // remember so we can ID references
         this.semanticFindings.setLocalTokenForMethod(
@@ -5067,8 +5118,8 @@ export class Spin2DocumentSemanticParser {
             possLocalVarName = nameParts[1];
           }
         }
-        this._logSPIN(`  -- Line nameParts=[${nameParts}](${nameParts.length})`);
-        this._logSPIN(`  -- Line align=[${possAlignType}], storage=[${possStorageType}], varName=[${possLocalVarName}]`);
+        this._logSPIN(`  -- Line local nameParts=[${nameParts}](${nameParts.length})`);
+        this._logSPIN(`  -- Line local align=[${possAlignType}], storage=[${possStorageType}], varName=[${possLocalVarName}]`);
         let nameOffset: number = 0;
         // have name similar to scratch[12]?
         //
@@ -5162,7 +5213,7 @@ export class Spin2DocumentSemanticParser {
         //
         if (possAlignType.length > 0) {
           if (this.parseUtils.isAlignType(possAlignType)) {
-            nameOffset = line.indexOf(possAlignType, currentOffset);
+            nameOffset = line.indexOf(possAlignType, localVariableOffset);
             this._logMessage(`  -- have Align type! localName=[${possAlignType}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, line, {
               line: lineIdx,
@@ -5177,28 +5228,35 @@ export class Spin2DocumentSemanticParser {
         // handle storage type
         //
         if (possStorageType.length > 0) {
+          let foundObjectRef: boolean = false;
           structureType = '';
-          // have modifier!
           nameOffset = line.indexOf(possStorageType, localVariableOffset);
-          if (this.isStorageType(possStorageType)) {
-            this._logMessage(`  -- have Storage type! localName=[${possStorageType}], ofs=(${nameOffset})`);
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: possStorageType.length,
-              ptTokenType: 'storageType',
-              ptTokenModifiers: []
-            });
-            if (this.parseUtils.requestedSpinVersion(45) && this.semanticFindings.isStructure(possStorageType)) {
-              // at v45, we allow structures as types for local vars!
+          // at v49, we allow object.structure reference!
+          //  NOTE: the following "",true);"" changes _reportObjectReference() to ONLY report object.type references!
+          if (this._isPossibleObjectReference(possStorageType) && this.parseUtils.requestedSpinVersion(49)) {
+            // go register object TYPE-ONLY reference!
+            foundObjectRef = this._reportObjectReference(possStorageType, lineIdx, nameOffset, line, tokenSet, true);
+            if (foundObjectRef) {
+              nameOffset += possStorageType.length + 1; // skip past space
               structureType = possStorageType;
             }
-          } else if (this.parseUtils.requestedSpinVersion(49) && possStorageType.includes('.') && this._isPossibleObjectReference(possStorageType)) {
-            // at v49, we allow object.structure reference!
-            //  NOTE: the following "",true);"" changes _reportObjectReference() to ONLY report object.type references!
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const bHaveObjReference = this._reportObjectReference(possStorageType, lineIdx, currentOffset, line, tokenSet, true);
-            structureType = possStorageType;
+          }
+          if (!foundObjectRef) {
+            // have struct or BWL modifier!
+            if (this.isStorageType(possStorageType)) {
+              this._logMessage(`  -- have Storage type! localName=[${possStorageType}], ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: possStorageType.length,
+                ptTokenType: 'storageType',
+                ptTokenModifiers: []
+              });
+              if (this.parseUtils.requestedSpinVersion(45) && this.semanticFindings.isStructure(possStorageType)) {
+                // at v45, we allow structures as types for local vars!
+                structureType = possStorageType;
+              }
+            }
           }
         }
         //
@@ -5321,7 +5379,7 @@ export class Spin2DocumentSemanticParser {
             //
           }
         }
-        this._logSPIN(`  -- LHS: varNameList=[${varNameList}]`);
+        this._logSPIN(`  -- LHS: varNameList=[${varNameList}](${varNameList.length})`);
         for (let index = 0; index < varNameList.length; index++) {
           const variableName: string = varNameList[index];
           if (variableName.includes('[')) {
@@ -6046,7 +6104,7 @@ export class Spin2DocumentSemanticParser {
           }
         }
 		*/
-        this._logSPIN(`  -- LHS: varNameList=[${varNameList}](${varNameList.length}`);
+        this._logSPIN(`  -- LHS: varNameList=[${varNameList}](${varNameList.length})`);
         for (let index = 0; index < varNameList.length; index++) {
           const variableName: string = varNameList[index];
           if (variableName.includes('[')) {
@@ -8416,7 +8474,7 @@ export class Spin2DocumentSemanticParser {
               line: lineIdx,
               startCharacter: symbolOffset,
               length: newParameter.length,
-              ptTokenType: 'operator', // method is blue?!, function is yellow?!
+              ptTokenType: 'function', // method is blue?!, function is yellow?!, operator is purple?!
               ptTokenModifiers: ['builtin']
             });
             continue;
@@ -8563,6 +8621,10 @@ export class Spin2DocumentSemanticParser {
 
   private _reportStructureReference(dotReference: string, lineIdx: number, startingOffset: number, line: string, tokenSet: IParsedToken[]): boolean {
     let bGeneratedReference: boolean = false;
+    // many forms of structure references
+    //  Ex: a.n[3]
+    //  Ex: a.n[1].[31]
+    //  Ex: b.n[0].[0]
     const lineLength: number = line ? line.length : -1;
     const matchOffset: number = line.indexOf(dotReference);
     this._logMessage(
@@ -8614,14 +8676,23 @@ export class Spin2DocumentSemanticParser {
           for (let index = 0; index < memberNameSet.length; index++) {
             // record member name coloring
             let memberName: string = memberNameSet[index];
+            this._logSPIN(`  -- rptStruRef() evaluate memberName=[${memberName}]`);
+            if (memberName.startsWith('[') && memberName.endsWith(']')) {
+              // this is likely a bitfield access, ignore it
+              continue;
+            }
             if (memberName.includes('[') || memberName.includes(']')) {
               // yes remove array suffix
               const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(memberName);
               const localNameParts: string[] = lineInfo.lineParts;
-              this._logSPIN(`  -- rptStruRef() element w/Index localNameParts=[${localNameParts}]`);
-              this._logSPIN(`  -- rptStruRef() ERROR need code to handle index coloring! [${memberName}]`);
+              this._logSPIN(`  -- rptStruRef() element w/Index localNameParts=[${localNameParts}](${localNameParts.length})`);
+              const indexValue: string = localNameParts.length > 1 ? localNameParts[1] : '';
               memberName = localNameParts[0];
-              // FIXME: UNDONE XYZZY add code to colorize index value if non-constant
+              if (indexValue.length > 0 && /^-?\d+(\.\d+)?$/.test(indexValue) == false) {
+                this._logSPIN(`  -- rptStruRef() ERROR need code to handle index coloring! for ${memberName}[${indexValue}]`);
+                // FIXME: UNDONE XYZZY add code to colorize index value if non-constant
+              }
+              memberName = localNameParts[0];
             }
             let mbrTokenType = referenceDetails !== undefined ? referenceDetails.type : '';
             let mbrTokenModifiers = referenceDetails !== undefined ? referenceDetails.modifiers : [];
@@ -8728,7 +8799,7 @@ export class Spin2DocumentSemanticParser {
     // NOTE BUG: not handled:
     //   digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
     const lineLength: number = line ? line.length : -1;
-    const matchOffset: number = line.indexOf(dotReference);
+    const matchOffset: number = line.indexOf(dotReference, startingOffset);
     this._logMessage(
       `- rptObjectReference() ln#${lineIdx + 1}: dotRef=[${dotReference}], ofs(s/m)=(${startingOffset}/${matchOffset}), line=[${line}](${lineLength})`
     );
@@ -8794,9 +8865,10 @@ export class Spin2DocumentSemanticParser {
               });
             }
             if (possibleNameSet.length > 1) {
-              // we have .constant namespace suffix  // XYZZY OFFSETS NEED REWORK!!!
+              // we have .constant namespace suffix
               // determine if this is method has '(' or is constant name
               // we need to allow objInstance.CONSTANT and fail objectInstance[index].CONSTANT
+              // XYZZY NEW if onlyStructureRefs: need to fail objInstance.CONSTANT too
               const refParts: string[] = possibleNameSet[1].split(/[ ()*+,\-/[\]]/).filter(Boolean);
               const parameters: string[] = [];
               this._logMessage(`  -- possibleNameSet[1]=[${possibleNameSet[1]}] split into refParts=[${refParts}](${refParts.length})`);
@@ -8838,6 +8910,8 @@ export class Spin2DocumentSemanticParser {
               this._logMessage(
                 `  --  rObjRef isMethod=(${isMethod}), isStructure=(${isStructure}), isP1ObjectConstRef=(${isP1ObjectConstantRef}), objectRefHasIndex=(${objectRefContainsIndex})`
               );
+
+              // XYZZY NEW if onlyStructureRefs: need to fail objInstance.method() !!!
               if (referenceDetails && !isStructure && !onlyStructureRefs && (isMethod || (!isMethod && !objectRefContainsIndex))) {
                 // we need to allow objInstance.CONSTANT and fail objectInstance[index].CONSTANT
                 const constantPart: string = possibleNameSet[1];
@@ -8855,7 +8929,7 @@ export class Spin2DocumentSemanticParser {
                 bGeneratedReference = true; // need this iff we are only looking for structure references
                 const structurePart: string = possibleNameSet[1];
                 const structureOffset: number = line.indexOf(structurePart, matchOffset + possibleNameSet[0].length);
-                this._logMessage(`  --  rObjRef rhs struct=[${structurePart}], ofs=(${referenceOffset + 1})`);
+                this._logMessage(`  --  rObjRef rhs struct=[${structurePart}], ofs=(${structureOffset})`);
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
                   startCharacter: structureOffset,
@@ -8938,7 +9012,7 @@ export class Spin2DocumentSemanticParser {
 
                 // FIXME: handle nameParts[1] is likely a local file variable
               }
-              this._logDAT('  --  rObjRef MISSING instance declaration=[' + objInstanceName + ']');
+              this._logDAT(`  --  rObjRef MISSING instance declaration=[${objInstanceName}]`);
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: symbolOffset,

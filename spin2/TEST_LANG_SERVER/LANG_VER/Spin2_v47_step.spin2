@@ -10,10 +10,10 @@ PUB start() | i, task
     task := taskspin(newtask, LED(i), @stk[i*30])
     debug(sdec(task))
 
-  debug("Ending: ", udec(taskid()), ", Other tasks are running")   ' FIXME: bad coloring
+  debug("Ending: ", udec(taskid()), ", Other tasks are running")
 
 PRI LED(id) | taskStatus, possId
-  debug("Started: ", udec(taskid())) ' FIXME: BUG fix this color!!!
+  debug("Started: ", udec(taskid()))
   repeat 20_000 * id
     pintoggle(id)
     tasknext()
@@ -23,4 +23,4 @@ PRI LED(id) | taskStatus, possId
     taskStatus := taskchk(id) ' ret free=0, running=1, halted=2
     taskhlt~
     possId := taskid()
-  debug("Ending: ", udec(taskid()))   ' FIXME: bad coloring
+  debug("Ending: ", udec(taskid()))
