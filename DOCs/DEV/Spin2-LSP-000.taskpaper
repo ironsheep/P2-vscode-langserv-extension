@@ -7,7 +7,7 @@ FEATURE Latest Language Ver Updates:
 		- record VAR instance of struct @done(2025-04-12)
 		- SPIN Add highlight of dotted structure references (with name presence checking!) @done(2025-04-12)
 		- DAT structures: color label not as jump label but data label @done(2025-04-12)
-		- Fix sizeof() in SPIN @done(2025-04-12)
+		- Fix sizeof() in SPIN (PUB/PRI blocks) @done(2025-04-23)
 		- Fix Ptrs declares as parameters in PUB/PRI @done(2025-04-12)
 	v46:
 		- fix C_Z debug color as UDEC() @done(2025-04-13)
@@ -15,23 +15,31 @@ FEATURE Latest Language Ver Updates:
 		- fix REG use in CON  Ln#3 @done(2025-04-13)
 		- fix taskid() in debug() Tic / nonTic Ln#13, 16, 26 @done(2025-04-22)
 	v45-48:
-	- this should FAIL in obj.struct references in _reportPUB_PRI_Decl...()
+		- this should FAIL in obj.struct references in _reportPUB_PRI_Decl...()
 	v49:
 		- Fix struct import from included object! @done(2025-04-20)
 		- Fix structure declaration using '=' @done(2025-04-20)
 		- Fix use of obj.structcures as local types (partial) @done(2025-04-21)
 		- Fix use of obj.structures as param types @done(2025-04-22)
 		- Fix use of obj.structures as return types @done(2025-04-22)
-		- Fix Error GEN for use of obj.con/obj.method() in PUB/PRI decl line
 		- Fix declaration of PUB/PRI param,return,local when type is obj.type (record the declaration correctly) @done(2025-04-22)
+		- Fix Error GEN for use of obj.con/obj.method() in PUB/PRI decl line
+			- Fix ORGH and END in in-line PASM @done(2025-04-20)
+			- ERROR on ORGH in SPIN2 if < v50!
+			- Fix DITTO and DITTO END coloring in DAT sections @done(2025-04-19)
+			- CAN DITTO be in in-line pasm, too?  if so, fix coloring there too! @done(2025-04-19)
 	v50:
 		- Fix ORGH and END in in-line PASM @done(2025-04-20)
-		- ERROR on ORGH in SPIN2 if < v50!
 		- Fix DITTO and DITTO END coloring in DAT sections @done(2025-04-19)
 		- CAN DITTO be in in-line pasm, too?  if so, fix coloring there too! @done(2025-04-19)
+		- Added debug PLOT  layer and crop directives @done(2025-04-23)
+		- ERROR on ORGH in SPIN2 if < v50!
+		- Ensure PASM Debug() can be preceeded by if_c, if_nc, etc. conditionals (not just _ret_)
 	v51:
 		- Fix sizeof() in DAT data declaration @done(2025-04-13)
 		- Fix coloring of POW,LOG[2,10], EXP[2,10] functions @done(2025-04-13)
+		- Added support for predefined registers in CON expressions @done(2025-04-23)
+		- sizeof(struct) now works in DAT and VAR
 	math128:
 		- fix indexed structure elem reference @done(2025-04-21)
 	v51_misc:

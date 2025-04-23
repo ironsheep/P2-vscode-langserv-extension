@@ -3939,7 +3939,13 @@ export class Spin2ParseUtils {
       'window',
       'close'
     ];
-    const bPlotFeedParamStatus: boolean = debugPlotFeedTypes.indexOf(name.toLowerCase()) != -1;
+    let bPlotFeedParamStatus: boolean = debugPlotFeedTypes.indexOf(name.toLowerCase()) != -1;
+    if (!bPlotFeedParamStatus && this.requestedSpinVersion(50)) {
+      // check for new plot() parameters
+      const debugPlotFeedTypes_v45: string[] = ['crop', 'layer'];
+      bPlotFeedParamStatus = debugPlotFeedTypes_v45.indexOf(name.toLowerCase()) != -1;
+    }
+
     return bPlotFeedParamStatus;
   }
 

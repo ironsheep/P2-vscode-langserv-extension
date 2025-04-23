@@ -1,0 +1,131 @@
+'' =================================================================================================
+''
+''   File........ jm_debug_panel_digits_020.spin2
+''   Purpose.....
+''   Cogs Used...
+''   Author...... Jon "JonnyMac" McPhalen
+''                Copyright (c) 2025 Jon McPhalen
+''                -- see below for terms of use
+''   E-mail...... jon.mcphalen@gmail.com
+''   Started.....
+''   Updated..... 16 FEB 2025
+''
+'' =================================================================================================
+{Spin2_v50}
+
+con
+
+  VERSION = 0_2_0
+
+
+con { timing }
+
+  CLK_FREQ = 200_000_000                                        ' system freq as a constant
+  MS_001   = CLK_FREQ / 1_000                                   ' ticks in 1ms
+  US_001   = CLK_FREQ / 1_000_000                               ' ticks in 1us
+
+' _xtlfreq = 20_000_000                                         ' 19_200_000 for "irregular" Edge
+  _clkfreq = CLK_FREQ                                           ' set system clock
+
+
+con { fixed io pins }
+
+  PGM_RX   = 63  { I }                                          ' programming / debug
+  PGM_TX   = 62  { O }
+
+  SF_CS    = 61  { O }                                          ' flash storage
+  SF_SCLK  = 60  { O }
+  SF_MOSI  = 59  { O }
+  SF_MISO  = 58  { I }
+
+  LED2     = 57  { O }                                          ' Eval and Edge LEDs
+  LED1     = 56  { O }
+
+
+pub main() | i
+
+  setup()
+
+  repeat
+    repeat i from 0 to 255
+      show_value(i)
+      show_leds(i)
+      debug(`panel update)
+      waitms(250)
+
+
+pub show_value(value) : s | i, d, x1, x2
+
+  value := -99999 #> value <# 999999                            ' limit for display
+
+  if (value < 0)
+    s := true
+    -= value
+
+  debug(`panel crop 1 108 53 372 106)                           ' blank display
+
+  repeat i from 0 to 5
+    d := value // 10                                            ' extract dight
+    x1 := 328 - (44 * i)                                        ' locate in display
+
+    if (i == 0) || (value)                                      ' something to print?
+      x2 := d * 44                                              ' locate digit in map
+      debug(`panel crop 3 `(x2, 0, 44, 54, x1, 53))             ' place digit
+    else
+      if (s)
+        debug(`panel crop 3 `(440, 0, 44, 54, x1, 53))         ' sign if negative
+      quit                                                      ' nothing else to print
+
+    value /= 10                                                 ' next digit
+
+
+pub show_leds(value) | x, y, bit, img
+
+  x, y := 390, 155                                              ' upper left of bit0 LED
+
+  repeat bit from 0 to 7                                        ' loop through bits
+    img := value.[bit] + 1                                      ' set on or off image
+    debug(`panel crop `(img, x, y, 50, 50))                     ' update the led
+    x -= 50                                                     ' move to next led position
+
+
+pub setup()
+
+  debug(`plot panel title 'Digital Display' size 480 240 pos 600 200 hidexy update)
+
+  debug(`panel layer 1 'panel_leds_off.bmp')
+  debug(`panel layer 2 'panel_leds_on.bmp')
+  debug(`panel layer 3 'panel_digits.bmp')
+  debug(`panel crop 1)                                          ' layer 1 is default look
+  debug(`panel update)
+
+
+pri reboot()
+
+  hubset($1000_0000)
+
+
+con { license }
+
+{{
+
+  Terms of Use: MIT License
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this
+  software and associated documentation files (the "Software"), to deal in the Software
+  without restriction, including without limitation the rights to use, copy, modify,
+  merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to the following
+  conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies
+  or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+  PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+  CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+  OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+}}
