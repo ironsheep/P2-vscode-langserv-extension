@@ -2496,7 +2496,7 @@ export class NameScopedTokenSet {
 export interface IStructMember {
   name: string;
   type: string;
-  arraySize: number;
+  arraySize: number | string;
 }
 
 enum eMemberType {
@@ -2559,7 +2559,10 @@ export class RememberedStructure {
       const memberType: eMemberType = this.validType(memberInfo.type);
       const structName: string = memberType == eMemberType.MT_Structure ? memberInfo.type : '';
       const memberName: string = memberInfo.name;
-      const memberInstances: number = memberInfo.arraySize;
+      if (memberInfo.arraySize === undefined) {
+        memberInfo.arraySize = 1;
+      }
+      const memberInstances: number = typeof memberInfo.arraySize === `number` ? memberInfo.arraySize : -1;
       const member: RememberedStructureMember = new RememberedStructureMember(memberName, memberType, memberInstances, structName);
       this._members.push(member);
     }
@@ -2633,6 +2636,8 @@ export class RememberedStructure {
       }
       if (member.instanceCount > 1) {
         desiredString += `[${member.instanceCount}]`;
+      } else if (member.instanceCount < 0) {
+        desiredString += `[namedIndex]`;
       }
       if (idx < this._members.length - 1) {
         desiredString += ', ';

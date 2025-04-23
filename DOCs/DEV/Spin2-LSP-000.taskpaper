@@ -35,6 +35,12 @@ FEATURE Latest Language Ver Updates:
 	v51_misc:
 		- fix multi-line declaration of structure
 		- fix structure index coloring
+	Unify Single/MultiLine handling:
+		- complete CON unification @done(2025-04-22)
+		- complete SPIN unification
+		- complete OBJ unification
+		- complete PUB_PRI unification
+		- complete DEBUG unification
 	
 	UPCOMING:
 		- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the dont' use comment on line for this block

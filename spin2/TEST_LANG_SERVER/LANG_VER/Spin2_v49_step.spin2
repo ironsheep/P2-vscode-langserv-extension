@@ -5,7 +5,7 @@ OBJ m : "Spin2_v49_step_child"
 CON struct mpoint = m.point, struct myPoint(x,y), struct square(myPoint tlCrnr, myPoint brCrnr), struct polygon(myPoint crnr[6])
 
 'PUB go(m.point a) : m.point retA | m.point a, mpoint b, polygon c, m.QLEN b
-PUB go() | m.point a, mpoint b, polygon c
+PUB go() | m.point a, mpoint b, polygon c      ' FIXME: bad coloring of m.point
 
   a.x := 1
   a.y := 2

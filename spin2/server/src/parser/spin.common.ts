@@ -342,7 +342,7 @@ export class ContinuedLines {
     if (this.haveAllLines) {
       for (let index = 0; index < this.rawLines.length; index++) {
         const element = this.rawLines[index];
-        if (element) {
+        if (element !== undefined) {
           this._logMessage(`    --- ContLn: (dbg) Ln#${this.rawLineIdxs[index] + 1}} rawLines[${index}]=[${element}](${element.length})`);
         } else {
           this._logMessage(`    --- ContLn: (dbg) Ln#${this.rawLineIdxs[index] + 1}} rawLines[${index}]=[${element}] UNDEFINED!!!`);
@@ -414,9 +414,9 @@ export class ContinuedLines {
         // if the first line, don't take out the leading whitespace
         const accumLength = index == 0 ? foundLineWhiteSpaceLength + currLineLength : currLineLength;
         this._logMessage(
-          `    --- ContLn:   currLineLength=(${foundLineWhiteSpaceLength})+(${currLineLength})=(${
+          `    --- ContLn:   currLnLen=(${foundLineWhiteSpaceLength})+(${currLineLength})=(${
             foundLineWhiteSpaceLength + currLineLength
-          }), foundLineWhiteSpaceLength=(${foundLineWhiteSpaceLength}), desiredOffset=(${desiredOffset}), isLineContinued=(${isLineContinued})`
+          }), foundLineWhiteSpaceLength=(${foundLineWhiteSpaceLength}), desiredOffset=(${desiredOffset}), isLineCont=(${isLineContinued})`
         );
         if (currIdx == symbolPosition.line) {
           foundIndex = index;
@@ -455,28 +455,39 @@ export class ContinuedLines {
       const trimmedLineContentOnly: string = isLineContinued ? rawPossContLine.slice(0, -3).trimEnd() : rawPossContLine.trimEnd();
       const remainingString: string =
         index == 0 ? trimmedLineContentOnly.substring(remainingOffset) : trimmedLineContentOnly.trimStart().substring(remainingOffset);
-      /*
-      this._logMessage(`    --- ContLn: ls()           - CHECKING rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`);
-      this._logMessage(`    --- ContLn: ls()           - CHECKING   continuedLine=[${rawPossContLine}](${rawPossContLine.length})`);
-      this._logMessage(`    --- ContLn: ls()           - CHECKING   remainingString=[${remainingString}](${remainingString.length})`);
+      //*
+      this._logMessage(
+        `    --- ContLn: ls() - PREP rawIdx=(${rawIdx}), remOffset=(${remainingOffset}), currLnLen=(${currLineLength}), isLineCont=(${isLineContinued})`
+      );
+      this._logMessage(`    --- ContLn: ls() - PREP   continuedLine=[${rawPossContLine}](${rawPossContLine.length})`);
+      this._logMessage(`    --- ContLn: ls() - PREP   remainingString=[${remainingString}](${remainingString.length})`);
       //*/
       // if our offset is not in this line -or- the remainder of this line is not long enough to contain our symbol
       if (remainingOffset >= accumLength) {
         // not in this line... go to next...
         rawIdx++;
+        //*
+        this._logMessage(
+          `    --- ContLn: ls() - NOT-LINE (remOffset=(${remainingOffset}) >= accumLength=(${accumLength})) rawIdx=(${rawIdx}), remOffset=(${remainingOffset - accumLength}), isLineCont=(${isLineContinued})`
+        );
+        //*/
         remainingOffset -= accumLength;
-        //this._logMessage(
-        //  `    --- ContLn: ls()           - NOT-LINE rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`
-        //);
-      } else if (remainingString.length < symbolName.length || remainingString.indexOf(symbolName) == -1) {
+      } else if (remainingString.length < symbolName.length || remainingString.toUpperCase().indexOf(symbolName.toUpperCase()) == -1) {
         // if not found in remainder of line... go to next
         rawIdx++;
         remainingOffset = 0;
+        //*/
+        this._logMessage(
+          `    --- ContLn: ls() - NOT-LINE rawIdx=(${rawIdx}), remOffset=(${remainingOffset}), currLnLen=(${currLineLength}), isLineCont=(${isLineContinued}) line=[${this.rawLines[rawIdx]}]`
+        );
+        //*/
       } else {
         // must be in this line!
+        //*/
         this._logMessage(
-          `    --- ContLn:   locateSymbol() - THIS-LINE rawIdx=(${rawIdx}), remainingOffset=(${remainingOffset}), currLineLength=(${currLineLength}), isLineContinued=(${isLineContinued})`
+          `    --- ContLn: ls() - THIS-LINE rawIdx=(${rawIdx}), remOffset=(${remainingOffset}), currLnLen=(${currLineLength}), isLineCont=(${isLineContinued}) line=[${this.rawLines[rawIdx]}]`
         );
+        //*/
         break; // symbol is in this line
       }
     }
@@ -488,8 +499,12 @@ export class ContinuedLines {
       const lineIdx: number = this.rawLineIdxs[rawIdx];
       const searchLine: string = this.rawLines[rawIdx];
       const leadingWhiteLength: number = rawIdx > 0 ? this._skipWhite(searchLine, 0) : 0;
-      const symbolOffset: number = this.rawLines[rawIdx].indexOf(symbolName, leadingWhiteLength + remainingOffset);
-      //this._logMessage(`    --- ContLn: lineIdx=(${lineIdx}),  leadingWhiteLength=(${leadingWhiteLength}), remainingOffset=(${remainingOffset}), searchLine=[${searchLine}](${searchLine.length})`);
+      const symbolOffset: number = this.rawLines[rawIdx].toUpperCase().indexOf(symbolName.toUpperCase(), leadingWhiteLength + remainingOffset);
+      /*/
+      this._logMessage(
+        `    --- ContLn: lineIdx=(${lineIdx}),  leadingWhiteLength=(${leadingWhiteLength}), remOffset=(${remainingOffset}), searchLine=[${searchLine}](${searchLine.length})`
+      );
+      //*/
       desiredLocation = Position.create(lineIdx, symbolOffset);
       //this._logMessage(`    --- ContLn: locateSymbol() -> Posn=[line=(${lineIdx}), char=(${symbolOffset})]`);
       if (symbolOffset != -1) {

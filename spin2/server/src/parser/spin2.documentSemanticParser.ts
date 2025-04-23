@@ -34,8 +34,6 @@ import {
 } from './spin.common';
 import { fileInDirExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
-import { version } from 'os';
-import { PortMessageReader } from 'vscode-languageserver/node';
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -547,7 +545,12 @@ export class Spin2DocumentSemanticParser {
         } else if (currState == eParseState.inCon) {
           // process a constant line
           if (trimmedNonCommentLine.length > 0) {
-            this._getCON_Declaration(3, lineNbr, line);
+            this._logCON(`- CON (SGL-onCONline) Ln#${lineNbr} trimmedLine=[${line}](${line.length})`);
+            continuedLineSet.clear();
+            continuedLineSet.addLine(line, lineNbr - 1);
+            this._getCON_DeclarationMultiLine(3, continuedLineSet);
+            continuedLineSet.clear();
+            //  this._getCON_Declaration(3, lineNbr, line);
           }
         } else if (currState == eParseState.inDat) {
           // process a class(static) variable line
@@ -599,10 +602,16 @@ export class Spin2DocumentSemanticParser {
         //const nonCommentLength: number = parsingContinuedLineSet ? continuedLineSet.line.length : trimmedNonCommentLine.length;
         // process a constant non-continued line
         if (parsingContinuedLineSet && continuedLineSet.line.length > 0) {
+          this._logCON(`- CON (cont.) Ln#${lineNbr} trimmedLine=[${continuedLineSet.line}](${continuedLineSet.line.length})`);
           const lineOffset: number = continuedSectionStatus.isSectionStart ? 3 : 0;
           this._getCON_DeclarationMultiLine(lineOffset, continuedLineSet);
         } else if (bHaveLineToProcess) {
-          this._getCON_Declaration(0, lineNbr, line);
+          this._logCON(`- CON (SGL) Ln#${lineNbr} trimmedLine=[${line}](${line.length})`);
+          continuedLineSet.clear();
+          continuedLineSet.addLine(line, lineNbr - 1);
+          this._getCON_DeclarationMultiLine(0, continuedLineSet);
+          //this._getCON_Declaration(0, lineNbr, line);
+          continuedLineSet.clear();
         }
       } else if (currState == eParseState.inDat) {
         // process a data line
@@ -939,14 +948,25 @@ export class Spin2DocumentSemanticParser {
           // process SINGLE-LINE method signature
           let partialTokenSet: IParsedToken[] = [];
           if (trimmedLine.length > 3) {
-            partialTokenSet = this._reportPUB_PRI_Signature(i, 3, line);
+            this._logCON(`- PUB_PRI (SGL-onCPUB_PRIline) Ln#${lineNbr} trimmedLine=[${line}](${line.length})`);
+            continuedLineSet.clear();
+            continuedLineSet.addLine(line, lineNbr - 1);
+            partialTokenSet = this._reportPUB_PRI_SignatureMultiLine(3, continuedLineSet);
+            continuedLineSet.clear();
+            //partialTokenSet = this._reportPUB_PRI_Signature(i, 3, line);
           }
           this._reportNonDupeTokens(partialTokenSet, '=> PUB/PRI: ', line, tokenSet);
         } else if (currState == eParseState.inCon) {
-          // process a possible constant use on the CON line itself!
+          // process a possible constant declarations on the CON line itself!
           let partialTokenSet: IParsedToken[] = [];
           if (trimmedLine.length > 3) {
-            partialTokenSet = this._reportCON_DeclarationLine(i, 3, line);
+            this._logCON(`- CON (SGL-onCONline) Ln#${lineNbr} trimmedLine=[${line}](${line.length})`);
+            continuedLineSet.clear();
+            const nonCommentConstantLine = this._getNonCommentLineReturnComment(3, i, line, tokenSet);
+            continuedLineSet.addLine(nonCommentConstantLine, lineNbr - 1);
+            partialTokenSet = this._reportCON_DeclarationMultiLine(3, continuedLineSet);
+            //p artialTokenSet = this._reportCON_Declaration(i, 3, line);
+            continuedLineSet.clear();
           } else {
             this.conEnumInProgress = false; // so we can tell in CON processor when to allow isolated names
           }
@@ -1008,10 +1028,17 @@ export class Spin2DocumentSemanticParser {
         // process a line in a constant section
         let partialTokenSet: IParsedToken[] = [];
         if (parsingContinuedLineSet && continuedLineSet.line.length > 0) {
+          this._logCON(`- CON (cont.) Ln#${lineNbr} trimmedLine=[${continuedLineSet.line}](${continuedLineSet.line.length})`);
           const lineOffset: number = continuedSectionStatus.isSectionStart ? 3 : 0;
-          partialTokenSet = this._reportCON_DeclarationLineMultiLine(lineOffset, continuedLineSet);
+          partialTokenSet = this._reportCON_DeclarationMultiLine(lineOffset, continuedLineSet);
         } else if (bHaveLineToProcess) {
-          partialTokenSet = this._reportCON_DeclarationLine(i, 0, line);
+          this._logCON(`- CON (SGL) Ln#${lineNbr} trimmedLine=[${line}](${line.length})`);
+          continuedLineSet.clear();
+          const nonCommentConstantLine = this._getNonCommentLineReturnComment(0, i, line, tokenSet);
+          continuedLineSet.addLine(nonCommentConstantLine, lineNbr - 1);
+          partialTokenSet = this._reportCON_DeclarationMultiLine(0, continuedLineSet);
+          //partialTokenSet = this._reportCON_Declaration(i, 0, line);
+          continuedLineSet.clear();
         }
         this._reportNonDupeTokens(partialTokenSet, '=> CON: ', line, tokenSet);
       } else if (currState == eParseState.inDat) {
@@ -1450,8 +1477,9 @@ export class Spin2DocumentSemanticParser {
     //  -or-   _clkfreq = CLK_FREQ   ' set system clock
     // NEW: multi line enums with no punctuation, ends at blank line (uses this.conEnumInProgress)
     //
+
     this._logCON(
-      `  - Ln#${multiLineSet.lineStartIdx + 1} GetCONDeclMulti startingOffset=(${startingOffset}), line=[${multiLineSet.line}](${
+      `  - Ln#${multiLineSet.lineStartIdx + 1} GetCDLMulti() ENTRY startingOffset=(${startingOffset}), line=[${multiLineSet.line}](${
         multiLineSet.line.length
       })`
     );
@@ -1463,7 +1491,7 @@ export class Spin2DocumentSemanticParser {
       if (nonCommentConstantLine.length == 0) {
         this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
       } else {
-        this._logCON(`  -- GetCONDeclMulti nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`);
+        this._logCON(`  -- GetCDLMulti() nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`);
         const haveEnumDeclaration: boolean = this._isEnumDeclarationMultiLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
         const isAssignment: boolean = nonCommentConstantLine.indexOf('=') != -1;
         //const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && nonCommentConstantLine.toUpperCase().indexOf('STRUCT') != -1;
@@ -1472,39 +1500,143 @@ export class Spin2DocumentSemanticParser {
         } else {
           this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
         }
-        this._logCON(`  -- GetCONDeclMulti conEnumInProgress=(${this.conEnumInProgress}), haveEnumDeclaration=(${haveEnumDeclaration})`);
+        this._logCON(`  -- GetCDLMulti() conEnumInProgress=(${this.conEnumInProgress}), haveEnumDeclaration=(${haveEnumDeclaration})`);
         if (!haveEnumDeclaration && !this.conEnumInProgress) {
-          const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(',') != -1;
-          this._logCON('  -- declNotEnumMulti containsMultiStatements=[' + containsMultiStatements + ']');
-          let statements: string[] = [nonCommentConstantLine];
-          if (containsMultiStatements) {
-            statements = nonCommentConstantLine.split(',').filter(Boolean);
-          }
-          this._logCON(`  -- statements=[${statements}](${statements.length})`);
+          const statements: string[] = this.splitLinesWithPossibleStruct(nonCommentConstantLine);
+          const containsMultiStatements: boolean = statements.length > 1 ? true : false;
+          this._logCON(`  -- GetCDLMulti() multiStatements=(${containsMultiStatements}), statements=[${statements}](${statements.length})`);
 
           for (let index = 0; index < statements.length; index++) {
             const conDeclarationLine: string = statements[index].trim();
-            this._logCON('  -- GetCONDeclMulti conDeclarationLine=[' + conDeclarationLine + ']');
+            this._logCON(`  -- GetCDLMulti() conDeclarationLine=[${conDeclarationLine}][${index}]`);
             currSingleLineOffset = multiLineSet.line.indexOf(conDeclarationLine, 0);
-            const assignmentOffset: number = conDeclarationLine.indexOf('=');
-            if (assignmentOffset != -1) {
+            const isAssignment: boolean = conDeclarationLine.indexOf('=') != -1;
+            const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && nonCommentConstantLine.toUpperCase().indexOf('STRUCT') != -1;
+            if (isAssignment && !isStructDecl) {
               // recognize constant name getting initialized via assignment
               // get line parts - we only care about first one
               const lineParts: string[] = conDeclarationLine.split(/[ \t=]/).filter(Boolean);
-              this._logCON(`  -- GetCONDeclMulti SPLIT lineParts=[${lineParts.join(',')}](${lineParts.length})`);
+              this._logCON(`  -- GetCDLMulti() SPLIT lineParts=[${lineParts}](${lineParts.length})`);
               const newName = lineParts[0];
               if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
-                this._logCON('  -- GLBL GetCONDeclMulti newName=[' + newName + ']');
+                // if this line is NOT disabled, record new global (or error with DUPLICATE)
+                const lineIsDisabled: boolean = this.semanticFindings.preProcIsLineDisabled(multiLineSet.lineStartIdx);
+                this._logCON(`  -- GetCDLMulti() newName=[${newName}], lineIsDisabled=(${lineIsDisabled})`);
                 // remember this object name so we can annotate a call to it
                 //const nameOffset = line.indexOf(newName, currSingleLineOffset); // FIXME: UNDONE, do we have to dial this in?
                 const symbolPosition: Position = multiLineSet.locateSymbol(newName, currSingleLineOffset);
+                const lineNbr = symbolPosition.line + 1;
+                const nameOffset = symbolPosition.character;
                 //const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-                this.semanticFindings.recordDeclarationLine(multiLineSet.lineAt(symbolPosition.line), symbolPosition.line);
-                this.semanticFindings.setGlobalToken(
-                  newName,
-                  new RememberedToken('variable', symbolPosition.line + 1, symbolPosition.character, ['readonly']),
-                  this._declarationComment()
-                );
+                if (!lineIsDisabled) {
+                  // remember this object name so we can annotate a call to it
+                  const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
+                  if (referenceDetails !== undefined) {
+                    this.semanticFindings.pushDiagnosticMessage(
+                      lineNbr - 1,
+                      nameOffset,
+                      nameOffset + newName.length,
+                      eSeverity.Error,
+                      `P2 Spin Duplicate constant name [${newName}], already declared`
+                    );
+                  } else {
+                    this.semanticFindings.recordDeclarationLine(multiLineSet.lineAt(symbolPosition.line), lineNbr);
+                    this.semanticFindings.setGlobalToken(
+                      newName,
+                      new RememberedToken('variable', lineNbr - 1, nameOffset, ['readonly']),
+                      this._declarationComment()
+                    );
+                  }
+                  this.semanticFindings.recordDeclarationLine(multiLineSet.lineAt(symbolPosition.line), symbolPosition.line);
+                  this.semanticFindings.setGlobalToken(
+                    newName,
+                    new RememberedToken('variable', symbolPosition.line + 1, symbolPosition.character, ['readonly']),
+                    this._declarationComment()
+                  );
+                } else {
+                  const token = new RememberedToken('variable', lineNbr - 1, nameOffset, ['readonly']);
+                  this._declarationComment();
+                  this._logMessage(`* SKIP token setGLobal for disabled ln#(${lineNbr}) token=[${this._rememberdTokenString(newName, token)}]`);
+                }
+              }
+            } else if (isStructDecl) {
+              // if v45 or later then we could have a struct declaration
+              // recognize structure getting delcared
+              //  Ex1: STRUCT point(x,y)
+              //    this declares a structure 'point' with 2 members LONG x and LONG y
+              //  Ex2: STRUCT line(point a, point b)
+              //    this declares a structure 'line' with 2 members POINT a and POINT b, each of which have 2 members LONG x and LONG y
+              //
+              // structure declaration  structName (member1, member2,...) where
+              // //      memberN is optional {type} followed by name with optional [number of instances]
+              const structDeclaration = this.parseStructDeclaration(multiLineSet.line);
+              if (!structDeclaration.isValidStatus) {
+                this._logCON(`  -- GetCDLMulti() ERROR unknown=[${conDeclarationLine}]`);
+              } else {
+                const structName: string = structDeclaration.structName;
+                let symbolPosition: Position = multiLineSet.locateSymbol(structName, currSingleLineOffset);
+                const lineNbr = symbolPosition.line + 1;
+                let nameOffset = symbolPosition.character;
+                this._logCON(`  -- GetCDLMulti() newName=[${structName}], isAssignment=(${isAssignment}), lineIsDisabled=(???)`);
+                //this._logCON(`  -- GetCONDecl() structDeclaration=[${JSON.stringify(structDeclaration, null, 2)}]`);
+                let structure = new RememberedStructure(structName, lineNbr - 1, nameOffset, structDeclaration.members);
+                const newStructName: string = structure.name;
+                let isTypeFromChildObject: boolean = false;
+                let objectRefName: string = '';
+                if (isAssignment && structure.isStructureReference) {
+                  // if reference to a structure, then get the structure being referenced to be recorded
+                  const refName: string = structure.structureReferenceName;
+                  if (refName.includes('.')) {
+                    const refStructure = this._getStructureFromObjectReference(refName);
+                    if (refStructure !== undefined) {
+                      structure = refStructure;
+                      structure.setName(newStructName); // set to new instance name
+                      isTypeFromChildObject = true;
+                      objectRefName = refName;
+                    }
+                  } else if (this.semanticFindings.isStructure(refName)) {
+                    const tmpStructure = this.semanticFindings.getStructure(refName);
+                    if (tmpStructure !== undefined) {
+                      structure = tmpStructure;
+                      structure.setName(newStructName); // set to new instance name
+                    }
+                  }
+                }
+                this._logCON(`  -- GetCDLMulti() struct is now [${structure.toString()}]`);
+                symbolPosition = multiLineSet.locateSymbol(structName, currSingleLineOffset);
+                nameOffset = symbolPosition.character;
+                // Handle duplicate structure names
+                // remember this object name so we can annotate a call to it
+                const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(structName);
+                if (referenceDetails !== undefined) {
+                  this.semanticFindings.pushDiagnosticMessage(
+                    lineNbr - 1,
+                    nameOffset,
+                    nameOffset + structName.length,
+                    eSeverity.Error,
+                    `P2 Spin Duplicate structure name [${structName}], already declared`
+                  );
+                } else {
+                  // FIXME: UNDONE, ensure structure containing other structures, has other structures recorded before use!
+                  this.semanticFindings.recordStructureDefn(structure);
+                  this.semanticFindings.recordDeclarationLine(multiLineSet.lineAt(symbolPosition.line), lineNbr);
+                  nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                  this.semanticFindings.setGlobalToken(
+                    structName,
+                    new RememberedToken('variable', lineNbr - 1, nameOffset, ['readonly']),
+                    this._declarationComment()
+                  );
+                  // if we reference a structure from another object, then we need to remember it too
+                  if (isTypeFromChildObject) {
+                    structure.setName(objectRefName); // set to new instance name
+                    this.semanticFindings.recordStructureDefn(structure);
+                    this.semanticFindings.setGlobalToken(
+                      objectRefName,
+                      new RememberedToken('variable', lineNbr - 1, nameOffset, ['readonly']),
+                      this._declarationComment()
+                    );
+                  }
+                }
               }
             }
           }
@@ -1514,7 +1646,7 @@ export class Spin2DocumentSemanticParser {
           // this works: #0, HV_1, HV_2, HV_3, HV_4, HV_MAX = HV_4
           // this doesn't: #2[3], TV_1 = 4, TV_2 = 2, TV_3 = 5, TV_4 = 7
           const lineParts: string[] = nonCommentConstantLine.split(/[ \t,]/).filter(Boolean);
-          this._logCON(`  -- GetCONDeclMulti enumDecl lineParts=[${lineParts}](${lineParts.length})`);
+          this._logCON(`  -- GetCDLMulti() enumDecl lineParts=[${lineParts}](${lineParts.length})`);
           //this._logCON('  -- lineParts=[' + lineParts + ']');
           let nameOffset: number = 0;
           for (let index = 0; index < lineParts.length; index++) {
@@ -1523,7 +1655,7 @@ export class Spin2DocumentSemanticParser {
             if (this.parseUtils.isDebugInvocation(enumConstant)) {
               continue; // yep this is not a constant
             } else if (this.parseUtils.isP1AsmVariable(enumConstant)) {
-              this._logCON(`  -- GetCONDeclMulti PASM1 skipped=[${enumConstant}]`);
+              this._logCON(`  -- GetCDLMulti() PASM1 skipped=[${enumConstant}]`);
               continue; // yep this is not a constant
             } else {
               // our enum name can have a step offset
@@ -1533,7 +1665,7 @@ export class Spin2DocumentSemanticParser {
                 enumConstant = enumNameParts[0];
               }
               if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
-                this._logCON(`  -- C GetCONDeclMulti enumConstant=[${enumConstant}]`);
+                this._logCON(`  -- C GetCDLMulti() enumConstant=[${enumConstant}]`);
                 //const nameOffset = line.indexOf(enumConstant, currSingleLineOffset); // FIXME: UNDONE, do we have to dial this in?
                 const symbolPosition: Position = multiLineSet.locateSymbol(enumConstant, currSingleLineOffset);
                 nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -1586,50 +1718,8 @@ export class Spin2DocumentSemanticParser {
     return desiredSepLines;
   }
 
-  private parseStructDeclaration(structLine: string): { isValidStatus: boolean; structName: string; members: IStructMember[] } {
-    const structRegex = /STRUCT\s+(\w+)\s*\(([^)]+)\)/i; // Matches STRUCT name(member1, member2, ...)
-    const structAsgnRegex = /STRUCT\s+(\w+)\s*=\s*(\w+)/i; // Matches STRUCT name = structName
-    const match = structLine.match(structRegex);
-    const assignMatch = structLine.match(structAsgnRegex);
-    let isValidStatus: boolean = false;
-    let structName: string = ''; // The name of the structure
-    let members: IStructMember[] = []; // The raw members string (e.g., "LONG x, LONG y[10]")
-
-    if (match) {
-      isValidStatus = true;
-      structName = match[1]; // The name of the structure
-
-      const membersRaw = match[2]; // The raw members string (e.g., "LONG x, LONG y[10]")
-      // Split members and parse each one
-      members = membersRaw.split(',').map((member) => {
-        const memberParts = member.trim().match(/(\w+)?\s*(\w+)(?:\[(\d+)\])?/); // Matches {type} name [arraySize]
-        if (!memberParts) {
-          this._logMessage(`Invalid member declaration: ${member}`);
-          return { name: '', type: '', arraySize: 0 }; // Invalid member, return EMPTY
-        }
-
-        const [, type = 'LONG', name, arraySize] = memberParts; // Default type is LONG if not specified
-        return {
-          name,
-          type,
-          arraySize: arraySize ? parseInt(arraySize, 10) : 1 // Default array size is 1 if not specified
-        };
-      });
-    } else if (assignMatch) {
-      const lineParts: string[] = structLine.split(/[ \t=]/).filter(Boolean);
-      this._logMessage(` -- ParsStruDecl() ASSIGNMENT lineParts=[${lineParts}](${lineParts.length})`);
-      // Handle the case where the struct is assigned to another struct
-      isValidStatus = true;
-      structName = assignMatch[1]; // The name of the structure
-      // NOTE: FIXME: for now the following works but if we fall back to using assignMatch[2] it won't return names with '.'s in them!
-      const memberName = lineParts.length > 2 ? lineParts[2] : assignMatch[2]; // The name of the structure
-      members = [{ name: memberName, type: 'STRUCT', arraySize: 1 }]; // Assign the struct to another struct
-    }
-    this._logMessage(` -- ParsStruDecl() results isValid=(${isValidStatus}), name=[${structName}] ${JSON.stringify(members, null, 2)}`);
-    return { isValidStatus, structName, members };
-  }
-
-  private _getCON_Declaration(startingOffset: number, lineNbr: number, line: string): void {
+  /*
+  //private _getCON_Declaration(startingOffset: number, lineNbr: number, line: string): void {
     // HAVE    DIGIT_NO_VALUE = -2   ' digit value when NOT [0-9]
     //  -or-   _clkfreq = CLK_FREQ   ' set system clock
     // NEW: multi line enums with no punctuation, ends at blank line (uses this.conEnumInProgress)
@@ -1734,7 +1824,7 @@ export class Spin2DocumentSemanticParser {
                   // if reference to a structure, then get the structure being referenced to be recorded
                   const refName: string = structure.structureReferenceName;
                   if (refName.includes('.')) {
-                    const refStructure = this.getStructureFromObjectReference(refName);
+                    const refStructure = this._getStructureFromObjectReference(refName);
                     if (refStructure !== undefined) {
                       structure = refStructure;
                       structure.setName(newStructName); // set to new instance name
@@ -1826,6 +1916,7 @@ export class Spin2DocumentSemanticParser {
       this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
     }
   }
+  //*/
 
   private _getDAT_Declaration(startingOffset: number, lineNbr: number, line: string): void {
     // HAVE    bGammaEnable        BYTE   TRUE               ' comment
@@ -2247,7 +2338,7 @@ export class Spin2DocumentSemanticParser {
             this._logVAR(`  -- GLBL GetVarDecl adjust longVarName:[${newName}] -> [${tempParts[0]}]`);
             newName = tempParts[0];
           }
-          if (newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isAlignType(newName)) {
+          if (newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isAlignType(newName) && !this.semanticFindings.isStructure(newName)) {
             this._logVAR(`  -- GLBL GetVarDecl w/type newName=[${newName}]`);
             const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
             const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
@@ -2460,19 +2551,19 @@ export class Spin2DocumentSemanticParser {
     const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     let enumDeclStatus: boolean = nonCommentConstantLine.trim().startsWith('#');
+    const isStructDecl: boolean = nonCommentConstantLine.trim().toUpperCase().startsWith('STRUCT');
     const isPreprocessorStatement: boolean = this.parseUtils.lineStartsWithFlexspinPreprocessorDirective(nonCommentConstantLine);
+    this._logMessage(
+      `- Ln#${lineIdx} _isEnumDeclarationMultiLine() enumDecl=(${enumDeclStatus}), isPreproc=(${isPreprocessorStatement}), line=[${line}]`
+    );
     if (isPreprocessorStatement) {
       enumDeclStatus = false;
     }
     // if not yet sure...
-    if (isPreprocessorStatement == false && enumDeclStatus == false && singleLine == false) {
+    if (isPreprocessorStatement == false && enumDeclStatus == false && singleLine == false && isStructDecl == false) {
       // don't know what this line is, yet
-      const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(',') != -1;
-      let statements: string[] = [nonCommentConstantLine];
+      const statements: string[] = this.splitLinesWithPossibleStruct(nonCommentConstantLine);
       let allStatementAreAssignment: boolean = true;
-      if (containsMultiStatements) {
-        statements = nonCommentConstantLine.split(',').filter(Boolean);
-      }
       // if all statements are assignment then we still don't know if this is enum or list of assignements
       // however, if one has "no assignment" then we DO KNOW that this is an enum start
       for (let index = 0; index < statements.length; index++) {
@@ -2490,8 +2581,13 @@ export class Spin2DocumentSemanticParser {
     return enumDeclStatus;
   }
 
-  private _reportCON_DeclarationLineMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
+  private _reportCON_DeclarationMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
+    this._logCON(
+      `  - Ln#${multiLineSet.lineStartIdx + 1} rptCDLMulti() ENTRY startingOffset=(${startingOffset}), line=[${multiLineSet.line}](${
+        multiLineSet.line.length
+      })`
+    );
     // skip Past Whitespace
     let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
     const nonCommentConstantLine = multiLineSet.line;
@@ -2504,27 +2600,24 @@ export class Spin2DocumentSemanticParser {
       } else {
         this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
       }
-      const containsMultiStatements: boolean = nonCommentConstantLine.indexOf(',') != -1;
+      const statements: string[] = this.splitLinesWithPossibleStruct(nonCommentConstantLine);
+      const containsMultiStatements: boolean = statements.length > 1;
       this._logCON(
         `- Ln#${
           multiLineSet.lineStartIdx + 1
-        } rptCDLMulti haveEnum=(${haveEnumDeclaration}), containsMulti=(${containsMultiStatements}), nonCommentConstantLine=[${nonCommentConstantLine}]`
+        } rptCDLMulti() haveEnum=(${haveEnumDeclaration}), containsMulti=(${containsMultiStatements}), nonCommentConstantLine=[${nonCommentConstantLine}]`
       );
-      let statements: string[] = [nonCommentConstantLine];
       if (!haveEnumDeclaration && !this.conEnumInProgress) {
-        if (containsMultiStatements) {
-          statements = nonCommentConstantLine.split(',').filter(Boolean);
-        }
-        this._logCON(`  -- assignments Multi statements=[${statements}](${statements.length})`);
+        this._logCON(`  -- rptCDLMulti() assignments Multi statements=[${statements}](${statements.length})`);
         for (let index = 0; index < statements.length; index++) {
           const conDeclarationLine: string = statements[index].trim();
-          this._logCON('  -- m conDeclarationLine=[' + conDeclarationLine + ']');
+          this._logCON(`  -- rptCDLMulti()  conDeclarationLine=[${conDeclarationLine}][${index}]`);
           //currSingleLineOffset = line.indexOf(conDeclarationLine, currSingleLineOffset);
-          const symbolPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, currSingleLineOffset);
           // locate key indicators of line style
           const isAssignment: boolean = conDeclarationLine.indexOf('=') != -1;
           const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && conDeclarationLine.toUpperCase().indexOf('STRUCT') != -1;
           if (!isAssignment && !isStructDecl) {
+            const symbolPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, currSingleLineOffset);
             if (!this.parseUtils.isDebugInvocation(conDeclarationLine)) {
               this.semanticFindings.pushDiagnosticMessage(
                 symbolPosition.line,
@@ -2535,7 +2628,192 @@ export class Spin2DocumentSemanticParser {
               );
             }
           } else if (isAssignment && isStructDecl) {
+            this._logCON(`  -- rptCDLMulti() struct conAssignLine=[${conDeclarationLine}][${index}]`);
+            const structDeclaration = this.parseStructDeclaration(conDeclarationLine);
+            const statementPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, 0);
+            if (structDeclaration.isValidStatus) {
+              // color 'STRUCT' keyword
+              // this is a constant declaration!
+              const structKeyWord: string = 'STRUCT';
+              const structPosition: Position = multiLineSet.locateSymbol(structKeyWord, multiLineSet.offsetIntoLineForPosition(statementPosition));
+              let lineIdx: number = structPosition.line;
+              let nameOffset: number = structPosition.character;
+              this._logMessage(`  -- rptCDLMulti() ${structKeyWord}, ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(structPosition.line), {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: structKeyWord.length,
+                ptTokenType: 'keyword',
+                ptTokenModifiers: []
+              });
+              // color struct Name
+              const symbolName: string = structDeclaration.structName;
+              let symbolPosition: Position = multiLineSet.locateSymbol(symbolName, currSingleLineOffset);
+              lineIdx = symbolPosition.line;
+              nameOffset = symbolPosition.character;
+              this._logMessage(`  -- rptCDLMulti() structName=[${structDeclaration.structName}], ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: symbolName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['readonly']
+              });
+              // color name at RHS of assignment
+              const rhsName: string = structDeclaration.members[0].name;
+              symbolPosition = multiLineSet.locateSymbol(rhsName, nameOffset + symbolName.length);
+              lineIdx = symbolPosition.line;
+              nameOffset = symbolPosition.character;
+              this._logSPIN(`  -- rptCDLMulti() checking rhsName=[${rhsName}]`);
+              if (this._isPossibleObjectReference(rhsName)) {
+                // go register object reference!
+                const bHaveObjReference = this._reportObjectReference(
+                  rhsName,
+                  lineIdx,
+                  nameOffset,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  tokenSet
+                );
+                if (bHaveObjReference) {
+                  // would have adjusted currentOffset here....
+                  continue;
+                }
+              }
+              let referenceDetails: RememberedToken | undefined = undefined;
+              if (this.semanticFindings.isLocalToken(rhsName)) {
+                referenceDetails = this.semanticFindings.getLocalTokenForLine(rhsName, lineIdx + 1);
+                this._logSPIN(`  --  FOUND local name=[${rhsName}] found: ${referenceDetails !== undefined}`);
+              } else if (this.semanticFindings.isGlobalToken(rhsName)) {
+                referenceDetails = this.semanticFindings.getGlobalToken(rhsName);
+                this._logSPIN(`  --  FOUND global name=[${rhsName}] found: ${referenceDetails !== undefined}`);
+              }
+              if (referenceDetails !== undefined) {
+                this._logSPIN(`  --  rptCDLMulti() lcl-idx rhsName=[${rhsName}], ofs=(${nameOffset})`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: rhsName.length,
+                  ptTokenType: referenceDetails.type,
+                  ptTokenModifiers: referenceDetails.modifiers
+                });
+              }
+            }
           } else if (isStructDecl) {
+            this._logCON(`  -- rptCDLMulti() struct Line=[${conDeclarationLine}][${index}]`);
+            const structDeclaration = this.parseStructDeclaration(conDeclarationLine);
+            const statementPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, 0);
+            if (structDeclaration.isValidStatus) {
+              // color 'STRUCT' keyword
+              // this is a constant declaration!
+              const structKeyWord: string = 'STRUCT';
+              const structPosition: Position = multiLineSet.locateSymbol(structKeyWord, multiLineSet.offsetIntoLineForPosition(statementPosition));
+              let lineIdx: number = structPosition.line;
+              let nameOffset: number = structPosition.character;
+              this._logMessage(`  -- rptCDLMulti() ${structKeyWord}, ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(structPosition.line), {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: structKeyWord.length,
+                ptTokenType: 'keyword',
+                ptTokenModifiers: []
+              });
+              // color struct Name
+              const symbolName: string = structDeclaration.structName;
+              let symbolPosition: Position = multiLineSet.locateSymbol(
+                symbolName,
+                multiLineSet.offsetIntoLineForPosition(structPosition) + structKeyWord.length
+              );
+              lineIdx = symbolPosition.line;
+              nameOffset = symbolPosition.character;
+              this._logMessage(`  -- rptCDLMulti() structName=[${symbolName}], ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: symbolName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['readonly']
+              });
+              // for each member...
+              let currPartOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition) + symbolName.length;
+              for (let index = 0; index < structDeclaration.members.length; index++) {
+                const member = structDeclaration.members[index];
+                //   color member type
+                const typeStr: string = member.type;
+                const arraySize: string | number = member.arraySize === undefined ? 1 : member.arraySize;
+                const haveIndexName: boolean = typeof arraySize === 'number' ? false : true;
+                const indexName: string = typeof arraySize === 'string' ? arraySize : '';
+                switch (member.type.toLocaleLowerCase()) {
+                  case 'long':
+                  case 'byte':
+                  case 'word':
+                    break;
+                  default:
+                    break;
+                }
+                symbolPosition = multiLineSet.locateSymbol(typeStr, currPartOffset);
+                lineIdx = symbolPosition.line;
+                nameOffset = symbolPosition.character;
+                this._logMessage(`  -- rptCDLMulti() memberType=[${typeStr}], ofs=(${nameOffset})`);
+                if (nameOffset != -1) {
+                  // OPTIONALLY color member type
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: typeStr.length,
+                    ptTokenType: 'storageType',
+                    ptTokenModifiers: []
+                  });
+                  currPartOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition) + typeStr.length;
+                }
+                //   color member name
+                const memberName: string = member.name;
+                symbolPosition = multiLineSet.locateSymbol(memberName, currPartOffset);
+                lineIdx = symbolPosition.line;
+                nameOffset = symbolPosition.character;
+                this._logMessage(`  -- rptCDLMulti() memberName=[${memberName}], ofs=(${nameOffset})`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: memberName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['readonly']
+                });
+                currPartOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition) + memberName.length;
+                // OPTIONALLY color index name
+                if (haveIndexName) {
+                  // XYZZY lookup and color named index
+                  symbolPosition = multiLineSet.locateSymbol(indexName, currPartOffset);
+                  lineIdx = symbolPosition.line;
+                  nameOffset = symbolPosition.character;
+                  this._logMessage(`  -- rptCDLMulti() memberName=[${indexName}], ofs=(${nameOffset})`);
+                  let referenceDetails: RememberedToken | undefined = undefined;
+                  if (this.semanticFindings.isGlobalToken(indexName)) {
+                    referenceDetails = this.semanticFindings.getGlobalToken(indexName);
+                    this._logCON(`  --  FOUND rcdl lhs global ${this._rememberdTokenString(indexName, referenceDetails)}`);
+                  }
+                  if (referenceDetails !== undefined) {
+                    // this is a constant declaration!
+                    const modifiersWDecl: string[] = referenceDetails.modifiersWithout('declaration');
+                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: indexName.length,
+                      ptTokenType: referenceDetails.type,
+                      ptTokenModifiers: modifiersWDecl
+                    });
+                  } else {
+                    this._logCON('  --  CON ERROR[CODE] missed recording declaration! name=[' + indexName + ']');
+                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: indexName.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['illegalUse']
+                    });
+                  }
+                }
+              }
+            }
           } else {
             // -------------------------------------------
             // have line assigning value to new constant
@@ -2543,10 +2821,11 @@ export class Spin2DocumentSemanticParser {
             // process LHS
             const assignmentParts: string[] = conDeclarationLine.split('=');
             const lhsConstantName = assignmentParts[0].trim();
+            const statementPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, 0);
             //const nameOffset = line.indexOf(lhsConstantName, currSingleLineOffset);
-            const symbolPosition: Position = multiLineSet.locateSymbol(lhsConstantName, currSingleLineOffset);
+            const symbolPosition: Position = multiLineSet.locateSymbol(lhsConstantName, multiLineSet.offsetIntoLineForPosition(statementPosition));
             //const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-            this._logCON(`  -- GLBLMulti assign lhsConstantName=[${lhsConstantName}]`);
+            this._logCON(`  -- rptCDLMulti() assign lhsConstantName=[${lhsConstantName}]`);
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.isGlobalToken(lhsConstantName)) {
               referenceDetails = this.semanticFindings.getGlobalToken(lhsConstantName);
@@ -2594,9 +2873,9 @@ export class Spin2DocumentSemanticParser {
             const fistEqualOffset: number = conDeclarationLine.indexOf('=');
             const assignmentRHSStr = conDeclarationLine.substring(fistEqualOffset + 1).trim();
             currSingleLineOffset = multiLineSet.line.indexOf(assignmentRHSStr, fistEqualOffset); // skip to RHS of assignment
-            this._logCON(`  -- GLBLMulti assignmentRHSStr=[${assignmentRHSStr}], ofs=(${currSingleLineOffset})`);
+            this._logCON(`  -- rptCDLMulti() assignmentRHSStr=[${assignmentRHSStr}], ofs=(${currSingleLineOffset})`);
             const possNames: string[] = this.parseUtils.getNonWhiteCONLineParts(assignmentRHSStr);
-            this._logCON(`  -- CONMulti possNames=[${possNames}](${possNames.length})`);
+            this._logCON(`  -- rptCDLMulti() possNames=[${possNames}](${possNames.length})`);
             for (let index = 0; index < possNames.length; index++) {
               const possibleName = possNames[index];
               //const currPossibleLen = possibleName.length;
@@ -2639,6 +2918,16 @@ export class Spin2DocumentSemanticParser {
                   });
                   continue;
                 }
+                if (this.parseUtils.isNewBinaryOrUnaryOperator(namePart)) {
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: symbolPosition.line,
+                    startCharacter: nameOffset,
+                    length: namePart.length,
+                    ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                    ptTokenModifiers: ['builtin']
+                  });
+                  continue;
+                }
                 if (this.semanticFindings.isGlobalToken(namePart)) {
                   referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                   this._logCON(`  --  FOUND rcds rhs global ${this._rememberdTokenString(namePart, referenceDetails)}`);
@@ -2653,8 +2942,8 @@ export class Spin2DocumentSemanticParser {
                     ptTokenModifiers: referenceDetails.modifiers
                   });
                 } else {
-                  const methodFollowString: string = multiLineSet.line.substring(nameOffset + namePart.length);
-                  this._logSPIN(`  --  CON func Paren chk methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                  const methodFollowString: string = multiLineSet.lineAt(symbolPosition.line).substring(symbolPosition.character + namePart.length);
+                  this._logSPIN(`  --  CON func Paren chk nm=[${namePart}] methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
                   if (this.parseUtils.isFloatConversion(namePart) && !isMethodCall(methodFollowString)) {
                     this._logCON(`  --  CON MISSING parens=[${namePart}]`);
                     this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -2759,6 +3048,7 @@ export class Spin2DocumentSemanticParser {
         const lineParts: string[] = nonCommentConstantLine.split(',').filter(Boolean);
         this._logCON(`  -- enum lineParts=[${lineParts}](${lineParts.length})`);
         let nameOffset: number = 0;
+        let nameLen: number = 0;
         for (let index = 0; index < lineParts.length; index++) {
           let enumConstant = lineParts[index].trim();
           // our enum name can have a step offset: name[step]
@@ -2767,11 +3057,13 @@ export class Spin2DocumentSemanticParser {
             const enumNameParts: string[] = enumConstant.split('[');
             enumConstant = enumNameParts[0];
           }
+          nameLen = enumConstant.length;
           if (enumConstant.includes('=')) {
             // process LHS of '='
             const enumAssignmentParts: string[] = enumConstant.split('=');
             enumConstant = enumAssignmentParts[0].trim();
             const enumExistingName: string = enumAssignmentParts[1].trim();
+            nameLen = enumExistingName.length; // len changed assign again...
             if (enumExistingName.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON('  -- A GLBL enumExistingName=[' + enumExistingName + ']');
               // our enum name can have a step offset
@@ -2821,9 +3113,9 @@ export class Spin2DocumentSemanticParser {
                 `P1 Spin constant [${enumConstant}] not allowed in P2 Spin`
               );
             }
-            currSingleLineOffset = nameOffset + enumConstant.length;
+            currSingleLineOffset = nameOffset + nameLen;
           } else {
-            currSingleLineOffset + enumConstant.length; // skip over things like "#0 enum start"
+            currSingleLineOffset + nameLen; // skip over things like "#0 enum start"
           }
         }
       }
@@ -2833,7 +3125,8 @@ export class Spin2DocumentSemanticParser {
     return tokenSet;
   }
 
-  private _reportCON_DeclarationLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
+  /*
+  //private _reportCON_Declaration(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     // skip Past Whitespace
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
@@ -3291,6 +3584,54 @@ export class Spin2DocumentSemanticParser {
       this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
     }
     return tokenSet;
+  }
+  //*/
+
+  private parseStructDeclaration(structLine: string): { isValidStatus: boolean; structName: string; members: IStructMember[] } {
+    const structRegex = /STRUCT\s+(\w+)\s*\(([^)]+)\)/i; // Matches STRUCT name(member1, member2, ...)
+    const structAsgnRegex = /STRUCT\s+(\w+)\s*=\s*(\w+)/i; // Matches STRUCT name = structName
+    const reducedWhiteSpace: string = structLine.replace(/\s+/g, ' ').trim(); // Remove extra whitespace
+    const match = reducedWhiteSpace.match(structRegex);
+    const assignMatch = reducedWhiteSpace.match(structAsgnRegex);
+    let isValidStatus: boolean = false;
+    let structName: string = ''; // The name of the structure
+    let members: IStructMember[] = []; // The raw members string (e.g., "LONG x, LONG y[10]")
+
+    if (match) {
+      isValidStatus = true;
+      structName = match[1]; // The name of the structure
+      const membersRaw = match[2]; // The raw members string (e.g., "LONG x, LONG y[10]")
+      //this._logMessage(` -- ParsStruDecl() nm=[${structName}], mbrsRaw=[${membersRaw}] match=[${match}](${match.length})`);
+
+      // Split members and parse each one
+      members = membersRaw.split(',').map((member) => {
+        const memberParts = member.trim().match(/(?:(\w+)\s+)?(\w+)(?:\[(\w+)\])?/); // Matches {type} name [arraySize]
+        if (!memberParts) {
+          this._logMessage(`Invalid member declaration: ${member}`);
+          return { name: '', type: '', arraySize: 0 }; // Invalid member, return EMPTY
+        }
+        //this._logMessage(` -- ParsStruDecl() memberParts=[${memberParts}](${memberParts.length})`);
+
+        const [, type = 'LONG', name, arraySize] = memberParts; // Default type is LONG if not specified
+        return {
+          name,
+          type,
+          arraySize: /^-?\d+(\.\d+)?$/.test(arraySize) ? parseInt(arraySize, 10) : arraySize // Default array size is 1 if not specified
+        };
+      });
+    } else if (assignMatch) {
+      const lineParts: string[] = structLine.split(/[ \t=]/).filter(Boolean);
+      this._logMessage(` -- ParsStruDecl() ASSIGNMENT lineParts=[${lineParts}](${lineParts.length})`);
+      // Handle the case where the struct is assigned to another struct
+      isValidStatus = true;
+      structName = assignMatch[1]; // The name of the structure
+      const memberName = lineParts.length > 2 ? lineParts[2] : assignMatch[2]; // The name of the structure
+      // NOTE: FIXME: for now the following works but if we fall back to using assignMatch[2] it won't return names with '.'s in them!
+      this._logMessage(` -- ParsStruDecl() nm=[${structName}], memberName=[${memberName}] match=[${assignMatch}](${assignMatch.length})`);
+      members = [{ name: memberName, type: 'STRUCT', arraySize: 1 }]; // Assign the struct to another struct
+    }
+    this._logMessage(` -- ParsStruDecl() results isValid=(${isValidStatus}), name=[${structName}] ${JSON.stringify(members, null, 2)}`);
+    return { isValidStatus, structName, members };
   }
 
   private _reportDAT_DeclarationLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
@@ -7070,26 +7411,6 @@ export class Spin2DocumentSemanticParser {
     return tokenSet;
   }
 
-  /*
-	private isNumeric(val: any): boolean {
-	  // REF https://stackoverflow.com/questions/23437476/in-typescript-how-to-check-if-a-string-is-numeric
-	  let desiredNumericStatus: boolean = false;
-	  if (val.indexOf('%%') == 0) {
-		desiredNumericStatus = true;
-	  } else if (val.indexOf('%') == 0) {
-		desiredNumericStatus = true;
-	  } else if (val.indexOf('$') == 0) {
-		desiredNumericStatus = true;
-	  } else {
-		desiredNumericStatus = !(val instanceof Array) && val - parseFloat(val) + 1 >= 0;
-	  }
-	  return desiredNumericStatus;
-	}
-	*/
-  private isStorageType(possibleType: string): boolean {
-    return this.parseUtils.isStorageType(possibleType) || this.semanticFindings.isStructure(possibleType);
-  }
-
   private _reportVAR_DeclarationLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     //skip Past Whitespace
@@ -8222,6 +8543,10 @@ export class Spin2DocumentSemanticParser {
     return tokenSet;
   }
 
+  private isStorageType(possibleType: string): boolean {
+    return this.parseUtils.isStorageType(possibleType) || this.semanticFindings.isStructure(possibleType);
+  }
+
   private _isPossibleStructureReference(possibleRef: string): boolean {
     const dottedSymbolRegex = /[a-zA-Z0-9_]\.[a-zA-Z_]/; // sym.sym
     const dottedIndexedSymbolRegex = /\]\.[a-zA-Z_]/; // indexExpre].sym
@@ -8243,7 +8568,6 @@ export class Spin2DocumentSemanticParser {
     this._logMessage(
       `- rptStruRef() ln#${lineIdx + 1}: dotRef=[${dotReference}], ofs(s/m)=(${startingOffset}/${matchOffset}), line=[${line}](${lineLength})`
     );
-    const lineNbr: number = lineIdx + 1;
     let possibleNameSet: string[] = [];
     if (dotReference.includes('.') && !dotReference.includes('..')) {
       let nameOffset: number = line.indexOf(dotReference.trimStart(), startingOffset); // walk this past each
@@ -8372,7 +8696,7 @@ export class Spin2DocumentSemanticParser {
     return refFoundStatus;
   }
 
-  private getStructureFromObjectReference(dotReference: string): RememberedStructure | undefined {
+  private _getStructureFromObjectReference(dotReference: string): RememberedStructure | undefined {
     let structureFindings: RememberedStructure | undefined = undefined;
     const possibleNameSet: string[] = dotReference.trimStart().split(/[.#%]/).filter(Boolean);
     if (possibleNameSet.length > 1) {
