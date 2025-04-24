@@ -49,9 +49,9 @@ FEATURE Latest Language Ver Updates:
 		- Fix var struct type use forms
 	Unify Single/MultiLine handling:
 		- complete CON unification @done(2025-04-22)
+		- complete PUB_PRI unification @done(2025-04-23)
 		- complete SPIN unification
 		- complete OBJ unification
-		- complete PUB_PRI unification
 		- complete DEBUG unification
 	
 	UPCOMING:

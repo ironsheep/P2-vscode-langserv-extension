@@ -4,8 +4,9 @@ OBJ m : "Spin2_v49_step_child"
 
 CON struct mpoint = m.point, struct myPoint(x,y), struct square(myPoint tlCrnr, myPoint brCrnr), struct polygon(myPoint crnr[6])
 
-PUB go(m.point pa, myPoint pb) : myPoint retA, m.point retB  | m.point la, mpoint lb, polygon lc
-
+'PUB go(^m.point pa, ^myPoint pb) : ^myPoint retA, ^m.point retB  | m.point la, ^mpoint lb, polygon lc, alignb byte ld[m.QLEN], alignb le[xxyz]
+PUB go(^m.point pa, ^myPoint pb) : ^myPoint retA, ^m.point retB  | m.point la, ^mpoint lb, polygon lc, byte ld[m.QLEN], le[45]
+'
   la.x := 1
   la.y := 2
   lb.x := 3
