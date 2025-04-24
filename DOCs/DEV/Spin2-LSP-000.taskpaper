@@ -50,9 +50,12 @@ FEATURE Latest Language Ver Updates:
 	Unify Single/MultiLine handling:
 		- complete CON unification @done(2025-04-22)
 		- complete PUB_PRI unification @done(2025-04-23)
+		- complete OBJ unification @done(2025-04-24)
+		- complete DEBUG unification @done(2025-04-24)
+		- convert _getOBJ_Declaration() to _getOBJ_DeclarationMultiLine()
+		- convert _getDebugStatement() to _getDebugStatementMultiLine()
+		- debug unification fix 'strings' coloring (broke this?!)
 		- complete SPIN unification
-		- complete OBJ unification
-		- complete DEBUG unification
 	
 	UPCOMING:
 		- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the dont' use comment on line for this block
