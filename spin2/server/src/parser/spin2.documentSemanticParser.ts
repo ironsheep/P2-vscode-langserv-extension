@@ -6659,38 +6659,6 @@ export class Spin2DocumentSemanticParser {
     }
     let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
     this._logMessage(` -- rdsml() startingOffset=(${startingOffset}), currSingleLineOffset=(${currSingleLineOffset})`);
-
-    // now record the comment if we have one (only do single line as we don't know what this means for multi-line)
-    if (multiLineSet.numberLines == 1) {
-      this._logMessage(` -- rdsml() multiLineSet.line=[${multiLineSet.line}](${multiLineSet.line.length})`);
-      const debugNoDlbQuotes: string = this.parseUtils.removeDoubleQuotedStrings(multiLineSet.line);
-      const debugNoStrings: string = ''.padEnd(currSingleLineOffset, ' ') + this.parseUtils.removeDebugSingleQuotedStrings(debugNoDlbQuotes);
-      const endOfDebugStatement: number = this._locateEndOfDebugStatement(debugNoStrings, 0);
-      this._logMessage(` -- rdsml() debugNoStrings=[${debugNoStrings}](${debugNoStrings.length}), endOfDebugStatement=(${endOfDebugStatement})`);
-      if (endOfDebugStatement != -1) {
-        const commentPosition = debugNoStrings.indexOf("'", endOfDebugStatement);
-        const commentLength = commentPosition != -1 ? debugNoStrings.length - commentPosition + 1 : 0;
-        // FIXME: UNDONE XYZZY does this actually work, is it correct for finding the trailing comment?
-        if (commentPosition != -1) {
-          const newToken: IParsedToken = {
-            line: multiLineSet.lineStartIdx,
-            startCharacter: commentPosition,
-            length: commentLength,
-            ptTokenType: 'comment',
-            ptTokenModifiers: ['line']
-          };
-          tokenSet.push(newToken);
-          // reload multiline set with comment removed
-          const lineNoComment: string = multiLineSet.line.substring(0, commentPosition).trimEnd();
-          const lineIdx: number = multiLineSet.lineStartIdx;
-          this._logMessage(` -- rdsml() line Was=[${multiLineSet.line}](${multiLineSet.line.length})`);
-          this._logMessage(` -- rdsml() line  IS=[${lineNoComment}](${lineNoComment.length})`);
-          multiLineSet.clear();
-          multiLineSet.addLine(lineNoComment, lineIdx);
-        }
-      }
-    }
-
     const debugStatementStr: string = multiLineSet.line.substring(currSingleLineOffset).trimEnd();
     this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rtpDbgStmntMulti debugStatementStr=[${debugStatementStr}]`);
     const lineParts: string[] = this.parseUtils.getDebugNonWhiteLineParts(debugStatementStr);
@@ -7675,11 +7643,13 @@ export class Spin2DocumentSemanticParser {
 
   private _reportDebugStringsMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
-    this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rtpDbgStrMulti line=[${multiLineSet.line}], lns=(${multiLineSet.numberLines})`);
+    this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rtpDbgStrMulti() line=[${multiLineSet.line}], lns=(${multiLineSet.numberLines})`);
     for (let index = 0; index < multiLineSet.numberLines; index++) {
+      const desiredLine: number = multiLineSet.lineStartIdx + index;
       const lnOffset: number = index == 0 ? startingOffset : 0;
-      const line = multiLineSet.lineAt(index).substring(lnOffset);
-      const tokenStringSet: IParsedToken[] = this._reportDebugDblQuoteStrings(multiLineSet.lineStartIdx + index, line, line);
+      const line = multiLineSet.lineAt(desiredLine).substring(lnOffset);
+      //this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} scanning rtpDbgStrMulti() line=[${line}][${index}]`);
+      const tokenStringSet: IParsedToken[] = this._reportDebugStrings(multiLineSet.lineStartIdx + index, line, line.trim());
       if (tokenStringSet.length > 0) {
         for (let index = 0; index < tokenStringSet.length; index++) {
           const token = tokenStringSet[index];
@@ -7693,18 +7663,19 @@ export class Spin2DocumentSemanticParser {
   private _reportDebugStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     // debug statements typically have single or double quoted strings.  Let's color either if/when found!
     const tokenSet: IParsedToken[] = [];
-    let tokenStringSet: IParsedToken[] = this._reportDebugDblQuoteStrings(lineIdx, line, debugStatementStr);
-    tokenStringSet.forEach((newToken) => {
-      tokenSet.push(newToken);
-    });
-    let bNeedSingleQuoteProcessing: boolean = true;
-    if (tokenStringSet.length > 0) {
-      // see if we have sgl quites outside if dbl-quote strings
-      const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(debugStatementStr);
-      bNeedSingleQuoteProcessing = nonStringLine.indexOf("'") != -1;
+    this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgStrs() line=[${line}](${line.length})`);
+    let nonDoubleQuoteStringLine: string = line;
+    const bNeedDoubleQuoteProcessing: boolean = line.indexOf('"') != -1;
+    if (bNeedDoubleQuoteProcessing) {
+      const tokenStringSet: IParsedToken[] = this._reportDebugDblQuoteStrings(lineIdx, line, debugStatementStr);
+      tokenStringSet.forEach((newToken) => {
+        tokenSet.push(newToken);
+      });
+      nonDoubleQuoteStringLine = this.parseUtils.removeDoubleQuotedStrings(debugStatementStr);
     }
+    const bNeedSingleQuoteProcessing: boolean = nonDoubleQuoteStringLine.indexOf("'") != -1;
     if (bNeedSingleQuoteProcessing) {
-      tokenStringSet = this._reportDebugSglQuoteStrings(lineIdx, line, debugStatementStr);
+      const tokenStringSet: IParsedToken[] = this._reportDebugSglQuoteStrings(lineIdx, line, debugStatementStr);
       tokenStringSet.forEach((newToken) => {
         tokenSet.push(newToken);
       });
@@ -7714,6 +7685,7 @@ export class Spin2DocumentSemanticParser {
 
   private _reportDebugSglQuoteStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
+    this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgSQStrs() line=[${line}](${line.length})`);
     // find all strings in debug() statement but for now just do first...
     let currentOffset: number = line.indexOf(debugStatementStr);
     let nextStringOffset: number = 0;
@@ -7804,6 +7776,7 @@ export class Spin2DocumentSemanticParser {
 
   private _reportDebugDblQuoteStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
+    this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgDQStrs() line=[${line}](${line.length})`);
     // find all strings in debug() statement but for now just do first...
     let currentOffset: number = line.indexOf(debugStatementStr);
     let nextStringOffset: number = 0;
