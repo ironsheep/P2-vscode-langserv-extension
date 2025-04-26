@@ -51,7 +51,7 @@ FEATURE Latest Language Ver Updates:
 		- Finish theme updates for all themes! (new number color) @done(2025-04-25)
 		- Fix var struct type use forms @done(2025-04-25)
 		- Fix more debug coloring issues
-		- Add support for multiple declarations per line
+		- Add support for multiple VAR declarations per line
 		
 	Unify Single/MultiLine handling:
 		- complete CON unification @done(2025-04-22)
@@ -60,10 +60,12 @@ FEATURE Latest Language Ver Updates:
 		- complete DEBUG unification @done(2025-04-24)
 		- convert _getOBJ_Declaration() to _getOBJ_DeclarationMultiLine() - NO NEED! @done(2025-04-25)
 		- debug unification fix 'strings' coloring (broke this?!) @done(2025-04-25)
+		- complete the PUB-PRI conversion to multiLine @done(2025-04-26)
 		- convert _getDebugStatement() to _getDebugStatementMultiLine()
 		- complete SPIN unification
 	
 	UPCOMING:
+		- Report in PUB/PRI warning for unused param, return, and local vars
 		- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the dont' use comment on line for this block
 		- v43 Add Constants to OBJ I/F DOC
 		- v45 Add Structures to OBJ I/F DOC
