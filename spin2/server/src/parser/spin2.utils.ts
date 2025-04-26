@@ -192,16 +192,16 @@ export class Spin2ParseUtils {
           stringNoTicEscape = false; // we need to remove before and after tic escape
         }
       }
-      this._logMessage(
-        `  -- RdsQS quoteStartOffset=(${quoteStartOffset}), nextTicEscape=(${nextTicEscape}), quoteEndOffset=(${quoteEndOffset}): stringNoTicEscape=(${stringNoTicEscape})`
-      );
+      //this._logMessage(
+      //    `  -- RdsQS quoteStartOffset=(${quoteStartOffset}), nextTicEscape=(${nextTicEscape}), quoteEndOffset=(${quoteEndOffset}): stringNoTicEscape=(${stringNoTicEscape})`
+      //);
       if (stringNoTicEscape) {
         // ----------------------------------------
         // have string with no tic escape, remove it
         //
         badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        this._logMessage(`sp2u:  -- RdsQS A trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        //this._logMessage(`sp2u:  -- RdsQS A trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         // FIXME: TODO: splice instead of search / replace (will work in face of dupe strings)
       } else {
         // ----------------------------------------
@@ -210,7 +210,7 @@ export class Spin2ParseUtils {
         // remove front
         badElement = trimmedLine.substring(quoteStartOffset, nextTicEscape); // no +1 leave tic there
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        this._logMessage(`sp2u:  -- RdsQS B trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        //this._logMessage(`sp2u:  -- RdsQS B trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
         let closeParenOffset: number = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
         if (closeParenOffset == -1) {
@@ -224,7 +224,7 @@ export class Spin2ParseUtils {
           // yes remove string from `() to `()...
           badElement = trimmedLine.substring(closeParenOffset + 1, nextTicEscape);
           trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-          this._logMessage(`sp2u:  -- RdsQS C trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+          //this._logMessage(`sp2u:  -- RdsQS C trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
           closeParenOffset = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
           if (closeParenOffset == -1) {
@@ -243,7 +243,7 @@ export class Spin2ParseUtils {
         // have string from last escape to end quote
         badElement = trimmedLine.substring(closeParenOffset + 1, quoteEndOffset + 1);
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        this._logMessage(`sp2u:  -- RdsQS D trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        //this._logMessage(`sp2u:  -- RdsQS D trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
         // if we have `( followed by ) then skip this close, look for next
         nextTicEscape = this._nextTicEscape(trimmedLine, closeParenOffset + 1);

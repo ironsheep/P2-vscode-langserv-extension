@@ -37,6 +37,7 @@ import { ExtensionUtils } from '../parser/spin.extension.utils';
 import { LinkedEditingRangeFeature } from 'vscode-languageserver/lib/common/linkedEditingRange';
 import { syncBuiltinESMExports } from 'module';
 import { getHeapStatistics } from 'v8';
+import { isDataView, isGeneratorFunction } from 'util/types';
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -2222,12 +2223,22 @@ export class Spin2DocumentSemanticParser {
     //
     // HAVE    debug(`{displayType} {displayName} ......)            ' comment
     const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
-    const datPAsmStatementStr = this._getDebugStatement(currentOffset, line);
-    if (datPAsmStatementStr.length > 0) {
-      this._logDEBUG('  -- rptDbg datPAsmStatementStr=[' + datPAsmStatementStr + ']');
-      if (datPAsmStatementStr.toLowerCase().startsWith('debug(`')) {
-        const lineParts: string[] = this.parseUtils.getDebugNonWhiteLineParts(datPAsmStatementStr);
-        this._logDEBUG('  -- gddd lineParts=[' + lineParts + '](' + lineParts.length + ')');
+    const debugStatementStr = line.substring(currentOffset).trim();
+    if (debugStatementStr.length > 0 && debugStatementStr.toLowerCase().includes('debug')) {
+      this._logDEBUG(`  -- gddd debugStatementStr=[${debugStatementStr}]`);
+      const openParenOffset: number = debugStatementStr.indexOf('(');
+      if (openParenOffset != -1) {
+        const lineParts: string[] = this.parseUtils.getDebugNonWhiteLineParts(debugStatementStr);
+        this._logDEBUG(`  -- gddd lineParts=[${lineParts}](${lineParts.length})`);
+        let haveBitfieldIndex: boolean = false;
+        // see if we have bitnumber index field
+        haveBitfieldIndex = debugStatementStr.substring(0, openParenOffset + 1).includes('[');
+        if (haveBitfieldIndex) {
+          //this._logDEBUG(' -- rDsml() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
+          // FIXME: UNDONE - need to highlight the bitfield index if non-numeric (and allowed to be non-numeric)
+          lineParts.splice(1, 1); // Removes the element at index 1
+          this._logDEBUG(` -- gddd removed bitfield lineParts=[${lineParts}](${lineParts.length})`);
+        }
         if (lineParts.length >= 3) {
           const displayType: string = lineParts[1];
           if (displayType.startsWith('`')) {
@@ -2477,8 +2488,8 @@ export class Spin2DocumentSemanticParser {
                 line: lineIdx,
                 startCharacter: nameOffset,
                 length: symbolName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['readonly']
+                ptTokenType: 'storageType',
+                ptTokenModifiers: ['readonly', 'declaration']
               });
               // color name at RHS of assignment
               const rhsName: string = structDeclaration.members[0].name;
@@ -2551,8 +2562,8 @@ export class Spin2DocumentSemanticParser {
                 line: lineIdx,
                 startCharacter: nameOffset,
                 length: symbolName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['readonly']
+                ptTokenType: 'storageType',
+                ptTokenModifiers: ['readonly', 'declaration']
               });
               // for each member...
               let currPartOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition) + symbolName.length;
@@ -2597,7 +2608,7 @@ export class Spin2DocumentSemanticParser {
                   startCharacter: nameOffset,
                   length: memberName.length,
                   ptTokenType: 'variable',
-                  ptTokenModifiers: ['readonly']
+                  ptTokenModifiers: ['readonly', 'declaration']
                 });
                 currPartOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition) + memberName.length;
                 // OPTIONALLY color index name
@@ -6652,43 +6663,98 @@ export class Spin2DocumentSemanticParser {
     // debug(`zstr_(displayName) lutcolors `uhex_long_array_(image_address, lut_size))
     // debug(`lstr_(displayName, len) lutcolors `uhex_long_array_(image_address, lut_size))
     // debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+    // v46: add support for new debug[n](...) syntax
+    //   debug[...](`{displayName} ... )
+    //   debug[...](`zstr_(displayName) lutcolors `uhex_long_array_(image_address, lut_size))
+    //   debug[...](`lstr_(displayName, len) lutcolors `uhex_long_array_(image_address, lut_size))
+    //   debug[...](``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))
     //
     // if no text on line, just return
     if (multiLineSet.line.substring(startingOffset).trim().length == 0) {
       return tokenSet;
     }
     let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
-    this._logMessage(` -- rdsml() startingOffset=(${startingOffset}), currSingleLineOffset=(${currSingleLineOffset})`);
+    this._logMessage(` -- rDsml() startingOffset=(${startingOffset}), currSingleLineOffset=(${currSingleLineOffset})`);
     const debugStatementStr: string = multiLineSet.line.substring(currSingleLineOffset).trimEnd();
     this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rtpDbgStmntMulti debugStatementStr=[${debugStatementStr}]`);
+    const openParenOffset: number = debugStatementStr.indexOf('(');
+    let haveBitfieldIndex: boolean = false;
+    let bitfieldIndexValue: string = '';
+    if (openParenOffset != -1) {
+      // see if we have bitnumber index field
+      haveBitfieldIndex = debugStatementStr.substring(0, openParenOffset + 1).includes('[');
+    }
+
     const lineParts: string[] = this.parseUtils.getDebugNonWhiteLineParts(debugStatementStr);
-    this._logDEBUG(` -- rptDbg AM lineParts=[${lineParts}](${lineParts.length})`);
+    this._logDEBUG(` -- rDsml() AM lineParts=[${lineParts}](${lineParts.length})`);
     if (lineParts.length > 0 && lineParts[0].toLowerCase() != 'debug') {
-      //this._logDEBUG(' -- rptDbg first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
+      //this._logDEBUG(' -- rDsml() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
       lineParts.shift(); // assume pasm, remove label
     }
     if (lineParts[0].toLowerCase() == 'debug') {
+      if (haveBitfieldIndex) {
+        //this._logDEBUG(' -- rDsml() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
+        // FIXME: UNDONE - need to highlight the bitfield index if non-numeric (and allowed to be non-numeric)
+        bitfieldIndexValue = lineParts[1];
+        lineParts.splice(1, 1); // Removes the element at index 1
+        this._logDEBUG(` -- rDsml() removed bitfield lineParts=[${lineParts}](${lineParts.length})`);
+      }
+      // -------------------------------------
+      // process Debug statement identifier
+      const symbolPosition: Position = multiLineSet.locateSymbol(lineParts[0], currSingleLineOffset);
+      const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+      this._logDEBUG(`  -- rDsml() statement=[${lineParts[0]}]`);
+      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+        line: symbolPosition.line,
+        startCharacter: symbolPosition.character,
+        length: lineParts[0].length,
+        ptTokenType: 'debug',
+        ptTokenModifiers: ['function']
+      });
+      currSingleLineOffset = nameOffset + lineParts[0].length;
+
+      if (bitfieldIndexValue.length > 0) {
+        const symbolPosition: Position = multiLineSet.locateSymbol(bitfieldIndexValue, currSingleLineOffset);
+        const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+        this._logDEBUG(`  -- rDsml() bitfieldIndexValue=[${bitfieldIndexValue}]`);
+        const paramIsSymbolName: boolean = bitfieldIndexValue.charAt(0).match(/[a-zA-Z_]/) ? true : false;
+        const paramIsNumber: boolean = bitfieldIndexValue.match(/^[0-9]+[0-9_]*$/) ? true : false;
+        if (paramIsNumber) {
+          this._logDEBUG(`  -- rDsml() index is Number=[${bitfieldIndexValue}]`);
+          this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+            line: symbolPosition.line,
+            startCharacter: symbolPosition.character,
+            length: bitfieldIndexValue.length,
+            ptTokenType: 'number',
+            ptTokenModifiers: []
+          });
+        } else {
+          // XYZZY handle named value here
+        }
+        currSingleLineOffset = nameOffset + lineParts[0].length;
+      }
+
       //let symbolOffset: number = currSingleLineOffset;
       const displayType: string = lineParts.length >= 2 ? lineParts[1] : '';
       if (displayType.startsWith('`')) {
-        this._logDEBUG(` -- rptDbg have "debug("\` lineParts=[${lineParts}](${lineParts.length})`);
+        this._logDEBUG(` -- rDsml() have "debug("\` lineParts=[${lineParts}](${lineParts.length})`);
         //symbolOffset = line.indexOf(displayType, symbolOffset) + 1; // plus 1 to get past back-tic
         const newDisplayType: string = displayType.substring(1, displayType.length);
         let displayTestName: string = lineParts[1] == '`' ? lineParts[1] + lineParts[2] : lineParts[1];
         displayTestName = displayTestName.toLowerCase().replace(/ \t/g, '');
         const isRuntimeNamed: boolean =
           displayTestName.startsWith('``') || displayTestName.startsWith('`zstr') || displayTestName.startsWith('`lstr');
-        this._logDEBUG(` -- rptDbg displayTestName=[${displayTestName}], isRuntimeNamed=${isRuntimeNamed}`);
+        this._logDEBUG(` -- rDsml() displayTestName=[${displayTestName}], isRuntimeNamed=${isRuntimeNamed}`);
         const bHaveInstantiation = this.parseUtils.isDebugDisplayType(newDisplayType) && !isRuntimeNamed;
         if (bHaveInstantiation) {
-          this._logDEBUG(`  -- rptDbg --- PROCESSING Display Instantiation`);
+          this._logDEBUG(`  -- rDsml() --- PROCESSING Display Instantiation`);
           // -------------------------------------
           // process Debug() display instantiation
           //   **    debug(`{displayType} {displayName} ......)
           // (0a) register type use
           let symbolPosition: Position = multiLineSet.locateSymbol(newDisplayType, currSingleLineOffset);
           let nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-          this._logDEBUG(`  -- rptDbg newDisplayType=[${newDisplayType}]`);
+          this._logDEBUG(`  -- rDsml() newDisplayType=[${newDisplayType}]`);
           this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
             line: symbolPosition.line,
             startCharacter: symbolPosition.character,
@@ -6701,7 +6767,7 @@ export class Spin2DocumentSemanticParser {
           const newDisplayName: string = lineParts[2];
           symbolPosition = multiLineSet.locateSymbol(newDisplayName, currSingleLineOffset);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-          this._logDEBUG(`  -- rptDbg newDisplayName=[${newDisplayName}]`);
+          this._logDEBUG(`  -- rDsml() newDisplayName=[${newDisplayName}]`);
           this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
             line: symbolPosition.line,
             startCharacter: symbolPosition.character,
@@ -6719,7 +6785,7 @@ export class Spin2DocumentSemanticParser {
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             const bIsParameterName: boolean = this.parseUtils.isNameWithTypeInstantiation(newParameter, eDisplayType);
             if (bIsParameterName) {
-              this._logDEBUG(`  -- rptDbg mA newParam=[${newParameter}]`);
+              this._logDEBUG(`  -- rDsml() mA newParam=[${newParameter}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: symbolPosition.character,
@@ -6730,7 +6796,7 @@ export class Spin2DocumentSemanticParser {
             } else {
               const bIsColorName: boolean = this.parseUtils.isDebugColorName(newParameter);
               if (bIsColorName) {
-                this._logDEBUG(`  -- rptDbg newColor=[${newParameter}]`);
+                this._logDEBUG(`  -- rDsml() newColor=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6774,7 +6840,7 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isDebugBitmapColorMode(newParameter) &&
                     !this.parseUtils.isBuiltinStreamerReservedWord(newParameter)
                   ) {
-                    this._logDEBUG('  -- rptDbg 1 unkParam=[${newParameter}]');
+                    this._logDEBUG('  -- rDsml() 1 unkParam=[${newParameter}]');
                     this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                       line: symbolPosition.line,
                       startCharacter: symbolPosition.character,
@@ -6819,7 +6885,7 @@ export class Spin2DocumentSemanticParser {
           // handle 1st display here
           let firstParamIdx: number = 0; // value NOT used
           if (bHaveFeed) {
-            this._logDEBUG(`  -- rptDbg --- PROCESSING feed`);
+            this._logDEBUG(`  -- rDsml() --- PROCESSING feed`);
             let currLineNbr: number = 0;
             if (isRuntimeNamed) {
               firstParamIdx = displayName == '`' || displayName == '``' ? 2 : 1; // [0]=`debug` [1]=`runtimeName, [2]... symbols
@@ -6828,7 +6894,7 @@ export class Spin2DocumentSemanticParser {
               // handle one or more names!
               do {
                 // (0) register UserName use
-                this._logDEBUG(`  -- rptDbg displayName=[${displayName}]`);
+                this._logDEBUG(`  -- rDsml() displayName=[${displayName}]`);
                 const symbolPosition: Position = multiLineSet.locateSymbol(displayName, currSingleLineOffset);
                 const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
                 currLineNbr = symbolPosition.line + 1;
@@ -6870,13 +6936,13 @@ export class Spin2DocumentSemanticParser {
               //symbolOffset = line.indexOf(newParameter, symbolOffset);
               symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
               nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-              this._logDEBUG(`  -- rptDbg ?check? [${newParameter}] ofs=(${nameOffset})`);
+              this._logDEBUG(`  -- rDsml() ?check? [${newParameter}] ofs=(${nameOffset})`);
               let bIsParameterName: boolean = this.parseUtils.isNameWithTypeFeed(newParameter, eDisplayType);
               if (isRuntimeNamed && newParameter.toLowerCase() == 'lutcolors') {
                 bIsParameterName = true;
               }
               if (bIsParameterName) {
-                this._logDEBUG(`  -- rptDbg mB newParam=[${newParameter}]`);
+                this._logDEBUG(`  -- rDsml() mB newParam=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6887,7 +6953,7 @@ export class Spin2DocumentSemanticParser {
               } else {
                 const bIsColorName: boolean = this.parseUtils.isDebugColorName(newParameter);
                 if (bIsColorName) {
-                  this._logDEBUG(`  -- rptDbg newColor=[${newParameter}]`);
+                  this._logDEBUG(`  -- rDsml() newColor=[${newParameter}]`);
                   this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                     line: symbolPosition.line,
                     startCharacter: symbolPosition.character,
@@ -6931,7 +6997,7 @@ export class Spin2DocumentSemanticParser {
                       !this.parseUtils.isSpinReservedWord(newParameter) &&
                       !this.parseUtils.isBuiltinStreamerReservedWord(newParameter)
                     ) {
-                      this._logDEBUG('  -- rptDbg 2 unkParam=[${newParameter}]'); // XYZZY LutColors
+                      this._logDEBUG('  -- rDsml() 2 unkParam=[${newParameter}]'); // XYZZY LutColors
                       this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                         line: symbolPosition.line,
                         startCharacter: symbolPosition.character,
@@ -6961,7 +7027,7 @@ export class Spin2DocumentSemanticParser {
           }
         }
       } else {
-        this._logDEBUG('  -- rptDbg --- PROCESSING non-display (other)');
+        this._logDEBUG('  -- rDsml() --- PROCESSING non-display (other)');
         // -------------------------------------
         // process non-display debug statement
         const firstParamIdx: number = 0; // no prefix to skip
@@ -6987,7 +7053,7 @@ export class Spin2DocumentSemanticParser {
           );
           // do we have version added method? then highlight as method
           if (this.parseUtils.isVersionAddedMethod(newParameter)) {
-            this._logDEBUG(`  -- rptDbg newVersionAddedMethod=[${newParameter}]`);
+            this._logDEBUG(`  -- rDsml() newVersionAddedMethod=[${newParameter}]`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: symbolPosition.character,
@@ -7088,7 +7154,7 @@ export class Spin2DocumentSemanticParser {
                 !this.parseUtils.isSpinBuiltInVariable(newParameter) &&
                 !this.parseUtils.isSpinReservedWord(newParameter)
               ) {
-                this._logDEBUG('  -- rptDbg 3 unkParam=[${newParameter}]');
+                this._logDEBUG('  -- rDsml() 3 unkParam=[${newParameter}]');
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -7643,7 +7709,7 @@ export class Spin2DocumentSemanticParser {
 
   private _reportDebugStringsMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
-    this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rtpDbgStrMulti() line=[${multiLineSet.line}], lns=(${multiLineSet.numberLines})`);
+    //this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rtpDbgStrMulti() line=[${multiLineSet.line}], lns=(${multiLineSet.numberLines})`);
     for (let index = 0; index < multiLineSet.numberLines; index++) {
       const desiredLine: number = multiLineSet.lineStartIdx + index;
       const lnOffset: number = index == 0 ? startingOffset : 0;
@@ -7663,7 +7729,7 @@ export class Spin2DocumentSemanticParser {
   private _reportDebugStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     // debug statements typically have single or double quoted strings.  Let's color either if/when found!
     const tokenSet: IParsedToken[] = [];
-    this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgStrs() line=[${line}](${line.length})`);
+    //this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgStrs() line=[${line}](${line.length})`);
     let nonDoubleQuoteStringLine: string = line;
     const bNeedDoubleQuoteProcessing: boolean = line.indexOf('"') != -1;
     if (bNeedDoubleQuoteProcessing) {
@@ -7685,7 +7751,7 @@ export class Spin2DocumentSemanticParser {
 
   private _reportDebugSglQuoteStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
-    this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgSQStrs() line=[${line}](${line.length})`);
+    //this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgSQStrs() line=[${line}](${line.length})`);
     // find all strings in debug() statement but for now just do first...
     let currentOffset: number = line.indexOf(debugStatementStr);
     let nextStringOffset: number = 0;
@@ -7852,14 +7918,14 @@ export class Spin2DocumentSemanticParser {
     const chrDoubleQuote: string = '"';
     const stringStartOffset: number = searchText.indexOf(chrDoubleQuote, currentOffset);
     if (stringStartOffset != -1) {
-      this._logDEBUG('  -- _getDoubleQuotedString(' + currentOffset + ', [' + searchText + '])');
+      //this._logDEBUG('  -- gdqs(' + currentOffset + ', [' + searchText + '])');
       const stringEndOffset: number = searchText.indexOf(chrDoubleQuote, stringStartOffset + 1);
       if (stringEndOffset != -1) {
         nextString = searchText.substring(stringStartOffset, stringEndOffset + 1);
       }
     }
     if (nextString.length > 0) {
-      this._logDEBUG('  -- debug() gdqs nextString=[' + nextString + '](' + nextString.length + ')');
+      this._logDEBUG(`  -- gdqs() -> ['${nextString}](${nextString.length})`);
     }
     return nextString;
   }
@@ -7868,14 +7934,14 @@ export class Spin2DocumentSemanticParser {
     let nextString: string = '';
     const stringStartOffset: number = searchText.indexOf("'", currentOffset);
     if (stringStartOffset != -1) {
-      this._logDEBUG('  -- gsqs(' + currentOffset + ', [' + searchText + '])');
+      //this._logDEBUG('  -- gsqs(' + currentOffset + ', [' + searchText + '])');
       const stringEndOffset: number = searchText.indexOf("'", stringStartOffset + 1);
       if (stringEndOffset != -1) {
         nextString = searchText.substring(stringStartOffset, stringEndOffset + 1);
       }
     }
     if (nextString.length > 0) {
-      this._logDEBUG('  -- debug() gsqs nextString=[' + nextString + '](' + nextString.length + ')');
+      this._logDEBUG(`  -- gsqs() -> ['${nextString}](${nextString.length})`);
     }
     return nextString;
   }
@@ -8021,15 +8087,15 @@ export class Spin2DocumentSemanticParser {
   }
 
   private _getDebugNonCommentLineReturnComment(startingOffset: number, lineIdx: number, line: string, tokenSet: IParsedToken[]): string {
-    this._logMessage(` -- gDbgNCL-RC() line=[${line}](${line.length})`);
+    //this._logMessage(` -- gDbgNCL-RC() line=[${line}](${line.length})`);
     const debugNoDlbQuotes: string = this.parseUtils.removeDoubleQuotedStrings(line);
     const debugNoStrings: string = ''.padEnd(startingOffset, ' ') + this.parseUtils.removeDebugSingleQuotedStrings(debugNoDlbQuotes);
     const endOfDebugStatement: number = this._locateEndOfDebugStatement(debugNoStrings, 0);
     const nonCommentStr: string = line.substring(0, endOfDebugStatement + 1).trimEnd();
-    this._logMessage(` -- gDbgNCL-RC() debugNoStrings=[${debugNoStrings}](${debugNoStrings.length}), endOfDebugStatement=(${endOfDebugStatement})`);
+    //this._logMessage(` -- gDbgNCL-RC() debugNoStrings=[${debugNoStrings}](${debugNoStrings.length}), endOfDebugStatement=(${endOfDebugStatement})`);
     // now record the comment if we have one
     if (line.length != nonCommentStr.length) {
-      this._logMessage(`  -- gNCL-RC nonCommentStr=[${nonCommentStr}](${nonCommentStr.length})`);
+      //this._logMessage(`  -- gNCL-RC nonCommentStr=[${nonCommentStr}](${nonCommentStr.length})`);
       const commentRHSStrOffset: number = nonCommentStr.length;
       const commentOffset: number = this.parseUtils.getTrailingCommentOffset(commentRHSStrOffset, line);
       const bHaveBlockComment: boolean = debugNoStrings.indexOf('{', commentOffset) != -1 || debugNoStrings.indexOf('}', commentOffset) != -1;
@@ -8037,27 +8103,31 @@ export class Spin2DocumentSemanticParser {
         debugNoStrings.indexOf("''", commentOffset) != -1 ||
         debugNoStrings.indexOf('{{', commentOffset) != -1 ||
         debugNoStrings.indexOf('}}', commentOffset) != -1;
-      this._logMessage(
-        `  -- gNCL-RC commentOffset=(${commentOffset}), bHvBlockComment=(${bHaveBlockComment}), bHvDocComment=(${bHaveDocComment}), debugNoStrings=[${debugNoStrings}](${debugNoStrings.length})`
-      );
+      //this._logMessage(
+      //  `  -- gNCL-RC commentOffset=(${commentOffset}), bHvBlockComment=(${bHaveBlockComment}), bHvDocComment=(${bHaveDocComment}), debugNoStrings=[${debugNoStrings}](${debugNoStrings.length})`
+      //);
       if (commentOffset != -1) {
-        const newToken: IParsedToken | undefined = this._generateComentToken(
-          lineIdx,
-          commentOffset,
-          line.length - commentOffset + 1,
-          bHaveBlockComment,
-          bHaveDocComment,
-          line
-        );
-        if (newToken) {
-          //this._logMessage("=> CMT: " + this._tokenString(newToken, line));
-          tokenSet.push(newToken);
-          //const comment: string = line.substring(commentOffset);
-          //this._logMessage(`  -- Ln#${lineIdx + 1} gNCL-RC Recorded Comment [${comment}](${comment.length}) (${newToken.ptTokenType}[${newToken.ptTokenModifiers}])`);
+        const commentStr = line.substring(commentOffset);
+        if (commentStr.length > 0) {
+          this._logMessage(`  -- Ln#${lineIdx + 1} gDNCL-RC commentStr=[${commentStr}](${commentStr.length})`);
+          const newToken: IParsedToken | undefined = this._generateComentToken(
+            lineIdx,
+            commentOffset,
+            commentStr.length,
+            bHaveBlockComment,
+            bHaveDocComment,
+            line
+          );
+          if (newToken) {
+            tokenSet.push(newToken);
+            this._logMessage(`  -- Ln#${lineIdx + 1} gDNCL-RC Recorded Comment [${JSON.stringify(newToken)}]`);
+          }
         }
       }
     }
-    this._logMessage(`  -- gNCL-RC nonCommentStr=[${nonCommentStr}](${nonCommentStr.length})`);
+    //if (nonCommentStr.length > 0) {
+    //  this._logMessage(`  -- gDNCL-RC nonCommentStr=[${nonCommentStr}](${nonCommentStr.length})`);
+    //}
     return nonCommentStr;
   }
 

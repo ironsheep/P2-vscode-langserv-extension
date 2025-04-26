@@ -2048,37 +2048,38 @@ export class DocumentFindings {
   private displayInfoByDebugDisplayName = new Map<string, IDebugDisplayInfo>();
 
   public getDebugDisplayEnumForType(typeName: string): eDebugDisplayType {
+    const typeKey: string = typeName.toLowerCase();
     let desiredType: eDebugDisplayType = eDebugDisplayType.Unknown;
-    if (displayEnumByTypeName.has(typeName.toLowerCase())) {
-      const possibleType: eDebugDisplayType | undefined = displayEnumByTypeName.get(typeName.toLowerCase());
+    if (displayEnumByTypeName.has(typeKey)) {
+      const possibleType: eDebugDisplayType | undefined = displayEnumByTypeName.get(typeKey);
       desiredType = possibleType || eDebugDisplayType.Unknown;
     }
     this._logMessage(
-      '  DDsply getDebugDisplayEnumForType(' + typeName + ') = enum(' + desiredType + '), ' + this.getNameForDebugDisplayEnum(desiredType)
+      `  -- DDsply getDebugDisplayEnumForType([${typeName}]) => (${eDebugDisplayType[desiredType]},[${this.getNameForDebugDisplayEnum(desiredType)}])`
     );
     return desiredType;
   }
 
-  public setUserDebugDisplay(typeName: string, userName: string, lineNbr: number): void {
-    const nameKey: string = userName.toLowerCase();
-    this._logMessage('  DDsply _setUserDebugDisplay(' + typeName + ', ' + userName + ', li#' + lineNbr + ')');
-    if (!this.isKnownDebugDisplay(userName)) {
-      const eType: eDebugDisplayType = this.getDebugDisplayEnumForType(typeName);
+  public setUserDebugDisplay(typeName: string, userDispName: string, lineNbr: number): void {
+    const nameKey: string = userDispName.toLowerCase();
+    const typeKey: string = typeName.toLowerCase();
+    this._logMessage(`  -- DDsply setUserDebugDisplay([${typeName}], [${userDispName}], Ln#${lineNbr})`);
+    if (!this.isKnownDebugDisplay(nameKey)) {
+      const eType: eDebugDisplayType = this.getDebugDisplayEnumForType(typeKey);
       const displayInfo: IDebugDisplayInfo = {
         displayTypeString: typeName,
-        userName: userName,
+        userName: userDispName,
         lineNbr: lineNbr,
         eDisplayType: eType
       };
       this.displayInfoByDebugDisplayName.set(nameKey, displayInfo);
-      //this._logMessage("  -- DDsply " + userName.toLowerCase() + "=[" + eDisplayType + " : " + typeName.toLowerCase() + "]");
+      //this._logMessage(`  -- DDsply " + userName.toLowerCase() + "=[" + eDisplayType + " : " + typeName.toLowerCase() + "]`);
     } else {
-      this._logMessage('ERROR: DDsply setUserDebugDisplay() display exists [' + userName + ']');
+      this._logMessage(`ERROR: DDsply setUserDebugDisplay() display exists [${userDispName}]`);
     }
   }
 
   public getDebugDisplayEnumForUserName(possibleUserName: string): eDebugDisplayType {
-    this._logMessage(`* getDebugDisplayEnumForUserName(${possibleUserName})`);
     const nameKey: string = possibleUserName.toLowerCase();
     let desiredEnumValue: eDebugDisplayType = eDebugDisplayType.Unknown;
     if (this.isKnownDebugDisplay(possibleUserName)) {
@@ -2087,11 +2088,11 @@ export class DocumentFindings {
         desiredEnumValue = possibleInfo.eDisplayType;
       }
     }
+    this._logMessage(`  -- DDsply getDebugDisplayEnumForUserName([${possibleUserName}]) -> (${eDebugDisplayType[desiredEnumValue]})`);
     return desiredEnumValue;
   }
 
   public getDebugDisplayInfoForUserName(possibleUserName: string): IDebugDisplayInfo {
-    this._logMessage(`* getDebugDisplayInfoForUserName(${possibleUserName})`);
     const nameKey: string = possibleUserName.toLowerCase();
     let possibleInfo: IDebugDisplayInfo = {
       displayTypeString: '',
@@ -2105,6 +2106,7 @@ export class DocumentFindings {
         possibleInfo = infoFound;
       }
     }
+    this._logMessage(`  -- DDsply getDebugDisplayInfoForUserName([${possibleUserName}]) -> [${JSON.stringify(possibleInfo)}]`);
     return possibleInfo;
   }
 
@@ -2116,15 +2118,14 @@ export class DocumentFindings {
         break;
       }
     }
-    this._logMessage('  DDsply getNameForDebugDisplayEnum(enum: ' + eDisplayType + ') = ' + desiredName);
+    this._logMessage(`  -- DDsply getNameForDebugDisplayEnum(${eDebugDisplayType[eDisplayType]}) -> [${desiredName}]`);
     return desiredName;
   }
 
   public isKnownDebugDisplay(possibleUserName: string): boolean {
-    this._logMessage(`* isKnownDebugDisplay(${possibleUserName})`);
     const nameKey: string = possibleUserName.toLowerCase();
     const foundStatus: boolean = this.displayInfoByDebugDisplayName.has(nameKey);
-    this._logMessage('  DDsply _isKnownDebugDisplay(' + possibleUserName + ') = ' + foundStatus);
+    this._logMessage(`  -- DDsply _isKnownDebugDisplay([${possibleUserName}]) -> (${foundStatus})`);
     return foundStatus;
   }
 

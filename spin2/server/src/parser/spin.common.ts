@@ -78,10 +78,12 @@ export interface IBuiltinDescription {
   returns?: string[];
 }
 
-export function haveDebugLine(line: string, startsWith: boolean = false): boolean {
-  const debugStatementOpenRegEx = /debug\s*\(/i; // case-insensative debug() but allowing whitespace before '('
-  const debugStatementOpenStartRegEx = /^\s*debug\s*\(/i; // case-insensative debug() at start of line but allowing whitespace before '('
-  return startsWith ? debugStatementOpenStartRegEx.test(line) : debugStatementOpenRegEx.test(line);
+export function haveDebugLine(line: string, startsWith: boolean = false, ctx: Context | undefined = undefined): boolean {
+  const debugStatementOpenRegEx = /debug\s*(\[[a-zA-Z0-9_]+\])?\(/i; // case-insensative debug() but allowing whitespace before '('
+  const debugStatementOpenStartRegEx = /^\s*debug\s*(\[[a-zA-Z0-9_]+\])?\(/i; // case-insensative debug() at start of line but allowing whitespace before '('
+  const startStatus: boolean = startsWith ? debugStatementOpenStartRegEx.test(line) : debugStatementOpenRegEx.test(line);
+  _logMessage(`spCom: haveDebugLine([${line}]) -> (${startStatus})`, ctx);
+  return startStatus;
 }
 
 export function isMethodCall(line: string, ctx: Context | undefined = undefined): boolean {
