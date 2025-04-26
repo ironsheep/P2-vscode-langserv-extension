@@ -34,10 +34,6 @@ import {
 } from './spin.common';
 import { fileInDirExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
-import { LinkedEditingRangeFeature } from 'vscode-languageserver/lib/common/linkedEditingRange';
-import { syncBuiltinESMExports } from 'module';
-import { getHeapStatistics } from 'v8';
-import { isDataView, isGeneratorFunction } from 'util/types';
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -2129,9 +2125,13 @@ export class Spin2DocumentSemanticParser {
     // Record Instance Variable declarations
     //
     // VAR Variable declaration
-    //    {{^}BYTE|{^}WORD|{^}LONG|{^}StructName} VarName{[ArraySize]} {, VarName{[ArraySize]} {, ...}‬
+    //    {{^}BYTE|{^}WORD|{^}LONG|{^}StructName} VarName{[ArraySize]} {, VarName{[ArraySize]} {, ...}
     //
-    //skip Past Whitespace
+    //    BYTE a,b,c, WORD d, LONG e 'Multiple types can be declared on the same line.
+    //
+    //    ALIGNW|ALIGNL 'word|long-align to hub memory, advances variable pointer as necessary
+    //
+    // skip Past Whitespace
     const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const remainingNonCommentLineStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     if (remainingNonCommentLineStr.length > 0) {
@@ -6387,7 +6387,11 @@ export class Spin2DocumentSemanticParser {
     // Colorize Instance Variable declarations
     //
     // VAR Variable declaration
-    //    {{^}BYTE|{^}WORD|{^}LONG|{^}StructName} VarName{[ArraySize]} {, VarName{[ArraySize]} {, ...}‬
+    //    {{^}BYTE|{^}WORD|{^}LONG|{^}StructName} VarName{[ArraySize]} {, VarName{[ArraySize]} {, ...}
+    //
+    //    BYTE a,b,c, WORD d, LONG e 'Multiple types can be declared on the same line.
+    //
+    //    ALIGNW|ALIGNL 'word|long-align to hub memory, advances variable pointer as necessary
     //
     const tokenSet: IParsedToken[] = [];
     //skip Past Whitespace
@@ -6395,21 +6399,22 @@ export class Spin2DocumentSemanticParser {
     const remainingNonCommentLineStr: string = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
     if (remainingNonCommentLineStr.length > 0) {
       // get line parts - we only care about first one
-      const lineParts: string[] = this.parseUtils.getCommaDelimitedLineParts(remainingNonCommentLineStr.trim());
-      this._logVAR(`  -- rptVarDecl lineParts=[${lineParts}](${lineParts.length})`);
+      const varStatements: string[] = this.parseUtils.getCommaDelimitedLineParts(remainingNonCommentLineStr.trim());
+      this._logVAR(`  -- rptVarDecl varStatements=[${varStatements}](${varStatements.length})`);
       // remember this object name so we can annotate a call to it
       //const hasStorageType: boolean = this.isStorageType(lineParts[0]);
-      if (lineParts.length > 1) {
+      if (varStatements.length > 0) {
         //const startIndex: number = hasStorageType ? 1 : 0;
-        for (let index = 0; index < lineParts.length; index++) {
-          const varDecl: string = lineParts[index];
-          const nameOffset: number = line.indexOf(varDecl, currentOffset);
-          const nameParts = varDecl.split(/\s+/).filter(Boolean);
-          let newName: string = varDecl;
-          let newType: string | undefined = undefined;
-          if (nameParts.length > 1) {
-            newType = nameParts[0];
-            newName = nameParts[1];
+        for (let index = 0; index < varStatements.length; index++) {
+          const varStatement: string = varStatements[index];
+          const statementOffset: number = line.indexOf(varStatement, currentOffset);
+          const declParts = varStatement.split(/\s+/).filter(Boolean);
+          let newName: string = varStatement;
+          let newType: string = '';
+          let indexValue: string = '';
+          if (declParts.length > 1) {
+            newType = declParts[0];
+            newName = declParts[1];
           }
           const hasArrayReference: boolean = newName.indexOf('[') != -1;
           if (hasArrayReference) {
@@ -6417,15 +6422,20 @@ export class Spin2DocumentSemanticParser {
             if (newName.includes('[')) {
               const nameParts: string[] = newName.split('[');
               newName = nameParts[0];
+              indexValue = nameParts[1];
             }
           }
+          const adjNameParts: string[] = [newType, newName, indexValue];
+          const nameOffset: number = line.indexOf(newName, statementOffset);
           this._logVAR(
-            `  -- rptVarDecl varDecl=[${varDecl}] ofs=(${nameOffset}), nmParts=[${nameParts}](${nameParts.length}), hasArRef=(${hasArrayReference})`
+            `  -- rptVarDecl varDecl=[${varStatement}] ofs=(${nameOffset}), nmParts=[${adjNameParts}](${adjNameParts.length}), hasArRef=(${hasArrayReference})`
           );
           // highlight optional type
-          if (newType !== undefined) {
+          currentOffset = statementOffset;
+          if (newType.length > 0) {
             // highlight a VAR type use
             const isStorageType: boolean = this.isStorageType(newType);
+            const nameOffset: number = line.indexOf(newType, statementOffset);
             this._logVAR(`  -- GLBL ADD storageType=[${newType}], ofs=(${nameOffset}), isStorageType=(${isStorageType})`);
             this._recordToken(tokenSet, line, {
               line: lineIdx,
@@ -6441,9 +6451,9 @@ export class Spin2DocumentSemanticParser {
             }
           }
           // highlight symbol name
-          if (newName.charAt(0).match(/[a-zA-Z_]/) && newName.indexOf(']') == -1) {
+          if (newName.charAt(0).match(/[a-zA-Z_]/)) {
             // in the following, let's not register a name with a trailing ']' this is part of an array size calculation!
-            const nameOffset: number = line.indexOf(newName, currentOffset);
+            const nameOffset: number = line.indexOf(newName, statementOffset);
             this._logVAR(`  -- GLBL ADD rvdl newName=[${newName}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, line, {
               line: lineIdx,
@@ -6460,7 +6470,7 @@ export class Spin2DocumentSemanticParser {
             const arrayCloseOffset: number = line.indexOf(']', currentOffset);
             const arrayReference: string = line.substr(arrayOpenOffset + 1, arrayCloseOffset - arrayOpenOffset - 1);
             const arrayReferenceParts: string[] = arrayReference.split(/[ \t/*+<>]/);
-            this._logVAR('  --  arrayReferenceParts=[' + arrayReferenceParts + ']');
+            this._logVAR(`  --  arrayReferenceParts=[${arrayReferenceParts}](${arrayReferenceParts.length})`);
             for (let index = 0; index < arrayReferenceParts.length; index++) {
               const referenceName = arrayReferenceParts[index];
               if (referenceName.charAt(0).match(/[a-zA-Z_]/)) {
@@ -6529,7 +6539,8 @@ export class Spin2DocumentSemanticParser {
           }
         }
       } else {
-        // have single declaration per line
+        /*
+        // NEW: update to handle multiple declaration on a single line
         this._logVAR(`  -- GLBL rvdl2 SPLIT lineParts=[${lineParts.join(',')}](${lineParts.length})`);
         let nameSet: string[] = [lineParts[0]];
         if (lineParts[0].includes('[')) {
@@ -6613,7 +6624,7 @@ export class Spin2DocumentSemanticParser {
               }
             }
           }
-        }
+        }*/
       }
     }
     return tokenSet;
@@ -7251,7 +7262,7 @@ export class Spin2DocumentSemanticParser {
     const hasSymbolDotSymbol: boolean = dottedSymbolRegex.test(possibleRef);
     const hasSymbolDotIndexedSymbol: boolean = dottedIndexedSymbolRegex.test(possibleRef);
     const nameParts: string[] = possibleRef.split(/[.]/).filter(Boolean);
-    const isStructureRef: boolean = this.semanticFindings.isStructureInstance(nameParts[0]);
+    const isStructureRef: boolean = nameParts.length > 0 && this.semanticFindings.isStructureInstance(nameParts[0]);
     const refFoundStatus: boolean = isStructureRef && !possibleRef.startsWith('.') && (hasSymbolDotIndexedSymbol || hasSymbolDotSymbol);
     this._logMessage(
       `  --  isStruRef() structRef=[${possibleRef}], isStructureRef=(${isStructureRef}), hasSymbolDotSymbol=(${hasSymbolDotSymbol}), hasSymbolDotIndexedSymbol=(${hasSymbolDotIndexedSymbol}) -> (${refFoundStatus})`
@@ -7276,9 +7287,9 @@ export class Spin2DocumentSemanticParser {
       possibleNameSet = dotReference.trimStart().split(/\./).filter(Boolean);
       this._logMessage(`  --  rptStruRef() possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
       const structInstanceName = possibleNameSet[0];
-      const isStructureRef: boolean = this.semanticFindings.isStructureInstance(structInstanceName);
+      const isStructureRef: boolean = possibleNameSet.length > 0 && this.semanticFindings.isStructureInstance(structInstanceName);
       bGeneratedReference = isStructureRef; // for now...
-      const memberNameSet = possibleNameSet.slice(1);
+      const memberNameSet = possibleNameSet.length > 1 ? possibleNameSet.slice(1) : possibleNameSet;
       this._logMessage(`  --  rptStruRef() STRUCT [${structInstanceName}] memberNameSet=[${memberNameSet}](${memberNameSet.length})`);
 
       // report structure instance name
@@ -7395,7 +7406,10 @@ export class Spin2DocumentSemanticParser {
     this._logMessage(
       `  --  isObjRef() hasSymbolDotSymbol=(${hasSymbolDotSymbol}),  hasSymbolHashSymbol=(${hasSymbolHashSymbol}) hasPercentHashSymbol=(${hasPercentHashSymbol}) hasSymbolDotIndexedSymbol=(${hasSymbolDotIndexedSymbol})`
     );
-    const nameParts: string[] = possibleRef.split(/[.]/).filter(Boolean);
+    let nameParts: string[] = [possibleRef];
+    if (possibleRef.includes('.')) {
+      nameParts = possibleRef.split(/[.]/).filter(Boolean);
+    }
     const isStructureRef: boolean = this.parseUtils.requestedSpinVersion(45) ? this.semanticFindings.isStructureInstance(nameParts[0]) : false;
     this._logMessage(`  --  isObjRef() isStructureRef=(${isStructureRef}), nameParts=[${nameParts}](${nameParts.length}) `);
     const refFoundStatus: boolean =

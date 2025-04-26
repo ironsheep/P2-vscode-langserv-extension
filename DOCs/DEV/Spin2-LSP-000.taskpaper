@@ -47,9 +47,12 @@ FEATURE Latest Language Ver Updates:
 		- fix structure declaration index coloring @done(2025-04-22)
 		- Fix debug coloring - tic string form @done(2025-04-25)
 		- Fix comment coloring problem with debug @done(2025-04-25)
-		- Fix missing debug coloring (more is needed)
-		- Finish theme updates for all themes! (new number color)
-		- Fix var struct type use forms
+		- Fix missing debug coloring (more is needed) @done(2025-04-25)
+		- Finish theme updates for all themes! (new number color) @done(2025-04-25)
+		- Fix var struct type use forms @done(2025-04-25)
+		- Fix more debug coloring issues
+		- Add support for multiple declarations per line
+		
 	Unify Single/MultiLine handling:
 		- complete CON unification @done(2025-04-22)
 		- complete PUB_PRI unification @done(2025-04-23)

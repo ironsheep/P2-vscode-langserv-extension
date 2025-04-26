@@ -30,7 +30,7 @@ PUB go() | line pline
   pline := 1,2,3,4
   DoLine(pline)
 
-PRI DoLine(line pline) : point aRet, point bRet | line pline2
+PRI DoLine(line pline) : point aRet, point bRet | line pline2 ' FIXME: coloring not working
 
   debug(sdec(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
 
