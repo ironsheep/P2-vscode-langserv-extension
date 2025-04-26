@@ -12,13 +12,13 @@ import { Context } from '../context';
 import { DocumentFindings, ITokenDescription } from '../parser/spin.semantic.findings';
 import { IDefinitionInfo, ExtensionUtils, IPairs } from '../parser/spin.extension.utils';
 import { GetWordRangeAtPosition, DocumentLineAt, PositionTranslate } from '../parser/lsp.textDocument.utils';
-import { Spin2ParseUtils, eSearchFilterType } from '../parser/spin2.utils';
+import { Spin2ParseUtils } from '../parser/spin2.utils';
 import { Spin1ParseUtils } from '../parser/spin1.utils';
 import { IBuiltinDescription, eBuiltInType } from '../parser/spin.common';
 import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class SignatureHelpProvider implements Provider {
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private bLogStarted: boolean = false;
 
   private symbolsFound: DocumentFindings = new DocumentFindings(); // this gets replaced
