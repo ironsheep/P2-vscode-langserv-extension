@@ -925,6 +925,9 @@
     "line_comment": {
       "patterns": [
         {
+          "include": "#line_comment_entire"
+        },
+        {
           "include": "#no_hightlight_debug_lines"
         },
         {

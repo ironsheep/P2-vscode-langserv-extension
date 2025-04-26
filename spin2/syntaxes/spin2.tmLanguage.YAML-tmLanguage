@@ -443,6 +443,7 @@ repository:
           "3": { patterns: [{ include: "#number" }, { include: "#constants" }, { include: "#array_index" }] }
   line_comment:
       patterns:
+      - include: "#line_comment_entire"
       - include: "#no_hightlight_debug_lines"
       - include: "#line_comment_basic"
 

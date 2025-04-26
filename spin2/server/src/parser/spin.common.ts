@@ -415,11 +415,11 @@ export class ContinuedLines {
         const currLineLength: number = isLineContinued ? this._lengthWithoutContinuation(currLine) + 1 : currLine.trim().length; // +1 is for concatenating " "
         // if the first line, don't take out the leading whitespace
         const accumLength = index == 0 ? foundLineWhiteSpaceLength + currLineLength : currLineLength;
-        this._logMessage(
-          `    --- ContLn:   currLnLen=(${foundLineWhiteSpaceLength})+(${currLineLength})=(${
-            foundLineWhiteSpaceLength + currLineLength
-          }), foundLineWhiteSpaceLength=(${foundLineWhiteSpaceLength}), desiredOffset=(${desiredOffset}), isLineCont=(${isLineContinued})`
-        );
+        //this._logMessage(
+        ///  `    --- ContLn:   currLnLen=(${foundLineWhiteSpaceLength})+(${currLineLength})=(${
+        //    foundLineWhiteSpaceLength + currLineLength
+        //  }), foundLineWhiteSpaceLength=(${foundLineWhiteSpaceLength}), desiredOffset=(${desiredOffset}), isLineCont=(${isLineContinued})`
+        //);
         if (currIdx == symbolPosition.line) {
           foundIndex = index;
           break;
@@ -552,8 +552,14 @@ export class ContinuedLines {
           nonContinusedStrings.push(continuedLine.slice(0, -3).trim()); // removing "..." as we go
         }
       } else {
-        // last line we left and right trim
-        nonContinusedStrings.push(continuedLine.trim());
+        // this is last or only line
+        if (index == 0) {
+          // only line we don't left-trim
+          nonContinusedStrings.push(continuedLine.trim()); // BUG should be trimEnd() not trim()
+        } else {
+          // last-line we left and right trim
+          nonContinusedStrings.push(continuedLine.trim());
+        }
       }
     }
     this.singleLine = nonContinusedStrings.join(' ');
