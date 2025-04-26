@@ -805,6 +805,118 @@ export class Spin2ParseUtils {
     return desiredDocText;
   }
 
+  public isValidSpinSymbolName(name: string): boolean {
+    const isSymbolNameRegEx = /^[A-Z_a-z][A-Z_a-z0-9]{0,31}$/;
+    // ^:
+    //   Ensures the match starts at the beginning of the string.
+    // [A-Z_a-z]:
+    //   Matches the first character, which must be an uppercase letter (A-Z), lowercase letter (a-z), or an underscore (_).
+    // [A-Z_a-z0-9]{0,31}:
+    //   Matches 0 to 31 additional characters, which can be uppercase letters, lowercase letters, digits (0-9), or underscores (_).
+    //   This ensures the total length of the string is at most 32 characters.
+    // $:
+    //   Ensures the match ends at the end of the string.
+    //
+    const symbolNameMatch = isSymbolNameRegEx.test(name);
+    const isValidSymbolName: boolean = symbolNameMatch ? true : false;
+    return isValidSymbolName;
+  }
+
+  public isSpinNumericConstant(possibleNumber: string): boolean {
+    let numericConstantStatus: boolean = false;
+    if (this.isDigit(possibleNumber.charAt(0))) {
+      // handle decimal or decimal-float convertion
+      // is float number?
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      numericConstantStatus = this.isValidDecimalFloat(possibleNumber);
+      if (!numericConstantStatus) {
+        // hmmm, nope just decimal number
+        const isDecimalNumberRegEx = /^(\d+[\d_]*)$/;
+        const decimalNumberMatch = isDecimalNumberRegEx.test(possibleNumber);
+        numericConstantStatus = decimalNumberMatch ? true : false;
+      }
+    } else if (possibleNumber.charAt(0) == '$' && this.isHexStartChar(possibleNumber.charAt(1))) {
+      // handle hexadecimal conversion Ex: $0f, $dead_f00d, etc.
+      const isHexNumberRegEx = /^\$([0-9A-Fa-f]+[0-9_A-Fa-f]*)$/;
+      const isHexNumber = isHexNumberRegEx.test(possibleNumber);
+      numericConstantStatus = isHexNumber ? true : false;
+    } else if (possibleNumber.startsWith('%%') && this.isQuartStartChar(possibleNumber.charAt(2))) {
+      // handle base-four numbers of the form %%012_032_000, %%0320213, etc
+      const isQuaternaryNumberRegEx = /^%%([[0-3]+[0-3_]*)$/;
+      const quaternaryNumberMatch = isQuaternaryNumberRegEx.test(possibleNumber);
+      numericConstantStatus = quaternaryNumberMatch ? true : false;
+    } else if (possibleNumber.charAt(0) == '%' && this.isBinStartChar(possibleNumber.charAt(1))) {
+      // handle base-two numbers of the form %0100_0111, %01111010, etc
+      const isBinaryNumberRegEx = /^%([[0-1]+[0-1_]*)$/;
+      const binaryNumberMatch = isBinaryNumberRegEx.test(possibleNumber);
+      numericConstantStatus = binaryNumberMatch ? true : false;
+    } else if (possibleNumber.startsWith('%"') && possibleNumber.substring(2).includes('"')) {
+      // handle %"abcd" one to four chars packed into long
+      const isPackedAsciiRegEx = /%"[ -~]{4}"$/;
+      // %:
+      //   Matches the literal % character at the start of the pattern.
+      // \\":
+      //   Matches the literal double quote ("), escaped as \".
+      // [ -~]{4}:
+      //   Matches 4 characters in the ASCII printable range (from space 0x20 to tilde 0x7E).
+      // \\":
+      //   Matches the closing double quote ("), escaped as \".
+      // $:
+      //   Matches the end of the string.
+      //
+      const packedAsciiMatch = isPackedAsciiRegEx.test(possibleNumber);
+      numericConstantStatus = packedAsciiMatch ? true : false;
+    }
+    return numericConstantStatus;
+  }
+
+  private isValidDecimalFloat(possibleFloat: string): boolean {
+    // we are parsing these
+    //    = 1.4e5
+    //    = 1e-5
+    //    = 1.7exponent
+    const isFloat1NumberRegEx = /^\d+[\d_]*\.\d+[\d_]*[eE](\+\d|-\d|\d)[\d_]*$/; // decimal and E
+    const isFloat2NumberRegEx = /^\d+[\d_]*[eE](\+\d|-\d|\d)[\d_]*$/; // no decimal but E
+    const isFloat3NumberRegEx = /^\d+[\d_]*\.\d+[\d_]*$/; // decimal no E
+    // three tests, return at first one to match
+    let didMatch: boolean = !!possibleFloat.match(isFloat1NumberRegEx);
+    if (!didMatch) {
+      didMatch = !!possibleFloat.match(isFloat2NumberRegEx);
+      if (!didMatch) {
+        didMatch = !!possibleFloat.match(isFloat3NumberRegEx);
+      }
+    }
+    return didMatch;
+  }
+
+  private isSymbolStartChar(line: string): boolean {
+    const findStatus: boolean = /^[A-Z_a-z]+/.test(line);
+    //this.logMessage(`isSymbolStartChar(${line}) = (${findStatus})`);
+    return findStatus;
+  }
+
+  private isDigit(line: string): boolean {
+    return /^\d$/.test(line);
+  }
+
+  private isHexStartChar(line: string): boolean {
+    const findStatus: boolean = /^[A-Fa-f0-9]+/.test(line);
+    //this.logMessage(`isHexStartChar(${line}) = (${findStatus})`);
+    return findStatus;
+  }
+
+  private isBinStartChar(line: string): boolean {
+    const findStatus: boolean = /^[01]+/.test(line);
+    //this.logMessage(`isBinStartChar(${line}) = (${findStatus})`);
+    return findStatus;
+  }
+
+  private isQuartStartChar(line: string): boolean {
+    const findStatus: boolean = /^[0-3]+/.test(line);
+    //this.logMessage(`isQuartStartChar(${line}) = (${findStatus})`);
+    return findStatus;
+  }
+
   public isSpinRegister(name: string): boolean {
     const nameKey: string = name.toLowerCase();
     let reservedStatus: boolean = nameKey in this._tableSpinCogRegisters;

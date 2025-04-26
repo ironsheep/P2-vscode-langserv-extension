@@ -6717,8 +6717,8 @@ export class Spin2DocumentSemanticParser {
         const symbolPosition: Position = multiLineSet.locateSymbol(bitfieldIndexValue, currSingleLineOffset);
         const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
         this._logDEBUG(`  -- rDsml() bitfieldIndexValue=[${bitfieldIndexValue}]`);
-        const paramIsSymbolName: boolean = bitfieldIndexValue.charAt(0).match(/[a-zA-Z_]/) ? true : false;
-        const paramIsNumber: boolean = bitfieldIndexValue.match(/^[0-9]+[0-9_]*$/) ? true : false;
+        const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(bitfieldIndexValue);
+        const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(bitfieldIndexValue);
         if (paramIsNumber) {
           this._logDEBUG(`  -- rDsml() index is Number=[${bitfieldIndexValue}]`);
           this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -6729,9 +6729,41 @@ export class Spin2DocumentSemanticParser {
             ptTokenModifiers: []
           });
         } else {
-          // XYZZY handle named value here
+          // handle named index value here
+          let referenceDetails: RememberedToken | undefined = undefined;
+          if (this.semanticFindings.isGlobalToken(bitfieldIndexValue)) {
+            referenceDetails = this.semanticFindings.getGlobalToken(bitfieldIndexValue);
+            this._logDEBUG(`  --  FOUND global name=[${bitfieldIndexValue}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
+          }
+          if (referenceDetails !== undefined && paramIsSymbolName) {
+            this._logDEBUG(`  --  SPIN/PAsm add name=[${bitfieldIndexValue}]`);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: symbolPosition.character,
+              length: bitfieldIndexValue.length,
+              ptTokenType: referenceDetails.type,
+              ptTokenModifiers: referenceDetails.modifiers
+            });
+          } else {
+            // handle unknown-name case -OR- invalid sybol name
+            this._logDEBUG(`  -- SPIN/PAsm  unknown index=[${bitfieldIndexValue}]`);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: symbolPosition.character,
+              length: bitfieldIndexValue.length,
+              ptTokenType: 'setupParameter',
+              ptTokenModifiers: ['illegalUse']
+            });
+            this.semanticFindings.pushDiagnosticMessage(
+              symbolPosition.line,
+              symbolPosition.character,
+              symbolPosition.character + bitfieldIndexValue.length,
+              eSeverity.Error,
+              `P2 Spin BitNumber unknown name [${bitfieldIndexValue}]`
+            );
+          }
         }
-        currSingleLineOffset = nameOffset + lineParts[0].length;
+        currSingleLineOffset = nameOffset + bitfieldIndexValue.length;
       }
 
       //let symbolOffset: number = currSingleLineOffset;
@@ -6783,6 +6815,17 @@ export class Spin2DocumentSemanticParser {
             const newParameter: string = lineParts[idx];
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            if (this.parseUtils.isSpinNumericConstant(newParameter)) {
+              this._logDEBUG(`  -- rDsml() param Number=[${bitfieldIndexValue}]`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: newParameter.length,
+                ptTokenType: 'number',
+                ptTokenModifiers: []
+              });
+              continue;
+            }
             const bIsParameterName: boolean = this.parseUtils.isNameWithTypeInstantiation(newParameter, eDisplayType);
             if (bIsParameterName) {
               this._logDEBUG(`  -- rDsml() mA newParam=[${newParameter}]`);
@@ -6936,6 +6979,17 @@ export class Spin2DocumentSemanticParser {
               //symbolOffset = line.indexOf(newParameter, symbolOffset);
               symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
               nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+              if (this.parseUtils.isSpinNumericConstant(newParameter)) {
+                this._logDEBUG(`  -- rDsml() param Number=[${bitfieldIndexValue}]`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: newParameter.length,
+                  ptTokenType: 'number',
+                  ptTokenModifiers: []
+                });
+                continue;
+              }
               this._logDEBUG(`  -- rDsml() ?check? [${newParameter}] ofs=(${nameOffset})`);
               let bIsParameterName: boolean = this.parseUtils.isNameWithTypeFeed(newParameter, eDisplayType);
               if (isRuntimeNamed && newParameter.toLowerCase() == 'lutcolors') {
