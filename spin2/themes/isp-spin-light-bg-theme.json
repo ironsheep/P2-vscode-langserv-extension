@@ -614,6 +614,7 @@
     "comment.documentation": "#329432", // ?? CODE IS CAUSING THIS!
     "comment.line.documentation": "#329432",
     "comment.block.documentation": "#329432",
+    "number": "#3e9096", // numbers
     "customLiteral": "#000000",
     "debug.function": "#b96c00",
     "displayName": "#5d59a0",

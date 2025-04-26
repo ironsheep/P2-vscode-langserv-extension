@@ -901,6 +901,7 @@
     "comment.documentation": "#5db55d", // ?? CODE IS CAUSING THIS!
     "comment.line.documentation": "#5db55d",
     "comment.block.documentation": "#5db55d",
+    "number": "#3e9096", // numbers
     "debug.function": "#b96c00",
     "label": "#9C775D", // pasm labels
     "label.declaration": "#9C775D", // pasm labels
