@@ -1249,7 +1249,7 @@ export class Spin2ParseUtils {
     p_pwm_smps: 'PWM switch-mode power supply I/O<br>%0000_0000_000_0000000000000_00_01010_0',
     p_quadrature: 'A-B quadrature encoder input<br>%0000_0000_000_0000000000000_00_01011_0',
     p_reg_up: 'Inc on A-rise when B-high<br>%0000_0000_000_0000000000000_00_01100_0',
-    p_reg_down: 'Inc on A-rise when B-high, dec on A-rise when B-low<br>%0000_0000_000_0000000000000_00_01101_0',
+    p_reg_up_down: 'Inc on A-rise when B-high, dec on A-rise when B-low<br>%0000_0000_000_0000000000000_00_01101_0',
     p_count_rises: 'Inc on A-rise, optionally dec on B-rise<br>%0000_0000_000_0000000000000_00_01110_0',
     p_count_highs: 'Inc on A-high, optionally dec on B-high<br>%0000_0000_000_0000000000000_00_01111_0',
     p_state_ticks: 'For A-low and A-high states, count ticks<br>%0000_0000_000_0000000000000_00_10000_0',

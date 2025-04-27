@@ -1824,6 +1824,7 @@ export class Spin2DocumentSemanticParser {
         let labelModifiers: string[] = ['declaration'];
         if (!isNamedDataDeclarationLine) {
           // have label...
+          /*
           if (newName.startsWith(':')) {
             const offset: number = line.indexOf(newName, startingOffset);
             labelModifiers = ['illegalUse', 'declaration', 'static'];
@@ -1834,7 +1835,9 @@ export class Spin2DocumentSemanticParser {
               eSeverity.Error,
               `P1 pasm local name [${newName}] not supported in P2 pasm`
             );
-          } else if (newName.startsWith('.')) {
+          }*/
+          // .name and :name are now both static labels
+          if (newName.startsWith('.') || newName.startsWith(':')) {
             labelModifiers = ['declaration', 'static'];
           }
         }
@@ -1879,35 +1882,38 @@ export class Spin2DocumentSemanticParser {
           !this.parseUtils.isP2AsmReservedSymbols(labelName) &&
           !this.parseUtils.isP2AsmInstruction(labelName) &&
           !labelName.toUpperCase().startsWith('IF_') &&
-          !labelName.toUpperCase().startsWith('_RET_') &&
-          !labelName.startsWith(':')
+          !labelName.toUpperCase().startsWith('_RET_')
         ) {
           // org in first column is not label name, nor is if_ conditional
           const labelType: string = isDataDeclarationLine ? 'variable' : 'label';
           let labelModifiers: string[] = ['declaration'];
-          if (!isDataDeclarationLine && labelName.startsWith('.')) {
+          if (!isDataDeclarationLine && (labelName.startsWith('.') || labelName.startsWith(':'))) {
             labelModifiers = ['declaration', 'static'];
           }
-          this._logPASM('  -- DAT PASM GLBL labelName=[' + labelName + '(' + labelType + ')]');
-          const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
-          if (fileName) {
-            this._logDAT('   -- DAT PASM GLBL fileName=[' + fileName + ']');
-            this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+          if (labelName.toUpperCase() == 'DITTO') {
+            this._logPASM(`  -- DAT PASM Ignoring reserved word [${labelName}(${labelType})]`);
+          } else {
+            this._logPASM(`  -- DAT PASM GLBL labelName=[${labelName}(${labelType})]`);
+            const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
+            if (fileName) {
+              this._logDAT(`   -- DAT PASM GLBL fileName=[${fileName}]`);
+              this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
+            }
+            const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
+            // LABEL-TODO add record of global, start or local extra line number
+            let declType: eDefinitionType = eDefinitionType.NonLabel;
+            if (!isDataDeclarationLine) {
+              // we have a label which type is it?
+              declType = labelName.startsWith('.') ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
+            }
+            this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
+            this.semanticFindings.setGlobalToken(
+              labelName,
+              new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers),
+              this._declarationComment(),
+              fileName
+            );
           }
-          const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
-          // LABEL-TODO add record of global, start or local extra line number
-          let declType: eDefinitionType = eDefinitionType.NonLabel;
-          if (!isDataDeclarationLine) {
-            // we have a label which type is it?
-            declType = labelName.startsWith('.') ? eDefinitionType.LocalLabel : eDefinitionType.GlobalLabel;
-          }
-          this.semanticFindings.recordDeclarationLine(line, lineNbr, declType);
-          this.semanticFindings.setGlobalToken(
-            labelName,
-            new RememberedToken(labelType, lineNbr - 1, nameOffset, labelModifiers),
-            this._declarationComment(),
-            fileName
-          );
         }
       }
     }
@@ -3097,7 +3103,7 @@ export class Spin2DocumentSemanticParser {
           let nameOffset: number = line.indexOf(newName, currentOffset);
           if (this.parseUtils.requestedSpinVersion(50)) {
             // color our 'ditto' token
-            this._logPASM('  --  DAT add name=[' + newName + ']');
+            this._logPASM('  --  DAT highlight directive=[' + newName + ']');
             this._recordToken(tokenSet, line, {
               line: lineIdx,
               startCharacter: nameOffset,
@@ -3484,7 +3490,8 @@ export class Spin2DocumentSemanticParser {
             ptTokenModifiers: modifiersWDecl
           });
           haveLabel = true;
-        } else if (labelName.startsWith(':')) {
+          /*
+          } else if (labelName.startsWith(':')) {
           // hrmf... no global type???? this should be a label?
           this._logPASM(`  --  DAT PAsm ERROR Spin1 label=[${labelName}](${0 + 1})`);
           this._recordToken(tokenSet, line, {
@@ -3502,6 +3509,41 @@ export class Spin2DocumentSemanticParser {
             `P1 pasm local name [${labelName}] not supported in P2 pasm`
           );
           haveLabel = true;
+          */
+        } else if (labelName.toUpperCase() == 'DITTO') {
+          // if NOT version 50 color DITTO as bad
+          if (!this.parseUtils.requestedSpinVersion(50)) {
+            // if NOT version 50  DITTO and DITTO END are illegal
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: labelName.length,
+              ptTokenType: 'variable',
+              ptTokenModifiers: ['illegalUse']
+            });
+            this.semanticFindings.pushDiagnosticMessage(
+              lineIdx,
+              nameOffset,
+              nameOffset + labelName.length,
+              eSeverity.Error,
+              `Illegal P2 DAT PASM directive [${labelName}] for version < 50`
+            );
+            if (lineParts.length > 1) {
+              // mrk our END as bad, too
+              const argument: string = lineParts[1];
+              nameOffset = line.indexOf(argument, currentOffset + labelName.length);
+              if (argument.toUpperCase() == 'END') {
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: labelName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['illegalUse']
+                });
+              }
+            }
+            haveLabel = true;
+          }
         } else if (labelName.toLowerCase() != 'debug' && bIsAlsoDebugLine) {
           // hrmf... no global type???? this should be a label?
           this._logPASM(`  --  DAT PAsm ERROR NOT A label=[${labelName}](${0 + 1})`);
@@ -3564,6 +3606,39 @@ export class Spin2DocumentSemanticParser {
             const likelyInstructionName: string = lineParts[minNonLabelParts - 1];
             nameOffset = line.indexOf(likelyInstructionName, currentOffset);
             this._logPASM(`  -- DAT PASM likelyInstructionName=[${likelyInstructionName}], nameOffset=(${nameOffset})`);
+            let bIsDittoLine: boolean = false;
+            if (likelyInstructionName.toUpperCase() === 'DITTO') {
+              // if version 50 color DITTO
+              if (this.parseUtils.requestedSpinVersion(50)) {
+                bIsDittoLine = true;
+                // ditto start: highlight 'DITTO' token, then let argument be processed below
+                // ditto end: highlight both 'DITTO' and  'END' tokens then continue
+                this._logPASM(`  --  DAT PAsm directive=[${likelyInstructionName}], ofs=(${nameOffset})`);
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: likelyInstructionName.length,
+                  ptTokenType: 'directive',
+                  ptTokenModifiers: []
+                });
+              } else {
+                // if NOT version 50  DITTO and DITTO END are illegal
+                this._recordToken(tokenSet, line, {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: likelyInstructionName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['illegalUse']
+                });
+                this.semanticFindings.pushDiagnosticMessage(
+                  lineIdx,
+                  nameOffset,
+                  nameOffset + likelyInstructionName.length,
+                  eSeverity.Error,
+                  `Illegal P2 DAT PASM directive [${likelyInstructionName}] for version < 50`
+                );
+              }
+            }
             currentOffset = nameOffset + likelyInstructionName.length; // move past the instruction
             for (let index = minNonLabelParts; index < lineParts.length; index++) {
               let argumentName = lineParts[index].replace(/[@#]/, '');
@@ -3576,6 +3651,32 @@ export class Spin2DocumentSemanticParser {
                 this._logPASM('  -- SKIP argumentName=[' + argumentName + ']');
                 continue;
               }
+              if (argumentName.toLowerCase() === 'end') {
+                // ditto end: highlight both 'DITTO' and  'END' tokens then continue
+                // if version 50 color DITTO
+                nameOffset = line.indexOf(argumentName, currentOffset);
+                if (this.parseUtils.requestedSpinVersion(50) && bIsDittoLine) {
+                  this._logPASM(`  --  DAT PAsm directive=[${argumentName}], ofs=(${nameOffset})`);
+                  // color our 'ditto end' token
+                  this._recordToken(tokenSet, line, {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: argumentName.length,
+                    ptTokenType: 'directive',
+                    ptTokenModifiers: []
+                  });
+                } else {
+                  // if NOT version 50  DITTO and DITTO END are illegal
+                  this._recordToken(tokenSet, line, {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: lineParts[1].length,
+                    ptTokenType: 'variable',
+                    ptTokenModifiers: ['illegalUse']
+                  });
+                }
+                continue;
+              }
               const argHasArrayRereference: boolean = argumentName.includes('[');
               if (argHasArrayRereference) {
                 const nameParts: string[] = argumentName.split('[');
@@ -3585,16 +3686,14 @@ export class Spin2DocumentSemanticParser {
                 // does name contain a namespace reference?
                 this._logPASM(`  -- argumentName=[${argumentName}]`);
                 let possibleNameSet: string[] = [argumentName];
-                if (this._isPossibleObjectReference(argumentName)) {
+                if (!argumentName.startsWith('.') && !argumentName.startsWith(':') && this._isPossibleObjectReference(argumentName)) {
                   // go register object reference!
                   const bHaveObjReference = this._reportObjectReference(argumentName, lineIdx, currentOffset, line, tokenSet);
                   if (bHaveObjReference) {
                     currentOffset = currentOffset + argumentName.length;
                     continue;
                   }
-                  if (!argumentName.startsWith('.')) {
-                    possibleNameSet = argumentName.split('.');
-                  }
+                  possibleNameSet = argumentName.split('.');
                 }
                 this._logPASM(`  --  possibleNameSet=[${possibleNameSet}]`);
                 const namePart = possibleNameSet[0];
@@ -3627,6 +3726,7 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isTaskReservedSymbol(namePart) &&
                     !this.parseUtils.isP2AsmModczOperand(namePart) &&
                     !this.parseUtils.isDebugMethod(namePart) &&
+                    !this.parseUtils.isVersionAddedMethod(namePart) &&
                     !this.isStorageType(namePart) &&
                     !bIsAlsoDebugLine
                   ) {
@@ -3638,6 +3738,7 @@ export class Spin2DocumentSemanticParser {
                       ptTokenType: 'variable',
                       ptTokenModifiers: ['illegalUse']
                     });
+                    /*
                     if (namePart.startsWith(':')) {
                       this.semanticFindings.pushDiagnosticMessage(
                         lineIdx,
@@ -3646,7 +3747,9 @@ export class Spin2DocumentSemanticParser {
                         eSeverity.Error,
                         `P1 pasm local name [${namePart}] not supported in P2 pasm`
                       );
-                    } else if (this.parseUtils.isP1AsmVariable(namePart)) {
+                  } else if (this.parseUtils.isP1AsmVariable(namePart)) {
+                      */
+                    if (this.parseUtils.isP1AsmVariable(namePart)) {
                       this.semanticFindings.pushDiagnosticMessage(
                         lineIdx,
                         nameOffset,

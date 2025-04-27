@@ -392,7 +392,7 @@ repository:
       - name: constant.language.smartpins.spin2
         match: '(?i)\b(P_(BITDAC|CHANNEL|EVENTS_TICKS|NORMAL|OE|PULSE|QUADRATURE|REPOSITORY|STATE_TICKS|TRANSITION|TRUE_OUTPUT|USB_PAIR))\b'
       - name: constant.language.smartpins.spin2
-        match: '(?i)\b(P_OUTBIT_(A|B)|P_PERIODS_(HIGHS|TICKS)|P_PLUS(1|2|3)_(A|B)|P_PWM_(SAWTOOTH|SMPS|TRIANGLE)|P_REG_(DOWN|UP))\b'
+        match: '(?i)\b(P_OUTBIT_(A|B)|P_PERIODS_(HIGHS|TICKS)|P_PLUS(1|2|3)_(A|B)|P_PWM_(SAWTOOTH|SMPS|TRIANGLE)|P_REG_(UP|UP_DOWN))\b'
       - name: constant.language.smartpins.spin2
         match: '(?i)\b(P_SCHMITT_(A|A_FB|B_FB)|P_SYNC_(IO|RX|TX)|P_TRUE_(A|B|IN)|P_TT_(0|1)(0|1)|P_MINUS(1|2|3)_(A|B)|P_NCO_(DUTY|FREQ))\b'
   streamer_constants:

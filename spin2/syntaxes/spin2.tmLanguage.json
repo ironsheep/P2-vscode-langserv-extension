@@ -812,7 +812,7 @@
         },
         {
           "name": "constant.language.smartpins.spin2",
-          "match": "(?i)\\b(P_OUTBIT_(A|B)|P_PERIODS_(HIGHS|TICKS)|P_PLUS(1|2|3)_(A|B)|P_PWM_(SAWTOOTH|SMPS|TRIANGLE)|P_REG_(DOWN|UP))\\b"
+          "match": "(?i)\\b(P_OUTBIT_(A|B)|P_PERIODS_(HIGHS|TICKS)|P_PLUS(1|2|3)_(A|B)|P_PWM_(SAWTOOTH|SMPS|TRIANGLE)|P_REG_(UP|UP_DOWN))\\b"
         },
         {
           "name": "constant.language.smartpins.spin2",

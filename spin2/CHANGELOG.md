@@ -24,7 +24,8 @@ Possible next additions:
 Spin2 Lanugage upgrades
 
 - Add language support for Spin2 v48, 49, 50, 51
-- Highlight new types created as STRCUTures
+- Highlight new types created as STRUCTures
+- BUGFIX: corrected Syntax coloring of smart-pin constant 'P_REG_UP_DOWN' constant (spelled badly in prior versions)
 
 ## [2.3.4] 2025-02-22
 
