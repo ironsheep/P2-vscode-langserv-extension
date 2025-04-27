@@ -572,7 +572,7 @@ export class Spin2DocumentSemanticParser {
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
             this._logPASM(`- Ln#${lineNbr} pre-scan DAT trimmedNonCommentLine=[${trimmedNonCommentLine}], nonStringLine=[${nonStringLine}]`);
             if (nonStringLine.toUpperCase().includes('ORG')) {
-              this._logPASM(`- Ln#${lineNbr} pre-scan DAT line nonStringLine=[${nonStringLine}] now Dat PASM`);
+              this._logPASM(`- Ln#${lineNbr} pre-scan DAT line nonStringLine=[${nonStringLine}] now DAT PAsm`);
               // record start of PASM code NOT inline
               this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
               prePAsmState = currState;
@@ -633,7 +633,7 @@ export class Spin2DocumentSemanticParser {
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
             this._logPASM(`- Ln#${lineNbr} pre-scan DAT trimmedNonCommentLine=[${trimmedNonCommentLine}], nonStringLine=[${nonStringLine}]`);
             if (nonStringLine.toUpperCase().includes('ORG')) {
-              this._logPASM(`- Ln#${lineNbr} pre-scan DAT line trimmedLine=[${trimmedLine}] now Dat PASM`);
+              this._logPASM(`- Ln#${lineNbr} pre-scan DAT line trimmedLine=[${trimmedLine}] now DAT PAsm`);
               // record start of PASM code NOT inline
               this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
               prePAsmState = currState;
@@ -680,14 +680,14 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inDatPAsm) {
         // process pasm (assembly) lines
         if (bHaveLineToProcess) {
-          this._logPASM(`- check DAT PASM Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+          this._logPASM(`- check DAT PAsm Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
           // the following 2 was 6 but skipping orgh statements???
           if (trimmedNonCommentLine.length > 2 && trimmedNonCommentLine.toUpperCase().includes('ORG')) {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.parseUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
             this._logPASM(`- Ln#${lineNbr} pre-scan DATpasm trimmedNonCommentLine=[${trimmedNonCommentLine}], nonStringLine=[${nonStringLine}]`);
             if (nonStringLine.toUpperCase().includes('ORG')) {
-              this._logPASM(`- Ln#${lineNbr} pre-scan DATpasm line nonStringLine=[${nonStringLine}] now Dat PASM`);
+              this._logPASM(`- Ln#${lineNbr} pre-scan DATpasm line nonStringLine=[${nonStringLine}] now DAT PAsm`);
               // record start of PASM code NOT inline
               this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
               this._getDAT_PAsmDeclaration(0, lineNbr, line); // let's get possible label on this ORG statement
@@ -1123,9 +1123,9 @@ export class Spin2DocumentSemanticParser {
         this._reportNonDupeTokens(partialTokenSet, '=> OBJ: ', line, tokenSet);
       } else if (currState == eParseState.inDatPAsm) {
         // process DAT section pasm (assembly) lines
-        this._logPASM(`- process DAT PASM Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        this._logPASM(`- process DAT PAsm Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
         if (bHaveLineToProcess) {
-          //this._logPASM("- process DAT PASM Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
+          //this._logPASM("- process DAT PAsm Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           // in DAT sections we end with next section
           const partialTokenSet: IParsedToken[] = this._reportDAT_PAsmCode(i, 0, line);
           this._reportNonDupeTokens(partialTokenSet, '=> DAT: ', line, tokenSet);
@@ -1891,12 +1891,12 @@ export class Spin2DocumentSemanticParser {
             labelModifiers = ['declaration', 'static'];
           }
           if (labelName.toUpperCase() == 'DITTO') {
-            this._logPASM(`  -- DAT PASM Ignoring reserved word [${labelName}(${labelType})]`);
+            this._logPASM(`  -- DAT PAsm Ignoring reserved word [${labelName}(${labelType})]`);
           } else {
-            this._logPASM(`  -- DAT PASM GLBL labelName=[${labelName}(${labelType})]`);
+            this._logPASM(`  -- DAT PAsm GLBL labelName=[${labelName}(${labelType})]`);
             const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
             if (fileName) {
-              this._logDAT(`   -- DAT PASM GLBL fileName=[${fileName}]`);
+              this._logDAT(`   -- DAT PAsm GLBL fileName=[${fileName}]`);
               this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
             }
             const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
@@ -3137,7 +3137,7 @@ export class Spin2DocumentSemanticParser {
               nameOffset,
               nameOffset + newName.length,
               eSeverity.Error,
-              `Illegal P2 DAT PASM directive [${newName}]`
+              `Illegal P2 DAT PAsm directive [${newName}]`
             );
             if (lineParts[1].toUpperCase() == 'END') {
               // color our 'ditto end' token
@@ -3279,7 +3279,7 @@ export class Spin2DocumentSemanticParser {
             currentOffset += possibleNameLength;
             continue;
           }
-          // the following allows '.' in names but  only when in DAT PASM code, not spin!
+          // the following allows '.' in names but  only when in DAT PAsm code, not spin!
           if (possibleName.charAt(0).match(/[a-zA-Z_]/) || (isDatPAsm && possibleName.charAt(0).match(/[a-zA-Z_.]/))) {
             nameOffset = line.indexOf(possibleName, currentOffset);
             this._logMessage(`  -- DATval possibleName=[${possibleName}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
@@ -3413,7 +3413,7 @@ export class Spin2DocumentSemanticParser {
   private _reportDAT_PAsmCode(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     // skip Past Whitespace
-    this._logPASM(`- Ln#${lineIdx + 1} process DAT PASM line=[${line}](${line.length})`);
+    this._logPASM(`- Ln#${lineIdx + 1} process DAT PAsm line=[${line}](${line.length})`);
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const inLinePAsmRHSStr: string = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
@@ -3526,7 +3526,7 @@ export class Spin2DocumentSemanticParser {
               nameOffset,
               nameOffset + labelName.length,
               eSeverity.Error,
-              `Illegal P2 DAT PASM directive [${labelName}] for version < 50`
+              `Illegal P2 DAT PAsm directive [${labelName}] for version < 50`
             );
             if (lineParts.length > 1) {
               // mrk our END as bad, too
@@ -3594,7 +3594,7 @@ export class Spin2DocumentSemanticParser {
             minNonLabelParts++;
           }
           this._logPASM(
-            `  -- DAT PASM !dataDecl lineParts=[${lineParts}](${lineParts.length}), argumentOffset=(${argumentOffset}), minNonLabelParts=(${minNonLabelParts})`
+            `  -- DAT PAsm !dataDecl lineParts=[${lineParts}](${lineParts.length}), argumentOffset=(${argumentOffset}), minNonLabelParts=(${minNonLabelParts})`
           );
           if (lineParts[argumentOffset].toUpperCase().startsWith('IF_') || lineParts[argumentOffset].toUpperCase().startsWith('_RET_')) {
             // skip our conditional
@@ -3605,7 +3605,7 @@ export class Spin2DocumentSemanticParser {
             // have at least instruction name
             const likelyInstructionName: string = lineParts[minNonLabelParts - 1];
             nameOffset = line.indexOf(likelyInstructionName, currentOffset);
-            this._logPASM(`  -- DAT PASM likelyInstructionName=[${likelyInstructionName}], nameOffset=(${nameOffset})`);
+            this._logPASM(`  -- DAT PAsm likelyInstructionName=[${likelyInstructionName}], nameOffset=(${nameOffset})`);
             let bIsDittoLine: boolean = false;
             if (likelyInstructionName.toUpperCase() === 'DITTO') {
               // if version 50 color DITTO
@@ -3635,7 +3635,7 @@ export class Spin2DocumentSemanticParser {
                   nameOffset,
                   nameOffset + likelyInstructionName.length,
                   eSeverity.Error,
-                  `Illegal P2 DAT PASM directive [${likelyInstructionName}] for version < 50`
+                  `Illegal P2 DAT PAsm directive [${likelyInstructionName}] for version < 50`
                 );
               }
             }
@@ -3684,9 +3684,14 @@ export class Spin2DocumentSemanticParser {
               }
               if (argumentName.charAt(0).match(/[a-zA-Z_.:]/)) {
                 // does name contain a namespace reference?
-                this._logPASM(`  -- argumentName=[${argumentName}]`);
+                this._logPASM(`  -- DAT PAsm argumentName=[${argumentName}]`);
                 let possibleNameSet: string[] = [argumentName];
-                if (!argumentName.startsWith('.') && !argumentName.startsWith(':') && this._isPossibleObjectReference(argumentName)) {
+                if (
+                  !argumentName.startsWith('.') &&
+                  !argumentName.startsWith(':') &&
+                  argumentName.includes('.') &&
+                  this._isPossibleObjectReference(argumentName)
+                ) {
                   // go register object reference!
                   const bHaveObjReference = this._reportObjectReference(argumentName, lineIdx, currentOffset, line, tokenSet);
                   if (bHaveObjReference) {
@@ -3695,7 +3700,7 @@ export class Spin2DocumentSemanticParser {
                   }
                   possibleNameSet = argumentName.split('.');
                 }
-                this._logPASM(`  --  possibleNameSet=[${possibleNameSet}]`);
+                this._logPASM(`  -- DAT PAsm possibleNameSet=[${possibleNameSet}]`);
                 const namePart = possibleNameSet[0];
                 const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : `${possibleNameSet[0]}.${possibleNameSet[1]}`;
                 nameOffset = line.indexOf(searchString, currentOffset);
@@ -3714,6 +3719,15 @@ export class Spin2DocumentSemanticParser {
                     ptTokenType: referenceDetails.type,
                     ptTokenModifiers: referenceDetails.modifiers
                   });
+                } else if (this.parseUtils.isVersionAddedMethod(namePart)) {
+                  this._logMessage(`  -- DAT PAsm  ver added method=[${namePart}], ofs=(${nameOffset})`);
+                  this._recordToken(tokenSet, line, {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: namePart.length,
+                    ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                    ptTokenModifiers: ['builtin']
+                  });
                 } else {
                   // we use bIsDebugLine in next line so we don't flag debug() arguments!
                   if (
@@ -3726,7 +3740,6 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isTaskReservedSymbol(namePart) &&
                     !this.parseUtils.isP2AsmModczOperand(namePart) &&
                     !this.parseUtils.isDebugMethod(namePart) &&
-                    !this.parseUtils.isVersionAddedMethod(namePart) &&
                     !this.isStorageType(namePart) &&
                     !bIsAlsoDebugLine
                   ) {
@@ -5562,7 +5575,7 @@ export class Spin2DocumentSemanticParser {
                 //const currArgumentLen = argumentName.length;
                 if (argumentName.charAt(0).match(/[a-zA-Z_.]/)) {
                   // does name contain a namespace reference?
-                  this._logPASM('  -- argumentName=[' + argumentName + ']');
+                  this._logPASM(`  -- Inline pasm argumentName=[${argumentName}]`);
                   if (this._isPossibleObjectReference(argumentName)) {
                     const bHaveObjReference = this._reportObjectReference(argumentName, lineIdx, currentOffset, line, tokenSet);
                     if (bHaveObjReference) {

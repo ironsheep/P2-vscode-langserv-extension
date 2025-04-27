@@ -53,8 +53,8 @@ FEATURE Latest Language Ver Updates:
 		- Fix more structure ref coloring issues @done(2025-04-27)
 		- Fix more structure ref coloring issues @done(2025-04-27)
 		- Fix ditto in pasm coloring issues @done(2025-04-27)
-		- Fix sizeof() in pasm arguments 
-		- Fix more debug coloring issues
+		- Fix sizeof() in pasm arguments @done(2025-04-27)
+		- Fix final debug coloring issues
 		
 	Unify Single/MultiLine handling:
 		- complete CON unification @done(2025-04-22)
