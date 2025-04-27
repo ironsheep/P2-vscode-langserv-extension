@@ -2278,8 +2278,7 @@ export class Spin2DocumentSemanticParser {
         // see if we have bitnumber index field
         haveBitfieldIndex = debugStatementStr.substring(0, openParenOffset + 1).includes('[');
         if (haveBitfieldIndex) {
-          //this._logDEBUG(' -- rDsml() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
-          // FIXME: UNDONE - need to highlight the bitfield index if non-numeric (and allowed to be non-numeric)
+          // let's just skip past the index for this routine
           lineParts.splice(1, 1); // Removes the element at index 1
           this._logDEBUG(` -- gddd removed bitfield lineParts=[${lineParts}](${lineParts.length})`);
         }
@@ -3993,7 +3992,7 @@ export class Spin2DocumentSemanticParser {
             paramName,
             new RememberedToken('parameter', symbolPosition.line, symbolPosition.character, ['readonly', 'local']),
             this._declarationComment()
-          ); // TOKEN SET in _report()
+          ); // TOKEN SET in _rpt()
 
           if (hasFlexSpinDefaultValue) {
             this.semanticFindings.pushDiagnosticMessage(
@@ -4151,7 +4150,7 @@ export class Spin2DocumentSemanticParser {
             returnValueName,
             new RememberedToken('returnValue', symbolPosition.line, symbolPosition.character, ['local']),
             this._declarationComment()
-          ); // TOKEN SET in _report()
+          ); // TOKEN SET in _rpt()
 
           varNameOffset = nameOffset + returnValueName.length;
         }
@@ -4356,7 +4355,7 @@ export class Spin2DocumentSemanticParser {
             this._logMessage(`  -- have Storage type! localName=[${possStorageType}], ofs=(${nameOffset})`);
             // at v49, we allow object.structure and object.structure pointer reference!
             const allowedObjRef: boolean = this.parseUtils.requestedSpinVersion(49);
-            //  NOTE: the following "",true);"" changes _reportObjectReference() to ONLY report object.type references!
+            //  NOTE: the following "",true);"" changes _rptObjectReference() to ONLY report object.type references!
             if (this._isPossibleObjectReference(possStorageType) && allowedObjRef) {
               // go register object TYPE-ONLY reference!
               foundObjectRef = this._reportObjectReference(
@@ -4463,7 +4462,7 @@ export class Spin2DocumentSemanticParser {
             possLocalVarName,
             new RememberedToken('variable', symbolPosition.line, symbolPosition.character, ['local']),
             this._declarationComment()
-          ); // TOKEN SET in _report()
+          ); // TOKEN SET in _rpt()
         }
       }
     }
@@ -4533,6 +4532,7 @@ export class Spin2DocumentSemanticParser {
           varNameList = lineInfo.lineParts;
         }
         // FIXME: TODO: needs code to process index suff here..
+        /*
         if (possibleVariableName.includes('[')) {
           // if variable contains index / index expression...
           const leftEdge: number = possibleVariableName.indexOf('[');
@@ -4540,11 +4540,24 @@ export class Spin2DocumentSemanticParser {
           if (leftEdge != -1 && rightEdge != -1 && leftEdge < rightEdge) {
             //
           }
-        }
+        }*/
         this._logSPIN(`  -- LHS: varNameList=[${varNameList}](${varNameList.length})`);
         for (let index = 0; index < varNameList.length; index++) {
           const variableName: string = varNameList[index];
-          if (variableName.includes('[')) {
+          symbolPosition = multiLineSet.locateSymbol(variableName, currSingleLineOffset);
+          nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+          // Ex: m.cmds[motor].cmd[m.head[motor]]  is varNameList.length == 1
+          if (this._isPossibleStructureReference(variableName)) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const bHaveStructReference: boolean = this._reportStructureReference(
+              variableName,
+              symbolPosition.line,
+              symbolPosition.character,
+              multiLineSet.lineAt(symbolPosition.line),
+              tokenSet
+            );
+            continue;
+          } else if (variableName.includes('[')) {
             // NOTE this handles code: byte[pColor][2] := {value}
             // NOTE2 this handles code: result.byte[3] := {value}  P2 OBEX: jm_apa102c.spin2 (139)
             // have complex target name, parse in loop
@@ -4879,18 +4892,21 @@ export class Spin2DocumentSemanticParser {
       const dotOffset: number = assignmentRHSStr.indexOf('.');
       const spaceOffset: number = assignmentRHSStr.indexOf(' ');
       const tabOffset: number = assignmentRHSStr.indexOf('\t');
+      // return lowest bracket offset, if it's not -1 we have a bracket pair
       const ltBbracketOffset: number = assignmentRHSStr.indexOf('[');
       const rtBbracketOffset: number = assignmentRHSStr.indexOf(']');
-      const bracketOffset: number = rtBbracketOffset > ltBbracketOffset ? rtBbracketOffset : ltBbracketOffset;
+      const havePossIndex: boolean = ltBbracketOffset != -1 && rtBbracketOffset != -1 && ltBbracketOffset < rtBbracketOffset;
+      // return T/F where T means there are parens
       const ltParenOffset: number = assignmentRHSStr.indexOf('(');
       const rtParenOffset: number = assignmentRHSStr.indexOf(')');
       const haveParens: boolean = ltParenOffset != -1 || rtParenOffset != -1;
-      const whiteOffset: number = spaceOffset != -1 ? spaceOffset : tabOffset;
+      // return offset to first non-white space or -1 if none
+      const whiteOffset: number = spaceOffset > tabOffset ? spaceOffset : tabOffset;
       const hasWhite: boolean = whiteOffset != -1;
       // we have a single element if we have "." with "[" and "[" is before "."
-      const indexExpression: string = bracketOffset != -1 ? assignmentRHSStr.substring(ltBbracketOffset, rtBbracketOffset + 1) : ''; // include the []
+      const indexExpression: string = havePossIndex ? this._getIndexExpression(assignmentRHSStr.substring(ltBbracketOffset)) : ''; // dont' include the []
       const indexHasWHiteSpace: boolean = indexExpression.indexOf(' ') != -1 || indexExpression.indexOf('\t') != -1;
-      const indexedObjectRef: boolean = dotOffset != -1 && bracketOffset != -1 && dotOffset > bracketOffset ? true : false;
+      const indexedObjectRef: boolean = dotOffset != -1 && havePossIndex ? true : false;
       let singleElement: boolean = dotOffset != -1 && ltBbracketOffset != -1 && dotOffset > ltBbracketOffset ? true : false;
       if (singleElement && hasWhite && ltParenOffset != -1 && ltParenOffset > whiteOffset) {
         // if whitespace before paren we have white in statement vs in parameter list
@@ -4936,6 +4952,7 @@ export class Spin2DocumentSemanticParser {
       this._logSPIN(`  --  SPIN Multi loop start currSingleLineOffset=(${currSingleLineOffset})`);
       for (let index = 0; index < possNames.length; index++) {
         let possibleName = possNames[index];
+        const indexString: string = '';
         // special code to handle case of var.[bitfield] leaving name a 'var.'
         if (possibleName.endsWith('.')) {
           possibleName = possibleName.substr(0, possibleName.length - 1);
@@ -5240,67 +5257,6 @@ export class Spin2DocumentSemanticParser {
         this._logSPIN(
           `  --  SPIN Multi loop currSingleLineOffset=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), currNameLength=(${currNameLength})`
         );
-      }
-    }
-    return tokenSet;
-  }
-
-  private _reportSPIN_IndexExpression(indexExpression: string, lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
-    const lineNbr: number = lineIdx + 1;
-    const tokenSet: IParsedToken[] = [];
-    this._logSPIN(`  -- Ln#${lineNbr} _rsIE() indexExpression=[${indexExpression}](${indexExpression.length})`);
-    const possNames: string[] = indexExpression.split(/[ \t[\]&+-/]/).filter(Boolean);
-    const expressionOffset: number = line.indexOf(indexExpression, startingOffset);
-    this._logSPIN(`  -- _rsIE possNames=[${possNames}](${possNames.length})`);
-    if (indexExpression.length > 0) {
-      for (let index = 0; index < possNames.length; index++) {
-        const possSymbolName = possNames[index];
-        const nameOffset: number = line.indexOf(possSymbolName, expressionOffset);
-        if (possSymbolName.charAt(0).match(/[a-zA-Z_]/)) {
-          let referenceDetails: RememberedToken | undefined = undefined;
-          if (this.semanticFindings.isLocalToken(possSymbolName)) {
-            referenceDetails = this.semanticFindings.getLocalTokenForLine(possSymbolName, lineNbr);
-            this._logSPIN(`  --  FOUND local name=[${possSymbolName}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
-          } else if (this.semanticFindings.isGlobalToken(possSymbolName)) {
-            referenceDetails = this.semanticFindings.getGlobalToken(possSymbolName);
-            this._logSPIN(`  --  FOUND global name=[${possSymbolName}, referenceDetails=[${referenceDetails}]]`);
-          }
-          if (referenceDetails !== undefined) {
-            const modificationArray: string[] = referenceDetails.modifiersWith('modification');
-            this._logSPIN(`  --  SPIN variableName=[${possSymbolName}], ofs=(${nameOffset})`);
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: possSymbolName.length,
-              ptTokenType: referenceDetails.type,
-              ptTokenModifiers: modificationArray
-            });
-          } else {
-            if (
-              !this.parseUtils.isSpinReservedWord(possSymbolName) &&
-              !this.parseUtils.isBuiltinStreamerReservedWord(possSymbolName) &&
-              !this.parseUtils.isDebugControlSymbol(possSymbolName) &&
-              !this.parseUtils.isSpinBuiltinMethod(possSymbolName)
-            ) {
-              // we don't have name registered so just mark it
-              this._logSPIN(`  --  SPIN MISSING varname=[${possSymbolName}], ofs=(${nameOffset})`);
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: possSymbolName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['modification', 'missingDeclaration']
-              });
-              this.semanticFindings.pushDiagnosticMessage(
-                lineIdx,
-                nameOffset,
-                nameOffset + possSymbolName.length,
-                eSeverity.Error,
-                `P2 Spin Index missing declaration [${possSymbolName}]`
-              );
-            }
-          }
-        }
       }
     }
     return tokenSet;
@@ -6343,7 +6299,7 @@ export class Spin2DocumentSemanticParser {
             currSingleLineOffset = nameOffset + newParameter.length;
           }
           // (2) highlight strings
-          this._logDEBUG(`  --  AM _reportDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
+          this._logDEBUG(`  --  AM _rptDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
           const tokenStringSet: IParsedToken[] = this._reportDebugStringsMultiLine(startingOffset, multiLineSet);
           tokenStringSet.forEach((newToken) => {
             tokenSet.push(newToken);
@@ -6511,7 +6467,7 @@ export class Spin2DocumentSemanticParser {
               currSingleLineOffset = nameOffset + newParameter.length;
             }
             // (2) highlight strings
-            this._logDEBUG(`  --  BM _reportDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
+            this._logDEBUG(`  --  BM _rptDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
             const tokenStringSet: IParsedToken[] = this._reportDebugStringsMultiLine(startingOffset, multiLineSet);
             tokenStringSet.forEach((newToken) => {
               tokenSet.push(newToken);
@@ -6667,14 +6623,14 @@ export class Spin2DocumentSemanticParser {
           currSingleLineOffset = nameOffset + newParameter.length;
         }
         // (2) highlight strings
-        this._logDEBUG(`  --  CM _reportDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
+        this._logDEBUG(`  --  CM _rptDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
         const tokenStringSet: IParsedToken[] = this._reportDebugStringsMultiLine(startingOffset, multiLineSet);
         tokenStringSet.forEach((newToken) => {
           tokenSet.push(newToken);
         });
       }
     } else {
-      this._logDEBUG(`ERROR: _reportDebugStatementMulti() Ln#${multiLineSet.lineStartIdx + 1} line=[${multiLineSet.line}] no debug()??`);
+      this._logDEBUG(`ERROR: _rptDebugStatementMulti() Ln#${multiLineSet.lineStartIdx + 1} line=[${multiLineSet.line}] no debug()??`);
     }
     return tokenSet;
   }
@@ -6697,26 +6653,26 @@ export class Spin2DocumentSemanticParser {
     return refFoundStatus;
   }
 
-  private _reportStructureReference(dotReference: string, lineIdx: number, startingOffset: number, line: string, tokenSet: IParsedToken[]): boolean {
+  private _reportStructureReference(dotRef: string, lineIdx: number, startingOffset: number, line: string, tokenSet: IParsedToken[]): boolean {
     let bGeneratedReference: boolean = false;
     // many forms of structure references
     //  Ex: a.n[3]
     //  Ex: a.n[1].[31]
     //  Ex: b.n[0].[0]
     const lineLength: number = line ? line.length : -1;
-    const matchOffset: number = line.indexOf(dotReference);
+    const matchOffset: number = line.indexOf(dotRef);
     this._logMessage(
-      `- rptStruRef() ln#${lineIdx + 1}: dotRef=[${dotReference}], ofs(s/m)=(${startingOffset}/${matchOffset}), line=[${line}](${lineLength})`
+      `- ln#${lineIdx + 1}: rptStruRef() dotRef=[${dotRef}], ofs(s/m)=(${startingOffset}/${matchOffset}), line=[${line}](${lineLength})`
     );
-    let possibleNameSet: string[] = [];
-    if (dotReference.includes('.') && !dotReference.includes('..')) {
-      let nameOffset: number = line.indexOf(dotReference.trimStart(), startingOffset); // walk this past each
-      possibleNameSet = dotReference.trimStart().split(/\./).filter(Boolean);
-      this._logMessage(`  --  rptStruRef() possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
-      const structInstanceName = possibleNameSet[0];
-      const isStructureRef: boolean = possibleNameSet.length > 0 && this.semanticFindings.isStructureInstance(structInstanceName);
+    let structRefParts: string[] = [];
+    if (dotRef.includes('.') && !dotRef.includes('..')) {
+      let nameOffset: number = line.indexOf(dotRef.trimStart(), startingOffset); // walk this past each
+      structRefParts = this._getStructureDescentParts(dotRef);
+      this._logMessage(`  --  rptStruRef() structRefParts=[${structRefParts}](${structRefParts.length})`);
+      const structInstanceName = structRefParts[0];
+      const isStructureRef: boolean = structRefParts.length > 0 && this.semanticFindings.isStructureInstance(structInstanceName);
       bGeneratedReference = isStructureRef; // for now...
-      const memberNameSet = possibleNameSet.length > 1 ? possibleNameSet.slice(1) : possibleNameSet;
+      const memberNameSet = structRefParts.length > 1 ? structRefParts.slice(1) : structRefParts;
       this._logMessage(`  --  rptStruRef() STRUCT [${structInstanceName}] memberNameSet=[${memberNameSet}](${memberNameSet.length})`);
 
       // report structure instance name
@@ -6738,69 +6694,80 @@ export class Spin2DocumentSemanticParser {
           ptTokenType: referenceDetails.type,
           ptTokenModifiers: referenceDetails.modifiers
         });
-        nameOffset += structInstanceName.length + 1;
+        nameOffset += structInstanceName.length;
       }
-      // now report descent into structure members
-      const structureType: string | undefined = this.semanticFindings.getTypeForStructureInstance(structInstanceName);
-      if (structureType === undefined) {
-        this._logSPIN(`  --  rptStruRef() ERROR: no structure TYPE for [${structInstanceName}]`);
-      } else {
-        const topStructure: RememberedStructure | undefined = this.semanticFindings.getStructure(structureType);
-        if (topStructure === undefined) {
-          this._logSPIN(`  --  rptStruRef() ERROR: no structure INFO for [${structInstanceName}]`);
+      // remember initial offset for structure member names
+      const memberNameBaseOffset: number = nameOffset;
+      for (let index = 0; index < memberNameSet.length; index++) {
+        const structureMember = memberNameSet[index];
+        nameOffset = line.indexOf(structureMember, memberNameBaseOffset); // walk this past each name we use
+        this._logMessage(
+          `  --  rptStruRef() Descent [${structInstanceName}] mbr=[${structureMember}], ofs=(${nameOffset}) at depth=[${index + 1} of ${memberNameSet.length + 1}]`
+        );
+        // now report descent into structure members
+        const structureType: string | undefined = this.semanticFindings.getTypeForStructureInstance(structInstanceName);
+        if (structureType === undefined) {
+          this._logSPIN(`  --  rptStruRef() ERROR: no structure TYPE for [${structInstanceName}]`);
         } else {
-          this._logSPIN(`  --  rptStruRef() TOP is [${topStructure.toString()}]`);
-          let currStructure: RememberedStructure = topStructure;
-          for (let index = 0; index < memberNameSet.length; index++) {
-            // record member name coloring
-            let memberName: string = memberNameSet[index];
-            this._logSPIN(`  -- rptStruRef() evaluate memberName=[${memberName}]`);
-            if (memberName.startsWith('[') && memberName.endsWith(']')) {
-              // this is likely a bitfield access, ignore it
-              continue;
-            }
-            if (memberName.includes('[') || memberName.includes(']')) {
-              // yes remove array suffix
-              const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(memberName);
-              const localNameParts: string[] = lineInfo.lineParts;
-              this._logSPIN(`  -- rptStruRef() element w/Index localNameParts=[${localNameParts}](${localNameParts.length})`);
-              const indexValue: string = localNameParts.length > 1 ? localNameParts[1] : '';
-              memberName = localNameParts[0];
-              if (indexValue.length > 0 && /^-?\d+(\.\d+)?$/.test(indexValue) == false) {
-                this._logSPIN(`  -- rptStruRef() ERROR need code to handle index coloring! for ${memberName}[${indexValue}]`);
-                // FIXME: UNDONE XYZZY add code to colorize index value if non-constant
+          const topStructure: RememberedStructure | undefined = this.semanticFindings.getStructure(structureType);
+          if (topStructure === undefined) {
+            this._logSPIN(`  --  rptStruRef() ERROR: no structure INFO for [${structInstanceName}]`);
+          } else {
+            this._logSPIN(`  --  rptStruRef() TOP is [${topStructure.toString()}]`);
+            let currStructure: RememberedStructure = topStructure;
+            for (let index = 0; index < memberNameSet.length; index++) {
+              // record member name coloring
+              let memberName: string = memberNameSet[index];
+              nameOffset = line.indexOf(memberName, nameOffset); // walk this past each name we use
+              this._logSPIN(`  -- rptStruRef() evaluate memberName=[${memberName}](${memberName.length}), ofs=(${nameOffset})`);
+              if (memberName.startsWith('[') && memberName.endsWith(']')) {
+                // this is likely a bitfield access, ignore it
+                this._logSPIN(`   --- rptStruRef() SKIP bitnbr?`);
+                continue;
               }
-              memberName = localNameParts[0];
-            }
-            let mbrTokenType = referenceDetails !== undefined ? referenceDetails.type : '';
-            let mbrTokenModifiers = referenceDetails !== undefined ? referenceDetails.modifiers : [];
-            const hasMemberName: boolean = currStructure.hasMemberNamed(memberName);
-            if (!hasMemberName) {
-              mbrTokenType = 'variable';
-              mbrTokenModifiers = ['illegalUse'];
-            }
-            this._logMessage(
-              `  --  rptStruRef() memberName=[${memberName}] of [${currStructure.name}], isPresent=(${hasMemberName}), ofs=(${nameOffset}) - [${mbrTokenType}][${mbrTokenModifiers}]`
-            );
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: memberName.length,
-              ptTokenType: mbrTokenType,
-              ptTokenModifiers: mbrTokenModifiers
-            });
-            // skip to next member name
-            nameOffset += memberName.length + 1;
-            // descend into structure if member is structure
-            if (currStructure.memberNamed(memberName)?.isStructure) {
-              const currMemberInfo = currStructure.memberNamed(memberName);
-              if (currMemberInfo !== undefined) {
-                const mbrStructName: string = currMemberInfo.structName;
-                const tmpStructure = this.semanticFindings.getStructure(mbrStructName);
-                if (tmpStructure !== undefined) {
-                  currStructure = tmpStructure;
-                } else {
-                  this._logMessage(`  --  rptStruRef() ERROR: no member structure info for [${memberName}]`);
+              let indexValue: string = '';
+              if (memberName.includes('[') && memberName.includes(']')) {
+                // yes remove array suffix
+                indexValue = this._getIndexExpression(memberName);
+                memberName = memberName.replace(`[${indexValue}]`, '');
+                this._logSPIN(`  -- rptStruRef() hold index value highlight memberName=[${memberName}] [ [${indexValue}] ]`);
+              }
+              let mbrTokenType = referenceDetails !== undefined ? referenceDetails.type : '';
+              let mbrTokenModifiers = referenceDetails !== undefined ? referenceDetails.modifiers : [];
+              const hasMemberName: boolean = currStructure.hasMemberNamed(memberName);
+              if (!hasMemberName) {
+                mbrTokenType = 'variable';
+                mbrTokenModifiers = ['illegalUse'];
+              }
+              this._logMessage(
+                `  --  rptStruRef() memberName=[${memberName}](${memberName.length}), ofs=(${nameOffset}) of [${currStructure.name}], isPresent=(${hasMemberName}) - [${mbrTokenType}][${mbrTokenModifiers}]`
+              );
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: memberName.length,
+                ptTokenType: mbrTokenType,
+                ptTokenModifiers: mbrTokenModifiers
+              });
+              // skip to next member name
+              nameOffset += memberName.length;
+              if (indexValue.length > 0) {
+                nameOffset = this._reportSPIN_IndexExpression(indexValue, lineIdx, nameOffset, line, tokenSet);
+              }
+              // descend into structure if member is structure
+              if (currStructure.memberNamed(memberName)?.isStructure) {
+                const currMemberInfo = currStructure.memberNamed(memberName);
+                if (currMemberInfo !== undefined) {
+                  this._logSPIN(
+                    `  -- rptStruRef() descend into memberName=[${memberName}] currMemberInfo=[${JSON.stringify(currMemberInfo, null, 2)}]`
+                  );
+                  const mbrStructName: string = currMemberInfo.structName;
+                  const tmpStructure = this.semanticFindings.getStructure(mbrStructName);
+                  if (tmpStructure !== undefined) {
+                    currStructure = tmpStructure;
+                  } else {
+                    this._logMessage(`  --  rptStruRef() ERROR: no member structure info for [${memberName}]`);
+                  }
                 }
               }
             }
@@ -6810,6 +6777,38 @@ export class Spin2DocumentSemanticParser {
     }
 
     return bGeneratedReference;
+  }
+
+  private _getStructureDescentParts(dotRef: string): string[] {
+    const desiredStrings: string[] = [];
+    // Ex: m.cmds[motor].cmd[m.head[motor]]
+    //   returns [m, cmds[motor], cmd[m.head[motor]]
+    // locates strings separated by '.' but not '.' within brackets
+    // Regular expression to match strings separated by '.' but not '.' within brackets
+    const regex = /(?:[^[\].]+|\[[^\]]*\])+/g; // ?? omits the final ']'!!!
+    //const regex = /(?:[^[\].]+|\[[^\]]*\])/g;
+    //const regex = /[^[\].]+|\[[^[\]]*\]/g;
+
+    // Match the dotRef string using the regex
+    const matches = dotRef.match(regex);
+
+    if (matches) {
+      for (const match of matches) {
+        // Add each match to the result array
+        // but first, Check if the match has an imbalanced count of '[' and ']'
+        const leftBracketCount = (match.match(/\[/g) || []).length;
+        const rightBracketCount = (match.match(/\]/g) || []).length;
+
+        if (leftBracketCount > rightBracketCount) {
+          // Append a final ']' to balance the brackets
+          desiredStrings.push(match + ']');
+        } else {
+          desiredStrings.push(match);
+        }
+      }
+    }
+    this._logSPIN(`  --  getStruDesceParts([${dotRef}]) -> [${desiredStrings.join(', ')}](${desiredStrings.length})`);
+    return desiredStrings;
   }
 
   private _isPossibleObjectReference(possibleRef: string): boolean {
@@ -6848,9 +6847,9 @@ export class Spin2DocumentSemanticParser {
     return refFoundStatus;
   }
 
-  private _getStructureFromObjectReference(dotReference: string): RememberedStructure | undefined {
+  private _getStructureFromObjectReference(dotRef: string): RememberedStructure | undefined {
     let structureFindings: RememberedStructure | undefined = undefined;
-    const possibleNameSet: string[] = dotReference.trimStart().split(/[.#%]/).filter(Boolean);
+    const possibleNameSet: string[] = dotRef.trimStart().split(/[.#%]/).filter(Boolean);
     if (possibleNameSet.length > 1) {
       const objInstanceName = possibleNameSet[0];
       const structName = possibleNameSet[1];
@@ -6866,12 +6865,12 @@ export class Spin2DocumentSemanticParser {
   }
 
   private _reportObjectReference(
-    dotReference: string,
+    dotRef: string,
     lineIdx: number,
-    startingOffset: number,
+    initialOffset: number,
     line: string,
     tokenSet: IParsedToken[],
-    onlyStructureRefs: boolean = false
+    onlyStructRefs: boolean = false
   ): boolean {
     // Handle: objInstanceName.constant or objInstanceName.method()
     // NEW handle objInstanceName[index].constant or objInstanceName[index].constant
@@ -6880,19 +6879,19 @@ export class Spin2DocumentSemanticParser {
     // NOTE BUG: not handled:
     //   digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
     const lineLength: number = line ? line.length : -1;
-    const matchOffset: number = line.indexOf(dotReference, startingOffset);
+    const matchOffset: number = line.indexOf(dotRef, initialOffset);
     this._logMessage(
-      `- rptObjectReference() ln#${lineIdx + 1}: dotRef=[${dotReference}], ofs(s/m)=(${startingOffset}/${matchOffset}), line=[${line}](${lineLength})`
+      `- rptObjectReference() ln#${lineIdx + 1}: dotRef=[${dotRef}], ofs(s/m)=(${initialOffset}/${matchOffset}), line=[${line}](${lineLength})`
     );
     let bGeneratedReference: boolean = false;
     if (line && line != null && line.length > 0) {
       const lineNbr: number = lineIdx + 1;
       let possibleNameSet: string[] = [];
-      const isP1ObjectConstantRef: boolean = dotReference.includes('#');
-      const isP2ObjectOverrideConstantRef: boolean = dotReference.includes('%');
-      if ((dotReference.includes('.') || isP1ObjectConstantRef || isP2ObjectOverrideConstantRef) && !dotReference.includes('..')) {
-        const symbolOffset: number = line.indexOf(dotReference.trimStart(), startingOffset); // walk this past each
-        possibleNameSet = dotReference.trimStart().split(/[.#%]/).filter(Boolean);
+      const isP1ObjectConstantRef: boolean = dotRef.includes('#');
+      const isP2ObjectOverrideConstantRef: boolean = dotRef.includes('%');
+      if ((dotRef.includes('.') || isP1ObjectConstantRef || isP2ObjectOverrideConstantRef) && !dotRef.includes('..')) {
+        const symbolOffset: number = line.indexOf(dotRef.trimStart(), initialOffset); // walk this past each
+        possibleNameSet = dotRef.trimStart().split(/[.#%]/).filter(Boolean);
         let objInstanceName = possibleNameSet[0];
         this._logMessage(`  --  rObjRef possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
         let nameParts: string[] = [objInstanceName];
@@ -6934,7 +6933,7 @@ export class Spin2DocumentSemanticParser {
           }
           if (referenceDetails !== undefined) {
             // SPECIAL: of we can only return a structure reference then hold off on marking we found a reference
-            bGeneratedReference = onlyStructureRefs ? false : true;
+            bGeneratedReference = onlyStructRefs ? false : true;
             // if this is not a local object overrides ref then generate token
             if (!isP2ObjectOverrideConstantRef) {
               this._recordToken(tokenSet, line, {
@@ -6949,19 +6948,19 @@ export class Spin2DocumentSemanticParser {
               // we have .constant namespace suffix
               // determine if this is method has '(' or is constant name
               // we need to allow objInstance.CONSTANT and fail objectInstance[index].CONSTANT
-              // XYZZY NEW if onlyStructureRefs: need to fail objInstance.CONSTANT too
+              // XYZZY NEW if onlyStructRefs: need to fail objInstance.CONSTANT too
               const refParts: string[] = possibleNameSet[1].split(/[ ()*+,\-/[\]]/).filter(Boolean);
               const parameters: string[] = [];
               this._logMessage(`  -- possibleNameSet[1]=[${possibleNameSet[1]}] split into refParts=[${refParts}](${refParts.length})`);
               const refPart = refParts[0];
-              //const rhsOffset = line.indexOf(possibleNameSet[1], startingOffset);
-              const referenceOffset = line.indexOf(refPart, startingOffset);
+              //const rhsOffset = line.indexOf(possibleNameSet[1], initialOffset);
+              const referenceOffset = line.indexOf(refPart, initialOffset);
               //const addressOf = `@${refPart}`;
               // if it "could" be a method
               let isMethod: boolean = line.substring(matchOffset).includes('(') ? true : false;
               if (isMethod) {
                 // ok, now let's be really sure!
-                const methodFollowString: string = line.substring(matchOffset + dotReference.length);
+                const methodFollowString: string = line.substring(matchOffset + dotRef.length);
                 this._logSPIN(`  --  ObjRef func Paren chk methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
                 isMethod = isMethodCall(methodFollowString);
               }
@@ -6992,8 +6991,8 @@ export class Spin2DocumentSemanticParser {
                 `  --  rObjRef isMethod=(${isMethod}), isStructure=(${isStructure}), isP1ObjectConstRef=(${isP1ObjectConstantRef}), objectRefHasIndex=(${objectRefContainsIndex})`
               );
 
-              // XYZZY NEW if onlyStructureRefs: need to fail objInstance.method() !!!
-              if (referenceDetails && !isStructure && !onlyStructureRefs && (isMethod || (!isMethod && !objectRefContainsIndex))) {
+              // XYZZY NEW if onlyStructRefs: need to fail objInstance.method() !!!
+              if (referenceDetails && !isStructure && !onlyStructRefs && (isMethod || (!isMethod && !objectRefContainsIndex))) {
                 // we need to allow objInstance.CONSTANT and fail objectInstance[index].CONSTANT
                 const constantPart: string = possibleNameSet[1];
                 const constantOffset: number = line.indexOf(constantPart, matchOffset + possibleNameSet[0].length);
@@ -7150,18 +7149,18 @@ export class Spin2DocumentSemanticParser {
 
   private reportsSymbolsForSet(
     parseType: string,
-    startingOffset: number,
+    initialOffset: number,
     nameSet: string[],
     line: string,
     lineNbr: number,
     tokenSet: IParsedToken[],
     lineIdx: number
   ) {
-    this._logMessage(`  --  rObjRef-Set startingOffset=(${startingOffset}), nameSet=[${nameSet}]`);
-    const currentOffset: number = startingOffset;
+    this._logMessage(`  --  rObjRef-Set initialOffset=(${initialOffset}), nameSet=[${nameSet}]`);
+    const currentOffset: number = initialOffset;
     for (let index = 0; index < nameSet.length; index++) {
       const namePart = nameSet[index];
-      const nameOffset = line.indexOf(namePart, startingOffset);
+      const nameOffset = line.indexOf(namePart, initialOffset);
       this._logMessage(`  --  rObjRef-Set searchString=[${namePart}]`);
       this._logMessage(`  --  rObjRef-Set nameOffset=(${nameOffset}), currentOffset=(${currentOffset})`);
       let referenceDetails: RememberedToken | undefined = undefined;
@@ -7198,6 +7197,176 @@ export class Spin2DocumentSemanticParser {
           eSeverity.Error,
           `P2 Spin failed to parse ${parseType} [${namePart}]`
         );
+      }
+    }
+  }
+
+  private _reportSPIN_IndexExpression(possIndex: string, lineIdx: number, startingOffset: number, line: string, tokenSet: IParsedToken[]): number {
+    const nameOffset: number = startingOffset;
+    if (possIndex.length > 0) {
+      //const lineNbr: number = lineIdx + 1;
+      // FIXME: UNDONE XYZZY the following needs to pass an entire expression | constant | symbol
+      let nameOffset: number = line.indexOf(possIndex, startingOffset);
+      const lineInfo: IFilteredStrings = this._getNonWhiteSpinLinePartsNonArray(possIndex);
+      const expressionParts: string[] = lineInfo.lineParts.filter(Boolean);
+      for (let index = 0; index < expressionParts.length; index++) {
+        const indexValue: string = expressionParts[index];
+        if (indexValue.length > 0) {
+          // handle named index value, constant, strcture or object reference
+          // handle structure or object instance names
+          if (indexValue.includes('.')) {
+            let bHaveObjReference: boolean = this._isPossibleObjectReference(indexValue);
+            if (bHaveObjReference) {
+              bHaveObjReference = this._reportObjectReference(indexValue, lineIdx, nameOffset, line, tokenSet);
+              if (bHaveObjReference) {
+                continue;
+              }
+            }
+            let bHaveStrctureReference: boolean = this._isPossibleStructureReference(indexValue);
+            if (bHaveStrctureReference) {
+              bHaveStrctureReference = this._reportStructureReference(indexValue, lineIdx, nameOffset, line, tokenSet);
+              if (bHaveStrctureReference) {
+                continue;
+              }
+            }
+          }
+          // resume with plain named index value, constant
+          // colorize index value if non-constant, or constant
+          this._logDEBUG(`  -- rptSIdxExp() index=[${indexValue}](${indexValue.length}), ofs=(${nameOffset})`);
+          const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(indexValue);
+          if (paramIsNumber) {
+            this._logDEBUG(`  -- rptSIdxExp() index is Number=[${indexValue}]`);
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: indexValue.length,
+              ptTokenType: 'number',
+              ptTokenModifiers: []
+            });
+            nameOffset += indexValue.length;
+          } else {
+            let referenceDetails: RememberedToken | undefined = undefined;
+            const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(indexValue);
+            if (paramIsSymbolName) {
+              if (this.semanticFindings.isLocalToken(indexValue)) {
+                referenceDetails = this.semanticFindings.getLocalTokenForLine(indexValue, lineIdx + 1);
+                this._logMessage(`  --  rptSIdxExp() FOUND local name=[${indexValue}]`);
+              } else if (this.semanticFindings.isGlobalToken(indexValue)) {
+                referenceDetails = this.semanticFindings.getGlobalToken(indexValue);
+                this._logDEBUG(
+                  `  --  rptSIdxExp() FOUND global name=[${indexValue}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`
+                );
+              }
+            }
+            if (referenceDetails !== undefined && paramIsSymbolName) {
+              this._logDEBUG(`  --  rptSIdxExp() index is symbol=[${indexValue}]`);
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: indexValue.length,
+                ptTokenType: referenceDetails.type,
+                ptTokenModifiers: referenceDetails.modifiers
+              });
+              nameOffset += indexValue.length;
+            } else {
+              // handle unknown-name case -OR- invalid sybol name
+              this._logDEBUG(`  -- rptSIdxExp() index is unknown=[${indexValue}]`);
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: indexValue.length,
+                ptTokenType: 'setupParameter',
+                ptTokenModifiers: ['illegalUse']
+              });
+              this.semanticFindings.pushDiagnosticMessage(
+                lineIdx,
+                nameOffset,
+                nameOffset + indexValue.length,
+                eSeverity.Error,
+                `P2 Spin struct index unknown name [${indexValue}]`
+              );
+              nameOffset += indexValue.length;
+            }
+          }
+        }
+      }
+    }
+    return nameOffset;
+  }
+
+  private _reportSPIN_IndexExpressionOLD(indexExpression: string, lineIdx: number, startingOffset: number, line: string, tokenSet: IParsedToken[]) {
+    const lineNbr: number = lineIdx + 1;
+    this._logSPIN(`  -- Ln#${lineNbr} _rsIE() indexExpression=[${indexExpression}](${indexExpression.length})`);
+    const possNames: string[] = indexExpression.split(/[ \t[\]&+-/]/).filter(Boolean);
+    const expressionOffset: number = line.indexOf(indexExpression, startingOffset);
+    this._logSPIN(`  -- _rsIE possNames=[${possNames}](${possNames.length})`);
+    if (indexExpression.length > 0) {
+      for (let index = 0; index < possNames.length; index++) {
+        const possSymbolName = possNames[index];
+        const nameOffset: number = line.indexOf(possSymbolName, expressionOffset);
+        // handle structure or object instance names
+        if (possSymbolName.includes('.')) {
+          let bHaveObjReference: boolean = this._isPossibleObjectReference(possSymbolName);
+          if (bHaveObjReference) {
+            bHaveObjReference = this._reportObjectReference(possSymbolName, lineIdx, nameOffset, line, tokenSet);
+            if (bHaveObjReference) {
+              continue;
+            }
+          }
+          let bHaveStrctureReference: boolean = this._isPossibleStructureReference(possSymbolName);
+          if (bHaveStrctureReference) {
+            bHaveStrctureReference = this._reportStructureReference(possSymbolName, lineIdx, nameOffset, line, tokenSet);
+            if (bHaveStrctureReference) {
+              continue;
+            }
+          }
+        }
+        // resume with plain symbol name
+        if (possSymbolName.charAt(0).match(/[a-zA-Z_]/)) {
+          let referenceDetails: RememberedToken | undefined = undefined;
+          if (this.semanticFindings.isLocalToken(possSymbolName)) {
+            referenceDetails = this.semanticFindings.getLocalTokenForLine(possSymbolName, lineNbr);
+            this._logSPIN(`  --  FOUND local name=[${possSymbolName}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
+          } else if (this.semanticFindings.isGlobalToken(possSymbolName)) {
+            referenceDetails = this.semanticFindings.getGlobalToken(possSymbolName);
+            this._logSPIN(`  --  FOUND global name=[${possSymbolName}, referenceDetails=[${referenceDetails}]]`);
+          }
+          if (referenceDetails !== undefined) {
+            const modificationArray: string[] = referenceDetails.modifiersWith('modification');
+            this._logSPIN(`  --  SPIN variableName=[${possSymbolName}], ofs=(${nameOffset})`);
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: possSymbolName.length,
+              ptTokenType: referenceDetails.type,
+              ptTokenModifiers: modificationArray
+            });
+          } else {
+            if (
+              !this.parseUtils.isSpinReservedWord(possSymbolName) &&
+              !this.parseUtils.isBuiltinStreamerReservedWord(possSymbolName) &&
+              !this.parseUtils.isDebugControlSymbol(possSymbolName) &&
+              !this.parseUtils.isSpinBuiltinMethod(possSymbolName)
+            ) {
+              // we don't have name registered so just mark it
+              this._logSPIN(`  --  SPIN MISSING varname=[${possSymbolName}], ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: possSymbolName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['modification', 'missingDeclaration']
+              });
+              this.semanticFindings.pushDiagnosticMessage(
+                lineIdx,
+                nameOffset,
+                nameOffset + possSymbolName.length,
+                eSeverity.Error,
+                `P2 Spin Index missing declaration [${possSymbolName}]`
+              );
+            }
+          }
+        }
       }
     }
   }
@@ -7406,6 +7575,49 @@ export class Spin2DocumentSemanticParser {
     } while (nextString.length > 0);
 
     return tokenSet;
+  }
+
+  private _getIndexExpression(line: string): string {
+    let expressionString: string = '';
+    // locate text between the first '[' and the next ']', can include nested brackets
+    //  do not return the outer brackets
+    const leftBracketOffset: number = line.indexOf('[');
+    if (leftBracketOffset !== -1) {
+      let nestingLevel = 0;
+      for (let i = leftBracketOffset; i < line.length; i++) {
+        if (line[i] === '[') {
+          // Found the nesting bracket
+          nestingLevel++;
+        } else if (line[i] === ']') {
+          nestingLevel--;
+          if (nestingLevel === 0) {
+            // Found the matching closing bracket
+            expressionString = line.substring(leftBracketOffset + 1, i);
+            break; // ignore any remaining text in line
+          }
+        }
+      }
+    }
+    this._logSPIN(`  --  getIdxExpr([${line}]) -> exStr=[${expressionString}]`);
+    return expressionString;
+  }
+
+  private _getIndexExpressionOLD(line: string): string {
+    let expressionString: string = '';
+    // locate text between the first '[' and the next ']', can include nested brackets
+    const leftBracketOffset: number = line.indexOf('[');
+    if (leftBracketOffset != -1) {
+      const rightBracketOffset: number = line.indexOf(']', leftBracketOffset + 1);
+      if (rightBracketOffset != -1) {
+        //this._logSPIN(`  --  getIdxExpr([${line}]) -> lbOffset=(${leftBracketOffset}), rbOffset=(${rightBracketOffset})`);
+        const tmpExpressionString: string = line.substring(leftBracketOffset + 1, rightBracketOffset);
+        if (tmpExpressionString.length > 0 && tmpExpressionString.indexOf('[') == -1) {
+          expressionString = tmpExpressionString;
+        }
+      }
+    }
+    this._logSPIN(`  --  getIdxExpr([${line}]) -> exStr=[${expressionString}]`);
+    return expressionString;
   }
 
   private _getDoubleQuotedString(currentOffset: number, searchText: string): string {
