@@ -51,7 +51,7 @@ FEATURE Latest Language Ver Updates:
 		- Finish theme updates for all themes! (new number color) @done(2025-04-25)
 		- Fix var struct type use forms @done(2025-04-25)
 		- Fix more structure ref coloring issues @done(2025-04-27)
-		- Fix more structure ref coloring issues
+		- Fix more structure ref coloring issues @done(2025-04-27)
 		- Fix more debug coloring issues
 		- Add support for multiple VAR declarations per line
 		
