@@ -1,0 +1,4 @@
+con j = 100
+con k = 1.0
+
+pub go()

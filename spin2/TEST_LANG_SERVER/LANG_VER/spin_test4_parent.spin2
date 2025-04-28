@@ -1,0 +1,12 @@
+obj a : "spin_test4_child"
+
+con j = a.j, k = a.k
+
+pub go()
+
+  case ina
+    j: pinh(0)
+    a.j: pinh(0)
+    -k: pinh(0)
+    -a.k: pinh(0)
+

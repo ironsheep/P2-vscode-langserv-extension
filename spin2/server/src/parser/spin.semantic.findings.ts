@@ -2088,7 +2088,7 @@ export class DocumentFindings {
         desiredEnumValue = possibleInfo.eDisplayType;
       }
     }
-    this._logMessage(`  -- DDsply getDebugDisplayEnumForUserName([${possibleUserName}]) -> (${eDebugDisplayType[desiredEnumValue]})`);
+    this._logMessage(`  -- DDsply getDbgDisplayEnumForUserName([${possibleUserName}]) -> (${eDebugDisplayType[desiredEnumValue]})`);
     return desiredEnumValue;
   }
 

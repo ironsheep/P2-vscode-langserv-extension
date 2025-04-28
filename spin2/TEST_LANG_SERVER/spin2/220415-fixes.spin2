@@ -31,7 +31,7 @@ PUB Main() | pwmSpecs, offset, encVal, priorEncVal
 
     debug(`term term4 pos 128 540 size 30 8 textsize 16 color cyan)
 
-    debug(`term4 'p_gain=`(P_GAIN), MINms=`(MIN_MS_TO_MOV)')        ' <--- "MINms=" shouldn't be RED
+    debug(`term4 'p_gain=`(P_GAIN), MINms=`(MIN_MS_TO_MOV)')        ' <--- FIXME: "P_GAIN" should be colored
 
 
 PUB go(target) | encVal, duty, priorEncVal, priorDuty
@@ -54,7 +54,7 @@ PUB go(target) | encVal, duty, priorEncVal, priorDuty
                 waitms(MIN_MS_TO_MOV)
                 encVal := rdpin(PIN_QUAD_ENC0)
                 if priorEncVal <> encVal or priorDuty <> duty
-                    debug(`term3 'FwdEnc=`(encVal), dty=`(duty), dxy=`(duty)' 10)    ' <--- "dty=" shouldn't be RED
-                    priorEncVal := encVal
+                    debug(`term3 'FwdEnc=`(encVal), dty=`(duty), dxy=`(duty)' 10)
+                    priorEncVal := encVal   ' <--- FIXME: encVal should bo local
                     priorDuty := duty
             until encVal >= target

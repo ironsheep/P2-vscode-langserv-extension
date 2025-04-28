@@ -30,7 +30,7 @@ con { timing }
 
 con { fixed io pins }
 
-  PGM_RX   = 63  { I }                                          ' programming / debug
+  PGM_RX   = 63  { I }                                          ' programming / debug' FIXME: bad coloring SYNTAX PARSE ISSUE
   PGM_TX   = 62  { O }
 
   SF_CS    = 61  { O }                                          ' flash storage
@@ -84,8 +84,8 @@ pub show_leds(value) | x, y, bit, img
   x, y := 390, 155                                              ' upper left of bit0 LED
 
   repeat bit from 0 to 7                                        ' loop through bits
-    img := value.[bit] + 1                                      ' set on or off image
-    debug(`panel crop `(img, x, y, 50, 50))                     ' update the led ' FIXME: bad coloring
+    img := value.[bit] + 1                                      ' set on or off image' FIXME: bad coloring
+    debug(`panel crop `(img, x, y, 50, 50))                     ' update the led
     x -= 50                                                     ' move to next led position
 
 

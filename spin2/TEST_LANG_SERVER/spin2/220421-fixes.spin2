@@ -15,7 +15,7 @@ PUB main() | position
     debug(`myLogic trigger %100 $100 holdoff 32)
 
 PRI sendOutputToLA()
-    debug(`myLogic `(pinread(PINS_SPI)))    ' <-- "pinread" should NOT be RED!
-    debug(`myLogic `(outa & %111))          ' <-- "outa" should NOT be RED!
+    debug(`myLogic `(pinread(PINS_SPI)))    ' <-- FIXME: "pinread" should be colored
+    debug(`myLogic `(outa & %111))          ' <-- FIXME: "outa" should be colored
 
 ' --------------------------------------------------------------------------------------------------

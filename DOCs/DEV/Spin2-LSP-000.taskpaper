@@ -39,7 +39,7 @@ FEATURE Latest Language Ver Updates:
 		- Fix sizeof() in DAT data declaration @done(2025-04-13)
 		- Fix coloring of POW,LOG[2,10], EXP[2,10] functions @done(2025-04-13)
 		- Added support for predefined registers in CON expressions @done(2025-04-23)
-		- sizeof(struct) now works in DAT and VAR
+		- sizeof(struct) now works in DAT and VAR @done(2025-04-28)
 	math128:
 		- fix indexed structure elem reference @done(2025-04-21)
 	v51_misc:
@@ -54,6 +54,7 @@ FEATURE Latest Language Ver Updates:
 		- Fix more structure ref coloring issues @done(2025-04-27)
 		- Fix ditto in pasm coloring issues @done(2025-04-27)
 		- Fix sizeof() in pasm arguments @done(2025-04-27)
+		- Fix more debug coloring issues @done(2025-04-28)
 		- Fix final debug coloring issues
 		
 	Unify Single/MultiLine handling:
@@ -64,8 +65,8 @@ FEATURE Latest Language Ver Updates:
 		- convert _getOBJ_Declaration() to _getOBJ_DeclarationMultiLine() - NO NEED! @done(2025-04-25)
 		- debug unification fix 'strings' coloring (broke this?!) @done(2025-04-25)
 		- complete the PUB-PRI conversion to multiLine @done(2025-04-26)
-		- convert _getDebugStatement() to _getDebugStatementMultiLine()
-		- complete SPIN unification
+		- convert _getDebugStatement() to _getDebugStatementMultiLine() @done(2025-04-28)
+		- complete SPIN unification @done(2025-04-28)
 	
 	UPCOMING:
 		- Add support for multiple VAR declarations per line
