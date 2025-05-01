@@ -73,7 +73,7 @@ pub show_value(value) : s | i, d, x1, x2
       debug(`panel crop 3 `(x2, 0, 44, 54, x1, 53))             ' place digit
     else
       if (s)
-        debug(`panel crop 3 `(440, 0, 44, 54, x1, 53))         ' sign if negative ' FIXME: bad coloring
+        debug(`panel crop 3 `(440, 0, 44, 54, x1, 53))         ' sign if negative
       quit                                                      ' nothing else to print
 
     value /= 10                                                 ' next digit
@@ -84,7 +84,7 @@ pub show_leds(value) | x, y, bit, img
   x, y := 390, 155                                              ' upper left of bit0 LED
 
   repeat bit from 0 to 7                                        ' loop through bits
-    img := value.[bit] + 1                                      ' set on or off image' FIXME: bad coloring
+    img := value.[bit] + 1                                      ' set on or off image
     debug(`panel crop `(img, x, y, 50, 50))                     ' update the led
     x -= 50                                                     ' move to next led position
 

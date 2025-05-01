@@ -8,11 +8,12 @@ PUB start() | i, task
 
   repeat 32 with i
     task := taskspin(newtask, LED(i), @stk[i*30])
+    taskspin(newtask, LED(i), @stk[i*30])
     debug(sdec(task))
 
   debug("Ending: ", udec(taskid()), ", Other tasks are running")
 
-PRI LED(id) | taskStatus, possId
+PRI LED(id) | taskStatus
   debug("Started: ", udec(taskid()))
   repeat 20_000 * id
     pintoggle(id)
@@ -22,5 +23,4 @@ PRI LED(id) | taskStatus, possId
     taskcont(id)
     taskStatus := taskchk(id) ' ret free=0, running=1, halted=2
     taskhlt~
-    possId := taskid()
   debug("Ending: ", udec(taskid()))

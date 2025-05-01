@@ -2,18 +2,21 @@
 
 OBJ m : "Spin2_v49_step_child"
 
-CON struct mpoint = m.point, struct myPoint(x,y), struct square(myPoint tlCrnr, myPoint brCrnr), struct polygon(myPoint crnr[6])
+CON struct mpoint = m.point, struct myPoint(x,y), struct square(myPoint tlCrnr, myPoint brCrnr), struct polygon(myPoint crnr[3])
 
-'PUB go(^m.point pa, ^myPoint pb) : ^myPoint retA, ^m.point retB  | m.point la, ^mpoint lb, polygon lc, alignb byte ld[m.QLEN], alignb le[xxyz]
-PUB go(^m.point pa, ^myPoint pb) : ^myPoint retA, ^m.point retB  | m.point la, ^mpoint lb, polygon lc, byte ld[m.QLEN], le[45]
-'
+'PUB go(m.point pa, myPoint pb) : myPoint retA, m.point retB  | m.point la, mpoint lb, polygon lc
+'PUB go(myPoint pb) : myPoint retA, m.point retB  | m.point la, mpoint lb, polygon lc
+'PUB go() : myPoint retA, m.point retB | m.point la, mpoint lb, polygon lc
+'PUB go() : myPoint retA, m.point retB | m.point la, mpoint lb, polygon lc
+PUB go() |  m.point la, mpoint lb, polygon lc[5]
+
   la.x := 1
   la.y := 2
   lb.x := 3
   lb.y := 4
 
-  lc[4] := 5,6
-  retA := pa
-  retB := pb
+  lc[4] := 5,6,7,8,9,10
+'  retA := pa
+'  retB := pb
 
   debug(sdec(la,lb))

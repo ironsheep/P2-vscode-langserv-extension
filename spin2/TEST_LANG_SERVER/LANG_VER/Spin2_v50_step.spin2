@@ -6,13 +6,22 @@ PUB go() | a,b
   b := 2
 
 	orgh
+
 	add	a,b	wc
   if_nc	debug("No Carry")
   if_c	debug("Is Carry")
 
-  	ditto	4  ' COLOR like ORG/ORGH/END (pasm directive!)
+        ditto	3
 	long	$66666666+$$
 	ditto	end
+
+        ditto	0
+	long	$22222222+$$
+	ditto	end
+        ret
+
+oddBYte WORD  $DEAD
+
 	end
 
   debug(sdec(a))
@@ -20,6 +29,6 @@ PUB go() | a,b
   debug(zstr(@\"string\rHello\x7F\r")) ' note to self: let's highlight control chars in this form of string!
 
 
-DAT	ditto	4  ' COLOR like ORG/ORGH/END (pasm directive!)
+DAT	ditto	4
 	long	$77777777+$$
 	ditto	end

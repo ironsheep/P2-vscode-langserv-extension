@@ -1,20 +1,47 @@
 {Spin2_v45}
+CON
 
-CON STRUCT point(x,y), STRUCT line(point a, point b)
+#4[MYSTEP], MYSTEP=3, MYOTHERSTEP
+#0, ENVAL1, ENVAL2[LATE_OFFSET], LATE_OFFSET=5
+NEXTENUMVALCON
+
+CON
+
+DEBUG_ENABLE = 1 ' ensure debug statement are compiled in!
+
+CON STRUCT point(x,y), STRUCT line(point a, point b), STRUCT tinyPt(byte x, byte y)
+  STRUCT bigOne(long sums[18])
   PINS = 34
 
-VAR byte A[100], B[100], line vline[10]
+VAR byte A[100]
+   B[100], line vline[10]
+   point vpoint[10]
+   ^line pMyLine ' pointer to a line
+   ^WORD pMyWord
+   ^BYTE pMyBYte
+   bigOne sumAR
+   bigOne moreSums
+   tinyPt smallPoint
 
 DAT
-myLine  LINE ' no intial values allow on line NOTE: if struct, the force label color to data not jump point
+myLine  LINE ' no intial values allow on line
         LONG    4,5 ' init line.a.x, line.a.y
         LONG    6,7 ' init line.b.x, line.b.y
 
-PUB go() | line pline
+PUB go() : ^tinyPt pRetTiny | line pline, tinyPt testTiny, ^tinyPt pTiny, BYTE bTest
 
   byteswap(@A, @B, 100*4)
   wordswap(@A, @B, 100*2)
   longswap(@A, @B, 100)
+
+  bTest := FALSE
+
+  testTiny := $0102
+  pRetTiny := $0304
+  pTiny:= %"aB"
+
+  smallPoint := testTiny ' 2 byte copy
+  sumAR := moreSums ' 72 byte copy
 
   pinwrite(0, bytecomp(@A, @B, 100*4))
   pinwrite(0, wordcomp(@A, @B, 100*2))
@@ -23,20 +50,31 @@ PUB go() | line pline
   debug(`SCOPE s samples 32)
   debug(`s 'x' AUTO)
   repeat 32
-    debug(`s `(getrnd() & 255))
+    debug(`s `(getrnd() & 255) `?(bTest) `.(PI) `$(sumAR.sums[1]) `%(bTest))
 
   debug(bool(0,1))
 
+  debug
+  debug()
+
+  pMyByte := 0
+  pMyWord~~
+
   pline := 1,2,3,4
   DoLine(pline)
+
+PRI PtrTest(line pline) : ^BYTE pRetByte, ^WORD pRetWord | ^BYTE pByte, ^WORD pWord
+
+   pByte := $45
+   pRetByte := pByte
+   pWord := $F00D
+   pRetWord := pWord
 
 PRI DoLine(line pline) : point aRet, point bRet | line pline2
 
   debug(sdec(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
 
   pline2 := 5,6,7,8
-
-  myline :=: pline2
 
   pline :=: pline2
   debug(sdec_(pline, pline.a.x, pline.a.y, pline.b.x, pline.b.y))
@@ -65,8 +103,6 @@ PRI DoLine(line pline) : point aRet, point bRet | line pline2
 
   aRet := pline2.a
   bRet := pline2.b
-
-  aRet.x := 20
 
 
 PRI DoPtrs(^long ax, ^byte bx, ^line px)

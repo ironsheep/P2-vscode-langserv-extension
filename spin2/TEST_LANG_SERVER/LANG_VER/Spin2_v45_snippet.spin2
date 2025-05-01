@@ -1,0 +1,5 @@
+{Spin2_v45}
+
+PUB DoPtrs(^long ax) : retVal
+
+  retVal := ax

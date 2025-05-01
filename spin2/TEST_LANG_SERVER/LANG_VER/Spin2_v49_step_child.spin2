@@ -1,6 +1,5 @@
 {Spin2_v49}
 
 CON struct point(x,y)
-QLEN = 45
 
 PUB go()
