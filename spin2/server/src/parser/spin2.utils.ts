@@ -126,29 +126,50 @@ export class Spin2ParseUtils {
 
   public getDebugNonWhiteLineParts(line: string): string[] {
     // remove double and then any single quotes string from display list
-    //this._logMessage('  -- gdnwlp raw-line [' + line + ']');
+    //this._logMessage('  -- gdnwlp() raw-line [' + line + ']');
     const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
-    //this._logMessage("  -- gdnwlp nonDblStringLine=[" + nonDblStringLine + "]");
+    //this._logMessage("  -- gdnwlp() nonDblStringLine=[" + nonDblStringLine + "]");
     const nonSglStringLine: string = this.removeDebugSingleQuotedStrings(nonDblStringLine, true);
-    //this._logMessage("  -- gdnwlp nonSglStringLine=[" + nonSglStringLine + "]");
+    //this._logMessage("  -- gdnwlp() nonSglStringLine=[" + nonSglStringLine + "]");
     const lineParts: string[] | null = nonSglStringLine.match(/[^ ,@=+\-*/:#<>|^&\t()!?~\\]+/g);
 
     // remove new backtic directives
     const ignoreStrings: string[] = ['`?', '`.', '`$', '`%', '`#', '`'];
 
     // Filter out ignored strings
-    const filteredLineParts = lineParts ? lineParts.filter((part) => !ignoreStrings.includes(part)) : [];
-    //this._logMessage(`  -- gdnwlp lineParts=[${filteredLineParts.join(', ')}](${filteredLineParts.length})`);
+    let filteredLineParts = lineParts ? lineParts.filter((part) => !ignoreStrings.includes(part)) : [];
+    //this._logMessage(`  -- gdnwlp() lineParts=[${filteredLineParts.join(', ')}](${filteredLineParts.length})`);
 
+    // pre-pass to break-up elements with bitfield access
+    let rebuiltLineParts: string[] = [];
+    for (let index = 0; index < filteredLineParts.length; index++) {
+      const element = filteredLineParts[index];
+      let newElements: string[] = [];
+      if (element.includes('.[')) {
+        const nameParts: string[] = element.split(/\.\[|\.\./).filter(Boolean);
+        newElements.push(...nameParts);
+      } else {
+        // keep as is
+        newElements = [element];
+      }
+      if (newElements.length > 0) {
+        rebuiltLineParts.push(...newElements);
+      }
+      //this._logMessage(`   --- gdnwlp() pass 1 element=[${element}](${element.length}) -> new=[${newElements.join(', ')}](${newElements.length})`);
+    }
+    filteredLineParts = rebuiltLineParts.length > 0 ? rebuiltLineParts : filteredLineParts;
     // let's remove leading ']'on elements, trailing '[' on elements, element which is ']' or '[', and '[element]'
-    const rebuiltLineParts: string[] = [];
+    rebuiltLineParts = [];
     for (let index = 0; index < filteredLineParts.length; index++) {
       const element = filteredLineParts[index];
       let newElements: string[] = [];
 
       // remove all '[' and ']' from names except for
       //   names which are structure references  Ex: 'm.head[motor]', or 'm.stat[motor].velo', etc.
-      if (!element.includes('.') && (element.includes('[') || element.includes(']'))) {
+      if (element.includes('.[')) {
+        const nameParts: string[] = element.split(/.[[\]]/).filter(Boolean);
+        newElements.push(...nameParts);
+      } else if (!element.includes('.') && (element.includes('[') || element.includes(']'))) {
         if (element.length > 1) {
           // handle "name1[name2", "name[", "]name",  and '[name]'
           //  NOTE: this also handes the case of 'debug[bitIndex]'
@@ -165,9 +186,9 @@ export class Spin2ParseUtils {
       if (newElements.length > 0) {
         rebuiltLineParts.push(...newElements);
       }
-      //this._logMessage(`  ---- gdnwlp element=[${element}](${element.length}) -> newElements=[${newElements.join(', ')}](${newElements.length})`);
+      //this._logMessage(`   --- gdnwlp() pass 2 element=[${element}](${element.length}) -> new=[${newElements.join(', ')}](${newElements.length})`);
     }
-    //this._logMessage(`  -- gdnwlp rebuiltLineParts=[${rebuiltLineParts.join(', ')}](${rebuiltLineParts.length})`);
+    this._logMessage(`  -- gdnwlp() rebuiltLineParts=[${rebuiltLineParts.join(', ')}](${rebuiltLineParts.length})`);
 
     return rebuiltLineParts;
   }

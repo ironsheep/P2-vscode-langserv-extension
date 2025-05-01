@@ -6781,6 +6781,21 @@ export class Spin2DocumentSemanticParser {
         let nameOffset: number = 0;
         for (let idx = firstParamIdx; idx < lineParts.length; idx++) {
           newParameter = lineParts[idx];
+          const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(newParameter);
+          if (paramIsNumber) {
+            symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
+            nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            this._logDEBUG(`  -- rptSIdxExp() Number=[${newParameter}]`);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: symbolPosition.character,
+              length: newParameter.length,
+              ptTokenType: 'number',
+              ptTokenModifiers: []
+            });
+            currSingleLineOffset += newParameter.length;
+            continue;
+          }
           const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
           if (!paramIsSymbolName) {
             this._logSPIN(`  -- rDsml() SKIP not-sym name=[${newParameter}](${newParameter.length})`);
