@@ -825,12 +825,14 @@ export class Spin2DocumentSemanticParser {
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment`);
           // if NO more code on line after close then skip line
-          const tempLine: string = lineWOutInlineComments.substring(closingOffset + 1).trim();
+          const tempLine: string = trimmedNonCommentLine.substring(closingOffset + 2).trim();
+          //if (tempLine.length == 0 || trimmedNonCommentLine === '}}') {
           if (tempLine.length == 0) {
             this._logMessage(`* SKIP MultiLineComment Ln#${i + 1} nonCommentLine=[${nonCommentLine}]`);
             continue;
           }
-          //  DO NOTHING Let Syntax highlighting do this
+          //  DO NOTHING Let Syntax highlighting handle rest of non-comment part of line
+          this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment, tempLine=[${tempLine}](${tempLine.length})`);
         } else {
           //this._logMessage(`* Ln#${lineNbr} SKIP in MultiLineDocComment`);
           continue; // only SKIP if we don't have closing marker
@@ -4818,8 +4820,10 @@ export class Spin2DocumentSemanticParser {
             //let nameOffset = line.indexOf(cleanedVariableName, currSingleLineOffset);
             symbolPosition = multiLineSet.locateSymbol(cleanedVariableName, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            // NOTE: skip special '_' skip-return value symbol?
             // do we have a symbol name?
             if (
+              cleanedVariableName !== '_' &&
               cleanedVariableName.charAt(0).match(/[a-zA-Z_]/) &&
               !this.isStorageType(cleanedVariableName) &&
               !this.parseUtils.isSpinSpecialMethod(cleanedVariableName)
@@ -6253,7 +6257,7 @@ export class Spin2DocumentSemanticParser {
       return tokenSet;
     }
     let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
-    this._logMessage(` -- rDsml() startingOffset=(${startingOffset}), currSingleLineOffset=(${currSingleLineOffset})`);
+    this._logMessage(`  -- rDsml() startingOffset=(${startingOffset}), currSingleLineOffset=(${currSingleLineOffset})`);
     const debugStatementStr: string = multiLineSet.line.substring(currSingleLineOffset).trimEnd();
     this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rtpDbgStmntMulti debugStatementStr=[${debugStatementStr}]`);
     const openParenOffset: number = debugStatementStr.indexOf('(');
@@ -6265,19 +6269,19 @@ export class Spin2DocumentSemanticParser {
     }
 
     const lineParts: string[] = this.parseUtils.getDebugNonWhiteLineParts(debugStatementStr);
-    this._logDEBUG(` -- rDsml() AM lineParts=[${lineParts}](${lineParts.length})`);
+    this._logDEBUG(`  -- rDsml() AM lineParts=[${lineParts.join(', ')}](${lineParts.length})`);
     if (lineParts.length > 0 && lineParts[0].toLowerCase() != 'debug') {
       //this._logDEBUG(' -- rDsml() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
       // XYZZY FIXME: questionable now that pasm debug can have conditional prefixes!!!
       lineParts.shift(); // assume pasm, remove label
     }
-    if (lineParts[0].toLowerCase() == 'debug') {
+    if (lineParts.length > 0 && lineParts[0].toLowerCase() == 'debug') {
       if (haveBitfieldIndex) {
         //this._logDEBUG(' -- rDsml() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
         // FIXME: UNDONE - need to highlight the bitfield index if non-numeric (and allowed to be non-numeric)
         bitfieldIndexValue = lineParts[1];
         lineParts.splice(1, 1); // Removes the element at index 1
-        this._logDEBUG(` -- rDsml() removed bitfield lineParts=[${lineParts}](${lineParts.length})`);
+        this._logDEBUG(`  -- rDsml() removed bitfield? (or conditional?) lineParts=[${lineParts}](${lineParts.length})`);
       }
       // -------------------------------------
       // process Debug statement identifier
@@ -6348,15 +6352,16 @@ export class Spin2DocumentSemanticParser {
 
       //let symbolOffset: number = currSingleLineOffset;
       const displayType: string = lineParts.length >= 2 ? lineParts[1] : '';
+      this._logDEBUG(`  -- rDsml() possible displayType=[${displayType}](${displayType.length}), lineParts=[${lineParts}](${lineParts.length})`);
       if (displayType.startsWith('`')) {
-        this._logDEBUG(` -- rDsml() have "debug("\` lineParts=[${lineParts}](${lineParts.length})`);
+        this._logDEBUG(`  -- rDsml() have "debug("\` lineParts=[${lineParts}](${lineParts.length})`);
         //symbolOffset = line.indexOf(displayType, symbolOffset) + 1; // plus 1 to get past back-tic
         const newDisplayType: string = displayType.substring(1, displayType.length);
         let displayTestName: string = lineParts[1] == '`' ? lineParts[1] + lineParts[2] : lineParts[1];
         displayTestName = displayTestName.toLowerCase().replace(/ \t/g, '');
         const isRuntimeNamed: boolean =
           displayTestName.startsWith('``') || displayTestName.startsWith('`zstr') || displayTestName.startsWith('`lstr');
-        this._logDEBUG(` -- rDsml() displayTestName=[${displayTestName}], isRuntimeNamed=${isRuntimeNamed}`);
+        this._logDEBUG(`  -- rDsml() displayTestName=[${displayTestName}], isRuntimeNamed=${isRuntimeNamed}`);
         const bHaveInstantiation = this.parseUtils.isDebugDisplayType(newDisplayType) && !isRuntimeNamed;
         if (bHaveInstantiation) {
           this._logDEBUG(`  -- rDsml() --- PROCESSING Display Instantiation`);
@@ -6710,7 +6715,7 @@ export class Spin2DocumentSemanticParser {
               currSingleLineOffset = nameOffset + newParameter.length;
             }
             // (2) highlight strings
-            this._logDEBUG(`  --  BM _rptDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
+            this._logDEBUG(`  --  rDsml() HL-strings Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
             const tokenStringSet: IParsedToken[] = this._reportDebugStringsMultiLine(startingOffset, multiLineSet);
             tokenStringSet.forEach((newToken) => {
               tokenSet.push(newToken);
@@ -6729,22 +6734,24 @@ export class Spin2DocumentSemanticParser {
           newParameter = lineParts[idx];
           const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
           if (!paramIsSymbolName) {
+            this._logSPIN(`  -- rDsml() SKIP not-sym name=[${newParameter}](${newParameter.length})`);
             currSingleLineOffset += newParameter.length;
             continue;
           }
-          if (newParameter.toLowerCase() == 'debug' || this.isStorageType(newParameter)) {
+          if (newParameter.toLowerCase() == 'debug') {
             currSingleLineOffset += newParameter.length;
+            this._logSPIN(`  -- rDsml() SKIP debug name=[${newParameter}](${newParameter.length})`);
             continue;
           }
           //symbolOffset = line.indexOf(newParameter, symbolOffset); // walk this past each
           symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
           this._logDEBUG(
-            `  --  SYMBOL=[${newParameter}], currSingleLineOfs=(${currSingleLineOffset}), posn=[${symbolPosition.line}, ${symbolPosition.character}], nameOfs=(${nameOffset})`
+            `  --  rptSPIN() handle SYMBOL=[${newParameter}], currSingleLineOfs=(${currSingleLineOffset}), posn=[${symbolPosition.line}, ${symbolPosition.character}], nameOfs=(${nameOffset})`
           );
           // if new  debug method in later version then highlight it
-          if (this.parseUtils.isNewlyAddedDebugSymbol(newParameter)) {
-            this._logSPIN(`  -- rptSPIN() new DEBUG name=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
+          if (this.parseUtils.isDebugMethod(newParameter) || this.parseUtils.isNewlyAddedDebugSymbol(newParameter)) {
+            this._logSPIN(`  -- rDsml() (possibly) new DEBUG name=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: symbolPosition.character,
@@ -6752,6 +6759,7 @@ export class Spin2DocumentSemanticParser {
               ptTokenType: 'debug',
               ptTokenModifiers: ['function']
             });
+            currSingleLineOffset = nameOffset + newParameter.length;
             continue;
           }
           // do we have version added method? then highlight as method
@@ -6764,6 +6772,20 @@ export class Spin2DocumentSemanticParser {
               ptTokenType: 'function', // method is blue?!, function is yellow?!, operator is purple?!
               ptTokenModifiers: ['builtin']
             });
+            currSingleLineOffset = nameOffset + newParameter.length;
+            continue;
+          }
+          // have a B/W/L storage type?
+          if (this.parseUtils.isStorageType(newParameter)) {
+            this._logMessage(`  -- rDsml() type=[${newParameter}], ofs=(${nameOffset})`);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: nameOffset,
+              length: newParameter.length,
+              ptTokenType: 'storageType',
+              ptTokenModifiers: ['readonly']
+            });
+            currSingleLineOffset = nameOffset + newParameter.length;
             continue;
           }
           // does name contain a namespace reference?
@@ -6817,15 +6839,6 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: referenceDetails.type,
                 ptTokenModifiers: referenceDetails.modifiers
               });
-            } else if (this.parseUtils.isDebugMethod(newParameter)) {
-              this._logDEBUG(`  -- new version debug function=[${newParameter}]`);
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: symbolPosition.line,
-                startCharacter: symbolPosition.character,
-                length: newParameter.length,
-                ptTokenType: 'debug',
-                ptTokenModifiers: ['function']
-              });
             } else if (this.parseUtils.isNewBinaryOrUnaryOperator(newParameter)) {
               this._logPASM(`  --  Debug() version added operator=[${newParameter}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -6838,25 +6851,7 @@ export class Spin2DocumentSemanticParser {
             } else {
               // handle unknown-name case
               const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
-              if (paramIsSymbolName && this.parseUtils.isDebugMethod(newParameter) && newParameter.toLowerCase().startsWith('bool')) {
-                this._logDEBUG(`  -- new version debug function=[${newParameter}]`);
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: newParameter.length,
-                  ptTokenType: 'debug',
-                  ptTokenModifiers: ['function']
-                });
-              } else if (paramIsSymbolName && this.parseUtils.isDebugMethod(newParameter) && newParameter.toLowerCase().startsWith('c_z')) {
-                this._logDEBUG(`  -- new version debug function=[${newParameter}]`);
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: newParameter.length,
-                  ptTokenType: 'debug',
-                  ptTokenModifiers: ['function']
-                });
-              } else if (
+              if (
                 paramIsSymbolName &&
                 !this.parseUtils.isDebugMethod(newParameter) &&
                 !this.parseUtils.isBinaryOperator(newParameter) &&

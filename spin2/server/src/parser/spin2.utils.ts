@@ -3,6 +3,7 @@
 
 import { eBuiltInType, eDebugDisplayType, IBuiltinDescription } from './spin.common';
 import { Context } from '../context';
+import { machine } from 'os';
 
 export const displayEnumByTypeName = new Map<string, eDebugDisplayType>([
   ['logic', eDebugDisplayType.ddtLogic],
@@ -137,20 +138,38 @@ export class Spin2ParseUtils {
 
     // Filter out ignored strings
     const filteredLineParts = lineParts ? lineParts.filter((part) => !ignoreStrings.includes(part)) : [];
-    //this._logMessage(`  -- gdnwlp lineParts=[${filteredLineParts}](${filteredLineParts?.length})`);
+    //this._logMessage(`  -- gdnwlp lineParts=[${filteredLineParts.join(', ')}](${filteredLineParts.length})`);
 
-    // add special processing for debug[bitIndex]
-    //  return as debug, bitIndex, ...
-    if (filteredLineParts.length > 0 && filteredLineParts[0].toLowerCase().startsWith('debug[')) {
-      // return both the debug and the index value
-      const nameParts: string[] = filteredLineParts[0].split(/[[\]]/).filter(Boolean);
-      if (nameParts.length > 0) {
-        filteredLineParts.shift(); // Remove the first element
-        filteredLineParts.unshift(...nameParts); // Prepend nameParts to the array
+    // let's remove leading ']'on elements, trailing '[' on elements, element which is ']' or '[', and '[element]'
+    const rebuiltLineParts: string[] = [];
+    for (let index = 0; index < filteredLineParts.length; index++) {
+      const element = filteredLineParts[index];
+      let newElements: string[] = [];
+
+      // remove all '[' and ']' from names except for
+      //   names which are structure references  Ex: 'm.head[motor]', or 'm.stat[motor].velo', etc.
+      if (!element.includes('.') && (element.includes('[') || element.includes(']'))) {
+        if (element.length > 1) {
+          // handle "name1[name2", "name[", "]name",  and '[name]'
+          //  NOTE: this also handes the case of 'debug[bitIndex]'
+          const nameParts: string[] = element.split(/[[\]]/).filter(Boolean);
+          newElements.push(...nameParts);
+        } else {
+          // don't do anything with these: ']' or '['
+        }
+      } else if (element.length > 0) {
+        // keep as is
+        newElements = [element];
       }
-    }
 
-    return filteredLineParts;
+      if (newElements.length > 0) {
+        rebuiltLineParts.push(...newElements);
+      }
+      //this._logMessage(`  ---- gdnwlp element=[${element}](${element.length}) -> newElements=[${newElements.join(', ')}](${newElements.length})`);
+    }
+    //this._logMessage(`  -- gdnwlp rebuiltLineParts=[${rebuiltLineParts.join(', ')}](${rebuiltLineParts.length})`);
+
+    return rebuiltLineParts;
   }
 
   public getCommaDelimitedNonWhiteLineParts(line: string): string[] {
