@@ -130,14 +130,25 @@ export class Spin2ParseUtils {
     //this._logMessage("  -- gdnwlp nonDblStringLine=[" + nonDblStringLine + "]");
     const nonSglStringLine: string = this.removeDebugSingleQuotedStrings(nonDblStringLine, true);
     //this._logMessage("  -- gdnwlp nonSglStringLine=[" + nonSglStringLine + "]");
-    const lineParts: string[] | null = nonSglStringLine.match(/[^ ,@[\]=+\-*/:#<>|^&\t()!?~\\]+/g);
-    //let lineParts: string[] | null = line.match(/[^ ,@\[\]\+\-\*\/\<\>\t\(\)]+/g);
+    const lineParts: string[] | null = nonSglStringLine.match(/[^ ,@=+\-*/:#<>|^&\t()!?~\\]+/g);
 
     // remove new backtic directives
     const ignoreStrings: string[] = ['`?', '`.', '`$', '`%', '`#', '`'];
 
     // Filter out ignored strings
     const filteredLineParts = lineParts ? lineParts.filter((part) => !ignoreStrings.includes(part)) : [];
+    //this._logMessage(`  -- gdnwlp lineParts=[${filteredLineParts}](${filteredLineParts?.length})`);
+
+    // add special processing for debug[bitIndex]
+    //  return as debug, bitIndex, ...
+    if (filteredLineParts.length > 0 && filteredLineParts[0].toLowerCase().startsWith('debug[')) {
+      // return both the debug and the index value
+      const nameParts: string[] = filteredLineParts[0].split(/[[\]]/).filter(Boolean);
+      if (nameParts.length > 0) {
+        filteredLineParts.shift(); // Remove the first element
+        filteredLineParts.unshift(...nameParts); // Prepend nameParts to the array
+      }
+    }
 
     return filteredLineParts;
   }
