@@ -6813,6 +6813,15 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: referenceDetails.type,
                 ptTokenModifiers: referenceDetails.modifiers
               });
+            } else if (this.parseUtils.isDebugMethod(newParameter)) {
+              this._logDEBUG(`  -- new version debug function=[${newParameter}]`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: newParameter.length,
+                ptTokenType: 'debug',
+                ptTokenModifiers: ['function']
+              });
             } else if (this.parseUtils.isNewBinaryOrUnaryOperator(newParameter)) {
               this._logPASM(`  --  Debug() version added operator=[${newParameter}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
