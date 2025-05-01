@@ -2428,45 +2428,6 @@ export class Spin2DocumentSemanticParser {
     return tokenSet;
   }
 
-  private _isEnumDeclarationSingleLine(lineIdx: number, startingOffset: number, line: string): boolean {
-    return this._isEnumDeclarationMultiLine(lineIdx, startingOffset, line, true);
-  }
-
-  private _isEnumDeclarationMultiLine(lineIdx: number, startingOffset: number, line: string, singleLine: boolean = false): boolean {
-    // BOTH P1 and P2 determination: if CON line is start enum declaration
-    const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
-    const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
-    let enumDeclStatus: boolean = nonCommentConstantLine.trim().startsWith('#');
-    const isStructDecl: boolean = nonCommentConstantLine.trim().toUpperCase().includes('STRUCT');
-    const isPreprocessorStatement: boolean = this.parseUtils.lineStartsWithFlexspinPreprocessorDirective(nonCommentConstantLine);
-    this._logMessage(
-      `- Ln#${lineIdx} _isEnumDeclMultiLine() enumDecl=(${enumDeclStatus}), isPreproc=(${isPreprocessorStatement}), isStructDecl=(${isStructDecl}), nonCommentConstantLine=[${nonCommentConstantLine}]`
-    );
-    if (isPreprocessorStatement) {
-      enumDeclStatus = false;
-    }
-    // if not yet sure...
-    if (isPreprocessorStatement == false && enumDeclStatus == false && singleLine == false && isStructDecl == false) {
-      // don't know what this line is, yet
-      const statements: string[] = this.splitLinesWithPossibleStruct(nonCommentConstantLine);
-      let allStatementAreAssignment: boolean = true;
-      // if all statements are assignment then we still don't know if this is enum or list of assignements
-      // however, if one has "no assignment" then we DO KNOW that this is an enum start
-      for (let index = 0; index < statements.length; index++) {
-        const singleStatement = statements[index];
-        if (!singleStatement.includes('=')) {
-          allStatementAreAssignment = false;
-          break;
-        }
-      }
-      if (!allStatementAreAssignment) {
-        enumDeclStatus = true;
-      }
-    }
-    this._logCON(`  -- isEnumDeclarationLine() = (${enumDeclStatus}): nonCommentConstantLine=[${nonCommentConstantLine}]`);
-    return enumDeclStatus;
-  }
-
   private _reportCON_DeclarationMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     // skip Past Whitespace
@@ -2491,7 +2452,9 @@ export class Spin2DocumentSemanticParser {
       this._logCON(
         `- Ln#${
           multiLineSet.lineStartIdx + 1
-        } rptCDLMulti() haveEnum=(${haveEnumDeclaration}), containsMulti=(${containsMultiStatements}), nonCommentConstantLine=[${nonCommentConstantLine}]`
+        } rptCDLMulti() haveEnum=(${haveEnumDeclaration}), containsMulti=(${containsMultiStatements}), nonCommentConstantLine=[${nonCommentConstantLine}], statements=[${statements}](${
+          statements.length
+        }`
       );
       if (!haveEnumDeclaration && !this.conEnumInProgress) {
         this._logCON(`  -- rptCDLMulti() assignments Multi statements=[${statements}](${statements.length})`);
@@ -2710,7 +2673,7 @@ export class Spin2DocumentSemanticParser {
             const statementPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, 0);
             //const nameOffset = line.indexOf(lhsConstantName, currSingleLineOffset);
             const symbolPosition: Position = multiLineSet.locateSymbol(lhsConstantName, multiLineSet.offsetIntoLineForPosition(statementPosition));
-            const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            //const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             this._logCON(`  -- rptCDLMulti() assign lhsConstantName=[${lhsConstantName}]`);
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.isGlobalToken(lhsConstantName)) {
@@ -2930,7 +2893,7 @@ export class Spin2DocumentSemanticParser {
         // have line creating one or more of enum constants
         // -------------------------------------------------
         // recognize enum values getting initialized
-        const lineParts: string[] = nonCommentConstantLine.split(',').filter(Boolean);
+        const lineParts: string[] = nonCommentConstantLine.split(/[,#[\]]/).filter(Boolean);
         this._logCON(`  -- enum lineParts=[${lineParts}](${lineParts.length})`);
         let nameOffset: number = 0;
         let nameLen: number = 0;
@@ -3008,6 +2971,45 @@ export class Spin2DocumentSemanticParser {
       this.conEnumInProgress = false; // if we have a blank line after removing comment then weve ended the enum set
     }
     return tokenSet;
+  }
+
+  private _isEnumDeclarationSingleLine(lineIdx: number, startingOffset: number, line: string): boolean {
+    return this._isEnumDeclarationMultiLine(lineIdx, startingOffset, line, true);
+  }
+
+  private _isEnumDeclarationMultiLine(lineIdx: number, startingOffset: number, line: string, singleLine: boolean = false): boolean {
+    // BOTH P1 and P2 determination: if CON line is start enum declaration
+    const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
+    const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
+    let enumDeclStatus: boolean = nonCommentConstantLine.trim().startsWith('#');
+    const isStructDecl: boolean = nonCommentConstantLine.trim().toUpperCase().includes('STRUCT');
+    const isPreprocessorStatement: boolean = this.parseUtils.lineStartsWithFlexspinPreprocessorDirective(nonCommentConstantLine);
+    this._logMessage(
+      `- Ln#${lineIdx} _isEnumDeclMultiLine() enumDecl=(${enumDeclStatus}), isPreproc=(${isPreprocessorStatement}), isStructDecl=(${isStructDecl}), nonCommentConstantLine=[${nonCommentConstantLine}]`
+    );
+    if (isPreprocessorStatement) {
+      enumDeclStatus = false;
+    }
+    // if not yet sure...
+    if (isPreprocessorStatement == false && enumDeclStatus == false && singleLine == false && isStructDecl == false) {
+      // don't know what this line is, yet
+      const statements: string[] = this.splitLinesWithPossibleStruct(nonCommentConstantLine);
+      let allStatementAreAssignment: boolean = true;
+      // if all statements are assignment then we still don't know if this is enum or list of assignements
+      // however, if one has "no assignment" then we DO KNOW that this is an enum start
+      for (let index = 0; index < statements.length; index++) {
+        const singleStatement = statements[index];
+        if (!singleStatement.includes('=')) {
+          allStatementAreAssignment = false;
+          break;
+        }
+      }
+      if (!allStatementAreAssignment) {
+        enumDeclStatus = true;
+      }
+    }
+    this._logCON(`  -- isEnumDeclarationLine() = (${enumDeclStatus}): nonCommentConstantLine=[${nonCommentConstantLine}]`);
+    return enumDeclStatus;
   }
 
   private parseStructDeclaration(structLine: string): { isValidStatus: boolean; structName: string; members: IStructMember[] } {
