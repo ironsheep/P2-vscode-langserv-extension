@@ -4634,7 +4634,7 @@ export class Spin2DocumentSemanticParser {
         );
       }
 
-      // FIXME: TODO: unwrap inline method calls withing method calls
+      // FIXME: TODO: unwrap inline method calls within method calls
 
       // locate key indicators of line style
       const assignmentOffset: number = multiLineSet.line.indexOf(':=', currSingleLineOffset);
@@ -4667,13 +4667,17 @@ export class Spin2DocumentSemanticParser {
             //
           }
         }*/
-        this._logSPIN(`  -- rptSPIN() LHS: varNameList=[${varNameList}](${varNameList.length})`);
+        this._logSPIN(`  -- rptSPIN() LHS: varNameList=[${varNameList.join(', ')}](${varNameList.length})`);
         for (let index = 0; index < varNameList.length; index++) {
           const variableName: string = varNameList[index];
-          symbolPosition = multiLineSet.locateSymbol(variableName, currSingleLineOffset);
-          nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+          const haveIgnoreBuiltInSymbol: boolean = variableName === '_';
+          if (!haveIgnoreBuiltInSymbol) {
+            symbolPosition = multiLineSet.locateSymbol(variableName, currSingleLineOffset);
+            nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            this._logSPIN(`  -- rptSPIN() process variableName=[${variableName}](${variableName.length}), ofs=(${nameOffset})`);
+          }
           // Ex: m.cmds[motor].cmd[m.head[motor]]  is varNameList.length == 1
-          if (this._isPossibleStructureReference(variableName)) {
+          if (!haveIgnoreBuiltInSymbol && this._isPossibleStructureReference(variableName)) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const [bHaveStructReference, refString] = this._reportStructureReference(
               variableName,
@@ -4682,13 +4686,17 @@ export class Spin2DocumentSemanticParser {
               multiLineSet.lineAt(symbolPosition.line),
               tokenSet
             );
-            if (bHaveStructReference && variableName !== refString) {
-              this._logSPIN(
-                `  -- rptSPIN() A ERROR?! [${refString}](${refString.length}) is only part of [${variableName}](${variableName.length}), how to handle the rest?`
-              );
+            if (bHaveStructReference) {
+              if (variableName !== refString) {
+                this._logSPIN(
+                  `  -- rptSPIN() A ERROR?! [${refString}](${refString.length}) is only part of [${variableName}](${variableName.length}), how to handle the rest?`
+                );
+              }
+              currSingleLineOffset = nameOffset + refString.length;
+              continue;
             }
-            continue;
-          } else if (variableName.includes('[')) {
+          }
+          if (variableName.includes('[')) {
             //
             //  Variable has array reference
             //
@@ -4696,7 +4704,7 @@ export class Spin2DocumentSemanticParser {
             // NOTE2 this handles code: result.byte[3] := {value}  P2 OBEX: jm_apa102c.spin2 (139)
             // have complex target name, parse in loop
             const variableNameParts: string[] = variableName.split(/[ \t[\]/*+\-()<>]/).filter(Boolean);
-            this._logSPIN(`  -- rptSPIN() LHS: [] variableNameParts=[${variableNameParts}]`);
+            this._logSPIN(`  -- rptSPIN() LHS: is [] variableNameParts=[${variableNameParts}]`);
             for (let index = 0; index < variableNameParts.length; index++) {
               let variableNamePart = variableNameParts[index].replace('@', '');
               // secial case handle datar.[i] which leaves var name as 'darar.'
@@ -4818,17 +4826,35 @@ export class Spin2DocumentSemanticParser {
             // have simple target name, no []
             let cleanedVariableName: string = variableName.replace(/[ \t()]/, '');
             //let nameOffset = line.indexOf(cleanedVariableName, currSingleLineOffset);
-            symbolPosition = multiLineSet.locateSymbol(cleanedVariableName, currSingleLineOffset);
-            nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+            const haveIgnoreBuiltInSymbol: boolean = cleanedVariableName === '_';
+            if (!haveIgnoreBuiltInSymbol) {
+              symbolPosition = multiLineSet.locateSymbol(cleanedVariableName, currSingleLineOffset);
+              nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+              this._logSPIN(
+                `  -- rptSPIN() LHS: not [] cleanedVariableName=[${cleanedVariableName}](${cleanedVariableName.length}), ofs=(${nameOffset})`
+              );
+            }
             // NOTE: skip special '_' skip-return value symbol?
             // do we have a symbol name?
             if (
-              cleanedVariableName !== '_' &&
+              !haveIgnoreBuiltInSymbol &&
               cleanedVariableName.charAt(0).match(/[a-zA-Z_]/) &&
-              !this.isStorageType(cleanedVariableName) &&
+              !this.parseUtils.isStorageType(cleanedVariableName) &&
               !this.parseUtils.isSpinSpecialMethod(cleanedVariableName)
             ) {
-              this._logSPIN(`  -- rptSPIN() cleanedVariableName=[${cleanedVariableName}], ofs=(${nameOffset})`);
+              this._logSPIN(`  -- rptSPIN()  symbol name=[${cleanedVariableName}](${cleanedVariableName.length}), ofs=(${nameOffset})`);
+              // have structure type?
+              if (this.semanticFindings.isStructure(cleanedVariableName)) {
+                this._logSPIN(`  -- rptSPIN() STRUCT storageType=[${cleanedVariableName}]`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: cleanedVariableName.length,
+                  ptTokenType: 'storageType',
+                  ptTokenModifiers: []
+                });
+                currSingleLineOffset = nameOffset + cleanedVariableName.length;
+              }
               // does name contain a namespace reference?
               let bHaveObjReference: boolean = false;
               let bHaveStructureReference: boolean = false;
@@ -5040,7 +5066,7 @@ export class Spin2DocumentSemanticParser {
       // could be line with RHS of assignment or a
       //  line with no assignment (process it)
       // -------------------------------------------
-      this._logSPIN(`  -- rptSPIN() non-assign/RHS line=[${multiLineSet.line}](${multiLineSet.line.length}), ofs=(${currSingleLineOffset})`);
+      this._logSPIN(`  -- rptSPIN() non-assign -OR- RHS line=[${multiLineSet.line}](${multiLineSet.line.length}), ofs=(${currSingleLineOffset})`);
       let assignmentRHSStr: string = multiLineSet.line.substring(currSingleLineOffset);
       currSingleLineOffset = 0;
       let preCleanAssignmentRHSStr = this.parseUtils.getNonInlineCommentLine(assignmentRHSStr).replace('..', '  ');
@@ -6791,6 +6817,7 @@ export class Spin2DocumentSemanticParser {
           // does name contain a namespace reference?
           let bHaveObjReference: boolean = false;
           let bHaveStructReference: boolean = false;
+          let bHaveStruct: boolean = false;
           if (this._isPossibleObjectReference(newParameter)) {
             // go register object reference!
             bHaveObjReference = this._reportObjectReference(
@@ -6801,7 +6828,7 @@ export class Spin2DocumentSemanticParser {
               tokenSet
             );
           }
-          if (this._isPossibleStructureReference(newParameter)) {
+          if (!bHaveObjReference && this._isPossibleStructureReference(newParameter)) {
             bHaveStructReference = true;
             this._logMessage(`  --  structName=[${newParameter}], ofs=(${symbolPosition.character})`);
             // this is a structure type use!
@@ -6813,7 +6840,19 @@ export class Spin2DocumentSemanticParser {
               ptTokenModifiers: []
             });
           }
-          if (!bHaveObjReference && !bHaveStructReference) {
+          if (!bHaveStructReference && this.semanticFindings.isStructure(newParameter)) {
+            bHaveStruct = true;
+            this._logMessage(`  --  structTypeName=[${newParameter}], ofs=(${symbolPosition.character})`);
+            // this is a structure type use!
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: symbolPosition.character,
+              length: newParameter.length,
+              ptTokenType: 'storageType',
+              ptTokenModifiers: []
+            });
+          }
+          if (!bHaveObjReference && !bHaveStructReference && !bHaveStruct) {
             this._logDEBUG(`  -- Multi ?check? [${newParameter}]`);
             if (newParameter.endsWith('.')) {
               newParameter = newParameter.slice(0, -1);
