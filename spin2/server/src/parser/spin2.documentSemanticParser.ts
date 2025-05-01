@@ -6657,6 +6657,29 @@ export class Spin2DocumentSemanticParser {
                 });
                 currSingleLineOffset = nameOffset + newParameter.length;
                 continue;
+              } else if (this.parseUtils.isSpinBuiltinMethod(newParameter)) {
+                // XYZZY here method coloring
+                // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
+                this._logSPIN(`  -- rptSPIN() built-in method=[${newParameter}]`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: newParameter.length,
+                  ptTokenType: 'function', // method is blue?!, function is yellow?!, operator is violet?!
+                  ptTokenModifiers: ['builtin']
+                });
+              } else if (this.parseUtils.isSpinBuiltInVariable(newParameter)) {
+                // XYZZY here constant coloring
+                this._logDEBUG(`  -- rDsml() register=[${newParameter}]`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: newParameter.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['readonly']
+                });
+                currSingleLineOffset = nameOffset + newParameter.length;
+                continue;
               }
               this._logDEBUG(`  -- rDsml() ?check? newParameter=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
               let bIsParameterName: boolean = this.parseUtils.isNameWithTypeFeed(newParameter, eDisplayType);
@@ -7647,7 +7670,7 @@ export class Spin2DocumentSemanticParser {
   private _reportDebugStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     // debug statements typically have single or double quoted strings.  Let's color either if/when found!
     const tokenSet: IParsedToken[] = [];
-    //this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgStrs() line=[${line}](${line.length})`);
+    this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgStrs() line=[${line}](${line.length})`);
     let nonDoubleQuoteStringLine: string = line;
     const bNeedDoubleQuoteProcessing: boolean = line.indexOf('"') != -1;
     if (bNeedDoubleQuoteProcessing) {
@@ -7680,8 +7703,8 @@ export class Spin2DocumentSemanticParser {
         nextStringOffset = debugStatementStr.indexOf(nextString, nextStringOffset);
         const chrBackTic: string = '`';
         const chrCloseParen: string = ')';
-        const bStringContainssBackTic: boolean = nextString.indexOf(chrBackTic) != -1;
-        if (bStringContainssBackTic) {
+        const bStringContainsBackTic: boolean = nextString.indexOf(chrBackTic) != -1;
+        if (bStringContainsBackTic) {
           // add special handling for '`()' this case
           //
           // EX #1: '`{!!}(P_GAIN)'                           - emit two strings, each just a tic
@@ -7766,12 +7789,15 @@ export class Spin2DocumentSemanticParser {
     let nextStringOffset: number = 0;
     let nextString: string = '';
     do {
+      // locates left-most double-quoted string in debugStatement
       nextString = this._getDoubleQuotedString(nextStringOffset, debugStatementStr);
+      this._logMessage(`  -- rtpDbgDQStrs() found str=[${nextString}](${nextString.length})`);
       if (nextString.length > 0) {
-        nextStringOffset = debugStatementStr.indexOf(nextString, nextStringOffset);
+        nextStringOffset = line.indexOf(nextString, nextStringOffset);
+        const chrBackTicFunction: string = '`(';
         const chrBackTic: string = '`';
-        const bStringContainssBackTic: boolean = nextString.indexOf(chrBackTic) != -1;
-        if (bStringContainssBackTic) {
+        const bStringContainsBackTic: boolean = nextString.indexOf(chrBackTicFunction) != -1;
+        if (bStringContainsBackTic) {
           // add special handling for '`()' this case
           //this._logMessage('- BackTic nextString=[' + nextString + '] line=[' + line + ']');
           const chrCloseParen: string = ')';
@@ -7813,8 +7839,9 @@ export class Spin2DocumentSemanticParser {
             }
           }
         } else {
+          // NO ` (backtic) in string...
           const strOffset: number = line.indexOf(nextString, currentOffset);
-          //this._logMessage('  -- str=(' + strOffset + ')[' + nextString + ']');
+          this._logMessage(`  -- rtpDbgDQStrs() rpt str=[${nextString}](${nextString.length}), ofs=(${strOffset})`);
           this._recordToken(tokenSet, line, {
             line: lineIdx,
             startCharacter: strOffset,
@@ -7823,8 +7850,8 @@ export class Spin2DocumentSemanticParser {
             ptTokenModifiers: ['quoted', 'double']
           });
         }
-        currentOffset += nextString.length + 1;
-        nextStringOffset += nextString.length + 1;
+        currentOffset += nextString.length;
+        nextStringOffset += nextString.length;
       }
     } while (nextString.length > 0);
 
@@ -7876,17 +7903,16 @@ export class Spin2DocumentSemanticParser {
 
   private _getDoubleQuotedString(currentOffset: number, searchText: string): string {
     let nextString: string = '';
-    const chrDoubleQuote: string = '"';
-    const stringStartOffset: number = searchText.indexOf(chrDoubleQuote, currentOffset);
+    const stringStartOffset: number = searchText.indexOf('"', currentOffset);
     if (stringStartOffset != -1) {
       //this._logDEBUG('  -- gdqs(' + currentOffset + ', [' + searchText + '])');
-      const stringEndOffset: number = searchText.indexOf(chrDoubleQuote, stringStartOffset + 1);
+      const stringEndOffset: number = searchText.indexOf('"', stringStartOffset + 1);
       if (stringEndOffset != -1) {
         nextString = searchText.substring(stringStartOffset, stringEndOffset + 1);
       }
     }
     if (nextString.length > 0) {
-      this._logDEBUG(`  -- gdqs() -> ['${nextString}](${nextString.length})`);
+      this._logDEBUG(`  -- gdqs() -> [${nextString}](${nextString.length})`);
     }
     return nextString;
   }
