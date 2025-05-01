@@ -132,7 +132,14 @@ export class Spin2ParseUtils {
     //this._logMessage("  -- gdnwlp nonSglStringLine=[" + nonSglStringLine + "]");
     const lineParts: string[] | null = nonSglStringLine.match(/[^ ,@[\]=+\-*/:#<>|^&\t()!?~\\]+/g);
     //let lineParts: string[] | null = line.match(/[^ ,@\[\]\+\-\*\/\<\>\t\(\)]+/g);
-    return lineParts == null ? [] : lineParts;
+
+    // remove new backtic directives
+    const ignoreStrings: string[] = ['`?', '`.', '`$', '`%', '`#', '`'];
+
+    // Filter out ignored strings
+    const filteredLineParts = lineParts ? lineParts.filter((part) => !ignoreStrings.includes(part)) : [];
+
+    return filteredLineParts;
   }
 
   public getCommaDelimitedNonWhiteLineParts(line: string): string[] {
