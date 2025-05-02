@@ -3692,6 +3692,10 @@ export class Spin2ParseUtils {
   }
 
   public isDatOrPAsmLabel(name: string): boolean {
+    if (name === undefined || name === null || name.length === 0) {
+      name = ' ';
+      this._logMessage(`sp2u:  -- isDatOrPAsmLabel([{undefined??ERROR!!!}]) = (false)`);
+    }
     let haveLabelStatus: boolean = name.charAt(0).match(/[a-zA-Z_.:]/) ? true : false;
     if (haveLabelStatus) {
       if (this.isDatNFileStorageType(name)) {

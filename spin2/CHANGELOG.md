@@ -19,12 +19,12 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.3.5] 2025-04-??
+## [2.4.0] 2025-05-01
 
 Spin2 Lanugage upgrades
 
-- Add language support for Spin2 v48, 49, 50, 51
-- Highlight new types created as STRUCTures
+- Add language support for {Spin2_v48}, through {Spin2_v51}
+- Highlight new STRUCT types
 - BUGFIX: corrected Syntax coloring of smart-pin constant 'P_REG_UP_DOWN' constant (spelled badly in prior versions)
 
 ## [2.3.4] 2025-02-22

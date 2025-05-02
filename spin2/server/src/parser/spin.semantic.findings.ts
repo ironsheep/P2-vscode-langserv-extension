@@ -1194,7 +1194,7 @@ export class DocumentFindings {
     // return T/F where T means we have this name in our list
     const objectNameKey: string = possibleNamespace.toLowerCase();
     const namespaceStatus: boolean = this.objectFilenameByInstanceName.has(objectNameKey);
-    this._logMessage(`  -- FND-OBJ nameSpace=[${possibleNamespace}] -> ${namespaceStatus}]`);
+    this._logMessage(`  -- FND-OBJ nameSpace=[${possibleNamespace}] -> (${namespaceStatus})`);
     return namespaceStatus;
   }
 
@@ -2080,33 +2080,39 @@ export class DocumentFindings {
   }
 
   public getDebugDisplayEnumForUserName(possibleUserName: string): eDebugDisplayType {
-    const nameKey: string = possibleUserName.toLowerCase();
     let desiredEnumValue: eDebugDisplayType = eDebugDisplayType.Unknown;
-    if (this.isKnownDebugDisplay(possibleUserName)) {
-      const possibleInfo: IDebugDisplayInfo | undefined = this.displayInfoByDebugDisplayName.get(nameKey);
-      if (possibleInfo) {
-        desiredEnumValue = possibleInfo.eDisplayType;
+    if (possibleUserName !== undefined) {
+      const nameKey: string = possibleUserName.toLowerCase();
+      if (this.isKnownDebugDisplay(possibleUserName)) {
+        const possibleInfo: IDebugDisplayInfo | undefined = this.displayInfoByDebugDisplayName.get(nameKey);
+        if (possibleInfo) {
+          desiredEnumValue = possibleInfo.eDisplayType;
+        }
       }
     }
-    this._logMessage(`  -- DDsply getDbgDisplayEnumForUserName([${possibleUserName}]) -> (${eDebugDisplayType[desiredEnumValue]})`);
+    const userNameInterp: string = possibleUserName !== undefined ? possibleUserName : '{undefined!!ERROR!!}';
+    this._logMessage(`  -- DDsply getDbgDisplayEnumForUserName([${userNameInterp}]) -> (${eDebugDisplayType[desiredEnumValue]})`);
     return desiredEnumValue;
   }
 
   public getDebugDisplayInfoForUserName(possibleUserName: string): IDebugDisplayInfo {
-    const nameKey: string = possibleUserName.toLowerCase();
     let possibleInfo: IDebugDisplayInfo = {
       displayTypeString: '',
       userName: '',
       lineNbr: 0,
       eDisplayType: eDebugDisplayType.Unknown
     };
-    if (this.isKnownDebugDisplay(possibleUserName)) {
-      const infoFound: IDebugDisplayInfo | undefined = this.displayInfoByDebugDisplayName.get(nameKey);
-      if (infoFound) {
-        possibleInfo = infoFound;
+    if (possibleUserName !== undefined) {
+      const nameKey: string = possibleUserName.toLowerCase();
+      if (this.isKnownDebugDisplay(possibleUserName)) {
+        const infoFound: IDebugDisplayInfo | undefined = this.displayInfoByDebugDisplayName.get(nameKey);
+        if (infoFound) {
+          possibleInfo = infoFound;
+        }
       }
     }
-    this._logMessage(`  -- DDsply getDebugDisplayInfoForUserName([${possibleUserName}]) -> [${JSON.stringify(possibleInfo)}]`);
+    const userNameInterp: string = possibleUserName !== undefined ? possibleUserName : '{undefined!!ERROR!!}';
+    this._logMessage(`  -- DDsply getDebugDisplayInfoForUserName([${userNameInterp}]) -> [${JSON.stringify(possibleInfo)}]`);
     return possibleInfo;
   }
 
@@ -2123,9 +2129,13 @@ export class DocumentFindings {
   }
 
   public isKnownDebugDisplay(possibleUserName: string): boolean {
-    const nameKey: string = possibleUserName.toLowerCase();
-    const foundStatus: boolean = this.displayInfoByDebugDisplayName.has(nameKey);
-    this._logMessage(`  -- DDsply _isKnownDebugDisplay([${possibleUserName}]) -> (${foundStatus})`);
+    let foundStatus: boolean = false;
+    if (possibleUserName !== undefined) {
+      const nameKey: string = possibleUserName.toLowerCase();
+      foundStatus = this.displayInfoByDebugDisplayName.has(nameKey);
+    }
+    const userNameInterp: string = possibleUserName !== undefined ? possibleUserName : '{undefined!!ERROR!!}';
+    this._logMessage(`  -- DDsply _isKnownDebugDisplay([${userNameInterp}]) -> (${foundStatus})`);
     return foundStatus;
   }
 

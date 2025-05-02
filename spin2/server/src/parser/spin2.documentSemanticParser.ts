@@ -2223,12 +2223,17 @@ export class Spin2DocumentSemanticParser {
           }
           this._logVAR(`  -- GetVarDecl type=[${varParts}](${varParts.length}), isPtr=(${isPtr}) name=[${varName}](${varName.length})`);
         }
+        if ((typeName.length == 0 && varName.toLowerCase() == 'alignl') || varName.toLowerCase() == 'alignw') {
+          typeName = varName;
+          varName = '';
+        }
         // if name is array we only report name part
-        if (varName.includes('[')) {
+        if (varName.length > 0 && varName.includes('[')) {
           const tempParts: string[] = varName.split(/[[\]]/).filter(Boolean);
           this._logVAR(`  -- GetVarDecl adjust VarName:[${varName}] -> [${tempParts[0]}]`);
           varName = tempParts[0];
         }
+        this._logVAR(`  -- GetVarDecl processing type=[${typeName}](${typeName.length}), isPtr=(${isPtr}) name=[${varName}](${varName.length})`);
 
         // if type, flag if not B/W/L align type or structure type
         if (typeName.length > 0) {
@@ -4020,7 +4025,7 @@ export class Spin2DocumentSemanticParser {
               const allowedObjRef: boolean = this.parseUtils.requestedSpinVersion(49);
               this._logSPIN(`  -- parameter typeName=[${typeName}], ofs=(${nameOffset})`);
               let foundObjectRef: boolean = false;
-              if (this._isPossibleObjectReference(typeName) && allowedObjRef) {
+              if (allowedObjRef && this._isPossibleObjectReference(typeName)) {
                 // go register object TYPE-ONLY reference!
                 foundObjectRef = this._reportObjectReference(
                   typeName,
@@ -4040,7 +4045,7 @@ export class Spin2DocumentSemanticParser {
                 // FIXME: UNDONE XYZZY alow structure as param if ptr (v49) or size <= 16 (v45)
                 // if Structure or type name, color it!
                 if (
-                  (this.semanticFindings.isStructure(typeName) && allowedStructRef) ||
+                  (allowedStructRef && this.semanticFindings.isStructure(typeName)) ||
                   (this.parseUtils.isStorageType(typeName) && !isPtr) ||
                   allowedPtrRef
                 ) {
@@ -6023,6 +6028,10 @@ export class Spin2DocumentSemanticParser {
               indexValue = nameParts[1];
             }
           }
+          if ((newType.length == 0 && newName.toLowerCase() == 'alignl') || newName.toLowerCase() == 'alignw') {
+            newType = newName;
+            newName = '';
+          }
           const adjNameParts: string[] = [newType, newName, indexValue];
           const nameOffset: number = line.indexOf(newName, statementOffset);
           this._logVAR(
@@ -6035,19 +6044,22 @@ export class Spin2DocumentSemanticParser {
             const isStorageType: boolean = this.isStorageType(newType);
             const nameOffset: number = line.indexOf(newType, statementOffset);
             this._logVAR(`  -- GLBL ADD storageType=[${newType}], ofs=(${nameOffset}), isStorageType=(${isStorageType})`);
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: newType.length,
-              ptTokenType: 'storageType',
-              ptTokenModifiers: []
-            });
+            // don't color our align types, they already are...
+            if (!this.parseUtils.isAlignType(newType)) {
+              this._recordToken(tokenSet, line, {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: newType.length,
+                ptTokenType: 'storageType',
+                ptTokenModifiers: []
+              });
+            }
             currentOffset = nameOffset + newType.length;
           }
           // highlight symbol name
           if (newName.charAt(0).match(/[a-zA-Z_]/)) {
             // in the following, let's not register a name with a trailing ']' this is part of an array size calculation!
-            const nameOffset: number = line.indexOf(newName, statementOffset);
+            const nameOffset: number = line.indexOf(newName, currentOffset);
             this._logVAR(`  -- GLBL ADD rvdl newName=[${newName}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, line, {
               line: lineIdx,
@@ -6580,10 +6592,10 @@ export class Spin2DocumentSemanticParser {
             let nameOffset: number = 0;
             let isBackTicMode: boolean = false;
             const parameterParts: string = lineParts.slice(firstParamIdx).join(', ');
-            this._logDEBUG(`  -- rDsml() param lineParts=[${parameterParts}](${lineParts.length - firstParamIdx})`);
+            this._logDEBUG(` - rDsml() param lineParts=[${parameterParts}](${lineParts.length - firstParamIdx})`);
             for (let idx = firstParamIdx; idx < lineParts.length; idx++) {
               newParameter = lineParts[idx];
-              this._logDEBUG(`  -- rDsml() rawParameter=[${newParameter}](${newParameter.length})`);
+              this._logDEBUG(` - rDsml() rawParameter=[${newParameter}](${newParameter.length})`);
               if (newParameter.indexOf("'") != -1 || this.isStorageType(newParameter)) {
                 currSingleLineOffset += newParameter.length;
                 continue; // skip this name (it's part of a string!)
@@ -6603,6 +6615,7 @@ export class Spin2DocumentSemanticParser {
               this._logDEBUG(`  -- rDsml() process parameter=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
               // handle dotted reference
               if (newParameter.includes('.')) {
+                let bFoundObjRef: boolean = false;
                 if (this._isPossibleObjectReference(newParameter)) {
                   // go register object reference!
                   const bHaveObjReference: boolean = this._reportObjectReference(
@@ -6613,10 +6626,12 @@ export class Spin2DocumentSemanticParser {
                     tokenSet
                   );
                   if (bHaveObjReference) {
+                    bFoundObjRef = true;
                     currSingleLineOffset = nameOffset + newParameter.length;
                     continue;
                   }
-                } else if (this._isPossibleStructureReference(newParameter)) {
+                }
+                if (!bFoundObjRef && this._isPossibleStructureReference(newParameter)) {
                   const [bHaveStructReference, refString] = this._reportStructureReference(
                     newParameter,
                     symbolPosition.line,
@@ -6980,11 +6995,14 @@ export class Spin2DocumentSemanticParser {
     const dottedIndexedSymbolRegex = /\]\.[a-zA-Z_]/; // indexExpre].sym
     const hasSymbolDotSymbol: boolean = dottedSymbolRegex.test(possibleRef);
     const hasSymbolDotIndexedSymbol: boolean = dottedIndexedSymbolRegex.test(possibleRef);
-    const nameParts: string[] = possibleRef.split(/[.]/).filter(Boolean);
+    const nameParts: string[] = possibleRef.split(/[.[\]]/).filter(Boolean);
+    this._logMessage(
+      `  --  isStruRef() hasDot=(${hasSymbolDotSymbol}), hasIndex=(${hasSymbolDotIndexedSymbol}), nameParts=[${nameParts}](${nameParts.length})`
+    );
     const isStructureRef: boolean = nameParts.length > 0 && this.semanticFindings.isStructureInstance(nameParts[0]);
     const refFoundStatus: boolean = isStructureRef && !possibleRef.startsWith('.') && (hasSymbolDotIndexedSymbol || hasSymbolDotSymbol);
     this._logMessage(
-      `  --  isStruRef() structRef=[${possibleRef}], isStructureRef=(${isStructureRef}), hasSymbolDotSymbol=(${hasSymbolDotSymbol}), hasSymbolDotIndexedSymbol=(${hasSymbolDotIndexedSymbol}) -> (${refFoundStatus})`
+      `  --  isStruRef() structRef=[${possibleRef}], isStructRef=(${isStructureRef}), hasSymbolDotSymbol=(${hasSymbolDotSymbol}), hasSymbolDotIndexedSymbol=(${hasSymbolDotIndexedSymbol}) -> (${refFoundStatus})`
     );
     return refFoundStatus;
   }
@@ -7059,7 +7077,7 @@ export class Spin2DocumentSemanticParser {
         `  --  isObjRef() ERROR structInstanceName=[${structInstanceName}], possibleRef=[${possibleRef}], nameParts=[${nameParts}](${nameParts.length})`
       );
     }
-    this._logMessage(`  --  isObjRef()isStructureRef=(${isStructureRef}), nameParts=[${nameParts}](${nameParts.length}) `);
+    this._logMessage(`  --  isObjRef() isStructureRef=(${isStructureRef}), nameParts=[${nameParts}](${nameParts.length}) `);
     const refFoundStatus: boolean =
       !isStructureRef &&
       !possibleRef.startsWith('.') &&
@@ -7121,6 +7139,7 @@ export class Spin2DocumentSemanticParser {
         let objectRefContainsIndex: boolean = false;
         // if we have arrayed object instances...
         let indexesOffset: number = -1;
+        let bIsStructureInstance: boolean = false;
         if (objInstanceName.includes('[')) {
           // remove parens, brackets, and math ops
           const leftBracketOffset: number = line.indexOf('[', symbolOffset);
@@ -7137,9 +7156,13 @@ export class Spin2DocumentSemanticParser {
               }
             }
           }
+          if (this.semanticFindings.isStructureInstance(objInstanceName)) {
+            this._logMessage(`  --  rObjRef instanceName=[${objInstanceName}] is a STRUCT instance, NOT object!`);
+            bIsStructureInstance = true;
+          }
           objectRefContainsIndex = indexNames.length > 0 ? true : false;
 
-          if (objectRefContainsIndex) {
+          if (!bIsStructureInstance && objectRefContainsIndex) {
             // handle case: instance[index].reference[()]  - "index" value
             // now too handle case: digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
             this.reportsSymbolsForSet('index value', indexesOffset, indexNames, line, lineNbr, tokenSet, lineIdx);
@@ -7147,7 +7170,7 @@ export class Spin2DocumentSemanticParser {
         }
         // processed objectInstance[index] (indexes now marked)
         // now do objectInstance.constant or objectInstance.method() reference
-        if (this.semanticFindings.isNameSpace(objInstanceName)) {
+        if (!bIsStructureInstance && this.semanticFindings.isNameSpace(objInstanceName)) {
           let referenceDetails: RememberedToken | undefined = undefined;
           if (this.semanticFindings.isGlobalToken(objInstanceName)) {
             referenceDetails = this.semanticFindings.getGlobalToken(objInstanceName);
@@ -7289,8 +7312,9 @@ export class Spin2DocumentSemanticParser {
           }
         } else {
           // now we have a possible objInst.name but let's validate
+          this._logMessage(`  --  rObjRef no NAMESPACE possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
           //   NAMESPACE NOT FOUND !
-          if (possibleNameSet.length > 1) {
+          if (!bIsStructureInstance && possibleNameSet.length > 1) {
             let objInstanceName: string = possibleNameSet[0];
             const referencePart: string = possibleNameSet[1];
             // NO if either side is storage type
@@ -7314,7 +7338,7 @@ export class Spin2DocumentSemanticParser {
 
                 // FIXME: handle nameParts[1] is likely a local file variable
               }
-              this._logDAT(`  --  rObjRef MISSING instance declaration=[${objInstanceName}]`);
+              this._logMessage(`  --  rObjRef MISSING instance declaration=[${objInstanceName}]`);
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: symbolOffset,
@@ -7546,7 +7570,15 @@ export class Spin2DocumentSemanticParser {
       structRefParts = this._getStructureDescentParts(dotRef);
       usedRefPart = structRefParts.join('.');
       this._logMessage(`  --  rptStruRef() structRefParts=[${structRefParts}](${structRefParts.length}), usedRefPart=[${usedRefPart}]`);
-      const structInstanceName = structRefParts[0];
+      let structInstanceName = structRefParts[0];
+      let instanceIndex: string = '';
+      if (structInstanceName.includes('[') && structInstanceName.includes(']')) {
+        // yes remove array suffix
+        instanceIndex = this._getIndexExpression(structInstanceName);
+        structInstanceName = structInstanceName.replace(`[${instanceIndex}]`, '');
+        this._logSPIN(`  -- rptStruRef() hold index value highlight memberName=[${structInstanceName}] [ [${instanceIndex}] ]`);
+      }
+
       if (structInstanceName === undefined) {
         this._logMessage(
           `  --  isObjRef() ERROR structInstanceName=[${structInstanceName}], dotRef=[${dotRef}], structRefParts=[${structRefParts}](${structRefParts.length})`
@@ -7579,6 +7611,11 @@ export class Spin2DocumentSemanticParser {
           ptTokenModifiers: referenceDetails.modifiers
         });
         nameOffset += structInstanceName.length;
+      }
+      // report instance index value
+      if (instanceIndex.length > 0) {
+        this._logMessage(`  --  rptStruRef() instanceIndex=[${instanceIndex}](${instanceIndex.length}), ofs=(${nameOffset})`);
+        nameOffset = this._reportSPIN_IndexExpression(instanceIndex, lineIdx, nameOffset, line, tokenSet);
       }
       // remember initial offset for structure member names
       const memberNameBaseOffset: number = nameOffset;
