@@ -46,6 +46,8 @@ Additional pages:
 
 ```text
 Latest Updates:
+01 May 2025
+- Adjusted PNut-TS installation section
 31 Aug 2024
 - Add PNut-TS notes and installation
 12 Jun 2024
@@ -187,8 +189,10 @@ Architecture specific PNut-TS .zip files available for Windows:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
-| win-arm64.zip| Windows | Arm 64 bit | pnut_ts/
-| win-x64.zip| Windows | Intel x86-64 bit | pnut_ts/
+| win-arm64-{MMmmpp}.zip| Windows | Arm 64 bit | pnut_ts/
+| win-x64-{MMmmpp}.zip| Windows | Intel x86-64 bit | pnut_ts/
+
+**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
 
 Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 

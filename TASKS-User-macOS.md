@@ -45,6 +45,8 @@ Additional pages:
 
 ```
 Latest Updates:
+01 May 2025
+- Adjusted PNut-TS installation section
 31 Aug 2024
 - Add PNut-TS notes and installation
 - 12 Jun 2024
@@ -181,32 +183,29 @@ Architecture specific PNut-TS .zip files available for MacOS:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
-| macos-arm64.zip| MacOS | Arm 64 bit | macos-arm64.dmg
-| macos-x64.zip| MacOS | Intel x86-64 bit | macos-x64.dmg
+| macos-arm64-{MMmmpp}.zip| MacOS | Arm 64 bit | pnut_ts/
+| macos-x64-{MMmmpp}.zip| MacOS | Intel x86-64 bit | pnut_ts/
+
+**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
 
 Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
 If you have an intel-based mac then get the x64 .zip file, if you have an Apple-silicon-based make then get the arm64 .zip file.
 
-- Once you have your selected .zip file then double click on it to extract the .dmg file.
-- next double-click on the .dmg file to mount this image. Accept the license agreement. 
-- * after accespting the agreemnt a window showing to folders appears
-- In the new window, drag the pnut_ts folder to the Applications folder.
+- Once you have your selected .zip file then double click on it to extract the pnut_ts/ folder.
+- In a finder window, drag the new pnut_ts/ folder to the Applications folder.
 - Close this window
-- Eject the .dmg mounted image
 
 #### Update PNut-TS
 
 If I'm updating to a new verison I do the following:
 
 - Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
-- Dounble click on the .zip file to extract the .dmg file
+- Dounble click on the .zip file to extract the pnut_ts/ folder.
 - Remove the `/Applications/pnut_ts-prior` folder (move to trash)
 - Rename the `/Applications/pnut_ts` folder to `/Applications/pnut_ts-prior` 
-- Double click on the .dmg file to mount it. Accept the license agreement. A window opens showing two folders.
-- In the window drag the new pnut_ts folder to the Applications folder
-- Close the window
-- Eject the .dmg image
+- In a finder window, drag the new pnut_ts/ folder to the /Applications folder.
+- Close this finder window
 
 **NOTE:** We use this move-aside technique for updating the PNut-TS compiler.  When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code.  Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version.  *You can always skip this move-aside step if you don't care about this issue.*
 
