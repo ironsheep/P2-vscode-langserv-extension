@@ -14,11 +14,12 @@ client/**
 !client/prebuilds/**/*
 !client/out/extension.js
 EarlyTesting/**
+REF-CHK/
 EarlyTesting.md
 INSTALL.md
-*NEW
-*ORIG
-*REF*
+**/*NEW
+**/*ORIG
+**/*REF
 **/*.ts
 **/*.map
 **/*.lst
@@ -48,5 +49,7 @@ images/.DS_Store
 !LICENSE
 !copyright
 CPU-PROFILE-WORK
+TEST-P2-TERM
 TEST_PNUT_TS
 updVscode
+*.tar.gz

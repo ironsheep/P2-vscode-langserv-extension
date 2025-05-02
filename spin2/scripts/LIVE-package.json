@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.3.5",
+  "version": "2.4.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -684,6 +684,11 @@
         "description": "A parameter type of returnValue."
       },
       {
+        "id": "directive",
+        "superType": "type",
+        "description": "A SPIN-inLine / PASM Directive."
+      },
+      {
         "id": "storageType",
         "superType": "type",
         "description": "A built-in storage type"
@@ -749,7 +754,8 @@
       {
         "scopes": {
           "returnValue": ["meta.returntype.spin"],
-          "storageType": ["storage.type.pasm.spin2"]
+          "storageType": ["storage.type.pasm.spin2"],
+          "directive": ["storage.modifier.spin2"]
         }
       }
     ],
@@ -788,8 +794,8 @@
     "test": "sh ./scripts/e2e.sh"
   },
   "devDependencies": {
-    "@types/mocha": "^9.1.0",
-    "@types/node": "^20.12.12",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.10.10",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
     "esbuild": "^0.19.12",
@@ -800,7 +806,7 @@
     "eslint-plugin-n": "^16.6.1",
     "eslint-plugin-prettier": "^5.1.2",
     "eslint-plugin-promise": "^6.1.1",
-    "mocha": "^9.2.1",
+    "mocha": "^10.8.2",
     "typescript": "^5.1.3"
   },
   "dependencies": {}
