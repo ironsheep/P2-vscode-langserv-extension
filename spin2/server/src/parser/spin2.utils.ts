@@ -713,19 +713,25 @@ export class Spin2ParseUtils {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public removeDoubleQuotedStrings(line: string, showDebug: boolean = true): string {
+  public removeDoubleQuotedStrings(line: string, notPacked: boolean = false): string {
     //this._logMessage("- RQS line [" + line + "]");
     let trimmedLine: string = line;
     const doubleQuote: string = '"';
-    let quoteStartOffset: number = 0; // value doesn't matter
-    //let didRemove: boolean = false;
-    while ((quoteStartOffset = trimmedLine.indexOf(doubleQuote)) != -1) {
+    let packedLongOffset: number = trimmedLine.indexOf('%"');
+    let quoteStartOffset: number = trimmedLine.indexOf(doubleQuote);
+    if (quoteStartOffset == packedLongOffset + 1) {
+      quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
+    }
+    while (quoteStartOffset != -1) {
       const quoteEndOffset: number = trimmedLine.indexOf(doubleQuote, quoteStartOffset + 1);
       if (quoteEndOffset != -1) {
-        const badElement = trimmedLine.substr(quoteStartOffset, quoteEndOffset - quoteStartOffset + 1);
-        //this._logMessage('  -- badElement=[' + badElement + ']');
+        const badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        //didRemove = showDebug ? true : false;
+        packedLongOffset = trimmedLine.indexOf('%"', quoteEndOffset + 1);
+        quoteStartOffset = trimmedLine.indexOf(doubleQuote, quoteEndOffset + 1);
+        if (quoteStartOffset == packedLongOffset + 1) {
+          quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
+        }
       } else {
         break; // we don't handle a single double-quote
       }
@@ -910,13 +916,13 @@ export class Spin2ParseUtils {
       numericConstantStatus = binaryNumberMatch ? true : false;
     } else if (possibleNumber.startsWith('%"') && possibleNumber.substring(2).includes('"')) {
       // handle %"abcd" one to four chars packed into long
-      const isPackedAsciiRegEx = /%"[ -~]{4}"$/;
+      const isPackedAsciiRegEx = /%"[ -~]{1,4}"$/;
       // %:
       //   Matches the literal % character at the start of the pattern.
       // \\":
       //   Matches the literal double quote ("), escaped as \".
-      // [ -~]{4}:
-      //   Matches 4 characters in the ASCII printable range (from space 0x20 to tilde 0x7E).
+      // [ -~]{1,4}:
+      //   Matches 1-4 characters in the ASCII printable range (from space 0x20 to tilde 0x7E).
       // \\":
       //   Matches the closing double quote ("), escaped as \".
       // $:

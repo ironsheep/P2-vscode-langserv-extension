@@ -9,6 +9,10 @@ CON struct x(a,b,c), struct y(x xcopy[3])
   RESULT5 = exp10 3.0
   RESULT6 = log 10.0
   RESULT7 = exp 1.0
+  PAK1 =  %"A"
+  PAK2 =  %"BC"
+  PAK3 =  %"DEF"
+  PAK4 =  %"GHIJ"
 
 DAT
 
@@ -21,7 +25,14 @@ DAT
           long  log 10.0
           long  exp 1.0
 
+  packed1 LONG  %"A"
+  packed2 LONG  %"BC"
+  packed3 LONG  %"DEF"
+  packed4 LONG  %"GHIJ"
+
 PUB go() | a,b,c,m
+
+  m := %"DEAD"
 
   debug(fdec(a pow b))
 

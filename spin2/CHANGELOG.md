@@ -19,17 +19,24 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.4.1] 2025-05-06
+
+Spin2 Language upgrades
+
+- Highlight %"...." packed character constants as numeric constants
+
 ## [2.4.0] 2025-05-01
 
-Spin2 Lanugage upgrades
+Spin2 Language upgrades
 
 - Add language support for {Spin2_v48}, through {Spin2_v51}
 - Highlight new STRUCT types
+- Highlight %"...." packed character constants as numeric constants
 - BUGFIX: corrected Syntax coloring of smart-pin constant 'P_REG_UP_DOWN' constant (spelled badly in prior versions)
 
 ## [2.3.4] 2025-02-22
 
-Bugfixes and Spin2 Lanugage upgrades
+Bugfixes and Spin2 Language upgrades
 
 - Repair parser crashes (#17)
 - Prevent some toolChain-related actions when toolChain support not enabled (#16)

@@ -279,7 +279,7 @@
     },
     "doc_line_comment": {
       "name": "comment.line.documentation.spin2",
-      "match": "''.*$"
+      "match": "(?<!\")''.*$"
     },
     "float_number": {
       "name": "constant.numeric.decimal.spin2",
@@ -945,7 +945,7 @@
     },
     "line_comment_basic": {
       "name": "comment.line.spin2",
-      "match": "'(.*)$"
+      "match": "(?<!\")'(.*)$"
     },
     "line_comment_basic_GOODBAD": {
       "name": "meta.skip.highlight.spin2",

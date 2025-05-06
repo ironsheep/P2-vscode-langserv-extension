@@ -2735,7 +2735,22 @@ export class Spin2DocumentSemanticParser {
             for (let index = 0; index < possNames.length; index++) {
               const possibleName = possNames[index];
               //const currPossibleLen = possibleName.length;
-              if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
+              const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(possibleName);
+              this._logCON(`  -- rptCDLMulti() name=[${possibleName}], paramIsNumber=(${paramIsNumber})`);
+              if (paramIsNumber) {
+                const symbolPosition: Position = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
+                const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                this._logCON(`  -- rptCDLMulti() index is Number=[${possibleName}]`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: possibleName.length,
+                  ptTokenType: 'number',
+                  ptTokenModifiers: []
+                });
+                currSingleLineOffset = nameOffset + possibleName.length;
+                continue;
+              } else if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
                 // does name contain a namespace reference?
                 //let nameOffset: number = line.indexOf(possibleName, currSingleLineOffset);
                 let symbolPosition: Position = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
@@ -3256,18 +3271,16 @@ export class Spin2DocumentSemanticParser {
     const lineNbr: number = lineIdx + 1;
     const tokenSet: IParsedToken[] = [];
     //this._logMessage(' DBG _rDAT_ValueDeclarationCode(#' + lineNbr + ', ofs=' + startingOffset + ')');
-    this._logDAT(`- Ln#${lineNbr}: process ValueDeclaration allowLocal=(${allowLocal}), startingOffset=(${startingOffset}),  line=[${line}]`);
+    this._logDAT(`- Ln#${lineNbr}: rDvdc() allowLocal=(${allowLocal}), startingOffset=(${startingOffset}),  line=[${line}]`);
 
     // process data declaration
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     const dataValueInitStr: string = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     if (dataValueInitStr.length > 0) {
-      this._logMessage(
-        `  -- reportDataValueInit dataValueInitStr=[${dataValueInitStr}](${dataValueInitStr.length}), currentOffset=(${currentOffset})`
-      );
+      this._logDAT(`  -- rDvdc() dataValueInitStr=[${dataValueInitStr}](${dataValueInitStr.length}), currentOffset=(${currentOffset})`);
       const lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(dataValueInitStr);
       let haveStorageType: boolean = false;
-      this._logMessage(`  -- lineParts=[${lineParts}](${lineParts.length})`);
+      this._logDAT(`  -- rDvdc() lineParts=[${lineParts}](${lineParts.length})`);
       // process remainder of line
       if (lineParts.length < 2) {
         return tokenSet;
@@ -3276,7 +3289,7 @@ export class Spin2DocumentSemanticParser {
         let nameOffset: number = 0;
         let namePart: string = '';
         let namePartLength: number = 0;
-        this._logMessage(`  -- DATval loop start currentOffset=(${currentOffset})`);
+        this._logDAT(`  -- rDvdc() loop start currentOffset=(${currentOffset})`);
         const labelName: string = lineParts[0].trim();
         for (let index = 0; index < lineParts.length; index++) {
           const possibleName = lineParts[index].replace(/[()@]/, '');
@@ -3289,26 +3302,40 @@ export class Spin2DocumentSemanticParser {
           }
           if (!haveStorageType && this.parseUtils.isDatStorageType(possibleName)) {
             haveStorageType = true; // only skip 1st storage type, more is error
-            this._logMessage(`  -- DATval skipping past storage type currentOffset=(${currentOffset}) -> (${currentOffset + possibleNameLength})`);
+            this._logDAT(`  -- rDvdc() skipping past storage type currentOffset=(${currentOffset}) -> (${currentOffset + possibleNameLength})`);
             currentOffset += possibleNameLength;
             continue;
           }
-          // the following allows '.' in names but  only when in DAT PAsm code, not spin!
-          if (possibleName.charAt(0).match(/[a-zA-Z_]/) || (isDatPAsm && possibleName.charAt(0).match(/[a-zA-Z_.]/))) {
+          const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(possibleName);
+          this._logDAT(`  -- rDvdc() name=[${possibleName}], paramIsNumber=(${paramIsNumber})`);
+          if (paramIsNumber) {
             nameOffset = line.indexOf(possibleName, currentOffset);
-            this._logMessage(`  -- DATval possibleName=[${possibleName}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
+            this._logDAT(`  -- rDvdc() index is Number=[${possibleName}]`);
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: possibleName.length,
+              ptTokenType: 'number',
+              ptTokenModifiers: []
+            });
+            currentOffset = nameOffset + possibleName.length;
+            continue;
+          } else if (possibleName.charAt(0).match(/[a-zA-Z_]/) || (isDatPAsm && possibleName.charAt(0).match(/[a-zA-Z_.]/))) {
+            // the following allows '.' in names but  only when in DAT PAsm code, not spin!
+            nameOffset = line.indexOf(possibleName, currentOffset);
+            this._logMessage(`  -- rDvdc() possibleName=[${possibleName}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
             // does name contain a namespace reference?
             let possibleNameSet: string[] = [possibleName];
             if (this._isPossibleObjectReference(possibleName)) {
               const bHaveObjReference = this._reportObjectReference(possibleName, lineIdx, nameOffset, line, tokenSet);
               if (bHaveObjReference) {
-                this._logMessage(`  -- DATval skipping past objRef currentOffset=(${currentOffset}) -> (${nameOffset + possibleNameLength})`);
+                this._logMessage(`  -- rDvdc() skipping past objRef currentOffset=(${currentOffset}) -> (${nameOffset + possibleNameLength})`);
                 currentOffset = nameOffset + possibleNameLength;
                 continue;
               }
             } else if (this.semanticFindings.isStructure(possibleName)) {
               // highlight structure name
-              this._logMessage(`  -- DATval structure [${possibleName}] named=[${labelName}]`);
+              this._logMessage(`  -- rDvdc() structure [${possibleName}] named=[${labelName}]`);
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -3323,7 +3350,7 @@ export class Spin2DocumentSemanticParser {
               }
               continue;
             } else if (this.parseUtils.isVersionAddedMethod(possibleName)) {
-              this._logMessage(`  -- DATval searchString=[${possibleName}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
+              this._logMessage(`  -- rDvdc() searchString=[${possibleName}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -3339,13 +3366,13 @@ export class Spin2DocumentSemanticParser {
               possibleNameSet = possibleName.split('.');
             }
             if (showDebug) {
-              this._logMessage(`  --  possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
+              this._logMessage(`  -- rDvdc()  possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
             }
             namePart = possibleNameSet[0];
             namePartLength = namePart.length;
             const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : `${possibleNameSet[0]}.${possibleNameSet[1]}`;
             nameOffset = line.indexOf(searchString, currentOffset);
-            this._logMessage(`  -- DATval searchString=[${searchString}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
+            this._logMessage(`  -- rDvdc() searchString=[${searchString}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
             if (this.parseUtils.isNewBinaryOrUnaryOperator(namePart)) {
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
@@ -3397,7 +3424,7 @@ export class Spin2DocumentSemanticParser {
                 !this.parseUtils.isBuiltinStreamerReservedWord(namePart)
               ) {
                 if (showDebug) {
-                  this._logMessage('  --  DAT rDvdc MISSING name=[' + namePart + ']');
+                  this._logMessage('  --  rDvdc() MISSING name=[' + namePart + ']');
                 }
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
@@ -3411,11 +3438,11 @@ export class Spin2DocumentSemanticParser {
                   nameOffset,
                   nameOffset + namePartLength,
                   eSeverity.Error,
-                  `P2 Spin DATval missing declaration [${namePart}]`
+                  `P2 Spin rDvdc() missing declaration [${namePart}]`
                 );
               }
             }
-            this._logMessage(`  -- DATval loop-bottom currentOffset=(${currentOffset}) -> (${nameOffset + namePartLength})`);
+            this._logMessage(`  -- rDvdc() loop-bottom currentOffset=(${currentOffset}) -> (${nameOffset + namePartLength})`);
             currentOffset = nameOffset + namePartLength;
           }
         }
@@ -5171,7 +5198,22 @@ export class Spin2DocumentSemanticParser {
         let possibleNameSet: string[] = [possibleName];
         let nameOffset: number = 0;
         currNameLength = possibleName.length;
-        if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
+        const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(possibleName);
+        this._logSPIN(`  -- rptSPIN() name=[${possibleName}], paramIsNumber=(${paramIsNumber})`);
+        if (paramIsNumber) {
+          symbolPosition = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
+          nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+          this._logSPIN(`  -- rptSPIN() index is Number=[${possibleName}]`);
+          this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+            line: symbolPosition.line,
+            startCharacter: symbolPosition.character,
+            length: possibleName.length,
+            ptTokenType: 'number',
+            ptTokenModifiers: []
+          });
+          currSingleLineOffset = nameOffset + possibleName.length;
+          continue;
+        } else if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logSPIN(`  -- Spinm possibleName=[${possibleName}]`);
           offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(possibleName, offsetInNonStringRHS);
           //nameOffset = offsetInNonStringRHS + assignmentStringOffset;
@@ -6527,12 +6569,6 @@ export class Spin2DocumentSemanticParser {
             }
             currSingleLineOffset = nameOffset + newParameter.length;
           }
-          // (2) highlight strings
-          this._logDEBUG(`  --  AM _rptDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
-          const tokenStringSet: IParsedToken[] = this._reportDebugStringsMultiLine(startingOffset, multiLineSet);
-          tokenStringSet.forEach((newToken) => {
-            tokenSet.push(newToken);
-          });
         } else {
           // -------------------------------------
           // process Debug() display feed/instantiation
@@ -6778,12 +6814,6 @@ export class Spin2DocumentSemanticParser {
               }
               currSingleLineOffset = nameOffset + newParameter.length;
             }
-            // (2) highlight strings
-            this._logDEBUG(`  --  rDsml() HL-strings Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
-            const tokenStringSet: IParsedToken[] = this._reportDebugStringsMultiLine(startingOffset, multiLineSet);
-            tokenStringSet.forEach((newToken) => {
-              tokenSet.push(newToken);
-            });
           }
         }
       } else {
@@ -6973,13 +7003,13 @@ export class Spin2DocumentSemanticParser {
           }
           currSingleLineOffset = nameOffset + newParameter.length;
         }
-        // (2) highlight strings
-        this._logDEBUG(`  --  CM _rptDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
-        const tokenStringSet: IParsedToken[] = this._reportDebugStringsMultiLine(startingOffset, multiLineSet);
-        tokenStringSet.forEach((newToken) => {
-          tokenSet.push(newToken);
-        });
       }
+      // (2) highlight strings
+      this._logDEBUG(`  --  CM _rptDebugStrings() Ln#${multiLineSet.lineStartIdx + 1}) debugStatementStr=[${debugStatementStr}]`);
+      const tokenStringSet: IParsedToken[] = this._reportDebugStringsMultiLine(startingOffset, multiLineSet);
+      tokenStringSet.forEach((newToken) => {
+        tokenSet.push(newToken);
+      });
     } else {
       this._logDEBUG(`ERROR: _rptDebugStatementMulti() Ln#${multiLineSet.lineStartIdx + 1} line=[${multiLineSet.line}] no debug()??`);
     }
