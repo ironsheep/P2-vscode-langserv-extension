@@ -131,7 +131,7 @@ export class Spin2ParseUtils {
     //this._logMessage("  -- gdnwlp() nonDblStringLine=[" + nonDblStringLine + "]");
     const nonSglStringLine: string = this.removeDebugSingleQuotedStrings(nonDblStringLine, true);
     //this._logMessage("  -- gdnwlp() nonSglStringLine=[" + nonSglStringLine + "]");
-    const lineParts: string[] | null = nonSglStringLine.match(/[^ ,@=+\-*/:#<>|^&\t()!?~\\]+/g);
+    const lineParts: string[] | null = nonSglStringLine.match(/[^ ,@=+\-*/#<>|^&\t()!?~\\]+/g);
 
     // remove new backtic directives
     const ignoreStrings: string[] = ['`?', '`.', '`$', '`%', '`#', '`'];
