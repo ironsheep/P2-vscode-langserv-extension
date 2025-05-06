@@ -869,9 +869,27 @@ export class Spin2ParseUtils {
     return desiredDocText;
   }
 
+  public isValidSpinSymbolNameStartChar(name: string): boolean {
+    let isValidSymbolName: boolean = false;
+    if (name !== undefined) {
+      // ^:
+      //   Ensures the match starts at the beginning of the string.
+      // [A-Z_a-z]:
+      //   Matches the first character, which must be an uppercase letter (A-Z), lowercase letter (a-z), or an underscore (_).
+      isValidSymbolName = name.charAt(0).match(/^[A-Z_a-z]/) ? true : false;
+    }
+    return isValidSymbolName;
+  }
+
   public isValidSpinSymbolName(name: string): boolean {
     let isValidSymbolName: boolean = false;
     if (name !== undefined) {
+      if (name.includes('.')) {
+        const nameParts: string[] = name.split('.');
+        if (nameParts.length > 0) {
+          name = nameParts[0];
+        }
+      }
       const isSymbolNameRegEx = /^[A-Z_a-z][A-Z_a-z0-9]{0,31}$/;
       // ^:
       //   Ensures the match starts at the beginning of the string.
@@ -909,7 +927,19 @@ export class Spin2ParseUtils {
     return isValidSymbolName;
   }
 
-  public isSpinNumericConstant(possibleNumber: string): boolean {
+  public isValidSpinConstantOrSpinSymbol(name: string): [boolean, boolean] {
+    let isSpinConstant: boolean = false;
+    let isSpinSymbol: boolean = false;
+    if (name !== undefined) {
+      isSpinConstant = this.isValidSpinNumericConstant(name);
+      if (!isSpinConstant) {
+        isSpinSymbol = this.isValidSpinSymbolName(name);
+      }
+    }
+    return [isSpinConstant, isSpinSymbol];
+  }
+
+  public isValidSpinNumericConstant(possibleNumber: string): boolean {
     let numericConstantStatus: boolean = false;
     if (possibleNumber !== undefined) {
       if (this.isDigit(possibleNumber.charAt(0))) {

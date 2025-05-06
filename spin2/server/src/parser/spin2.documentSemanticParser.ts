@@ -2734,8 +2734,7 @@ export class Spin2DocumentSemanticParser {
             this._logCON(`  -- rptCDLMulti() possNames=[${possNames}](${possNames.length})`);
             for (let index = 0; index < possNames.length; index++) {
               const possibleName = possNames[index];
-              //const currPossibleLen = possibleName.length;
-              const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(possibleName);
+              const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(possibleName);
               this._logCON(`  -- rptCDLMulti() name=[${possibleName}], paramIsNumber=(${paramIsNumber})`);
               if (paramIsNumber) {
                 const symbolPosition: Position = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
@@ -2750,7 +2749,7 @@ export class Spin2DocumentSemanticParser {
                 });
                 currSingleLineOffset = nameOffset + possibleName.length;
                 continue;
-              } else if (this.parseUtils.isValidSpinSymbolName(possibleName)) {
+              } else if (paramIsSymbolName) {
                 // does name contain a namespace reference?
                 //let nameOffset: number = line.indexOf(possibleName, currSingleLineOffset);
                 let symbolPosition: Position = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
@@ -3306,7 +3305,7 @@ export class Spin2DocumentSemanticParser {
             currentOffset += possibleNameLength;
             continue;
           }
-          const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(possibleName);
+          const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(possibleName);
           this._logDAT(`  -- rDvdc() name=[${possibleName}], paramIsNumber=(${paramIsNumber})`);
           if (paramIsNumber) {
             nameOffset = line.indexOf(possibleName, currentOffset);
@@ -3320,7 +3319,7 @@ export class Spin2DocumentSemanticParser {
             });
             currentOffset = nameOffset + possibleName.length;
             continue;
-          } else if (this.parseUtils.isValidSpinSymbolName(possibleName) || (isDatPAsm && this.parseUtils.isValidDatPAsmSymbolName(possibleName))) {
+          } else if (paramIsSymbolName || (isDatPAsm && this.parseUtils.isValidDatPAsmSymbolName(possibleName))) {
             // the following allows '.' in names but  only when in DAT PAsm code, not spin!
             nameOffset = line.indexOf(possibleName, currentOffset);
             this._logMessage(`  -- rDvdc() possibleName=[${possibleName}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
@@ -5207,7 +5206,7 @@ export class Spin2DocumentSemanticParser {
         let possibleNameSet: string[] = [possibleName];
         let nameOffset: number = 0;
         currNameLength = possibleName.length;
-        const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(possibleName);
+        const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(possibleName);
         this._logSPIN(`  -- rptSPIN() name=[${possibleName}], paramIsNumber=(${paramIsNumber})`);
         if (paramIsNumber) {
           symbolPosition = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
@@ -5222,7 +5221,7 @@ export class Spin2DocumentSemanticParser {
           });
           currSingleLineOffset = nameOffset + possibleName.length;
           continue;
-        } else if (this.parseUtils.isValidSpinSymbolName(possibleName)) {
+        } else if (paramIsSymbolName) {
           this._logSPIN(`  -- Spinm possibleName=[${possibleName}]`);
           offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(possibleName, offsetInNonStringRHS);
           //nameOffset = offsetInNonStringRHS + assignmentStringOffset;
@@ -6394,8 +6393,7 @@ export class Spin2DocumentSemanticParser {
         const symbolPosition: Position = multiLineSet.locateSymbol(bitfieldIndexValue, currSingleLineOffset);
         const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
         this._logDEBUG(`  -- rDsml() bitfieldIndexValue=[${bitfieldIndexValue}]`);
-        const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(bitfieldIndexValue);
-        const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(bitfieldIndexValue);
+        const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(bitfieldIndexValue);
         if (paramIsNumber) {
           this._logDEBUG(`  -- rDsml() index is Number=[${bitfieldIndexValue}]`);
           this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -6405,7 +6403,7 @@ export class Spin2DocumentSemanticParser {
             ptTokenType: 'number',
             ptTokenModifiers: []
           });
-        } else {
+        } else if (paramIsSymbolName) {
           // handle named index value here
           let referenceDetails: RememberedToken | undefined = undefined;
           if (this.semanticFindings.isGlobalToken(bitfieldIndexValue)) {
@@ -6493,7 +6491,7 @@ export class Spin2DocumentSemanticParser {
             const newParameter: string = lineParts[idx];
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-            if (this.parseUtils.isSpinNumericConstant(newParameter)) {
+            if (this.parseUtils.isValidSpinNumericConstant(newParameter)) {
               this._logDEBUG(`  -- rDsml() param Number=[${bitfieldIndexValue}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
@@ -6698,7 +6696,7 @@ export class Spin2DocumentSemanticParser {
                     continue;
                   }
                 }
-              } else if (this.parseUtils.isSpinNumericConstant(newParameter)) {
+              } else if (this.parseUtils.isValidSpinNumericConstant(newParameter)) {
                 this._logDEBUG(`  -- rDsml() param Number=[${bitfieldIndexValue}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
@@ -6839,11 +6837,7 @@ export class Spin2DocumentSemanticParser {
         let nameOffset: number = 0;
         for (let idx = firstParamIdx; idx < lineParts.length; idx++) {
           newParameter = lineParts[idx];
-          const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(newParameter) ? true : false;
-          let paramIsNumber: boolean = false;
-          if (!paramIsSymbolName) {
-            paramIsNumber = this.parseUtils.isSpinNumericConstant(newParameter);
-          }
+          const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(newParameter);
           if (paramIsNumber) {
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -6928,16 +6922,23 @@ export class Spin2DocumentSemanticParser {
             );
           }
           if (!bHaveObjReference && this._isPossibleStructureReference(newParameter)) {
-            bHaveStructReference = true;
-            this._logMessage(`  --  structName=[${newParameter}], ofs=(${symbolPosition.character})`);
-            // this is a structure type use!
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: newParameter.length,
-              ptTokenType: 'storageType',
-              ptTokenModifiers: []
-            });
+            const [bFoundStructReference, refString] = this._reportStructureReference(
+              newParameter,
+              symbolPosition.line,
+              symbolPosition.character,
+              multiLineSet.lineAt(symbolPosition.line),
+              tokenSet
+            );
+            if (bFoundStructReference) {
+              bHaveStructReference = true;
+              if (newParameter !== refString) {
+                this._logSPIN(
+                  `  -- rptSPIN() B ERROR?! [${refString}](${refString.length}) is only part of [${newParameter}](${newParameter.length}), how to handle the rest?`
+                );
+              }
+              currSingleLineOffset = nameOffset + refString.length;
+              continue;
+            }
           }
           if (!bHaveStructReference && this.semanticFindings.isStructure(newParameter)) {
             bHaveStruct = true;
@@ -7531,7 +7532,7 @@ export class Spin2DocumentSemanticParser {
           // resume with plain named index value, constant
           // colorize index value if non-constant, or constant
           this._logDEBUG(`  -- rptSIdxExp() index=[${indexValue}](${indexValue.length}), ofs=(${nameOffset})`);
-          const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(indexValue);
+          const paramIsNumber: boolean = this.parseUtils.isValidSpinNumericConstant(indexValue);
           if (paramIsNumber) {
             this._logDEBUG(`  -- rptSIdxExp() index is Number=[${indexValue}]`);
             this._recordToken(tokenSet, line, {
