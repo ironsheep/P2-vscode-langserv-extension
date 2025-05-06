@@ -4856,7 +4856,7 @@ export class Spin2DocumentSemanticParser {
             //  Variable without array reference
             //
             // have simple target name, no []
-            let cleanedVariableName: string = variableName.replace(/[ \t()]/, '');
+            const cleanedVariableName: string = variableName.replace(/[ \t()]/, '');
             //let nameOffset = line.indexOf(cleanedVariableName, currSingleLineOffset);
             const haveIgnoreBuiltInSymbol: boolean = cleanedVariableName === '_';
             if (!haveIgnoreBuiltInSymbol) {
@@ -4899,6 +4899,9 @@ export class Spin2DocumentSemanticParser {
                     multiLineSet.lineAt(symbolPosition.line),
                     tokenSet
                   );
+                  if (bHaveObjReference) {
+                    currSingleLineOffset = nameOffset + cleanedVariableName.length;
+                  }
                 } else if (this._isPossibleStructureReference(cleanedVariableName)) {
                   const [bHaveStructReference, refString] = this._reportStructureReference(
                     cleanedVariableName,
@@ -4951,7 +4954,7 @@ export class Spin2DocumentSemanticParser {
                   }
                 }
                 if (referenceDetails !== undefined) {
-                  this._logSPIN(`  -- rptSPIN() Am RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                  this._logSPIN(`  -- rptSPIN() LHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                   this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                     line: symbolPosition.line,
                     startCharacter: symbolPosition.character,
@@ -4959,12 +4962,13 @@ export class Spin2DocumentSemanticParser {
                     ptTokenType: referenceDetails.type,
                     ptTokenModifiers: referenceDetails.modifiers
                   });
+                  currSingleLineOffset = nameOffset + namePart.length;
                 } else {
                   //const searchKey: string = namePart.toLowerCase();
                   //const isMethodNoParen: boolean = searchKey == 'return' || searchKey == 'abort';
                   // have unknown name!? is storage type spec?
                   if (this.isStorageType(namePart)) {
-                    this._logSPIN(`  -- rptSPIN() RHS storageType=[${namePart}]`);
+                    this._logSPIN(`  -- rptSPIN() LHS storageType=[${namePart}]`);
                     this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                       line: symbolPosition.line,
                       startCharacter: symbolPosition.character,
@@ -5028,6 +5032,7 @@ export class Spin2DocumentSemanticParser {
                   currSingleLineOffset = nameOffset + namePart.length;
                 }
               } else {
+                /*
                 let referenceDetails: RememberedToken | undefined = undefined;
                 //nameOffset = line.indexOf(cleanedVariableName, currSingleLineOffset);
                 symbolPosition = multiLineSet.locateSymbol(cleanedVariableName, currSingleLineOffset);
@@ -5087,9 +5092,10 @@ export class Spin2DocumentSemanticParser {
                     );
                   }
                 }
+                //*/
               }
             }
-            currSingleLineOffset = nameOffset + cleanedVariableName.length + 1;
+            //currSingleLineOffset = nameOffset + cleanedVariableName.length + 1;
           }
         }
         currSingleLineOffset = assignmentOffset + 2;
@@ -5098,9 +5104,9 @@ export class Spin2DocumentSemanticParser {
       // could be line with RHS of assignment or a
       //  line with no assignment (process it)
       // -------------------------------------------
-      this._logSPIN(`  -- rptSPIN() non-assign -OR- RHS line=[${multiLineSet.line}](${multiLineSet.line.length}), ofs=(${currSingleLineOffset})`);
+      const lineType: string = assignmentOffset != -1 ? 'RHS' : 'non-assign';
+      this._logSPIN(`  -- rptSPIN() LineEnd ${lineType} line=[${multiLineSet.line}](${multiLineSet.line.length}), ofs=(${currSingleLineOffset})`);
       let assignmentRHSStr: string = multiLineSet.line.substring(currSingleLineOffset);
-      currSingleLineOffset = 0;
       let preCleanAssignmentRHSStr = this.parseUtils.getNonInlineCommentLine(assignmentRHSStr).replace('..', '  ');
       const dotOffset: number = assignmentRHSStr.indexOf('.');
       const spaceOffset: number = assignmentRHSStr.indexOf(' ');
@@ -5129,11 +5135,14 @@ export class Spin2DocumentSemanticParser {
         // if whitespace without parens we have white in statement
         singleElement = false;
       }
-      this._logSPIN(`  -- rptSPIN() assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), singleElement=(${singleElement})`);
+      this._logSPIN(
+        `  -- rptSPIN() assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), singleElement=(${singleElement}), ofs=(${currSingleLineOffset})`
+      );
       // Ex: m.head[motor].[encod cmdcount - 1..0]++  // this is structure with trailing bitfield index
       let bFoundStructureRef = this._isPossibleStructureReference(assignmentRHSStr);
       symbolPosition = multiLineSet.locateSymbol(assignmentRHSStr, currSingleLineOffset);
       nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+      currSingleLineOffset = nameOffset;
       if (bFoundStructureRef) {
         const [bHaveStructReference, refString] = this._reportStructureReference(
           assignmentRHSStr,
@@ -8360,7 +8369,9 @@ export class Spin2DocumentSemanticParser {
           continue;
         }
         let tempName: string = name;
-        if (name.startsWith('#')) {
+        if (/^#+$/.test(name)) {
+          // don't touch this
+        } else if (name.startsWith('#')) {
           tempName = name.substring(1); // remvoe first char
         } else if (name.endsWith('#')) {
           tempName = name.slice(0, -1); // remove last char
@@ -8373,7 +8384,9 @@ export class Spin2DocumentSemanticParser {
             reducedLineParts.push(...moreParts);
           }
         } else {
-          reducedLineParts.push(tempName);
+          if (/^#+$/.test(tempName) == false) {
+            reducedLineParts.push(tempName);
+          }
         }
       }
     }
