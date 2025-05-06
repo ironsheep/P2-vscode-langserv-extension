@@ -870,66 +870,91 @@ export class Spin2ParseUtils {
   }
 
   public isValidSpinSymbolName(name: string): boolean {
-    const isSymbolNameRegEx = /^[A-Z_a-z][A-Z_a-z0-9]{0,31}$/;
-    // ^:
-    //   Ensures the match starts at the beginning of the string.
-    // [A-Z_a-z]:
-    //   Matches the first character, which must be an uppercase letter (A-Z), lowercase letter (a-z), or an underscore (_).
-    // [A-Z_a-z0-9]{0,31}:
-    //   Matches 0 to 31 additional characters, which can be uppercase letters, lowercase letters, digits (0-9), or underscores (_).
-    //   This ensures the total length of the string is at most 32 characters.
-    // $:
-    //   Ensures the match ends at the end of the string.
-    //
-    const symbolNameMatch = isSymbolNameRegEx.test(name);
-    const isValidSymbolName: boolean = symbolNameMatch ? true : false;
+    let isValidSymbolName: boolean = false;
+    if (name !== undefined) {
+      const isSymbolNameRegEx = /^[A-Z_a-z][A-Z_a-z0-9]{0,31}$/;
+      // ^:
+      //   Ensures the match starts at the beginning of the string.
+      // [A-Z_a-z]:
+      //   Matches the first character, which must be an uppercase letter (A-Z), lowercase letter (a-z), or an underscore (_).
+      // [A-Z_a-z0-9]{0,31}:
+      //   Matches 0 to 31 additional characters, which can be uppercase letters, lowercase letters, digits (0-9), or underscores (_).
+      //   This ensures the total length of the string is at most 32 characters.
+      // $:
+      //   Ensures the match ends at the end of the string.
+      //
+      const symbolNameMatch = isSymbolNameRegEx.test(name);
+      isValidSymbolName = symbolNameMatch ? true : false;
+    }
+    return isValidSymbolName;
+  }
+
+  public isValidDatPAsmSymbolName(name: string): boolean {
+    let isValidSymbolName: boolean = false;
+    if (name !== undefined) {
+      const isSymbolNameRegEx = /^[A-Z_a-z:.][A-Z_a-z0-9]{0,31}$/;
+      // ^:
+      //   Ensures the match starts at the beginning of the string.
+      // [A-Z_a-z:.]:
+      //   Matches the first character, which must be an uppercase letter (A-Z), lowercase letter (a-z), or an underscore (_), dot (.), or colon (:).
+      // [A-Z_a-z0-9]{0,31}:
+      //   Matches 0 to 31 additional characters, which can be uppercase letters, lowercase letters, digits (0-9), or underscores (_).
+      //   This ensures the total length of the string is at most 32 characters.
+      // $:
+      //   Ensures the match ends at the end of the string.
+      //
+      const symbolNameMatch = isSymbolNameRegEx.test(name);
+      isValidSymbolName = symbolNameMatch ? true : false;
+    }
     return isValidSymbolName;
   }
 
   public isSpinNumericConstant(possibleNumber: string): boolean {
     let numericConstantStatus: boolean = false;
-    if (this.isDigit(possibleNumber.charAt(0))) {
-      // handle decimal or decimal-float convertion
-      // is float number?
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      numericConstantStatus = this.isValidDecimalFloat(possibleNumber);
-      if (!numericConstantStatus) {
-        // hmmm, nope just decimal number
-        const isDecimalNumberRegEx = /^(\d+[\d_]*)$/;
-        const decimalNumberMatch = isDecimalNumberRegEx.test(possibleNumber);
-        numericConstantStatus = decimalNumberMatch ? true : false;
+    if (possibleNumber !== undefined) {
+      if (this.isDigit(possibleNumber.charAt(0))) {
+        // handle decimal or decimal-float convertion
+        // is float number?
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        numericConstantStatus = this.isValidDecimalFloat(possibleNumber);
+        if (!numericConstantStatus) {
+          // hmmm, nope just decimal number
+          const isDecimalNumberRegEx = /^(\d+[\d_]*)$/;
+          const decimalNumberMatch = isDecimalNumberRegEx.test(possibleNumber);
+          numericConstantStatus = decimalNumberMatch ? true : false;
+        }
+      } else if (possibleNumber.charAt(0) == '$' && this.isHexStartChar(possibleNumber.charAt(1))) {
+        // handle hexadecimal conversion Ex: $0f, $dead_f00d, etc.
+        const isHexNumberRegEx = /^\$([0-9A-Fa-f]+[0-9_A-Fa-f]*)$/;
+        const isHexNumber = isHexNumberRegEx.test(possibleNumber);
+        numericConstantStatus = isHexNumber ? true : false;
+      } else if (possibleNumber.startsWith('%%') && this.isQuartStartChar(possibleNumber.charAt(2))) {
+        // handle base-four numbers of the form %%012_032_000, %%0320213, etc
+        const isQuaternaryNumberRegEx = /^%%([[0-3]+[0-3_]*)$/;
+        const quaternaryNumberMatch = isQuaternaryNumberRegEx.test(possibleNumber);
+        numericConstantStatus = quaternaryNumberMatch ? true : false;
+      } else if (possibleNumber.charAt(0) == '%' && this.isBinStartChar(possibleNumber.charAt(1))) {
+        // handle base-two numbers of the form %0100_0111, %01111010, etc
+        const isBinaryNumberRegEx = /^%([[0-1]+[0-1_]*)$/;
+        const binaryNumberMatch = isBinaryNumberRegEx.test(possibleNumber);
+        numericConstantStatus = binaryNumberMatch ? true : false;
+      } else if (possibleNumber.startsWith('%"') && possibleNumber.substring(2).includes('"')) {
+        // handle %"abcd" one to four chars packed into long
+        const isPackedAsciiRegEx = /%"[ -~]{1,4}"$/;
+        // %:
+        //   Matches the literal % character at the start of the pattern.
+        // \\":
+        //   Matches the literal double quote ("), escaped as \".
+        // [ -~]{1,4}:
+        //   Matches 1-4 characters in the ASCII printable range (from space 0x20 to tilde 0x7E).
+        // \\":
+        //   Matches the closing double quote ("), escaped as \".
+        // $:
+        //   Matches the end of the string.
+        //
+        const packedAsciiMatch = isPackedAsciiRegEx.test(possibleNumber);
+        numericConstantStatus = packedAsciiMatch ? true : false;
       }
-    } else if (possibleNumber.charAt(0) == '$' && this.isHexStartChar(possibleNumber.charAt(1))) {
-      // handle hexadecimal conversion Ex: $0f, $dead_f00d, etc.
-      const isHexNumberRegEx = /^\$([0-9A-Fa-f]+[0-9_A-Fa-f]*)$/;
-      const isHexNumber = isHexNumberRegEx.test(possibleNumber);
-      numericConstantStatus = isHexNumber ? true : false;
-    } else if (possibleNumber.startsWith('%%') && this.isQuartStartChar(possibleNumber.charAt(2))) {
-      // handle base-four numbers of the form %%012_032_000, %%0320213, etc
-      const isQuaternaryNumberRegEx = /^%%([[0-3]+[0-3_]*)$/;
-      const quaternaryNumberMatch = isQuaternaryNumberRegEx.test(possibleNumber);
-      numericConstantStatus = quaternaryNumberMatch ? true : false;
-    } else if (possibleNumber.charAt(0) == '%' && this.isBinStartChar(possibleNumber.charAt(1))) {
-      // handle base-two numbers of the form %0100_0111, %01111010, etc
-      const isBinaryNumberRegEx = /^%([[0-1]+[0-1_]*)$/;
-      const binaryNumberMatch = isBinaryNumberRegEx.test(possibleNumber);
-      numericConstantStatus = binaryNumberMatch ? true : false;
-    } else if (possibleNumber.startsWith('%"') && possibleNumber.substring(2).includes('"')) {
-      // handle %"abcd" one to four chars packed into long
-      const isPackedAsciiRegEx = /%"[ -~]{1,4}"$/;
-      // %:
-      //   Matches the literal % character at the start of the pattern.
-      // \\":
-      //   Matches the literal double quote ("), escaped as \".
-      // [ -~]{1,4}:
-      //   Matches 1-4 characters in the ASCII printable range (from space 0x20 to tilde 0x7E).
-      // \\":
-      //   Matches the closing double quote ("), escaped as \".
-      // $:
-      //   Matches the end of the string.
-      //
-      const packedAsciiMatch = isPackedAsciiRegEx.test(possibleNumber);
-      numericConstantStatus = packedAsciiMatch ? true : false;
     }
     return numericConstantStatus;
   }

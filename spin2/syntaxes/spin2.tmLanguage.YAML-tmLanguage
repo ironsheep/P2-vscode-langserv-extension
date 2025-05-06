@@ -65,7 +65,6 @@ repository:
     patterns:
       - include: "#comment"
       - include: "#configuration"
-      - include: "#configuration"
       - include: "#constants"
       - include: "#event_constants"
       - include: "#smartpins_constants"
@@ -82,7 +81,6 @@ repository:
     end: (?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\b)
     patterns:
       - include: "#comment"
-      - include: "#configuration"
       - include: "#configuration"
       - include: "#constants"
       - include: "#string"
@@ -105,6 +103,7 @@ repository:
     patterns:
       - include: "#comment"
       - include: "#constants"
+      - include: "#debug_statements"
       - include: "#string"
       - include: "#number"
       - include: "#debug_functions"
@@ -118,6 +117,23 @@ repository:
   debug_functions:
     name: support.function.debug.methods.spin2
     match: '(?i)\b(FDEC(_ARRAY|_REG_ARRAY)?|(S|U)(DEC|HEX|BIN)(_BYTE|_LONG|_WORD|_REG_ARRAY|_BYTE_ARRAY|_LONG_ARRAY|_WORD_ARRAY)?(_)?|ZSTR(_)?|LSTR(_)?|debug(_main|_coginit)?|DEBUG_(BAUD|COGS|DELAY|DISPLAY_LEFT|DISPLAY_TOP|ENABLE|HEIGHT|LEFT|LOG_SIZE|PIN_TX|PIN_RX|TIMESTAMP|TOP|WIDTH|WINDOWS_OFF)|DLY|PC_(KEY|MOUSE)|DOWNLOAD_BAUD)\b'
+  no_debug_statements:
+    name: meta.skip.debug.statement.spin2
+    begin: "\\bdebug(\\[\\w+\\])?\\s*\\("
+    end: "\\)"
+  debug_statements:
+    name: meta.debug.statement.spin2
+    begin: "\\bdebug(\\[\\w+\\])?\\s*\\("
+    end: "\\)"
+    patterns:
+      - name: meta.debug.content.sgl.spin2
+        match: "'.*?'"
+        captures:
+          "0": { name: meta.skip.highlight.debug-string.spin2 }
+      - name: meta.debug.content.dbl.spin2
+        match: "\"[^\"]*\""
+        captures:
+          "0": { name: meta.skip.highlight.debug-string.spin2 }
   decimal_number:
     name: constant.numeric.decimal.spin2
     patterns:
@@ -183,6 +199,7 @@ repository:
       - include: "#constants"
       - include: "#array_index"
       - include: "#number"
+      - include: "#debug_statements"
       - include: "#string"
       - include: "#coginit_constants"
       - include: "#debug_functions"
@@ -275,6 +292,8 @@ repository:
       - include: "#constants"
       - include: "#array_index"
       - include: "#number"
+      - include: "#debug_statements"
+      - include: "#string"
       - include: "#debug_functions"
       - include: "#pasm_language_elements"
       - include: "#pasm_field_operations"
@@ -328,6 +347,7 @@ repository:
       - include: "#comment"
       - include: "#constants"
       - include: "#number"
+      - include: "#debug_statements"
       - include: "#string"
       - include: "#spin2_field_operations"
       - include: "#spin2_float_conversions"
@@ -444,11 +464,16 @@ repository:
   line_comment:
       patterns:
       - include: "#line_comment_entire"
+      - include: "#line_comment_basic"
+
+  save_this:
+      patterns:
+      - include: "#line_comment_entire"
       - include: "#no_hightlight_debug_lines"
       - include: "#line_comment_basic"
 
   no_hightlight_debug_lines:
-      name: meta.skip.highlight.spin2
+      name: meta.skip.highlightx.spin2
       match: "^(?=.*\\bdebug\\b).*'[^']*$"
 
   line_comment_entire:
@@ -460,11 +485,10 @@ repository:
     match: "(?<!\")'(.*)$"
 
   line_comment_basic_GOODBAD:
-    name: meta.skip.highlight.spin2
+    name: meta.skip.highlighty.spin2
     match: "^(?:[^\"']|\"[^\"]*\")*('.*)$"
     captures:
       "1":
         name: comment.line.spin2
-
 
 scopeName: source.spin2

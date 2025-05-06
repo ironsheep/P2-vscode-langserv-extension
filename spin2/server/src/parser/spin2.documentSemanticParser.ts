@@ -1585,7 +1585,7 @@ export class Spin2DocumentSemanticParser {
               const lineParts: string[] = conDeclarationLine.split(/[ \t=]/).filter(Boolean);
               this._logCON(`  -- GetCDLMulti() SPLIT lineParts=[${lineParts}](${lineParts.length})`);
               const newName = lineParts[0];
-              if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/) && !this.parseUtils.isP1AsmVariable(newName)) {
+              if (newName !== undefined && this.parseUtils.isValidSpinSymbolName(newName) && !this.parseUtils.isP1AsmVariable(newName)) {
                 // if this line is NOT disabled, record new global (or error with DUPLICATE)
                 const lineIsDisabled: boolean = this.semanticFindings.preProcIsLineDisabled(multiLineSet.lineStartIdx);
                 this._logCON(`  -- GetCDLMulti() newName=[${newName}], lineIsDisabled=(${lineIsDisabled})`);
@@ -1730,7 +1730,7 @@ export class Spin2DocumentSemanticParser {
                 const enumNameParts: string[] = enumConstant.split('[');
                 enumConstant = enumNameParts[0];
               }
-              if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
+              if (this.parseUtils.isValidSpinSymbolName(enumConstant)) {
                 this._logCON(`  -- C GetCDLMulti() enumConstant=[${enumConstant}]`);
                 //const nameOffset = line.indexOf(enumConstant, currSingleLineOffset); // FIXME: UNDONE, do we have to dial this in?
                 const symbolPosition: Position = multiLineSet.locateSymbol(enumConstant, currSingleLineOffset);
@@ -2249,7 +2249,7 @@ export class Spin2DocumentSemanticParser {
           }
         }
         const isStructureType: boolean = typeName.length > 0 ? this.semanticFindings.isStructure(typeName) : false;
-        if (varName.charAt(0).match(/[a-zA-Z_]/)) {
+        if (this.parseUtils.isValidSpinSymbolName(varName)) {
           this._logVAR(`  -- GetVarDecl  newName=[${varName}]`);
           const nameOffset = line.indexOf(varName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
           // ensure we are not already defined
@@ -2750,7 +2750,7 @@ export class Spin2DocumentSemanticParser {
                 });
                 currSingleLineOffset = nameOffset + possibleName.length;
                 continue;
-              } else if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
+              } else if (this.parseUtils.isValidSpinSymbolName(possibleName)) {
                 // does name contain a namespace reference?
                 //let nameOffset: number = line.indexOf(possibleName, currSingleLineOffset);
                 let symbolPosition: Position = multiLineSet.locateSymbol(possibleName, currSingleLineOffset);
@@ -2934,7 +2934,7 @@ export class Spin2DocumentSemanticParser {
             enumConstant = enumAssignmentParts[0].trim();
             const enumExistingName: string = enumAssignmentParts[1].trim();
             nameLen = enumExistingName.length; // len changed assign again...
-            if (enumExistingName.charAt(0).match(/[a-zA-Z_]/)) {
+            if (this.parseUtils.isValidSpinSymbolName(enumExistingName)) {
               this._logCON('  -- A GLBL enumExistingName=[' + enumExistingName + ']');
               // our enum name can have a step offset
               //nameOffset = line.indexOf(enumExistingName, currSingleLineOffset);
@@ -2950,7 +2950,7 @@ export class Spin2DocumentSemanticParser {
             }
             currSingleLineOffset = nameOffset + enumExistingName.length;
           }
-          if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
+          if (this.parseUtils.isValidSpinSymbolName(enumConstant)) {
             const symbolPosition: Position = multiLineSet.locateSymbol(enumConstant, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             if (!this.parseUtils.isDebugInvocation(enumConstant) && !this.parseUtils.isP1AsmVariable(enumConstant)) {
@@ -3320,7 +3320,7 @@ export class Spin2DocumentSemanticParser {
             });
             currentOffset = nameOffset + possibleName.length;
             continue;
-          } else if (possibleName.charAt(0).match(/[a-zA-Z_]/) || (isDatPAsm && possibleName.charAt(0).match(/[a-zA-Z_.]/))) {
+          } else if (this.parseUtils.isValidSpinSymbolName(possibleName) || (isDatPAsm && this.parseUtils.isValidDatPAsmSymbolName(possibleName))) {
             // the following allows '.' in names but  only when in DAT PAsm code, not spin!
             nameOffset = line.indexOf(possibleName, currentOffset);
             this._logMessage(`  -- rDvdc() possibleName=[${possibleName}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
@@ -3942,7 +3942,7 @@ export class Spin2DocumentSemanticParser {
       }
     }
     const methodName: string = remainingNonCommentLineStr.substr(startNameOffset, currSingleLineOffset - startNameOffset).trim();
-    const validMethodName: boolean = methodName.charAt(0).match(/[a-zA-Z_]/) != null;
+    const validMethodName: boolean = this.parseUtils.isValidSpinSymbolName(methodName);
     //this._logSPIN(`  -- rptPubPriSig() possibleMethodName=[${methodName}](${methodName.length}),isValid=(${validMethodName})`);
     if (!validMethodName) {
       return tokenSet;
@@ -4388,7 +4388,7 @@ export class Spin2DocumentSemanticParser {
               const namedIndexPart = localNameParts[index];
               symbolPosition = multiLineSet.locateSymbol(namedIndexPart, varNameOffsetBase);
               nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-              if (namedIndexPart.charAt(0).match(/[a-zA-Z_]/)) {
+              if (this.parseUtils.isValidSpinSymbolName(namedIndexPart)) {
                 this._logSPIN(`  -- checking namedIndexPart=[${namedIndexPart}]`);
                 if (this._isPossibleObjectReference(namedIndexPart)) {
                   // go register object reference!
@@ -4743,7 +4743,7 @@ export class Spin2DocumentSemanticParser {
               if (variableNamePart.endsWith('.')) {
                 variableNamePart = variableNamePart.substr(0, variableNamePart.length - 1);
               }
-              if (variableNamePart.charAt(0).match(/[a-zA-Z_]/)) {
+              if (this.parseUtils.isValidSpinSymbolName(variableNamePart)) {
                 //const nameOffset = line.indexOf(variableNamePart, currSingleLineOffset);
                 symbolPosition = multiLineSet.locateSymbol(variableNamePart, currSingleLineOffset);
                 nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -4870,7 +4870,7 @@ export class Spin2DocumentSemanticParser {
             // do we have a symbol name?
             if (
               !haveIgnoreBuiltInSymbol &&
-              cleanedVariableName.charAt(0).match(/[a-zA-Z_]/) &&
+              this.parseUtils.isValidSpinSymbolName(cleanedVariableName) &&
               !this.parseUtils.isStorageType(cleanedVariableName) &&
               !this.parseUtils.isSpinSpecialMethod(cleanedVariableName)
             ) {
@@ -5222,7 +5222,7 @@ export class Spin2DocumentSemanticParser {
           });
           currSingleLineOffset = nameOffset + possibleName.length;
           continue;
-        } else if (possibleName.charAt(0).match(/[a-zA-Z_]/)) {
+        } else if (this.parseUtils.isValidSpinSymbolName(possibleName)) {
           this._logSPIN(`  -- Spinm possibleName=[${possibleName}]`);
           offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(possibleName, offsetInNonStringRHS);
           //nameOffset = offsetInNonStringRHS + assignmentStringOffset;
@@ -5267,9 +5267,13 @@ export class Spin2DocumentSemanticParser {
               const origNameSet = possibleNameSet;
               if (possibleNameSet.length == 2 && this.isStorageType(possibleNameSet[1])) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out " "
-              } else if (possibleNameSet.length == 2 && !possibleNameSet[1].charAt(0).match(/[a-zA-Z_]/)) {
+              } else if (possibleNameSet.length == 2 && !this.parseUtils.isValidSpinSymbolName(possibleNameSet[1])) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out "header.[00..02]"
-              } else if (possibleNameSet.length > 2 && this.isStorageType(possibleNameSet[1]) && !possibleNameSet[2].charAt(0).match(/[a-zA-Z_]/)) {
+              } else if (
+                possibleNameSet.length > 2 &&
+                this.isStorageType(possibleNameSet[1]) &&
+                !this.parseUtils.isValidSpinSymbolName(possibleNameSet[2])
+              ) {
                 possibleNameSet = [possibleNameSet[0]]; // filter out "variable.[long|word|byte][idx]"
               }
               this._logSPIN(`  --  origNameSet=[${origNameSet}] -> possibleNameSet=[${possibleNameSet}]`);
@@ -5290,7 +5294,7 @@ export class Spin2DocumentSemanticParser {
 
             for (let index = 0; index < possibleNameSet.length; index++) {
               const namePart = possibleNameSet[index];
-              if (!namePart.charAt(0).match(/[a-zA-Z_]/)) {
+              if (!this.parseUtils.isValidSpinSymbolName(namePart)) {
                 nameOffset += namePart.length;
                 continue;
               }
@@ -5858,7 +5862,7 @@ export class Spin2DocumentSemanticParser {
         if (objArrayClose != -1) {
           const elemCountStr: string = remainingNonCommentLineStr.substr(objArrayOpen + 1, objArrayClose - objArrayOpen - 1);
           // if we have a variable name...
-          if (elemCountStr.charAt(0).match(/[a-zA-Z_]/)) {
+          if (this.parseUtils.isValidSpinSymbolName(elemCountStr)) {
             let possibleNameSet: string[] = [elemCountStr];
             // is it a namespace reference?
             let bHaveObjReference: boolean = false;
@@ -5970,7 +5974,7 @@ export class Spin2DocumentSemanticParser {
           currSingleLineOffset = nameOffset + overideName.length; // move past this name
 
           // process RHS of assignment (overideValue) too!
-          if (overideValue.charAt(0).match(/[a-zA-Z_]/)) {
+          if (this.parseUtils.isValidSpinSymbolName(overideValue)) {
             // process symbol name
             const symbolPosition: Position = multiLineSet.locateSymbol(overideValue, currSingleLineOffset);
             const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -6108,7 +6112,7 @@ export class Spin2DocumentSemanticParser {
             currentOffset = nameOffset + newType.length;
           }
           // highlight symbol name
-          if (newName.charAt(0).match(/[a-zA-Z_]/)) {
+          if (this.parseUtils.isValidSpinSymbolName(newName)) {
             // in the following, let's not register a name with a trailing ']' this is part of an array size calculation!
             const nameOffset: number = line.indexOf(newName, currentOffset);
             this._logVAR(`  -- GLBL ADD rvdl newName=[${newName}], ofs=(${nameOffset})`);
@@ -6130,7 +6134,7 @@ export class Spin2DocumentSemanticParser {
             this._logVAR(`  --  arrayReferenceParts=[${arrayReferenceParts}](${arrayReferenceParts.length})`);
             for (let index = 0; index < arrayReferenceParts.length; index++) {
               const referenceName = arrayReferenceParts[index];
-              if (referenceName.charAt(0).match(/[a-zA-Z_]/)) {
+              if (this.parseUtils.isValidSpinSymbolName(referenceName)) {
                 let possibleNameSet: string[] = [];
                 // is it a namespace reference?
                 if (referenceName.includes('.')) {
@@ -6228,7 +6232,7 @@ export class Spin2DocumentSemanticParser {
             this.semanticFindings.recordStructureInstance(typeName, newName); // VAR
           }
         }
-        if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/)) {
+        if (newName !== undefined && this.parseUtils.isValidSpinSymbolName(newName)) {
           this._logVAR(`  -- GLBL rvdl2 newName=[${newName}]`);
           const nameOffset: number = line.indexOf(newName, currentOffset);
           this._recordToken(tokenSet, line, {
@@ -6545,7 +6549,7 @@ export class Spin2DocumentSemanticParser {
                   });
                 } else {
                   // handle unknown-name case
-                  const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
+                  const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(newParameter) ? true : false;
                   if (
                     paramIsSymbolName &&
                     !this.parseUtils.isDebugMethod(newParameter) &&
@@ -6790,7 +6794,7 @@ export class Spin2DocumentSemanticParser {
                     });
                   } else {
                     // handle unknown-name case
-                    const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
+                    const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(newParameter) ? true : false;
                     if (
                       paramIsSymbolName &&
                       this.parseUtils.isDebugMethod(newParameter) == false &&
@@ -6835,7 +6839,11 @@ export class Spin2DocumentSemanticParser {
         let nameOffset: number = 0;
         for (let idx = firstParamIdx; idx < lineParts.length; idx++) {
           newParameter = lineParts[idx];
-          const paramIsNumber: boolean = this.parseUtils.isSpinNumericConstant(newParameter);
+          const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(newParameter) ? true : false;
+          let paramIsNumber: boolean = false;
+          if (!paramIsSymbolName) {
+            paramIsNumber = this.parseUtils.isSpinNumericConstant(newParameter);
+          }
           if (paramIsNumber) {
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -6850,7 +6858,6 @@ export class Spin2DocumentSemanticParser {
             currSingleLineOffset += newParameter.length;
             continue;
           }
-          const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
           if (!paramIsSymbolName) {
             this._logSPIN(`  -- rDsml() SKIP not-sym name=[${newParameter}](${newParameter.length})`);
             currSingleLineOffset += newParameter.length;
@@ -6981,7 +6988,7 @@ export class Spin2DocumentSemanticParser {
               });
             } else {
               // handle unknown-name case
-              const paramIsSymbolName: boolean = newParameter.charAt(0).match(/[a-zA-Z_]/) ? true : false;
+              const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(newParameter) ? true : false;
               if (
                 paramIsSymbolName &&
                 !this.parseUtils.isDebugMethod(newParameter) &&
@@ -7190,7 +7197,7 @@ export class Spin2DocumentSemanticParser {
           if (nameParts.length > 1) {
             for (let index = 1; index < nameParts.length; index++) {
               const indexName = nameParts[index];
-              if (indexName && indexName.charAt(0).match(/[a-zA-Z_]/)) {
+              if (this.parseUtils.isValidSpinSymbolName(indexName)) {
                 indexNames.push(indexName);
               }
             }
@@ -7252,7 +7259,7 @@ export class Spin2DocumentSemanticParser {
                 // assign all but the first value which is the method name
                 for (let index = 1; index < refParts.length; index++) {
                   const parameterName = refParts[index];
-                  if (parameterName && parameterName.charAt(0).match(/[a-zA-Z_]/)) {
+                  if (this.parseUtils.isValidSpinSymbolName(parameterName)) {
                     parameters.push(parameterName);
                   }
                 }
@@ -7361,7 +7368,7 @@ export class Spin2DocumentSemanticParser {
               bGeneratedReference = false;
             }
             // NO if either side is not legit symbol
-            else if (!objInstanceName.charAt(0).match(/[a-zA-Z_]/) || !referencePart.charAt(0).match(/[a-zA-Z_]/)) {
+            else if (!this.parseUtils.isValidSpinSymbolName(objInstanceName) || !this.parseUtils.isValidSpinSymbolName(referencePart)) {
               bGeneratedReference = false;
             } else {
               bGeneratedReference = true;
