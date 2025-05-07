@@ -297,6 +297,38 @@ export class ExtensionUtils {
     return inCommentStatus;
   }
 
+  public haveUnmatchedCloseOnLine(line: string, searchChar: string): [boolean, number] {
+    let unmatchedCloseStatus: boolean = true;
+    let matchOffset: number = 0;
+    let nestLevel: number = 0;
+    const closeString: string = searchChar;
+    const openString: string = searchChar == '}' ? '{' : '{{';
+    const matchLen: number = searchChar.length;
+    // FIXME: this should remove strings before searching
+    let openPosition: number = line.indexOf(searchChar);
+    if (openPosition != -1) {
+      if (line.indexOf(`"${searchChar}`, openPosition - 1) != -1) {
+        openPosition = -1; // don't count this as a match
+      }
+    }
+    if (openPosition != -1 && line.length >= searchChar.length) {
+      for (let offset = 0; offset < line.length; offset++) {
+        const matchString = line.substring(offset, offset + matchLen);
+        if (matchString == openString) {
+          nestLevel++;
+        } else if (matchString == closeString) {
+          matchOffset = offset;
+          nestLevel--;
+        }
+      }
+      unmatchedCloseStatus = nestLevel == -1 ? true : false;
+    }
+    this._logMessage(
+      `  -- SymParse _havUnmatchCloseOnLine('${searchChar}') isClosed=(${unmatchedCloseStatus}), ofs=(${matchOffset}) line=[${line}](${line.length})`
+    );
+    return [unmatchedCloseStatus, matchOffset];
+  }
+
   public getStringPairOffsets(line: string): IPairs[] {
     const findings: IPairs[] = this._getPairOffsetsOfChar(line, '"');
     this._showPairsForChar(findings, '"');

@@ -7,6 +7,7 @@ import { Spin2ParseUtils } from './spin2.utils';
 import { OutLineSymbol, DocumentFindings } from './spin.semantic.findings';
 import { Context } from '../context';
 import { eParseState } from './spin.common';
+import { ExtensionUtils } from './spin.extension.utils';
 
 // ----------------------------------------------------------------------------
 //   OUTLINE Provider
@@ -19,10 +20,12 @@ export class Spin2DocumentSymbolParser {
   private bLogStarted: boolean = false;
 
   private parseUtils = new Spin2ParseUtils();
+  private extensionUtils: ExtensionUtils;
   private containerDocSymbol: OutLineSymbol | undefined = undefined;
   private symbolsFound: DocumentFindings | undefined = undefined;
 
   public constructor(protected readonly ctx: Context) {
+    this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
     if (this.isDebugLogEnabled) {
       this.parseUtils.enableLogging(this.ctx);
       if (this.bLogStarted == false) {
@@ -92,7 +95,7 @@ export class Spin2DocumentSymbolParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const [closingMultiline, closingOffset] = this._haveUnmatchCloseOnLine(line, '}');
+        const [closingMultiline, closingOffset] = this.extensionUtils.haveUnmatchedCloseOnLine(line, '}');
         if (closingMultiline) {
           // have close, comment ended
           currState = priorState;
@@ -312,28 +315,6 @@ export class Spin2DocumentSymbolParser {
       this.symbolsFound.setOutlineSymbol(this.containerDocSymbol);
       this.containerDocSymbol = undefined;
     }
-  }
-  private _haveUnmatchCloseOnLine(line: string, searchChar: string): [boolean, number] {
-    let unmatchedCloseStatus: boolean = false;
-    let matchOffset: number = 0;
-    const closeString: string = searchChar;
-    const openString: string = searchChar == '}' ? '{' : '{{';
-    const matchLen: number = searchChar.length;
-    let nestLevel: number = 0;
-    if (line.length >= searchChar.length) {
-      for (let offset = 0; offset < line.length; offset++) {
-        const matchString = line.substring(offset, offset + matchLen);
-        if (matchString == openString) {
-          nestLevel++;
-        } else if (matchString == closeString) {
-          matchOffset = offset;
-          nestLevel--;
-        }
-      }
-    }
-    unmatchedCloseStatus = nestLevel == -1 ? true : false;
-    this._logMessage(`  -- _haveUnmatchCloseOnLine() isClosed=(${unmatchedCloseStatus}), ofs=(${matchOffset}) line=[${line}](${line.length})`);
-    return [unmatchedCloseStatus, matchOffset];
   }
 
   private setContainerSymbol(newSymbol: OutLineSymbol): void {

@@ -203,6 +203,14 @@ export class Spin2ParseUtils {
     return lineParts == null ? [] : lineParts;
   }
 
+  public removeQuotedStrings(line: string): string {
+    const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
+    this._logMessage(`  -- rmvQS() nonDblStringLine=[${nonDblStringLine}]`);
+    const nonSglStringLine: string = this.removeDebugSingleQuotedStrings(nonDblStringLine);
+    this._logMessage(`  -- rmvQS() nonSglStringLine=[${nonSglStringLine}]`);
+    return nonSglStringLine;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public removeDebugSingleQuotedStrings(line: string, showDebug: boolean = true): string {
     // remove single-quoted strings from keyword processing
@@ -714,10 +722,10 @@ export class Spin2ParseUtils {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public removeDoubleQuotedStrings(line: string, notPacked: boolean = false): string {
-    //this._logMessage("- RQS line [" + line + "]");
+    let didRemove: boolean = false;
     let trimmedLine: string = line;
     const doubleQuote: string = '"';
-    let packedLongOffset: number = trimmedLine.indexOf('%"');
+    let packedLongOffset: number = notPacked == false ? trimmedLine.indexOf('%"') : -1;
     let quoteStartOffset: number = trimmedLine.indexOf(doubleQuote);
     if (quoteStartOffset == packedLongOffset + 1) {
       quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
@@ -726,8 +734,9 @@ export class Spin2ParseUtils {
       const quoteEndOffset: number = trimmedLine.indexOf(doubleQuote, quoteStartOffset + 1);
       if (quoteEndOffset != -1) {
         const badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
+        didRemove = true;
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        packedLongOffset = trimmedLine.indexOf('%"', quoteEndOffset + 1);
+        packedLongOffset = notPacked == false ? trimmedLine.indexOf('%"', quoteEndOffset + 1) : -1;
         quoteStartOffset = trimmedLine.indexOf(doubleQuote, quoteEndOffset + 1);
         if (quoteStartOffset == packedLongOffset + 1) {
           quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
@@ -744,18 +753,18 @@ export class Spin2ParseUtils {
     while ((braceStartOffset = trimmedLine.indexOf(braceStartChar)) != -1) {
       const braceEndOffset: number = trimmedLine.indexOf(braceEndChar, braceStartOffset + 1);
       if (braceEndOffset != -1) {
-        const badElement = trimmedLine.substr(braceStartOffset, braceEndOffset - braceStartOffset + 1);
+        const badElement = trimmedLine.substring(braceStartOffset, braceEndOffset + 1);
         trimmedLine = trimmedLine.replace(badElement, ' '.repeat(badElement.length));
-        //didRemove = showDebug ? true : false;
+        didRemove = true;
       } else {
         break; // we don't handle a single brace (of multi-line)
       }
     }
 
-    //if (didRemove) {
-    //  this._logMessage("  -- RDQS line [" + line + "]");
-    //  this._logMessage("  --           [" + trimmedLine + "]");
-    //}
+    if (didRemove) {
+      this._logMessage(`  -- RDQS line [${line}]${line.length}, notPacked=(${notPacked})`);
+      this._logMessage(`  --           [${trimmedLine}](${trimmedLine.length})`);
+    }
 
     return trimmedLine;
   }
@@ -3822,6 +3831,21 @@ export class Spin2ParseUtils {
     if (name.length > 3) {
       const checkType: string = name.toUpperCase();
       if (checkType == 'BYTEFIT' || checkType == 'WORDFIT' || checkType == 'BYTE' || checkType == 'WORD' || checkType == 'LONG') {
+        returnStatus = true;
+      }
+    }
+    return returnStatus;
+  }
+
+  public isSpecialIndexType(name: string): boolean {
+    // have a 'reg' of reg[cog-address][index].[bitfield]
+    // have a 'byte' of byte[hub-address][index].[bitfield]
+    // have a 'word' of word[hub-address][index].[bitfield]
+    // have a 'long' of long[hub-address][index].[bitfield]
+    let returnStatus: boolean = false;
+    if (name.length >= 3) {
+      const checkType: string = name.toUpperCase();
+      if (checkType == 'REG' || checkType == 'BYTE' || checkType == 'WORD' || checkType == 'LONG') {
         returnStatus = true;
       }
     }

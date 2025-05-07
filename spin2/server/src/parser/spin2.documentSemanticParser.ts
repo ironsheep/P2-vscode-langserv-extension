@@ -251,8 +251,8 @@ export class Spin2DocumentSemanticParser {
         //this._logMessage(`  -- Ln#${lineNbr} pass1 CHK2 trimmedNonCommentLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
       }
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+      const nonStringLine: string = this.parseUtils.removeDebugSingleQuotedStrings(trimmedNonCommentLine);
       // NOTE: comment mid-line set a pending state so next line uses the new state
-
       // special blocks of doc-comment and non-doc comment lines handling
       // if we have comment in progress but not another comment line, close comment being built!
       if (bBuildingSingleLineDocCmtBlock && !trimmedLine.startsWith("''")) {
@@ -284,9 +284,10 @@ export class Spin2DocumentSemanticParser {
       // now start our processing
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '} }' to exit
-        const closingOffset = trimmedNonCommentLine.indexOf('}}');
+        const bHaveClose: boolean = nonStringLine.indexOf('}}') != -1;
+        const closingOffset: number = nonCommentLine.indexOf('}}');
         let commentLen: number = line.length;
-        if (closingOffset != -1) {
+        if (bHaveClose && closingOffset != -1) {
           commentLen = closingOffset + 2;
           // have close, comment ended
           // end the comment recording
@@ -321,7 +322,7 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {...} on same line without closing!
-        const [closingMultiline, closingOffset] = this._haveUnmatchCloseOnLine(line, '}');
+        const [closingMultiline, closingOffset] = this.extensionUtils.haveUnmatchedCloseOnLine(line, '}');
         if (closingMultiline) {
           // have close, comment ended
           // end the comment recording
@@ -426,7 +427,7 @@ export class Spin2DocumentSemanticParser {
           //  DO NOTHING Let Syntax highlighting do this
           continue; // only SKIP if we don't have closing marker
         }
-      } else if (trimmedNonCommentLine.includes('{{')) {
+      } else if (nonStringLine.includes('{{')) {
         // process multi-line doc comment which doesn't start at beginning of line
         const openingOffset = trimmedNonCommentLine.indexOf('{{');
         const closingOffset = trimmedNonCommentLine.indexOf('}}', openingOffset + 2);
@@ -444,7 +445,7 @@ export class Spin2DocumentSemanticParser {
           this._recordToken(tokenSet, line, this._generateComentToken(i, lineOffset, line.length - openingOffset, BLOCK_COMMENT, DOC_COMMENT, line));
           //  DO NOTHING Let Syntax highlighting do this
         }
-      } else if (trimmedNonCommentLine.includes('{') && !trimmedNonCommentLine.includes('{{')) {
+      } else if (nonStringLine.includes('{') && !nonStringLine.includes('{{')) {
         /// FIXME: TODO: this needs to be searching in non-string-containing line
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
@@ -814,13 +815,15 @@ export class Spin2DocumentSemanticParser {
       if (sectionStatus.isSectionStart) {
         trimmedNonCommentLine = trimmedNonCommentLine.substring(3).trimStart();
       }
+      const nonStringLine: string = this.parseUtils.removeDebugSingleQuotedStrings(trimmedNonCommentLine);
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
       if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '} }' to exit
         // ALLOW {cmt}, {{cmt}} on same line without closing!
-        const closingOffset = trimmedNonCommentLine.indexOf('}}');
-        if (closingOffset != -1) {
+        const bHaveClose: boolean = nonStringLine.indexOf('}}') != -1;
+        const closingOffset: number = nonCommentLine.indexOf('}}');
+        if (bHaveClose && closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
           this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment`);
@@ -840,7 +843,7 @@ export class Spin2DocumentSemanticParser {
       } else if (currState == eParseState.inMultiLineComment) {
         // in multi-line non-doc-comment, hunt for end '}' to exit
         // ALLOW {cmt}, {{cmt}} on same line without closing!
-        const [closingMultiline, closingOffset] = this._haveUnmatchCloseOnLine(line, '}');
+        const [closingMultiline, closingOffset] = this.extensionUtils.haveUnmatchedCloseOnLine(line, '}');
         if (closingMultiline) {
           // have close, comment ended
           currState = priorState;
@@ -939,7 +942,7 @@ export class Spin2DocumentSemanticParser {
           //  DO NOTHING Let Syntax highlighting do this
         }
         continue;
-      } else if (trimmedNonCommentLine.includes('{{')) {
+      } else if (nonStringLine.includes('{{')) {
         // process multi-line doc comment
         const openingOffset = trimmedNonCommentLine.indexOf('{{');
         const closingOffset = trimmedNonCommentLine.indexOf('}}', openingOffset + 2);
@@ -954,7 +957,7 @@ export class Spin2DocumentSemanticParser {
           //  DO NOTHING Let Syntax highlighting do this
         }
         // don't continue there might be some text to process before the {{
-      } else if (trimmedNonCommentLine.includes('{') && !trimmedNonCommentLine.includes('{{')) {
+      } else if (nonStringLine.includes('{') && !nonStringLine.includes('{{')) {
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
         const openingOffset = trimmedNonCommentLine.indexOf('{');
@@ -1319,29 +1322,6 @@ export class Spin2DocumentSemanticParser {
       }
     }
     return [orgOffset, orgStr, nonCommentLineRemainder];
-  }
-
-  private _haveUnmatchCloseOnLine(line: string, searchChar: string): [boolean, number] {
-    let unmatchedCloseStatus: boolean = false;
-    let matchOffset: number = 0;
-    const closeString: string = searchChar;
-    const openString: string = searchChar == '}' ? '{' : '{{';
-    const matchLen: number = searchChar.length;
-    let nestLevel: number = 0;
-    if (line.length >= searchChar.length) {
-      for (let offset = 0; offset < line.length; offset++) {
-        const matchString = line.substring(offset, offset + matchLen);
-        if (matchString == openString) {
-          nestLevel++;
-        } else if (matchString == closeString) {
-          matchOffset = offset;
-          nestLevel--;
-        }
-      }
-    }
-    unmatchedCloseStatus = nestLevel == -1 ? true : false;
-    this._logMessage(`  -- _haveUnmatchCloseOnLine() isClosed=(${unmatchedCloseStatus}), ofs=(${matchOffset}) line=[${line}](${line.length})`);
-    return [unmatchedCloseStatus, matchOffset];
   }
 
   private _generateFakeCommentForSignature(startingOffset: number, lineNbr: number, line: string): RememberedComment {
@@ -2144,7 +2124,7 @@ export class Spin2DocumentSemanticParser {
         const labelType: string = isDataDeclarationLine ? 'variable' : 'label';
         let labelModifiers: string[] = [];
         if (!isDataDeclarationLine) {
-          labelModifiers = labelName.startsWith('.') ? ['pasmInline', 'static'] : ['pasmInline'];
+          labelModifiers = labelName.startsWith('.') || labelName.startsWith(':') ? ['pasmInline', 'static'] : ['pasmInline'];
         } else {
           labelModifiers = ['pasmInline'];
         }
@@ -2930,11 +2910,11 @@ export class Spin2DocumentSemanticParser {
           if (enumConstant.includes('=')) {
             // process LHS of '='
             const enumAssignmentParts: string[] = enumConstant.split('=');
-            enumConstant = enumAssignmentParts[0].trim();
-            const enumExistingName: string = enumAssignmentParts[1].trim();
+            enumConstant = enumAssignmentParts[1].trim();
+            const enumExistingName: string = enumAssignmentParts[0].trim();
             nameLen = enumExistingName.length; // len changed assign again...
+            this._logCON(`  -- A GLBLMulti enumExistingName=[${enumExistingName}], enumConstant=[${enumConstant}]`);
             if (this.parseUtils.isValidSpinSymbolName(enumExistingName)) {
-              this._logCON('  -- A GLBL enumExistingName=[' + enumExistingName + ']');
               // our enum name can have a step offset
               //nameOffset = line.indexOf(enumExistingName, currSingleLineOffset);
               const symbolPosition: Position = multiLineSet.locateSymbol(enumExistingName, currSingleLineOffset);
@@ -5138,9 +5118,10 @@ export class Spin2DocumentSemanticParser {
         `  -- rptSPIN() assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), singleElement=(${singleElement}), ofs=(${currSingleLineOffset})`
       );
       // Ex: m.head[motor].[encod cmdcount - 1..0]++  // this is structure with trailing bitfield index
-      let bFoundStructureRef = this._isPossibleStructureReference(assignmentRHSStr);
       symbolPosition = multiLineSet.locateSymbol(assignmentRHSStr, currSingleLineOffset);
       nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+
+      let bFoundStructureRef = this._isPossibleStructureReference(assignmentRHSStr);
       currSingleLineOffset = nameOffset;
       if (bFoundStructureRef) {
         const [bHaveStructReference, refString] = this._reportStructureReference(
@@ -5164,7 +5145,7 @@ export class Spin2DocumentSemanticParser {
       }
       // SPECIAL Ex: digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
       // SPECIAL Ex: scroller[scrollerIndex].initialize()
-      if (singleElement && this._isPossibleObjectReference(assignmentRHSStr) && indexedObjectRef && indexHasWHiteSpace) {
+      if (!bFoundStructureRef && singleElement && this._isPossibleObjectReference(assignmentRHSStr) && indexedObjectRef && indexHasWHiteSpace) {
         symbolPosition = multiLineSet.locateSymbol(assignmentRHSStr, currSingleLineOffset);
         nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
         const bHaveObjReference: boolean = this._reportObjectReference(
@@ -5189,12 +5170,13 @@ export class Spin2DocumentSemanticParser {
       this._logSPIN(`  -- rptSPIN() possNames=[${possNames}](${possNames.length})`);
       const bIsDebugLine: boolean = haveDebugLine(nonStringAssignmentRHSStr);
       const assignmentStringOffset = currSingleLineOffset;
-      this._logSPIN(`  -- assignmentStringOffset=[${assignmentStringOffset}], bIsDebugLine=(${bIsDebugLine})`);
+      this._logSPIN(`  -- rptSPIN() assignmentStringOffset=[${assignmentStringOffset}], bIsDebugLine=(${bIsDebugLine})`);
       let offsetInNonStringRHS = 0;
       let currNameLength: number = 0;
-      this._logSPIN(`  -- rptSPIN() Multi loop start currSingleLineOffset=(${currSingleLineOffset})`);
+      this._logSPIN(`  -- rptSPIN() Multi loop start possNames=[${possNames}](${possNames.length}), currSingleLineOffset=(${currSingleLineOffset})`);
       for (let index = 0; index < possNames.length; index++) {
         let possibleName = possNames[index];
+        this._logSPIN(`  -- rptSPIN() possibleName=[${possibleName}](${possibleName.length})`);
         // special code to handle case of var.[bitfield] leaving name a 'var.'
         if (possibleName.endsWith('.')) {
           possibleName = possibleName.substr(0, possibleName.length - 1);
@@ -5322,7 +5304,7 @@ export class Spin2DocumentSemanticParser {
               if (!referenceDetails && this.semanticFindings.isGlobalToken(namePart)) {
                 referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                 this._logSPIN(`  --  FOUND Global name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
-                if (referenceDetails !== undefined && referenceDetails?.type == 'method') {
+                if (referenceDetails !== undefined && referenceDetails.type == 'method') {
                   const addressOf = `@${namePart}`;
                   this._logSPIN(`  -- rptSPIN()-B methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
                   if (!isMethodCall(methodFollowString) && !nonStringAssignmentRHSStr.includes(addressOf)) {
@@ -5359,7 +5341,7 @@ export class Spin2DocumentSemanticParser {
                       line: symbolPosition.line,
                       startCharacter: symbolPosition.character,
                       length: namePart.length,
-                      ptTokenType: 'function',
+                      ptTokenType: 'function', // method is blue?!, function is yellow?!, operator is violet?!
                       ptTokenModifiers: ['support']
                     });
                   } else if (
@@ -5477,35 +5459,6 @@ export class Spin2DocumentSemanticParser {
                   currNameLength = namePart.length;
                 }
               }
-              /*
-              if (possibleNameSet.length > 1) {
-                // we have .constant namespace suffix
-                // determine if this is method has '(' or constant name
-                const constantPart: string = possibleNameSet[1];
-                currNameLength = constantPart.length;
-                if (!this.isStorageType(constantPart)) {
-                  // FIXME: UNDONE remove when syntax see this correctly
-                  //const nameOffset: number = line.indexOf(constantPart, currSingleLineOffset);
-                  symbolPosition = multiLineSet.locateSymbol(constantPart, currSingleLineOffset);
-                  nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-                  this._logSPIN(`  -- rptSPIN() rhs whatIsThis?=[${constantPart}](${constantPart.length}), ofs=(${symbolPosition.character})`);
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: symbolPosition.character,
-                    length: constantPart.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['illegalUse']
-                  });
-                  this.semanticFindings.pushDiagnosticMessage(
-                    symbolPosition.line,
-                    symbolPosition.character,
-                    symbolPosition.character + constantPart.length,
-                    eSeverity.Error,
-                    `P2 Spin failed to parse line with [${constantPart}]`
-                  );
-                }
-			  }
-				//*/
             }
           } else {
             // found object ref. include it in length
@@ -5565,7 +5518,7 @@ export class Spin2DocumentSemanticParser {
         const labelType: string = isDataDeclarationLine ? 'variable' : 'label';
         const nameOffset: number = line.indexOf(labelName, currentOffset);
         let labelModifiers: string[] = ['declaration'];
-        if (!isDataDeclarationLine && labelName.startsWith('.')) {
+        if (!isDataDeclarationLine && (labelName.startsWith('.') || labelName.startsWith(':'))) {
           labelModifiers = ['declaration', 'static'];
         }
         this._recordToken(tokenSet, line, {
@@ -6492,7 +6445,7 @@ export class Spin2DocumentSemanticParser {
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             if (this.parseUtils.isValidSpinNumericConstant(newParameter)) {
-              this._logDEBUG(`  -- rDsml() param Number=[${bitfieldIndexValue}]`);
+              this._logDEBUG(`  -- rDsml() param Number=[${newParameter}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: symbolPosition.character,
@@ -6500,6 +6453,7 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: 'number',
                 ptTokenModifiers: []
               });
+              currSingleLineOffset = nameOffset + newParameter.length;
               continue;
             }
             const bIsParameterName: boolean = this.parseUtils.isNameWithTypeInstantiation(newParameter, eDisplayType);
@@ -6697,7 +6651,7 @@ export class Spin2DocumentSemanticParser {
                   }
                 }
               } else if (this.parseUtils.isValidSpinNumericConstant(newParameter)) {
-                this._logDEBUG(`  -- rDsml() param Number=[${bitfieldIndexValue}]`);
+                this._logDEBUG(`  -- rDsml() constant=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6831,12 +6785,30 @@ export class Spin2DocumentSemanticParser {
         this._logDEBUG(`  -- rDsml() --- PROCESSING non-display (other) currSingleLineOffset=(${currSingleLineOffset})`);
         // -------------------------------------
         // process non-display debug statement
-        const firstParamIdx: number = lineParts.length > 1 && lineParts[0].toLowerCase().includes('debug') ? 1 : 0; // no prefix to skip
+        // BUGFIX: clean up array references in lineParts
+        const hasArrayRefs = lineParts.some((str) => str.startsWith('['));
+        let adjLineParts: string[] = lineParts;
+        if (hasArrayRefs) {
+          adjLineParts = [];
+          // Remove array references from lineParts
+          for (let index = 0; index < lineParts.length; index++) {
+            const element = lineParts[index];
+            if (element.startsWith('[')) {
+              const newParts: string[] = element.split(/[[\]]/).filter(Boolean);
+              adjLineParts.push(...newParts);
+            } else {
+              adjLineParts.push(element);
+            }
+          }
+          this._logMessage(`  -- rDsml() - lineParts=[${lineParts}](${lineParts.length})`);
+          this._logMessage(`         is nowlineParts=[${adjLineParts}](${adjLineParts.length})`);
+        }
+        const firstParamIdx: number = adjLineParts.length > 1 && adjLineParts[0].toLowerCase().includes('debug') ? 1 : 0; // no prefix to skip
         let newParameter: string = '';
         let symbolPosition: Position = Position.create(-1, -1);
         let nameOffset: number = 0;
-        for (let idx = firstParamIdx; idx < lineParts.length; idx++) {
-          newParameter = lineParts[idx];
+        for (let idx = firstParamIdx; idx < adjLineParts.length; idx++) {
+          newParameter = adjLineParts[idx];
           const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(newParameter);
           if (paramIsNumber) {
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
@@ -6903,6 +6875,37 @@ export class Spin2DocumentSemanticParser {
               length: newParameter.length,
               ptTokenType: 'storageType',
               ptTokenModifiers: ['readonly']
+            });
+            currSingleLineOffset = nameOffset + newParameter.length;
+            continue;
+          }
+          const specialIndexTypeAccessRegEx = new RegExp(`${newParameter}\\s*\\[`);
+          const bFoundAccessType: boolean = multiLineSet.line.slice(nameOffset).match(specialIndexTypeAccessRegEx) != null;
+          if (bFoundAccessType && this.parseUtils.isSpecialIndexType(newParameter)) {
+            // have a 'reg' of reg[cog-address][index].[bitfield]
+            // have a 'byte' of byte[hub-address][index].[bitfield]
+            // have a 'word' of word[hub-address][index].[bitfield]
+            // have a 'long' of long[hub-address][index].[bitfield]
+            this._logMessage(`  -- rDsml() register=[${newParameter}], ofs=(${nameOffset})`);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: nameOffset,
+              length: newParameter.length,
+              ptTokenType: 'operator', // method is blue?!, function is yellow?!
+              ptTokenModifiers: ['builtin']
+            });
+            currSingleLineOffset = nameOffset + newParameter.length;
+            continue;
+          }
+          // is spin builtin method?
+          if (this.parseUtils.isSpinBuiltinMethod(newParameter)) {
+            this._logMessage(`  -- rDsml() type=[${newParameter}], ofs=(${nameOffset})`);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: nameOffset,
+              length: newParameter.length,
+              ptTokenType: 'function', // method is blue?!, function is yellow?!, operator is violet?!
+              ptTokenModifiers: ['builtin']
             });
             currSingleLineOffset = nameOffset + newParameter.length;
             continue;
@@ -8361,12 +8364,14 @@ export class Spin2DocumentSemanticParser {
     //  don't initially remove [...] square brackets or periods
     //  in second pass, if item dosn't have period but does have [...] then split a [] and push parts
     //
-    const nonEqualsLine: string = this.parseUtils.removeDoubleQuotedStrings(line);
+    const nonEqualsLine: string = this.parseUtils.removeDoubleQuotedStrings(line, true);
     // first split
-    const lineParts: string[] | null = nonEqualsLine.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
-    this._logMessage(`  -- gnwsplna line=[${line}](${line.length})`);
-    const partsLen: number = lineParts == null ? 0 : lineParts.length;
-    this._logMessage(`   --- gnwsplna lineParts=[${lineParts}](${partsLen})`);
+    let lineParts: string[] | null = nonEqualsLine.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
+    if (lineParts == null) {
+      lineParts = [];
+    }
+    this._logMessage(`  -- gnwsplna line=[${nonEqualsLine}](${nonEqualsLine.length})`);
+    this._logMessage(`   --- gnwsplna lineParts=[${lineParts}](${lineParts.length})`);
     let reducedLineParts: string[] = [];
     if (lineParts == null) {
       reducedLineParts = [];
