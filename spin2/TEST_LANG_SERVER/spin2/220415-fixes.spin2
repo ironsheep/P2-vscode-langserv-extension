@@ -55,6 +55,6 @@ PUB go(target) | encVal, duty, priorEncVal, priorDuty
                 encVal := rdpin(PIN_QUAD_ENC0)
                 if priorEncVal <> encVal or priorDuty <> duty
                     debug(`term3 'FwdEnc=`(encVal), dty=`(duty), dxy=`(duty)' 10)
-                    priorEncVal := encVal   ' <--- FIXME: encVal should bo local
+                    priorEncVal := encVal
                     priorDuty := duty
             until encVal >= target

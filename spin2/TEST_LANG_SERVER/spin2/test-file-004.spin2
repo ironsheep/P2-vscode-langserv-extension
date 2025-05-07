@@ -408,7 +408,7 @@ PUB allSmartPinAliases()
             P_PWM_SMPS
             P_PWM_TRIANGLE
             P_QUADRATURE
-            P_REG_DOWN
+            P_REG_UP_DOWN
             P_REG_UP
             P_REPOSITORY
             P_SCHMITT_A

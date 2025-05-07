@@ -10,7 +10,7 @@ pub test()
 
 PRI get24BitBMPColorForRC(nRow, nColumn) : red, green, blue | pixColorAddr
     if(nRow > screen.MAX_DISPLAY_ROWS - 1)
-        debug("- ERROR bad nRow value [", udec_(nRow), " > ", udec_(screen.MAX_DISPLAY_ROWS - 1), "]")  ' FIXME: bad coloring
+        debug("- ERROR bad nRow value [", udec_(nRow), " > ", udec_(screen.MAX_DISPLAY_ROWS - 1), "]")
 
 
         debug("- ERROR bad nRow value [", udec_(nRow), " > ", udec_(screen.MAX_DISPLAY_ROWS - 1), "]")

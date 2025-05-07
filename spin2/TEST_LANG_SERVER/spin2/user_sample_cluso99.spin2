@@ -62,7 +62,7 @@ print_msg   mov     lmm_lp2,    lmm_lc      wz  ' copy message#
 .look       rdbyte  lmm_x,      lmm_p       wz  ' end of string?
             add     lmm_p,      #1              ' addr++
     if_nz   jmp     #.look                      ' keep looking
-            djnz    lmm_lp2,    #.look          ' found the right message# ?
+:why        djnz    lmm_lp2,    #.look          ' found the right message# ?
 .found      call    #\_hubTxStr                 ' print message#
             RET                             wcz ' & restore flags
 '+-----------------------------------------------------------------------------+

@@ -55,7 +55,7 @@ FEATURE Latest Language Ver Updates:
 		- Fix ditto in pasm coloring issues @done(2025-04-27)
 		- Fix sizeof() in pasm arguments @done(2025-04-27)
 		- Fix more debug coloring issues @done(2025-04-28)
-		- Fix final debug coloring issues
+		- Fix final debug coloring issues @done(2025-05-06)
 		
 	Unify Single/MultiLine handling:
 		- complete CON unification @done(2025-04-22)
@@ -68,6 +68,21 @@ FEATURE Latest Language Ver Updates:
 		- convert _getDebugStatement() to _getDebugStatementMultiLine() @done(2025-04-28)
 		- complete SPIN unification @done(2025-04-28)
 	
+	FIX NOW:
+		FIX:
+			- 231021-fixes.spin2 - Ln#42 - line[px,py  white vs. highlighted
+			- chk_file_presence.spin2 - Ln#22-#24 - highlight of byte[i+1] references  should byte[] be violet or storageType?
+			- chk_missing_objPrefixes.spin2 - Ln#35 - missed highlight of object[].method()
+			- 240406-fixes.spin2 - tic debug fixes
+			- comment_cert.spin2 - Ln#85 failure to parse local variables
+			- debug_coloring_examples.spin2 - Ln#93 bad var decls, and others in file
+			- Jeff Debug Test 2 (syntax).spin2 - Ln#11 and 1 other debug() statement methods/functions within
+			- Jeff Debug Test 3 (syntax).spin2 - debug() statement methods/functions within Lot's of them!
+		DELAY:
+			- 231112-fixes-spin2 - highlight %"xx" strings in method call passed parameters
+			- 240822-fixes.spin2 - bad comment/line wrap highlighting
+			- d-1CogKbM_neoyume.spin2  - parsing within comments, BAD!!
+		
 	UPCOMING:
 		- Add support for multiple VAR declarations per line
 		- Report in PUB/PRI warning for unused param, return, and local vars
