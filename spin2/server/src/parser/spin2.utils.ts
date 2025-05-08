@@ -423,8 +423,8 @@ export class Spin2ParseUtils {
     return filterParts;
   }
 
-  public getNonWhiteDataInitLineParts(line: string): string[] {
-    const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
+  public getNonWhiteDataInitLineParts(line: string, preservePacked: boolean = false): string[] {
+    const nonEqualsLine: string = this.removeDoubleQuotedStrings(line, preservePacked);
     const lineParts: string[] | null = nonEqualsLine.match(/[^ \t,[\]()+\-/<>|&*^@]+/g);
     const filterParts: string[] = [];
     if (lineParts != null) {
@@ -439,8 +439,8 @@ export class Spin2ParseUtils {
     return filterParts;
   }
 
-  public getNonWhiteCONLineParts(line: string): string[] {
-    const nonEqualsLine: string = this.removeDoubleQuotedStrings(line);
+  public getNonWhiteCONLineParts(line: string, preservePacked: boolean = false): string[] {
+    const nonEqualsLine: string = this.removeDoubleQuotedStrings(line, preservePacked);
     const lineParts: string[] | null = nonEqualsLine.match(/[^  \t()|?:*+\-/><=&]+/g);
     const filterParts: string[] = [];
     if (lineParts != null) {
@@ -510,7 +510,8 @@ export class Spin2ParseUtils {
 
       // if we have quoted string hide them for now...
       const startDoubleQuoteOffset: number = cleanedLine.indexOf('"');
-      const checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, true) : cleanedLine;
+      const KEEP_PACKED_CONSTANTS: boolean = true;
+      const checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, KEEP_PACKED_CONSTANTS) : cleanedLine;
 
       //   REPLACE {{...}} when found, all occurrences
       //do {
@@ -596,7 +597,8 @@ export class Spin2ParseUtils {
 
       // if we have quoted string hide them for now...
       const startDoubleQuoteOffset: number = cleanedLine.indexOf('"');
-      const checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, true) : cleanedLine;
+      const KEEP_PACKED_CONSTANTS: boolean = true;
+      const checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, KEEP_PACKED_CONSTANTS) : cleanedLine;
 
       //   REPLACE ^...}} when NO {{ before it on start of line (unless there's an earlier ' comment)
       const tickOffset: number = checkLine.indexOf("'", startingOffset);
@@ -643,7 +645,8 @@ export class Spin2ParseUtils {
         // if we have quited string hide them for now...
         const startDoubleQuoteOffset: number = lineWithoutTrailingCommentStr.indexOf('"');
         if (startDoubleQuoteOffset != -1) {
-          const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr, true); // false disabled debug output
+          const KEEP_PACKED_CONSTANTS: boolean = true;
+          const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr);
           beginCommentOffset = nonStringLine.indexOf("'");
         }
       }
@@ -693,7 +696,7 @@ export class Spin2ParseUtils {
         // if we have quited string hide them for now...
         const startDoubleQuoteOffset: number = line.indexOf('"', currentOffset);
         if (startDoubleQuoteOffset != -1) {
-          const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr, true); // false disabled debug output
+          const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr);
           beginCommentOffset = nonStringLine.indexOf("'");
         }
       }
@@ -720,12 +723,11 @@ export class Spin2ParseUtils {
     return lineWithoutTrailingCommentStr;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public removeDoubleQuotedStrings(line: string, notPacked: boolean = false): string {
+  public removeDoubleQuotedStrings(line: string, preservePacked: boolean = false): string {
     let didRemove: boolean = false;
     let trimmedLine: string = line;
     const doubleQuote: string = '"';
-    let packedLongOffset: number = notPacked == false ? trimmedLine.indexOf('%"') : -1;
+    let packedLongOffset: number = preservePacked == true ? trimmedLine.indexOf('%"') : -1;
     let quoteStartOffset: number = trimmedLine.indexOf(doubleQuote);
     if (quoteStartOffset == packedLongOffset + 1) {
       quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
@@ -736,7 +738,7 @@ export class Spin2ParseUtils {
         const badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
         didRemove = true;
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        packedLongOffset = notPacked == false ? trimmedLine.indexOf('%"', quoteEndOffset + 1) : -1;
+        packedLongOffset = preservePacked == true ? trimmedLine.indexOf('%"', quoteEndOffset + 1) : -1;
         quoteStartOffset = trimmedLine.indexOf(doubleQuote, quoteEndOffset + 1);
         if (quoteStartOffset == packedLongOffset + 1) {
           quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
@@ -762,7 +764,7 @@ export class Spin2ParseUtils {
     }
 
     if (didRemove) {
-      this._logMessage(`  -- RDQS line [${line}]${line.length}, notPacked=(${notPacked})`);
+      this._logMessage(`  -- RDQS line [${line}]${line.length}, preservePacked=(${preservePacked})`);
       this._logMessage(`  --           [${trimmedLine}](${trimmedLine.length})`);
     }
 
@@ -893,12 +895,23 @@ export class Spin2ParseUtils {
   public isValidSpinSymbolName(name: string): boolean {
     let isValidSymbolName: boolean = false;
     if (name !== undefined) {
-      if (name.includes('.')) {
+      const dotPosn: number = name.indexOf('.');
+      const ltBracketPosn: number = name.indexOf('[');
+      const bracketIsFirst: boolean = (ltBracketPosn != -1 && ltBracketPosn < dotPosn) || (dotPosn == -1 && ltBracketPosn != -1);
+      if (bracketIsFirst) {
+        // Ex: LONG[address][index]
+        const nameParts: string[] = name.split(/[[\]]/);
+        if (nameParts.length > 0) {
+          name = nameParts[0];
+        }
+      } else if (dotPosn != -1) {
+        // Ex: HubVar.BYTE[index]
         const nameParts: string[] = name.split('.');
         if (nameParts.length > 0) {
           name = nameParts[0];
         }
       }
+
       const isSymbolNameRegEx = /^[A-Z_a-z][A-Z_a-z0-9]{0,31}$/;
       // ^:
       //   Ensures the match starts at the beginning of the string.

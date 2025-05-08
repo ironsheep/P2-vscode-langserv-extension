@@ -301,6 +301,7 @@ export class ExtensionUtils {
     let unmatchedCloseStatus: boolean = true;
     let matchOffset: number = 0;
     let nestLevel: number = 0;
+    this._logMessage(`  -- SymParse _havUnmatchCloseOnLine('${searchChar}') line=[${line}](${line.length})`);
     const closeString: string = searchChar;
     const openString: string = searchChar == '}' ? '{' : '{{';
     const matchLen: number = searchChar.length;
