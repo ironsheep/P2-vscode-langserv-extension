@@ -1,0 +1,3 @@
+PUB DisassembleHID(Ptr, Len) | i, prev_i, b, bcode, v, indent, s, UsagePage, UsageString, u
+
+  UsageString := @" "   'get known USAGE string

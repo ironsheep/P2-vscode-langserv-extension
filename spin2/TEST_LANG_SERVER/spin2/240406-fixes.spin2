@@ -68,10 +68,10 @@ pub go() | i, k
   k~
   repeat
     i := byte[@pixels + $76][k >> 1 & $3F] >> (!k & 1 * 4) & $F
-    debug(`b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15 `(i))    ' <--- BUG NOT HANDLING Debug Tic-Strings!!!
+    debug(`b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15 `(i))    ' <--- FIXME: BUG NOT HANDLING Debug Tic-Strings!!!
     'debug(`b0 `(i))
     if k >= 63 and k < 64 * 3 and (k & $00 == $0)
-      debug(`b0 save `(offx, offy, cntx * (winx + spacex) + spacex, cnty * (winy + spacey) + spacey) 'TRACE`(k-63)') ' <--- BUG NOT HANDLING Debug Tic-Strings!!! (bad k highlight too)
+      debug(`b0 save `(offx, offy, cntx * (winx + spacex) + spacex, cnty * (winy + spacey) + spacey) 'TRACE`(k-63)') ' <--- FIXME: BUG NOT HANDLING Debug Tic-Strings!!! (bad k highlight too)
     k++
     'waitms(25)
 

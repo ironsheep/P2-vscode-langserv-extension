@@ -1,0 +1,29 @@
+   this is a text line with {inline comment} and the rest of the line
+
+{
+
+Check trim for non-0
+	if trim = -1
+		:tail = 0
+		:cycl = 0
+		:jerk = 0
+		:acel = 0
+		:velo = 0
+		:posi = :totl
+		:ncof = 0
+		wxpin ##$4000_0001,:pBasePin	'set initial 90-degree offset for midway to MSB, set time base to 1 clock
+		clear trim in hub
+
+	else
+		if trim > abs(:acel)
+			add/sub decel_jerk to/from :acel
+		else, done
+			:tail = 0
+			:cycl = 0
+			:jerk = 0
+			:acel = 0
+			:velo is static
+			:posi is dynamic
+			clear trim in hub
+
+}

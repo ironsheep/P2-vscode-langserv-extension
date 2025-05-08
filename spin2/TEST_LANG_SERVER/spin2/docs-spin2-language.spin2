@@ -286,27 +286,27 @@ PRI Sub3() | ErrorCode          ' Sub3 ABORTs, returning to Sub1 with ErrorCode
 ' -----------------------------------------------------------------------------
 '' Using Methods - Spin2 Pg 7
 ' -----------------------------------------------------------------------------
-PUB using_methods3(register, index, address, bitfield) | AnyVar
+PUB using_methods3(register, index, hubAddr, bitfield) | AnyVar, cogAddr
 
     AnyVar                              ' Hub or permanent register variable
     HubVar.WORD                         ' Hub variable with BYTE/WORD/LONG size override
-    BYTE[address]                       ' Hub BYTE/WORD/LONG by address
-    REG[HubVar]                       ' Register, 'register' may be symbol declared in ORG section
+    BYTE[hubAddr]                       ' Hub BYTE/WORD/LONG by address
+    REG[cogAddr]                        ' Register, 'register' may be symbol declared in ORG section
 
     AnyVar[index]                       ' Hub or permanent register variable with index
     HubVar.BYTE[index]                  ' Hub variable with size override and index
-    LONG[address][index]                ' Hub BYTE/WORD/LONG by address with index
-    REG[HubVar][index]                ' Register with index
+    LONG[hubAddr][index]                ' Hub BYTE/WORD/LONG by address with index
+    REG[cogAddr][index]                 ' Register with index
 
     AnyVar.[bitfield]                   ' Hub or permanent register variable with bitfield
     HubVar.LONG.[bitfield]              ' Hub variable with size override and bitfield
-    WORD[address].[bitfield]            ' Hub BYTE/WORD/LONG by address with bitfield
-    REG[HubVar].[bitfield]            ' Register with bitfield
+    WORD[hubAddr].[bitfield]            ' Hub BYTE/WORD/LONG by address with bitfield
+    REG[cogAddr].[bitfield]             ' Register with bitfield
 
     AnyVar[index].[bitfield]            ' Hub or permanent register variable with index and bitfield
     HubVar.BYTE[index].[bitfield]       ' Hub variable with size override, index, and bitfield
-    LONG[address][index].[bitfield]     ' Hub BYTE/WORD/LONG by address with index and bitfield
-    REG[HubVar][index].[bitfield]     ' Register with index and bitfield
+    LONG[hubAddr][index].[bitfield]     ' Hub BYTE/WORD/LONG by address with index and bitfield
+    REG[cogAddr][index].[bitfield]      ' Register with index and bitfield
 
 dat
     ORGH

@@ -10,7 +10,6 @@ VAR	long BlockState				'field pointers
 	long IDValid
 	long IDToBlock
 
-
 PRI DeleteChainFromID(ID, EndID, Mode, KeepFirstIDValid) | Block, Header
 
 ' Mode	Deletes to...
@@ -114,21 +113,24 @@ PRI DisassembleHID(Ptr, Len) | i, prev_i, b, bcode, v, indent, s, UsagePage, Usa
       UsageString := @" "   'get known USAGE string
 
       if bcode == 6     'remember usage page
-    UsagePage := v
-    if u := lookdown(v: $01, $08, $09)
-      UsageString := lookup(u: @"Generic Desktop", @"LED", @"Button")
+        UsagePage := v
+
+      if u := lookdown(v: $01, $08, $09)
+        UsageString := lookup(u: @"Generic Desktop", @"LED", @"Button")
+
 
       if bcode == 18        'get known USAGE string
-    case UsagePage
-      $01:          '$01 = Generic Desktop Page
-        if u := lookdown(v: $01, $02, $06, $30, $31, $38)
-          UsageString := lookup(u: @"Pointer", @"Mouse", @"Keyboard", @"X", @"Y", @"Wheel")
-      $08:          '$08 = LED Page
-        if u := lookdown(v: $01, $02, $03)
-          UsageString := lookup(u: @"Num Lock", @"Caps Lock", @"Scroll Lock")
+        case UsagePage
+        $01:          '$01 = Generic Desktop Page
+            if u := lookdown(v: $01, $02, $06, $30, $31, $38)
+            UsageString := lookup(u: @"Pointer", @"Mouse", @"Keyboard", @"X", @"Y", @"Wheel")
+        $08:          '$08 = LED Page
+            if u := lookdown(v: $01, $02, $03)
+            UsageString := lookup(u: @"Num Lock", @"Caps Lock", @"Scroll Lock")
 
       if bcode == 5 'outdent if END_COLLECTION
-    indent -= 2
+        indent -= 2
+
 
       call(#WaitFrame)
       debug("  ", uhex_word_(prev_i), "- ", uhex_byte_array_(Ptr + prev_i, i - prev_i), " ", lstr_(@"                        ", 20 - (i - prev_i) * 4 + indent), " ", zstr_(s), " (", sdec_(v), ")         ", zstr_(UsageString))
@@ -146,6 +148,7 @@ PRI DisassembleHID(Ptr, Len) | i, prev_i, b, bcode, v, indent, s, UsagePage, Usa
 
   until i >= Len
   waitms(3000)
+
 
 DAT
         org

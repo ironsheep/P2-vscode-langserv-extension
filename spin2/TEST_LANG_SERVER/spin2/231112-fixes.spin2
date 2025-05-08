@@ -62,8 +62,8 @@ repeat (256*8)
 
 PUB  LEDon()
 
-   file_open(@"filename1", %"r+")
-   file_open(@"filename1", %"A+")
+   file_open(@"filename1", %"r+") ' FIXME: color as constant
+   file_open(@"filename1", %"A+") ' FIXME: color as constant
 
    DoSETUP(string("Text",13))   'turn on LEDs
    DoSETUP(lstring("Hello",0,"Terve",0))   'turn on LEDs

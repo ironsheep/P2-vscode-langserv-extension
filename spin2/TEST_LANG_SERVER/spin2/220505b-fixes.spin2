@@ -32,8 +32,8 @@ PUB ADC_DSP_DAC_Demo() | ADCvalue, timer
         timer := getct()
         timer := timer + clkfreq / 100  ' 100ms from now...
         ADCvalue := SAR_ADC()
-        debug(`terminal 1, 'ADCvalue = `(ADCvalue)   ', 10)     ' <==  whaaa  indexing off on match! (not in string please! string should be darkRED)
-        debug(`terminal 'ADCvalue = `(ADCvalue)   ', 10)   ' <==  whaaa  indexing off on match! (not in string please! string should be darkRED)
+        debug(`terminal 1, 'ADCvalue = `(ADCvalue)   ', 10)     ' <==  whaaa  indexing off on match! FIXME: (not in string please! string should be darkRED)
+        debug(`terminal 'ADCvalue = `(ADCvalue)   ', 10)   ' <==  whaaa  indexing off on match! FIXME: (not in string please! string should be darkRED)
 
 PRI SAR_ADC() : retValue
 

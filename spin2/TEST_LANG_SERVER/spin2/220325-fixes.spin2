@@ -7,6 +7,7 @@ CON
   PIN_POT_IN = 0
   PIN_LED_GRN = 1
 
+
 PUB senseLoop()
 '' the real main loop
     dira.[1..0] := %10
@@ -18,8 +19,11 @@ PUB senseLoop()
 CON ' new coment type
     MAXCOGS = 8
 
+
+
 DAT
 context long  0[MAXCOGS] ' the printing context pointer per COG
+
 
 PUB initTextOutput(ctx, display, region, fg, bg, hwcursor, clearscreen) | cogNbr
     ' init the text region's context data
@@ -27,7 +31,7 @@ PUB initTextOutput(ctx, display, region, fg, bg, hwcursor, clearscreen) | cogNbr
     long[ctx][1] := region
     long[ctx][2] := ((hwcursor & $ff) << 24) + ((((bg & $f) << 4) | (fg & $f)) << 16)  ' home row,col to 0,0
     word[ctx][4] := 0
-    word[ctx][6] := 'getActivePixels(display)
+    word[ctx][6] :=  ' getActivePixels(display)
     word[ctx][7] := 0
     ' init the HW cursor if enabled, and optionally clear the screen
     if hwcursor
