@@ -204,10 +204,13 @@ export class Spin2ParseUtils {
   }
 
   public removeQuotedStrings(line: string): string {
+    if (line.length > 0) this._logMessage(`  -- rmvQS()             Line=[${line}](${line.length})`);
     const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
-    this._logMessage(`  -- rmvQS() nonDblStringLine=[${nonDblStringLine}]`);
+    if (nonDblStringLine.length > 0 && line !== nonDblStringLine)
+      this._logMessage(`  -- rmvQS() nonDblStringLine=[${nonDblStringLine}](${nonDblStringLine.length})`);
     const nonSglStringLine: string = this.removeDebugSingleQuotedStrings(nonDblStringLine);
-    this._logMessage(`  -- rmvQS() nonSglStringLine=[${nonSglStringLine}]`);
+    if (nonSglStringLine.length > 0 && nonDblStringLine !== nonSglStringLine)
+      this._logMessage(`  -- rmvQS() nonSglStringLine=[${nonSglStringLine}](${nonSglStringLine.length})`);
     return nonSglStringLine;
   }
 

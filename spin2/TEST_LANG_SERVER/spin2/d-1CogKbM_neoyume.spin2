@@ -3354,7 +3354,7 @@ sz_tat          byte "turn-around time exceeded", 0
 sz_txn_retry    byte "txn retries exceeded", 0
 sz_xfer_retry   byte "xfer retries exceeded", 0
 sz_nak          byte "NAK fail", 0
-sz_datax_sync   byte "DATAX sync fail", 0
+sz_datax_sync   byte "DATAX sync fail", 0  ' with comment
 sz_config_fail  byte "configuration failed", 0
 sz_timeout      byte "operation timeout", 0
 'debug_data_val  long DBG_DEADBEEF

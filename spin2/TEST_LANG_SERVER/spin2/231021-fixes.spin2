@@ -39,6 +39,6 @@ PUB line_polygon(polyptr,vcount,width,colors) | i,px,py
   px := long[polyptr][(vcount<<1)-2]
   py := long[polyptr][(vcount<<1)-1]
   repeat i from 0 to vcount-1
-    line(px,py,px := long[polyptr][(i<<1)],py := long[polyptr][(i<<1)+1],width,colors)  ' <-- FIXME: known parse/highligh BUG "line(px" should NOT be white!
+    line(px,py,px := long[polyptr][(i<<1)],py := long[polyptr][(i<<1)+1],width,colors)
 
 ' --------------------------------------------------------------------------------------------------

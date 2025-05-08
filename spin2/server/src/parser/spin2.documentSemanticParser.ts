@@ -34,6 +34,7 @@ import {
 } from './spin.common';
 import { fileInDirExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
+import { StaticRegistrationOptions } from 'vscode-languageserver';
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -251,6 +252,7 @@ export class Spin2DocumentSemanticParser {
       }
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
       const nonStringLine: string = this.parseUtils.removeQuotedStrings(nonCommentLine);
+      const trimmedNonStringLine: string = nonStringLine.trim();
       const nonStringLineUpCase: string = nonStringLine.toUpperCase();
       const isCodePresent: boolean = trimmedNonCommentLine.length > 0;
       const isLineContinued: boolean = isCodePresent ? trimmedNonCommentLine.endsWith('...') : false;
@@ -265,7 +267,7 @@ export class Spin2DocumentSemanticParser {
       // NOTE: comment mid-line set a pending state so next line uses the new state
       // special blocks of doc-comment and non-doc comment lines handling
       // if we have comment in progress but not another comment line, close comment being built!
-      if (bBuildingSingleLineDocCmtBlock && !trimmedNonCommentLine.startsWith("''")) {
+      if (bBuildingSingleLineDocCmtBlock && !trimmedNonStringLine.startsWith("''")) {
         // process single line doc-comment
         bBuildingSingleLineDocCmtBlock = false;
         // add record single line comment block if > 1 line and clear
@@ -276,7 +278,7 @@ export class Spin2DocumentSemanticParser {
           this.semanticFindings.recordComment(currSingleLineBlockComment);
           currSingleLineBlockComment = undefined;
         }
-      } else if (bBuildingSingleLineCmtBlock && !trimmedNonCommentLine.startsWith("'")) {
+      } else if (bBuildingSingleLineCmtBlock && !trimmedNonStringLine.startsWith("'")) {
         // process single line non-doc comment
         bBuildingSingleLineCmtBlock = false;
         // add record single line comment block if > 1 line and clear
@@ -291,8 +293,9 @@ export class Spin2DocumentSemanticParser {
         }
       }
       /*
-      this._logMessage(`  -- Ln#${lineNbr} pass1 CHK4  trimmedNonCommentLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
       this._logMessage(`  -- Ln#${lineNbr} pass1 CHK4                   line=[${line}](${line.length})`);
+      this._logMessage(`  -- Ln#${lineNbr} pass1 CHK4  trimmedNonCommentLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
+      this._logMessage(`  -- Ln#${lineNbr} pass1 CHK4   trimmedNonStringLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
       this._logMessage(`  -- Ln#${lineNbr} pass1 CHK4         nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
       this._logMessage(`  -- Ln#${lineNbr} pass1 CHK4          nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
       this._logMessage(`  -- Ln#${lineNbr} pass1 CHK4    nonStringLineUpCase=[${nonStringLineUpCase}](${nonStringLineUpCase.length})`);
@@ -314,7 +317,7 @@ export class Spin2DocumentSemanticParser {
             currBlockComment = undefined;
           }
           currState = priorState;
-          this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment`);
+          this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
           // if closing but not at start of line
           if (closingOffset > 0) {
             // Mark comment line
@@ -356,7 +359,7 @@ export class Spin2DocumentSemanticParser {
             currBlockComment = undefined;
           }
           currState = priorState;
-          this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment`);
+          this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
           // if NO more code on line after close then skip line
           const closingOffset: number = nonCommentLine.indexOf('}');
           const tempLine: string = nonCommentLine.substring(closingOffset + 1).trim();
@@ -374,7 +377,7 @@ export class Spin2DocumentSemanticParser {
         this.priorSingleLineComment = undefined;
         //this._logMessage(`* SKIP blank line scan Ln#${lineNbr} nonCommentLine=[${nonCommentLine}]`);
         continue;
-      } else if (trimmedNonCommentLine.startsWith("''")) {
+      } else if (trimmedNonStringLine.startsWith("''")) {
         if (bBuildingSingleLineDocCmtBlock) {
           // process single line doc comment which follows one of same
           // we no longer have a prior single line comment
@@ -408,7 +411,7 @@ export class Spin2DocumentSemanticParser {
           currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineComment, i, line);
         }
         continue;
-      } else if (trimmedNonCommentLine.startsWith('{{')) {
+      } else if (trimmedNonStringLine.startsWith('{{')) {
         // TODO: the second if clause confuses me... why did I do this?
         // process multi-line doc comment
         const openingOffset = nonStringLine.indexOf('{{');
@@ -427,13 +430,15 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment  line=[${line}](${line.length})`);
+          this._logMessage(
+            `* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+          );
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineDocComment, i, line);
           //  DO NOTHING Let Syntax highlighting do this
           continue; // only SKIP if we DON't have closing marker and comment is only thing on line
         }
-      } else if (trimmedNonCommentLine.startsWith('{')) {
+      } else if (trimmedNonStringLine.startsWith('{')) {
         // TODO: the second if clause confuses me... why did I do this?
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
@@ -446,7 +451,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment`);
+          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
           // start  NEW comment
           currBlockComment = new RememberedComment(eCommentType.multiLineComment, i, line);
           // Mark comment line
@@ -598,7 +603,6 @@ export class Spin2DocumentSemanticParser {
             continuedLineSet.addLine(nonCommentLine, lineNbr - 1);
             this._getCON_DeclarationMultiLine(3, continuedLineSet);
             continuedLineSet.clear();
-            //  this._getCON_Declaration(3, lineNbr, line);
           } else {
             this._logMessage(`- CON (SGL-onCONline) SKIP Ln#${lineNbr} nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
           }
@@ -615,15 +619,15 @@ export class Spin2DocumentSemanticParser {
               this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
               prePAsmState = currState;
               currState = eParseState.inDatPAsm;
-              this._getDAT_Declaration(0, lineNbr, line); // let's get possible label on this ORG statement
+              this._getDAT_Declaration(0, lineNbr, nonCommentLine); // let's get possible label on this ORG statement
               continue;
             }
           }
-          this._getDAT_Declaration(0, lineNbr, line);
+          this._getDAT_Declaration(0, lineNbr, nonCommentLine);
         } else if (currState == eParseState.inObj) {
           // process an "OBJ started" object line (which could be a continued line-set)
           const nonCommentLength: number = bHaveLineSetToProcess ? continuedLineSet.line.length : trimmedNonCommentLine.length;
-          const lineToParse: string = bHaveLineSetToProcess ? continuedLineSet.line : line;
+          const lineToParse: string = bHaveLineSetToProcess ? continuedLineSet.line : nonCommentLine;
           const lineNumber: number = bHaveLineSetToProcess ? continuedLineSet.lineStartIdx + 1 : lineNbr;
           this._logState(`- OBJ scan Ln#${lineNumber} line=[${lineToParse}](${nonCommentLength})`);
           if (nonCommentLength > 3) {
@@ -632,7 +636,7 @@ export class Spin2DocumentSemanticParser {
         } else if (currState == eParseState.inVar) {
           // process a instance-variable line
           if (isCodePresent) {
-            this._getVAR_Declaration(3, lineNbr, line);
+            this._getVAR_Declaration(3, lineNbr, nonCommentLine);
           }
         }
         // we processed the block declaration line, now wipe out prior comment
@@ -659,7 +663,6 @@ export class Spin2DocumentSemanticParser {
           continuedLineSet.clear();
           continuedLineSet.addLine(nonCommentLine, lineNbr - 1);
           this._getCON_DeclarationMultiLine(0, continuedLineSet);
-          //this._getCON_Declaration(0, lineNbr, line);
           continuedLineSet.clear();
         }
       } else if (currState == eParseState.inDat) {
@@ -675,21 +678,21 @@ export class Spin2DocumentSemanticParser {
               this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
               prePAsmState = currState;
               currState = eParseState.inDatPAsm;
-              this._getDAT_Declaration(0, lineNbr, line); // let's get possible label on this ORG statement
+              this._getDAT_Declaration(0, lineNbr, nonCommentLine); // let's get possible label on this ORG statement
               continue;
             }
           }
-          this._getDAT_Declaration(0, lineNbr, line); // get label from line in DAT BLOCK
+          this._getDAT_Declaration(0, lineNbr, nonCommentLine); // get label from line in DAT BLOCK
         }
       } else if (currState == eParseState.inVar) {
         // process a variable declaration line
         if (bHaveLineToProcess) {
-          this._getVAR_Declaration(0, lineNbr, line);
+          this._getVAR_Declaration(0, lineNbr, nonCommentLine);
         }
       } else if (currState == eParseState.inObj) {
         // process an object line (which could be a continued line-set, which does NOT start on an OBJ line)
         const nonCommentLength: number = bHaveLineSetToProcess ? continuedLineSet.line.length : trimmedNonCommentLine.length;
-        const lineToParse: string = bHaveLineSetToProcess ? continuedLineSet.line : line;
+        const lineToParse: string = bHaveLineSetToProcess ? continuedLineSet.line : nonCommentLine;
         const lineNumber: number = bHaveLineSetToProcess ? continuedLineSet.lineStartIdx + 1 : lineNbr;
         this._logState(`- OBJ scan Ln#${lineNumber} line=[${lineToParse}](${nonCommentLength})`);
         if (nonCommentLength > 0) {
@@ -710,9 +713,9 @@ export class Spin2DocumentSemanticParser {
             this._logState(`- scan Ln#${lineNbr} POP currState=[${eParseState[currState]}]`);
             // and ignore rest of this line
           } else {
-            this._getSPIN_PAsmDeclaration(0, lineNbr, line);
+            this._getSPIN_PAsmDeclaration(0, lineNbr, nonCommentLine);
             // scan SPIN-Inline-PAsm line for debug() display declaration
-            this._getDebugDisplay_Declaration(0, lineNbr, line);
+            this._getDebugDisplay_Declaration(0, lineNbr, nonCommentLine);
           }
         }
       } else if (currState == eParseState.inDatPAsm) {
@@ -731,10 +734,10 @@ export class Spin2DocumentSemanticParser {
               continue;
             }
           }
-          this._getDAT_PAsmDeclaration(0, lineNbr, line);
+          this._getDAT_PAsmDeclaration(0, lineNbr, nonCommentLine);
           if (isDebugLine) {
             // scan DAT-PAsm line for debug() display declaration
-            this._getDebugDisplay_Declaration(0, lineNbr, line);
+            this._getDebugDisplay_Declaration(0, lineNbr, nonCommentLine);
           }
         }
       } else if (currState == eParseState.inPub || currState == eParseState.inPri) {
@@ -849,6 +852,7 @@ export class Spin2DocumentSemanticParser {
         );
       }
       const nonStringLine: string = this.parseUtils.removeQuotedStrings(trimmedNonCommentLine);
+      const trimmedNonStringLine: string = nonStringLine.trim();
       //const nonStringLineUpCase: string = nonStringLine.toUpperCase();
       const isCodePresent: boolean = trimmedNonCommentLine.length > 0;
       const isLineContinued: boolean = isCodePresent ? trimmedNonCommentLine.endsWith('...') : false;
@@ -869,7 +873,7 @@ export class Spin2DocumentSemanticParser {
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
-          this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment`);
+          this._logMessage(`* Ln#${lineNbr} foundMuli end-}} exit MultiLineDocComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
           // if NO more code on line after close then skip line
           const tempLine: string = trimmedNonCommentLine.substring(closingOffset + 2).trim();
           //if (tempLine.length == 0 || trimmedNonCommentLine === '}}') {
@@ -898,7 +902,7 @@ export class Spin2DocumentSemanticParser {
         if (closingOffset != -1) {
           // have close, comment ended
           currState = priorState;
-          this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment`);
+          this._logMessage(`* Ln#${lineNbr} foundMuli end-} exit MultiLineComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
           // if NO more code on line after close then skip line
           const tempLine: string = nonCommentLine.substring(closingOffset + 1).trim();
           if (tempLine.length == 0) {
@@ -965,7 +969,7 @@ export class Spin2DocumentSemanticParser {
         // process single line non-doc comment
         //  DO NOTHING Let Syntax highlighting do this
         continue;
-      } else if (trimmedNonCommentLine.startsWith('{{')) {
+      } else if (trimmedNonStringLine.startsWith('{{')) {
         // process multi-line doc comment
         const openingOffset = nonStringLine.indexOf('{{');
         const closingOffset = openingOffset != -1 ? nonStringLine.indexOf('}}', openingOffset + 2) : -1;
@@ -975,11 +979,13 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineDocComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment`);
+          this._logMessage(
+            `* Ln#${lineNbr} foundMuli srt-{{ starting MultiLineDocComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+          );
           //  DO NOTHING Let Syntax highlighting do this
         }
         continue;
-      } else if (trimmedNonCommentLine.startsWith('{')) {
+      } else if (trimmedNonStringLine.startsWith('{')) {
         // process possible multi-line non-doc comment
         // do we have a close on this same line?
         const openingOffset = nonStringLine.indexOf('{');
@@ -990,7 +996,7 @@ export class Spin2DocumentSemanticParser {
           // is open of multiline comment
           priorState = currState;
           currState = eParseState.inMultiLineComment;
-          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment`);
+          this._logMessage(`* Ln#${lineNbr} foundMuli srt-{ starting MultiLineComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
           //  DO NOTHING Let Syntax highlighting do this
         }
         continue;
@@ -1137,7 +1143,6 @@ export class Spin2DocumentSemanticParser {
           }
           continuedLineSet.addLine(nonCommentLine, lineNbr - 1);
           partialTokenSet = this._reportCON_DeclarationMultiLine(0, continuedLineSet);
-          //partialTokenSet = this._reportCON_Declaration(i, 0, line);
           continuedLineSet.clear();
         }
         this._reportNonDupeTokens(partialTokenSet, '=> CON: ', line, tokenSet);
@@ -1186,9 +1191,8 @@ export class Spin2DocumentSemanticParser {
         this._reportNonDupeTokens(partialTokenSet, '=> OBJ: ', line, tokenSet);
       } else if (currState == eParseState.inDatPAsm) {
         // process DAT section pasm (assembly) lines
-        this._logPASM(`- process DAT PAsm Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        this._logPASM(`- process DAT PAsm Ln#${lineNbr} trimmedNonCommentLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
         if (bHaveLineToProcess) {
-          //this._logPASM("- process DAT PAsm Ln#" + lineNbr + "  trimmedLine=[" + trimmedLine + "]");
           // in DAT sections we end with next section
           const partialTokenSet: IParsedToken[] = this._reportDAT_PAsmCode(i, 0, line);
           this._reportNonDupeTokens(partialTokenSet, '=> DAT: ', line, tokenSet);
@@ -1202,7 +1206,7 @@ export class Spin2DocumentSemanticParser {
           );
           if (lineParts.length > 0 && (lineParts[0].toUpperCase() == 'ENDASM' || lineParts[0].toUpperCase() == 'END')) {
             currState = prePAsmState;
-            this._logPASM(`- Ln#${lineNbr} report PUB/PRI InLinePasm END trimmedLine=[${trimmedLine}]`);
+            this._logPASM(`- Ln#${lineNbr} report PUB/PRI InLinePasm END trimmedNonCommentLine=[${trimmedNonCommentLine}]`);
             this._logState(`- report Ln#${lineNbr} POP currState=[${eParseState[currState]}]`);
             if (lineParts[0].toUpperCase() == 'ENDASM' && !this.configuration.highlightFlexspinDirectives) {
               // report this unsupported line (FlexSpin)
@@ -1933,12 +1937,12 @@ export class Spin2DocumentSemanticParser {
             labelModifiers = ['declaration', 'static'];
           }
           if (labelName.toUpperCase() == 'DITTO') {
-            this._logPASM(`  -- DAT PAsm Ignoring reserved word [${labelName}(${labelType})]`);
+            this._logPASM(`  -- gDatMAsm() Ignoring reserved word [${labelName}(${labelType})]`);
           } else {
-            this._logPASM(`  -- DAT PAsm GLBL labelName=[${labelName}(${labelType})]`);
+            this._logPASM(`  -- gDatMAsm() GLBL labelName=[${labelName}(${labelType})]`);
             const fileName: string | undefined = bIsFileLine && lineParts.length > 2 ? lineParts[2] : undefined;
             if (fileName) {
-              this._logDAT(`   -- DAT PAsm GLBL fileName=[${fileName}]`);
+              this._logDAT(`   -- gDatMAsm() GLBL fileName=[${fileName}]`);
               this._ensureDataFileExists(fileName, lineNbr - 1, line, startingOffset);
             }
             const nameOffset = line.indexOf(labelName, 0); // FIXME: UNDONE, do we have to dial this in?
@@ -3486,14 +3490,14 @@ export class Spin2DocumentSemanticParser {
   private _reportDAT_PAsmCode(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
     // skip Past Whitespace
-    this._logPASM(`- Ln#${lineIdx + 1} process DAT PAsm line=[${line}](${line.length})`);
+    this._logPASM(`- Ln#${lineIdx + 1} rDatPAsm() line=[${line}](${line.length})`);
     let currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
     // get line parts - we only care about first one
     const inLinePAsmRHSStr: string = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
     if (inLinePAsmRHSStr.length > 0) {
       const lineParts: string[] = this.parseUtils.getNonWhitePAsmLineParts(inLinePAsmRHSStr);
       this._logPASM(
-        `  --  DAT PAsm lineParts=[${lineParts}](${lineParts.length}), inLinePAsmRHSStr=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length})`
+        `  --  rDatPAsm() lineParts=[${lineParts}](${lineParts.length}), inLinePAsmRHSStr=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length})`
       );
       currentOffset = line.indexOf(inLinePAsmRHSStr.trim(), currentOffset);
       // handle name in 1 column
@@ -3501,7 +3505,7 @@ export class Spin2DocumentSemanticParser {
       if (bIsAlsoDebugLine) {
         const continuedLineSet: ContinuedLines = new ContinuedLines();
         const nonCommentDebugLine = this._getDebugNonCommentLineReturnComment(0, lineIdx, line, tokenSet);
-        this._logSPIN(`- process DAT PAsm Ln#${lineIdx + 1} line=[${nonCommentDebugLine}](${nonCommentDebugLine.length})`);
+        this._logSPIN(`- rDatPAsm() process Ln#${lineIdx + 1} line=[${nonCommentDebugLine}](${nonCommentDebugLine.length})`);
         continuedLineSet.addLine(nonCommentDebugLine, lineIdx);
         const partialTokenSet: IParsedToken[] = this._reportDebugStatementMultiLine(startingOffset, continuedLineSet);
         this._reportNonDupeTokens(partialTokenSet, '=> DATpasm: ', line, tokenSet);
@@ -3521,7 +3525,7 @@ export class Spin2DocumentSemanticParser {
         // fail FlexSpin IF: if NUMLOCK_DEFAULT_STATE && RPI_KEYBOARD_NUMLOCK_HACK
         // fail FlexSpin else:  else
         // fail FlexSpin end:  end
-        this._logPASM(`  --  DAT PAsm ERROR FlexSpin statement=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length}), ofs=(${currentOffset})`);
+        this._logPASM(`  --  rDatPAsm() ERROR FlexSpin statement=[${inLinePAsmRHSStr}](${inLinePAsmRHSStr.length}), ofs=(${currentOffset})`);
         this._recordToken(tokenSet, line, {
           line: lineIdx,
           startCharacter: currentOffset,
@@ -3541,7 +3545,7 @@ export class Spin2DocumentSemanticParser {
       let haveLabel: boolean = lineParts.length > 0 && this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
       let nameOffset: number = -1;
       const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
-      this._logPASM(`  -- reportDATPAsmDecl lineParts=[${lineParts}], haveLabel=(${haveLabel}), isDataDeclarationLine=(${isDataDeclarationLine})`);
+      this._logPASM(`  -- rDatPAsm() lineParts=[${lineParts}], haveLabel=(${haveLabel}), isDataDeclarationLine=(${isDataDeclarationLine})`);
       // TODO: REWRITE this to handle "non-label" line with unknown op-code!
       if (haveLabel) {
         // process label/variable name - starting in column 0
@@ -3554,7 +3558,7 @@ export class Spin2DocumentSemanticParser {
           this._logPASM(`  --  FOUND global name=[${labelName}]`);
         }
         if (referenceDetails !== undefined) {
-          this._logPASM(`  --  DAT PAsm ${referenceDetails.type}=[${labelName}](${nameOffset})`);
+          this._logPASM(`  --  rDatPAsm() ${referenceDetails.type}=[${labelName}](${nameOffset})`);
           const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
           this._recordToken(tokenSet, line, {
             line: lineIdx,
@@ -3567,7 +3571,7 @@ export class Spin2DocumentSemanticParser {
           /*
           } else if (labelName.startsWith(':')) {
           // hrmf... no global type???? this should be a label?
-          this._logPASM(`  --  DAT PAsm ERROR Spin1 label=[${labelName}](${0 + 1})`);
+          this._logPASM(`  --  rDatPAsm() ERROR Spin1 label=[${labelName}](${0 + 1})`);
           this._recordToken(tokenSet, line, {
             line: lineIdx,
             startCharacter: nameOffset,
@@ -3620,7 +3624,7 @@ export class Spin2DocumentSemanticParser {
           }
         } else if (labelName.toLowerCase() != 'debug' && bIsAlsoDebugLine) {
           // hrmf... no global type???? this should be a label?
-          this._logPASM(`  --  DAT PAsm ERROR NOT A label=[${labelName}](${0 + 1})`);
+          this._logPASM(`  --  rDatPAsm() ERROR NOT A label=[${labelName}](${0 + 1})`);
           this._recordToken(tokenSet, line, {
             line: lineIdx,
             startCharacter: nameOffset,
@@ -3668,7 +3672,7 @@ export class Spin2DocumentSemanticParser {
             minNonLabelParts++;
           }
           this._logPASM(
-            `  -- DAT PAsm !dataDecl lineParts=[${lineParts}](${lineParts.length}), argumentOffset=(${argumentOffset}), minNonLabelParts=(${minNonLabelParts})`
+            `  -- rDatPAsm() !dataDecl lineParts=[${lineParts}](${lineParts.length}), argumentOffset=(${argumentOffset}), minNonLabelParts=(${minNonLabelParts})`
           );
           if (lineParts[argumentOffset].toUpperCase().startsWith('IF_') || lineParts[argumentOffset].toUpperCase().startsWith('_RET_')) {
             // skip our conditional
@@ -3679,7 +3683,7 @@ export class Spin2DocumentSemanticParser {
             // have at least instruction name
             const likelyInstructionName: string = lineParts[minNonLabelParts - 1];
             nameOffset = line.indexOf(likelyInstructionName, currentOffset);
-            this._logPASM(`  -- DAT PAsm likelyInstructionName=[${likelyInstructionName}], nameOffset=(${nameOffset})`);
+            this._logPASM(`  -- rDatPAsm() likelyInstructionName=[${likelyInstructionName}], nameOffset=(${nameOffset})`);
             let bIsDittoLine: boolean = false;
             if (likelyInstructionName.toUpperCase() === 'DITTO') {
               // if version 50 color DITTO
@@ -3687,7 +3691,7 @@ export class Spin2DocumentSemanticParser {
                 bIsDittoLine = true;
                 // ditto start: highlight 'DITTO' token, then let argument be processed below
                 // ditto end: highlight both 'DITTO' and  'END' tokens then continue
-                this._logPASM(`  --  DAT PAsm directive=[${likelyInstructionName}], ofs=(${nameOffset})`);
+                this._logPASM(`  --  rDatPAsm() directive=[${likelyInstructionName}], ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
                   startCharacter: nameOffset,
@@ -3730,7 +3734,7 @@ export class Spin2DocumentSemanticParser {
                 // if version 50 color DITTO
                 nameOffset = line.indexOf(argumentName, currentOffset);
                 if (this.parseUtils.requestedSpinVersion(50) && bIsDittoLine) {
-                  this._logPASM(`  --  DAT PAsm directive=[${argumentName}], ofs=(${nameOffset})`);
+                  this._logPASM(`  --  rDatPAsm() directive=[${argumentName}], ofs=(${nameOffset})`);
                   // color our 'ditto end' token
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
@@ -3758,7 +3762,7 @@ export class Spin2DocumentSemanticParser {
               }
               if (argumentName.charAt(0).match(/[a-zA-Z_.:]/)) {
                 // does name contain a namespace reference?
-                this._logPASM(`  -- DAT PAsm argumentName=[${argumentName}]`);
+                this._logPASM(`  -- rDatPAsm() argumentName=[${argumentName}]`);
                 let possibleNameSet: string[] = [argumentName];
                 if (
                   !argumentName.startsWith('.') &&
@@ -3774,18 +3778,18 @@ export class Spin2DocumentSemanticParser {
                   }
                   possibleNameSet = argumentName.split('.');
                 }
-                this._logPASM(`  -- DAT PAsm possibleNameSet=[${possibleNameSet}]`);
+                this._logPASM(`  -- rDatPAsm() possibleNameSet=[${possibleNameSet}]`);
                 const namePart = possibleNameSet[0];
                 const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : `${possibleNameSet[0]}.${possibleNameSet[1]}`;
                 nameOffset = line.indexOf(searchString, currentOffset);
-                this._logPASM(`  --  DAT PAsm searchString=[${searchString}], ofs=(${nameOffset})`);
+                this._logPASM(`  --  rDatPAsm() searchString=[${searchString}], ofs=(${nameOffset})`);
                 let referenceDetails: RememberedToken | undefined = undefined;
                 if (this.semanticFindings.isGlobalToken(namePart)) {
                   referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                   this._logPASM(`  --  FOUND global name=[${namePart}]`);
                 }
                 if (referenceDetails !== undefined) {
-                  this._logPASM(`  --  DAT PAsm name=[${namePart}](${nameOffset})`);
+                  this._logPASM(`  --  rDatPAsm() name=[${namePart}](${nameOffset})`);
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
                     startCharacter: nameOffset,
@@ -3794,7 +3798,7 @@ export class Spin2DocumentSemanticParser {
                     ptTokenModifiers: referenceDetails.modifiers
                   });
                 } else if (this.parseUtils.isVersionAddedMethod(namePart)) {
-                  this._logMessage(`  -- DAT PAsm  ver added method=[${namePart}], ofs=(${nameOffset})`);
+                  this._logMessage(`  -- rDatPAsm()  ver added method=[${namePart}], ofs=(${nameOffset})`);
                   this._recordToken(tokenSet, line, {
                     line: lineIdx,
                     startCharacter: nameOffset,
@@ -3817,7 +3821,7 @@ export class Spin2DocumentSemanticParser {
                     !this.isStorageType(namePart) &&
                     !bIsAlsoDebugLine
                   ) {
-                    this._logPASM('  --  DAT PAsm MISSING name=[' + namePart + '], ofs=(' + nameOffset + ')');
+                    this._logPASM('  --  rDatPAsm() MISSING name=[' + namePart + '], ofs=(' + nameOffset + ')');
                     this._recordToken(tokenSet, line, {
                       line: lineIdx,
                       startCharacter: nameOffset,
@@ -3942,7 +3946,7 @@ export class Spin2DocumentSemanticParser {
     const remainingNonCommentLineStr: string = multiLineSet.line;
     const methodType = remainingNonCommentLineStr.substr(0, 3).toUpperCase();
     const isPrivate = methodType.indexOf('PRI') != -1;
-    this._logOBJ(
+    this._logSPIN(
       `- Ln#${
         multiLineSet.lineStartIdx + 1
       } rptPubPriSig() currSingleLineOffset=(${currSingleLineOffset}), methodType=[${methodType}], isPrivate=(${isPrivate}), remainingNonCommentLineStr=[${remainingNonCommentLineStr}]`
@@ -4047,7 +4051,7 @@ export class Spin2DocumentSemanticParser {
           parameterNames = [parameterStr];
         }
         const paramStartOffset: number = multiLineSet.offsetIntoLineForPosition(parameterStringPosition);
-        this._logSPIN(`  -- rptPubPriSig() parameterNames=[${parameterNames}](${parameterNames.length}), ofs=(${paramStartOffset})`);
+        this._logSPIN(`  -- rptPubPriSig() ----- parameterNames=[${parameterNames}](${parameterNames.length}), ofs=(${paramStartOffset})`);
 
         for (let index = 0; index < parameterNames.length; index++) {
           const paramNameRaw: string = parameterNames[index].trim();
@@ -4082,7 +4086,7 @@ export class Spin2DocumentSemanticParser {
               nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
               // at v49, we allow object.structure and object.structure pointer reference!
               const allowedObjRef: boolean = this.parseUtils.requestedSpinVersion(49);
-              this._logSPIN(`  -- parameter typeName=[${typeName}], ofs=(${nameOffset})`);
+              this._logSPIN(`  -- rptPubPriSig() parameter typeName=[${typeName}], ofs=(${nameOffset})`);
               let foundObjectRef: boolean = false;
               if (allowedObjRef && this._isPossibleObjectReference(typeName)) {
                 // go register object TYPE-ONLY reference!
@@ -4145,7 +4149,7 @@ export class Spin2DocumentSemanticParser {
           // now color parameter variable name!
           symbolPosition = multiLineSet.locateSymbol(paramName, paramBaseOffset);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-          this._logSPIN(`  -- paramName=[${paramName}], ofs=(${nameOffset})`);
+          this._logSPIN(`  -- rptPubPriSig() paramName=[${paramName}], ofs=(${nameOffset})`);
           // check to see if param name is hiding global variable
           if (this._hidesGlobalVariable(paramName)) {
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -4209,7 +4213,7 @@ export class Spin2DocumentSemanticParser {
         const varNamesStr = remainingNonCommentLineStr.substring(returnValueSep + 1, returnVarsEnd).trim();
         const varNamesPosition: Position = multiLineSet.locateSymbol(varNamesStr, currSingleLineOffset);
         const varNamesBaseOffset: number = multiLineSet.offsetIntoLineForPosition(varNamesPosition);
-        this._logSPIN(`  -- varNamesStr=[${varNamesStr}](${varNamesStr.length}), ofs=(${varNamesBaseOffset})`);
+        this._logSPIN(`  -- rptPubPriSig()  ----- retNamesStr=[${varNamesStr}](${varNamesStr.length}), ofs=(${varNamesBaseOffset})`);
         // possibly have a single return value name
         let returnValueNames: string[] = [varNamesStr];
         if (varNamesStr.indexOf(',')) {
@@ -4217,14 +4221,14 @@ export class Spin2DocumentSemanticParser {
           returnValueNames = varNamesStr.split(/\s*,\s*/).filter(Boolean);
         }
         let varNameOffset: number = varNamesBaseOffset;
-        this._logSPIN(`  -- returnVarNamesAr=[${returnValueNames}](${returnValueNames.length}), ofs=(${varNameOffset})`);
+        this._logSPIN(`  -- rptPubPriSig() returnVarNamesAr=[${returnValueNames}](${returnValueNames.length}), ofs=(${varNameOffset})`);
         for (let index = 0; index < returnValueNames.length; index++) {
           let returnValueName = returnValueNames[index].trim();
           const isPtr: boolean = returnValueName.charAt(0) === '^'; // remember we have pointer
           returnValueName = isPtr ? returnValueName.substring(1) : returnValueName; // remove ptr indicator
           let symbolPosition: Position = multiLineSet.locateSymbol(returnValueName, varNameOffset);
           let nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-          this._logSPIN(`  -- curr retVar=[${returnValueName}], [${index + 1} of ${returnValueNames.length}]`);
+          this._logSPIN(`  -- rptPubPriSig() curr retVar=[${returnValueName}], [${index + 1} of ${returnValueNames.length}]`);
           let typeName: string = '';
           let structureType: string = '';
           // if we have structures we can have a structure name as a parameter type
@@ -4242,7 +4246,7 @@ export class Spin2DocumentSemanticParser {
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             // at v49, we allow object.structure and object.structure pointer reference!
             const allowedObjRef: boolean = this.parseUtils.requestedSpinVersion(49);
-            this._logSPIN(`  -- retVal typeName=[${typeName}], ofs=(${nameOffset})`);
+            this._logSPIN(`  -- rptPubPriSig() retVal typeName=[${typeName}], ofs=(${nameOffset})`);
             if (this._isPossibleObjectReference(typeName) && allowedObjRef) {
               // have structure pointer type
               // go register object TYPE-ONLY reference!
@@ -4358,7 +4362,7 @@ export class Spin2DocumentSemanticParser {
         //this._logSPIN(`  -- Multi remainingNonCommentLineStr=[${remainingNonCommentLineStr}](${remainingNonCommentLineStr.length})`);
         const localVarStr = remainingNonCommentLineStr.substring(localVarsSep + 1).trim();
         //this._logSPIN(
-        //  `  -- Multi localVarsSep=(${localVarsSep}), nonCommentEOL=(${nonCommentEOL}), localVarStr=[${localVarStr}](${localVarStr.length})`
+        //  `  -- rptPubPriSig() VarsSep=(${localVarsSep}), nonCommentEOL=(${nonCommentEOL}), localVarStr=[${localVarStr}](${localVarStr.length})`
         //);
         // we move currSingleLineOffset along so we don't falsely find short variable names earlier in string!
         currSingleLineOffset = localVarsSep;
@@ -4370,7 +4374,7 @@ export class Spin2DocumentSemanticParser {
           // have a single return value name
           localVarNames = [localVarStr];
         }
-        this._logSPIN(`  -- Multi localVarNames=[${localVarNames}](${localVarNames.length})`);
+        this._logSPIN(`  -- rptPubPriSig() ----- VarNames=[${localVarNames}](${localVarNames.length})`);
         for (let index = 0; index < localVarNames.length; index++) {
           let localVariableName = localVarNames[index];
           const isPtr: boolean = localVariableName.charAt(0) === '^'; // remember we have pointer
@@ -4379,129 +4383,44 @@ export class Spin2DocumentSemanticParser {
           const varNameOffsetBase = multiLineSet.offsetIntoLineForPosition(varNamePosition);
           //const localVariableOffset = remainingNonCommentLineStr.indexOf(localVariableName, currSingleLineOffset);
           this._logSPIN(
-            `  -- processing Multi localVariableName=[${localVariableName}] isPtr=(${isPtr}), lclVar[${index + 1} of ${localVarNames.length}]`
+            `  -- rptPubPriSig() processing VariableName=[${localVariableName}] isPtr=(${isPtr}), lclVar[${index + 1} of ${localVarNames.length}]`
           );
           let nameParts: string[] = [localVariableName];
           let possAlignType: string = '';
           let possStorageType: string = '';
-          let possLocalVarName: string = localVariableName;
-          if (localVariableName.includes(' ')) {
+          let possLocalVarName: string = '';
+          const extraParts: string[] = [];
+          if (localVariableName.includes(' ') || localVariableName.includes('\t') || localVariableName.includes('[')) {
             // have name with storage and/or alignment operators
-            nameParts = localVariableName.split(' ');
-            if (nameParts.length > 2) {
-              // have align[wl] storageType name
-              possAlignType = nameParts[0];
-              possStorageType = nameParts[1];
-              possLocalVarName = nameParts[2];
-            } else if (this.parseUtils.isAlignType(nameParts[0])) {
-              // have align[wl] name
-              possAlignType = nameParts[0];
-              possLocalVarName = nameParts[1];
-            } else {
-              // have storageType name
-              possStorageType = nameParts[0];
-              possLocalVarName = nameParts[1];
-            }
-          }
-          this._logSPIN(`  -- Multi local nameParts=[${nameParts}](${nameParts.length})`);
-          this._logSPIN(`  -- Multi local align=[${possAlignType}], storage=[${possStorageType}], varName=[${possLocalVarName}]`);
-          let symbolPosition: Position = Position.create(-1, -1);
-          // have name similar to scratch[12]?
-          //
-          // handle index value, first
-          //
-          if (possLocalVarName.includes('[') || possLocalVarName.includes(']')) {
-            // yes remove array suffix
-            const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(possLocalVarName);
-            const localNameParts: string[] = lineInfo.lineParts;
-            this._logSPIN(`  -- post[] localNameWithIndexParts=[${localNameParts}]`);
-            possLocalVarName = localNameParts[0];
-            for (let index = 1; index < localNameParts.length; index++) {
-              const namedIndexPart = localNameParts[index];
-              symbolPosition = multiLineSet.locateSymbol(namedIndexPart, varNameOffsetBase);
-              nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-              if (this.parseUtils.isValidSpinSymbolName(namedIndexPart)) {
-                this._logSPIN(`  -- checking namedIndexPart=[${namedIndexPart}]`);
-                if (this._isPossibleObjectReference(namedIndexPart)) {
-                  // go register object reference!
-                  const bHaveObjReference: boolean = this._reportObjectReference(
-                    namedIndexPart,
-                    symbolPosition.line,
-                    symbolPosition.character,
-                    multiLineSet.lineAt(symbolPosition.line),
-                    tokenSet
-                  );
-                  if (bHaveObjReference) {
-                    continue;
-                  }
-                }
-                let referenceDetails: RememberedToken | undefined = undefined;
-                if (this.semanticFindings.isLocalToken(namedIndexPart)) {
-                  referenceDetails = this.semanticFindings.getLocalTokenForLine(namedIndexPart, symbolPosition.line + 1);
-                  this._logSPIN(`  --  FOUND local name=[${namedIndexPart}] found: ${referenceDetails !== undefined}`);
-                } else if (this.semanticFindings.isGlobalToken(namedIndexPart)) {
-                  referenceDetails = this.semanticFindings.getGlobalToken(namedIndexPart);
-                  this._logSPIN(`  --  FOUND global name=[${namedIndexPart}] found: ${referenceDetails !== undefined}`);
-                }
-                if (referenceDetails !== undefined) {
-                  this._logSPIN('  --  lcl-idx variableName=[' + namedIndexPart + '], ofs=(' + nameOffset + ')');
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: symbolPosition.character,
-                    length: namedIndexPart.length,
-                    ptTokenType: referenceDetails.type,
-                    ptTokenModifiers: referenceDetails.modifiers
-                  });
-                } else {
-                  if (
-                    !this.parseUtils.isSpinReservedWord(namedIndexPart) &&
-                    !this.parseUtils.isSpinBuiltinMethod(namedIndexPart) &&
-                    !this.parseUtils.isBuiltinStreamerReservedWord(namedIndexPart) &&
-                    !this.parseUtils.isDebugMethod(namedIndexPart) &&
-                    !this.parseUtils.isDebugControlSymbol(namedIndexPart)
-                  ) {
-                    // found new local variable name, register it
-                    this._logSPIN(`  -- rptSPIN() NEW local varname=[${namedIndexPart}], ofs=(${nameOffset})`);
-                    // check to see if local name is hiding global variable
-                    if (this._hidesGlobalVariable(namedIndexPart)) {
-                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                        line: symbolPosition.line,
-                        startCharacter: symbolPosition.character,
-                        length: namedIndexPart.length,
-                        ptTokenType: 'variable',
-                        ptTokenModifiers: ['illegalUse']
-                      });
-                      this.semanticFindings.pushDiagnosticMessage(
-                        symbolPosition.line,
-                        symbolPosition.character,
-                        symbolPosition.character + namedIndexPart.length,
-                        eSeverity.Error,
-                        `P2 Spin local [${namedIndexPart}] hides global variable of same name`
-                      );
-                    } else {
-                      // here with undefined index variable
-                      this._logSPIN(`  --  PUB/PRI ERROR[CODE] unknown named index=[${namedIndexPart}]`);
-                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                        line: symbolPosition.line,
-                        startCharacter: symbolPosition.character,
-                        length: namedIndexPart.length,
-                        ptTokenType: 'variable',
-                        ptTokenModifiers: ['illegalUse']
-                      });
-                      this.semanticFindings.pushDiagnosticMessage(
-                        symbolPosition.line,
-                        symbolPosition.character,
-                        symbolPosition.character + namedIndexPart.length,
-                        eSeverity.Error,
-                        `P2 Spin local variable [${namedIndexPart}] index name unknown!`
-                      );
-                    }
-                  }
-                }
+            nameParts = localVariableName.split(/[ \t[\]]/).filter(Boolean);
+            this._logSPIN(`  -- rptPubPriSig() split nameParts=[${nameParts}](${nameParts.length})`);
+            for (let index = 0; index < nameParts.length; index++) {
+              const element = nameParts[index];
+              if (possAlignType.length == 0 && this.parseUtils.isAlignType(element)) {
+                possAlignType = element;
+                continue;
+              }
+              if (possStorageType.length == 0 && this.parseUtils.isStorageType(element)) {
+                possStorageType = element;
+                continue;
+              }
+              if (possLocalVarName.length == 0 && this.parseUtils.isValidSpinSymbolName(element)) {
+                possLocalVarName = element;
+                continue;
+              }
+              if (this.parseUtils.isValidSpinSymbolName(element) || this.parseUtils.isValidSpinNumericConstant(element)) {
+                extraParts.push(element);
               }
             }
+          } else {
+            this._logSPIN(`  -- rptPubPriSig() non-split nameParts=[${nameParts}](${nameParts.length})`);
+            possLocalVarName = nameParts[0];
           }
-          //
+          this._logSPIN(`  -- rptPubPriSig()      align=[${possAlignType}], storage=[${possStorageType}], varName=[${possLocalVarName}]`);
+          this._logSPIN(`  -- rptPubPriSig() extraParts=[${extraParts}](${extraParts.length})`);
+          let symbolPosition: Position = Position.create(-1, -1);
+
+          // ---------------------------
           // handle align value
           //
           if (possAlignType.length > 0) {
@@ -4653,6 +4572,102 @@ export class Spin2DocumentSemanticParser {
             new RememberedToken('variable', symbolPosition.line, symbolPosition.character, ['local']),
             this._declarationComment()
           ); // TOKEN SET in _rpt()
+
+          // have name similar to scratch[12]?
+          //
+          // handle index value, first
+          //
+          if (extraParts.length > 0) {
+            // yes remove array suffix
+            const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(extraParts.join(' '));
+            const localNameParts: string[] = lineInfo.lineParts;
+            this._logSPIN(`  -- rptPubPriSig() post[] localNameWithIndexParts=[${localNameParts}]`);
+            possLocalVarName = localNameParts[0];
+            for (let index = 1; index < localNameParts.length; index++) {
+              const namedIndexPart = localNameParts[index];
+              symbolPosition = multiLineSet.locateSymbol(namedIndexPart, varNameOffsetBase);
+              nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+              if (this.parseUtils.isValidSpinSymbolName(namedIndexPart)) {
+                this._logSPIN(`  -- rptPubPriSig() checking namedIndexPart=[${namedIndexPart}]`);
+                if (this._isPossibleObjectReference(namedIndexPart)) {
+                  // go register object reference!
+                  const bHaveObjReference: boolean = this._reportObjectReference(
+                    namedIndexPart,
+                    symbolPosition.line,
+                    symbolPosition.character,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    tokenSet
+                  );
+                  if (bHaveObjReference) {
+                    continue;
+                  }
+                }
+                let referenceDetails: RememberedToken | undefined = undefined;
+                if (this.semanticFindings.isLocalToken(namedIndexPart)) {
+                  referenceDetails = this.semanticFindings.getLocalTokenForLine(namedIndexPart, symbolPosition.line + 1);
+                  this._logSPIN(`  --  FOUND local name=[${namedIndexPart}] found: ${referenceDetails !== undefined}`);
+                } else if (this.semanticFindings.isGlobalToken(namedIndexPart)) {
+                  referenceDetails = this.semanticFindings.getGlobalToken(namedIndexPart);
+                  this._logSPIN(`  --  FOUND global name=[${namedIndexPart}] found: ${referenceDetails !== undefined}`);
+                }
+                if (referenceDetails !== undefined) {
+                  this._logSPIN('  --  lcl-idx variableName=[' + namedIndexPart + '], ofs=(' + nameOffset + ')');
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: namedIndexPart.length,
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: referenceDetails.modifiers
+                  });
+                } else {
+                  if (
+                    !this.parseUtils.isSpinReservedWord(namedIndexPart) &&
+                    !this.parseUtils.isSpinBuiltinMethod(namedIndexPart) &&
+                    !this.parseUtils.isBuiltinStreamerReservedWord(namedIndexPart) &&
+                    !this.parseUtils.isDebugMethod(namedIndexPart) &&
+                    !this.parseUtils.isDebugControlSymbol(namedIndexPart)
+                  ) {
+                    // found new local variable name, register it
+                    this._logSPIN(`  -- rptPubPriSig() NEW local varname=[${namedIndexPart}], ofs=(${nameOffset})`);
+                    // check to see if local name is hiding global variable
+                    if (this._hidesGlobalVariable(namedIndexPart)) {
+                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namedIndexPart.length,
+                        ptTokenType: 'variable',
+                        ptTokenModifiers: ['illegalUse']
+                      });
+                      this.semanticFindings.pushDiagnosticMessage(
+                        symbolPosition.line,
+                        symbolPosition.character,
+                        symbolPosition.character + namedIndexPart.length,
+                        eSeverity.Error,
+                        `P2 Spin local [${namedIndexPart}] hides global variable of same name`
+                      );
+                    } else {
+                      // here with undefined index variable
+                      this._logSPIN(`  --  PUB/PRI ERROR[CODE] unknown named index=[${namedIndexPart}]`);
+                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namedIndexPart.length,
+                        ptTokenType: 'variable',
+                        ptTokenModifiers: ['illegalUse']
+                      });
+                      this.semanticFindings.pushDiagnosticMessage(
+                        symbolPosition.line,
+                        symbolPosition.character,
+                        symbolPosition.character + namedIndexPart.length,
+                        eSeverity.Error,
+                        `P2 Spin local variable [${namedIndexPart}] index name unknown!`
+                      );
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -4698,9 +4713,15 @@ export class Spin2DocumentSemanticParser {
       }
 
       // FIXME: TODO: unwrap inline method calls within method calls
+      // locate method(param1, param2, ...)
+      const spinStatements: string[] = [];
+      for (let index = 0; index < spinStatements.length; index++) {
+        const element = spinStatements[index];
+      }
 
       // locate key indicators of line style
-      const assignmentOffset: number = multiLineSet.line.indexOf(':=', currSingleLineOffset);
+      const assignmentCount: number = multiLineSet.line.split(':=').length - 1;
+      const assignmentOffset: number = assignmentCount == 1 ? multiLineSet.line.indexOf(':=', currSingleLineOffset) : -1;
       if (assignmentOffset != -1) {
         // -------------------------------------------
         // have line assigning value to variable(s)

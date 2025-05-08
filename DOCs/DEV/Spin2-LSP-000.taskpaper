@@ -67,21 +67,24 @@ FEATURE Latest Language Ver Updates:
 		- complete the PUB-PRI conversion to multiLine @done(2025-04-26)
 		- convert _getDebugStatement() to _getDebugStatementMultiLine() @done(2025-04-28)
 		- complete SPIN unification @done(2025-04-28)
+		- Convert _getOBJ_Declaration() to multiline
+		- Convert _getVAR_Declaration() to multiline
 	
 	FIX NOW:
 		FIX:
-			- 231021-fixes.spin2 - Ln#42 - line[px,py  white vs. highlighted
-			- chk_file_presence.spin2 - Ln#22-#24 - highlight of byte[i+1] references  should byte[] be violet or storageType?
-			- chk_missing_objPrefixes.spin2 - Ln#35 - missed highlight of object[].method()
-			- 240406-fixes.spin2 - tic debug fixes
-			- comment_cert.spin2 - Ln#85 failure to parse local variables
-			- debug_coloring_examples.spin2 - Ln#93 bad var decls, and others in file
+			- 231021-fixes.spin2 - Ln#42 - line[px,py  white vs. highlighted @done(2025-05-07)
+			- chk_missing_objPrefixes.spin2 - Ln#35 - missed highlight of object[].method() @done(2025-05-07)
+			- comment_cert.spin2 - Ln#3 failure to parse comemnts in OBJ section
+			- debug_coloring_examples.spin2 - Ln#93 bad VAR decls
 			- Jeff Debug Test 2 (syntax).spin2 - Ln#11 and 1 other debug() statement methods/functions within
 			- Jeff Debug Test 3 (syntax).spin2 - debug() statement methods/functions within Lot's of them!
 		DELAY:
 			- 231112-fixes-spin2 - highlight %"xx" strings in method call passed parameters
 			- 240822-fixes.spin2 - bad comment/line wrap highlighting
 			- d-1CogKbM_neoyume.spin2  - parsing within comments, BAD!!
+			- 240406-fixes.spin2 - tic debug fixes & wrapped lines using '}....{' wraps - this CAN be collected into multi-line, with some care
+			- debug_coloring_examples.spin2 - highlight of byte[i+1] statements
+			- chk_file_presence.spin2 - Ln#22-#24 - highlight of byte[i+1] references  should byte[] be violet or storageType?
 		
 	UPCOMING:
 		- Add support for multiple VAR declarations per line

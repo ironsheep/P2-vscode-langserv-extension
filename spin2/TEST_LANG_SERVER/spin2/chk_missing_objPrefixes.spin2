@@ -53,7 +53,7 @@ PUB go() : status, handle, longValue, longOffset
     '  ensure returns error (doesn't exist)
     utils.startTest(@"BAD: Read when file doesn't exist")
     handle := open(@testfile,"r")
-    evaluate(handle, Flash.E_FILE_NOT_FOUND)                 ' FIXME: this should be RED (not defined in this file!)
+    evaluate(handle, Flash.E_FILE_NOT_FOUND)
 
     '  open file for write
     '  ensure returns SUCCESS
@@ -62,7 +62,7 @@ PUB go() : status, handle, longValue, longOffset
     utils.evaluate(handle, Flash.SUCCESS)
 
     '  attempt seek and verify that seek on write-only file returns error
-    startTest(@"BAD: seek on write-only file")                 ' FIXME: this should be RED (not defined in this file!)
+    startTest(@"BAD: seek on write-only file")
     status := Flash.seek(handle, 0)
     utils.evaluate(status, Flash.E_FILE_MODE)
 
@@ -116,7 +116,7 @@ PUB go() : status, handle, longValue, longOffset
     status := Flash.seek(handle, (Flash.LONGS_IN_HEAD_BLOCK + 2) * 4)
     utils.evaluate(status, Flash.E_FILE_SEEK)
 
-    ShowFiles()                 ' FIXME: this should be RED (not defined in this file!)
+    ShowFiles()
     utils.ShowTestEndCounts()
 
     debug("* Test Complete")
