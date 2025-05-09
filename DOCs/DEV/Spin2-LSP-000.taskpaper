@@ -87,7 +87,7 @@ FEATURE Latest Language Ver Updates:
 			- chk_file_presence.spin2 - Ln#22-#24 - highlight of byte[i+1] references  should byte[] be violet or storageType?
 		
 	UPCOMING:
-		- Add support for multiple VAR declarations per line
+		- Add support for multiple VAR declarations per line @done(2025-05-08)
 		- Report in PUB/PRI warning for unused param, return, and local vars
 		- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the dont' use comment on line for this block
 		- v43 Add Constants to OBJ I/F DOC

@@ -6,12 +6,24 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 ## [Unreleased]
 
-Work to appear in upcoming releases:
+### Up next:
 
+- Enable preprocessor highlight support found in v48
 - Work on fixes to any reported issues
-- Spin2 highlighting updates for v45, v46, and v47
 
-Possible next additions:
+### Follow-on work to appear in upcoming releases:
+
+- Report in PUB/PRI warning for unused param, return, and local vars
+- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the dont' use comment on line for this block
+- v43 Add Constants to OBJ I/F DOC
+- v45 Add Structures to OBJ I/F DOC
+- v50 Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
+- v51 If sizeof(): Validate variable is a structure instance
+- v45 Hover of structure name should show structure def'n 
+	- (and point to source where declared?)
+
+
+### More distant next additions:
 
 - More features coming. We're looking for what's next...
 - Investigate and possibly add unique coloring for method pointers
@@ -19,17 +31,18 @@ Possible next additions:
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.4.1] 2025-05-06
+## [2.4.1] 2025-05-08
 
 Spin2 Language upgrades
 
 - Highlight %"...." packed character constants as numeric constants
+- BUGFIX: dial-in various coloring *faux pas* - small corner cases fixed
 
 ## [2.4.0] 2025-05-01
 
 Spin2 Language upgrades
 
-- Add language support for {Spin2_v48}, through {Spin2_v51}
+- Add language support for {Spin2_v48}, through {Spin2_v51} (except for preprocessor support)
 - Highlight new STRUCT types
 - Highlight %"...." packed character constants as numeric constants
 - BUGFIX: corrected Syntax coloring of smart-pin constant 'P_REG_UP_DOWN' constant (spelled badly in prior versions)
