@@ -52,7 +52,7 @@ enum eConfigSection {
   CS_WORKSPACE
 }
 
-const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
