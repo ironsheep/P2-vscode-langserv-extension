@@ -74,9 +74,9 @@ FEATURE Latest Language Ver Updates:
 		FIX:
 			- 231021-fixes.spin2 - Ln#42 - line[px,py  white vs. highlighted @done(2025-05-07)
 			- chk_missing_objPrefixes.spin2 - Ln#35 - missed highlight of object[].method() @done(2025-05-07)
-			- comment_cert.spin2 - Ln#3 failure to parse comemnts in OBJ section
-			- debug_coloring_examples.spin2 - Ln#93 bad VAR decls
-			- Jeff Debug Test 2 (syntax).spin2 - Ln#11 and 1 other debug() statement methods/functions within
+			- comment_cert.spin2 - Ln#3 failure to parse comemnts in OBJ section @done(2025-05-08)
+			- debug_coloring_examples.spin2 - Ln#93 bad VAR decls @done(2025-05-08)
+			- Jeff Debug Test 2 (syntax).spin2 - Ln#11 and 1 other debug() statement methods/functions within @done(2025-05-08)
 			- Jeff Debug Test 3 (syntax).spin2 - debug() statement methods/functions within Lot's of them!
 		DELAY:
 			- 231112-fixes-spin2 - highlight %"xx" strings in method call passed parameters

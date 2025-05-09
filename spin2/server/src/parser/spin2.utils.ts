@@ -3,7 +3,6 @@
 
 import { eBuiltInType, eDebugDisplayType, IBuiltinDescription } from './spin.common';
 import { Context } from '../context';
-import { machine } from 'os';
 
 export const displayEnumByTypeName = new Map<string, eDebugDisplayType>([
   ['logic', eDebugDisplayType.ddtLogic],
@@ -952,15 +951,20 @@ export class Spin2ParseUtils {
     return isValidSymbolName;
   }
 
-  public isValidSpinConstantOrSpinSymbol(name: string): [boolean, boolean] {
+  public isValidSpinConstantOrSpinSymbol(name: string, inPasm: boolean = false): [boolean, boolean] {
     let isSpinConstant: boolean = false;
     let isSpinSymbol: boolean = false;
     if (name !== undefined) {
       isSpinConstant = this.isValidSpinNumericConstant(name);
       if (!isSpinConstant) {
-        isSpinSymbol = this.isValidSpinSymbolName(name);
+        if (inPasm) {
+          isSpinSymbol = this.isValidDatPAsmSymbolName(name);
+        } else {
+          isSpinSymbol = this.isValidSpinSymbolName(name);
+        }
       }
     }
+    this._logMessage(`*   isValidSpinConstOrSym([${name}],pasm=(${inPasm})) = (${isSpinConstant}, ${isSpinSymbol})`);
     return [isSpinConstant, isSpinSymbol];
   }
 
@@ -2078,15 +2082,9 @@ export class Spin2ParseUtils {
     return reservedStatus;
   }
 
-  public isNewBinaryOrUnaryOperator(name: string): boolean {
+  public isFloatConversion(name: string): boolean {
     const nameKey: string = name.toLowerCase();
-    let reservedStatus: boolean = false;
-    if (!reservedStatus && this.requestedSpinVersion(51) && nameKey in this._tableSpinBinaryOperators_v51) {
-      reservedStatus = true;
-    }
-    if (!reservedStatus && this.requestedSpinVersion(51) && nameKey in this._tableSpinUnaryOperators_v51) {
-      reservedStatus = true;
-    }
+    const reservedStatus: boolean = nameKey in this._tableSpinFloatConversions;
     return reservedStatus;
   }
 
@@ -2291,12 +2289,6 @@ export class Spin2ParseUtils {
       const nameKey: string = name.toLowerCase();
       reservedStatus = nameKey in this._tableSpinTaskRegisters_v47;
     }
-    return reservedStatus;
-  }
-
-  public isFloatConversion(name: string): boolean {
-    const floatConversionOfNote: string[] = ['float', 'round', 'trunc'];
-    const reservedStatus: boolean = floatConversionOfNote.indexOf(name.toLowerCase()) != -1;
     return reservedStatus;
   }
 

@@ -90,7 +90,6 @@ PUB null()
 '' This is not a top-level object
 
 PRI extensionTesting()
-
     ' the following for signature() testing!
     circInMMforDiaInInch()
 

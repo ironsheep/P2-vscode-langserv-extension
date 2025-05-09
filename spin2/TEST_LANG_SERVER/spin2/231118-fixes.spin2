@@ -49,7 +49,7 @@ PRI DisassembleHID(Ptr, Len) | i, prev_i, b, bcode, v, indent, s, UsagePage, Usa
     case b & %11        'get value
       0: v := 0
       1: v := byte[Ptr + i++] signx 7
-      2: v := word[Ptr + i\(i+2)] signx 15
+      2: v := word[Ptr + i\(i+2)] signx 15   ' FIXME: i count problem
       3: v := long[Ptr + i\(i+4)]
 
     if bcode := lookdown(b & %1111_11_00 : ...

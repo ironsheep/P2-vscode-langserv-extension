@@ -248,7 +248,7 @@ PUB go2() | i, j, k, l
   debug(udec(#(i AND j)))
   debug(udec(i XOR j))
   debug(udec(#(i OR j)))
-  debug(udec(FLOAT(i)))  'Not allowed in PASM (SHOULD be RED)
+  debug(udec(FLOAT(i)))
   debug(udec(ROUND(i)))
   debug(udec(TRUNC(i)))
   debug(udec(NAN(i)))    'Not allowed in PASM (SHOULD be RED)
@@ -331,10 +331,10 @@ PUB go2() | i, j, k, l
   debug(``udec(#(i AND j)))
   debug(``udec(i XOR j))
   debug(``udec(#(i OR j)))
-'  debug(``udec(FLOAT(i)))  'Not allowed in PASM
+  debug(``udec(FLOAT(i)))
   debug(``udec(ROUND(i)))
   debug(``udec(TRUNC(i)))
-'  debug(``udec(NAN(i)))    'Not allowed in PASM
+  debug(``udec(NAN(i)))    'Not allowed in PASM
 
 
 
@@ -416,7 +416,7 @@ PUB go2() | i, j, k, l
   long FLOAT(m)
   long ROUND(a)
   long TRUNC(a)
- long NAN(m)            'Not allowed in tables (should be RED)
+  long NAN(m)            'Not allowed in tables (should be RED)
   end
 
 CON
@@ -429,10 +429,9 @@ DAT
   o     long 0
 
 
-' NOTE in DAT section data declaration or debugg() context use operator coloring NOT PASM instru coloring!
-
+' NOTE in DAT section data declaration or debug() context use operator coloring NOT PASM instru coloring!
   'TD__,uD__
-  debug(udec(@m))
+mylabel  debug(udec(@m))
 '  debug(udec(@@i))       'Not allowed in PASM
 '  debug(udec(i~))        'Not allowed in PASM
 '  debug(udec(i~~))       'Not allowed in PASM
