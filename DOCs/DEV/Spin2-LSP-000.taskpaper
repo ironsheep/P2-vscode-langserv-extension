@@ -67,8 +67,7 @@ FEATURE Latest Language Ver Updates:
 		- complete the PUB-PRI conversion to multiLine @done(2025-04-26)
 		- convert _getDebugStatement() to _getDebugStatementMultiLine() @done(2025-04-28)
 		- complete SPIN unification @done(2025-04-28)
-		- Convert _getOBJ_Declaration() to multiline
-		- Convert _getVAR_Declaration() to multiline
+		- Add support for multiple VAR declarations per line @done(2025-05-08)
 	
 	FIX NOW:
 		FIX:
@@ -77,8 +76,8 @@ FEATURE Latest Language Ver Updates:
 			- comment_cert.spin2 - Ln#3 failure to parse comemnts in OBJ section @done(2025-05-08)
 			- debug_coloring_examples.spin2 - Ln#93 bad VAR decls @done(2025-05-08)
 			- Jeff Debug Test 2 (syntax).spin2 - Ln#11 and 1 other debug() statement methods/functions within @done(2025-05-08)
-			- Jeff Debug Test 3 (syntax).spin2 - debug() statement methods/functions within Lot's of them!
 		DELAY:
+			- Jeff Debug Test 3 (syntax).spin2 - debug() statement methods/functions within Lot's of them!
 			- 231112-fixes-spin2 - highlight %"xx" strings in method call passed parameters
 			- 240822-fixes.spin2 - bad comment/line wrap highlighting
 			- d-1CogKbM_neoyume.spin2  - parsing within comments, BAD!!
@@ -87,7 +86,9 @@ FEATURE Latest Language Ver Updates:
 			- chk_file_presence.spin2 - Ln#22-#24 - highlight of byte[i+1] references  should byte[] be violet or storageType?
 		
 	UPCOMING:
-		- Add support for multiple VAR declarations per line @done(2025-05-08)
+		- cleanup multiline overall handling!
+		- Convert _getOBJ_Declaration() to multiline
+		- Convert _getVAR_Declaration() to multiline
 		- Report in PUB/PRI warning for unused param, return, and local vars
 		- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the dont' use comment on line for this block
 		- v43 Add Constants to OBJ I/F DOC
