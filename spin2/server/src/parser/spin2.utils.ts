@@ -125,11 +125,12 @@ export class Spin2ParseUtils {
 
   public getDebugNonWhiteLineParts(line: string): string[] {
     // remove double and then any single quotes string from display list
+    // FIXME: how to leave index expressions intact ??
     //this._logMessage('  -- gdnwlp() raw-line [' + line + ']');
     const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
-    //this._logMessage("  -- gdnwlp() nonDblStringLine=[" + nonDblStringLine + "]");
+    //this._logMessage(`  -- gdnwlp() nonDblStringLine=[${nonDblStringLine}]`);
     const nonSglStringLine: string = this.removeDebugSingleQuotedStrings(nonDblStringLine, true);
-    //this._logMessage("  -- gdnwlp() nonSglStringLine=[" + nonSglStringLine + "]");
+    //this._logMessage(`  -- gdnwlp() nonSglStringLine=[${nonSglStringLine}]`);
     const lineParts: string[] | null = nonSglStringLine.match(/[^ ,@=+\-*/#<>|^&\t()!?~\\]+/g);
 
     // remove new backtic directives
@@ -156,13 +157,22 @@ export class Spin2ParseUtils {
       }
       //this._logMessage(`   --- gdnwlp() pass 1 element=[${element}](${element.length}) -> new=[${newElements.join(', ')}](${newElements.length})`);
     }
+
     filteredLineParts = rebuiltLineParts.length > 0 ? rebuiltLineParts : filteredLineParts;
+    //this._logMessage(`  -- gdnwlp() filteredLineParts=[${filteredLineParts.join(', ')}](${filteredLineParts.length})`);
     // let's remove leading ']'on elements, trailing '[' on elements, element which is ']' or '[', and '[element]'
     rebuiltLineParts = [];
     for (let index = 0; index < filteredLineParts.length; index++) {
       const element = filteredLineParts[index];
+      //const elementLowCase = element.toLowerCase();
       let newElements: string[] = [];
 
+      /*
+		**  HOLD
+        !/\bbyte\s*\[/.test(elementLowCase) &&
+        !/\bword\s*\[/.test(elementLowCase) &&
+        !/\blong\s*\[/.test(elementLowCase) &&
+		*/
       // remove all '[' and ']' from names except for
       //   names which are structure references  Ex: 'm.head[motor]', or 'm.stat[motor].velo', etc.
       if (element.includes('.[')) {

@@ -67,7 +67,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -6506,8 +6506,8 @@ export class Spin2DocumentSemanticParser {
     }
     let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
     const debugStatementStr: string = multiLineSet.line.substring(currSingleLineOffset).trimEnd();
-    this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rptSPIN() debugStatementStr=[${debugStatementStr}]`);
-    this._logMessage(`  -- rptSPIN() startingOffset=(${startingOffset}), currSingleLineOffset=(${currSingleLineOffset})`);
+    this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rDbgStM() debugStatementStr=[${debugStatementStr}]`);
+    this._logMessage(`  -- rDbgStM() startingOffset=(${startingOffset}), currSingleLineOffset=(${currSingleLineOffset})`);
     const openParenOffset: number = debugStatementStr.indexOf('(');
     let haveBitfieldIndex: boolean = false;
     let bitfieldIndexValue: string = '';
@@ -6517,24 +6517,24 @@ export class Spin2DocumentSemanticParser {
     }
 
     const lineParts: string[] = this.parseUtils.getDebugNonWhiteLineParts(debugStatementStr);
-    this._logDEBUG(`  -- rptSPIN() AM lineParts=[${lineParts.join(', ')}](${lineParts.length})`);
+    this._logDEBUG(`  -- rDbgStM() AM lineParts=[${lineParts.join(', ')}](${lineParts.length})`);
     if (lineParts.length > 0 && lineParts[0].toLowerCase() != 'debug') {
-      //this._logDEBUG(' -- rptSPIN() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
+      //this._logDEBUG(' -- rDbgStM() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
       lineParts.shift(); // assume pasm, remove label - NOTE: assume these are colored by SYNTAX coloring
     }
     if (lineParts.length > 0 && lineParts[0].toLowerCase() == 'debug') {
       if (haveBitfieldIndex) {
-        //this._logDEBUG(' -- rptSPIN() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
+        //this._logDEBUG(' -- rDbgStM() first name not debug! (label?) removing! lineParts[0]=[' + lineParts[0] + ']');
         // FIXME: UNDONE - need to highlight the bitfield index if non-numeric (and allowed to be non-numeric)
         bitfieldIndexValue = lineParts[1];
         lineParts.splice(1, 1); // Removes the element at index 1
-        this._logDEBUG(`  -- rptSPIN() removed bitfield? (or conditional?) lineParts=[${lineParts}](${lineParts.length})`);
+        this._logDEBUG(`  -- rDbgStM() removed bitfield? (or conditional?) lineParts=[${lineParts}](${lineParts.length})`);
       }
       // -------------------------------------
       // process Debug statement identifier
       const symbolPosition: Position = multiLineSet.locateSymbol(lineParts[0], currSingleLineOffset);
       const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-      this._logDEBUG(`  -- rptSPIN() debug=[${lineParts[0]}]`);
+      this._logDEBUG(`  -- rDbgStM() debug=[${lineParts[0]}]`);
       this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
         line: symbolPosition.line,
         startCharacter: symbolPosition.character,
@@ -6547,10 +6547,10 @@ export class Spin2DocumentSemanticParser {
       if (bitfieldIndexValue.length > 0) {
         const symbolPosition: Position = multiLineSet.locateSymbol(bitfieldIndexValue, currSingleLineOffset);
         const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-        this._logDEBUG(`  -- rptSPIN() bitfieldIndexValue=[${bitfieldIndexValue}]`);
+        this._logDEBUG(`  -- rDbgStM() bitfieldIndexValue=[${bitfieldIndexValue}]`);
         const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(bitfieldIndexValue, inPasm);
         if (paramIsNumber) {
-          this._logDEBUG(`  -- rptSPIN() index is Number=[${bitfieldIndexValue}]`);
+          this._logDEBUG(`  -- rDbgStM() index is Number=[${bitfieldIndexValue}]`);
           this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
             line: symbolPosition.line,
             startCharacter: symbolPosition.character,
@@ -6598,26 +6598,26 @@ export class Spin2DocumentSemanticParser {
 
       //let symbolOffset: number = currSingleLineOffset;
       const displayType: string = lineParts.length >= 2 ? lineParts[1] : '';
-      this._logDEBUG(`  -- rptSPIN() possible displayType=[${displayType}](${displayType.length}), lineParts=[${lineParts}](${lineParts.length})`);
+      this._logDEBUG(`  -- rDbgStM() possible displayType=[${displayType}](${displayType.length}), lineParts=[${lineParts}](${lineParts.length})`);
       if (displayType.startsWith('`')) {
-        this._logDEBUG(`  -- rptSPIN() have "debug("\` lineParts=[${lineParts}](${lineParts.length})`);
+        this._logDEBUG(`  -- rDbgStM() have "debug("\` lineParts=[${lineParts}](${lineParts.length})`);
         //symbolOffset = line.indexOf(displayType, symbolOffset) + 1; // plus 1 to get past back-tic
         const newDisplayType: string = displayType.substring(1, displayType.length);
         let displayTestName: string = lineParts[1] == '`' ? lineParts[1] + lineParts[2] : lineParts[1];
         displayTestName = displayTestName.toLowerCase().replace(/ \t/g, '');
         const isRuntimeNamed: boolean =
           displayTestName.startsWith('``') || displayTestName.startsWith('`zstr') || displayTestName.startsWith('`lstr');
-        this._logDEBUG(`  -- rptSPIN() displayTestName=[${displayTestName}], isRuntimeNamed=${isRuntimeNamed}`);
+        this._logDEBUG(`  -- rDbgStM() displayTestName=[${displayTestName}], isRuntimeNamed=${isRuntimeNamed}`);
         const bHaveInstantiation = this.parseUtils.isDebugDisplayType(newDisplayType) && !isRuntimeNamed;
         if (bHaveInstantiation) {
-          this._logDEBUG(`  -- rptSPIN() --- PROCESSING Display Instantiation`);
+          this._logDEBUG(`  -- rDbgStM() --- PROCESSING Display Instantiation`);
           // -------------------------------------
           // process Debug() display instantiation
           //   **    debug(`{displayType} {displayName} ......)
           // (0a) register type use
           let symbolPosition: Position = multiLineSet.locateSymbol(newDisplayType, currSingleLineOffset);
           let nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-          this._logDEBUG(`  -- rptSPIN() newDisplayType=[${newDisplayType}]`);
+          this._logDEBUG(`  -- rDbgStM() newDisplayType=[${newDisplayType}]`);
           this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
             line: symbolPosition.line,
             startCharacter: symbolPosition.character,
@@ -6630,7 +6630,7 @@ export class Spin2DocumentSemanticParser {
           const newDisplayName: string = lineParts[2];
           symbolPosition = multiLineSet.locateSymbol(newDisplayName, currSingleLineOffset);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-          this._logDEBUG(`  -- rptSPIN() newDisplayName=[${newDisplayName}]`);
+          this._logDEBUG(`  -- rDbgStM() newDisplayName=[${newDisplayName}]`);
           this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
             line: symbolPosition.line,
             startCharacter: symbolPosition.character,
@@ -6647,7 +6647,7 @@ export class Spin2DocumentSemanticParser {
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             if (this.parseUtils.isValidSpinNumericConstant(newParameter)) {
-              this._logDEBUG(`  -- rptSPIN() param Number=[${newParameter}]`);
+              this._logDEBUG(`  -- rDbgStM() param Number=[${newParameter}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: symbolPosition.character,
@@ -6660,7 +6660,7 @@ export class Spin2DocumentSemanticParser {
             }
             const bIsParameterName: boolean = this.parseUtils.isNameWithTypeInstantiation(newParameter, eDisplayType);
             if (bIsParameterName) {
-              this._logDEBUG(`  -- rptSPIN() mA newParam=[${newParameter}]`);
+              this._logDEBUG(`  -- rDbgStM() mA newParam=[${newParameter}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: symbolPosition.character,
@@ -6671,7 +6671,7 @@ export class Spin2DocumentSemanticParser {
             } else {
               const bIsColorName: boolean = this.parseUtils.isDebugColorName(newParameter);
               if (bIsColorName) {
-                this._logDEBUG(`  -- rptSPIN() newColor=[${newParameter}]`);
+                this._logDEBUG(`  -- rDbgStM() newColor=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6715,7 +6715,7 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isDebugBitmapColorMode(newParameter) &&
                     !this.parseUtils.isBuiltinStreamerReservedWord(newParameter)
                   ) {
-                    this._logDEBUG('  -- rptSPIN() 1 unkParam=[${newParameter}]');
+                    this._logDEBUG('  -- rDbgStM() 1 unkParam=[${newParameter}]');
                     this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                       line: symbolPosition.line,
                       startCharacter: symbolPosition.character,
@@ -6754,7 +6754,7 @@ export class Spin2DocumentSemanticParser {
           // handle 1st display here
           let firstParamIdx: number = 0; // value NOT used
           if (bHaveFeed) {
-            this._logDEBUG(`  -- rptSPIN() --- PROCESSING feed`);
+            this._logDEBUG(`  -- rDbgStM() --- PROCESSING feed`);
             let currLineNbr: number = 0;
             if (isRuntimeNamed) {
               firstParamIdx = displayName == '`' || displayName == '``' ? 2 : 1; // [0]=`debug` [1]=`runtimeName, [2]... symbols
@@ -6763,7 +6763,7 @@ export class Spin2DocumentSemanticParser {
               // handle one or more names!
               do {
                 // (0) register UserName use
-                this._logDEBUG(`  -- rptSPIN() displayName=[${displayName}]`);
+                this._logDEBUG(`  -- rDbgStM() displayName=[${displayName}]`);
                 const symbolPosition: Position = multiLineSet.locateSymbol(displayName, currSingleLineOffset);
                 const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
                 currLineNbr = symbolPosition.line + 1;
@@ -6795,13 +6795,13 @@ export class Spin2DocumentSemanticParser {
             let nameOffset: number = 0;
             //let isBackTicMode: boolean = false;
             const parameterParts: string = lineParts.slice(firstParamIdx).join(', ');
-            this._logDEBUG(`  -- rptSPIN() param lineParts=[${parameterParts}](${lineParts.length - firstParamIdx})`);
+            this._logDEBUG(`  -- rDbgStM() param lineParts=[${parameterParts}](${lineParts.length - firstParamIdx})`);
             for (let idx = firstParamIdx; idx < lineParts.length; idx++) {
               newParameter = lineParts[idx];
               // Ex: debug(``udec(i * j)) -- the udec arrives as ``uudec, remove prefix
               newParameter = newParameter.startsWith('``') ? newParameter.substring(2) : newParameter;
-              this._logDEBUG(`  -- rptSPIN() rawParameter=[${newParameter}](${newParameter.length})`);
-              if (newParameter.indexOf("'") != -1 || this.isStorageType(newParameter)) {
+              this._logDEBUG(`  -- rDbgStM() rawParameter=[${newParameter}](${newParameter.length})`);
+              if (newParameter.indexOf("'") != -1) {
                 currSingleLineOffset += newParameter.length;
                 continue; // skip this name (it's part of a string!)
               } else if (newParameter.indexOf('#') != -1) {
@@ -6817,7 +6817,22 @@ export class Spin2DocumentSemanticParser {
               //symbolOffset = line.indexOf(newParameter, symbolOffset);
               symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
               nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-              this._logDEBUG(`  -- rptSPIN() process parameter=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
+              this._logDEBUG(`  -- rDbgStM() process parameter=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
+              if (this.parseUtils.isStorageType(newParameter)) {
+                this._logDEBUG(`  -- rDbgStM() storage type=[${newParameter}]`);
+                // have a 'byte' of byte[i+0]
+                // have a 'word' of word[i+0]
+                // have a 'long' of long[i+0]
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: newParameter.length,
+                  ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                  ptTokenModifiers: ['builtin']
+                });
+                currSingleLineOffset = nameOffset + newParameter.length;
+                continue;
+              }
               // handle dotted reference
               if (newParameter.includes('.')) {
                 let bFoundObjRef: boolean = false;
@@ -6847,7 +6862,7 @@ export class Spin2DocumentSemanticParser {
                   if (bHaveStructReference) {
                     if (newParameter !== refString) {
                       this._logSPIN(
-                        `  -- rptSPIN() F ERROR?! [${refString}](${refString.length}) is only part of [${newParameter}](${newParameter.length}), how to handle the rest?`
+                        `  -- rDbgStM() F ERROR?! [${refString}](${refString.length}) is only part of [${newParameter}](${newParameter.length}), how to handle the rest?`
                       );
                     }
                     currSingleLineOffset = nameOffset + refString.length;
@@ -6855,7 +6870,7 @@ export class Spin2DocumentSemanticParser {
                   }
                 }
               } else if (this.parseUtils.isValidSpinNumericConstant(newParameter)) {
-                this._logDEBUG(`  -- rptSPIN() constant=[${newParameter}]`);
+                this._logDEBUG(`  -- rDbgStM() constant=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6867,7 +6882,7 @@ export class Spin2DocumentSemanticParser {
                 continue;
               } else if (this.parseUtils.isDebugMethod(newParameter)) {
                 // handle debug functions
-                this._logDEBUG(`  -- rptSPIN() debug function=[${newParameter}]`);
+                this._logDEBUG(`  -- rDbgStM() debug function=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6880,7 +6895,7 @@ export class Spin2DocumentSemanticParser {
               } else if (this.parseUtils.isSpinBuiltinMethod(newParameter)) {
                 // XYZZY here method coloring
                 // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
-                this._logSPIN(`  -- rptSPIN() built-in method=[${newParameter}]`);
+                this._logSPIN(`  -- rDbgStM() built-in method=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6890,7 +6905,7 @@ export class Spin2DocumentSemanticParser {
                 });
               } else if (this.parseUtils.isSpinBuiltInVariable(newParameter)) {
                 // XYZZY here constant coloring
-                this._logDEBUG(`  -- rptSPIN() register=[${newParameter}]`);
+                this._logDEBUG(`  -- rDbgStM() register=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6906,7 +6921,7 @@ export class Spin2DocumentSemanticParser {
                 this.parseUtils.isFloatConversion(newParameter)
               ) {
                 // XYZZY here constant coloring
-                this._logDEBUG(`  -- rptSPIN() unary/binary=[${newParameter}]`);
+                this._logDEBUG(`  -- rDbgStM() unary/binary=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6917,13 +6932,13 @@ export class Spin2DocumentSemanticParser {
                 currSingleLineOffset = nameOffset + newParameter.length;
                 continue;
               }
-              this._logDEBUG(`  -- rptSPIN() ?check? newParameter=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
+              this._logDEBUG(`  -- rDbgStM() ?check? newParameter=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
               let bIsParameterName: boolean = this.parseUtils.isNameWithTypeFeed(newParameter, eDisplayType);
               if (isRuntimeNamed && newParameter.toLowerCase() == 'lutcolors') {
                 bIsParameterName = true;
               }
               if (bIsParameterName) {
-                this._logDEBUG(`  -- rptSPIN() mB newParam=[${newParameter}]`);
+                this._logDEBUG(`  -- rDbgStM() mB newParam=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -6934,7 +6949,7 @@ export class Spin2DocumentSemanticParser {
               } else {
                 const bIsColorName: boolean = this.parseUtils.isDebugColorName(newParameter);
                 if (bIsColorName) {
-                  this._logDEBUG(`  -- rptSPIN() newColor=[${newParameter}]`);
+                  this._logDEBUG(`  -- rDbgStM() newColor=[${newParameter}]`);
                   this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                     line: symbolPosition.line,
                     startCharacter: symbolPosition.character,
@@ -6956,7 +6971,7 @@ export class Spin2DocumentSemanticParser {
                     this._logDEBUG(`  --  FOUND global name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                   }
                   if (referenceDetails !== undefined) {
-                    this._logDEBUG(`  -- rptSPIN() debug newParameter=[${newParameter}]`);
+                    this._logDEBUG(`  -- rDbgStM() debug newParameter=[${newParameter}]`);
                     this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                       line: symbolPosition.line,
                       startCharacter: symbolPosition.character,
@@ -6978,7 +6993,7 @@ export class Spin2DocumentSemanticParser {
                       !this.parseUtils.isSpinReservedWord(newParameter) &&
                       !this.parseUtils.isBuiltinStreamerReservedWord(newParameter)
                     ) {
-                      this._logDEBUG('  -- rptSPIN() 2 unkParam=[${newParameter}]'); // XYZZY LutColors
+                      this._logDEBUG('  -- rDbgStM() 2 unkParam=[${newParameter}]'); // XYZZY LutColors
                       this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                         line: symbolPosition.line,
                         startCharacter: symbolPosition.character,
@@ -7002,7 +7017,7 @@ export class Spin2DocumentSemanticParser {
           }
         }
       } else {
-        this._logDEBUG(`  -- rptSPIN() --- PROCESSING non-display (other) currSingleLineOffset=(${currSingleLineOffset})`);
+        this._logDEBUG(`  -- rDbgStM() --- PROCESSING non-display (other) currSingleLineOffset=(${currSingleLineOffset})`);
         // -------------------------------------
         // process non-display debug statement
         // BUGFIX: clean up array references in lineParts
@@ -7020,7 +7035,7 @@ export class Spin2DocumentSemanticParser {
               adjLineParts.push(element);
             }
           }
-          this._logMessage(`  -- rptSPIN() - lineParts=[${lineParts}](${lineParts.length})`);
+          this._logMessage(`  -- rDbgStM() - lineParts=[${lineParts}](${lineParts.length})`);
           this._logMessage(`         is nowlineParts=[${adjLineParts}](${adjLineParts.length})`);
         }
         const firstParamIdx: number = adjLineParts.length > 1 && adjLineParts[0].toLowerCase().includes('debug') ? 1 : 0; // no prefix to skip
@@ -7043,7 +7058,7 @@ export class Spin2DocumentSemanticParser {
           if (paramIsNumber) {
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-            this._logDEBUG(`  -- rptSPIN() Number=[${newParameter}]`);
+            this._logDEBUG(`  -- rDbgStM() Number=[${newParameter}]`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: symbolPosition.character,
@@ -7055,24 +7070,24 @@ export class Spin2DocumentSemanticParser {
             continue;
           }
           if (!paramIsSymbolName) {
-            this._logSPIN(`  -- rptSPIN() SKIP not-sym name=[${newParameter}](${newParameter.length})`);
+            this._logSPIN(`  -- rDbgStM() SKIP not-sym name=[${newParameter}](${newParameter.length})`);
             currSingleLineOffset += newParameter.length;
             continue;
           }
           if (newParameter.toLowerCase() == 'debug') {
             currSingleLineOffset += newParameter.length;
-            this._logSPIN(`  -- rptSPIN() SKIP debug name=[${newParameter}](${newParameter.length})`);
+            this._logSPIN(`  -- rDbgStM() SKIP debug name=[${newParameter}](${newParameter.length})`);
             continue;
           }
           //symbolOffset = line.indexOf(newParameter, symbolOffset); // walk this past each
           symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
           this._logDEBUG(
-            `  --  rptSPIN() handle SYMBOL=[${newParameter}], currSingleLineOfs=(${currSingleLineOffset}), posn=[${symbolPosition.line}, ${symbolPosition.character}], nameOfs=(${nameOffset})`
+            `  --  rDbgStM() handle SYMBOL=[${newParameter}], currSingleLineOfs=(${currSingleLineOffset}), posn=[${symbolPosition.line}, ${symbolPosition.character}], nameOfs=(${nameOffset})`
           );
           // if new  debug method in later version then highlight it
           if (this.parseUtils.isDebugMethod(newParameter) || this.parseUtils.isNewlyAddedDebugSymbol(newParameter)) {
-            this._logSPIN(`  -- rptSPIN() (possibly) new DEBUG name=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
+            this._logSPIN(`  -- rDbgStM() (possibly) new DEBUG name=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: symbolPosition.character,
@@ -7090,7 +7105,7 @@ export class Spin2DocumentSemanticParser {
             this.parseUtils.isFloatConversion(newParameter)
           ) {
             this._logSPIN(
-              `  -- rptSPIN() (possibly) Unary/Binary Op/Float Conversion name=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`
+              `  -- rDbgStM() (possibly) Unary/Binary Op/Float Conversion name=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`
             );
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
@@ -7104,7 +7119,7 @@ export class Spin2DocumentSemanticParser {
           }
           // do we have version added method? then highlight as method
           if (this.parseUtils.isVersionAddedMethod(newParameter)) {
-            this._logDEBUG(`  -- rptSPIN() newVersionAddedMethod=[${newParameter}]`);
+            this._logDEBUG(`  -- rDbgStM() newVersionAddedMethod=[${newParameter}]`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: symbolPosition.character,
@@ -7117,7 +7132,7 @@ export class Spin2DocumentSemanticParser {
           }
           // have a B/W/L storage type?
           if (this.parseUtils.isStorageType(newParameter)) {
-            this._logMessage(`  -- rptSPIN() type=[${newParameter}], ofs=(${nameOffset})`);
+            this._logMessage(`  -- rDbgStM() type=[${newParameter}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: nameOffset,
@@ -7135,7 +7150,7 @@ export class Spin2DocumentSemanticParser {
             // have a 'byte' of byte[hub-address][index].[bitfield]
             // have a 'word' of word[hub-address][index].[bitfield]
             // have a 'long' of long[hub-address][index].[bitfield]
-            this._logMessage(`  -- rptSPIN() register=[${newParameter}], ofs=(${nameOffset})`);
+            this._logMessage(`  -- rDbgStM() register=[${newParameter}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: nameOffset,
@@ -7148,7 +7163,7 @@ export class Spin2DocumentSemanticParser {
           }
           // is spin builtin method?
           if (this.parseUtils.isSpinBuiltinMethod(newParameter)) {
-            this._logMessage(`  -- rptSPIN() type=[${newParameter}], ofs=(${nameOffset})`);
+            this._logMessage(`  -- rDbgStM() type=[${newParameter}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: nameOffset,
@@ -7185,7 +7200,7 @@ export class Spin2DocumentSemanticParser {
               bHaveStructReference = true;
               if (newParameter !== refString) {
                 this._logSPIN(
-                  `  -- rptSPIN() B ERROR?! [${refString}](${refString.length}) is only part of [${newParameter}](${newParameter.length}), how to handle the rest?`
+                  `  -- rDbgStM() B ERROR?! [${refString}](${refString.length}) is only part of [${newParameter}](${newParameter.length}), how to handle the rest?`
                 );
               }
               currSingleLineOffset = nameOffset + refString.length;
@@ -7252,7 +7267,7 @@ export class Spin2DocumentSemanticParser {
                 !this.parseUtils.isSpinBuiltInVariable(newParameter) &&
                 !this.parseUtils.isSpinReservedWord(newParameter)
               ) {
-                this._logDEBUG('  -- rptSPIN() 3 unkParam=[${newParameter}]');
+                this._logDEBUG('  -- rDbgStM() 3 unkParam=[${newParameter}]');
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -7727,7 +7742,7 @@ export class Spin2DocumentSemanticParser {
         });
       } else {
         // have unknown name!? what is it?
-        this._logSPIN(`  -- rptSPIN() Unknown name=[${namePart}]`);
+        this._logSPIN(`  -- rObjRef-Set Unknown name=[${namePart}]`);
         this._recordToken(tokenSet, line, {
           line: lineIdx,
           startCharacter: nameOffset,

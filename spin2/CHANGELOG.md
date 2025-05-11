@@ -19,7 +19,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - v45 Add Structures to OBJ I/F DOC
 - v50 Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
 - v51 If sizeof(): Validate variable is a structure instance
-- v45 Hover of structure name should show structure def'n 
+- v45 Hover of structure name should show structure def'n
 	- (and point to source where declared?)
 
 
@@ -30,6 +30,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
+
+## [2.4.2] 2025-05-12
+
+Spin2 Minor Highlight repairs
+
+- Cleanup more debug[...](...) highlighting
 
 ## [2.4.1] 2025-05-08
 
