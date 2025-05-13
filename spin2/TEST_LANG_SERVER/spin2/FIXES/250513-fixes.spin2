@@ -3,7 +3,7 @@
 PRI StrCheck(StrPtrA, StrPtrB) : Pass | i, BYTE Str[64], mathResult, termX, termW
 
  mathResult := 100 ... comment here
-      * termX ... comment here
+      * termX      ... comment here
       - termW
 
 DAT

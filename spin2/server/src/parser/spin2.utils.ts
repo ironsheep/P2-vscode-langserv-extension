@@ -642,7 +642,9 @@ export class Spin2ParseUtils {
 
   public getRemainderWOutTrailingComment(startingOffset: number, line: string): string {
     let lineWithoutTrailingCommentStr: string = this.getRemainderWOutTrailingTicComment(startingOffset, line);
+    //this._logMessage(`sp2u:  -- gRWorlTCmt() removeTic [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
     lineWithoutTrailingCommentStr = this.getRemainderWOutTrailingBraceComment(0, lineWithoutTrailingCommentStr);
+    //this._logMessage(`sp2u:  -- gRWorlTCmt() RemoveBrace [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
     const continuePosn: number = lineWithoutTrailingCommentStr.search(/\s\.\.\.\s/);
     if (continuePosn != -1) {
       // remove the comment part of the line (all text after the '...' )
@@ -669,21 +671,17 @@ export class Spin2ParseUtils {
       lineWithoutTrailingCommentStr = this.getRemainderWOutTrailingTicComment(startingOffset, line);
       lineWithoutTrailingCommentStr = this._removeOnlyInlineComments(0, lineWithoutTrailingCommentStr);
       let beginCommentOffset: number = lineWithoutTrailingCommentStr.lastIndexOf('{');
-      if (beginCommentOffset != -1) {
-        // have single quote, is it within quoted string?
-        // if we have quited string hide them for now...
-        const startDoubleQuoteOffset: number = lineWithoutTrailingCommentStr.indexOf('"');
-        if (startDoubleQuoteOffset != -1) {
-          const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr);
-          beginCommentOffset = nonStringLine.indexOf('{');
-        }
+      const startDoubleQuoteOffset: number = lineWithoutTrailingCommentStr.indexOf('"');
+      if (startDoubleQuoteOffset != -1) {
+        const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr);
+        beginCommentOffset = nonStringLine.lastIndexOf('{');
       }
 
       // do we have a comment?
       //if (beginCommentOffset != -1) {
       //  this._logMessage(`sp2u: - p2 gRWoTTC ofs=${startingOffset}, line=[${line}](${line.length})`);
       //}
-      const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset : line.length;
+      const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset + 1 : line.length;
       //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
       lineWithoutTrailingCommentStr = lineWithoutTrailingCommentStr.substring(0, nonCommentEOL).trimEnd();
       //this._logMessage('- gnclr lineWithoutTrailingCommentStr=[' + startingOffset + ']');

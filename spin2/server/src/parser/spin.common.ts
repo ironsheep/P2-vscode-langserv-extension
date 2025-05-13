@@ -46,6 +46,7 @@ export enum eParseState {
   inDatPAsm,
   inMultiLineComment,
   inMultiLineDocComment,
+  inFakeLineContinuation,
   inNothing
 }
 

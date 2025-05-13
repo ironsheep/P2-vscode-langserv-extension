@@ -206,28 +206,6 @@ export class Spin2DocumentSemanticParser {
     //const LINE_COMMENT = false;
     //let blocksFoundCount: number = 0;
 
-    /*
-     ** FIXME: HOW do we handle continuations lines like:
-     ** --------------------------------------------------------
-		Mario0 byte {
-		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
-		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
-		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-     ** --------------------------------------------------------
-     **
-     ** --------------------------------------------------------
-		MarioColors long {
-		}%00000000_00000000_00000000_00000000,{  $7fff	'any bit 31..24 set means transparent
-		}%11111111_11111000_11111000_11111000,{  $7fff
-		}%11111111_11111000_11111000_11111000,{  $7fff
-		}%11111111_11111000_11111000_11111000,{  $7fff
-		}%11111111_11111000_11011000_10011000,{  $7f73
-		}%11111111_11010000_00000000_00100000,{  $6804  12->32
-		}%11111111_00100000_00100000_00100000  ' $1084  13->33 'address=51
-     ** --------------------------------------------------------
-     **
-     */
-
     for (let i = 0; i < lines.length; i++) {
       const lineNbr: number = i + 1;
       const line: string = lines[i];
@@ -273,19 +251,19 @@ export class Spin2DocumentSemanticParser {
         );
       }
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
-      const nonStringLine: string = this.parseUtils.removeQuotedStrings(nonCommentLine);
-      const trimmedNonStringLine: string = nonStringLine.trim();
-      const nonStringLineUpCase: string = nonStringLine.toUpperCase();
+      let nonStringLine: string = this.parseUtils.removeQuotedStrings(nonCommentLine);
+      let trimmedNonStringLine: string = nonStringLine.trim();
+      let nonStringLineUpCase: string = nonStringLine.toUpperCase();
       const isCodePresent: boolean = trimmedNonCommentLine.length > 0;
-      const isLineContinued: boolean = isCodePresent ? trimmedNonCommentLine.endsWith('...') : false;
+      let isLineContinued: boolean = isCodePresent ? trimmedNonCommentLine.endsWith('...') : false;
       if (isLineContinued) {
         bHaveLineToProcess = false;
       }
       /*
-      this._logMessage(
-        `  -- pre-scan Ln#${lineNbr} CHK3 line2Proc=(${bHaveLineToProcess}), continued=(${isLineContinued}), nonStringLine=[${nonStringLine}](${nonStringLine.length})`
-      );
-      //*/
+		  this._logMessage(
+			`  -- pre-scan Ln#${lineNbr} CHK3 line2Proc=(${bHaveLineToProcess}), continued=(${isLineContinued}), nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+		  );
+		  //*/
       // NOTE: comment mid-line set a pending state so next line uses the new state
       // special blocks of doc-comment and non-doc comment lines handling
       // if we have comment in progress but not another comment line, close comment being built!
@@ -324,6 +302,7 @@ export class Spin2DocumentSemanticParser {
         this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4          nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
         this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4    nonStringLineUpCase=[${nonStringLineUpCase}](${nonStringLineUpCase.length})`);
       }
+      //*/
 
       // if we have line continuation and right-edge comment, then we need to record the right-edge comment
       if (isLineContinued && this.rightEdgeComment.length > 0) {
@@ -334,9 +313,76 @@ export class Spin2DocumentSemanticParser {
           this._generateComentToken(i, commentPosn, this.rightEdgeComment.length, LINE_COMMENT, NONDOC_COMMENT, line)
         );
       }
-      //*/
+
       // now start our processing
-      if (currState == eParseState.inMultiLineDocComment) {
+      if (currState != eParseState.inFakeLineContinuation && trimmedNonCommentLine.endsWith('{') && !trimmedNonCommentLine.endsWith('{{')) {
+        // TODO: the second if clause confuses me... why did I do this?
+        // starting fake line continuation
+        //  - replace '{' with '...'
+        trimmedNonCommentLine = trimmedNonCommentLine.substring(0, trimmedNonCommentLine.length - 1) + ' ...';
+        trimmedNonStringLine = trimmedNonStringLine.substring(0, trimmedNonStringLine.length - 1) + ' ...';
+        nonStringLine = nonStringLine.substring(0, nonStringLine.length - 1) + ' ...';
+        nonStringLineUpCase = nonStringLineUpCase.substring(0, nonStringLineUpCase.length - 1) + ' ...';
+        nonCommentLine = nonCommentLine.substring(0, nonCommentLine.length - 1) + ' ...';
+        isLineContinued = true;
+        bHaveLineToProcess = false;
+
+        // is open of multiline comment
+        priorState = currState;
+        currState = eParseState.inFakeLineContinuation;
+        this._logMessage(
+          `* pre-scan Ln#${lineNbr} foundMuli EOL srt-{ starting FakeLineContinuation, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+        );
+      } else if (currState == eParseState.inFakeLineContinuation) {
+        // continuing fake line continuation
+        //  - replace '{' with '...'
+        //  - and replace leading '}' with ' '
+        const moreContinuation: boolean = trimmedNonCommentLine.startsWith('}');
+        if (moreContinuation) {
+          trimmedNonCommentLine = trimmedNonCommentLine.replace('}', ' ');
+          trimmedNonStringLine = trimmedNonStringLine.replace('}', ' ');
+          nonStringLine = nonStringLine.replace('}', ' ');
+          nonStringLineUpCase = nonStringLineUpCase.replace('}', ' ');
+          nonCommentLine = nonCommentLine.replace('}', ' ');
+        }
+        const stillContinuation: boolean = trimmedNonCommentLine.endsWith('{');
+        if (stillContinuation) {
+          trimmedNonCommentLine = trimmedNonCommentLine.substring(0, trimmedNonCommentLine.length - 1) + ' ...';
+          trimmedNonStringLine = trimmedNonStringLine.substring(0, trimmedNonStringLine.length - 1) + ' ...';
+          nonStringLine = nonStringLine.substring(0, nonStringLine.length - 1) + ' ...';
+          nonStringLineUpCase = nonStringLineUpCase.substring(0, nonStringLineUpCase.length - 1) + ' ...';
+          nonCommentLine = nonCommentLine.substring(0, nonCommentLine.length - 1) + ' ...';
+          isLineContinued = true;
+        } else {
+          isLineContinued = false;
+          this._logMessage(
+            `* pre-scan Ln#${lineNbr} foundMuli EOL end-} enidng FakeLineContinuation, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+          );
+          currState = priorState;
+        }
+        bHaveLineToProcess = false;
+        /*
+		** This is how we handle continuations lines like:
+		** --------------------------------------------------------
+		Mario0 byte {
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+		** --------------------------------------------------------
+		**
+		** --------------------------------------------------------
+		MarioColors long {
+		}%00000000_00000000_00000000_00000000,{  $7fff	'any bit 31..24 set means transparent
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11011000_10011000,{  $7f73
+		}%11111111_11010000_00000000_00100000,{  $6804  12->32
+		}%11111111_00100000_00100000_00100000  ' $1084  13->33 'address=51
+		** --------------------------------------------------------
+		**
+		*/
+      } else if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '} }' to exit
         const closingOffset: number = nonStringLine.indexOf('}}');
         let commentLen: number = line.length;
@@ -584,18 +630,25 @@ export class Spin2DocumentSemanticParser {
         // record start of next block in code
         //  NOTE: this causes end of prior block to be recorded
         let newBlockType: eBLockType = eBLockType.Unknown;
-        if (currState == eParseState.inCon) {
-          newBlockType = eBLockType.isCon;
-        } else if (currState == eParseState.inDat) {
-          newBlockType = eBLockType.isDat;
-        } else if (currState == eParseState.inVar) {
-          newBlockType = eBLockType.isVar;
-        } else if (currState == eParseState.inObj) {
-          newBlockType = eBLockType.isObj;
-        } else if (currState == eParseState.inPub) {
-          newBlockType = eBLockType.isPub;
-        } else if (currState == eParseState.inPri) {
-          newBlockType = eBLockType.isPri;
+        switch (currState) {
+          case eParseState.inCon:
+            newBlockType = eBLockType.isCon;
+            break;
+          case eParseState.inDat:
+            newBlockType = eBLockType.isDat;
+            break;
+          case eParseState.inVar:
+            newBlockType = eBLockType.isVar;
+            break;
+          case eParseState.inObj:
+            newBlockType = eBLockType.isObj;
+            break;
+          case eParseState.inPub:
+            newBlockType = eBLockType.isPub;
+            break;
+          case eParseState.inPri:
+            newBlockType = eBLockType.isPri;
+            break;
         }
 
         const stopVersionHunt: boolean = newBlockType != eBLockType.Unknown ? true : false;
@@ -621,7 +674,7 @@ export class Spin2DocumentSemanticParser {
       };
       if (isLineContinued || (continuedLineSet.isLoading && isCodePresent)) {
         //const lineOffset: number = line.indexOf(trimmedNonCommentLine);
-        //this._logMessage(`- pre-scan Ln#${lineNbr} [${eParseState[currState]}] stuffing ncl=[]${nonCommentLine}](${nonCommentLine.length})`);
+        this._logMessage(`- pre-scan Ln#${lineNbr} [${eParseState[currState]}] stuffing ncl=[${nonCommentLine}](${nonCommentLine.length})`);
         continuedLineSet.addLine(nonCommentLine, i);
         if (!continuedLineSet.hasAllLines) {
           continue; // need to gather next line too
@@ -660,23 +713,29 @@ export class Spin2DocumentSemanticParser {
             this._logMessage(`- pre-scan CON (SGL-onCONline) SKIP Ln#${lineNbr} nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
           }
         } else if (currState == eParseState.inDat) {
-          // process a class(static) variable line
+          // process a class(static) variable line - section start
           this._logPASM(`- pre-scan DAT SECTION Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+          const lineNumber: number = bHaveLineSetToProcess ? continuedLineSet.lineStartIdx + 1 : lineNbr;
+          const lineToProcess: string = bHaveLineSetToProcess ? continuedLineSet.line : nonCommentLine;
+          const bLineReadyToProcess: boolean = bHaveLineSetToProcess || bHaveLineToProcess;
+          const nonStringLine: string = this.parseUtils.removeQuotedStrings(lineToProcess);
+          const bHaveOrg: boolean = nonStringLine.toUpperCase().includes('ORG');
           // the following 2 was 6 but skipping orgh statements???
-          if (trimmedNonCommentLine.length > 2 && nonStringLineUpCase.includes('ORG')) {
+          if (bLineReadyToProcess && lineToProcess.length > 2) {
             // ORG, ORGF, ORGH
-            this._logPASM(`- pre-scan Ln#${lineNbr} DAT trimmedNonCommentLine=[${trimmedNonCommentLine}], nonStringLine=[${nonStringLine}]`);
-            if (nonStringLineUpCase.includes('ORG')) {
+            this._logPASM(`- pre-scan Ln#${lineNbr} DAT lineToProcess=[${lineToProcess}], nonStringLine=[${nonStringLine}]`);
+            if (bHaveOrg) {
               this._logPASM(`- pre-scan Ln#${lineNbr} DAT PAsm line nonStringLine=[${nonStringLine}] now DAT PAsm`);
               // record start of PASM code NOT inline
-              this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
+              this.semanticFindings.recordPasmStart(lineNumber - 1, false); // false = NOT inline
               prePAsmState = currState;
               currState = eParseState.inDatPAsm;
-              this._getDAT_Declaration(0, lineNbr, nonCommentLine); // let's get possible label on this ORG statement
+            }
+            this._getDAT_Declaration(0, lineNumber, lineToProcess); // SECTION start - get label from line / or ORG in DAT BLOCK
+            if (bHaveOrg) {
               continue;
             }
           }
-          this._getDAT_Declaration(0, lineNbr, nonCommentLine);
         } else if (currState == eParseState.inObj) {
           // process an "OBJ started" object line (which could be a continued line-set)
           const nonCommentLength: number = bHaveLineSetToProcess ? continuedLineSet.line.length : trimmedNonCommentLine.length;
@@ -719,23 +778,27 @@ export class Spin2DocumentSemanticParser {
           continuedLineSet.clear();
         }
       } else if (currState == eParseState.inDat) {
-        // process a data line
-        this._logPASM(`- pre-scan DAT Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
-        if (bHaveLineToProcess) {
-          if (nonStringLineUpCase.includes('ORG')) {
-            // ORG, ORGF, ORGH
-            this._logPASM(`- pre-scan Ln#${lineNbr} DAT trimmedNonCommentLine=[${trimmedNonCommentLine}], nonStringLine=[${nonStringLine}]`);
-            if (nonStringLineUpCase.includes('ORG')) {
-              this._logPASM(`- pre-scan Ln#${lineNbr} DAT PAsm line trimmedLine=[${trimmedLine}]`);
-              // record start of PASM code NOT inline
-              this.semanticFindings.recordPasmStart(i, false); // false = NOT inline
-              prePAsmState = currState;
-              currState = eParseState.inDatPAsm;
-              this._getDAT_Declaration(0, lineNbr, nonCommentLine); // let's get possible label on this ORG statement
-              continue;
-            }
+        // process a class(static) variable line - NOT section start
+        this._logPASM(`- pre-scan DAT non-SECTION Ln#${lineNbr} trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        const lineNumber: number = bHaveLineSetToProcess ? continuedLineSet.lineStartIdx + 1 : lineNbr;
+        const lineToProcess: string = bHaveLineSetToProcess ? continuedLineSet.line : nonCommentLine;
+        const bLineReadyToProcess: boolean = bHaveLineSetToProcess || bHaveLineToProcess;
+        const nonStringLine: string = this.parseUtils.removeQuotedStrings(lineToProcess);
+        const bHaveOrg: boolean = nonStringLine.toUpperCase().includes('ORG');
+        if (bLineReadyToProcess) {
+          // ORG, ORGF, ORGH
+          this._logPASM(`- pre-scan Ln#${lineNbr} DAT trimmedNonCommentLine=[${continuedLineSet.line}], nonStringLine=[${nonStringLine}]`);
+          if (bHaveOrg) {
+            this._logPASM(`- pre-scan Ln#${lineNbr} DAT PAsm line trimmedLine=[${trimmedLine}]`);
+            // record start of PASM code NOT inline
+            this.semanticFindings.recordPasmStart(lineNumber - 1, false); // false = NOT inline
+            prePAsmState = currState;
+            currState = eParseState.inDatPAsm;
           }
-          this._getDAT_Declaration(0, lineNbr, nonCommentLine); // get label from line in DAT BLOCK
+          this._getDAT_Declaration(0, lineNumber, lineToProcess); // get label from line / or ORG in DAT BLOCK
+          if (bHaveOrg) {
+            continue;
+          }
         }
       } else if (currState == eParseState.inVar) {
         // process a variable declaration line
@@ -903,11 +966,11 @@ export class Spin2DocumentSemanticParser {
           `  -- colorize Ln#${lineNbr} sectionStatus=[${eParseState[sectionStatus.inProgressStatus]}] isSectionStart=(${sectionStatus.isSectionStart})`
         );
       }
-      const nonStringLine: string = this.parseUtils.removeQuotedStrings(trimmedNonCommentLine);
-      const trimmedNonStringLine: string = nonStringLine.trim();
-      const nonStringLineUpCase: string = nonStringLine.toUpperCase();
+      let nonStringLine: string = this.parseUtils.removeQuotedStrings(trimmedNonCommentLine);
+      let trimmedNonStringLine: string = nonStringLine.trim();
+      let nonStringLineUpCase: string = nonStringLine.toUpperCase();
       const isCodePresent: boolean = trimmedNonCommentLine.length > 0;
-      const isLineContinued: boolean = isCodePresent ? trimmedNonCommentLine.endsWith('...') : false;
+      let isLineContinued: boolean = isCodePresent ? trimmedNonCommentLine.endsWith('...') : false;
       if (isLineContinued) {
         bHaveLineToProcess = false;
       }
@@ -918,7 +981,75 @@ export class Spin2DocumentSemanticParser {
 	  //*/
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
-      if (currState == eParseState.inMultiLineDocComment) {
+      // now start our processing
+      if (currState != eParseState.inFakeLineContinuation && trimmedNonCommentLine.endsWith('{') && !trimmedNonCommentLine.endsWith('{{')) {
+        // TODO: the second if clause confuses me... why did I do this?
+        // starting fake line continuation
+        //  - replace '{' with '...'
+        trimmedNonCommentLine = trimmedNonCommentLine.substring(0, trimmedNonCommentLine.length - 1) + ' ...';
+        trimmedNonStringLine = trimmedNonStringLine.substring(0, trimmedNonStringLine.length - 1) + ' ...';
+        nonStringLine = nonStringLine.substring(0, nonStringLine.length - 1) + ' ...';
+        nonStringLineUpCase = nonStringLineUpCase.substring(0, nonStringLineUpCase.length - 1) + ' ...';
+        nonCommentLine = nonCommentLine.substring(0, nonCommentLine.length - 1) + ' ...';
+        isLineContinued = true;
+        bHaveLineToProcess = false;
+
+        // is open of multiline comment
+        priorState = currState;
+        currState = eParseState.inFakeLineContinuation;
+        this._logMessage(
+          `* pre-scan Ln#${lineNbr} foundMuli EOL srt-{ starting FakeLineContinuation, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+        );
+      } else if (currState == eParseState.inFakeLineContinuation) {
+        // continuing fake line continuation
+        //  - replace '{' with '...'
+        //  - and replace leading '}' with ' '
+        const moreContinuation: boolean = trimmedNonCommentLine.startsWith('}');
+        if (moreContinuation) {
+          trimmedNonCommentLine = trimmedNonCommentLine.replace('}', ' ');
+          trimmedNonStringLine = trimmedNonStringLine.replace('}', ' ');
+          nonStringLine = nonStringLine.replace('}', ' ');
+          nonStringLineUpCase = nonStringLineUpCase.replace('}', ' ');
+          nonCommentLine = nonCommentLine.replace('}', ' ');
+        }
+        const stillContinuation: boolean = trimmedNonCommentLine.endsWith('{');
+        if (stillContinuation) {
+          trimmedNonCommentLine = trimmedNonCommentLine.substring(0, trimmedNonCommentLine.length - 1) + ' ...';
+          trimmedNonStringLine = trimmedNonStringLine.substring(0, trimmedNonStringLine.length - 1) + ' ...';
+          nonStringLine = nonStringLine.substring(0, nonStringLine.length - 1) + ' ...';
+          nonStringLineUpCase = nonStringLineUpCase.substring(0, nonStringLineUpCase.length - 1) + ' ...';
+          nonCommentLine = nonCommentLine.substring(0, nonCommentLine.length - 1) + ' ...';
+          isLineContinued = true;
+        } else {
+          isLineContinued = false;
+          this._logMessage(
+            `* pre-scan Ln#${lineNbr} foundMuli EOL end-} enidng FakeLineContinuation, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+          );
+          currState = priorState;
+        }
+        bHaveLineToProcess = false;
+        /*
+		** This is how we handle continuations lines like:
+		** --------------------------------------------------------
+		Mario0 byte {
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+		** --------------------------------------------------------
+		**
+		** --------------------------------------------------------
+		MarioColors long {
+		}%00000000_00000000_00000000_00000000,{  $7fff	'any bit 31..24 set means transparent
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11011000_10011000,{  $7f73
+		}%11111111_11010000_00000000_00100000,{  $6804  12->32
+		}%11111111_00100000_00100000_00100000  ' $1084  13->33 'address=51
+		** --------------------------------------------------------
+		**
+		*/
+      } else if (currState == eParseState.inMultiLineDocComment) {
         // in multi-line doc-comment, hunt for end '} }' to exit
         // ALLOW {cmt}, {{cmt}} on same line without closing!
         const closingOffset: number = nonStringLine.indexOf('}}');
@@ -1134,16 +1265,20 @@ export class Spin2DocumentSemanticParser {
           this._reportNonDupeTokens(partialTokenSet, '=> CON: ', line, tokenSet);
         } else if (currState == eParseState.inDat) {
           // process a possible constant use on the DAT line itself!
-          if (line.length > 3) {
-            if (trimmedLine.length > 6) {
-              const [orgOffset, orgStr, nonCommentLine] = this.orgOffsetInline(trimmedLine);
+          const lineNumber: number = bHaveLineSetToProcess ? continuedLineSet.lineStartIdx + 1 : lineNbr;
+          const lineToProcess: string = bHaveLineSetToProcess ? continuedLineSet.line : nonCommentLine;
+          const bLineReadyToProcess: boolean = bHaveLineSetToProcess || bHaveLineToProcess;
+          //const nonStringLine: string = this.parseUtils.removeQuotedStrings(lineToProcess);
+          if (bLineReadyToProcess && lineToProcess.length > 3) {
+            if (lineToProcess.length > 6) {
+              const [orgOffset, orgStr, nonCommentLine] = this.orgOffsetInline(lineToProcess);
               if (orgOffset != -1) {
                 // process remainder of ORG line
                 const nonCommentOffset = line.indexOf(nonCommentLine, 0);
                 // lineNumber, currentOffset, line, allowLocalVarStatus, this.showPAsmCode
                 const allowLocalVarStatus: boolean = false;
                 const NOT_DAT_PASM: boolean = false;
-                this._logDAT(`- colorize DAT Ln#${lineNbr} nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
+                this._logDAT(`- colorize DAT SECTION Ln#${lineNumber} nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
                 const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(
                   i,
                   nonCommentOffset + orgOffset + orgStr.length,
@@ -1152,7 +1287,7 @@ export class Spin2DocumentSemanticParser {
                   this.showDAT,
                   NOT_DAT_PASM
                 );
-                this._reportNonDupeTokens(partialTokenSet, '=> DAT: ', line, tokenSet);
+                this._reportNonDupeTokens(partialTokenSet, '=> DAT: ', lineToProcess, tokenSet);
 
                 prePAsmState = currState;
                 currState = eParseState.inDatPAsm;
@@ -1160,8 +1295,8 @@ export class Spin2DocumentSemanticParser {
                 continue;
               }
             }
-            this._logDAT(`- colorize DAT Ln#${lineNbr} nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
-            const partialTokenSet: IParsedToken[] = this._reportDAT_DeclarationLine(i, 3, line);
+            this._logDAT(`- colorize DAT SECTION Ln#${lineNumber} lineToProcess=[${lineToProcess}](${lineToProcess.length})`);
+            const partialTokenSet: IParsedToken[] = this._reportDAT_DeclarationLine(lineNumber - 1, 3, lineToProcess);
             this._reportNonDupeTokens(partialTokenSet, '=> DAT: ', line, tokenSet);
           }
         } else if (currState == eParseState.inObj) {
@@ -1208,22 +1343,23 @@ export class Spin2DocumentSemanticParser {
         }
         this._reportNonDupeTokens(partialTokenSet, '=> CON: ', line, tokenSet);
       } else if (currState == eParseState.inDat) {
-        // process a line in a data section
-        if (bHaveLineToProcess) {
-          this._logPASM(`- colorize DAT Ln#${lineNbr}  trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
+        // process a line in a data section (not on DAT line)
+        const lineNumber: number = bHaveLineSetToProcess ? continuedLineSet.lineStartIdx + 1 : lineNbr;
+        const lineToProcess: string = bHaveLineSetToProcess ? continuedLineSet.line : nonCommentLine;
+        const bLineReadyToProcess: boolean = bHaveLineSetToProcess || bHaveLineToProcess;
+        //const nonStringLine: string = this.parseUtils.removeQuotedStrings(lineToProcess);
+        if (bLineReadyToProcess) {
+          this._logPASM(`- colorize DAT Ln#${lineNumber}  lineToProcess=[${lineToProcess}](${lineToProcess.length})`);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const [orgOffset, orgStr, nonCommentLine] = this.orgOffsetInline(trimmedLine);
+          const [orgOffset, orgStr, nonCommentLine] = this.orgOffsetInline(lineToProcess);
+          // process ORG line allowing label to be present
+          const partialTokenSet: IParsedToken[] = this._reportDAT_DeclarationLine(lineNumber - 1, 0, lineToProcess);
+          this._reportNonDupeTokens(partialTokenSet, '=> DAT: ', lineToProcess, tokenSet);
+          // if ORG present switch to in-line PAsm
           if (orgOffset != -1) {
-            // process ORG line allowing label to be present
-            const partialTokenSet: IParsedToken[] = this._reportDAT_DeclarationLine(i, 0, line);
-            this._reportNonDupeTokens(partialTokenSet, '=> DAT: ', line, tokenSet);
-
             prePAsmState = currState;
             currState = eParseState.inDatPAsm;
             // and ignore rest of this line
-          } else {
-            const partialTokenSet: IParsedToken[] = this._reportDAT_DeclarationLine(i, 0, line);
-            this._reportNonDupeTokens(partialTokenSet, '=> DAT: ', line, tokenSet);
           }
         }
       } else if (currState == eParseState.inVar) {
