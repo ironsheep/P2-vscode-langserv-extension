@@ -214,7 +214,7 @@ export class Spin2ParseUtils {
 
   public removeQuotedStrings(line: string): string {
     let nonSglStringLine: string = line;
-    if (line === undefined || line.length > 3) {
+    if (line !== undefined && line.length > 3) {
       const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
       nonSglStringLine = this.removeDebugSingleQuotedStrings(nonDblStringLine);
       if (line.length > 0 && line !== nonSglStringLine) {
@@ -460,7 +460,7 @@ export class Spin2ParseUtils {
 
   public getNonWhiteCONLineParts(line: string, preservePacked: boolean = false): string[] {
     const nonEqualsLine: string = this.removeDoubleQuotedStrings(line, preservePacked);
-    const lineParts: string[] | null = nonEqualsLine.match(/[^  \t()|?:*+\-/><=&]+/g);
+    const lineParts: string[] | null = nonEqualsLine.match(/[^ \t()|?:*+\-/><=&]+/g);
     const filterParts: string[] = [];
     if (lineParts != null) {
       for (let index = 0; index < lineParts.length; index++) {

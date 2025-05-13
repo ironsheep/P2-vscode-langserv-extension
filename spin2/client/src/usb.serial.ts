@@ -273,11 +273,8 @@ export class UsbSerial {
               resolve();
             }
           });
-        } else if (!this._serialPort.isOpen) {
-          this.logMessage(`  -- close() ?? port already closed ??`);
-          resolve();
         } else {
-          this.logMessage(`  -- close() ?? no port to close ??`);
+          this.logMessage(`  -- close() ?? port already closed ??`);
           resolve();
         }
         this.logMessage(`* USBSer closed`);

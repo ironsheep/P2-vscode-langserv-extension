@@ -348,7 +348,7 @@ export class ContinuedLines {
         if (element !== undefined) {
           this._logMessage(`    --- ContLn: (dbg) Ln#${this.rawLineIdxs[index] + 1}} rawLines[${index}]=[${element}](${element.length})`);
         } else {
-          this._logMessage(`    --- ContLn: (dbg) Ln#${this.rawLineIdxs[index] + 1}} rawLines[${index}]=[${element}] UNDEFINED!!!`);
+          this._logMessage(`    --- ContLn: (dbg) Ln#${this.rawLineIdxs[index] + 1}} rawLines[${index}]=[{UNDEFINED}] UNDEFINED!!!`);
         }
       }
     }
