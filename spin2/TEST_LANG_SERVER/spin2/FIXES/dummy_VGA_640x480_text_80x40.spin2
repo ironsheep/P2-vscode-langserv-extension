@@ -1,0 +1,12 @@
+' dummy file so parsing is only showing what we need
+
+CON
+
+    MAX_DISPLAY_ROWS = 16
+    MAX_DISPLAY_COLUMNS = 16
+    MAX_COG_BUFFER_SIZE_IN_LONGS = 10
+
+PUB start(pins)
+PUB print(message)
+
+PUB getPixelColorAddr(nRow, nColumn)

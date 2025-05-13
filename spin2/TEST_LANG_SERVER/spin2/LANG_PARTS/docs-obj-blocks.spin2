@@ -1,0 +1,21 @@
+'' from spin2 docs v51
+CON
+   BUFFER_LEN = 10
+
+   SIZE_OF_ROW = vga.MAX_COG_BUFFER_SIZE_IN_LONGS * vga.SIZE_OF_LONG_ROW
+
+OBJ vga     : "dummy_VGA_Driver"                        ' instantiate "VGA_Driver.spin2" as "vga"
+    mouse   : "dummy_USB_Mouse"                         ' instantiate "USB_Mouse.spin2" as "mouse"
+    v[16]   : "dummy_VocalSynth"                        ' instantiate an array of 16 objects ..v[0] through v[15]
+    pwm     : "dummy_PWM_Driver" | p = 8, w = 4         'instantiate "PWM_Driver.spin2" as "pwm" with parameters
+
+DAT
+
+chkBffr     long    0[vga.MAX_BUFFER_LEN + 5 * BUFFER_LEN]
+            long    0[vga.MAX_COG_BUFFER_SIZE_IN_LONGS * vga.SIZE_OF_LONG_ROW]
+
+fileData        File    "fileContainingData.bin"
+fileEnd
+    org
+
+file2Data        File    "2ndFileContainingData.bin"

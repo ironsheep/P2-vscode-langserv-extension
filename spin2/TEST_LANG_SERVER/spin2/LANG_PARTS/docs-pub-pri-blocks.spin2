@@ -14,4 +14,4 @@ PRI FFT1024(DataPtr) | a, b, x[1024], y[1024]
 
 PRI ReMix() : Length, SampleRate | WORD Buff[20000], k
 
-PRI StrCheck(StrPtrA, StrPtrB) : Pass | i, BYTE Str[64]
+PRI StrCheck(StrPtrA, StrPtrB) : Pass | i, BYTE Str[64], z, x, w

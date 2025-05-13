@@ -1,0 +1,424 @@
+{Spin2_v50}
+
+'******************
+'*  128-bit Math  *
+'******************
+
+CON struct int128(n[4])
+
+
+PUB absq(int128 a) : int128 r
+
+  if a.n[3] < 0
+    r := negq(a)
+  else
+    r := a
+
+
+PUB negq(int128 a) : int128 r
+
+'' 128-bit negate
+
+		org
+
+		not	r+0,a+0
+		not	r+1,a+1
+		not	r+2,a+2
+		not	r+3,a+3
+
+		add	r+0,#1	wc
+		addx	r+1,#0	wc
+		addx	r+2,#0	wc
+		addx	r+3,#0
+
+		end
+
+
+PUB addq(int128 a, int128 b) : int128 r
+
+'' 128-bit add
+
+		org
+
+		mov	r+0,a+0
+		mov	r+1,a+1
+		mov	r+2,a+2
+		mov	r+3,a+3
+
+		add	r+0,b+0	wc
+		addx	r+1,b+1	wc
+		addx	r+2,b+2	wc
+		addx	r+3,b+3
+
+		end
+
+
+PUB subq(int128 a, int128 b) : int128 r
+
+'' 128-bit subtract
+
+		org
+
+		mov	r+0,a+0
+		mov	r+1,a+1
+		mov	r+2,a+2
+		mov	r+3,a+3
+
+		sub	r+0,b+0	wc
+		subx	r+1,b+1	wc
+		subx	r+2,b+2	wc
+		subx	r+3,b+3
+
+		end
+
+
+PUB cmpq(int128 a, int128 b) : lt_eq_gt
+
+'' 128-bit signed compare, -1/0/1 for less/equal/greater
+
+		org
+
+		cmp	a+0,b+0	wcz
+		cmpx	a+1,b+1	wcz
+		cmpx	a+2,b+2	wcz
+		cmpsx	a+3,b+3	wcz
+
+	if_nz	sumc	lt_eq_gt,#1
+
+		end
+
+
+PUB magq(int128 a) : m
+
+'' 128-bit magnitude (0..127 or -1 if a=0)
+
+		org
+
+		encod	m,a+3	wc
+	if_c	add	m,#32
+	if_nc	encod	m,a+2	wc
+	if_c	add	m,#32
+	if_nc	encod	m,a+1	wc
+	if_c	add	m,#32
+	if_nc	encod	m,a+0	wc
+	if_nc	neg	m,#1
+
+		end
+
+
+PUB shlq(int128 a, sh) : int128 r
+
+'' 128-bit shift left
+
+		org
+
+		mov	r+0,a+0
+		mov	r+1,a+1
+		mov	r+2,a+2
+		mov	r+3,a+3
+
+		test	sh,#$40	wz	'shift 64?
+	if_nz	mov	r+3,r+1
+	if_nz	mov	r+2,r+0
+	if_nz	mov	r+1,#0
+	if_nz	mov	r+0,#0
+
+		test	sh,#$20	wz	'shift 32?
+	if_nz	mov	r+3,r+2
+	if_nz	mov	r+2,r+1
+	if_nz	mov	r+1,r+0
+	if_nz	mov	r+0,#0
+
+		test	sh,#$1F	wz	'shift < 32?
+		neg	pa,sh
+
+	if_nz	shl	r+3,sh
+	if_nz	mov	pb,r+2
+	if_nz	shr	pb,pa
+	if_nz	or	r+3,pb
+
+	if_nz	shl	r+2,sh
+	if_nz	mov	pb,r+1
+	if_nz	shr	pb,pa
+	if_nz	or	r+2,pb
+
+	if_nz	shl	r+1,sh
+	if_nz	mov	pb,r+0
+	if_nz	shr	pb,pa
+	if_nz	or	r+1,pb
+
+	if_nz	shl	r+0,sh
+
+		end
+
+
+PUB sarq(int128 a, sh) : int128 r
+
+'' 128-bit arithmetic shift right
+
+		org
+
+		mov	r+0,a+0
+		mov	r+1,a+1
+		mov	r+2,a+2
+		mov	r+3,a+3
+
+		test	sh,#$40	wz	'shift 64?
+	if_nz	mov	r+0,r+2
+	if_nz	mov	r+1,r+3
+	if_nz	sar	r+3,#31
+	if_nz	mov	r+2,r+3
+
+		test	sh,#$20	wz	'shift 32?
+	if_nz	mov	r+0,r+1
+	if_nz	mov	r+1,r+2
+	if_nz	mov	r+2,r+3
+	if_nz	sar	r+3,#31
+
+		test	sh,#$1F	wz	'shift < 32?
+		neg	pa,sh
+
+	if_nz	shr	r+0,sh
+	if_nz	mov	pb,r+1
+	if_nz	shl	pb,pa
+	if_nz	or	r+0,pb
+
+	if_nz	shr	r+1,sh
+	if_nz	mov	pb,r+2
+	if_nz	shl	pb,pa
+	if_nz	or	r+1,pb
+
+	if_nz	shr	r+2,sh
+	if_nz	mov	pb,r+3
+	if_nz	shl	pb,pa
+	if_nz	or	r+2,pb
+
+	if_nz	sar	r+3,sh
+
+		end
+
+
+PUB mulf(int128 a, int128 b) : int128 p | isneg
+
+'' 64.64*64.64-bit signed multiply
+
+  if a.n[3] < 0
+    a := absq(a)
+    !!= isneg
+
+  if b.n[3] < 0
+    b := absq(b)
+    !!= isneg
+
+  org
+		rep	@.m,#128
+
+		test	a+0,#1	wcz	'if lsb set, c=1 and z=0
+
+	if_nz	add	p+0,b+0	wc
+	if_nz	addx	p+1,b+1	wc
+	if_nz	addx	p+2,b+2	wc
+	if_nz	addx	p+3,b+3	wc
+
+		rcr	p+3,#1	wc
+		rcr	p+2,#1	wc
+		rcr	p+1,#1	wc
+		rcr	p+0,#1	wc
+		rcr	a+3,#1	wc
+		rcr	a+2,#1	wc
+		rcr	a+1,#1	wc
+		rcr	a+0,#1
+.m
+		mov	p+3,p+1
+		mov	p+2,p+0
+		mov	p+1,a+3
+		mov	p+0,a+2
+
+		end
+
+  if isneg
+    return negq(p)
+
+
+PUB divf(int128 n, int128 d) : int128 q | int128 r, isneg
+
+'' 64.64/64.64-bit signed divide
+
+  if cmpq(n, 0,0,0,0) == 0		'if n=0 then q=0
+    return
+
+  if n.n[3] < 0
+    n := absq(n)
+    !!= isneg
+
+  if d.n[3] < 0
+    d := absq(d)
+    !!= isneg
+
+  org
+
+		not	q+0		'not q for negative carry input
+		not	q+1
+		not	q+2
+		not	q+3
+
+		rep	@.div,#128	'do division loops
+
+		shl	n+0,#1	wc	'n = n << 1
+		rcl	n+1,#1	wc
+		rcl	n+2,#1	wc
+		rcl	n+3,#1	wc
+		rcl	r+0,#1	wc	'r = r << 1 + n.[127]
+		rcl	r+1,#1	wc
+		rcl	r+2,#1	wc
+		rcl	r+3,#1
+
+		cmpx	n+2,d+0	wc	'subtract okay?
+		cmpx	n+3,d+1	wc
+		cmpx	r+0,d+2	wc
+		cmpx	r+1,d+3	wc
+		cmpx	r+2,#0	wc
+		cmpx	r+3,#0	wc	'c = r:n < d
+
+	if_c	skip	#%111111	'skip subtract?
+		sub	n+2,d+0	wc	'r:n -= d
+		subx	n+3,d+1	wc
+		subx	r+0,d+2	wc
+		subx	r+1,d+3	wc
+		subx	r+2,#0	wc
+		subx	r+3,#0	wc	'c = 0
+
+		rcl	q+0,#1	wc	'q = q << 1 + c
+		rcl	q+1,#1	wc
+		rcl	q+2,#1	wc
+		rcl	q+3,#1
+.div
+		not	q+0		'true q
+		not	q+1
+		not	q+2
+		not	q+3
+
+		end
+
+  if isneg
+    return negq(q)
+
+
+PUB sqrf(int128 s) : int128 r | int128 t
+
+'' 32.64-bit unsigned square root
+
+		org
+
+		rep	@.root,#32+64	'32+64 iterations yield 32.64-bit root
+
+		shl	s+0,#1	wc	'shift 2 MSBs of s into t
+		rcl	s+1,#1	wc
+		rcl	s+2,#1	wc
+		rcl	s+3,#1	wc
+		rcl	t+0,#1	wc
+		rcl	t+1,#1	wc
+		rcl	t+2,#1	wc
+		rcl	t+3,#1
+
+		shl	s+0,#1	wc
+		rcl	s+1,#1	wc
+		rcl	s+2,#1	wc
+		rcl	s+3,#1	wc
+		rcl	t+0,#1	wc
+		rcl	t+1,#1	wc
+		rcl	t+2,#1	wc
+		rcl	t+3,#1
+
+		shl	r+0,#1	wc	'shift result left
+		rcl	r+1,#1	wc
+		rcl	r+2,#1	wc
+		rcl	r+3,#1
+
+		bith	r+0,#0		'set result LSBs to %01
+		bitl	r+0,#1
+
+		sub	t+0,r+0	wc	'subtract result from t
+		subx	t+1,r+1	wc
+		subx	t+2,r+2	wc
+		subx	t+3,r+3	wc
+
+		bitnc	r+0,#1		'if subtract okay, set result bit 1
+
+	if_nc	skip	#%1111		'if subtract not okay, add result back into t
+		add	t+0,r+0	wc
+		addx	t+1,r+1	wc
+		addx	t+2,r+2	wc
+		addx	t+3,r+3	wc
+.root
+		shr	r+3,#1	wc	'done, shift result down by one bit
+		rcr	r+2,#1	wc
+		rcr	r+1,#1	wc
+		rcr	r+0,#1
+
+		end
+
+
+PUB logq(int128 a) : int128 r | ix
+
+'' Convert a 128-bit unsigned number into a 7:27-bit logarithm
+
+  ix := magq(a)
+  a := sarq(a, ix - 31 #> 0)
+  return qlog(a.n[0]) & $07FFFFFF | ix << 27, ix >> 5, 0, 0
+
+
+PUB expq(int128 a) : int128 r | ix, lg
+
+'' Convert a 7:27-bit logarithm into a 128-bit unsigned integer
+
+  ix := (a.n[0] >> 27 | a.n[1] << 5) & $7F
+  lg := qexp(a.n[0] | (ix > 31 ? $F8000000 : 0))
+  return shlq(lg,0,0,0, ix - 31 #> 0)
+
+
+PUB LongLSB(int128 a, sh) : r
+
+'' Get long within 128-bit value via LSB
+
+  a := sarq(a, sh)
+
+  return a.n[0]
+
+
+PUB LongMSB(int128 a, sh) : r
+
+'' Get long within 128-bit value via MSB
+
+  a := shlq(a, 127 - sh)
+
+  return a.n[3]
+
+
+PUB LongSHL(a, sh) : int128 r
+
+'' Shift long left into 128-bit value
+
+  return shlq(a,0,0,0, sh)
+
+
+PUB intf(a) : int128 r
+
+  return 0,0,a,0
+
+
+PUB truncf(int128 a) : r
+
+  return long[@a][2]
+
+
+PUB roundf(int128 a) : r
+
+  return a.n[2] + a.n[1].[31]
+
+
+PUB roundx(int128 a, sh) : r | int128 b
+
+  b := sarq(a, sh - 1)
+
+  return (b.n[1] << 31 | b.n[0] >> 1) + b.n[0].[0]

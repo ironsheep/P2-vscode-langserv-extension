@@ -1,9 +1,9 @@
-'' from page 3 of spin2 docs v35i
+'' from spin2 docs v51
 
 ' -----------------------------------------------------------------------------
 '' CON: direct assignments
 ' -----------------------------------------------------------------------------
-CON EnableFlow = 8              ' single assignments
+CON EnableFlow = 8                  ' single assignments
     DisableFlow = 4
     ColorBurstFreq = 3_579_545
 

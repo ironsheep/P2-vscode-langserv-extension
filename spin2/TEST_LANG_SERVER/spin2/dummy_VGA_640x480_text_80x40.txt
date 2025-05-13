@@ -1,0 +1,18 @@
+
+Object "dummy_VGA_640x480_text_80x40" Interface:
+
+PUB start(pins)
+PUB print(message)
+PUB getPixelColorAddr(nRow, nColumn)
+
+_______________
+PUB start(pins)
+
+
+__________________
+PUB print(message)
+
+
+____________________________________
+PUB getPixelColorAddr(nRow, nColumn)
+

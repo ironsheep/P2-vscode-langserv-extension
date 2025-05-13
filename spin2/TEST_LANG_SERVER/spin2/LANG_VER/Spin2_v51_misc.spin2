@@ -1,0 +1,577 @@
+{spin2_v51}
+
+OBJ
+
+  q : "math_128"
+
+
+CON
+
+  _clkfreq		= 256_000_000
+
+  debug_log_size	= 1_000_000
+  debug_mask		= decod 2
+
+  IterLimit		= 10
+
+  PeriodExp		= 18
+  Period		= decod PeriodExp
+
+  SettingShift		= 64 - 16		'16.16 inputs for jerk, acel, velo
+
+  InitialCycles		= 500
+
+  BasePin		= 32
+  MotorCount		= 1
+  CmdCount		= 8			'must be power-of-2
+
+  STRUCT BIG(n[4])
+
+  STRUCT MotorCmd(cycl, BIG jerk)
+  STRUCT MotorCmds(MotorCmd cmd[CmdCount])
+  STRUCT MotorStat(tail, cycl, BIG jerk, BIG acel, BIG velo, BIG posi, totl, ncov, ncof)
+
+  STRUCT MotorStruct(		  trim[MotorCount],	...	'master writes, slave reads/clears, master reads
+				  head[MotorCount],	...	'Spin2 code reads/writes
+			MotorCmds cmds[MotorCount],	...	'Spin2 code writes, PASM driver reads
+			MotorStat stat[MotorCount])		'PASM driver writes, Spin2 code reads
+
+VAR
+
+  MotorStruct m
+  IterCounts[IterLimit+1]
+  driver_cog
+  watcher_cog
+  watcher_stack[50]
+
+PUB start() : n, j, a, v, p, da, dv, dp, jk
+
+  debug[2](`SCOPE s SIZE 1000 1200 SAMPLES 1000 RATE 16)
+  debug[2](`s 'cycle' AUTO 180 10 15)
+  debug[2](`s 'jerk' AUTO 180 210 15)
+  debug[2](`s 'acceleration' AUTO 180 410 15)
+  debug[2](`s 'velocity' AUTO 180 610 15)
+  debug[2](`s 'position' AUTO 180 810 15)
+  debug[2](`s 'totalizer' AUTO 180 1010 15)
+
+  driver_cog := coginit(cogexec_new, @driver, @m)
+  watcher_cog := cogspin(newcog, watch(0), @watcher_stack)
+  debug(sdec(driver_cog))
+
+  'TestIterations()
+  run()
+
+
+PUB run() | P, J1, A1, J2, A2, V, BIG J1n, BIG J2n, T1, T1a, Tc, T2, T2a, d
+
+  debug[2]("Running...")
+
+  repeat
+
+    P  := 1_000 * (!!=d ? 1 : -1)
+    J1 := ($80000000 | getrnd()) >> (getrnd() & $1F <# 16)
+    A1 := ($80000000 | getrnd()) >> (getrnd() & $1F <# 16)
+    J2 := ($80000000 | getrnd()) >> (getrnd() & $1F <# 16)
+    A2 := ($80000000 | getrnd()) >> (getrnd() & $1F <# 16)
+    V  := ($80000000 | getrnd()) >> (getrnd() & $1F <# 16)
+
+    StartPath(0, P, J1, A1, J2, A2, V)
+    waitms(1_000)
+
+
+PUB StartPath(motor, P, J1, A1, J2, A2, V) | BIG J1n, BIG J2n, T1, T1a, Tc, T2, T2a, d
+
+  J1n, J2n, T1, T1a, Tc, T2, T2a := PlanPath(P, J1, A1, J2, A2, V)
+  PathCmd(motor, J1n, J2n, T1, T1a, Tc, T2, T2a)
+
+PRI PathCmd(motor, BIG J1, BIG J2, T1, T1a, Tc, T2, T2a)
+
+  SetCmd(motor, T1,         J1)
+  SetCmd(motor, T1a, q.intf(0))
+  SetCmd(motor, T1, q.negq(J1))
+  SetCmd(motor, Tc,  q.intf(0))
+  SetCmd(motor, T2, q.negq(J2))
+  SetCmd(motor, T2a, q.intf(0))
+  SetCmd(motor, T2,         J2)
+
+
+PRI SetCmd(motor, cycl, BIG jerk) | i
+
+  ifnot cycl
+    return
+
+  repeat until (m.head[motor] - m.stat[motor].tail) & (cmdcount - 1) < cmdcount - 1
+  m.cmds[motor].cmd[m.head[motor]] := cycl, jerk	'add command to queue
+  m.head[motor].[encod cmdcount - 1..0]++		'advance queue head
+  m.cmds[motor].cmd[m.head[motor]] := 0, q.intf(0)	'add empty command to queue
+
+  'debug(uhex_long(m.stat[motor].velo, m.stat[motor].posi))
+
+
+PRI Watch(motor) | i
+
+  repeat
+    if not i.[12..0]++
+      debug[2](`s `shex_(m.stat[motor].cycl, ...
+		q.roundx(m.stat[motor].jerk, SettingShift), ...
+		q.roundx(m.stat[motor].acel, SettingShift), ...
+		q.roundx(m.stat[motor].velo, 64 - (32-PeriodExp)), ...
+		q.roundf(m.stat[motor].posi), ...
+		         m.stat[motor].totl))
+
+PUB TestIterations() | i, P, J1, A1, J2, A2, V, BIG fA, BIG fv, BIG fP,	...
+	   Vr, Pr, BIG J1n, BIG J2n, T1, T1a, Tc, T2, T2a
+
+  debug[1]("Testing Iterations...")
+
+  repeat
+
+    P  := rnd() * (getrnd() < 0 ? -1 : 1)
+    J1 := rnd()
+    A1 := rnd()
+    J2 := rnd()
+    A2 := rnd()
+    V  := rnd()
+
+    J1n, J2n, T1, T1a, Tc, T2, T2a := PlanPath(P, J1, A1, J2, A2, V)
+
+    fA, fV, fP := PathCalc(J1n, J2n, T1, T1a, Tc, T2, T2a)
+
+    'Vr := q.roundx(fV, SettingShift))
+    'Pr := q.roundf(fP)
+
+    Vr := q.truncf(q.shlq(q.addq(fV, q.LongSHL(1,32)), 16))
+    Pr := q.truncf(q.addq(fP, q.LongSHL(1,48)))
+
+    if q.cmpq(fA, q.intf(0)) <> 0 or Vr <> 0 or Pr <> P
+      debug[1]("Tested: ", uhex_long(P, J1, A1, J2, A2, V))
+      debug[1]("Error: ", uhex_long(fV, fP), 13, uhex_long(J1n, J2n), udec(T1, T1a, Tc, T2, T2a))
+      return
+
+    ifnot ++i & $FF
+      debug[1](udec_long_array(@IterCounts,IterLimit+1))
+
+
+PRI rnd() : p
+
+  return ($80000000 | getrnd()) >> getrnd()
+
+PRI PlanPath(P, J1, A1, J2, A2, V) : BIG J1n, BIG J2n, T1, T1a, Tc, T2, T2a ...
+				   | BIG P_, BIG J1_, BIG A1_, BIG J2_, BIG A2_, BIG V_, ...
+				     BIG P1, BIG P2, BIG Ps, Pneg, i
+
+' Parameters:
+'
+'	P	- position goal, relative (-$7FFF_FFFF..$7FFF_FFFF)
+'	J1	- jerk for acceleration ramp and taper (>0)
+'	A1	- acceleration limit during velocity ramp-up (>0)
+'	J2	- jerk for deceleration ramp and taper (>0)
+'	A2	- acceleration limit during velocity ramp-down (>0)
+'	V	- velocity limit (>0)
+'
+'
+' Returns:
+'
+'	J1n	- jerk (new), used to ramp-up and taper-off acceleration as velocity increases
+'	J2n	- jerk (new), used to ramp-down and taper-off acceleration as velocity decreases
+'	T1	- time units for acceleration ramp-up and taper-off (1+)
+'	T1a	- time units for holding acceleration at A1 between ramp-up and taper-off (0+)
+'	Tc	- time units for cruising at V between ramp-up and ramp-down (0+)
+'	T2	- time units for acceleration ramp-down and taper-off (1+)
+'	T2a	- time units for holding acceleration at A2 between ramp-down and taper-off (0+)
+'
+'
+' Simulation usage:
+'
+'	A,V,P := 0,0,0
+'
+'	A,V,P := StepMath(T1,         J1n,  A,V,P)	'acceleration ramp
+'	A,V,P := StepMath(T1a,  q.intf(0),  A,V,P)	'acceleration hold
+'	A,V,P := StepMath(T1, q.negq(J1n),  A,V,P)	'acceleration taper
+'	A,V,P := StepMath(Tc,   q.intf(0),  A,V,P)	'cruise at velocity limit
+'	A,V,P := StepMath(T2, q.negq(J2n),  A,V,P)	'deceleration ramp
+'	A,V,P := StepMath(T2a,  q.intf(0),  A,V,P)	'deceleration hold
+'	A,V,P := StepMath(T2,         J2n,  A,V,P)	'deceleration taper
+'
+'	afterwards, A = 0, V = ~0, P = ~P
+'
+'
+' Large-P Path Plan (invert for negative P):
+'
+'	As P reduces,                                Velo                 Jerk integrates into Acel
+'	T1a,Tc,T2a each become 0               ****************           Acel integrates into Velo
+'	                                   ****  |          |  ****       Velo integrates into Posi
+'	T1,T2 are always 1+             ***      |          |      ***
+'	                              **         |          |         **
+'	                             *|          |          |          |*
+'	                            * |          |          |          | *
+'	                           *  |          |          |          |  *
+'	                          *   |          |          |          |   *
+'	                         *    |          |          |          |    *
+'	                        *     |          |          |          |     *
+'	                       *      |          |          |          |      *
+'	                      *       |          |          |          |       *
+'	                     *        |          |          |          |        *
+'	                    *         |          |          |          |         *
+'	                  **          |          |          |          |          **
+'	               *** |          |          |          |          |          | ***
+'	           ****    |          |          |          |          |          |    ****
+'	 0 ********'    '  |  '    '  |  '    '  |  '    '  |  '    '  |  '    '  |  '    '********
+'	        |          |          |          |          |          |          |          |
+'	        |          |          |          |          |          |          |          |
+'	        |         **************         |          |          |          |          |
+'	        |       ** |          | **       |          |          |          |          |
+'	        |     **   |          |   **     |          |          |          |          |
+'	        |   **     |          |     **   |          |          |          |          |
+'	        | **       |          |       ** |   Acel   |          |          |          |
+'	 0 ******* '    '  |  '    '  |  '    ' ************** '    '  |  '    '  |  '    ' *******
+'	        |          |          |          |          | **       |          |       ** |
+'	        |          |          |          |          |   **     |          |     **   |
+'	        |          |          |          |          |     **   |          |   **     |
+'	        |          |          |          |          |       ** |          | **       |
+'	        |          |          |          |          |         **************         |
+'	        |          |          |          |          |          |          |          |
+'	        |          |          |          |          |          |          |          |
+'	        ************          |          |          |          |          ************
+'	        *          *          |          |   Jerk   |          |          *          *
+'	 0 ******  '    '  ************  '    '  ************  '    '  ************  '    '  ******
+'	        |          |          *          *          *          *          |          |
+'	        |          |          ************          ************          |          |
+'	        |          |          |          |          |          |          |          |
+'	        |          |          |          |          |          |          |          |
+'	        |   ramp   |   hold   |   taper  |          |   ramp   |   hold   |   taper  |
+'	        |   accel  |   accel  |   accel  |  cruise  |   decel  |   decel  |   decel  |
+'	        |          |          |          |          |          |          |          |
+'	Posi  0 |    ++    |    ++    |    ++    |    ++    |    ++    |    ++    |    ++    | P
+'	Velo  0 |    ++    |    ++    |    ++    |     V    |    --    |    --    |    --    | 0
+'	Acel  0 |    ++    |    A1    |    --    |     0    |    --    |   -A2    |    ++    | 0
+'	Jerk  0 |   +J1    |     0    |   -J1    |     0    |   -J2    |     0    |   +J2    | 0
+'	        |          |          |          |          |          |          |          |
+'	Time  0 |<---T1--->|<---T1a-->|<---T1--->|<---Tc--->|<---T2--->|<---T2a-->|<---T2--->| Tsum
+'	        |    1+    |    0+    |    1+    |    0+    |    1+    |    0+    |    1+    |
+
+  ifnot P							'if P = 0, return zeros with T1,T2 = 1
+    T1 := 1
+    T2 := 1
+    return
+
+  Pneg := P < 0							'remember if P was negative (reverse move)
+
+  P_  := q.intf(abs P)						'get input parameters into BIG form
+  J1_ := q.LongSHL(J1, SettingShift)
+  A1_ := q.LongSHL(A1, SettingShift)
+  J2_ := q.LongSHL(J2, SettingShift)
+  A2_ := q.LongSHL(A2, SettingShift)
+  V_  := q.LongSHL(V,  SettingShift)
+
+  T1,T1a,P1 := PlanSide(J1_, A1_, V_)				'calculate T1,T1a,P1 at V
+  T2,T2a,P2 := PlanSide(J2_, A2_, V_)				'calculate T2,T2a,P2 at V
+  Ps := q.addq(P1, P2)						'initial Ps = P1 + P2
+
+  if q.cmpq(P_, Ps) >= 0					'if P was not exceeded when V was reached..
+    Tc := q.roundf(q.divf(q.subq(P_, Ps), V_))			'..compute Tc (cruise time) at V and add it into Ps
+    Ps := q.addq(Ps,q.mulf(V_, q.intf(Tc)))			'..T1,T1a,Tc,T2,T2a are now fixed!
+
+  else								'if P was reached before V, reduce V (non-linear func)
+    repeat IterLimit with i					'..do tuning iterations to get T1,T1a,T2,T2a
+      V_ := q.mulf(V_, q.sqrf(q.divf(P_, Ps)))			'..scale V by sqrt(P/Ps) to drive Ps towards P
+      T1,T1a,P1 := PlanSide(J1_, A1_, V_)			'..calculate T1,T1a,P1 at new V
+      T2,T2a,P2 := PlanSide(J2_, A2_, V_)			'..calculate T2,T2a,P2 at new V
+      Ps := q.addq(P1, P2)					'..new Ps = P1 + P2
+      if q.magq(P_) - q.magq(q.absq(q.subq(P_, Ps))) >= 8	'..if Ps is sufficiently close to P, done
+        quit							'..T1,T1a,Tc=0,T2,T2a are now fixed!
+    IterCounts[i]++						'..bin iteration counts for auditing
+
+  V_ := q.mulf(V_,q.divf(P_, Ps))				'correct V for exact P (now a linear func w/fixed T's)
+  J1n := Solve_J_for_V_T_Ta(V_, T1, T1a)			'calculate J1n at final V
+  J2n := Solve_J_for_V_T_Ta(V_, T2, T2a)			'calculate J2n at final V
+
+  if Pneg							'if P was negative, negate J1n,J2n (reverse move)
+    J1n := q.negq(J1n)
+    J2n := q.negq(J2n)
+
+PRI PlanSide(BIG J, BIG A, BIG V) : T, Ta, BIG P | BIG Tp, BIG T_, BIG Jn
+
+  Tp := q.divf(A, J)						'get T to reach accel limit, Tp = A / J
+  T  := q.roundf(Tp) #> 1					'get integer T, ensure at least 1
+  Jn := q.divf(A, q.intf(T))					'tweak J value for integer T, Jn = A / integer T
+
+  if q.cmpq(V, Solve_V_for_J_T(Jn, T)) >= 0			'if V not reached after accel-limited ramp and taper..
+    Ta := Solve_Ta_for_J_V_T(Jn, V, T)				'..compute Ta for holding accel at A during ramp to V
+    Jn := Solve_J_for_V_T_Ta(V, T, Ta)				'..since T,Ta are now solved, we can recompute J
+
+  else								'if V exceeded after accel-limited ramp and taper..
+    Jn, T := Solve_J_T_for_V(J, V)				'..get new J,T for veloc-limited ramp and taper (Ta=0)
+
+  P := Solve_P_for_J_T_Ta(Jn, T, Ta)				'got T,Ta, and temporary J, now get P
+
+
+PRI Solve_J_T_for_V(BIG J, BIG V) : BIG Jn, T | BIG Tp, BIG T_
+
+' Solve J and T to reach V after ramp and taper
+
+  Tp := q.sqrf(q.divf(V, J))					'get T for veloc-limited ramp and taper, Tp = sqrt(V / J)
+  T  := q.roundf(Tp) #> 1					'get integer T, ensure at least 1
+  T_ := q.intf(T)						'ready to tweak J to reach V with integer T
+  Jn := q.mulf(J, q.divf(q.mulf(Tp, Tp), q.mulf(T_, T_)))	'Jn = J * (Tp * Tp) / (T * T)
+
+
+PRI Solve_J_for_V_T_Ta(BIG V, T, Ta) : BIG J | BIG T_, BIG Ta_
+
+' Solve J to reach V after ramp, hold, and taper
+
+  T_  := q.intf(T)						'T
+  Ta_ := q.intf(Ta)						'Ta
+  J   := q.divf(V, q.mulf(T_, q.addq(T_, Ta_)))			'J = V / (T * (T + Ta))
+
+
+PRI Solve_V_for_J_T(BIG J, T) : BIG V | BIG T_
+
+' Solve V for acceleration ramp and taper
+
+  T_ := q.intf(T)						'T
+  V  := q.mulf(J, q.mulf(T_, T_))				'V = J * T * T
+
+
+PRI Solve_Ta_for_J_V_T(BIG J, BIG V, T) : Ta | BIG T_
+
+' Solve Ta to reach V after ramp, hold, and taper:
+
+  T_ := q.intf(T)						'T
+  Ta := q.roundf(q.subq(q.divf(V, q.mulf(J, T_)), T_))		'Ta = round(V / (J * T) - T)
+
+
+PRI Solve_P_for_J_T_Ta(BIG J, T, Ta) : BIG P | BIG T_, BIG Ta_
+
+' Solve P for ramp, hold, and taper:
+'
+'	A,V,P := 0, 0, 0
+'	A,V,P := StepMath(T,  +.J,  A,V,P)
+'	A,V,P := StepMath(Ta,   0,  A,V,P)
+'	A,V,P := StepMath(T,  -.J,  A,V,P)
+'
+'	...reduces to...
+'
+'	P := J * T * (T * T * 2  +  T * Ta * 3  +  Ta * Ta) / 2
+
+  T_  := q.intf(T)						'T
+  Ta_ := q.intf(Ta)						'Ta
+
+  P :=	q.mulf(q.mulf(J, T_), q.addq(q.addq(			...	'P = J * T * (
+	q.mulf(T_, T_), 					...	'    T * T +
+	q.mulf(q.mulf(q.sarq(T_, 1), Ta_), q.intf(3))),		...	'    T/2 * Ta * 3 +
+	q.mulf(q.sarq(Ta_, 1), Ta_)))				'	'    Ta/2 * Ta)
+
+
+PRI PathCalc(BIG J1, BIG J2, T1, T1a, Tc, T2, T2a) : BIG A, BIG V, BIG P
+
+  A,V,P := StepMath(T1,          J1,  A,V,P)	'acceleration ramp
+  A,V,P := StepMath(T1a,  q.intf(0),  A,V,P)	'acceleration hold
+  A,V,P := StepMath(T1,  q.negq(J1),  A,V,P)	'acceleration taper
+  A,V,P := StepMath(Tc,   q.intf(0),  A,V,P)	'cruise at velocity limit
+  A,V,P := StepMath(T2,  q.negq(J2),  A,V,P)	'deceleration ramp
+  A,V,P := StepMath(T2a,  q.intf(0),  A,V,P)	'deceleration hold
+  A,V,P := StepMath(T2,          J2,  A,V,P)	'deceleration taper
+
+
+PRI StepMath(T, BIG J, BIG A, BIG V, BIG P) : BIG rA, BIG rV, BIG rP | BIG T_1, BIG T_2, BIG T_3
+
+'  dA := J * T
+'  dV := A * T  +  J * T * T / 2
+'  dP := V * T  +  A * T * T / 2  +  J * T * T * T / 6
+'
+'  A += dA
+'  V += dV
+'  P += dP
+
+  T_1 := q.intf(T)		'T
+  T_2 := q.mulf(T_1, T_1)	'T * T
+  T_3 := q.mulf(T_2, T_1)	'T * T * T
+
+  rA := q.addq(A, q.mulf(J, T_1))
+  rV := q.addq(V, q.addq(q.mulf(A, T_1), q.sarq(q.mulf(J, T_2), 1)))
+  rP := q.addq(P, q.addq(q.addq(q.mulf(V, T_1), q.sarq(q.mulf(A, T_2), 1)), q.divf(q.mulf(J, T_3), q.intf(6))))
+
+
+DAT		org
+'
+'
+' Driver setup
+'
+driver		loc	pa,#\$80000				'clear variable registers
+		setq	#:end-:time-1
+		rdlong	:time,pa
+
+    if_nc       debug[4](uhex_(:cycl))
+		mov	:pBasePin,#BasePin			'set a pointer to BasePin (1st motor's 'step' pin)
+		mov	:pMotorStat,#:MotorStats		'set a pointer to MotorStat structures in registers
+
+		rep	@:init,#MotorCount			'for each motor, init 'step' pin, 'direction' pin, and MotorStat variables
+
+		fltl	:pBasePin				'reset smart pin which will output the 'step' signal
+		wrpin	#P_NCO_FREQ|P_OE,:pBasePin		'set NCO frequency mode, output enabled
+		wxpin	##$4000_0001,:pBasePin			'set initial 90-degree offset for midway to MSB, set time base to 1 clock
+		wypin	#0,:pBasePin				'set initial frequency to 0
+		drvl	:pBasePin				'enable smart pin
+
+		add	:pBasePin,#1				'advance from 'step' pin to 'direction' pin
+
+		fltl	:pBasePin				'reset smart pin which will count 'step' rises and output 'direction'
+		wrpin	##P_MINUS1_A|P_INVERT_B|P_OUTBIT_B|P_OE|P_REG_UP_DOWN,:pBasePin	'set up/down-counter mode to track 'step' pin
+		wxpin	#0,:pBasePin				'totalizer, counts 'step' pin rises with this pin's output as up/down
+		drvl	:pBasePin				'enable smart pin
+
+		add	:pBasePin,#1				'advance from 'direction' pin to next 'step' pin
+
+		altd	:pMotorStat,#:cycl-:tail		'set initial value in MotorStat.cycl to allow time for first commands
+		mov	0-0,#InitialCycles
+
+		add	:pMotorStat,#sizeof(MotorStat)/4	'advance to next MotorStat structure in :MotorStats
+:init
+
+		getct	:time					'get initial time count for main loop
+'
+'
+' Main loop
+'
+:loop		addct1	:time,##Period				'get start time of next period
+		waitct1						'wait for start of next period, timing is deterministic afterwards
+
+		ditto	MotorCount							'update 'step'/'direction' pins for each motor
+		wypin	:MotorStats+sizeof(MotorStat)/4*$$+:ncov-:tail,#BasePin+$$*2+0	'set current nco adder value for 'step' pin
+		rdpin	:MotorStats+sizeof(MotorStat)/4*$$+:totl-:tail,#BasePin+$$*2+1	'read current 'step'/'direction' pin totalizer
+		testb	:MotorStats+sizeof(MotorStat)/4*$$+:ncov-:tail,#31	wc	'update 'direction' pin output
+		drvc	#BasePin+$$*2+1
+		ditto	end
+
+
+		mov	:pBasePin,#BasePin			'set a pointer to BasePin (1st motor's 'step' pin)
+		mov	:pMotorStat,#:MotorStats		'set a pointer to MotorStat structures in registers
+		mov	:pMotorCmds,ptra			'set a pointer to MotorCmds structures in hub
+		add	:pMotorCmds,#(4+4)*MotorCount		'(account for decel_jerk[MotorCount],head[MotorCount])
+
+
+:next		sets	pa,:pMotorStat				'get next MotorStat structure into tail..totl working registers
+		setd	pa,#:tail
+		rep	#2,#sizeof(MotorStat)/4
+		alti	pa,#%111_111				'(override next instruction's d,s fields, increment both in pa)
+		mov	0-0,0-0
+
+		mov	pa,:tail				'compute next MotorStruct.MotorCmds[motor].MotorCmd[tail] address
+		mul	pa,#sizeof(MotorCmd)
+		add	pa,:pMotorCmds
+		rdfast	##$80000000,pa				'use non-blocking RDFAST for no jitter, RFLONG >17 clocks away
+
+		add	:acel+0,:jerk+0		wc		'integrate jerk into acceleration
+		addx	:acel+1,:jerk+1		wc
+		addx	:acel+2,:jerk+2		wc
+		addx	:acel+3,:jerk+3
+
+		add	:velo+0,:acel+0		wc		'integrate acceleration into velocity
+		addx	:velo+1,:acel+1		wc
+		addx	:velo+2,:acel+2		wc
+		addx	:velo+3,:acel+3
+
+		add	:posi+0,:velo+0		wc		'integrate velocity into position
+		addx	:posi+1,:velo+1		wc
+		addx	:posi+2,:velo+2		wc
+		addx	:posi+3,:velo+3
+
+		mov	:ncov,:velo+2				'get integer NCO value to be applied
+		mov	pa,:velo+1
+		shl	:ncov,#32-PeriodExp
+		shr	pa,#PeriodExp
+		or	:ncov,pa
+
+		mov	pa,:velo+1				'accumulate fractional NCO value
+		shl	pa,#32-PeriodExp			'get fraction
+		mov	pb,:velo+0
+		shr	pb,#PeriodExp
+		or	pa,pb
+		add	:ncof,pa		wc		'if pos, add fraction into NCO fractional accumulator
+		addx	:ncov,#0
+
+		add	:pBasePin,#1				'advance from NCO/'step' pin to counter/'direction' pin
+
+		add	:pBasePin,#1				'advance from counter/'direction' pin to next NCO/'step' pin
+
+		cmpsub	:cycl,#1		wz		'if current command is done..
+    if_z	incmod	:tail,#CmdCount-1			'..increment command buffer tail pointer
+    if_z	rflong	:cycl					'..get new cycl/jerk command
+    if_z	rflong	:jerk+0
+    if_z	rflong	:jerk+1
+    if_z	rflong	:jerk+2
+    if_z	rflong	:jerk+3
+    if_z	cmp	:cycl,#1		wc		'..if cycl = 0, empty command, back up tail
+    if_z_and_c	decmod	:tail,#CmdCount-1
+
+		sets	pa,#:tail				'move working registers back into their MotorStat structure
+		setd	pa,:pMotorStat
+		rep	#2,#sizeof(MotorStat)/4
+		alti	pa,#%111_111				'(override next instruction's d,s fields, increment both in pa)
+		mov	0-0,0-0
+
+		add	:pMotorStat,#sizeof(MotorStat)/4	'update MotorStat pointer
+		add	:pMotorCmds,#sizeof(MotorCmds)		'update MotorCmds pointer
+
+		incmod	:motor,#MotorCount-1	wc		'loop if another motor
+	if_nc	jmp	#:next
+
+
+		loc	pa,#\(4+4+sizeof(MotorCmds))*MotorCount	'update all MotorStat structures to hub
+		add	pa,ptra
+		setq	#sizeof(MotorStat)/4*MotorCount-1
+		wrlong	:MotorStats,pa
+
+		jmp	#:loop					'loop for next period
+
+'
+'
+' Variable registers (cleared by driver setup)
+'
+:time		res	1					'start time of next period
+:motor		res	1					'motor index for looping
+:pBasePin	res	1					'pointer to 'step'/'direction' pin pairs
+:pMotorStat	res	1					'pointer to MotorStat structures in regs
+:pMotorCmds	res	1					'pointer to MotorCmds structures in hub
+
+:tail		res	1					'MotorStat.tail - command buffer tail pointer
+:cycl		res	1					'MotorStat.cycl - command cycle counter
+:jerk		res	sizeof(BIG)/4				'MotorStat.jerk - motor jerk
+:acel		res	sizeof(BIG)/4				'MotorStat.acel - motor acceleration
+:velo		res	sizeof(BIG)/4				'MotorStat.velo - motor velocity
+:posi		res	sizeof(BIG)/4				'MotorStat.posi - motor position
+:ncov		res	1					'MotorStat.ncov - NCO adder value
+:ncof		res	1					'MotorStat.ncof - NCO fractional accumulator
+:totl		res	1					'MotorStat.totl - 'step'/'direction' totalizer
+
+:MotorStats	res	sizeof(MotorStat)/4*MotorCount		'MotorStat structures
+:end
+
+{
+
+Check trim for non-0
+	if trim = -1
+		:tail = 0
+		:cycl = 0
+		:jerk = 0
+		:acel = 0
+		:velo = 0
+		:posi = :totl
+		:ncof = 0
+		wxpin ##$4000_0001,:pBasePin	'set initial 90-degree offset for midway to MSB, set time base to 1 clock
+		clear trim in hub
+
+	else
+		if trim > abs(:acel)
+			add/sub decel_jerk to/from :acel
+		else, done
+			:tail = 0
+			:cycl = 0
+			:jerk = 0
+			:acel = 0
+			:velo is static
+			:posi is dynamic
+			clear trim in hub
+
+}
