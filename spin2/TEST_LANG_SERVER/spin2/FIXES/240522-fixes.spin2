@@ -1,0 +1,41 @@
+
+' ISSUE #12
+
+PUB string_to_number(buf):value | val, digits, char_value, subtotal, index
+''----------------------------------------
+''Converts a string to integer
+''
+'' @param buf -
+'' @returns value -
+
+' Local Variables:
+' @local val -
+' @local digits -
+' @local char_value -
+' @local subtotal -
+' @local index -
+''----------------------------------------
+  digits := STRSIZE(buf) - 1
+ORG
+      MOV index, buf
+      CMP digits, #0 wz
+if_z  JMP #.last
+.loop
+      RDBYTE char_value, index wz
+if_z  JMP #.end
+      MOV val, char_value
+      SUB val, #48
+      REP #2, digits
+      QMUL val, #10
+      GETQX val
+      ADD subtotal, val
+      ADD index, #1
+      DJNZ digits, #.loop
+.last
+      RDBYTE char_value, index
+      MOV val, char_value
+      SUB val, #48
+      ADD subtotal, val
+.end
+END
+  value := subtotal

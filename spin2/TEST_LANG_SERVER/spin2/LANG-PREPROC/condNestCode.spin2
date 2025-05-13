@@ -1,0 +1,118 @@
+'' =================================================================================================
+''   Purpose.... Regression TEST: nested ifdef'd code test
+''   Authors.... Stephen M Moraco, Ada (provided these examples)
+''               -- Copyright (c) 2025 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... Jul 2025
+'' =================================================================================================
+' NOTE: this file is processed twice once with no directives and once with -DCLOCK_300MHZ directive
+' {Spin2_v43}
+
+CON ' Memory arbiter constants
+
+' ENUMS test if we skip these correctly
+#0, VALUE0, VALUE1
+#0[-2], VALUE3, VALUE4
+
+CMD_BASE = 5
+CMD_OFFSET = 5
+
+#CMD_BASE[CMD_OFFSET], CMD1, CMD2
+
+#-5[-3], TEST1, TEST2
+
+' #ifdef #endif testing
+#define USE_PSRAM16
+'#define USE_PSRAM_SLOW
+
+#ifdef USE_PSRAM16
+MA_CHAR_ASHIFT = 1
+MA_CHAR_CYCLES = 4
+MA_PCM_ASHIFT = 2
+MA_PCM_CYCLES = 8
+MA_PROGCYSHL = 1
+MA_PAGESIZE = 0 addbits 9
+MA_BANKSHIFT = 23
+#endif
+
+#ifdef USE_PSRAM8
+MA_CHAR_ASHIFT = 2
+MA_CHAR_CYCLES = 8
+MA_PCM_ASHIFT = 3
+MA_PCM_CYCLES = 16
+MA_PROGCYSHL = 2
+MA_PAGESIZE = 0 addbits 8
+MA_BANKSHIFT = 23
+#endif
+
+#ifdef USE_PSRAM4
+MA_CHAR_ASHIFT = 3
+MA_CHAR_CYCLES = 16
+MA_PCM_ASHIFT = 4
+MA_PCM_CYCLES = 32
+MA_PROGCYSHL = 3
+MA_PAGESIZE = 0 addbits 7
+MA_BANKSHIFT = 23
+#endif
+
+#ifdef USE_HYPER
+MA_CHAR_ASHIFT = 0 ' special access code
+MA_CHAR_CYCLES = 8
+MA_PCM_ASHIFT = 0 ' special access code
+MA_PCM_CYCLES = 16
+MA_PROGCYSHL = 2
+MA_PAGESIZE = 0 addbits 15 ' Technically only bounds at 8MB?
+MA_BANKSHIFT = 23
+#endif
+
+#ifdef USE_PSRAM_EITHER
+
+#ifdef USE_PSRAM_SLOW
+MA_CLKDIV = 3
+MA_CYMUL = 1
+#define MA_SYSCLK3
+#else
+MA_CLKDIVX = 2
+MA_CYMULX = 2
+#endif
+
+#else
+
+#ifdef USE_PSRAM_FAST
+MA_CLKDIV = 4
+MA_CYMUL = 3
+#define MA_SYSCLK3
+#else
+MA_CLKDIV = 2
+MA_CYMUL = 2
+#endif
+
+#endif
+
+#ifndef USE_PSRAM_EITHER
+
+#ifdef USE_PSRAM_SLOW
+MA_CLKDIV = 3
+MA_CYMUL = 1
+#define MA_SYSCLK3
+#endif
+
+#elseifdef USE_HYPER
+MA_CLKDIV = 2
+MA_CYMUL = 1
+#endif
+
+DAT
+
+CON { license }
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2025 Iron Sheep Productions, LLC
+
+  Permission is hereby granted... dummy license block for test purposes
+ =================================================================================================
+}}

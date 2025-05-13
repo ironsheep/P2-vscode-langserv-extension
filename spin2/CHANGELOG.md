@@ -6,15 +6,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 ## [Unreleased]
 
-### Up next:
+### Up Next
 
-- Enable preprocessor highlight support found in v48
 - Work on fixes to any reported issues
 
-### Follow-on work to appear in upcoming releases:
+### Follow-on work to appear in Upcoming releases
 
 - Report in PUB/PRI warning for unused param, return, and local vars
-- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the dont' use comment on line for this block
+- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the don't use comment on line for this block
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
 - v50 Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
@@ -22,8 +21,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - v45 Hover of structure name should show structure def'n
 	- (and point to source where declared?)
 
-
-### More distant next additions:
+### More distant next Additions
 
 - More features coming. We're looking for what's next...
 - Investigate and possibly add unique coloring for method pointers
@@ -31,11 +29,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.4.2] 2025-05-12
+## [2.4.2] 2025-05-13
 
 Spin2 Minor Highlight repairs
 
 - Cleanup more debug[...](...) highlighting
+- Add preprocessor highlight support (preprocessor added in v48)
+- Add support for multiline statements with fake-line-continuation sequences
 
 ## [2.4.1] 2025-05-08
 

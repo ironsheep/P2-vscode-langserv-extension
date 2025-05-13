@@ -213,13 +213,20 @@ export class Spin2ParseUtils {
   }
 
   public removeQuotedStrings(line: string): string {
-    if (line.length > 0) this._logMessage(`  -- rmvQS()             Line=[${line}](${line.length})`);
-    const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
-    if (nonDblStringLine.length > 0 && line !== nonDblStringLine)
-      this._logMessage(`  -- rmvQS() nonDblStringLine=[${nonDblStringLine}](${nonDblStringLine.length})`);
-    const nonSglStringLine: string = this.removeDebugSingleQuotedStrings(nonDblStringLine);
-    if (nonSglStringLine.length > 0 && nonDblStringLine !== nonSglStringLine)
-      this._logMessage(`  -- rmvQS() nonSglStringLine=[${nonSglStringLine}](${nonSglStringLine.length})`);
+    let nonSglStringLine: string = line;
+    if (line === undefined || line.length > 3) {
+      const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
+      nonSglStringLine = this.removeDebugSingleQuotedStrings(nonDblStringLine);
+      if (line.length > 0 && line !== nonSglStringLine) {
+        this._logMessage(`  -- rmvQS()             Line=[${line}](${line.length})`);
+        if (line !== nonDblStringLine) {
+          this._logMessage(`  -- rmvQS() nonDblStringLine=[${nonDblStringLine}](${nonDblStringLine.length})`);
+        }
+        if (nonSglStringLine !== nonDblStringLine) {
+          this._logMessage(`  -- rmvQS() nonSglStringLine=[${nonSglStringLine}](${nonSglStringLine.length})`);
+        }
+      }
+    }
     return nonSglStringLine;
   }
 
@@ -3161,7 +3168,15 @@ export class Spin2ParseUtils {
     return lineIsDirectiveStatus;
   }
 
+  public isPNutPreprocessorDirective(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    const pnutDirectiveOfNote: string[] = ['#define', '#ifdef', '#ifndef', '#else', '#elseifdef', '#elseifndef', '#endif', '#undef'];
+    const reservedStatus: boolean = pnutDirectiveOfNote.indexOf(nameKey) != -1;
+    return reservedStatus;
+  }
+
   public isFlexspinPreprocessorDirective(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
     const flexspinDirectiveOfNote: string[] = [
       '#define',
       '#ifdef',
@@ -3175,7 +3190,7 @@ export class Spin2ParseUtils {
       '#warn',
       '#undef'
     ];
-    const reservedStatus: boolean = flexspinDirectiveOfNote.indexOf(name.toLowerCase()) != -1;
+    const reservedStatus: boolean = flexspinDirectiveOfNote.indexOf(nameKey) != -1;
     return reservedStatus;
   }
 

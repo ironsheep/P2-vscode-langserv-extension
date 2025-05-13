@@ -132,7 +132,7 @@ export class Spin2DocumentSemanticParser {
     }
     this.configuration = this.ctx.parserConfig; // ensure we have latest
     this.isSpin1Document = isSpin1File(document.uri);
-    this._logMessage('* Config: highlightFlexspinDirectives: [' + this.configuration.highlightFlexspinDirectives + ']');
+    this._logMessage(`* Config: highlightFlexspinDirectives: [${this.configuration.highlightFlexspinDirectives}]`);
     this.currentFilespec = document.uri;
     this._logMessage(`* reportDocumentSemanticTokens(${this.currentFilespec})`);
     this._logMessage(`* ------  into findings=[${findings.instanceName()}]`);
@@ -292,7 +292,7 @@ export class Spin2DocumentSemanticParser {
           currSingleLineBlockComment = undefined;
         }
       }
-      //*
+      /*
       this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4                   line=[${line}](${line.length})`);
       if (line.trim().length > 0) {
         this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4  this.rightEdgeComment=[${this.rightEdgeComment}](${this.rightEdgeComment.length})`);
@@ -599,6 +599,11 @@ export class Spin2DocumentSemanticParser {
           //  DO NOTHING Let Syntax highlighting do this
           //continue; // DON'T SKIP, process rest of line
         }
+      } else if (singleLineParts.length > 0 && this.parseUtils.isPNutPreprocessorDirective(singleLineParts[0])) {
+        this._getPNutPreProcessor_Declaration(0, lineNbr, line);
+        // a FlexspinPreprocessorDirective line clears pending single line comments
+        this.priorSingleLineComment = undefined;
+        continue; // only SKIP if we have FlexSpin directive
       } else if (singleLineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(singleLineParts[0])) {
         this._getFlexspinPreProcessor_Declaration(0, lineNbr, line);
         // a FlexspinPreprocessorDirective line clears pending single line comments
@@ -1113,6 +1118,10 @@ export class Spin2DocumentSemanticParser {
           continue; // only SKIP if we don't have closing marker
         }
         //  DO NOTHING Let Syntax highlighting do this
+      } else if (singleLineParts.length > 0 && this.parseUtils.isPNutPreprocessorDirective(singleLineParts[0])) {
+        const partialTokenSet: IParsedToken[] = this._reportPNutPreProcessorLine(i, 0, line);
+        this._reportNonDupeTokens(partialTokenSet, '=> PreProc: ', line, tokenSet);
+        continue; // only SKIP if we have FlexSpin directive
       } else if (singleLineParts.length > 0 && this.parseUtils.isFlexspinPreprocessorDirective(singleLineParts[0])) {
         const partialTokenSet: IParsedToken[] = this._reportFlexspinPreProcessorLine(i, 0, line);
         this._reportNonDupeTokens(partialTokenSet, '=> PreProc: ', line, tokenSet);
@@ -1727,6 +1736,45 @@ export class Spin2DocumentSemanticParser {
         for (let index = 4; index < lineParts.length - 1; index++) {
           const displayType: string = lineParts[index];
           this._recordDisplayTypeForLine(displayType, lineNbr);
+        }
+      }
+    }
+  }
+
+  private _getPNutPreProcessor_Declaration(startingOffset: number, lineNbr: number, line: string): void {
+    const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
+    const nonCommentConstantLine = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
+    if (nonCommentConstantLine.length > 0) {
+      // get line parts - we only care about first one
+      const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
+      const directive: string = lineParts[0].toLowerCase();
+      const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
+      if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
+        // check a valid preprocessor line for a declaration
+        if (symbolName !== undefined && directive == '#define') {
+          this._logPreProc('  -- new PreProc Symbol=[' + symbolName + ']');
+          this.semanticFindings.preProcRecordConditionalSymbol(symbolName, line, lineNbr);
+          this.semanticFindings.recordDeclarationLine(line, lineNbr);
+          this.semanticFindings.setGlobalToken(symbolName, new RememberedToken('variable', lineNbr - 1, 0, ['readonly']), this._declarationComment());
+        } else {
+          // handle non-define directives
+          let directiveType: ePreprocessState = ePreprocessState.PPS_Unknown;
+          if (directive === '#ifdef') {
+            directiveType = ePreprocessState.PPS_IFDEF;
+          } else if (directive === '#ifndef') {
+            directiveType = ePreprocessState.PPS_IFNDEF;
+          } else if (directive === '#else') {
+            directiveType = ePreprocessState.PPS_ELSE;
+          } else if (directive === '#elseifdef') {
+            directiveType = ePreprocessState.PPS_ELSEIFDEF;
+          } else if (directive === '#endif') {
+            directiveType = ePreprocessState.PPS_ENDIF;
+          }
+
+          const symbolToPass: string = symbolName === undefined ? '' : symbolName;
+          if (directiveType != ePreprocessState.PPS_Unknown) {
+            this.semanticFindings.preProcRecordConditionChange(directiveType, symbolToPass, line, lineNbr);
+          }
         }
       }
     }
@@ -2568,6 +2616,80 @@ export class Spin2DocumentSemanticParser {
     }
   }
 
+  private _reportPNutPreProcessorLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
+    const tokenSet: IParsedToken[] = [];
+
+    const lineNbr: number = lineIdx + 1;
+    // skip Past Whitespace
+    const currentOffset: number = this.parseUtils.skipWhite(line, startingOffset);
+    const nonCommentConstantLine = this._getNonCommentLineReturnComment(currentOffset, lineIdx, line, tokenSet);
+    if (nonCommentConstantLine.length > 0) {
+      // get line parts - we only care about first one
+      const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
+      this._logPreProc(`  - Ln#${lineNbr} pnut reportPreProc lineParts=[${lineParts}]`);
+      const directive: string = lineParts[0];
+      const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
+
+      if (this.parseUtils.isPNutPreprocessorDirective(directive)) {
+        // record the directive
+        this._recordToken(tokenSet, line, {
+          line: lineIdx,
+          startCharacter: 0,
+          length: directive.length,
+          ptTokenType: 'keyword',
+          ptTokenModifiers: ['control', 'directive']
+        });
+        const lineHasSymbol: boolean =
+          directive.toLowerCase() == '#define' ||
+          directive.toLowerCase() == '#ifdef' ||
+          directive.toLowerCase() == '#undef' ||
+          directive.toLowerCase() == '#ifndef' ||
+          directive.toLowerCase() == '#elseifdef' ||
+          directive.toLowerCase() == '#elseifndef';
+        if (lineHasSymbol && symbolName !== undefined) {
+          const nameOffset = line.indexOf(symbolName, currentOffset);
+          this._logPreProc(`  -- GLBL symbolName=[${symbolName}]`);
+          let referenceDetails: RememberedToken | undefined = undefined;
+          if (this.semanticFindings.isGlobalToken(symbolName)) {
+            referenceDetails = this.semanticFindings.getGlobalToken(symbolName);
+            this._logPreProc('  --  FOUND preProc global ' + this._rememberdTokenString(symbolName, referenceDetails));
+          }
+          if (referenceDetails !== undefined) {
+            // record a constant declaration!
+            const updatedModificationSet: string[] =
+              directive.toLowerCase() == '#define' ? referenceDetails.modifiersWith('declaration') : referenceDetails.modifiers;
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: symbolName.length,
+              ptTokenType: referenceDetails.type,
+              ptTokenModifiers: updatedModificationSet
+            });
+          } else if (this.semanticFindings.isPreProcSymbolDefined(symbolName)) {
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: symbolName.length,
+              ptTokenType: 'variable',
+              ptTokenModifiers: ['readonly']
+            });
+          } else {
+            // record an unknown name
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: symbolName.length,
+              ptTokenType: 'variable', //'comment',
+              ptTokenModifiers: ['disabled'] // ['line']
+            });
+          }
+        }
+      }
+    }
+
+    return tokenSet;
+  }
+
   private _reportFlexspinPreProcessorLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
 
@@ -2578,7 +2700,7 @@ export class Spin2DocumentSemanticParser {
     if (nonCommentConstantLine.length > 0) {
       // get line parts - we only care about first one
       const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
-      this._logPreProc(`  - Ln#${lineNbr} reportPreProc lineParts=[${lineParts}]`);
+      this._logPreProc(`  - Ln#${lineNbr} flexspin reportPreProc lineParts=[${lineParts}]`);
       const directive: string = lineParts[0];
       const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
 
@@ -2595,6 +2717,7 @@ export class Spin2DocumentSemanticParser {
           const lineHasSymbol: boolean =
             directive.toLowerCase() == '#define' ||
             directive.toLowerCase() == '#ifdef' ||
+            directive.toLowerCase() == '#undef' ||
             directive.toLowerCase() == '#ifndef' ||
             directive.toLowerCase() == '#elseifdef' ||
             directive.toLowerCase() == '#elseifndef';
@@ -8991,6 +9114,7 @@ export class Spin2DocumentSemanticParser {
     // NEW add disabled-line tokens
     let addedTokens: number = 0;
     const disabledLineRanges: Range[] = this.semanticFindings.preProcDisabledRanges();
+    this._logMessage(`  -- disabledLineRanges=[${JSON.stringify(disabledLineRanges, null, 2)}](${disabledLineRanges.length})`);
     for (const disabledRange of disabledLineRanges) {
       for (let lineNbr = disabledRange.start.line; lineNbr <= disabledRange.end.line; lineNbr++) {
         const line: string = lines[lineNbr - 1];
