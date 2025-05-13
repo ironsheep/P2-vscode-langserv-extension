@@ -36,7 +36,7 @@ export const updateStatusBarCompileDebugItem = (showItem: boolean | null) => {
 
       statusBarItem.hide();
     } else {
-      let sbiText: string | undefined = undefined;
+      let sbiText: string = '';
 
       const isDebugEnabled: boolean = toolchainConfiguration.debugEnabled;
 
@@ -47,7 +47,6 @@ export const updateStatusBarCompileDebugItem = (showItem: boolean | null) => {
         sbiText = 'Debug: off';
         statusBarItem.tooltip = 'NOT compiling with DEBUG, click to enable';
       }
-      if (sbiText === undefined) sbiText = '';
 
       statusBarItem.text = sbiText;
 

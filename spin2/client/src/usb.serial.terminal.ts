@@ -141,6 +141,25 @@ export class UsbSerialTerminal extends EventEmitter {
   public async close(): Promise<void> {
     // (alternate suggested by perplexity search)
     // release the usb port
+    if (this._serialPort === undefined || this._serialPort.isOpen == false) {
+      this.logMessage(`  -- close() ?? port already closed or undefined ??`);
+      return Promise.resolve();
+    } else {
+      await waitMSec(50);
+
+      return new Promise((resolve, reject) => {
+        this._serialPort.close((err) => {
+          if (err) {
+            this.logMessage(`  -- close() Error: ${err.message}`);
+            reject(err);
+          } else {
+            this.logMessage(`  -- close() - port close: isOpen=(${this._serialPort.isOpen})`);
+            resolve();
+          }
+        });
+      });
+    }
+    /*
     if (this._serialPort !== undefined && this._serialPort.isOpen) {
       await waitMSec(50);
     }
@@ -163,6 +182,7 @@ export class UsbSerialTerminal extends EventEmitter {
         resolve();
       }
     });
+	//*/
   }
 
   readonly TIMEOUT_OPEN_CHK_MS = 30; // 30 mSec

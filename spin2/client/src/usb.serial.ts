@@ -251,32 +251,38 @@ export class UsbSerial {
   public async close(): Promise<void> {
     // (alternate suggested by perplexity search)
     // release the usb port
-    this.logMessage(`* USBSer closing...`);
-    if (this._serialPort !== undefined && this._serialPort.isOpen) {
-      await waitMSec(10); // 500 allowed prop to restart? use 10 mSec instead
-    }
-    // Remove all listeners to prevent memory leaks
-    this._serialPort.removeAllListeners();
-    return new Promise((resolve, reject) => {
-      if (this._serialPort !== undefined && this._serialPort.isOpen) {
-        this._serialPort.close((err) => {
-          if (err) {
-            this.logMessage(`  -- close() Error: ${err.message}`);
-            reject(err);
-          } else {
-            this.logMessage(`  -- close() - port close: isOpen=(${this._serialPort.isOpen})`);
-            resolve();
-          }
-        });
-      } else if (!this._serialPort.isOpen) {
-        this.logMessage(`  -- close() ?? port already closed ??`);
-        resolve();
-      } else {
-        this.logMessage(`  -- close() ?? no port to close ??`);
-        resolve();
+    if (this._serialPort === undefined || this._serialPort.isOpen == false) {
+      this.logMessage(`  -- close() ?? port already closed or undefined ??`);
+      return Promise.resolve();
+    } else {
+      this.logMessage(`* USBSer closing...`);
+      if (this._serialPort.isOpen) {
+        await waitMSec(10); // 500 allowed prop to restart? use 10 mSec instead
       }
-      this.logMessage(`* USBSer closed`);
-    });
+      // Remove all listeners to prevent memory leaks
+      this._serialPort.removeAllListeners();
+
+      return new Promise((resolve, reject) => {
+        if (this._serialPort.isOpen) {
+          this._serialPort.close((err) => {
+            if (err) {
+              this.logMessage(`  -- close() Error: ${err.message}`);
+              reject(err);
+            } else {
+              this.logMessage(`  -- close() - port close: isOpen=(${this._serialPort.isOpen})`);
+              resolve();
+            }
+          });
+        } else if (!this._serialPort.isOpen) {
+          this.logMessage(`  -- close() ?? port already closed ??`);
+          resolve();
+        } else {
+          this.logMessage(`  -- close() ?? no port to close ??`);
+          resolve();
+        }
+        this.logMessage(`* USBSer closed`);
+      });
+    }
   }
 
   // ----------------------------------------------------------------------------

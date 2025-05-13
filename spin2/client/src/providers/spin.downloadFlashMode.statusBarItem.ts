@@ -36,7 +36,7 @@ export const updateStatusBarFlashDownloadItem = (showItem: boolean | null) => {
 
       statusBarItem.hide();
     } else {
-      let sbiText: string | undefined = undefined;
+      let sbiText: string = '';
 
       const isFLASHEnabled: boolean = toolchainConfiguration.writeFlashEnabled;
 
@@ -47,7 +47,6 @@ export const updateStatusBarFlashDownloadItem = (showItem: boolean | null) => {
         sbiText = 'Dnld: RAM';
         statusBarItem.tooltip = 'Download to RAM, click to change to FLASH';
       }
-      if (sbiText === undefined) sbiText = '';
 
       // preparation for https://github.com/DrMerfy/vscode-overtype/issues/2
       // if (editModeConfiguration.showCapsLockState && capsLockOn) {

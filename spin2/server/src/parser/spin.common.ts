@@ -554,13 +554,13 @@ export class ContinuedLines {
         }
       } else {
         // this is last or only line
-        if (index == 0) {
-          // only line we don't left-trim
-          nonContinusedStrings.push(continuedLine.trim()); // BUG should be trimEnd() not trim()
-        } else {
-          // last-line we left and right trim
-          nonContinusedStrings.push(continuedLine.trim());
-        }
+        //if (index == 0) {
+        // only line we don't left-trim
+        //  nonContinusedStrings.push(continuedLine.trim()); // BUG should be trimEnd() not trim()
+        //} else {
+        // last-line we left and right trim
+        nonContinusedStrings.push(continuedLine.trim());
+        //}
       }
     }
     this.singleLine = nonContinusedStrings.join(' ');

@@ -1247,12 +1247,15 @@ export class Dependency extends vscode.TreeItem {
     this._parent = parent;
     this._depth = depth;
     this.descriptionString = objName;
-    this._filename = label.toString(); // save 'given' name
-    this._basename = label.toString(); // save 'given' name
     this.id = userId;
     if (label !== undefined) {
+      this._filename = label.toString(); // save 'given' name
+      this._basename = label.toString(); // save 'given' name
       this._basename = this._basename.replace('.spin2', '');
       this._basename = this._basename.replace('.spin', '');
+    } else {
+      this._filename = '?missing?';
+      this._basename = '?missing?';
     }
     if (objName.includes('top-file')) {
       this.tooltip = `This is the project top-most file`;

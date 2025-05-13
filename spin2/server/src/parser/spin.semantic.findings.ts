@@ -2757,7 +2757,7 @@ export class RememberedTokenDeclarationInfo {
   private _declcomment: string | undefined = undefined;
   private _reference: string | undefined = undefined;
 
-  constructor(declarationLinIndex: number, declarationComment: string | undefined, reference?: string | undefined) {
+  constructor(declarationLinIndex: number, declarationComment: string | undefined, reference: string | undefined = undefined) {
     this._declLineIndex = declarationLinIndex;
     if (declarationComment) {
       if (declarationComment.startsWith("''")) {
@@ -2771,7 +2771,7 @@ export class RememberedTokenDeclarationInfo {
         this._declcomment = declarationComment.trim();
       }
     }
-    if (typeof reference !== 'undefined' && reference !== undefined) {
+    if (reference !== undefined) {
       this._reference = reference;
     }
   }

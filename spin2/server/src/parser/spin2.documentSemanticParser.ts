@@ -7692,7 +7692,7 @@ export class Spin2DocumentSemanticParser {
         : false;
     if (structInstanceName === undefined) {
       this._logMessage(
-        `  --  isObjRef() ERROR structInstanceName=[${structInstanceName}], possibleRef=[${possibleRef}], nameParts=[${nameParts}](${nameParts.length})`
+        `  --  isObjRef() ERROR structInstanceName=[{undefined}], possibleRef=[${possibleRef}], nameParts=[${nameParts}](${nameParts.length})`
       );
     }
     this._logMessage(`  --  isObjRef() isStructureRef=(${isStructureRef}), nameParts=[${nameParts}](${nameParts.length}) `);
@@ -7736,13 +7736,13 @@ export class Spin2DocumentSemanticParser {
     // NOTE" '%' is special object constant override mechanism to allow this to happen
     // NOTE BUG: not handled:
     //   digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
-    const lineLength: number = line ? line.length : -1;
-    const matchOffset: number = line.indexOf(dotRef, initialOffset);
-    this._logMessage(
-      `- rptObjectReference() ln#${lineIdx + 1}: dotRef=[${dotRef}], ofs(s/m)=(${initialOffset}/${matchOffset}), line=[${line}](${lineLength})`
-    );
     let bGeneratedReference: boolean = false;
-    if (line && line != null && line.length > 0) {
+    if (line !== undefined && line.length > 0) {
+      const lineLength: number = line.length;
+      const matchOffset: number = line.indexOf(dotRef, initialOffset);
+      this._logMessage(
+        `- rptObjectReference() ln#${lineIdx + 1}: dotRef=[${dotRef}], ofs(s/m)=(${initialOffset}/${matchOffset}), line=[${line}](${lineLength})`
+      );
       const lineNbr: number = lineIdx + 1;
       let possibleNameSet: string[] = [];
       const isP1ObjectConstantRef: boolean = dotRef.includes('#');
@@ -8199,7 +8199,7 @@ export class Spin2DocumentSemanticParser {
 
       if (structInstanceName === undefined) {
         this._logMessage(
-          `  --  isObjRef() ERROR structInstanceName=[${structInstanceName}], dotRef=[${dotRef}], structRefParts=[${structRefParts}](${structRefParts.length})`
+          `  --  isObjRef() ERROR structInstanceName=[{undefined}], dotRef=[${dotRef}], structRefParts=[${structRefParts}](${structRefParts.length})`
         );
       }
       const isStructureRef: boolean = structInstanceName !== undefined ? this.semanticFindings.isStructureInstance(structInstanceName) : false;

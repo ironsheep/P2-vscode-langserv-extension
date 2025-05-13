@@ -102,7 +102,7 @@ export default class SignatureHelpProvider implements Provider {
       this._logMessage(
         `+ Sig: defInfo.line=[${defInfo.line}], defInfo.doc=[${defInfo.doc}], defInfo.declarationlines=[${defInfo.declarationlines}], defInfo.parameters=[${defInfo.parameters}]`
       );
-      if (defInfo.line === callerPos?.line) {
+      if (defInfo.line === callerPos.line) {
         // This must be a function definition
         this._logMessage(`+ Sig: IGNORING function/method definition`);
         return Promise.resolve(null);
