@@ -34,7 +34,6 @@ import {
 } from './spin.common';
 import { fileInDirExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
-import { StaticRegistrationOptions } from 'vscode-languageserver';
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -203,8 +202,31 @@ export class Spin2DocumentSemanticParser {
     const DOC_COMMENT = true;
     const NONDOC_COMMENT = false;
     const BLOCK_COMMENT = true;
+    const LINE_COMMENT = false;
     //const LINE_COMMENT = false;
     //let blocksFoundCount: number = 0;
+
+    /*
+     ** FIXME: HOW do we handle continuations lines like:
+     ** --------------------------------------------------------
+		Mario0 byte {
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,{
+		}$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     ** --------------------------------------------------------
+     **
+     ** --------------------------------------------------------
+		MarioColors long {
+		}%00000000_00000000_00000000_00000000,{  $7fff	'any bit 31..24 set means transparent
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11111000_11111000,{  $7fff
+		}%11111111_11111000_11011000_10011000,{  $7f73
+		}%11111111_11010000_00000000_00100000,{  $6804  12->32
+		}%11111111_00100000_00100000_00100000  ' $1084  13->33 'address=51
+     ** --------------------------------------------------------
+     **
+     */
 
     for (let i = 0; i < lines.length; i++) {
       const lineNbr: number = i + 1;
@@ -233,7 +255,7 @@ export class Spin2DocumentSemanticParser {
         nonCommentLine = !bHaveEmptyLine ? this._getDebugNonCommentLine(0, this.parseUtils.getLineWithoutInlineComments(line)) : '';
       } else {
         nonCommentLine = !bHaveEmptyLine
-          ? this.parseUtils.getRemainderWOutTrailingTicComment(0, this.parseUtils.getLineWithoutInlineComments(line))
+          ? this.parseUtils.getRemainderWOutTrailingComment(0, this.parseUtils.getLineWithoutInlineComments(line))
           : '';
       }
       //this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK0 isDbg(${isDebugLine}), nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
@@ -242,7 +264,7 @@ export class Spin2DocumentSemanticParser {
       //this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK1 nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
       const offSet: number = trimmedNonCommentLine.length > 0 ? line.indexOf(trimmedNonCommentLine) + 1 : line.indexOf(trimmedLine) + 1;
       const tempComment: string = line.substring(trimmedNonCommentLine.length + offSet).trim();
-      this.rightEdgeComment = tempComment.length > 0 ? tempComment : undefined;
+      this.rightEdgeComment = tempComment.length > 0 ? tempComment : '';
       const sectionStatus = this.extensionUtils.isSectionStartLine(line);
       if (sectionStatus.isSectionStart) {
         trimmedNonCommentLine = trimmedNonCommentLine.substring(3).trimStart();
@@ -292,14 +314,25 @@ export class Spin2DocumentSemanticParser {
           currSingleLineBlockComment = undefined;
         }
       }
-      /*
+      //*
       this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4                   line=[${line}](${line.length})`);
       if (line.trim().length > 0) {
+        this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4  this.rightEdgeComment=[${this.rightEdgeComment}](${this.rightEdgeComment.length})`);
         this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4  trimmedNonCommentLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
-        this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4   trimmedNonStringLine=[${trimmedNonCommentLine}](${trimmedNonCommentLine.length})`);
+        this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4   trimmedNonStringLine=[${trimmedNonStringLine}](${trimmedNonStringLine.length})`);
         this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4         nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
         this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4          nonStringLine=[${nonStringLine}](${nonStringLine.length})`);
         this._logMessage(`  -- pre-scan Ln#${lineNbr} CHK4    nonStringLineUpCase=[${nonStringLineUpCase}](${nonStringLineUpCase.length})`);
+      }
+
+      // if we have line continuation and right-edge comment, then we need to record the right-edge comment
+      if (isLineContinued && this.rightEdgeComment.length > 0) {
+        const commentPosn: number = line.indexOf(this.rightEdgeComment);
+        this._recordToken(
+          tokenSet,
+          line,
+          this._generateComentToken(i, commentPosn, this.rightEdgeComment.length, LINE_COMMENT, NONDOC_COMMENT, line)
+        );
       }
       //*/
       // now start our processing
@@ -855,7 +888,7 @@ export class Spin2DocumentSemanticParser {
         nonCommentLine = !bHaveEmptyLine ? this._getDebugNonCommentLine(0, this.parseUtils.getLineWithoutInlineComments(line)) : '';
       } else {
         nonCommentLine = !bHaveEmptyLine
-          ? this.parseUtils.getRemainderWOutTrailingTicComment(0, this.parseUtils.getLineWithoutInlineComments(line))
+          ? this.parseUtils.getRemainderWOutTrailingComment(0, this.parseUtils.getLineWithoutInlineComments(line))
           : '';
       }
       let bHaveLineToProcess: boolean = nonCommentLine.trim().length > 0;

@@ -640,6 +640,67 @@ export class Spin2ParseUtils {
     return cleanedLine;
   }
 
+  public getRemainderWOutTrailingComment(startingOffset: number, line: string): string {
+    let lineWithoutTrailingCommentStr: string = this.getRemainderWOutTrailingTicComment(startingOffset, line);
+    lineWithoutTrailingCommentStr = this.getRemainderWOutTrailingBraceComment(0, lineWithoutTrailingCommentStr);
+    const continuePosn: number = lineWithoutTrailingCommentStr.search(/\s\.\.\.\s/);
+    if (continuePosn != -1) {
+      // remove the comment part of the line (all text after the '...' )
+      lineWithoutTrailingCommentStr = lineWithoutTrailingCommentStr.substring(0, continuePosn + 3 + 1).trimEnd();
+    }
+    if (lineWithoutTrailingCommentStr)
+      if (line !== lineWithoutTrailingCommentStr) {
+        this._logMessage(`sp2u:  -- gRWorlTCmt() line [${line}](${line.length})`);
+        this._logMessage(`sp2u:  --                   [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
+      }
+    return lineWithoutTrailingCommentStr;
+  }
+
+  public getRemainderWOutTrailingBraceComment(startingOffset: number, line: string): string {
+    //   REPLACE {{...}} when found
+    //   REPLACE {...} when found
+    // find comment at end of line and remove there to end of line
+    //  ( where comment is ' or '' or unpaired {{ or { )
+    //   return 0 len line if trim() removes all after removing/replacing comments
+    let lineWithoutTrailingCommentStr: string = '';
+    // TODO: UNDONE make this into loop to find first ' not in string
+    if (line.length - startingOffset > 0) {
+      // get line parts - we only care about first one
+      lineWithoutTrailingCommentStr = this.getRemainderWOutTrailingTicComment(startingOffset, line);
+      lineWithoutTrailingCommentStr = this._removeOnlyInlineComments(0, lineWithoutTrailingCommentStr);
+      let beginCommentOffset: number = lineWithoutTrailingCommentStr.lastIndexOf('{');
+      if (beginCommentOffset != -1) {
+        // have single quote, is it within quoted string?
+        // if we have quited string hide them for now...
+        const startDoubleQuoteOffset: number = lineWithoutTrailingCommentStr.indexOf('"');
+        if (startDoubleQuoteOffset != -1) {
+          const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr);
+          beginCommentOffset = nonStringLine.indexOf('{');
+        }
+      }
+
+      // do we have a comment?
+      //if (beginCommentOffset != -1) {
+      //  this._logMessage(`sp2u: - p2 gRWoTTC ofs=${startingOffset}, line=[${line}](${line.length})`);
+      //}
+      const nonCommentEOL: number = beginCommentOffset != -1 ? beginCommentOffset : line.length;
+      //this._logMessage('- gnclr startingOffset=[' + startingOffset + '], currentOffset=[' + currentOffset + ']');
+      lineWithoutTrailingCommentStr = lineWithoutTrailingCommentStr.substring(0, nonCommentEOL).trimEnd();
+      //this._logMessage('- gnclr lineWithoutTrailingCommentStr=[' + startingOffset + ']');
+      if (lineWithoutTrailingCommentStr.trim().length == 0) {
+        lineWithoutTrailingCommentStr = '';
+        //this._logMessage(`sp2u:  -- gRWoTTC line forced to EMPTY`);
+      }
+      //if (line.substr(startingOffset) !== lineWithoutTrailingCommentStr) {
+      //  this._logMessage(`sp2u:  -- gRWoTTC line [${line}](${line.length})`);
+      //  this._logMessage(`sp2u:  --              [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
+      //}
+      //} else {
+      //this._logMessage(`sp2u: - gRWoTTC SKIPPED ofs=${startingOffset}, line=[${line}](${line.length})`);
+    }
+    return lineWithoutTrailingCommentStr;
+  }
+
   public getRemainderWOutTrailingTicComment(startingOffset: number, line: string): string {
     //   REPLACE {{...}} when found
     //   REPLACE {...} when found
@@ -657,7 +718,6 @@ export class Spin2ParseUtils {
         // if we have quited string hide them for now...
         const startDoubleQuoteOffset: number = lineWithoutTrailingCommentStr.indexOf('"');
         if (startDoubleQuoteOffset != -1) {
-          const KEEP_PACKED_CONSTANTS: boolean = true;
           const nonStringLine: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr);
           beginCommentOffset = nonStringLine.indexOf("'");
         }
