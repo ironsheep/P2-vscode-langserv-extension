@@ -157,12 +157,15 @@ export class Formatter {
     const block = this.blocks[blockName.toLowerCase()];
 
     const stops = block.tabStops ?? [this.tabSize];
-    const tabStops = stops?.sort((a, b) => {
-      return a - b;
-    });
+    const tabStops =
+      stops.length > 1
+        ? stops.sort((a, b) => {
+            return a - b;
+          })
+        : stops;
 
     let index: number;
-    while ((index = tabStops?.findIndex((element) => element > character)) === -1) {
+    while ((index = tabStops.findIndex((element) => element > character)) === -1) {
       const lastTabStop = tabStops[tabStops.length - 1];
       const lastTabStop2 = tabStops[tabStops.length - 2];
       const lengthTabStop = lastTabStop - lastTabStop2;
@@ -190,12 +193,15 @@ export class Formatter {
     const block = this.blocks[blockName.toLowerCase()];
 
     const stops = block.tabStops ?? [this.tabSize];
-    const tabStops = stops?.sort((a, b) => {
-      return a - b;
-    });
+    const tabStops =
+      stops.length > 1
+        ? stops.sort((a, b) => {
+            return a - b;
+          })
+        : stops;
 
     let index: number;
-    while ((index = tabStops?.findIndex((element) => element > character)) === -1) {
+    while ((index = tabStops.findIndex((element) => element > character)) === -1) {
       const lastTabStop = tabStops[tabStops.length - 1];
       const lastTabStop2 = tabStops[tabStops.length - 2];
       const lengthTabStop = lastTabStop - lastTabStop2;
@@ -220,12 +226,15 @@ export class Formatter {
     const block = this.blocks[blockName.toLowerCase()];
 
     const stops = block.tabStops ?? [this.tabSize];
-    const tabStops = stops?.sort((a, b) => {
-      return a - b;
-    });
+    const tabStops =
+      stops.length > 1
+        ? stops.sort((a, b) => {
+            return a - b;
+          })
+        : stops;
 
     let index: number;
-    while ((index = tabStops?.findIndex((element) => element > character)) === -1) {
+    while ((index = tabStops.findIndex((element) => element > character)) === -1) {
       const lastTabStop = tabStops[tabStops.length - 1];
       const lastTabStop2 = tabStops[tabStops.length - 2];
       const lengthTabStop = lastTabStop - lastTabStop2;
