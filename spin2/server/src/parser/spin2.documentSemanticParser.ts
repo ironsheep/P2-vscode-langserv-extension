@@ -315,7 +315,13 @@ export class Spin2DocumentSemanticParser {
       }
 
       // now start our processing
-      if (currState != eParseState.inFakeLineContinuation && trimmedNonCommentLine.endsWith('{') && !trimmedNonCommentLine.endsWith('{{')) {
+      if (
+        currState != eParseState.inFakeLineContinuation &&
+        trimmedNonCommentLine.endsWith('{') &&
+        !trimmedNonCommentLine.startsWith('{') &&
+        !trimmedNonCommentLine.endsWith('{{') &&
+        trimmedNonCommentLine.length > 1
+      ) {
         // TODO: the second if clause confuses me... why did I do this?
         // starting fake line continuation
         //  - replace '{' with '...'
@@ -982,7 +988,13 @@ export class Spin2DocumentSemanticParser {
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
 
       // now start our processing
-      if (currState != eParseState.inFakeLineContinuation && trimmedNonCommentLine.endsWith('{') && !trimmedNonCommentLine.endsWith('{{')) {
+      if (
+        currState != eParseState.inFakeLineContinuation &&
+        trimmedNonCommentLine.endsWith('{') &&
+        !trimmedNonCommentLine.startsWith('{') &&
+        !trimmedNonCommentLine.endsWith('{{') &&
+        trimmedNonCommentLine.length > 1
+      ) {
         // TODO: the second if clause confuses me... why did I do this?
         // starting fake line continuation
         //  - replace '{' with '...'

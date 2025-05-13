@@ -30,7 +30,7 @@ symbol6 LONG                            ' symbol6 is a long symbol that points t
 
         BYTE FVAR 99, FVARS -99         ' FVAR/FVARS overrides allowed, can be read via RFVAR/RFVARS
 
-FileDat     FILE  "Filename"            ' include binary file, FileDat is a byte symbol that points to file
+FileDat     FILE  "Filename.dat"            ' include binary file, FileDat is a byte symbol that points to file
             ALIGNW                      ' word-align to hub by emitting a zero byte, if necessary
             ALIGNL                      ' long-align to hub by emitting 1 to 3 zero bytes, if necessary
 
@@ -103,7 +103,7 @@ Loop        ADD     OUTA,#1     ' In Spin2, @IncPins is the hub address of the '
 DAT         ORGH                'set hub-exec mode and set origin to $400
             ORGH $FC000         'set hub-exec mode and set origin to $FC000
 
-binaryInclu FILE "exampleBinaryData"
+binaryInclu FILE "exampleBinaryData.dat"
 
 ' -----------------------------------------------------------------------------
 '' DAT: Hub-exec Code differences: Pasm-Only Programs
