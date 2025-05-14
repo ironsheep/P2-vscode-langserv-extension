@@ -1895,7 +1895,7 @@ export class Spin2DocumentSemanticParser {
                 // remember this object name so we can annotate a call to it
                 //const nameOffset = line.indexOf(newName, currSingleLineOffset); // FIXME: UNDONE, do we have to dial this in?
                 const symbolPosition: Position = multiLineSet.locateSymbol(newName, currSingleLineOffset);
-                const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                //const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
                 //const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
                 if (!lineIsDisabled) {
                   // remember this object name so we can annotate a call to it
@@ -1946,7 +1946,7 @@ export class Spin2DocumentSemanticParser {
               } else {
                 const structName: string = structDeclaration.structName;
                 let symbolPosition: Position = multiLineSet.locateSymbol(structName, currSingleLineOffset);
-                let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                //let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
                 this._logCON(`  -- GetCDLMulti() newName=[${structName}], isAssignment=(${isAssignment}), lineIsDisabled=(???)`);
                 //this._logCON(`  -- GetCONDecl() structDeclaration=[${JSON.stringify(structDeclaration, null, 2)}]`);
                 let structure = new RememberedStructure(structName, symbolPosition.line, symbolPosition.character, structDeclaration.members);
@@ -1974,7 +1974,7 @@ export class Spin2DocumentSemanticParser {
                 }
                 this._logCON(`  -- GetCDLMulti() struct is now [${structure.toString()}]`);
                 symbolPosition = multiLineSet.locateSymbol(structName, currSingleLineOffset);
-                nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                //nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
                 // Handle duplicate structure names
                 // remember this object name so we can annotate a call to it
                 const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(structName);
@@ -2095,6 +2095,7 @@ export class Spin2DocumentSemanticParser {
     // get line parts - we only care about first one
     const dataDeclNonCommentStr = this.parseUtils.getNonCommentLineRemainder(currentOffset, line);
     const lineParts: string[] = this.parseUtils.getNonWhiteNOperatorLineParts(dataDeclNonCommentStr);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const bIsDebugLine: boolean = haveDebugLine(dataDeclNonCommentStr);
     this._logDAT(`  - Ln#${lineNbr} GetDatDecl lineParts=[${lineParts}](${lineParts.length})`);
     const bHaveDatBlockId: boolean = lineParts.length > 0 && lineParts[0].toUpperCase() == 'DAT';
@@ -5089,6 +5090,7 @@ export class Spin2DocumentSemanticParser {
       // locate method(param1, param2, ...)
       const spinStatements: string[] = [];
       for (let index = 0; index < spinStatements.length; index++) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const element = spinStatements[index];
       }
 
@@ -5554,6 +5556,7 @@ export class Spin2DocumentSemanticParser {
       const whiteOffset: number = spaceOffset > tabOffset ? spaceOffset : tabOffset;
       const hasWhite: boolean = whiteOffset != -1;
       // we have a single element if we have "." with "[" and "[" is before "."
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const indexExpression: string = havePossIndex ? this._getIndexExpression(assignmentRHSStr.substring(ltBbracketOffset)) : ''; // dont' include the []
       //const indexHasWHiteSpace: boolean = indexExpression.indexOf(' ') != -1 || indexExpression.indexOf('\t') != -1;
       //const indexedObjectRef: boolean = dotOffset != -1 && havePossIndex ? true : false;
@@ -6315,7 +6318,7 @@ export class Spin2DocumentSemanticParser {
     if (remainingLength > 0) {
       // get line parts - initially, we only care about first one
       const lineParts: string[] = remainingNonCommentLineStr.split(/[ \t:[]/).filter(Boolean);
-      this._logOBJ('  --  OBJ lineParts=[' + lineParts + ']');
+      this._logOBJ(`  --  OBJ lineParts=[${lineParts.join(', ')}](${lineParts.length})`);
       objectName = lineParts[0];
       // object name token must be offset into full line for token
       //const nameOffset: number = line.indexOf(objectName, currSingleLineOffset);
@@ -6400,18 +6403,22 @@ export class Spin2DocumentSemanticParser {
         //                            ^^^^^^^^^^^^^^^^^^^^^^^^^   (process this part)
         const overrides: string = overrideParts[1].replace(/[ \t]/, '');
         const overideSatements: string[] = overrides.split(',').filter(Boolean);
-        this._logOBJ(`  -- OBJ overideSatements=[${overideSatements}](${overideSatements.length})`);
+        const firstStatement: string = overideSatements[0].trim();
+        let symbolPosition: Position = multiLineSet.locateSymbol(firstStatement, currSingleLineOffset);
+        currSingleLineOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+        this._logOBJ(`  -- OBJ overideStatements=[${overideSatements}](${overideSatements.length})`);
         for (let index = 0; index < overideSatements.length; index++) {
+          const statement: string = overideSatements[index].trim();
+          symbolPosition = multiLineSet.locateSymbol(statement, currSingleLineOffset);
+          const nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
           const statementParts: string[] = overideSatements[index].split('=');
           const overideName: string = statementParts[0].trim();
-          const overideValue: string = statementParts.length > 1 ? statementParts[1].trim() : ''; // XYZZY
+          const overideValue: string = statementParts.length > 1 ? statementParts[1].trim() : '';
           if (overideName === '...') {
-            continue; // skip line continuation marker
+            continue; // skip line continuation marker  FIXME: not needed any more?!!!
           }
           const lookupName: string = `${objectName}%${overideName}`;
           this._logOBJ(`  -- OBJ overideName=[${overideName}](${overideName.length}), overideValue=[${overideValue}](${overideValue.length})`);
-          const symbolPosition: Position = multiLineSet.locateSymbol(overideName, currSingleLineOffset);
-          const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
           const bHaveObjReference: boolean = this._isPossibleObjectReference(lookupName)
             ? this._reportObjectReference(
                 lookupName,
@@ -7874,12 +7881,12 @@ export class Spin2DocumentSemanticParser {
               if (referenceDetails && !isStructure && !onlyStructRefs && (isMethod || (!isMethod && !objectRefContainsIndex))) {
                 // we need to allow objInstance.CONSTANT and fail objectInstance[index].CONSTANT
                 const constantPart: string = possibleNameSet[1];
-                const constantOffset: number = line.indexOf(constantPart, matchOffset + possibleNameSet[0].length);
+                //const constantOffset: number = line.indexOf(constantPart, matchOffset + possibleNameSet[0].length);
                 const tokenModifiers: string[] = isMethod ? [] : ['readonly'];
                 this._logMessage(`  --  rObjRef rhs constant=[${constantPart}], ofs=(${referenceOffset + 1}) (${referenceDetails.type})`);
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
-                  startCharacter: constantOffset,
+                  startCharacter: referenceOffset,
                   length: refPart.length,
                   ptTokenType: referenceDetails.type,
                   ptTokenModifiers: tokenModifiers
@@ -8797,75 +8804,96 @@ export class Spin2DocumentSemanticParser {
     // debug statements typically have single or double quoted strings.  Let's color either if/when found!
     const tokenSet: IParsedToken[] = [];
     this._logDEBUG(`- Ln#${lineIdx + 1} rptEscStr() line=[${line}](${line.length}), ofs=(${startingOffset})`);
-    const workString: string = line.toLowerCase();
+    if (this.parseUtils.requestedSpinVersion(50)) {
+      const workString: string = line.toLowerCase();
 
-    let bInString: boolean = false;
-    let bInEscape: boolean = false;
+      let bInString: boolean = false;
+      let bInEscape: boolean = false;
 
-    for (let chrIdx = startingOffset + 2; chrIdx < workString.length; chrIdx++) {
-      const char = workString.charAt(chrIdx).toLowerCase();
-      if (bInString && char === '"') {
-        bInString = false;
-        break;
-      }
-      if (!bInString && !bInEscape && char === '"') {
-        bInString = true;
-        continue;
-      }
-      if (bInString && !bInEscape && char === '\\') {
-        bInEscape = true;
-        continue;
-      }
-      if (bInEscape) {
-        /*
-         * \a = 7, alarm bell
-         * \b = 8, backspace
-         * \t = 9, tab
-         * \n = 10, new line
-         * \f = 12, form feed
-         * \r = 13, carriage return
-         * \\ = 92,
-         * \x01 to \xFF = $01 to $FF
-         *  Unknown sequences are just passed verbatim (i.e. \d = "\d").
-         */
-        let bValidSequence: boolean = true;
-        let sequenceLength: number = 2;
-        switch (char) {
-          case 'a':
-            break;
-          case 'b':
-            break;
-          case 't':
-            break;
-          case 'n':
-            break;
-          case 'f':
-            break;
-          case 'r':
-            break;
-          case 'x':
-            sequenceLength = 4;
-            break;
-          case '\\':
-            break;
-
-          default:
-            bValidSequence = false;
-            break;
+      for (let chrIdx = startingOffset + 2; chrIdx < workString.length; chrIdx++) {
+        const char = workString.charAt(chrIdx).toLowerCase();
+        if (bInString && char === '"') {
+          bInString = false;
+          break;
         }
-
-        if (bValidSequence) {
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: chrIdx - 1,
-            length: sequenceLength,
-            ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?! (debug function, not enough color)
-            ptTokenModifiers: ['builtin']
-          });
+        if (!bInString && !bInEscape && char === '"') {
+          bInString = true;
+          continue;
         }
-        chrIdx += sequenceLength - 2; // -2 because only \xFF needs more chars
-        bInEscape = false;
+        if (bInString && !bInEscape && char === '\\') {
+          bInEscape = true;
+          continue;
+        }
+        if (bInEscape) {
+          /*
+           * \a = 7, alarm bell
+           * \b = 8, backspace
+           * \t = 9, tab
+           * \n = 10, new line
+           * \f = 12, form feed
+           * \r = 13, carriage return
+           * \\ = 92,
+           * \x01 to \xFF = $01 to $FF
+           *  Unknown sequences are just passed verbatim (i.e. \d = "\d").
+           */
+          let bValidSequence: boolean = true;
+          let sequenceLength: number = 2;
+          switch (char) {
+            case 'a':
+              break;
+            case 'b':
+              break;
+            case 't':
+              break;
+            case 'n':
+              break;
+            case 'f':
+              break;
+            case 'r':
+              break;
+            case 'x':
+              sequenceLength = 4;
+              break;
+            case '\\':
+              break;
+
+            default:
+              bValidSequence = false;
+              break;
+          }
+
+          if (bValidSequence) {
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: chrIdx - 1,
+              length: sequenceLength,
+              ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?! (debug function, not enough color)
+              ptTokenModifiers: ['builtin']
+            });
+          }
+          chrIdx += sequenceLength - 2; // -2 because only \xFF needs more chars
+          bInEscape = false;
+        }
       }
+    } else {
+      // not yet v50!
+      const startStrOffset: number = startingOffset;
+      const endStrOffset: number = line.indexOf('"', startStrOffset + 3);
+      const sequenceLength: number = endStrOffset != -1 ? endStrOffset - startStrOffset + 1 : 3;
+      this._recordToken(tokenSet, line, {
+        line: lineIdx,
+        startCharacter: startStrOffset,
+        length: sequenceLength,
+        ptTokenType: 'variable', // method is blue?!, function is yellow?!, operator is violet?! (debug function, not enough color)
+        ptTokenModifiers: ['illegalUse']
+      });
+      this.semanticFindings.pushDiagnosticMessage(
+        lineIdx,
+        startStrOffset,
+        startStrOffset + sequenceLength,
+        eSeverity.Error,
+        `P2 escaped strings [@\\"..."] require {Spin2_v50} or later.`
+      );
     }
     return tokenSet;
   }
