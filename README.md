@@ -18,7 +18,7 @@ The **P2 Forum Thread** containing discussion of [this VSCode support](https://f
 
 The **P1 Forum Thread** containing discussion of [this VSCode support](https://forums.parallax.com/discussion/175207/visual-studio-code-supports-p1-development-on-windows-mac-linux-yes-rpi#latest)
 
-## New ToolChain support in v2.30
+#### New ToolChain support released as of v2.30
 
 This new release adds runtime detection of compilers and support for switching compilers for a given project.
 
