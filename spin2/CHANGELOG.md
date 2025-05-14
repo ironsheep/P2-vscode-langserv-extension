@@ -32,7 +32,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 Spin2 Minor Highlight repairs
 
-- Cleanup more debug[...](...) highlighting
 - Add preprocessor highlight support (preprocessor added in v48)
 - Add highlighting of escape-sequences within escaped strings (added in v50)
 - BUGFIX: repair some missed coloring of object overrides
