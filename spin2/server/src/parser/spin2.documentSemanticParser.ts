@@ -951,12 +951,14 @@ export class Spin2DocumentSemanticParser {
     prePAsmState = currState; // same
 
     // for each line do...
+    let escapedStringTokenSet: IParsedToken[] = [];
     for (let i = 0; i < lines.length; i++) {
       const lineNbr: number = i + 1;
       const line = lines[i];
       const trimmedLine = line.trim();
       const bHaveEmptyLine: boolean = trimmedLine.length == 0;
       const isDebugLine: boolean = !bHaveEmptyLine ? haveDebugLine(line) : false;
+
       let nonCommentLine: string;
       if (isDebugLine) {
         nonCommentLine = !bHaveEmptyLine ? this._getDebugNonCommentLine(0, this.parseUtils.getLineWithoutInlineComments(line)) : '';
@@ -991,6 +993,12 @@ export class Spin2DocumentSemanticParser {
 	  );
 	  //*/
       const singleLineParts: string[] = trimmedNonCommentLine.split(/[ \t]/).filter(Boolean);
+
+      // if we have new escaped string, highlight the sequences
+      const escapedStringOffset: number = nonCommentLine.indexOf('@\\"');
+      if (escapedStringOffset != -1) {
+        escapedStringTokenSet = this._reportEscapedString(i, escapedStringOffset, nonCommentLine);
+      }
 
       // now start our processing
       if (
@@ -1503,6 +1511,10 @@ export class Spin2DocumentSemanticParser {
           } else if (haveDebugLine(continuedLineSet.line, true)) {
             this._logSPIN(`- colorize Ln#${lineNbr} PUB/PRI SPIN Debug MultiLine=[${continuedLineSet.line}]`);
             const partialTokenSet: IParsedToken[] = this._reportDebugStatementMultiLine(0, continuedLineSet);
+            if (escapedStringTokenSet.length > 0) {
+              partialTokenSet.push(...escapedStringTokenSet);
+              escapedStringTokenSet = []; // should be processed, empty it
+            }
             this._reportNonDupeTokens(partialTokenSet, '=> DEBUG: ', line, tokenSet);
           } else {
             this._logSPIN(`- colorize Ln#${lineNbr} PUB/PRI SPIN MultiLine=[${continuedLineSet.line}]`);
@@ -1546,6 +1558,10 @@ export class Spin2DocumentSemanticParser {
             continuedLineSet.clear();
             if (trailingComment.length > 0) {
               this._reportTrailingComment(lineNbr - 1, line, trailingComment, tokenSet);
+            }
+            if (escapedStringTokenSet.length > 0) {
+              partialTokenSet.push(...escapedStringTokenSet);
+              escapedStringTokenSet = []; // should be processed, empty it
             }
             this._reportNonDupeTokens(partialTokenSet, '=> DEBUG: ', line, tokenSet);
           } else {
@@ -8320,12 +8336,12 @@ export class Spin2DocumentSemanticParser {
 
   private _reportDebugStringsMultiLine(startingOffset: number, multiLineSet: ContinuedLines): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
-    //this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rtpDbgStrMulti() line=[${multiLineSet.line}], lns=(${multiLineSet.numberLines})`);
+    //this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} rptDbgStrMulti() line=[${multiLineSet.line}], lns=(${multiLineSet.numberLines})`);
     for (let index = 0; index < multiLineSet.numberLines; index++) {
       const desiredLine: number = multiLineSet.lineStartIdx + index;
       const lnOffset: number = index == 0 ? startingOffset : 0;
       const line = multiLineSet.lineAt(desiredLine).substring(lnOffset);
-      //this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} scanning rtpDbgStrMulti() line=[${line}][${index}]`);
+      //this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1} scanning rptDbgStrMulti() line=[${line}][${index}]`);
       const tokenStringSet: IParsedToken[] = this._reportDebugStrings(multiLineSet.lineStartIdx + index, line, line.trim());
       if (tokenStringSet.length > 0) {
         for (let index = 0; index < tokenStringSet.length; index++) {
@@ -8340,7 +8356,7 @@ export class Spin2DocumentSemanticParser {
   private _reportDebugStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     // debug statements typically have single or double quoted strings.  Let's color either if/when found!
     const tokenSet: IParsedToken[] = [];
-    this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgStrs() line=[${line}](${line.length})`);
+    this._logDEBUG(`- Ln#${lineIdx + 1} rptDbgStrs() line=[${line}](${line.length})`);
     let nonDoubleQuoteStringLine: string = line;
     const bNeedDoubleQuoteProcessing: boolean = line.indexOf('"') != -1;
     if (bNeedDoubleQuoteProcessing) {
@@ -8362,7 +8378,7 @@ export class Spin2DocumentSemanticParser {
 
   private _reportDebugSglQuoteStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
-    //this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgSQStrs() line=[${line}](${line.length})`);
+    //this._logDEBUG(`- Ln#${lineIdx + 1} rptDbgSQStrs() line=[${line}](${line.length})`);
     // find all strings in debug() statement but for now just do first...
     let currentOffset: number = line.indexOf(debugStatementStr);
     let nextStringOffset: number = 0;
@@ -8453,7 +8469,7 @@ export class Spin2DocumentSemanticParser {
 
   private _reportDebugDblQuoteStrings(lineIdx: number, line: string, debugStatementStr: string): IParsedToken[] {
     const tokenSet: IParsedToken[] = [];
-    this._logDEBUG(`- Ln#${lineIdx + 1} rtpDbgDQStrs() line=[${line}](${line.length})`);
+    this._logDEBUG(`- Ln#${lineIdx + 1} rptDbgDQStrs() line=[${line}](${line.length})`);
     // find all strings in debug() statement but for now just do first...
     let currentOffset: number = line.indexOf(debugStatementStr);
     let nextStringOffset: number = 0;
@@ -8461,7 +8477,7 @@ export class Spin2DocumentSemanticParser {
     do {
       // locates left-most double-quoted string in debugStatement
       nextString = this._getDoubleQuotedString(nextStringOffset, debugStatementStr);
-      this._logMessage(`  -- rtpDbgDQStrs() found str=[${nextString}](${nextString.length})`);
+      this._logMessage(`  -- rptDbgDQStrs() found str=[${nextString}](${nextString.length})`);
       if (nextString.length > 0) {
         nextStringOffset = line.indexOf(nextString, nextStringOffset);
         const chrBackTicFunction: string = '`(';
@@ -8511,7 +8527,7 @@ export class Spin2DocumentSemanticParser {
         } else {
           // NO ` (backtic) in string...
           const strOffset: number = line.indexOf(nextString, currentOffset);
-          this._logMessage(`  -- rtpDbgDQStrs() rpt str=[${nextString}](${nextString.length}), ofs=(${strOffset})`);
+          this._logMessage(`  -- rptDbgDQStrs() rpt str=[${nextString}](${nextString.length}), ofs=(${strOffset})`);
           this._recordToken(tokenSet, line, {
             line: lineIdx,
             startCharacter: strOffset,
@@ -8777,6 +8793,83 @@ export class Spin2DocumentSemanticParser {
     return nonCommentStr;
   }
 
+  private _reportEscapedString(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
+    // debug statements typically have single or double quoted strings.  Let's color either if/when found!
+    const tokenSet: IParsedToken[] = [];
+    this._logDEBUG(`- Ln#${lineIdx + 1} rptEscStr() line=[${line}](${line.length}), ofs=(${startingOffset})`);
+    const workString: string = line.toLowerCase();
+
+    let bInString: boolean = false;
+    let bInEscape: boolean = false;
+
+    for (let chrIdx = startingOffset + 2; chrIdx < workString.length; chrIdx++) {
+      const char = workString.charAt(chrIdx).toLowerCase();
+      if (bInString && char === '"') {
+        bInString = false;
+        break;
+      }
+      if (!bInString && !bInEscape && char === '"') {
+        bInString = true;
+        continue;
+      }
+      if (bInString && !bInEscape && char === '\\') {
+        bInEscape = true;
+        continue;
+      }
+      if (bInEscape) {
+        /*
+         * \a = 7, alarm bell
+         * \b = 8, backspace
+         * \t = 9, tab
+         * \n = 10, new line
+         * \f = 12, form feed
+         * \r = 13, carriage return
+         * \\ = 92,
+         * \x01 to \xFF = $01 to $FF
+         *  Unknown sequences are just passed verbatim (i.e. \d = "\d").
+         */
+        let bValidSequence: boolean = true;
+        let sequenceLength: number = 2;
+        switch (char) {
+          case 'a':
+            break;
+          case 'b':
+            break;
+          case 't':
+            break;
+          case 'n':
+            break;
+          case 'f':
+            break;
+          case 'r':
+            break;
+          case 'x':
+            sequenceLength = 4;
+            break;
+          case '\\':
+            break;
+
+          default:
+            bValidSequence = false;
+            break;
+        }
+
+        if (bValidSequence) {
+          this._recordToken(tokenSet, line, {
+            line: lineIdx,
+            startCharacter: chrIdx - 1,
+            length: sequenceLength,
+            ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?! (debug function, not enough color)
+            ptTokenModifiers: ['builtin']
+          });
+        }
+        chrIdx += sequenceLength - 2; // -2 because only \xFF needs more chars
+        bInEscape = false;
+      }
+    }
+    return tokenSet;
+  }
+
   private _reportTrailingComment(lineIdx: number, line: string, comment: string, tokenSet: IParsedToken[]): void {
     const commentOffset: number = line.indexOf(comment);
     if (commentOffset != -1) {
@@ -9020,6 +9113,10 @@ export class Spin2DocumentSemanticParser {
 
   private _reportNonDupeTokens(partialTokenSet: IParsedToken[], typeStr: string, line: string, tokenSet: IParsedToken[]) {
     if (partialTokenSet.length > 0) {
+      // first sort them
+      // FIXME: replace overlap with rewitting them to not overlap!
+      partialTokenSet = this._mergeIntoNonOverlappingTokens(partialTokenSet, line);
+      // now report them
       partialTokenSet.forEach((newToken) => {
         if (this._tokenExists(newToken, tokenSet)) {
           this._logMessage(` ${typeStr} SKIPPING DUPE ${this._tokenString(newToken, line)}`);
@@ -9029,6 +9126,110 @@ export class Spin2DocumentSemanticParser {
         }
       });
     }
+  }
+
+  private _mergeIntoNonOverlappingTokens(tokenSet: IParsedToken[], line: string): IParsedToken[] {
+    if (tokenSet.length <= 1) {
+      return tokenSet;
+    }
+
+    // Sort tokens by line and startCharacter
+    tokenSet.sort((a, b) => {
+      if (a.line !== b.line) {
+        return a.line - b.line;
+      }
+      return a.startCharacter - b.startCharacter;
+    });
+
+    const mergedTokens: IParsedToken[] = [];
+
+    for (let i = 0; i < tokenSet.length; i++) {
+      const currentToken = tokenSet[i];
+
+      // Check for overlaps with the next token
+      while (i + 1 < tokenSet.length) {
+        const nextToken = tokenSet[i + 1];
+
+        if (currentToken.line !== nextToken.line || currentToken.startCharacter + currentToken.length <= nextToken.startCharacter) {
+          // No overlap, break out of the loop
+          // diff line -OR-
+          //    xxxxxxxxxxxxxxx
+          //                      yyy
+          this._logMessage(`  -- CASE:   ---- BREAK ---- no overlap`);
+          break; // emit lhs(currentToken)
+        }
+
+        // Handle overlap cases
+        if (currentToken.startCharacter === nextToken.startCharacter) {
+          // tokens start at the same position
+          if (currentToken.length <= nextToken.length) {
+            this._logMessage(`  -- CASE:   ---- BREAK ---- rhs equal to or longer than rhs(${this._tokenString(nextToken, line)})`);
+            // Current token is fully overlapped, discard it
+            //    xxxxxxxxxxxxxxx
+            //    yyyyyyyyyyyyyyy
+            // -OR-
+            //    xxxxxxxxxxxxxxx
+            //    yyyyyyyyyyyyyyyyyyyy
+            currentToken.length = 0; // so we don't emit it
+            break; // done, but don't emit lhs(currentToken)
+          } else {
+            // Shorten current token and keep processing
+            //    xxxxxxxxxxxxxxx
+            //    yyyyyyyy
+            // Emit nextToken and shorten currentToken
+            mergedTokens.push(nextToken); // Add nextToken to the merged list
+            currentToken.startCharacter = nextToken.startCharacter + nextToken.length; // Adjust startCharacter of currentToken
+            currentToken.length -= nextToken.length; // Shorten currentToken
+            this._logMessage(
+              `  -- CASE: rhs shorter than rhs(${this._tokenString(nextToken, line)}), shortened lhs(${this._tokenString(currentToken, line)})`
+            );
+            tokenSet.splice(i + 1, 1); // Remove nextToken from the tokenSet
+          }
+        } else if (currentToken.startCharacter + currentToken.length <= nextToken.startCharacter + nextToken.length) {
+          // Next token is fully overlapped, shorten current token
+          //    xxxxxxxxxxxxxxx
+          //          yyyyyyyyy
+          // -OR-
+          //    xxxxxxxxxxxxxxx
+          //         yyyyyyyyyyyyyy
+          currentToken.length = nextToken.startCharacter - currentToken.startCharacter;
+          this._logMessage(
+            `  -- CASE:  ---- BREAK ---- rhs(${this._tokenString(nextToken, line)}) overlaps right edge of lhs, shortened lhs(${this._tokenString(currentToken, line)})`
+          );
+          break; // done, and emit lhs(currentToken)
+        } else {
+          // Partial overlap, split current token
+          //    xxxxxxxxxxxxxxx
+          //      yyyyyy
+          const newToken: IParsedToken = {
+            line: currentToken.line,
+            startCharacter: currentToken.startCharacter,
+            length: nextToken.startCharacter - currentToken.startCharacter,
+            ptTokenType: currentToken.ptTokenType,
+            ptTokenModifiers: currentToken.ptTokenModifiers
+          };
+          mergedTokens.push(newToken); // New nextToken to the merged list
+          this._logMessage(
+            `  -- CASE: new(${this._tokenString(newToken, line)}), rhs(${this._tokenString(nextToken, line)}) overlaps middle of lhs, shortened lhs`
+          );
+          mergedTokens.push(nextToken); // Add nextToken to the merged list
+          // move the current offset to after this token
+          currentToken.startCharacter = nextToken.startCharacter + nextToken.length;
+          currentToken.length -= newToken.length + nextToken.length;
+          tokenSet.splice(i + 1, 1); // Remove nextToken from the tokenSet
+        }
+      }
+
+      // Add the current token to the merged list
+      if (currentToken.length > 0) {
+        this._logMessage(`  --    emit lhs(${this._tokenString(currentToken, line)})`);
+        mergedTokens.push(currentToken);
+      } else {
+        this._logMessage(`  --    SKIP lhs(${this._tokenString(currentToken, line)})`);
+      }
+    }
+
+    return mergedTokens;
   }
 
   private _tokenExists(newToken: IParsedToken, tokenSet: IParsedToken[]): boolean {
