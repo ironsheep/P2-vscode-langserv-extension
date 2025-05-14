@@ -16,7 +16,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the don't use comment on line for this block
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
-- v50 Add (\r, \n, etc.) control-character highlighting within string new @\""  declarations
 - v51 If sizeof(): Validate variable is a structure instance
 - v45 Hover of structure name should show structure def'n
 	- (and point to source where declared?)
@@ -35,7 +34,9 @@ Spin2 Minor Highlight repairs
 
 - Cleanup more debug[...](...) highlighting
 - Add preprocessor highlight support (preprocessor added in v48)
-- Add support for multiline statements with fake-line-continuation sequences
+- Add highlighting of escape-sequences within escaped strings (added in v50)
+- BUGFIX: repair some missed coloring of object overrides
+- BUGFIX: repair missed coloring within some types of debug() statements
 
 ## [2.4.1] 2025-05-08
 
