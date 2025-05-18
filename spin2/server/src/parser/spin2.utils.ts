@@ -805,24 +805,30 @@ export class Spin2ParseUtils {
     let trimmedLine: string = line;
     const doubleQuote: string = '"';
     let packedLongOffset: number = preservePacked == true ? trimmedLine.indexOf('%"') : -1;
-    let quoteStartOffset: number = trimmedLine.indexOf(doubleQuote);
-    if (quoteStartOffset == packedLongOffset + 1) {
-      quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
-    }
-    while (quoteStartOffset != -1) {
-      const quoteEndOffset: number = trimmedLine.indexOf(doubleQuote, quoteStartOffset + 1);
-      if (quoteEndOffset != -1) {
-        const badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
-        didRemove = true;
-        trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
-        packedLongOffset = preservePacked == true ? trimmedLine.indexOf('%"', quoteEndOffset + 1) : -1;
-        quoteStartOffset = trimmedLine.indexOf(doubleQuote, quoteEndOffset + 1);
-        if (quoteStartOffset == packedLongOffset + 1) {
-          quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
-        }
-      } else {
-        break; // we don't handle a single double-quote
+    let searchOffset = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      let quoteStartOffset = trimmedLine.indexOf(doubleQuote, searchOffset);
+
+      // Skip packed long if needed
+      if (preservePacked && packedLongOffset !== -1 && quoteStartOffset === packedLongOffset + 1) {
+        quoteStartOffset = trimmedLine.indexOf(doubleQuote, packedLongOffset + 2);
+        if (quoteStartOffset === -1) break;
       }
+      if (quoteStartOffset === -1) break;
+
+      const quoteEndOffset = trimmedLine.indexOf(doubleQuote, quoteStartOffset + 1);
+      if (quoteEndOffset === -1) break;
+
+      const badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
+      didRemove = true;
+      trimmedLine = trimmedLine.substring(0, quoteStartOffset) + '#'.repeat(badElement.length) + trimmedLine.substring(quoteEndOffset + 1);
+
+      // Update packedLongOffset for next search
+      packedLongOffset = preservePacked == true ? trimmedLine.indexOf('%"', quoteEndOffset + 1) : -1;
+
+      // Move searchOffset past the replaced string
+      searchOffset = quoteStartOffset + badElement.length;
     }
 
     // NEW also remove {text} strings
@@ -840,12 +846,12 @@ export class Spin2ParseUtils {
       }
     }
 
-    /*
+    //*
     if (didRemove) {
       this._logMessage(`  -- RDQS line [${line}]${line.length}, preservePacked=(${preservePacked})`);
       this._logMessage(`  --           [${trimmedLine}](${trimmedLine.length})`);
-	}
-	//*/
+    }
+    //*/
 
     return trimmedLine;
   }

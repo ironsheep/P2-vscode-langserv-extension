@@ -2984,7 +2984,7 @@ export class RememberedComment {
       }
       this._lines[idx] = trimmedLine;
     }
-    if (this._lines[this._lines.length - 1].length == 0) {
+    if (this._lines.length > 0 && this._lines[this._lines.length - 1].length == 0) {
       this._emptyLinesAtEnd++;
     }
     this._clearLinesIfAllBlank();

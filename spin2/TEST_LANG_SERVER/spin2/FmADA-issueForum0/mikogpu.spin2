@@ -1,0 +1,5000 @@
+OBJ {{
+      Tempest 2000 GPU microcodes ported for P2
+}}
+CON
+
+SCRWIDTH = 384
+SCRHEIGHT = 240 ' 280 would overrun some important stuff...
+
+DEBUG_DISABLE = true
+
+#include "p2defs.inc"
+
+in_buf = G_RAM+$F60
+_sysflags = G_RAM+$FD0
+
+PUB start(mailbox,font)
+  exmem_mailbox := mailbox
+  debugfont := font
+  coginit(HUBEXEC_NEW,@init,0)
+
+
+
+DAT
+
+              org
+cogcode
+
+r0            long 0
+r1            long 0
+r2            long 0
+r3            long 0
+r4            long 0
+r5            long 0
+r6            long 0
+r7            long 0
+r8            long 0
+r9            long 0
+r10           long 0
+r11           long 0
+r12           long 0
+r13           long 0
+r14           long 0
+r15           long 0
+r16           long 0
+r17           long 0
+r18           long 0
+r19           long 0
+r20           long 0
+r21           long 0
+r22           long 0
+r23           long 0
+r24           long 0
+r25           long 0
+r26           long 0
+r27           long 0
+r28           long 0
+r29           long 0
+r30           long 0
+r31           long 0
+auxvals       long 0[32]
+
+cryline384    long 384*2
+cryline320    long 320*2
+hi8mask       long $FF000000
+himask        long $FFFF0000
+lomask        long $0000FFFF
+bit31         long $80000000
+
+
+exmem_mailbox long 0
+exmem_buffer_ptr long @@@exmem_buffer
+debugfont long 0
+
+              long 0[300]
+
+run_overlay
+              cmp pa,loaded_overlay wz
+              mov loaded_overlay,pa
+        if_nz setq2 pb
+        if_nz rdlong 0-0,pa
+              jmp #512
+
+ex_rdbyte_pa ' generic memory read (matching 68k address space)
+              mov exmem_cmd,pa
+ex_rdbyte
+              tjns exmem_cmd,#.readhub
+              mov pa,#exmem_buffer_ptr
+              mov exmem_target,exmem_buffer_ptr
+              mov exmem_len,#1
+              call #exmem_read
+        _ret_ rdbyte pa,exmem_target
+.readhub 
+        _ret_ rdbyte pa,pa
+
+ex_rdlong_pa ' generic memory read (matching 68k address space)
+              mov exmem_cmd,pa
+ex_rdlong
+              tjns exmem_cmd,#.readhub
+              mov pa,#exmem_buffer_ptr
+              mov exmem_target,exmem_buffer_ptr
+              mov exmem_len,#4
+              call #exmem_read
+        _ret_ rdlong pa,exmem_target
+.readhub 
+        _ret_ rdlong pa,pa
+
+ex_rdblock    ' generic block read
+              tjns exmem_cmd,#hub_rdblock
+exmem_read
+              setnib exmem_cmd,#$B,#7 ' B stands for burst
+do_exmem
+              setq #2
+              wrlong exmem_cmd,exmem_mailbox
+        _ret_ waitatn
+          
+hub_rdblock
+              rdfast #0,exmem_cmd
+              rczr exmem_len wcz
+              mov ptrb, exmem_target
+        if_z  rfbyte tmp1
+        if_z  wrbyte tmp1,ptrb++
+        if_c  rfword tmp1
+        if_c  wrword tmp1,ptrb++
+              zerox exmem_len,#29 wz
+        if_z  rep #2,exmem_len
+        if_z  rflong tmp1
+        if_z  wrlong tmp1,ptrb++
+              ret
+
+              
+fmult         ' 16.16 fixed point multiply
+              abs pa wc
+              wrc tmp1
+              abs pb wc
+              qmul pa,pb
+              testb tmp1,#0 xorc
+              getqx pb
+              getqy pa
+              rolword pa,pb,#1
+              negc pa
+              ret wcz
+
+sdiv1         ' 1x signed/unsigned divide by pa
+              abs divvals+0 wc
+              qdiv divvals+0,pa
+              getqx divvals+0
+              negc divvals+0
+              ret wcz
+
+sdiv2         ' 2x signed/unsigned pipeline divide by pa
+              abs divvals+0 wc
+              qdiv divvals+0,pa
+              bitc pb,#0
+              abs divvals+1 wc
+              qdiv divvals+1,pa
+              bitc pb,#1
+
+              testb pb,#0 wc
+              getqx divvals+0
+              negc divvals+0
+              'nop ' TODO: remove these NOPs
+              testb pb,#1 wc
+              getqx divvals+1
+              negc divvals+1
+              ret wcz
+
+sdiv4         ' 4x signed/unsigned pipeline divide by pa
+              mov pb,pa
+sdiv2x2       ' 4x signed/unsigned pipeline divide by pb
+              abs divvals+0 wc
+              qdiv divvals+0,pa
+              bitc divtmp,#0
+              abs divvals+1 wc
+              qdiv divvals+1,pa
+              bitc divtmp,#1
+              abs divvals+2 wc
+              qdiv divvals+2,pb
+              bitc divtmp,#2
+              abs divvals+3 wc
+              qdiv divvals+3,pb
+              bitc divtmp,#3
+
+              testb divtmp,#0 wc
+              getqx divvals+0
+              negc divvals+0
+              nop
+              testb divtmp,#1 wc
+              getqx divvals+1
+              negc divvals+1
+              nop
+              testb divtmp,#2 wc
+              getqx divvals+2
+              negc divvals+2
+              nop
+              testb divtmp,#3 wc
+              getqx divvals+3
+              negc divvals+3
+              ret wcz
+
+
+
+
+
+
+
+
+exmem_cmd     res 1
+exmem_target  res 1
+exmem_len     res 1
+
+divvals       res 4
+divtmp        res 1
+
+tmp1          res 1
+tmp2          res 1
+tmp3          res 1
+tmp4          res 1
+loaded_overlay res 1
+gpu_screen    res 1
+line_pos 'alias
+blit_x        res 1
+line_inc ' alias
+blit_y        res 1
+line_fracstep ' alias
+blit_xinc     res 1
+line_step ' alias
+blit_yinc     res 1
+line_fracpos ' alias
+blit_xclip     res 1
+blit_yclip     res 1
+blit_xstep   res 1
+blit_ystep   res 1
+blit_outercnt res 1
+blit_x2        res 1
+blit_y2        res 1
+
+sin1  res 1
+cos1  res 1
+sin2  res 1
+cos2  res 1
+sin3  res 1
+cos3  res 1
+
+
+' registers that texter loads
+
+              ' There should really be a way to namespace these
+
+              fit 502
+
+
+              orgh
+
+init
+              loc pa,#@@@cogcode
+              setq #495
+              rdlong 0-0,pa
+
+              cogid pa
+              mul pa,#12
+              add exmem_mailbox,pa
+
+cmd_done
+              wrlong #0,#GPU_MAILBOX
+cmdloop
+              rdlong pa,#GPU_MAILBOX wz
+        if_z  jmp #cmdloop
+              movbyts pa,#%%0123
+              debug("Command get! ",uhex_long(pa))
+              
+              rdlong gpu_screen,##G_RAM+$ff8 ' get screen
+              movbyts gpu_screen,#%%0123
+
+              cmp pa,#MIKOGPU_CLEAR wz
+        if_z  jmp #cmd_clear
+
+              cmp pa,#MIKOGPU_SCAR wz
+        if_z  jmp #cmd_scar
+
+              tjs gpu_screen,#cmd_done ' ignore attempts to write to external memory
+
+              cmp pa,#MIKOGPU_SNGLPIX wz
+        if_z  jmp #cmd_snglpix
+
+              cmp pa,#MIKOGPU_TEXTER wz
+        if_z  jmp #cmd_texter
+
+              cmp pa,#MIKOGPU_REX wz
+        if_z  jmp #cmd_rex
+
+              cmp pa,#MIKOGPU_CREX wz
+        if_z  jmp #cmd_crex
+
+
+              cmp pa,#MIKOGPU_STARFIELD wz
+        if_z  jmp #cmd_starfield
+
+              cmp pa,#MIKOGPU_PRING wz
+        if_z  jmp #cmd_pring
+
+              cmp pa,#MIKOGPU_CPRING wz
+        if_z  jmp #cmd_cpring
+
+              cmp pa,#MIKOGPU_FASTVECTOR wz
+        if_z  jmp #cmd_fastvector
+
+              cmp pa,#MIKOGPU_SLOWVECTOR wz
+        if_z  jmp #cmd_cenvector
+
+              cmp pa,#MIKOGPU_STARPLANE wz
+        if_z  jmp #cmd_starplane
+
+              cmp pa,#MIKOGPU_POLYO2D wz
+        if_z  jmp #cmd_polyo2d
+
+              cmp pa,#MIKOGPU_WEB3D wz
+        if_z  jmp #cmd_web3d
+
+              cmp pa,#MIKOGPU_MODE7 wz
+        if_z  jmp #cmd_mode7
+
+              cmp pa,#MIKOGPU_STARSEG wz
+        if_z  jmp #cmd_starseg
+
+              cmp pa,#MIKOGPU_VOO wz
+        if_z  jmp #cmd_voo
+
+              cmp pa,#MIKOGPU_RIPPLEWARP wz
+        if_z  jmp #cmd_ripplewarp
+
+              cmp pa,#MIKOGPU_PSPHERE wz
+        if_z  jmp #cmd_psphere
+
+              cmp pa,#MIKOGPU_PRETTYPOLY wz
+        if_z  jmp #cmd_prettypoly
+
+              cmp pa,#MIKOGPU_REX2D wz
+        if_z  jmp #cmd_rex2d
+
+              cmp pa,#MIKOGPU_MERGE wz
+        if_z  jmp #cmd_merge
+
+              cmp pa,#MIKOGPU_FLINE wz
+        if_z  jmp #cmd_fline
+
+              ' fallback
+              mov r0,pa
+              mov tmp1,gpu_screen
+              add tmp1,##384*2*75 + 320*2
+              'setq #511
+              'wrlong ##$FFFF,tmp1
+.digitlp
+              qdiv r0,#10
+              mov ptra,tmp1
+              sub tmp1,#16
+              getqx r0
+              getqy r1
+              add r1,#"0"
+              mul r1,#8
+              add r1,debugfont
+
+              mov r2,##$FFFF
+
+              rep @.dllp,#8
+              setq #3
+              wrlong ##$40404040,ptra
+              rdbyte pa,r1
+              xor pa,#255
+              skip pa
+              wrword r2,ptra[0]
+              wrword r2,ptra[1]
+              wrword r2,ptra[2]
+              wrword r2,ptra[3]
+              wrword r2,ptra[4]
+              wrword r2,ptra[5]
+              wrword r2,ptra[6]
+              wrword r2,ptra[7]
+              add r1,#1
+              add ptra,cryline384
+.dllp
+              tjnz r0,#.digitlp
+            
+              jmp #cmd_done
+
+DAT ' Screen clear µcode
+
+cmd_clear
+              tjs gpu_screen,#.ext
+              setq ##((384*2*240)/4)-1
+              wrlong #0,gpu_screen
+              jmp #cmd_done
+.ext
+              mov exmem_cmd,gpu_screen
+              setnib exmem_cmd,#$D,#7 ' fill words
+              mov exmem_target,#0
+              mov exmem_len,##SCRWIDTH*SCRHEIGHT
+              loc pa,#cmd_done
+              push pa
+              jmp #do_exmem
+
+
+DAT ' Texter µcode (from stoat.gas)
+
+#define _bass     r2   'Source base address
+#define spixel    r3 'Source pixel start
+#define ssize     r4   'Source rectangle size
+#define scalex    r5
+#define scaley    r6 'Scaling X and Y
+#define shearx    r7
+#define sheary    r8 'Shearing X and Y
+#define mode      r9  'Centering mode
+
+#define xinc      r10
+#define yinc      r11
+#define xstep     r12
+#define ystep     r16
+#define _xstart   r17
+#define ystart    r18
+#define dstxy     r21
+#define axshear   r22
+#define ayshear   r23
+
+#define xx        r24
+#define yy        r25
+#define x_add     r26
+#define textptr   r29
+#define fontbase  r30
+
+#define dropx      r2
+#define dropy      r3
+
+cmd_texter
+              ' load overlay
+              loc pa,#@@@ovl_texter
+              mov pb,#ovl_texter_end-ovl_texter-1
+              jmp #run_overlay
+
+              org 512
+ovl_texter
+              rdfast #0,##in_buf
+              ' load the parameters into registers
+              rflong textptr
+              movbyts textptr,#%%0123
+              rflong fontbase
+              movbyts fontbase,#%%0123
+              rflong dropx
+              movbyts dropx,#%%0123
+              rflong dropy
+              movbyts dropy,#%%0123
+              ' moveta dropx,dropx
+              ' moveta dropy,dropy
+              rflong scalex
+              movbyts scalex,#%%0123
+              rflong scaley
+              movbyts scaley,#%%0123
+              rflong shearx
+              movbyts shearx,#%%0123
+              rflong sheary
+              movbyts sheary,#%%0123
+              rflong dstxy
+              movbyts dstxy,#%%0123
+              rflong mode
+              movbyts mode,#%%0123
+              ' moveta textptr,r6
+              ' moveta dstxy,r7
+              mov auxvals+6,textptr
+              mov auxvals+7,dstxy
+
+              ' download entire font
+              mov exmem_cmd,fontbase
+              mov exmem_len,#8+(96*4)
+              mov fontbase,exmem_buffer_ptr
+              add fontbase,##384*2*2
+              mov exmem_target,fontbase
+              call #ex_rdblock
+              rdfast #0,fontbase
+              rflong _bass
+              movbyts _bass,#%%0123
+              rflong ssize
+              movbyts ssize,#%%0123
+              add fontbase,#8 ' now fontbase is really the fontbase
+
+              'debug(uhex_long(textptr,fontbase,dstxy))
+
+              mov x_add,ssize
+              shl x_add,#16
+              mov pa,x_add
+              mov pb,scalex
+              call #fmult
+              getword x_add,pa,#1 ' SHRQ #16 built in
+
+              add x_add,#2 ' make intra-character spacing
+              ' movefa r6,textptr		;FMULT mashed it
+              ' moveta scalex,scalex
+              ' moveta sheary,sheary		;these are modified in the charprint loop
+.textloop
+              callpa textptr,#ex_rdbyte_pa
+              mov r0,pa wz ' is it zero?
+              'debug(uhex(r0),uhex_long(textptr))
+              add textptr,#1
+        if_z  jmp #.ntxt
+              sub r0,#32
+              shl r0,#2
+              add r0,fontbase
+              rdlong spixel,r0
+              movbyts spixel,#%%0123
+              ' moveta textptr,textptr
+              ' moveta fontbase,fontbase	;these will be bashed when the char is printed
+
+              mov _xstart,scalex
+              mov r0,ssize
+              mov ystart,scaley
+              mov r1,ssize
+              shl r0,#16    ' got X size
+	            and r1,himask ' and Y size as 16:16
+              mov pa,_xstart
+              mov pb,r0
+              call #fmult
+              mov _xstart,pa
+              mov pa,ystart
+              mov pb,r1
+              call #fmult
+              mov ystart,pa
+
+              mov pa,shearx
+              mov pb,r1
+              call #fmult 'height*xshear
+              mov axshear,pa
+
+              mov pa,sheary
+              mov pb,r0
+              call #fmult 'width*yshear
+              mov ayshear,pa
+
+              mov xx,_xstart ' Calculation for CENTERED explosion
+              mov yy,ystart
+              add xx,axshear
+              add yy,ayshear
+              sar xx,#1
+              sar yy,#1 ' XX and YY are vector to start pixel for dest blit
+
+              mov r0,dstxy
+              mov r1,dstxy
+              shl r0,#16
+              and r1,himask ' dest X and Y converted to 16:16 frax
+              sub r0,xx
+              sub r1,yy     ' r0 has x pixel+frac, r1 has y
+
+              ' check for bug condition (LH sprite edge off the screen)
+              tjns r0,#.pasthack
+.shrnk
+              sub ssize,#1 ' shrink until pixel's on screen
+              add spixel,#1
+              sub _xstart,scalex
+              add r0,scalex
+              tjs r0,#.shrnk
+              mov r27,ssize
+              shl r27,#16
+              testb r27,#31 wc
+              and r27, himask wz
+    if_c_or_z jmp #cmd_done
+
+.pasthack
+              cmp mode,#1 wz
+        'if_nz jmp #.nods1
+              ' movefa dropx,r31
+              ' movefa dropy,r30
+              ' TODO: where does the dropshadow come from???
+        if_z  add r0,dropx
+        if_z  add r1,dropy
+.nods1
+              {
+              mov xx,r0
+              mov yy,r0
+              shr xx,#16
+              and yy,lomask   ' X integer parts to xx and fractional to yy
+              mov r0,r1
+              shl r1,#16
+              and r0,himask
+              or yy,r1
+              or xx,r0
+              }
+              mov blit_x,r0
+              mov blit_y,r1
+
+              
+              neg xstep,_xstart
+              neg ystep,ayshear
+              add xstep,shearx  ' x step is -(width*scale)-shearx
+              add ystep,scaley  ' y step is -(width*yshear)+scaley
+              
+              mov blit_xstep,xstep
+              mov blit_ystep,ystep
+
+              {
+              getword xinc,scalex,#1
+              getword yinc,scalex,#0
+              mov scalex, sheary
+              shl sheary,#16
+              and scalex,himask
+              or yinc,sheary
+              or xinc,scalex ' xinc/yinc have a1_inc and a1_finc
+              }
+              mov blit_xinc,scalex
+              mov blit_yinc,sheary
+
+              ' waitblit
+
+              mov blit_xclip,##SCRWIDTH<<16
+              mov blit_yclip,##SCRHEIGHT<<16
+
+              ' source addresses
+              getword tmp4,spixel,#1
+              mul tmp4,#320
+              getword pa,spixel,#0
+              add tmp4, pa
+              shl tmp4,#1
+              add tmp4,_bass
+
+              getword blit_outercnt,ssize,#1
+              debug("in texter ",uhex_long(ssize))
+              'debug(uhex_long(spixel,_bass,blit_x,blit_y,blit_xinc,blit_yinc,blit_xstep,blit_ystep,ssize))
+
+              ' Start grabbing font
+              getword exmem_len,ssize,#0
+              shl exmem_len,#1
+              fle exmem_len,cryline384 ' super safety
+              fge exmem_len,#1
+
+              mov exmem_target,exmem_buffer_ptr
+              testb blit_outercnt,#0 wc
+        if_c  add exmem_target,cryline384
+              mov exmem_cmd,tmp4
+              setnib exmem_cmd,#$B,#7 ' B stands for burst
+              setq #2
+              wrlong exmem_cmd,exmem_mailbox
+
+.blitouter
+              ' prefetch next line
+              mov exmem_target,exmem_buffer_ptr
+              testb blit_outercnt,#0 wc
+        if_nc add exmem_target,cryline384
+              add tmp4,cryline320
+              mov exmem_cmd,tmp4
+              setnib exmem_cmd,#$B,#7 ' B stands for burst
+              cmp blit_outercnt,#1 wz ' don't do it on last line
+              waitatn ' wait for current line to have been fetched
+        if_nz setq #2
+        if_nz wrlong exmem_cmd,exmem_mailbox
+
+              mov tmp2,exmem_buffer_ptr
+        if_c  add tmp2,cryline384
+              rdfast bit31,tmp2
+
+              getword pa,ssize,#0
+
+              tjz pa,#.inner
+              rep @.inner,pa
+              add blit_x,blit_xinc
+              add blit_y,blit_yinc
+              cmp blit_x,blit_xclip wc
+        if_c  cmp blit_y,blit_yclip wc
+              getword tmp2, blit_y,#1
+              mul tmp2,#384
+              getword pa,blit_x,#1
+              add tmp2,pa
+              shl tmp2,#1
+              add tmp2,gpu_screen
+              rfword tmp1 wz ' source CRY pixel
+  if_c_and_nz wrword tmp1,tmp2
+.inner
+              add blit_x,blit_xstep
+              add blit_y,blit_ystep
+
+              djnz blit_outercnt,#.blitouter
+
+              add dstxy,x_add
+              jmp #.textloop
+
+.ntxt
+              mov textptr,auxvals+6
+              mov dstxy,auxvals+7
+
+              cmp mode,#1 wz
+        if_z  mov mode,#0
+        if_z  jmp #.textloop
+
+
+              'setq #100
+              'wrlong ##$FFFF,gpu_screen
+              jmp #cmd_done
+ovl_texter_end
+              fit 1024
+   
+#undef _bass     
+#undef spixel    
+#undef ssize     
+#undef scalex    
+#undef scaley    
+#undef shearx    
+#undef sheary    
+#undef mode      
+#undef xinc      
+#undef yinc      
+#undef xstep     
+#undef ystep     
+#undef _xstart   
+#undef ystart     
+#undef dstxy     
+#undef axshear   
+#undef ayshear   
+#undef xx        
+#undef yy        
+#undef x_add     
+#undef textptr   
+#undef fontbase  
+#undef dropx     
+#undef dropy     
+
+DAT ' REX (Robotron explosion) µcode (from camel.gas)
+
+'' Note: this shares an obnoxious amount of code with texter
+#define _bass     r2   'Source base address
+#define spixel    r3 'Source pixel start
+#define ssize     r4   'Source rectangle size
+#define scalex    r5
+#define scaley    r6 'Scaling X and Y
+#define shearx    r7
+#define sheary    r8 'Shearing X and Y
+#define mode      r9  'Centering mode
+
+#define xinc      r10
+#define yinc      r11
+#define xstep     r12
+#define ystep     r16
+#define _xstart   r17
+#define ystart    r18
+#define dstx      r21
+#define axshear   r22
+#define ayshear   r23
+
+#define xx        r24
+#define yy        r25
+#define dsty      r26
+#define dstz      r1
+
+              orgh
+cmd_rex
+              ' Set screen center
+              mov r27,##SCRWIDTH<<15
+              mov r28,##SCRHEIGHT<<15
+              ' Set mode
+              mov cos1,#1
+              ' load overlay
+              loc pa,#@@@ovl_rex
+              mov pb,#ovl_rex_end-ovl_rex-1
+              jmp #run_overlay
+
+cmd_crex
+              ' Set screen center
+              rdlong r28,##G_RAM+$EF8 'ycent
+              rdlong r27,##G_RAM+$EFC 'xcent
+              movbyts r28,#%%0123
+              movbyts r27,#%%0123
+              shl r28,#16
+              shl r27,#16
+              ' Set mode
+              mov cos1,#1
+              ' load overlay
+              loc pa,#@@@ovl_rex
+              mov pb,#ovl_rex_end-ovl_rex-1
+              jmp #run_overlay
+
+cmd_rex2d
+              ' Set screen center
+              mov r27,#0
+              mov r28,#0
+              ' Set mode
+              mov cos1,#0
+              mov dstz,#1
+              ' load overlay
+              loc pa,#@@@ovl_rex
+              mov pb,#ovl_rex_end-ovl_rex-1
+              jmp #run_overlay
+
+              org 512
+ovl_rex
+              rdlong r1,##_sysflags
+              movbyts r1,#%%0123
+              testb r1,#5 wc ' I think this is PAL related?
+        'if_c  mov r28,##$8c0000
+              ' TODO: Why do I need to comment this
+.orex
+              rdfast #0,##in_buf
+              ' load the parameters into registers
+              rflong _bass
+              movbyts _bass,#%%0123
+              rflong spixel
+              movbyts spixel,#%%0123
+              rflong ssize
+              movbyts ssize,#%%0123
+              rflong divvals+2' scalex
+              movbyts divvals+2,#%%0123
+              rflong divvals+3 ' scaley
+              movbyts divvals+3,#%%0123
+              rflong shearx
+              movbyts shearx,#%%0123
+              rflong sheary
+              movbyts sheary,#%%0123
+              rflong mode
+              'movbyts mode,#%%0123
+              rflong divvals+0 ' dstx
+              movbyts divvals+0 ,#%%0123
+              rflong divvals+1 ' dsty
+              movbyts divvals+1,#%%0123
+
+              tjz cos1,#.rex2d
+              rflong dstz
+              movbyts dstz,#%%0123
+              shr dstz,#14
+
+              mov pa,dstz
+              call #sdiv4
+              mov dstx,divvals+0
+              mov dsty,divvals+1
+              shl dstx,#9
+              shl dsty,#9
+              add dstx,r27
+              add dsty,r28
+              mov scalex,divvals+2
+              mov scaley,divvals+3
+              shl scalex,#9
+              shl scaley,#9
+              jmp #.not2d
+.rex2d
+              mov dstx,divvals+0
+              mov dsty,divvals+1
+              mov scalex,divvals+2
+              mov scaley,divvals+3
+              shl dstx,#16
+              shl dsty,#16
+.not2d
+              'mov _xstart,scalex
+              mov r0,ssize
+              'mov ystart,scaley
+              mov r1,ssize
+              shl r0,#16 ' got X size
+              and r1,himask '  and Y size as 16:16
+
+              getword r0,ssize,#0
+              shl r0,#16
+              mov pb,r0
+              callpa scalex,#fmult
+              mov _xstart,pa
+              getword r1,ssize,#1
+              shl r1,#16
+              mov pb,r1
+              callpa scaley,#fmult
+              mov ystart,pa ' got (width*scalex) and (height*scaley)
+
+              mov pb,r1
+              callpa shearx,#fmult ' height*xshear
+              mov axshear,pa
+              mov pb,r0
+              callpa sheary,#fmult ' width*yshear
+              mov ayshear,pa
+
+              mov xx,_xstart ' Calculation for CENTERED explosion
+              mov yy,ystart
+              add xx,axshear
+              add yy,ayshear
+              sar xx,#1
+              sar yy,#1 ' XX and YY are vector to start pixel for dest blit
+
+              mov r0,dstx
+              mov r1,dsty
+              sub r0,xx
+              sub r1,yy ' r0 has x pixel+frac, r1 has y
+
+              ' check for bug condition (LH sprite edge off the screen)
+              tjns r0,#.pasthack
+.shrnk
+              sub ssize,#1 ' shrink until pixel's on screen
+              add spixel,#1
+              sub _xstart,scalex
+              add r0,scalex
+              tjs r0,#.shrnk
+              mov r27,ssize
+              shl r27,#16
+              testb r27,#31 wc
+              and r27, himask wz
+    if_c_or_z jmp #cmd_done
+
+.pasthack
+              mov blit_x,r0
+              mov blit_y,r1
+
+              neg xstep,_xstart
+              neg ystep,ayshear
+              add xstep,shearx  ' x step is -(width*scale)-shearx
+              add ystep,scaley  ' y step is -(width*yshear)+scaley
+              
+              mov blit_xstep,xstep
+              mov blit_ystep,ystep
+
+              mov blit_xinc,scalex
+              mov blit_yinc,sheary
+
+              ' waitblit
+
+              mov blit_xclip,##SCRWIDTH<<16
+              mov blit_yclip,##SCRHEIGHT<<16
+
+              ' source addresses
+              getword tmp4,spixel,#1
+              mul tmp4,#320
+              getword pa,spixel,#0
+              add tmp4, pa
+              shl tmp4,#1
+              add tmp4,_bass
+
+              getword blit_outercnt,ssize,#1
+              'debug(uhex_long(spixel,_bass,blit_x,blit_y,blit_xinc,blit_yinc,blit_xstep,blit_ystep,ssize))
+
+              ' Start grabbing image
+              getword exmem_len,ssize,#0
+              shl exmem_len,#1
+              fle exmem_len,cryline384 ' super safety
+              fge exmem_len,#1
+
+              mov exmem_target,exmem_buffer_ptr
+              testb blit_outercnt,#0 wc
+        if_c  add exmem_target,cryline384
+              mov exmem_cmd,tmp4
+              setnib exmem_cmd,#$B,#7 ' B stands for burst
+              setq #2
+              wrlong exmem_cmd,exmem_mailbox
+
+.blitouter
+              ' prefetch next line
+              mov exmem_target,exmem_buffer_ptr
+              testb blit_outercnt,#0 wc
+        if_nc add exmem_target,cryline384
+              add tmp4,cryline320
+              mov exmem_cmd,tmp4
+              setnib exmem_cmd,#$B,#7 ' B stands for burst
+              cmp blit_outercnt,#1 wz ' don't do it on last line
+              waitatn ' wait for current line to have been fetched
+        if_nz setq #2
+        if_nz wrlong exmem_cmd,exmem_mailbox
+
+              mov tmp2,exmem_buffer_ptr
+        if_c  add tmp2,cryline384
+              rdfast bit31,tmp2
+
+              getword pa,ssize,#0
+
+              tjz pa,#.inner
+              rep @.inner,pa
+              add blit_x,blit_xinc
+              add blit_y,blit_yinc
+              cmp blit_x,blit_xclip wc
+        if_c  cmp blit_y,blit_yclip wc
+              getword tmp2, blit_y,#1
+              mul tmp2,#384
+              getword pa,blit_x,#1
+              add tmp2,pa
+              shl tmp2,#1
+              add tmp2,gpu_screen
+              rfword tmp1 wz ' source CRY pixel
+  if_c_and_nz wrword tmp1,tmp2
+.inner
+              add blit_x,blit_xstep
+              add blit_y,blit_ystep
+
+              djnz blit_outercnt,#.blitouter
+
+              jmp #cmd_done
+
+ovl_rex_end
+              fit 1024
+
+
+#undef _bass     
+#undef spixel    
+#undef ssize     
+#undef scalex    
+#undef scaley    
+#undef shearx    
+#undef sheary    
+#undef mode      
+#undef xinc      
+#undef yinc      
+#undef xstep     
+#undef ystep     
+#undef _xstart   
+#undef ystart    
+#undef dstx     
+#undef axshear   
+#undef ayshear   
+#undef xx        
+#undef yy        
+#undef dsty
+#undef dstz
+
+
+DAT ' Starfield µcode (from llama.gas)
+             orgh
+cmd_starfield
+              ' load overlay
+              loc pa,#@@@ovl_starfield
+              mov pb,#ovl_starfield_end-ovl_starfield-1
+              jmp #run_overlay
+
+              org 512
+ovl_starfield
+              rdfast #0, ##in_buf+4
+              rflong r20
+              movbyts r20,#%%0123
+              rflong r21
+              movbyts r21,#%%0123
+              rflong r22  ' get X, Y and Z viewpoint
+              movbyts r22,#%%0123
+              rflong r25 ' r25 points to start of star data structure in 68K RAM (or ROM...)
+              movbyts r25,#%%0123
+              rflong r0 ' this is the warp counter
+              movbyts r0,#%%0123
+              rflong r1 ' and this is the warp separation
+              movbyts r1,#%%0123
+
+              rdlong r26,r25
+              movbyts r26,#%%0123 ' r26 has the total number of stars
+              add r25,#4 ' r25 now points to the first star.
+
+              'mov r18,#SCRWIDTH
+              'mov r19,#SCRHEIGHT
+
+              rdlong r28,##_sysflags
+              testb r28,#5 wc
+        'if_c  mov r19,#280
+              ' TODO figure out sysflags later
+
+              'mov r14,r18
+              'mov r15,r19
+              'shr r14,#1
+              'shr r15,#1
+              'mov auxvals+0,r0
+              'mov auxvals+1,r1
+.starloop
+              mov r2,r0 ' set z-streak iterations
+              'mov auxvals+2,r2
+              ' get X, Y, Z of this star
+              ' TODO: figure out if this actually comes from ROM ever?
+              {
+              callpa r25,#ex_rdlong_pa
+              mov r5,pa
+              add r25,#4
+              callpa r25,#ex_rdlong_pa
+              mov r6,pa
+              add r25,#4
+              callpa r25,#ex_rdlong_pa
+              mov r7,pa
+              add r25,#4
+              }
+              setq #4-1
+              rdlong r5,r25
+              add r25,#4*3 +20
+
+              movbyts r5,#%%0123
+              movbyts r6,#%%0123
+              movbyts r7,#%%0123
+              sub r5, r20
+              sub r6, r21
+              sub r7, r22 ' translate to current VP
+
+              getbyte r23,r8,#0
+.streakloop
+              zerox r7,#24 ' wrap the z
+
+              'mov auxvals+7,r7 ' save untransformed z
+              'mov auxvals+6,r6
+              'mov auxvals+5,r5
+              mov pa,r7
+              sar pa,#14 ' make z OK....
+              add pa,#1 ' ensure no div-by-0
+              abs divvals+0,r5 wc
+              qdiv divvals+0,pa
+              rcl tmp2,#1
+              abs divvals+1,r6 wc
+              rcl tmp2,#1
+              qdiv divvals+1,pa
+
+              mov r8,r7 ' copy the Z
+              shr r8,#17 ' z to 0-255 range
+              subr r8,#255 ' r8 now has intensity-byte
+              setbyte r23,r8,#1 ' combine colour and i-value
+
+              'mov divvals+0,r5
+              'mov divvals+1,r6
+              'call #sdiv2
+              'mov r5,divvals+0
+              'mov r6,divvals+1
+
+              add r7,r1 ' displace z
+
+
+              testb tmp2,#1 wc
+              getqx divvals+0
+              negc divvals+0
+              sar divvals+0,#7
+              testb tmp2,#0 wc
+              getqx divvals+1
+              negc divvals+1
+              sar divvals+1,#7
+              add divvals+0,#SCRWIDTH>>1
+              add divvals+1,#SCRHEIGHT>>1
+              ' clipping
+              cmp divvals+0,#SCRWIDTH wc
+        if_c  cmp divvals+1,#SCRHEIGHT wc
+
+        if_c  mul divvals+1,#SCRWIDTH
+        if_c  add divvals+1,divvals+0 ' divvals+1 is offset into screen-RAM
+        if_c  shl divvals+1,#1
+        if_c  add divvals+1,gpu_screen
+        if_c  wrword r23,divvals+1
+
+              'mov r0,auxvals+0
+              'mov r1,auxvals+1
+              'mov r5,auxvals+5
+              'mov r6,auxvals+6
+              'mov r7,auxvals+7
+              djnf r2,#.streakloop
+
+              'add r25,#20 ' go to next star
+              djnz r26,#.starloop
+
+              'setq #511
+              'wrlong ##$FFFF,gpu_screen
+              jmp #cmd_done
+ovl_starfield_end
+              fit 1024
+
+DAT ' Pixel Ring µcode (from xcamel.gas Mode 6 and 7)
+
+#define dstx      r21
+#define dsty      r26
+#define dstz      r1
+#define dstc      r10
+#define lwid      r11
+#define scrbase   r12
+#define x_max     r14
+#define y_max     r15
+#define radius    r16
+#define sinbass   r17
+#define loop_ptr  r18
+#define phase     r19
+#define xcentr    r24
+#define ycentr    r25
+
+              orgh
+cmd_pring
+              mov sinbass,##p_sines
+              mov x_max,#SCRWIDTH
+              mov y_max,#SCRHEIGHT
+              rdlong pa,##_sysflags
+              movbyts pa,#%%0123
+              testb pa,#5 wc
+        'if_c  mov y_max,#280
+
+              ' TODO: I think horse.gas version has gl_ycent etc centering
+              mov xcentr,x_max
+              mov ycentr,y_max
+              shr xcentr,#1
+              shr ycentr,#1
+              mov lwid,x_max
+              sub y_max,#2
+              shl lwid,#1
+              sub x_max,#2 ' set screen width and clip constants
+        
+
+              ' load overlay
+              loc pa,#@@@ovl_pring
+              mov pb,#ovl_pring_end-ovl_pring-1
+              jmp #run_overlay
+
+cmd_cpring
+              ' version from horse.gas with centering control
+              mov sinbass,##p_sines
+              mov x_max,#SCRWIDTH
+              mov y_max,#SCRHEIGHT
+              rdlong pa,##_sysflags
+              movbyts pa,#%%0123
+              testb pa,#5 wc
+        'if_c  mov y_max,#280
+
+
+              rdlong ycentr,##G_RAM+$EF8 'ycent
+              rdlong xcentr,##G_RAM+$EFC 'xcent
+              movbyts ycentr,#%%0123
+              movbyts xcentr,#%%0123
+
+              mov lwid,x_max
+              sub y_max,#2
+              shl lwid,#1
+              sub x_max,#2 ' set screen width and clip constants
+        
+
+              ' load overlay
+              loc pa,#@@@ovl_pring
+              mov pb,#ovl_pring_end-ovl_pring-1
+              jmp #run_overlay
+
+
+              org 512
+ovl_pring
+              rdfast #0,##in_buf
+              rflong r3
+              movbyts r3,#%%0123
+              qdiv #$100,r3 ' start divide unit going while the rest is loaded
+              rflong dstx
+              movbyts dstx,#%%0123
+              rflong dsty
+              movbyts dsty,#%%0123
+              rflong dstz
+              movbyts dstz,#%%0123
+              rflong dstc
+              movbyts dstc,#%%0123
+              rflong radius
+              movbyts radius,#%%0123
+              abs radius ' FROM horse.gas VERSION !!!!!
+              rflong phase
+              movbyts phase,#%%0123
+
+              shr dstz,#14 ' convert z to scaling value
+
+              rdlong pa,##G_RAM + $FFC ' gpu_mode - if bit 0 set, do pring2 stuff
+              testb pa,#24 wz ' actually bit 0 but we can save a movbyts
+
+              getqx r2 ' grab division result from earlier
+
+        if_z  jmp #.pring2intens
+              rdfast #0,##G_RAM+$FD8 ' z_max
+              rflong r6
+              movbyts r6,#%%0123
+              mov r8,r6 ' copy of z_max
+              rflong r0 ' get max intens value
+              movbyts r0,#%%0123
+              sub r6,dstz
+              fges r6,#0
+              mul r6,r0
+              qdiv r6,r8
+              getqx r6
+              rolbyte dstc,r6,#1
+              jmp #.join
+.pring2intens
+              getword r6,radius,#1
+              subr r6,#255
+              rolbyte dstc,r6,#0
+.join
+              movbyts dstc,#%%0101 ' swap and double up for WRLONG
+
+              mov divvals+0,dstx
+              mov divvals+1,dsty
+              mov divvals+2,radius
+              callpa dstz,#sdiv4 ' TODO maybe create sdiv3
+              mov dstx,divvals+0
+              mov dsty,divvals+1
+              mov radius,divvals+2
+              sar dstx,#7
+              sar dsty,#7
+              sar radius,#7
+              add dstx,xcentr
+              add dsty,ycentr
+
+
+.pixloop
+              ' Note: could do CORDIC here, but would actually make it slower
+              mov r0,phase
+              mov r4,phase
+              and r0,#$FF
+              add r4,#$40
+              add r0,sinbass
+              and r4,#$FF
+              rdbyte r5,r0
+              add r4,sinbass
+              sub r5,#$80
+              rdbyte r6,r4
+              sub r6,#$80 ' r5/r6 have got sine and cos +/- 128
+
+              muls r5,radius
+              muls r6,radius
+              sar r5,#8
+              sar r6,#8
+
+              add r5,dstx
+              add r6,dsty
+
+              ' pix2x2
+              cmp r5, x_max wc
+        if_c  cmp r6, y_max wc
+        if_c  mul r6,lwid
+        if_c  shl r5,#1
+        if_c  add r5,r6
+        if_c  add r5,gpu_screen
+  if_c_and_z  wrword dstc,r5
+  if_c_and_nz wrlong dstc,r5
+        if_c  add r5,lwid
+  if_c_and_nz wrlong dstc,r5
+
+              add phase, r2
+              djnf r3,#.pixloop 
+              'sub r3,#1
+              'tjns r3,#.pixloop
+
+              'mov r5,##384*200
+              'add r5,gpu_screen
+              'setq #511
+              'wrlong ##$FFF0FFF0,r5
+
+              jmp #cmd_done
+ovl_pring_end
+              fit 1024
+
+#undef dstx
+#undef dsty     
+#undef dstz     
+#undef dstc     
+#undef lwid     
+#undef scrbase  
+#undef x_max    
+#undef y_max    
+#undef radius   
+#undef sinbass  
+#undef loop_ptr 
+#undef phase    
+#undef xcentr   
+#undef ycentr   
+
+
+DAT ' Fastvector µcode (from llama.gas)
+#define L_INC     R5
+#define L_PIX     R6
+#define L_COUNT   R7
+#define L_INCF    R8
+#define x1_n      R9    'thangs
+#define y1_n      R10
+#define x2_n      R11
+#define y2_n      R12
+#define cmd       R20
+#define buffer    R14
+#define COUNT     R21
+#define col       R19
+#define intens_0  R13
+#define intens_1  R18
+#define A1PIXEL   R22
+#define UNDRAW    R25
+#define sinebase  R26
+#define RMODE     R29   'Rotation mode. 0=XY rotate only.
+#define gl_ycen   auxvals+2
+#define gl_xcen   auxvals+3
+
+#define shift1    12
+#define shift2    5
+
+              orgh
+cmd_fastvector
+              rdlong auxvals+1,##_sysflags ' stash sysflags
+              movbyts auxvals+1,#%%0123
+              rdlong RMODE,##in_buf+16
+              movbyts RMODE,#%%0123
+              rdlong auxvals+29,##in_buf+20 ' RMODE std bank is rotate mode, alt bank is horiz scale value
+              movbyts auxvals+29,#%%0123
+              mov sinebase,##p_sines
+
+              mov gl_xcen,#192
+              mov gl_ycen,#120
+              'debug("in fastvector ",uhex_byte_array(#p_sines,#256))
+
+              'mov RMODE,#0
+
+              ' load overlay
+              loc pa,#@@@ovl_fastvector
+              mov pb,#ovl_fastvector_end-ovl_fastvector-1
+              jmp #run_overlay
+
+cmd_cenvector
+              rdlong auxvals+1,##_sysflags ' stash sysflags
+              movbyts auxvals+1,#%%0123
+              'rdlong RMODE,##in_buf+16
+              'movbyts RMODE,#%%0123
+              rdlong auxvals+29,##in_buf+20 ' RMODE std bank is rotate mode, alt bank is horiz scale value
+              movbyts auxvals+29,#%%0123
+              mov sinebase,##p_sines
+
+              mov RMODE,#2 ' I think???
+
+              setq #2-1
+              rdlong gl_ycen,##G_RAM+$EF8
+              movbyts gl_ycen,#%%0123
+              movbyts gl_xcen,#%%0123
+              'debug("in fastvector ",uhex_byte_array(#p_sines,#256))
+              
+              ' load overlay
+              loc pa,#@@@ovl_fastvector
+              mov pb,#ovl_fastvector_end-ovl_fastvector-1
+              jmp #run_overlay
+
+              org 512
+ovl_fastvector
+              loc ptra,#\in_buf+60 ' instead of r3
+              neg r2,#1
+              mov r1,##G_RAM + $B40 + 8 ' vertex_buffer
+              rdlong r0,ptra[0]
+              movbyts r0,#%%0123
+              ' TODO: can we put vertex buffer in cog or LUT?
+              rep @.clvb,r0
+              wrlong r2,r1
+              add r1,#24
+.clvb
+              rdlong col,ptra[1]
+              movbyts col,#%%0123
+
+              setq #3-1
+              rdlong r15,##in_buf+4
+              movbyts r15,#%%0123
+              movbyts r16,#%%0123
+              movbyts r17,#%%0123
+              mov auxvals+16,r16
+
+              'mov r1,#$FF
+              'mov r2,#$80
+              'mov r28,##G_RAM+$FE0 ' sin1 TODO can this be cog RAM
+              rdfast #0,##in_buf+40 ' address of angle x-y in list	---- getting sines and coses for this object
+
+              '{
+              rflong r0
+              and r0,hi8mask
+              qrotate ##$7E00,r0
+              rflong r0
+              and r0,hi8mask
+              qrotate ##$7E00,r0
+              rflong r0
+              and r0,hi8mask
+              qrotate ##$7E00,r0
+              getqx cos1
+              getqy sin1
+              cmp RMODE,#2 wz
+        if_nz getqx cos2
+        if_z  getqx cos3
+        if_nz getqy sin2
+        if_z  getqy sin3
+        if_nz getqx cos3
+        if_z  getqx cos2
+        if_nz getqy sin3
+        if_z  getqy sin2
+              '}
+
+              {
+              rflong r0
+              movbyts r0,#%%0123 ' get angle
+
+              mov r3,r0 ' save for getting cos
+              and r0,#255
+              add r0,sinebase
+              rdbyte sin1,r0 ' get sine x
+              sub sin1,#$80 ' make signed
+              add r3,#$40
+              and r3,#255
+              add r3,sinebase
+              rdbyte cos1,r3 ' get cos x
+              sub cos1,#$80 ' make signed
+              shl sin1,#8
+              shl cos1,#8
+              
+
+              tjz RMODE,#.zibble
+
+              rflong r0 ' get angle x-z
+              movbyts r0,#%%0123 ' get angle
+              mov r3,r0 ' save for getting cos
+              and r0,#255
+              add r0,sinebase
+              rdbyte sin2,r0 ' get sine x
+              sub sin2,#$80 ' make signed
+              add r3,#$40
+              and r3,#255
+              add r3,sinebase
+              rdbyte cos2,r3 ' get cos x
+              sub cos2,#$80 ' make signed
+              shl sin2,#8
+              shl cos2,#8
+
+              rflong r0 ' get angle y-z (???)
+              movbyts r0,#%%0123 ' get angle
+              mov r3,r0 ' save for getting cos
+              and r0,#255
+              add r0,sinebase
+              rdbyte sin3,r0 ' get sine x
+              sub sin3,#$80 ' make signed
+              add r3,#$40
+              and r3,#255
+              add r3,sinebase
+              rdbyte cos3,r3 ' get cos x
+              sub cos3,#$80 ' make signed
+              shl sin3,#8
+              shl cos3,#8
+
+              ' Can't make this shit up?
+              cmp RMODE,#2 wz
+        if_z  xor sin2,sin3
+        if_z  xor sin3,sin2
+        if_z  xor sin2,sin3
+        if_z  xor cos2,cos3
+        if_z  xor cos3,cos2
+        if_z  xor cos2,cos3
+
+.zibble
+              '}
+              setq #2-1
+              rdlong r23,##in_buf+52 ' get vertex list base and conn base
+              movbyts r23,#%%0123
+              movbyts r24,#%%0123
+              sub r23,#12 ' compensate for vertex #'s starting at 1
+
+              mov auxvals+15,r15
+              mov auxvals+17,r17
+              mov auxvals+23,r23
+              mov auxvals+24,r24 ' stash these in their alternates
+
+.nxtvertex
+              rdword r4,r24 wz
+        if_z  jmp #cmd_done ' leave routine if vertex # is 0
+              movbyts r4,#%%2301
+              add r24,#2
+              mov r0,r4
+
+              mul r4,#12
+              add r4,r23
+              ' get X, Y and Z of first vertex
+              setq #3-1
+              rdlong r5,r4
+              movbyts r5,#%%0123
+              movbyts r6,#%%0123
+              movbyts r7,#%%0123
+
+              call #.transform_3d
+
+              mov auxvals+20,r5
+              mov auxvals+21,r6
+              mov auxvals+22,r7 ' save transformed xyz co-ordinates	(may be needed by the z-clipper)
+
+              mov x2_n,x1_n
+              mov y2_n,y1_n ' copy to x2_n.y2_n (unchanging point)
+              mov intens_1,intens_0
+              mov auxvals+11,x2_n
+              mov auxvals+12,y2_n
+              mov auxvals+18,intens_1
+
+.nxtconn
+              rdword r4,r24 ' get connected-vertex number
+              movbyts r4,#%%2301
+              add r24,#2
+              mov r0,r4
+              and r0,#255
+              shr r4,#8 wz ' this will be non zero for a colour change
+        if_nz mov col,r4
+
+              tjz r0,#.nxtvertex ' leave routine if vertex # is 0
+              mov r4,r0
+              mul r4,#12
+              add r4,r23
+              setq #3-1
+              rdlong r5,r4
+              movbyts r5,#%%0123
+              movbyts r6,#%%0123
+              movbyts r7,#%%0123
+
+              call #.transform_3d
+
+              tjs intens_0,#.zfail ' z is legal so go
+              tjns intens_1,#.zlegal
+.zfail
+              cmp intens_1,intens_0 wz
+        if_z  jmp #.znext
+              ' two different cases for if legal or illegal fixed point
+              ' was the fixed point out of range?
+              ' -ve, it was, and its co-ords are in x2_n and y2_n
+              tjs intens_1,#.fixedillegal
+
+              mov r0,auxvals+20
+              mov r1,auxvals+21
+              sar r0,#shift1
+              mov r2,auxvals+22 ' get legal transformed 3D point
+              sar r1,#shift1
+              mov r3,r2
+              sub r3,r7 ' r3 is the total length of the z component and will be used to divide the others.
+              abs r3
+              mov r4,r5 ' r4 is combined x and y of the naughty point
+              sar r4,#shift1
+              sub r4,r0 ' now it is the length of the x difference between the two points
+              muls r4,r2 ' multiply by legal z size
+              abs r5,r4 wc ' save the sign
+
+              qdiv r5,r3 ' make the new unsigned x vector size
+              mov x1_n,r6
+              sar x1_n,#shift1 ' int an' sign extend y
+              sub x1_n,r1 ' signed y size
+              muls x1_n,r2
+              getqx r5
+              negc r5
+
+              abs r6, x1_n wc ' save sign
+              qdiv r6,r3
+              getqx r6
+              negc r6
+
+              add r5,r0 ' make transformed xy
+              add r6,r1
+              shl r5,#shift2 ' simplifies because effectively z=1
+              shl r6,#shift2
+              rdlong intens_0,##G_RAM+$FDC ' z_top
+              movbyts intens_0,#%%0123
+              shl intens_0,#8
+              mov x1_n,gl_xcen
+              mov y1_n,gl_ycen
+              add x1_n,r5
+              add y1_n,r6
+              jmp #.zlegal
+
+.fixedillegal
+              mov r0,r5 ' x and y pair
+              mov r1,r6
+              sar r0,#shift1
+              sar r1,#shift1
+              mov r2,r7 ' legal point expanded
+              mov r3,r2
+              sub r3,auxvals+22 ' r3 is the total length of the z component and will be used to divide the others.
+              mov r4,auxvals+20
+              sar r4,#shift1
+              sub r4,r0 ' now it is the length of the x difference between the two points
+              muls r4,r2 ' multiply by legal z size
+              abs r5,r4 wc ' save the sign
+
+              qdiv r5,r3 ' make the new unsigned x vector size
+              mov x2_n,auxvals+21
+              sar x2_n,#shift1 ' int an' sign extend y
+              sub x2_n,r1 ' signed y size
+              muls x2_n,r2
+              getqx r5
+              negc r5
+
+              abs r6, x2_n wc ' save sign
+              qdiv r6,r3
+              getqx r6
+              negc r6
+
+              add r5,r0 ' make transformed xy
+              add r6,r1
+              shl r5,#shift2 ' simplifies because effectively z=1
+              shl r6,#shift2
+              rdlong intens_1,##G_RAM+$FDC ' z_top
+              movbyts intens_1,#%%0123
+              shl intens_1,#8
+              mov x2_n,gl_xcen
+              mov y2_n,gl_ycen
+              add x2_n,r5
+              add y2_n,r6
+
+.zlegal
+              call #.clip_gouline
+
+.znext
+              mov x2_n,auxvals+11
+              mov y2_n,auxvals+12
+              mov intens_1,auxvals+18
+              mov r23,auxvals+23
+              mov r15,auxvals+15
+              jmp #.nxtconn
+
+.transform_3d
+              ' enters here with r0=vertex number
+              mul r0,#24
+              add r0,##G_RAM + $B40 - 16 ' vertex_buffer
+              ' r0 points to vertex cache intensity data
+              rdlong r1,r0 wc
+              tjf r1,#.cachemiss ' yup, gotta do the maths
+.rzc
+              sub r0,#8 ' cache hit - point to x-data
+              mov intens_0,r1
+              setq #2-1
+              rdlong x1_n,r0
+              add r0,#12 ' yes 12
+              setq #3-1
+        _ret_ rdlong r5,r0
+
+.cachemiss
+              sub r0,#8 ' point to start of vertex-cache slot
+              mov auxvals+0,r0 ' save it for afters
+              setq #3-1
+              rdlong tmp1,##(in_buf+(12+16))  ' address of xyz centre
+              movbyts tmp1,#%%0123
+              movbyts tmp2,#%%0123
+              movbyts tmp3,#%%0123
+              sub r5,tmp1
+              sub r6,tmp2
+              sub r7,tmp3 ' translate to local centre
+
+              muls r5,auxvals+29
+
+              'mov r28,##G_RAM+$FE0 ' sin1 TODO can this be cog RAM
+
+              shl r5,#8
+              shl r6,#8
+              shl r7,#8
+
+              mov auxvals+5,r5
+              mov auxvals+6,r6
+              mov auxvals+7,r7 ' save unrotated stuff
+
+              'rdlong r8,r28
+              'add r28,#4
+              'rdlong r16,r28
+              'add r28,#4
+
+'' now rotate about the origin
+
+              mov r17,cos1 ' cos (a)
+              muls r17,r5
+              sar r17,#15'7 ' divide result by 128 and make back to 16:16
+              mov r0,sin1 ' sin (a)
+              muls r0,r6
+              sar r0,#15'7 ' divide result by 128 and make back to 16:16
+              sub r17,r0 ' r17 has rotated x
+              mov r5,r17 ' put it back
+              mov r17,sin1 ' sin (a)
+              muls r17,auxvals+5 ' use untransformed x
+              sar r17,#15'7
+              mov r0,cos1 ' cos (a)
+              muls r0,r6
+              sar r0,#15'7
+              add r17,r0
+              mov r6,r17 ' transformed y
+
+              tjz RMODE,#.noyz
+
+.noxy
+              'rdlong r8,r28
+              'add r28,#4
+              'rdlong r16,r28
+              'add r28,#4
+
+'' now rotate about the origin
+              mov auxvals+5,r5
+            
+              mov r17,cos2 ' cos (a)
+              muls r17,r5
+              sar r17,#15'7 ' divide result by 128 and make back to 16:16
+              mov r0,sin2 ' sin (a)
+              muls r0,r7
+              sar r0,#15'7 ' divide result by 128 and make back to 16:16
+              sub r17,r0 ' r17 has rotated x
+              mov r5,r17 ' combine with other rotation
+              mov r17,sin2 ' sin (a)
+              muls r17,auxvals+5 ' use untransformed x
+              sar r17,#15'7
+              mov r0,cos2 ' cos (a)
+              muls r0,r7
+              sar r0,#15'7
+              add r17,r0
+              mov r7,r17 ' transformed z
+
+.noxz
+              'rdlong r8,r28
+              'add r28,#4
+              'rdlong r16,r28
+              'add r28,#4
+
+'' now rotate about the origin
+              mov auxvals+7,r7
+              mov auxvals+6,r6
+              mov r17,cos3 ' cos (a)
+              muls r17,r6
+              sar r17,#15'7 ' divide result by 128 and make back to 16:16
+              mov r0,sin3 ' sin (a)
+              muls r0,r7
+              sar r0,#15'7 ' divide result by 128 and make back to 16:16
+              sub r17,r0 ' r17 has rotated x
+              mov r6,r17 ' combine with other rotation
+              mov r17,sin3 ' sin (a)
+              muls r17,auxvals+6 ' use untransformed x
+              sar r17,#15'7
+              mov r0,cos3 ' cos (a)
+              muls r0,r7
+              sar r0,#15'7
+              add r17,r0
+              mov r7,r17 ' transformed y z
+.noyz
+              mov r16,auxvals+16
+              mov r17,auxvals+17              
+
+              rdlong r0,##G_RAM+$FD4 ' scaler
+              movbyts r0,#%%0123
+              sub r0,#8
+              ' TODO figure out what this is suppoed to do
+              ' signed shift owie
+              abs r0 wc
+        if_c  shl r5,r0
+        if_c  shl r6,r0
+        if_c  shl r7,r0
+        if_nc sar r5,r0
+        if_nc sar r6,r0
+        if_nc sar r7,r0
+              add r5,r15
+              add r6,r16
+              add r7,r17 ' translate to designated position
+              sar r7,#14 wz
+        if_nz tjns r7,#.zsafe
+.zbogus
+              'mov r28,r5
+              'and r28,himask ' x --> int in high word
+              'getword r0,r6,#1
+              'or r28,r0
+             ' setword r28,r0,#0
+              getword x1_n,r5,#1
+              rolword x1_n,r6,#1
+              mov y1_n,r7
+              neg intens_0,#2 ' -ve2 intensity means 'this is a point that needs z cliipping'
+              jmp #.wrcache
+
+.zsafe
+              setq #2-1
+              rdlong r0,##G_RAM+$FD8 ' z_max
+              ' shuffle to accomodate block read
+              movbyts r0,#%%0123
+              movbyts r1,#%%0123
+              mov intens_0,r0
+              mov r0,r1 ' get max intens value
+              mov r1,intens_0 ' copy of z_max
+              sub intens_0,r7
+              fges intens_0,#0 wz ' make range (max---0)
+        if_nz mul intens_0,r0
+        if_nz qdiv intens_0,r1 ' should leave intens_0 with intensity
+        if_nz getqx intens_0
+        if_nz shl intens_0,#8
+
+              mov divvals+0,r5
+              mov divvals+1,r6
+              mov pa,r7
+              call #sdiv2
+              sar divvals+0,#7
+              sar divvals+1,#7
+              mov x1_n,divvals+0
+              mov y1_n,divvals+1
+              add x1_n,gl_xcen
+              add y1_n,gl_ycen
+              ' There should be PAL _sysflags adjust here
+.wrcache
+              wrfast #0,auxvals+0 ' get back vertex cache address
+              wflong x1_n
+              wflong y1_n
+              wflong intens_0
+              wflong r5
+              wflong r6
+        _ret_ wflong r7
+
+
+'' clip the line (x1_n,y1_n)-(x2_n,y2_n) to the vector viewport
+.clip_gouline
+              'debug("clip_gouline ",sdec(x1_n,y1_n,x2_n,y2_n))
+              cmp col,#1 wz
+        if_z  ret ' colour #01 lines are not drawn
+
+            ' calculate the cohen-sutherland outcodes
+              mov r15,#0 ' swapped points phlag
+.doit
+              mov r0,#0 ' r0 to build outcodes
+              cmps y1_n,#SCRHEIGHT wc
+              bitnc r0,#3
+              cmps y1_n,#0 wc
+              bitc r0,#2
+              cmps x1_n,#SCRWIDTH-1 wc
+              bitnc r0,#1
+              cmps x1_n,#0 wc
+              bitc r0,#0
+              cmps y2_n,#SCRHEIGHT wc
+              bitnc r0,#7
+              cmps y2_n,#0 wc
+              bitc r0,#6
+              cmps x2_n,#SCRWIDTH-1 wc
+              bitnc r0,#5
+              cmps x2_n,#0 wc
+              bitc r0,#4
+              ' check both outcodes =0 (line in clip window)
+              tjnz r0,#.clip_9
+.clip_ok
+              tjz r15,#.gouline ' points swapped?
+              xor x1_n,x2_n
+              xor x2_n,x1_n
+              xor x1_n,x2_n
+              xor y1_n,y2_n
+              xor y2_n,y1_n
+              xor y1_n,y2_n
+              jmp #.gouline
+
+.clip_9
+              getnib r28,r0,#1
+              and r28,r0 wz ' if this is zero got to do some clipping dude
+        if_nz ret ' no line here thank you so much
+.clip_iterate
+              test r0,#$0F wz ' check first endpoint is on the screen
+        if_nz jmp #.right_order
+              ' if it is, exchange endpoints and outcodes
+              rolnib r0,r0,#1
+              and r0,#$FF ' swop outcodes
+              xor x1_n,x2_n
+              xor x2_n,x1_n
+              xor x1_n,x2_n
+              xor y1_n,y2_n
+              xor y2_n,y1_n
+              xor y1_n,y2_n
+              bitnot r15,#0 ' flippyflag points are swapped
+.right_order  
+              mov r5,x2_n
+              mov r6,y2_n
+              sub r5,x1_n ' get vector sizes
+              sub r6,y1_n ' in (r5,r6)
+
+              testb r0,#3 wc
+        if_nc jmp #.do_out1
+              mov divvals+0,#SCRHEIGHT-1
+              sub divvals+0,y1_n
+              muls divvals+0,r5
+              abs pa,r6
+              call #sdiv1
+              sub x1_n,divvals+0 ' new X pos from that calculation
+              mov y1_n,#SCRHEIGHT-1 ' new Y if top of screen
+              jmp #.doit
+.do_out1
+              testb r0,#2 wc
+        if_nc jmp #.do_out2
+              neg divvals+0,y1_n
+              muls divvals+0,r5
+              abs pa,r6
+              call #sdiv1
+              add x1_n,divvals+0 ' new X pos from that calculation
+              mov y1_n,#0 ' new Y if top of screen
+              jmp #.doit
+
+.do_out2
+              testb r0,#1 wc
+        if_nc jmp #.do_out3
+              mov divvals+0,#SCRWIDTH-2
+              sub divvals+0,x1_n
+              muls divvals+0,r6
+              abs pa,r5
+              call #sdiv1
+              sub y1_n,divvals+0
+              mov x1_n,#SCRWIDTH-2
+              jmp #.doit
+.do_out3
+              testb r0,#0 wc
+        if_nc ret 'jmp #.clipfail
+              neg divvals+0,x1_n
+              muls divvals+0,r6
+              abs pa,r5
+              call #sdiv1
+              add y1_n,divvals+0
+              mov x1_n,#0
+              jmp #.doit
+              
+
+
+.gouline
+              'debug("gouline ",sdec(x1_n,y1_n,x2_n,y2_n))
+
+              {
+              mov tmp1,x1_n
+              mov tmp2,y1_n
+              mul tmp2,##384
+              add tmp1,tmp2
+              shl tmp1,#1
+              add tmp1,gpu_screen
+              wrword ##$FFFF,tmp1
+
+              mov tmp1,x2_n
+              mov tmp2,y2_n
+              mul tmp2,##384
+              add tmp1,tmp2
+              shl tmp1,#1
+              add tmp1,gpu_screen
+              wrword ##$FFFF,tmp1
+              }
+
+
+              sub x2_n,x1_n
+              sub y2_n,y1_n ' get differences
+              'mov L_PIX,y1_n
+              'rolnib L_PIX,x1_n ' set pixel origin (TODO: used?)
+              mov line_pos,y1_n
+              mul line_pos,#SCRWIDTH
+              add line_pos,x1_n
+              shl line_pos,#1
+              add line_pos,gpu_screen
+
+              mov line_fracpos,#0
+
+              abs r0,x2_n
+              abs r1,y2_n
+              cmp r0,r1 wcz
+        if_b  jmp #.y_greater
+.x_greater
+              tjz r0,#.gouline_done
+              abs pb,y2_n wc
+              shl pb,#16 ' y difference to 16:16
+              qdiv pb,r0
+              mov L_COUNT,r0
+              'add L_COUNT,#1
+
+              ' P2 linedraw uses only x inc/step
+
+              getqx line_fracstep
+              getword line_inc,line_fracstep,#1
+              shl line_fracstep,#16
+              negc line_inc
+              muls line_inc,cryline384
+              negc line_step,cryline384
+
+              cmps x2_n,#0 wc
+              sumc line_inc,#2 ' each pixel moves 1 left/right
+              jmp #.gline
+.y_greater
+              tjz r1,#.gouline_done
+              abs pb,x2_n wc
+              shl pb,#16 ' y difference to 16:16
+              qdiv pb,r1
+              mov L_COUNT,r1
+              'add L_COUNT,#1
+
+              getqx line_fracstep
+              getword line_inc,line_fracstep,#1
+              shl line_fracstep,#16
+              negc line_inc
+              muls line_inc,#2
+              negc line_step,#2
+
+              cmps y2_n,#0 wc
+              sumc line_inc,cryline384 ' each pixel moves 1 up/down
+
+.gline
+              'mov intens_1,##255<<16
+              'mov intens_0,##0<<16
+              mov r0,intens_1
+              sub r0,intens_0 ' get signed intensity gradient
+              abs r0 wc
+              qdiv r0,L_COUNT
+              getqx r0
+              negc r0
+
+              ' fat/skinny switch from sysflags
+              testb auxvals+1,#1 wc
+        if_c  jmp #.thin
+
+              rep @.fatdraw,L_COUNT
+              rolbyte col,intens_0,#2
+              movbyts col,#%%0101
+              wrlong col,line_pos
+              add line_pos,line_inc
+              add line_fracpos,line_fracstep wc
+        if_c  add line_pos,line_step
+              add intens_0,r0
+.fatdraw
+              ret wcz
+
+.thin
+              rep @.thindraw,L_COUNT
+              rolbyte col,intens_0,#2
+              movbyts col,#%%0101
+              wrword col,line_pos
+              add line_pos,line_inc
+              add line_fracpos,line_fracstep wc
+        if_c  add line_pos,line_step
+              add intens_0,r0
+.thindraw
+
+
+.gouline_done
+              ret
+
+
+ovl_fastvector_end
+              fit 1024
+
+#undef L_INC     
+#undef L_PIX     
+#undef L_COUNT   
+#undef L_INCF    
+#undef x1_n      
+#undef y1_n      
+#undef x2_n      
+#undef y2_n      
+#undef cmd       
+#undef buffer    
+#undef COUNT     
+#undef col       
+#undef intens_0  
+#undef intens_1  
+#undef A1PIXEL   
+#undef UNDRAW    
+#undef sinebase  
+#undef RMODE     
+#undef gl_ycen
+#undef gl_xcen
+
+#undef shift1
+#undef shift2
+
+DAT ' Starplane µcode (from donkey.gas)
+
+
+#define nstars  R4
+#define starcol R5
+#define xdisp   R6
+#define ydisp   R7
+#define xseed   R8
+#define px	    R17
+#define py	    R18
+#define yseed   R21
+
+              orgh
+cmd_starplane
+              ' load overlay
+              loc pa,#@@@ovl_starplane
+              mov pb,#ovl_starplane_end-ovl_starplane-1
+              jmp #run_overlay
+
+              org 512
+ovl_starplane
+              rdfast #0,##in_buf
+              rflong nstars
+              movbyts nstars,#%%0123
+              rflong starcol
+              movbyts starcol,#%%1032 ' notice different flip
+              rflong xdisp
+              movbyts xdisp,#%%0123
+              rflong ydisp
+              movbyts ydisp,#%%0123
+              rflong xseed
+              movbyts xseed,#%%0123
+              rflong yseed
+              movbyts yseed,#%%0123
+
+              and ydisp,#$1FF
+              and xdisp,#$1FF
+
+              rep @.starloop,nstars
+              ' "random" star X
+        '      shr xseed,#1 wc
+        'if_c  xor xseed,#$110
+              modc _clr wc
+              crcbit xseed,#$110
+              ' "random" star Y
+        '      shr yseed,#1 wc
+        'if_c  xor yseed,#$b8
+              crcbit yseed,#$B8
+              'mov px, xseed
+              'mov py, yseed
+              'add px,xdisp
+              'add py,ydisp
+              'and px,#$1FF
+              'and py,#$1FF
+              alts xseed,xdisp
+              mov px,#0-0
+              alts yseed,ydisp
+              mov py,#0-0
+              cmp px,#SCRWIDTH wc
+        if_b  cmp py,#SCRHEIGHT wc
+        if_b  shl px,#1
+        if_b  mul py,cryline384
+        if_b  add py,px
+        if_b  add py,gpu_screen
+        if_b  wrword starcol,py
+.starloop
+
+              jmp #cmd_done
+ovl_starplane_end
+              fit 1024
+
+#undef nstars  
+#undef starcol 
+#undef xdisp   
+#undef ydisp   
+#undef xseed   
+#undef px	    
+#undef py	    
+#undef yseed   
+
+DAT ' Single pixel µcode (from xcamel.gas)
+
+#define dstx r10
+#define dsty r11
+#define dstz r12
+
+              orgh
+cmd_snglpix
+              setq #4-1
+              rdlong r10,##in_buf ' r13 is color ?
+              movbyts dstz,#%%0123
+              shr dstz,#14 ' for perspect/intensity calc
+
+              setq #2-1
+              rdlong r6,##G_RAM+$fd8 ' z_max
+              movbyts r6,#%%0123
+              movbyts r7,#%%0123
+              shl r6,#1 ' <*2 for these pixels>
+              mov r8,r6 ' copy of z_max
+              sub r6,dstz
+              fges r6,#0
+              mul r6,r7 ' z_top from burst read
+              qdiv r6,r8
+              movbyts dstx,#%%0123
+              abs dstx wc
+              wrc r8
+              qdiv dstx,dstz
+              movbyts dsty,#%%0123
+              abs dsty wc
+              rcl r8,#1
+              qdiv dsty,dstz
+
+              ' do shiz in the qdiv gap
+              'movbyts r13,#%%0123
+              mov r28,#$78
+              ' TODO sysflags PAL stuff here
+              ' if_c mov r28,#$8C
+              mov r27,#$c0
+
+              getqx r6
+              rolbyte r6,r13,#3
+              movbyts r6,#%%2020 ' ready for WRLONG
+              getqx dstx
+              testb r8,#1 wc
+              negc dstx
+              sar dstx,#7
+              getqx dsty
+              testb r8,#0 wc
+              negc dsty
+              sar dsty,#7
+              add dstx,r27
+              add dsty,r28
+
+              cmp dstx,#SCRWIDTH-2 wc
+        if_c  cmp dsty,#SCRHEIGHT-2 wc
+        if_nc jmp #cmd_done
+
+              shl dstx,#1
+              mul dsty,cryline384
+              add dsty,dstx
+              add dsty,gpu_screen
+              wrlong r6,dsty
+              add dsty,cryline384
+              wrlong r6,dsty
+              jmp #cmd_done
+
+#undef dstx
+#undef dsty
+#undef dstz
+
+DAT ' Polyobject / filled web µcode (from horse.gas)
+
+#define x1_n        r3       
+#define y1_n        r4
+#define x2_n        r5
+#define y2_n        r6
+#define x3_n        r7
+#define y3_n        r8
+#define i1_n        r9
+#define i2_n        r10
+#define i3_n        r11
+#define xinc1       r12
+#define iinc1       r15
+#define xinc2       r16
+#define iinc2       r17
+#define count1      r18
+#define count2      r19
+#define count3      r22
+#define sum1        r23
+#define sum2        r24
+#define sum3        r25
+#define sum4        r26
+
+#define xstart      r27
+#define istart      r28
+#define xsize       r29
+#define isize       r30
+
+#define sinebase    auxvals+23
+#define polypointer auxvals+24
+#define xxx         auxvals+25
+#define yyy         auxvals+26
+#define zzz         auxvals+27
+#define xcen        auxvals+28
+#define ycen        auxvals+29
+#define angl        auxvals+30
+#define ctptr       auxvals+31
+#define vertices    auxvals+19
+#define faces       auxvals+20
+#define colour      auxvals+21
+#define vertex      auxvals+22
+#define intens      auxvals+11
+#define gl_ycen     auxvals+12
+#define gl_xcen     auxvals+13
+#define wx1         auxvals+4
+#define wy1         auxvals+5
+#define wx2         auxvals+7
+#define wy2         auxvals+8
+#define zzz_2       auxvals+9
+#define glint       auxvals+3
+#define i3_sav      auxvals+2
+#define i1_sav      auxvals+1
+
+
+
+            orgh
+cmd_polyo2d
+              setq #2-1
+              rdlong gl_ycen,##G_RAM+$EF8
+              movbyts gl_ycen,#%%0123
+              movbyts gl_xcen,#%%0123
+              debug(sdec(gl_xcen,gl_ycen))
+
+              setq #7-1
+              rdlong polypointer,##in_buf
+              movbyts polypointer,#%%0123
+              movbyts xxx,#%%0123
+              movbyts yyy,#%%0123
+              movbyts zzz,#%%0123
+              movbyts xcen,#%%0123
+              movbyts ycen,#%%0123
+              movbyts angl,#%%0123 ' this is the rotation angle
+
+              mov sinebase,##p_sines
+              {
+              getbyte r0,angl,#0
+              add r0,sinebase
+              rdbyte sin1,r0
+              sub sin1,#$80
+              shl sin1,#8
+              getbyte r1,angl,#0
+              add r1,#$40
+              and r1,#255
+              add r1,sinebase
+              rdbyte cos1,r1
+              sub cos1,#$80
+              shl cos1,#8
+              neg sin2,sin1
+              '}
+              '{
+              getbyte r0,angl,#0
+              shl r0,#24
+              qrotate ##$7E00,r0
+              getqx cos1
+              getqy sin1
+              neg sin2,sin1
+              '}
+
+              mov cos2,#0 ' Do polyo2d
+
+              loc pa,#@@@ovl_polyo2d
+              mov pb,#ovl_polyo2d_end-ovl_polyo2d-1
+              jmp #run_overlay
+
+              ' Fits in the same overlay and shares a lot of code
+cmd_web3d
+              setq #2-1
+              rdlong gl_ycen,##G_RAM+$EF8
+              movbyts gl_ycen,#%%0123
+              movbyts gl_xcen,#%%0123
+
+              setq #7-1
+              rdlong polypointer,##in_buf
+              movbyts polypointer,#%%0123
+              movbyts xxx,#%%0123
+              movbyts yyy,#%%0123
+              movbyts zzz,#%%0123
+              mov glint,xcen
+              movbyts glint,#%%0123
+              ' ycen unused
+              movbyts angl,#%%0123 ' this is the rotation angle
+
+              debug(uhex_long(polypointer),sdec(xxx,yyy,zzz),uhex_long(glint),udec(angl))
+
+              mov sinebase,##p_sines
+              {
+
+              getbyte r0,angl,#0
+              add r0,sinebase
+              rdbyte sin1,r0
+              sub sin1,#$80
+              getbyte r1,angl,#0
+              add r1,#$40
+              and r1,#255
+              add r1,sinebase
+              rdbyte cos1,r1
+              sub cos1,#$80
+              neg sin2,sin1
+              }
+              getbyte r0,angl,#0
+              shl r0,#24
+              qrotate ##$7E7E,r0 ' larger max value to line up rounding
+              getqx cos1
+              getqy sin1
+              neg sin2,sin1
+
+              mov xcen,#0
+              mov ycen,#0 ' this must be zero'd
+
+              mov cos2,#1 ' Do web3d
+              'jmp #cmd_done
+
+              loc pa,#@@@ovl_polyo2d
+              mov pb,#ovl_polyo2d_end-ovl_polyo2d-1
+              jmp #run_overlay
+
+
+              org 512
+ovl_polyo2d
+              debug("polypointer ",uhex_long_(polypointer))
+
+              ' check for source data in external RAM
+              tjns polypointer,#.not_exmem
+              mov exmem_cmd,polypointer
+              mov exmem_len,#256  ' always read 256 bytes.
+              ' should be big enough - figuring out the actual size we need would need another transaction, may be counter-productive
+              mov exmem_target,exmem_buffer_ptr
+              call #ex_rdblock
+              mov polypointer,exmem_buffer_ptr
+.not_exmem
+              rdfast #0,polypointer ' read from polygon data (brr brr)
+
+              rflong faces
+              movbyts faces,#%%0123
+              add polypointer,#4
+              'debug("faces ",uhex_long_(faces))
+
+              'tjnz cos2,##.web3d ' Branch-off point for web3d µcode
+              cmp cos2,#1 wz
+        if_z  jmp #.web3d
+
+              mov vertices,faces
+              shl vertices,#4
+              add vertices,polypointer ' 16*faces plus address is v-table
+              shr zzz,#14 ' scale z properly
+.polyloop
+              rfword colour ' don't swap this?
+              shr colour,#8
+
+              call #.dovertex
+              mov x1_n,divvals+0
+              mov y1_n,divvals+1
+              mov i1_n,intens
+              call #.dovertex
+              mov x2_n,divvals+0
+              mov y2_n,divvals+1
+              mov i2_n,intens
+              call #.dovertex
+              mov x3_n,divvals+0
+              mov y3_n,divvals+1
+              mov i3_n,intens
+
+              rfword r0 ' for some reason there's 2 bytes of padding
+              getptr polypointer ' save FIFO state
+
+              debug("XYI ",sdec(x1_n,y1_n,i1_n,x2_n,y2_n,i2_n,x3_n,y3_n,i3_n))
+              'mov x2_n,#100
+              'mov y2_n,#220
+              'mov x1_n,#200
+              'mov y1_n,#200
+              'mov x3_n,#150
+              'mov y3_n,#100
+
+              call #.polyrender
+
+              rdfast #0,polypointer
+              djnz faces,#.polyloop
+              jmp #cmd_done
+
+
+.polyrender
+              shl i1_n,#8
+              shl i2_n,#8
+              shl i3_n,#8 ' intensity values to 24-Bit
+{
+              cmp x1_n,#SCRWIDTH wc
+        if_c  cmp y1_n,#SCRHEIGHT wc
+        if_c  mov r1,y1_n
+        if_c  mul r1,#SCRWIDTH
+        if_c  add r1,x1_n
+        if_c  shl r1,#1
+        if_c  add r1,gpu_screen
+        if_c  wrword ##$FFFF,r1
+'}
+
+              call #.vertswap
+
+              'debug("XY ",sdec(x1_n,y1_n,x2_n,y2_n,x3_n,y3_n))
+
+              mov count1,y2_n
+              mov count2,y3_n
+              sub count1,y1_n
+              sub count2,y2_n
+              mov count3,y3_n
+              'add count1,#1
+              sub count3,y1_n
+              'add count2,#1
+              'add count3,#1 ' COUNT1=Y length of first span, count2=second span, y3_n=third span
+
+              mov xinc2,x3_n
+              mov xinc1,x2_n
+              sub xinc2,x1_n
+              sub xinc1,x1_n
+              mov iinc2,i3_n
+              mov iinc1,i2_n
+              sub iinc2,i1_n
+              sub iinc1,i1_n
+              shl xinc2,#16
+              shl xinc1,#16 ' pixel values to 16:16
+
+              mov pa,count1
+              mov pb,count3
+              mov divvals+0,xinc1
+              mov divvals+1,iinc1
+              mov divvals+2,xinc2
+              mov divvals+3,iinc2
+              call #sdiv2x2 ' get the gradient increments for x and the i-increments
+              mov xinc1,divvals+0
+              mov iinc1,divvals+1
+              mov xinc2,divvals+2
+              mov iinc2,divvals+3
+
+
+              mov sum1,x1_n
+              mov sum2,i1_n
+              mov sum3,x1_n
+              mov sum4,i1_n
+              shl sum1,#16
+              add sum1,##$8000 ' Attempt to fix gaps
+              shl sum3,#16
+              add sum3,##$8000 ' Attempt to fix gaps
+
+              'debug("XY ",sdec(x1_n,y1_n,x2_n,y2_n,x3_n,y3_n))
+              'debug("counts ",sdec(count1,count2,count3))
+
+              tjns y1_n,#.tri1on ' tri1 is onscreen, no top clipping
+              tjz y2_n,#.split2
+              tjns y2_n,#.cliptri1 ' got to clip Triangle One
+              tjs y3_n,#.zkk ' check for whole thing off top edge?
+.split2
+              ' Code to skip the first subtriangle
+              qmul count1,xinc2
+              qmul count1,iinc2
+
+              getqx pa
+              add sum3,pa
+              getqx pa
+              add sum4,pa
+              mov y1_n,#0
+.flattop
+              mov sum1,x2_n
+              mov sum2,i2_n
+              shl sum1,#16
+              add sum1,##$8000 ' Attempt to fix gaps
+
+              jmp #.setp2
+
+.cliptri1
+              neg r0,y1_n ' get amount of clip lines and make it +ve
+              add count1,y1_n ' reduce count by the size of the clip
+              'add count1,#1 ' (never zero)
+              
+              qmul r0,xinc1
+              qmul r0,iinc1
+              qmul r0,xinc2
+              qmul r0,iinc2
+
+              getqx pa
+              add sum1,pa
+              getqx pa
+              add sum2,pa
+              getqx pa
+              add sum3,pa
+              getqx pa
+              add sum4,pa
+
+              {
+              shl r0,#16 ' make it 16:16
+              mov pb,r0
+              callpa xinc1,#fmult
+              add sum1,pa
+              mov pb,r0
+              callpa iinc1,#fmult
+              add sum2,pa
+              mov pb,r0
+              callpa xinc2,#fmult
+              add sum3,pa
+              mov pb,r0
+              callpa iinc2,#fmult
+              add sum4,pa ' now, offsets are OK and the poly is shortened
+              }
+              mov y1_n,#0 ' (it starts at top of screen)
+.tri1on       
+              cmps y1_n,#SCRHEIGHT wc ' check for right off bottom edge
+        if_ae jmp #.zkk ' next poly if it was
+              cmps y2_n,#SCRHEIGHT wc ' check for this subtri split
+        if_b  jmp #.tri1bot ' not split, jump around
+              mov r1,y2_n
+              sub r1,#SCRHEIGHT-1 ' get amount of overhang
+              sub count1, r1 wcz ' shorten poly by that amount
+    if_c_or_z jmp #.zkk ' ensure -ve or 0 length never happens
+.tri1bot      
+              'shl y1_n,#16 ' y1_n to blitter format (???)
+              tjz count1,#.flattop ' new instruction to handle count=0
+.i_loop1
+              call #.gouscanline
+              add y1_n,#1
+              add sum1,xinc1
+              add sum2,iinc1
+              add sum3,xinc2
+              add sum4,iinc2
+              djnz count1,#.i_loop1
+.setp2
+              mov divvals+0,x3_n
+              mov divvals+1,i3_n ' new target point is x3_n/i3_n
+              sub divvals+0,x2_n
+              sub divvals+1,i2_n ' get differences
+              shl divvals+0,#16
+              mov pa,count2
+              call #sdiv2
+              mov xinc1,divvals+0
+              mov iinc1,divvals+1 ' new increments
+
+              tjns y2_n,#.tri2on ' Check for poly split by screen top, Not split if y2_n positive
+              neg r0,y2_n ' get amount of clip lines and make it +ve
+              add count2,y2_n ' reduce count by the size of the clip
+              'add count2,#1 ' (never zero)
+
+              qmul r0,xinc1
+              qmul r0,iinc1
+              qmul r0,xinc2
+              qmul r0,iinc2
+
+              getqx pa
+              add sum1,pa
+              getqx pa
+              add sum2,pa
+              getqx pa
+              add sum3,pa
+              getqx pa
+              add sum4,pa
+
+              {
+              shl r0,#16
+              mov pb,r0
+              callpa xinc1,#fmult
+              add sum1,pa
+              mov pb,r0
+              callpa iinc1,#fmult ' calculate total increment to clip line
+              add sum2,pa
+              mov pb,r0
+              callpa xinc2,#fmult
+              add sum3,pa
+              mov pb,r0
+              callpa iinc2,#fmult
+              add sum4,pa ' now, offsets are OK and the poly is shortened
+              }
+              'mov y2_n,#0
+.tri2on      
+              cmps y2_n,#SCRHEIGHT wc ' check for right off bottom edge
+        if_ae jmp #.zkk ' next poly if it was
+              cmps y3_n,#SCRHEIGHT wc ' check for this subtri split
+        if_b  jmp #.tri2bot ' not split, jump around
+              mov r1,y3_n
+              sub r1,#SCRHEIGHT-1 ' get amount of overhang
+              sub count2, r1 wcz ' shorten poly by that amount
+    if_c_or_z jmp #.zkk ' ensure -ve or 0 length never happens
+.tri2bot            
+
+              tjz count2,#.zkk ' new instruction to handle count=0
+.i_loop2
+              call #.gouscanline
+              add y1_n,#1
+              add sum1,xinc1
+              add sum2,iinc1
+              add sum3,xinc2
+              add sum4,iinc2
+              djnz count2,#.i_loop2
+.zkk
+              ret
+
+.dovertex
+              rfword vertex ' Not-Inline code for each vertex: get vertex index
+              movbyts vertex,#%%2301
+              rfword intens
+              movbyts intens,#%%2301 ' got Intensity
+              'debug(udec(vertex,intens),uhex_long(vertices))
+              shl vertex,#2 ' vertex thang to long pointer
+              add vertex,vertices ' point to this vertex
+              rdlong divvals+0,vertex ' got vertex XY position
+              movbyts divvals+0,#%%0123
+              mov divvals+2,divvals+0
+              sar divvals+0,#16
+              'signx divvals+2,#15 ' sign-extend the XY position
+              shl divvals+2,#16
+              sar divvals+2,#16
+              'debug("pretran ",sdec(divvals+0,divvals+2))
+              sub divvals+0,xcen
+              sub divvals+2,ycen ' move to local centre
+.dovertex_immediate
+              'debug("cen ",sdec(divvals+0,divvals+2),sdec(xcen,ycen))
+              mov divvals+3,divvals+0
+              mov divvals+1,divvals+2 ' copy them for rotation
+              'neg divvals+2 ' divvals+2 will be the -SIN
+              muls divvals+0,cos1
+              muls divvals+2,sin2
+              muls divvals+3,sin1
+              muls divvals+1,cos1 ' do the rotation-multiplies
+              add divvals+0,divvals+2
+              add divvals+1,divvals+3 ' add the products, resultant rotated point is (divvals+0,divvals+1)
+              'debug(uhex_long(divvals+0,divvals+1),sdec(sin1,cos1,sin2))
+              'shl divvals+0,#8
+              'shl divvals+1,#8 ' rotated point to 16:16
+              add divvals+0,xxx
+              add divvals+1,yyy ' move to final XY in Tempest space
+              'mov divvals+0,divvals+0
+              'mov divvals+1,divvals+1
+              mov pa,zzz
+              call #sdiv2 ' perspective transform
+              sar divvals+0,#7
+              sar divvals+1,#7
+
+              ' TODO why does this break it?
+              add divvals+0,gl_xcen
+        _ret_ add divvals+1,gl_ycen
+
+
+''****        Blit a line of poly
+.gouscanline
+              cmp y1_n,#SCRHEIGHT wc
+        if_nc ret ' emergency clipping (top and bottom because unsigned CMP)
+
+              mov xstart,sum1
+              mov istart,sum2
+              mov xsize,sum3
+              mov isize,sum4
+
+              cmps xsize,xstart wc
+        if_ae jmp #.i_nswap4
+              xor xstart,xsize ' make sure increasing x from xstart
+              xor xsize,xstart
+              xor xstart,xsize
+              xor istart,isize
+              xor isize,istart
+              xor istart,isize
+.i_nswap4
+              'debug(".gouscanline ",uhex_long(xstart,xsize,y1_n))
+              ' Native P2 gouroud shading here!
+
+              'debug("endpoints",uhex_long(istart,isize))
+
+              {
+              sub xsize,xstart
+              sub isize,istart ' calc delta X and delta I
+
+              sar xsize,#16 ' back to integer
+              sar xstart,#16
+              add xsize,#1
+              }
+              ' Attempt to make polygons look nicer: round first, subtract after
+              sar xstart,#16
+              sar xsize,#16
+              sub xsize,xstart
+              add xsize,#1
+              sub isize,istart
+
+              ' haxx
+              'mov xstart,#100
+              'mov xsize,#20
+
+              abs isize wc
+              qdiv isize,xsize
+              wrc r0
+
+
+              mov r1,xsize
+              add r1,xstart
+              subs r1,#SCRWIDTH wc
+        if_nc sub xsize,r1
+
+              ' Prepare line address
+              mov r1,y1_n
+              mul r1,cryline384
+              add r1,gpu_screen
+
+              testb r0,#0 wc
+              getqx isize
+              negc isize
+              'debug("increment ",uhex_long(isize,xsize))
+
+              ' left clipping
+              tjns xstart,#.skip_lclip
+              'debug("before left clip ",sdec(xstart,xsize,sum1,sum3,xinc1,xinc2))
+              ' have to adjust isize (24 bit signed!)
+              neg xstart
+              sub xsize,xstart
+              getword pa,isize,#1
+              muls pa,xstart ' multiply high
+              shl pa,#16
+              mul xstart,isize ' multiply low
+              add xstart,pa
+              add istart,xstart
+              mov xstart,#0
+              'debug("after left clip ",sdec(xstart,xsize))
+.skip_lclip
+              cmps xsize,#0 wcz
+        if_be ret
+
+              add r1,xstart
+              add r1,xstart ' twice because 16 bit
+              wrfast #0,r1
+              'wrword ##$FFFF,r1
+
+              rep @.gouloop,xsize
+              rolbyte colour,istart,#2
+              movbyts colour,#%%0101
+              wfword colour
+              add istart,isize
+.gouloop  
+              ret
+
+
+.vertswap
+              cmps y2_n,y1_n wc ' Get vertices in order: (x1_n,y1_n)=TOP (lowest y) ---> (x3_n,y3_n)=BOTTOM
+        if_ae jmp #.i_nswap1
+              ' we don't have a swap macro :(
+              xor x1_n,x2_n
+              xor x2_n,x1_n
+              xor x1_n,x2_n
+              xor y1_n,y2_n
+              xor y2_n,y1_n
+              xor y1_n,y2_n
+              xor i1_n,i2_n
+              xor i2_n,i1_n
+              xor i1_n,i2_n
+.i_nswap1     cmps y3_n,y1_n wc
+        if_ae jmp #.i_nswap2
+              xor x1_n,x3_n
+              xor x3_n,x1_n
+              xor x1_n,x3_n
+              xor y1_n,y3_n
+              xor y3_n,y1_n
+              xor y1_n,y3_n
+              xor i1_n,i3_n
+              xor i3_n,i1_n
+              xor i1_n,i3_n
+.i_nswap2     cmps y3_n,y2_n wc
+        if_ae ret'jmp #.i_nswap3
+              xor x2_n,x3_n
+              xor x3_n,x2_n
+              xor x2_n,x3_n
+              xor y2_n,y3_n
+              xor y3_n,y2_n
+              xor y2_n,y3_n
+              xor i2_n,i3_n
+              xor i3_n,i2_n
+        _ret_ xor i2_n,i3_n
+
+.web3d
+              shr faces,#16 ' only wanted first word but read entire long!
+
+              mov ctptr,faces
+              add ctptr,#2'+(2<<2)
+              shl ctptr,#2
+              add ctptr,#2
+              add ctptr,polypointer
+              mov r0,ctptr
+              sub r0,#2
+              rdword r0,r0 wz ' connect flag
+
+              mov r14,faces
+              shl r14,#1
+        if_nz add r14,#2
+
+              mov zzz_2, zzz
+              add zzz,##$500000
+              tjs zzz,#.aquit
+              sub zzz_2,##$500000
+              add zzz_2,#1
+              fges zzz_2,#0
+              shr zzz,#14 ' scale z properly
+              shr zzz_2,#14
+              add zzz_2,#1 ' make sure zzz_2 is never 0
+.webpolyloop
+              rdfast #0,polypointer
+              rfword wx1
+              movbyts wx1,#%%2301
+              rfword wy1
+              movbyts wy1,#%%2301
+              shl wx1,#16
+              shl wy1,#16
+              sar wx1,#13
+              sar wy1,#13
+              getptr polypointer ' get leaves polypointer positioned right to pick up next channel
+              rfword wx2
+              movbyts wx2,#%%2301
+              rfword wy2
+              movbyts wy2,#%%2301
+              shl wx2,#16
+              shl wy2,#16
+              sar wx2,#13
+              sar wy2,#13
+
+              rdword i3_n,ctptr  ' WTF?
+              movbyts i3_n,#%%2301
+              add ctptr,r14
+              'mov i3_n,colour ' WTF colour is uninitialized on first iteration???
+              rdword colour,ctptr
+              movbyts colour,#%%2301
+              sub ctptr,r14
+              add ctptr,#2
+              add i3_n,angl
+              and i3_n,#255
+              add i3_n,sinebase
+              rdbyte r0,i3_n
+              add r0,#128
+              mul r0,glint
+              shr r0,#1
+              mov i2_n,r0
+              mov i1_n,r0
+              mov i1_sav,r0
+              shr r0,#2
+              mov i3_n,r0
+              mov i3_sav,r0
+
+
+              'neg colour,#1 ' DEBUG
+
+              call #.dowebpolly
+
+              ' swap i3_n,i1_n
+              ' move i1_n,i2_n
+              ' can save an insn here wow
+              mov i2_n,i3_sav
+              mov i3_n,i1_sav
+              mov i1_n,i3_sav
+
+              xor zzz,zzz_2
+              xor zzz_2,zzz
+              xor zzz,zzz_2
+              xor wx1,wx2
+              xor wx2,wx1
+              xor wx1,wx2
+              xor wy1,wy2
+              xor wy2,wy1
+              xor wy1,wy2
+
+              call #.dowebpolly
+              
+              xor zzz,zzz_2
+              xor zzz_2,zzz
+              xor zzz,zzz_2
+
+              ' very odd way of doing this
+              'djf faces,#.aquit
+              'tjnz faces,#.webpolyloop
+              'mov ptra,polypointer
+              'rdword r0,ptra[8/2] wz
+        'if_nz jmp #.webpolyloop
+
+              subs faces,#1 wcz
+        if_z  mov ptra,polypointer
+        if_z  rdword r0,ptra[8/2] wz
+ if_nz_and_nc jmp #.webpolyloop
+.aquit
+              jmp #cmd_done
+
+
+
+.dowebpolly
+              xor zzz,zzz_2
+              xor zzz_2,zzz
+              xor zzz,zzz_2
+
+
+              mov divvals+0,wx1
+              mov divvals+2,wy1
+              sub divvals+0,#32*2
+              sub divvals+2,#32*2
+              call #.dovertex_immediate
+              mov x1_n,divvals+0
+              mov y1_n,divvals+1
+
+
+              mov divvals+0,wx2
+              mov divvals+2,wy2
+              sub divvals+0,#32*2
+              sub divvals+2,#32*2
+              call #.dovertex_immediate
+              mov x2_n,divvals+0
+              mov y2_n,divvals+1
+
+              xor zzz,zzz_2
+              xor zzz_2,zzz
+              xor zzz,zzz_2
+
+              mov divvals+0,wx1
+              mov divvals+2,wy1
+              sub divvals+0,#32*2
+              sub divvals+2,#32*2
+              call #.dovertex_immediate
+              mov x3_n,divvals+0
+              mov y3_n,divvals+1
+
+              jmp #.polyrender
+
+
+
+
+
+
+
+
+
+
+
+'****         Poly line blit end
+
+ovl_polyo2d_end
+              fit 1024
+
+#undef x1_n        
+#undef y1_n  
+#undef x2_n  
+#undef y2_n  
+#undef x3_n  
+#undef y3_n  
+#undef i1_n  
+#undef i2_n  
+#undef i3_n  
+#undef xinc1 
+#undef iinc1 
+#undef xinc2 
+#undef iinc2 
+#undef count1
+#undef count2
+#undef count3
+#undef sum1  
+#undef sum2  
+#undef sum3  
+#undef sum4  
+
+#undef xstart
+#undef istart
+#undef xsize 
+#undef isize 
+
+#undef sinebase   
+#undef polypointer
+#undef xxx        
+#undef yyy        
+#undef zzz        
+#undef xcen       
+#undef ycen       
+#undef angl       
+#undef ctptr      
+#undef vertices   
+#undef faces      
+#undef colour     
+#undef vertex     
+#undef intens     
+#undef gl_ycen    
+#undef gl_xcen    
+#undef wx1        
+#undef wy1        
+#undef wx2        
+#undef wy2        
+#undef zzz_2      
+#undef glint      
+#undef i3_sav     
+#undef i1_sav     
+
+
+DAT ' "Mode7" µcode (from ox.gas)
+
+ 
+#define a1_n      r14
+#define a2_n      r15              'Blitter base addresses
+#define source    r10               'srce screen
+#define z_max_n   r11
+#define _offset   r26
+#define yfront    r6
+#define yback     r7
+#define wrapval   r8               'value to loop _offset
+#define scanline  r9              'current scanline value
+#define intensi   r12
+#define sc        r17
+#define zstep     r18
+#define slstep    r19
+#define sline     r20
+#define ycentr    r30
+#define xcentr    r21
+#define scanlines r22
+#define scanloop  r23
+
+#define scale     r24
+#define xscale    r25
+#define cachey    r27
+
+              orgh
+cmd_mode7
+              ' load overlay
+              loc pa,#@@@ovl_mode7
+              mov pb,#ovl_mode7_end-ovl_mode7-1
+              jmp #run_overlay
+
+              org 512
+ovl_mode7
+
+              mov ycentr,##$780000 ' TODO PAL adjusts to $8c0000
+              'mov wrapval,##$f00000
+
+              rdfast #0,##in_buf
+              rflong source
+              movbyts source,#%%0123
+              rflong z_max_n
+              movbyts z_max_n,#%%0123
+              rflong _offset
+              movbyts _offset,#%%0123
+              rflong yfront
+              movbyts yfront,#%%0123
+              rflong yback
+              movbyts yback,#%%0123
+              rflong xcentr
+              movbyts xcentr,#%%0123
+              rflong sc
+              movbyts sc,#%%0123
+
+              mov auxvals+26,_offset
+              mov auxvals+17,sc
+
+              mov wrapval,##$10000
+
+              'neg slstep,#1
+
+              mov sline,yfront
+              add sline,ycentr
+              sar sline,#16
+
+              abs r0,yback wc ' final 2D scanline Y is (YBACK/ZMAX)+centre, where zmax=most distant horizon point
+              getword r1,r0,#1
+              shl r0,#16
+              setq r1
+              qdiv r0,z_max_n
+              ' Remember, divider is in 16:16 mode, oh no
+              getqx r0
+              negc r0
+              add r0,ycentr 
+              shr r0, #16 ' sline has integer start line, r0 has integer end line
+
+              mov scanlines,sline
+              mov sline,#239 ' TODO PAL adjust to 279?
+
+              sub scanlines,r0
+              cmps scanlines,#0 wc
+              negnc slstep,#1
+        if_c  mov sline,#0
+              'abs scanlines
+
+              mov scanlines,#$80
+
+              abs yfront
+              abs yback
+
+              neg cachey,#1
+
+.scan_loop
+              mov r0,yfront
+              mov r1,scanlines
+              'shl r1,#16
+              qdiv r0,r1 ' confusement as to what is happening with 16.16 divider mode here
+              getqx r0
+
+              cmps r0,z_max_n wc
+        if_ae jmp #.nline ' ???
+
+              loc pb,#\$4000 ' scale decreases proportional to Z
+              mov r1,r0
+              shr r1,#11
+              add r1,sc
+              and r1,#$FF
+              add r1,##p_sines
+              rdbyte intensi,r1
+              shl intensi,#3
+              sub pb, intensi ' vary scale with a sine func
+              callpa r0, #fmult
+              mov scale,pa
+
+              mov pb,##$7fffff ' TODO this can be bmask
+              callpa r0,#fmult ' i increases (is negated)
+              getword pb,pa,#1
+              shl pa,#16
+              ' oh no another divide
+              setq pb
+              qdiv pa,z_max_n
+              getqx intensi
+              'neg intensi
+              'zerox intensi,#23
+
+              mov pb,##$ff000 ' _offset into piccy...
+              callpa r0,#fmult
+              mov r1,pa
+              mov pb,##($c0000*4)
+              callpa r0,#fmult
+              'mov xscale,pa
+              mov r2,xcentr
+              sub r2,pa'xscale
+              add r1,_offset
+
+              zerox r1,#23
+              sub r1,##$7FFFFF
+              abs r1 wc
+        if_c  zerox r1,#22
+.scroat
+              ' R1 is source Y, R2 is source X
+              'mov r1,#0
+              shr r1,#16
+              sar intensi,#16
+              shl intensi,#8
+              'mov r2,#0
+              'mov scale,##$10000
+              
+              ' try grabbing source line
+              cmp r1,cachey wz
+        if_nz mov exmem_cmd,r1
+        if_nz mul exmem_cmd,cryline320
+        if_nz add exmem_cmd,source
+        if_nz mov exmem_len,cryline320
+        if_nz mov exmem_target,exmem_buffer_ptr
+        if_nz call #ex_rdblock
+        if_nz mov cachey,r1
+
+
+              mov r0,sline
+              mul r0,cryline384
+              add r0,gpu_screen
+
+              mov r1,#384
+
+              tjns r2,#.no_lclip
+.do_lclip
+              add r2,scale
+              add r0,#2
+              sub r1,#1 wcz
+ if_nc_and_nz tjs r2,#.do_lclip
+    if_c_or_z jmp #.scalelp
+.no_lclip
+
+              wrfast #0,r0
+
+              rep @.scalelp,r1
+              getword r0,r2,#1 ' integer source portion
+              cmp r0,#320 wc
+        if_ae jmp #.scalelp ' break out when past right edge
+              shl r0,#1
+              add r0,exmem_buffer_ptr
+              rdword r0,r0
+              'getbyte r1,r0,#1
+              'sub r1,intensi
+              'fges r1,#0
+              'setbyte r0,r1,#1             
+              sub r0,intensi wc
+        if_c  and r0,#255
+              wfword r0
+              add r2,scale
+.scalelp
+
+.nline
+              add sline,slstep
+              djnz scanlines,#.scan_loop
+
+
+              jmp #cmd_done
+ovl_mode7_end
+              fit 1024
+
+#undef a1_n     
+#undef a2_n     
+#undef source   
+#undef z_max_n  
+#undef _offset  
+#undef yfront   
+#undef yback    
+#undef wrapval  
+#undef scanline 
+#undef intensi  
+#undef sc       
+#undef zstep    
+#undef slstep   
+#undef sline    
+#undef ycentr   
+#undef xcentr   
+#undef scanlines
+#undef scanloop 
+
+#undef scale    
+#undef xscale   
+#undef cachey   
+
+DAT ' Star tunnel segment µcode (from ox.gas)
+
+#define rcenx      r3
+#define rceny      r4               'Ring X and Y centre
+#define ringz      r5               'current Z
+#define rcount     r6               'count of # rings drawn
+#define radius     r8               'radius
+#define sines      r9
+#define rphase     r10
+
+#define segphase   r11
+#define segamp     r12
+#define segcol     r13
+#define inti       r14
+#define segcount   r17      'stuff to use on individual segs
+
+#define cbbase     r15
+#define cbptr      r16
+#define sinebase   r21
+#define xmid       r22
+#define ymid       r25
+#define xmax		   r23
+#define ymax		   r24
+#define sinx       r27
+#define cosx       r28
+#define sbase      r29
+
+              orgh
+cmd_starseg
+              mov rcount,#64 ' going to draw 64 rings
+              mov ringz,##550 ' initialise to furthest Z position (equivalent to usual 16:16>>14)
+              mov inti,#$40
+
+              mov sinebase,##p_sines
+
+              mov xmax,#384
+              mov ymax,#240 ' TODO PAL adjust etc
+              mov xmid,#192
+              mov ymid,ymax
+              shr ymid,#1
+
+
+              ' load overlay
+              loc pa,#@@@ovl_starseg
+              mov pb,#ovl_starseg_end-ovl_starseg-1
+              jmp #run_overlay
+
+              org 512
+ovl_starseg
+              rdfast #0,##in_buf
+              rflong cbbase
+              movbyts cbbase,#%%0123
+              rflong rphase
+              movbyts rphase,#%%0123
+              rflong cbptr
+              movbyts cbptr,#%%0123
+              rflong rcenx
+              movbyts rcenx,#%%0123
+              rflong rceny
+              movbyts rceny,#%%0123
+
+              mov auxvals+10,rphase
+              mov auxvals+3,rcenx
+              mov auxvals+4,rceny
+              shr cbptr,#16
+.nxtrng
+              mov r2,cbptr
+              and r2,#$3F
+              shl r2,#4
+              add r2,cbbase
+
+              rdlong rphase,r2
+              add r2,#4
+              getbyte radius,rphase,#3
+              getbyte rphase,rphase,#0
+              add rphase, auxvals+10
+              mov rcenx,auxvals+3
+              mov rceny,auxvals+4
+
+              shl radius,#24
+              sar radius,#8
+
+              mov divvals+0,rcenx
+              mov divvals+1,rceny
+              mov divvals+2,radius
+              callpa ringz,#sdiv4
+              mov rcenx,divvals+0
+              mov rceny,divvals+1
+              mov radius,divvals+2
+
+              sar rcenx,#7
+              sar rceny,#7
+              sar radius,#7
+
+              add rcenx,xmid
+              add rceny,ymid
+
+              mov segcount,#3
+
+.nxtseg
+              rdlong segphase,r2 ' get parameters of this pixel arc
+              add r2,#4
+              getbyte r31,segphase,#3  ' possible track-_offset
+              getbyte segcol,segphase,#2
+              getbyte segamp,segphase,#1
+              getbyte segphase,segphase,#0
+              add segamp,#1 ' prevent /0 errors on segamp (ranged 0-255)
+              add segphase,sinebase ' get base of sinetable
+              rdbyte r1,segphase ' got positive sine 0-255, this is total range of the arc
+              mov segphase,rphase 
+              mov r0,r1
+              shr r0,#1 ' half the arc length
+              sub segphase,r0
+              add segphase,r31 ' ring 3 is the track and can change phase
+              shl segphase,#8 ' give segphase some bits of accuracy...
+              shl r1,#8
+              qdiv r1,segamp
+              getqx r1 ' get the step between pixels
+              'shl segcol,#8
+              'or segcol,inti
+              setbyte segcol,inti,#1 ' make a pixel+intensity
+
+              rep @.pxloop,segamp
+
+              mov r0,segphase
+              shr r0,#8
+              mov r30,r0
+              and r0,#$FF
+              add r0,sinebase
+              rdbyte sinx,r0 ' get sine
+              sub sinx,#$80 ' make sine signed
+              muls sinx,radius ' x radius scale..
+              sar sinx,#8 ' normalise x radius
+              add sinx,rcenx
+
+              cmp sinx,xmax wc
+
+        if_c  add r30,#$40
+        if_c  and r30,#$FF
+        if_c  add r30,sinebase
+        if_c  rdbyte cosx,r30 ' get cosine
+        if_c  sub cosx,#$80 ' sign the cos
+        if_c  muls cosx,radius ' cosx times radius...
+        if_c  sar cosx,#8 ' normalise y radius
+        if_c  add cosx,rceny
+
+        if_c  cmp cosx,ymax wc
+        if_c  mul cosx,xmax
+        if_c  add cosx,sinx
+        if_c  shl cosx,#1
+        if_c  add cosx,gpu_screen
+        if_c  wrword segcol,cosx ' write that pixel doody
+
+              add segphase,r1
+.pxloop
+              djnz segcount,#.nxtseg
+              sub ringz,#8
+              sub cbptr,#1
+              add inti,#3
+              djnz rcount,#.nxtrng
+              jmp #cmd_done
+ovl_starseg_end
+              fit 1024
+
+#undef rcenx      
+#undef rceny      
+#undef ringz      
+#undef rcount     
+#undef radius     
+#undef sines      
+#undef rphase     
+
+#undef segphase   
+#undef segamp     
+#undef segcol     
+#undef inti       
+#undef segcount
+
+#undef cbbase     
+#undef cbptr      
+#undef sinebase   
+#undef xmid       
+#undef ymid       
+#undef xmax
+#undef ymax
+#undef sinx       
+#undef cosx       
+#undef sbase      
+
+
+DAT ' Vertex-only object µcode (from ox.gas)
+
+#define opointer r3
+#define xn       r4
+#define yn       r5
+#define zval     r6
+#define _xscale  r7
+#define yscale   r8
+#define zscale   r9
+#define colour   r10
+#define angxy    r11
+#define vertices r12
+#define _x1      r16
+#define _y1      r17
+#define _z1      r18
+#define cos      r19
+#define sin      r26
+
+#define sinebase   r21
+#define xmid       r22
+#define ymid       r25
+#define xmax		   r23
+#define ymax		   r24
+
+              orgh
+cmd_voo
+
+              mov sinebase,##p_sines
+              ' One less because of 2x2 pixels
+              mov xmax,#383
+              mov ymax,#239 ' TODO PAL adjust 280
+
+              mov xmid,#191 
+              mov ymid,ymax
+              shr ymid,#1
+              
+              ' load overlay
+              loc pa,#@@@ovl_voo
+              mov pb,#ovl_voo_end-ovl_voo-1
+              jmp #run_overlay
+
+              org 512
+ovl_voo
+              rdfast #0,##in_buf
+              rflong opointer
+              movbyts opointer,#%%0123
+              rflong xn
+              movbyts xn,#%%0123
+              rflong yn
+              movbyts yn,#%%0123
+              rflong zval
+              movbyts zval,#%%0123
+              rflong _xscale
+              movbyts _xscale,#%%0123
+              rflong yscale
+              movbyts yscale,#%%0123
+              rflong zscale
+              movbyts zscale,#%%0123
+              rflong colour
+              movbyts colour,#%%0123
+              rflong angxy
+              movbyts angxy,#%%0123
+
+              debug("VOO! ",uhex_long(opointer,xn))
+              tjns opointer,#.not_exmem
+              mov exmem_cmd,opointer
+              mov exmem_len,#128  ' always read 128 bytes.
+              ' should be big enough - figuring out the actual size we need would need another transaction, may be counter-productive
+              mov exmem_target,exmem_buffer_ptr
+              call #ex_rdblock
+              mov opointer,exmem_buffer_ptr
+.not_exmem
+              rdfast #0,opointer ' read from object data
+
+              rfword vertices
+              movbyts vertices,#%%2301
+
+
+              and angxy,#$FF
+              mov r0,angxy
+              add angxy,sinebase
+              add r0,#$40
+              rdbyte sin,angxy
+              and r0,#$FF
+              add r0,sinebase
+              rdbyte cos,r0
+              sub sin,#$80
+              sub cos,#$80
+
+              debug(udec(vertices),sdec(sin,cos))
+
+.v_loop
+              rfword _x1 ' get the un-transformed point
+              movbyts _x1,#%%2301
+              rfword _y1
+              movbyts _y1,#%%2301
+              rfword _z1
+              movbyts _z1,#%%2301
+
+              ' skip the sign-extend, don't need it for MULS
+
+              muls _x1,_xscale
+              muls _y1,yscale
+              muls _z1,zscale ' multiply by respective scale factors
+              debug("pre-persp",sdec(_x1,_y1,_z1,_xscale,yscale,zscale))
+
+              neg r27,_x1
+              mov r28,_y1
+
+              muls _x1,cos
+              muls _y1,sin
+              add _x1,_y1
+              muls r28,cos
+              muls r27,sin
+              add r27,r28
+              mov _y1,r27
+
+              shl _x1,#6 ' Note 4x scaling down has been used to give more rez on the scale
+              shl _y1,#6
+              shl _z1,#14
+
+              add _x1,xn
+              add _y1,yn
+              debug("uhh",sdec(_x1,_y1,xn,yn))
+              add _z1,zval
+              tjs _z1,#.z_neg
+              shr _z1,#14
+              add _z1,#1
+              mov divvals+0,_x1
+              mov divvals+1,_y1
+              callpa _z1,#sdiv2
+              mov _x1,divvals+0
+              mov _y1,divvals+1
+              sar _x1,#7
+              sar _y1,#7
+              add _x1,xmid
+              add _y1,ymid
+              debug(sdec(_x1,_y1,xmid,ymid))
+              cmp _x1,xmax wc
+        if_c  cmp _y1,ymax wc
+        if_nc jmp #.z_neg
+              mul _y1,#384 ' translate XY coordinates into screen address Thang
+              add _x1,_y1
+              shl _x1,#1
+              add _x1,gpu_screen  ' _x1 now points directly at an expectantly quivering pixel
+              shr _z1,#2 ' Rude and hairy way to simulate a proper i-calculation
+              and _z1,#$FF ' Hairy and rude, I tell you. No good will come of it, it's cheating
+              subr _z1,#$FF ' AAARRRGHH I"M NOT INTERLEAVED ANYMORE!
+              rolbyte _z1,colour,#0 ' combile colour and disgustingly unrigorous i-value
+              movbyts _z1,#%%1010
+              wrlong _z1,_x1
+              add _x1,cryline384
+              wrlong _z1,_x1
+.z_neg
+              djnz vertices,#.v_loop
+              jmp #cmd_done
+
+ovl_voo_end
+              fit 1024
+
+#undef opointer 
+#undef xn       
+#undef yn       
+#undef zval     
+#undef _xscale  
+#undef yscale   
+#undef zscale   
+#undef colour   
+#undef angxy    
+#undef vertices 
+#undef _x1      
+#undef _y1      
+#undef _z1      
+#undef cos      
+#undef sin      
+
+#undef sinebase
+#undef xmid    
+#undef ymid    
+#undef xmax		
+#undef ymax		
+
+DAT ' Ripple Warp µcode
+
+#define veepos    r16
+#define veestep   r17
+
+#define sinebase   r21     'base address of bytewise sine table
+#define lphase     r22     'phase of left-hand wave        16:16
+#define lamp       r23     'amplitude of left-hand wave        8:8
+#define rphase     r24     'phase of right-hand wave       16:16
+#define ramp       r25     'amplitude of right-hand wave       8:8
+#define lstep      r26
+#define rstep      r27     'speed of stepping through wave     16:16 both
+
+#define src_screen r30
+#define source1    r1
+#define source2    r2
+#define dest1      r3
+#define dest2      r4
+#define cmd        r6
+#define source3    r7
+#define source4    r8
+#define dest3      r9
+#define dest4      r10
+
+              orgh
+cmd_ripplewarp
+              mov sinebase,##p_sines
+              ' load overlay
+              loc pa,#@@@ovl_ripplewarp
+              mov pb,#ovl_ripplewarp_end-ovl_ripplewarp-1
+              jmp #run_overlay
+
+              org 512
+ovl_ripplewarp
+              rdfast #0,##in_buf
+              rflong src_screen ' get source screen address
+              movbyts src_screen,#%%0123
+              rflong lphase
+              movbyts lphase,#%%0123
+              rflong lamp
+              movbyts lamp,#%%0123
+              rflong rphase
+              movbyts rphase,#%%0123
+              rflong ramp
+              movbyts ramp,#%%0123
+              rflong lstep
+              movbyts lstep,#%%0123
+              rflong rstep
+              movbyts rstep,#%%0123
+
+              mov dest2,#384 ' dest scan width
+              mov dest1,#239 ' dest scanline # (PAL 279)
+              mov source3,#239 ' source scanline #
+              mov veestep,##$10000 ' PAL $c000
+
+              mov veepos,source3
+              shl veepos,#16
+
+              ' Start grabbing source
+              mov exmem_cmd,source3
+              mul exmem_cmd,cryline320
+              add exmem_cmd,src_screen
+              mov exmem_len,cryline320
+              mov exmem_target,exmem_buffer_ptr
+              testb dest1,#0 wc
+        if_c  add exmem_target,cryline384
+              setnib exmem_cmd,#$B,#7 ' B stands for burst
+              setq #2
+              wrlong exmem_cmd,exmem_mailbox
+              
+.rippleloop
+              getbyte r0,lphase,#2 ' get int of phase
+              add r0,sinebase
+              rdbyte r20,r0
+              mov r0,lamp
+              mul r0,r20
+              mov source1,##$10000
+              add source1,r0 ' start pixel set
+
+              getbyte r0,rphase,#2 ' get int of phase
+              add r0,sinebase
+              rdbyte r20,r0
+              mov r0,ramp
+              mul r0,r20
+              mov source2,##$1400000 ' ##### FIXED for a 320 pixel wide source image
+              sub source2,r0 ' end pixel set     
+' .stretchline
+              
+              sub source2,source1 ' get width of source to stretch
+              qdiv source2,dest2 ' divide by the dest width to yield the blitter source step
+
+              sub veepos,veestep
+              mov source3,veepos
+              shr source3,#16
+
+              ' prefetch next line
+              mov exmem_target,exmem_buffer_ptr
+              mov tmp1,exmem_buffer_ptr
+              testb dest1,#0 wc
+        if_nc add exmem_target,cryline384
+        if_c  add tmp1,cryline384
+              ' exmem_len is still 320px
+              mov exmem_cmd,source3
+              mul exmem_cmd,cryline320
+              add exmem_cmd,src_screen
+              setnib exmem_cmd,#$B,#7 ' B stands for burst
+              cmp dest1,#0 wz ' don't do it on last line
+              waitatn ' wait for current line to have been fetched
+        if_nz setq #2
+        if_nz wrlong exmem_cmd,exmem_mailbox
+
+              getqx source2
+
+              mov r0,dest1
+              mul r0,cryline384
+              add r0,gpu_screen
+              wrfast #0,r0
+
+              rep @.blitlp,#384
+              getword r0,source1,#1
+              shl r0,#1
+              add r0,tmp1
+              rdword r0,r0
+              wfword r0
+              add source1,source2
+.blitlp
+              ' stretchline end
+
+              add lphase,lstep
+              add rphase,rstep
+
+              djnf dest1,#.rippleloop
+              jmp #cmd_done
+ovl_ripplewarp_end
+              fit 1024
+
+#undef veepos    
+#undef veestep   
+
+#undef sinebase  
+#undef lphase    
+#undef lamp      
+#undef rphase    
+#undef ramp      
+#undef lstep     
+#undef rstep     
+
+#undef src_screen
+#undef source1   
+#undef source2   
+#undef dest1     
+#undef dest2     
+#undef cmd       
+#undef source3   
+#undef source4   
+#undef dest3     
+#undef dest4     
+
+DAT ' Pixel sphere µcode (from ox.gas and horse.gas)
+
+#define sinebase  r21
+#define xmid      r23
+#define ymid      r22
+#define xmax      r25
+#define ymax      r24
+#define s_base    r30
+
+#define s_x       r2
+#define s_y       r3
+#define s_z       r4
+#define xyrad     r5
+#define xyint     r6
+#define xyphase   r7
+#define yzphase   r8
+#define xycount   r9
+#define yzcount   r10
+#define xystep    r11
+#define yzstep    r12
+#define s_col     r13
+
+              orgh
+cmd_psphere
+              mov sinebase,##p_sines
+
+              mov xmax,#SCRWIDTH-1
+              mov ymax,#SCRHEIGHT-1 ' PAL adjust etc
+
+              setq #2-1
+              rdlong ymid,##G_RAM+$EF8
+              movbyts ymid,#%%0123
+              movbyts xmid,#%%0123
+
+              ' load overlay
+              loc pa,#@@@ovl_psphere
+              mov pb,#ovl_psphere_end-ovl_psphere-1
+              jmp #run_overlay
+
+              org 512
+ovl_psphere
+              rdfast #0,##in_buf
+              rflong s_x
+              movbyts s_x,#%%0123
+              rflong s_y
+              movbyts s_y,#%%0123
+              rflong s_z
+              movbyts s_z,#%%0123
+              rflong xyrad
+              movbyts xyrad,#%%0123
+              rflong xyphase
+              movbyts xyphase,#%%0123
+              rflong yzphase
+              movbyts yzphase,#%%0123
+              rflong xycount
+              movbyts xycount,#%%0123
+              rflong yzcount
+              movbyts yzcount,#%%0123
+              rflong xystep
+              movbyts xystep,#%%0123
+              rflong yzstep
+              movbyts yzstep,#%%0123
+              rflong s_col
+              movbyts s_col,#%%0123
+              rflong xyint
+              movbyts xyint,#%%0123
+
+              mov auxvals+9,xycount
+              mov auxvals+7,xyphase
+              shl s_col,#8
+             
+.sphout
+              getbyte r0,xyphase,#0
+              mov r1,xyphase
+              add xyphase,xystep
+              add r1,#$40
+              add r0,sinebase
+              and r1,#$FF
+              rdbyte r27,r0
+              add r1,sinebase
+              sub r27,#$80
+              rdbyte r28,r1
+              sub r28,#$80 ' get sine and cos +/-128 of ring pixel, in r27/r28
+
+              muls r27,xyrad
+              muls r28,xyrad
+
+              getbyte r0,yzphase,#0
+              mov r1,yzphase
+              add r1,#$40
+              add r0,sinebase
+              and r1,#$FF
+              rdbyte r18,r0
+              add r1,sinebase
+              sub r18,#$80
+              rdbyte r19,r1
+              sub r19,#$80 ' get sine and cos of the twist, in r18/r19
+
+              neg r18
+              mov r29,r27
+              muls r29,r18
+              muls r27,r19 ' transformed x
+
+              shl r28,#7 ' Everything should now be 8:8
+              add r27,s_x
+              add r28,s_y
+              add r29,s_z
+              tjs r29,#.spskip
+              sar r29,#14
+              add r29,#1
+              mov divvals+0,r27
+              mov divvals+1,r28
+              callpa r29,#sdiv2
+              mov r27,divvals+0
+              mov r28,divvals+1
+
+              sar r27,#7
+              sar r28,#7
+              add r27,xmid
+              add r28,ymid
+              cmp r27,xmax wc ' ...clip, clip, clip, CLIP, CLIP CLIPCLIPCLIPCLIP
+        if_c  cmp r28,ymax wc
+        if_nc jmp #.spskip
+              shl r27,#1
+              mul r28,cryline384
+              shr r29,#4 ' Rude and hairy way to simulate a proper i-calculation
+              add r28,r27 ' r28 is offset to screen pixel
+              and r29,#$FF
+              subr r29,#$FF
+              add r28,gpu_screen ' r28 now points directly at an expectantly quivering pixel
+              mul r29,xyint
+              shr r29,#8
+              rolbyte r29,s_col,#1
+              wrword r29,r28
+.spskip
+              add xyphase,xystep
+              djnz xycount,#.sphout
+              mov xycount,auxvals+9
+              mov xyphase,auxvals+7
+              add yzphase,yzstep
+              djnz yzcount,#.sphout
+
+              jmp #cmd_done
+ovl_psphere_end
+              fit 1024
+
+#undef sinebase
+#undef xmid    
+#undef ymid    
+#undef xmax    
+#undef ymax    
+#undef s_base  
+
+#undef s_x     
+#undef s_y     
+#undef s_z     
+#undef xyrad   
+#undef xyint   
+#undef xyphase 
+#undef yzphase 
+#undef xycount 
+#undef yzcount 
+#undef xystep  
+#undef yzstep  
+#undef s_col   
+
+DAT ' Pretty Poly µcode
+#define x1_n     r3
+#define y1_n     r4
+#define x2_n     r5
+#define y2_n     r6
+#define x3_n     r7
+#define y3_n     r8
+#define i1_n     r9
+#define i2_n     r10
+#define i3_n     r11
+#define xinc1    r12
+#define iinc1    r15
+#define xinc2    r16
+#define iinc2    r17
+#define count1   r18
+#define count2   r19
+#define count3   r22
+#define sum1     r23
+#define sum2     r24
+#define sum3     r25
+#define sum4     r26
+
+#define c1       r23
+#define c2       r24
+#define c3       r25
+
+#define sum5     auxvals+5
+#define sum6     auxvals+6
+#define sum7     auxvals+7
+#define sum8     auxvals+8
+#define cinc1    r2
+#define cinc2    r13
+#define cinc3    r14
+#define cinc4    r3
+
+#define base     r27
+#define ci1      r28      
+#define ci2      r29      
+#define ii       r30      
+
+              orgh
+cmd_prettypoly
+              'mov sinebase,##p_sines
+
+              rdlong r0,##in_buf ' get pointer to poly data
+              movbyts r0,#%%0123
+              debug(uhex_long(r0))
+
+              ' load overlay
+              loc pa,#@@@ovl_prettypoly
+              mov pb,#ovl_prettypoly_end-ovl_prettypoly-1
+              jmp #run_overlay
+
+              org 512
+ovl_prettypoly
+              rdfast #0,r0
+              rfword x1_n
+              movbyts x1_n,#%%2301
+              rfword y1_n
+              movbyts y1_n,#%%2301
+              rfword i1_n
+              movbyts i1_n,#%%3012 ' we want this shifted
+              rfword c1
+              movbyts c1,#%%2301
+
+              rfword x2_n
+              movbyts x2_n,#%%2301
+              rfword y2_n
+              movbyts y2_n,#%%2301
+              rfword i2_n
+              movbyts i2_n,#%%3012 ' we want this shifted
+              rfword c2
+              movbyts c2,#%%2301
+
+              rfword x3_n
+              movbyts x3_n,#%%2301
+              rfword y3_n
+              movbyts y3_n,#%%2301
+              rfword i3_n
+              movbyts i3_n,#%%3012 ' we want this shifted
+              rfword c3
+              movbyts c3,#%%2301
+
+              debug(sdec(y1_n,y2_n,y3_n))
+              debug(sdec(c1,c2,c3))
+
+              cmps y2_n,y1_n wc
+        if_ae jmp #.p_nswap1
+              xor x1_n,x2_n
+              xor x2_n,x1_n
+              xor x1_n,x2_n
+              xor y1_n,y2_n
+              xor y2_n,y1_n
+              xor y1_n,y2_n
+              xor i1_n,i2_n
+              xor i2_n,i1_n
+              xor i1_n,i2_n
+              xor c1,c2
+              xor c2,c1
+              xor c1,c2
+.p_nswap1
+              cmps y3_n,y1_n wc
+        if_ae jmp #.p_nswap2
+              xor x1_n,x3_n
+              xor x3_n,x1_n
+              xor x1_n,x3_n
+              xor y1_n,y3_n
+              xor y3_n,y1_n
+              xor y1_n,y3_n
+              xor i1_n,i3_n
+              xor i3_n,i1_n
+              xor i1_n,i3_n
+              xor c1,c3
+              xor c3,c1
+              xor c1,c3
+.p_nswap2
+              cmps y3_n,y2_n wc
+        if_ae jmp #.p_nswap3
+              xor x2_n,x3_n
+              xor x3_n,x2_n
+              xor x2_n,x3_n
+              xor y2_n,y3_n
+              xor y3_n,y2_n
+              xor y2_n,y3_n
+              xor i2_n,i3_n
+              xor i3_n,i2_n
+              xor i2_n,i3_n
+              xor c2,c3
+              xor c3,c2
+              xor c2,c3
+.p_nswap3
+              mov count1,y2_n
+              mov count2,y3_n
+              sub count1,y1_n
+              sub count2,y2_n
+              mov count3,y3_n
+              add count1,#1
+              sub count3,y1_n
+              add count2,#1
+              add count3,#1 ' COUNT1=Y length of first span, count2=second span, y3_n=third span
+
+              debug(sdec(count1,count2,count3))
+
+              mov xinc2,x3_n
+              mov xinc1,x2_n
+              sub xinc2,x1_n
+              sub xinc1,x1_n
+              mov iinc2,i3_n
+              mov iinc1,i2_n
+              sub iinc2,i1_n
+              sub iinc1,i1_n
+              shl xinc2,#16
+              shl xinc1,#16 ' pixel values to 16:16
+
+              mov divvals+0,xinc1
+              mov divvals+1,iinc1
+              mov divvals+2,xinc2
+              mov divvals+3,iinc2
+              mov pa,count1
+              mov pb,count3
+              call #sdiv2x2
+              mov xinc1,divvals+0
+              mov iinc1,divvals+1
+              mov xinc2,divvals+2
+              mov iinc2,divvals+3
+
+              mov sum5,c1
+              mov sum6,c1
+              mov sum7,c1
+              mov sum8,c1 ' copy point 1 colour to all colour inc totals
+              mov r0,##$f0000
+              shl sum5,#12
+              shl sum6,#16
+              shl sum7,#12
+              shl sum8,#16
+              and sum5,r0
+              and sum6,r0
+              and sum7,r0
+              and sum8,r0 ' split colour vectors and make 'em 16:16 fractions
+
+              mov cinc1,c2
+              mov cinc2,c2 ' Get short side's colour values
+              shl cinc1,#12
+              shl cinc2,#16
+              and cinc1,r0
+              and cinc2,r0 ' Split and fractionate the vectors
+              
+              mov sum1,x1_n ' Get rid of x1_n, as it is about to become CINC4
+
+              mov cinc3,c3 ' Now, PRECALCULATE the inc for the second short side
+              mov cinc4,c3 ' Get second short side's colour values
+              shl cinc3,#12
+              shl cinc4,#16
+              and cinc3,r0
+              and cinc4,r0 ' Split and fractionate the vectors
+
+              sub cinc3,cinc1
+              sub cinc4,cinc2 ' Vector from second point to top
+              sub cinc1,sum5
+              sub cinc2,sum6 ' Make colour i-vectors
+              mov divvals+0,cinc1
+              mov divvals+1,cinc2
+              mov divvals+2,cinc3
+              mov divvals+3,cinc4
+              mov pa,count1
+              mov pb,count2
+              call #sdiv2x2 ' Make the increment per scan line
+              mov cinc1,divvals+0
+              mov cinc2,divvals+1
+              mov cinc3,divvals+2
+              mov cinc4,divvals+3
+
+              mov auxvals+2,cinc3
+              mov auxvals+13,cinc4 ' Store the second pair of i-vectors in alternates
+              
+              mov cinc3,c3
+              mov cinc4,c3 ' Get long side's colour values
+              shl cinc3,#12
+              shl cinc4,#16
+              and cinc3,r0
+              and cinc4,r0
+              sub cinc3,sum7
+              sub cinc4,sum8 ' Make colour i-vectors
+              mov divvals+0,cinc3
+              mov divvals+1,cinc4
+              callpa count3,#sdiv2 ' Make the increment per scan line
+              mov cinc3,divvals+0
+              mov cinc4,divvals+1
+
+              mov sum2,i1_n
+              mov sum3,sum1
+              mov sum4,i1_n
+              shl sum1,#16
+              shl sum3,#16
+
+.p_loop1
+              call #.pscanline
+
+              add y1_n,#1 ' step to nxt scanline
+              add sum1,xinc1
+              add sum2,iinc1
+              add sum3,xinc2
+              add sum4,iinc2
+              add sum5,cinc1
+              add sum6,cinc2
+              add sum7,cinc3
+              add sum8,cinc4
+              djnz count1,#.p_loop1
+
+              mov xinc1,x3_n
+              mov iinc1,i3_n
+              sub xinc1,x2_n
+              sub iinc1,i2_n
+              shl xinc1,#16
+
+              mov divvals+0,xinc1
+              mov divvals+1,iinc1
+              mov pa,count2
+              call #sdiv2
+              mov xinc1,divvals+0
+              mov iinc1,divvals+1
+
+              mov cinc1,auxvals+2
+              mov cinc2,auxvals+13 ' get these which were precalculated
+
+.p_loop2
+              call #.pscanline
+
+              add y1_n,#1 ' step to nxt scanline
+              add sum1,xinc1
+              add sum2,iinc1
+              add sum3,xinc2
+              add sum4,iinc2
+              add sum5,cinc1
+              add sum6,cinc2
+              add sum7,cinc3
+              add sum8,cinc4
+              djnz count2,#.p_loop2
+
+              jmp #cmd_done
+
+.pscanline
+              mov base,sum1
+              mov tmp1,sum3
+
+              sub tmp1,base
+              abs tmp1 wc
+              negc blit_xinc,#2
+              shr tmp1,#16
+              shr base,#16
+              add tmp1,#1
+              shl base,#1
+              mov pa,y1_n
+              mul pa,cryline384
+              add base,pa
+              add base,gpu_screen
+
+              mov ci1,sum7
+              mov ci2,sum8
+              mov ii,sum4
+              sub ci1,sum5
+              sub ci2,sum6
+              sub ii,sum2
+              mov divvals+0,ci1
+              mov divvals+1,ci2
+              mov divvals+2,ii
+              mov pa,tmp1
+              call #sdiv4
+              mov ci1,divvals+0
+              mov ci2,divvals+1
+              mov ii ,divvals+2
+
+              mov tmp2,sum5
+              mov tmp3,sum6
+              mov tmp4,sum2
+
+              rep @.pixelloop,tmp1
+              getbyte r0,tmp4,#2
+              rolnib r0,tmp2,#4
+              rolnib r0,tmp3,#4
+              wrword r0,base
+              add base,blit_xinc ' this is horrible, don't mind it
+              add tmp2,ci1
+              add tmp3,ci2
+              add tmp4,ii
+.pixelloop
+              ret wcz
+ovl_prettypoly_end
+              fit 1024
+
+#undef x1_n  
+#undef y1_n  
+#undef x2_n  
+#undef y2_n  
+#undef x3_n  
+#undef y3_n  
+#undef i1_n  
+#undef i2_n  
+#undef i3_n  
+#undef xinc1 
+#undef iinc1 
+#undef xinc2 
+#undef iinc2 
+#undef count1
+#undef count2
+#undef count3
+#undef sum1  
+#undef sum2  
+#undef sum3  
+#undef sum4  
+
+#undef c1    
+#undef c2    
+#undef c3    
+
+#undef sum5  
+#undef sum6  
+#undef sum7  
+#undef sum8  
+#undef cinc1 
+#undef cinc2 
+#undef cinc3 
+#undef cinc4 
+
+#undef base  
+#undef ci1   
+#undef ci2   
+#undef ii    
+
+DAT ' SCale And Rotate µcode
+
+#define d_width   r1               'Destination width
+#define d_height  r2
+#define x1_n      r3
+#define y1_n      r4
+#define x2_n      r5
+#define y2_n      r6               'Useful co-ordinate registers
+
+#define lo_mask   r9
+#define hi_mask   r10
+#define _byte     r18
+#define _sinebase r19
+#define srcscreen r26
+
+#define sin       r16
+#define cos       r17
+#define temp1     r11
+#define temp2     r12
+#define darken    r13
+
+              orgh
+cmd_scar
+              'mov sinebase,##p_sines
+
+              'rdlong r0,##in_buf ' get pointer to poly data
+              'movbyts r0,#%%0123
+              'debug(uhex_long(r0))
+
+              ' Destination screen must be external
+              testb gpu_screen,#31 wc
+        if_nc jmp #cmd_done
+
+              ' load overlay
+              loc pa,#@@@ovl_scar
+              mov pb,#ovl_scar_end-ovl_scar-1
+              jmp #run_overlay
+
+              org 512
+ovl_scar
+              'setq #100
+              'wrlong ##$FFFF0000,gpu_screen
+
+              rdfast #0,##in_buf
+              rflong srcscreen
+              movbyts srcscreen,#%%0123
+              rflong d_width
+              movbyts d_width,#%%0123
+              rflong d_height
+              movbyts d_height,#%%0123
+
+              fle d_width,#384 ' anti-crash
+
+              mov temp1,d_width
+              mov temp2,d_height
+              rflong r20 ' get x-scale
+              movbyts r20,#%%0123
+              mul temp1,r20 ' temp1 is now ?:8 scaled
+              rflong r20 ' y-scale...
+              movbyts r20,#%%0123
+              mul temp2,r20 ' is now ?:8 scaled
+
+              rflong r20 ' get angle in brads
+              and r20,hi8mask
+              qrotate ##$7E00,r20
+              getqx cos
+              getqy sin
+
+              shl temp1,#8
+              shl temp2,#8
+
+              mov pa,temp1
+              callpb cos,#fmult
+              mov x1_n,pa
+              mov pa,temp1
+              callpb sin,#fmult
+              mov y1_n,pa
+              mov pa,temp2
+              callpb sin,#fmult
+              neg x2_n,pa
+              mov pa,temp2
+              callpb cos,#fmult
+              mov y2_n,pa
+
+              'mov r21,x1_n ' save for creating step
+              'mov r22,y1_n ' save for creating step
+              mov divvals+0,x1_n
+              mov divvals+1,y1_n
+              mov divvals+2,x2_n
+              mov divvals+3,y2_n
+              mov pa,d_width
+              mov pb,d_height
+              call #sdiv2x2
+              mov blit_xinc,divvals+0
+              mov blit_yinc,divvals+1
+              mov blit_xstep,divvals+2
+              sub blit_xstep,x1_n
+              mov blit_ystep,divvals+3
+              sub blit_ystep,y1_n
+
+
+              rflong blit_x ' Source X centre point in 16:16 format
+              movbyts blit_x,#%%0123
+              rflong blit_y ' Source Y centre point in 16:16 format
+              movbyts blit_y,#%%0123
+
+              sar x1_n,#1
+              sar y1_n,#1
+              sar x2_n,#1
+              sar y2_n,#1
+              sub blit_x,x1_n
+              sub blit_x,x2_n
+              sub blit_y,y1_n
+              sub blit_y,y2_n
+
+              rflong r21 ' destination x/y offset
+              movbyts r21,#%%0123
+
+              getword r0,r21,#1 ' Y offset
+              mul r0,cryline384
+              add gpu_screen,r0
+              getword r0,r21,#0 ' X offset
+              mul r0,#2
+              add gpu_screen,r0
+
+              rflong darken ' darkening flag?
+              movbyts darken,#%%0123
+              shr darken,#8
+              signx darken,#15
+              mov r15,darken ' keep this around to decide inner loop
+              abs darken wc
+              andn darken,#255
+
+              mov blit_xclip,##384<<16
+              mov blit_yclip,##240<<16
+
+              ' so this operation is special in that it's source is in hub and destination is external
+              mov blit_outercnt,d_height
+.lineloop
+              mov tmp4,exmem_buffer_ptr
+              testb blit_outercnt,#0 wc
+        if_c  add tmp4,cryline384
+
+              cmps r15,#0 wcz
+        if_b  jmp #.do_darken
+        if_a  jmp #.do_lighten
+
+              ' if zero fall through
+              wrfast #0,tmp4
+              rep @.nomod_loop,d_width
+              add blit_x,blit_xinc
+              add blit_y,blit_yinc
+              cmp blit_x,blit_xclip wc
+        if_c  cmp blit_y,blit_yclip wc
+              getword tmp2, blit_y,#1
+              mul tmp2,#384
+              getword pa,blit_x,#1
+              add tmp2,pa
+              shl tmp2,#1
+              add tmp2,srcscreen
+        if_c  rdword tmp1,tmp2 ' source CRY pixel
+        if_nc mov tmp1,#0
+              wfword tmp1
+.nomod_loop
+              jmp #.inner_done
+
+.do_lighten
+              loc pb,#\$FFFF
+              wrfast #0,tmp4
+              rep @.lighten_loop,d_width
+              add blit_x,blit_xinc
+              add blit_y,blit_yinc
+              cmp blit_x,blit_xclip wc
+        if_c  cmp blit_y,blit_yclip wc
+              getword tmp2, blit_y,#1
+              mul tmp2,#384
+              getword pa,blit_x,#1
+              add tmp2,pa
+              shl tmp2,#1
+              add tmp2,srcscreen
+        if_c  rdword tmp1,tmp2 ' source CRY pixel
+        if_nc mov tmp1,#0
+              add tmp1,darken
+              cmp tmp1,pb wc
+        if_ae setbyte tmp1,#255,#1
+              wfword tmp1
+.lighten_loop
+              jmp #.inner_done
+
+.do_darken
+              wrfast #0,tmp4
+              rep @.darken_loop,d_width
+              add blit_x,blit_xinc
+              add blit_y,blit_yinc
+              cmp blit_x,blit_xclip wc
+        if_c  cmp blit_y,blit_yclip wc
+              getword tmp2, blit_y,#1
+              mul tmp2,#384
+              getword pa,blit_x,#1
+              add tmp2,pa
+              shl tmp2,#1
+              add tmp2,srcscreen
+        if_c  rdword tmp1,tmp2 ' source CRY pixel
+        if_nc mov tmp1,#0
+              sub tmp1,darken wc
+        if_c  setbyte tmp1,#0,#1
+              wfword tmp1
+.darken_loop
+
+.inner_done
+              add blit_x,blit_xstep
+              add blit_y,blit_ystep
+
+              mov exmem_target,tmp4
+              mov exmem_len,d_width
+              shl exmem_len,#1
+              mov exmem_cmd,gpu_screen
+              setnib exmem_cmd,#$F,#7 ' write burst
+.wait         rdlong pa,exmem_mailbox wz
+        if_nz jmp #.wait
+              setq #2
+              wrlong exmem_cmd,exmem_mailbox
+              debug(uhex_long(gpu_screen))
+              add gpu_screen,cryline384
+
+              djnz blit_outercnt,#.lineloop
+
+              ' wait for trailing memory operation
+.endwait      rdlong pa,exmem_mailbox wz
+        if_nz jmp #.endwait 
+              pollatn ' without this inexplicable crashes will happen
+
+              jmp #cmd_done
+ovl_scar_end
+              fit 1024
+
+#undef d_width  
+#undef d_height 
+#undef x1_n     
+#undef y1_n     
+#undef x2_n     
+#undef y2_n     
+
+#undef lo_mask  
+#undef hi_mask  
+#undef _byte    
+#undef _sinebase
+#undef srcscreen
+
+#undef sin      
+#undef cos      
+#undef temp1    
+#undef temp2    
+#undef darken   
+
+DAT ' Screen merge (originally a mere blitter op)
+
+              orgh
+cmd_merge
+
+              ' load overlay
+              loc pa,#@@@ovl_merge
+              mov pb,#ovl_merge_end-ovl_merge-1
+              jmp #run_overlay
+
+              org 512
+ovl_merge
+              rdfast #0,##in_buf
+
+              rflong r9 ' other screen address
+              movbyts r9, #%%0123
+
+              rfword r10 ' src X
+              movbyts r10, #%%2301
+              rfword r11 ' src Y
+              movbyts r11, #%%2301
+              rfword r12 ' dst X
+              movbyts r12, #%%2301
+              rfword r13 ' dst Y
+              movbyts r13, #%%2301
+              rfword r14 ' width
+              movbyts r14, #%%2301
+              rfword r15 ' height
+              movbyts r15, #%%2301
+
+              add r9,r10
+              add r9,r10
+              mul r11,cryline384
+              add r9,r11
+
+              add gpu_screen,r12
+              add gpu_screen,r12
+              mul r13,cryline384
+              add gpu_screen,r13
+
+.lloop
+              mov exmem_len,r14
+              add exmem_len,r14
+              mov exmem_target,exmem_buffer_ptr
+              mov exmem_cmd,r9
+              call #ex_rdblock
+
+              rdfast #0,exmem_buffer_ptr
+              mov ptra,gpu_screen
+              rep @.inner,r14
+              rfword r0 wz
+        if_nz wrword r0,ptra
+              add ptra,#2
+.inner
+
+              add r9,cryline384
+              add gpu_screen,cryline384
+
+              djnz r15,#.lloop
+
+              jmp #cmd_done
+ovl_merge_end
+              fit 1024
+
+DAT ' offset line µcode (from ox.gas)
+
+#define x1_n     r15
+#define y1_n     r16
+#define z1       r17
+#define x2_n     r18
+#define y2_n     r19
+#define z2       r20
+#define col      r21
+#define segs     r22
+#define xmax     r23
+#define ymax     r24
+#define xto      r10
+#define yto      r11
+#define zto      r12
+#define rseed    r25      'SEED and MASK for shift/mask RNG
+#define x0_n     r31
+#define y0_n     r13
+#define intens_0 r14
+#define intens_1 r9
+#define zmax     r7
+#define imax     r8
+#define L_COUNT r6
+
+#define gl_ycen auxvals+30
+#define gl_xcen auxvals+31
+
+
+              orgh
+cmd_fline
+
+              setq #2-1
+              rdlong gl_ycen,##G_RAM+$EF8
+              movbyts gl_ycen,#%%0123
+              movbyts gl_xcen,#%%0123
+
+              ' load overlay
+              loc pa,#@@@ovl_fline
+              mov pb,#ovl_fline_end-ovl_fline-1
+              jmp #run_overlay
+
+              org 512
+ovl_fline
+              rdfast #0,##in_buf
+
+              rflong x1_n
+              movbyts x1_n,#%%0123
+              rflong y1_n
+              movbyts y1_n,#%%0123
+              rflong z1           ' get start X, Y and Z xform co-ordinates
+              movbyts z1,#%%0123
+
+              rflong x2_n
+              movbyts x2_n,#%%0123
+              rflong y2_n
+              movbyts y2_n,#%%0123
+              rflong z2           ' get end X, Y and Z xform co-ordinates
+              movbyts z2,#%%0123
+
+              rflong col ' get colour of line
+              movbyts col,#%%0123
+              rflong segs ' get # segments this line
+              movbyts segs,#%%0123
+              rflong rseed
+              movbyts rseed,#%%0123
+
+              sub x2_n,x1_n
+              sub y2_n,y1_n
+              sub z2,z1     ' get deltas
+              mov divvals+0,x2_n
+              mov divvals+1,y2_n
+              mov divvals+2,z2
+              callpa segs,#sdiv4
+              mov x2_n,divvals+0
+              mov y2_n,divvals+1
+              mov z2,divvals+2
+
+              mov xmax,#SCRWIDTH
+              mov ymax,#SCRHEIGHT ' PAL thing etc etc
+
+              mov auxvals+15,x1_n
+              mov auxvals+16,y1_n
+              mov auxvals+17,z1   ' save initial line point
+
+              shr z1,#14 ' calculate initial point transformed x/y and i
+              setq #2-1
+              rdlong zmax,##G_RAM+$fd8 ' z_max
+              movbyts zmax,#%%0123
+              movbyts imax,#%%0123
+
+              mov intens_0,zmax
+              sub intens_0,z1
+              fges intens_0,#0
+              mul intens_0,imax
+              qdiv intens_0,zmax
+              getqx intens_0
+              shl intens_0,#8 ' i-value (I think)
+              mov divvals+0,x1_n
+              mov divvals+1,y1_n
+              callpa z1,#sdiv2
+              mov x1_n,divvals+0
+              mov y1_n,divvals+1
+              sar x1_n,#7
+              sar y1_n,#7
+
+              add x1_n,gl_xcen
+              add y1_n,gl_ycen
+
+              mov x0_n,x1_n
+              mov y0_n,y1_n
+
+.lin3d
+              mov xto,auxvals+15
+              mov yto,auxvals+16
+              mov zto,auxvals+17 ' copy current base line point
+              add xto,x2_n
+              add yto,y2_n
+              add zto,z2  ' generate next base line point
+              mov auxvals+15,xto
+              mov auxvals+16,yto
+              mov auxvals+17,zto
+
+' now, x0_n/y0_n/intens_0 are set up already, xto-zto contain the next base line segment end
+' time to apply some function to xto-zto      
+
+'***** Randomise XYZ function
+
+              cmp segs,#1 wz ' Do not apply function to last point
+        if_z  jmp #.nofunc   ' so that it joins the endpoint
+
+              modc _clr wc
+              crcbit rseed,#$B8
+              mov r0,rseed
+              sub r0,#$80
+              shl r0,#10
+              add xto,r0
+
+              crcbit rseed,#$B8
+              mov r0,rseed
+              sub r0,#$80
+              shl r0,#10
+              add yto,r0
+
+              crcbit rseed,#$B8
+              mov r0,rseed
+              sub r0,#$80
+              shl r0,#10
+              add zto,r0
+.nofunc
+' ***** End of randomise function
+
+' now, translate the resultant XTO/YTO/ZTO to 2D co-ordinates and an i-value....
+
+              shr zto,#14
+              mov intens_1,zmax
+              sub intens_1,zto
+              fges intens_1,#0
+              mul intens_1,imax
+              qdiv intens_1,zmax
+              getqx intens_1
+              shl intens_1,#8
+              mov divvals+0,xto
+              mov divvals+1,yto
+              callpa zto,#sdiv2
+              mov xto,divvals+0
+              mov yto,divvals+1
+              sar xto,#7
+              sar yto,#7
+
+              add xto,gl_xcen
+              add yto,gl_ycen
+
+              mov auxvals+10,xto
+              mov auxvals+11,yto
+
+' Now XTO/YTO/INTENS_1 are set....
+
+              ' Rough clipping func, discards entire segment if any is off screen
+              cmp x0_n,xmax wc
+        if_c  cmp xto,xmax wc
+        if_c  cmp y0_n,ymax wc
+        if_c  cmp yto,ymax wc
+        if_nc jmp #.nxtpnt
+
+' Now do an unclipped Gouraud linedraw between (x0_n/y0_n/i0_n) and (xto/yto/i1_n)        
+
+              sub xto,x0_n
+              sub yto,y0_n ' get differences
+
+              mov line_pos,y0_n
+              mul line_pos,#SCRWIDTH
+              add line_pos,x0_n
+              shl line_pos,#1
+              add line_pos,gpu_screen
+
+              mov line_fracpos,#0
+
+              abs r0,xto
+              abs r1,yto
+              cmp r0,r1 wcz
+        if_b  jmp #.y_greater
+.x_greater
+              tjz r0,#.nxtpnt
+              abs pb,yto wc
+              shl pb,#16 ' y difference to 16:16
+              qdiv pb,r0
+              mov L_COUNT,r0
+              'add L_COUNT,#1
+
+              ' P2 linedraw uses only x inc/step
+
+              getqx line_fracstep
+              getword line_inc,line_fracstep,#1
+              shl line_fracstep,#16
+              negc line_inc
+              muls line_inc,cryline384
+              negc line_step,cryline384
+
+              cmps xto,#0 wc
+              sumc line_inc,#2 ' each pixel moves 1 left/right
+              jmp #.gline
+.y_greater
+              tjz r1,#.nxtpnt
+              abs pb,xto wc
+              shl pb,#16 ' y difference to 16:16
+              qdiv pb,r1
+              mov L_COUNT,r1
+              'add L_COUNT,#1
+
+              getqx line_fracstep
+              getword line_inc,line_fracstep,#1
+              shl line_fracstep,#16
+              negc line_inc
+              muls line_inc,#2
+              negc line_step,#2
+
+              cmps yto,#0 wc
+              sumc line_inc,cryline384 ' each pixel moves 1 up/down
+
+.gline
+              'mov intens_1,##255<<16
+              'mov intens_0,##0<<16
+              mov r0,intens_1
+              sub r0,intens_0 ' get signed intensity gradient
+              abs r0 wc
+              qdiv r0,L_COUNT
+              getqx r0
+              negc r0
+
+              rep @.thindraw,L_COUNT
+              rolbyte col,intens_0,#2
+              movbyts col,#%%0101
+              wrword col,line_pos
+              add line_pos,line_inc
+              add line_fracpos,line_fracstep wc
+        if_c  add line_pos,line_step
+              add intens_0,r0
+.thindraw
+
+
+.nxtpnt
+
+              mov x0_n,auxvals+10
+              mov y0_n,auxvals+11
+              mov intens_0,intens_1 ' copy next point to prev point
+              djnz segs,#.lin3d
+
+              jmp #cmd_done
+ovl_fline_end
+              fit 1024
+
+
+#undef x1_n    
+#undef y1_n    
+#undef z1      
+#undef x2_n    
+#undef y2_n    
+#undef z2      
+#undef col     
+#undef segs    
+#undef xmax    
+#undef ymax    
+#undef xto     
+#undef yto     
+#undef zto     
+#undef rseed   
+#undef x0_n    
+#undef y0_n    
+#undef intens_0
+#undef intens_1
+#undef zmax    
+#undef imax    
+#undef L_COUNT 
+
+#undef gl_ycen
+#undef gl_xcen
+
+DAT ' data area
+            orgh
+exmem_buffer long 0[512]
+
