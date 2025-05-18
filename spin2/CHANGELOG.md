@@ -28,6 +28,17 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.4.3] 2025-05-18
+
+Spin2 Minor Highlight repairs, fixes resulting in stronger parser
+
+- BUGFIX Flexspin inline directives as comments were interfering with PUB/PRI signature identification, FIXED
+- BUGFIX local variable identification was flawed, FIXED
+- BUGFIX double quote string identification was broken for multiple strings on the same line, FIXED
+- BUGFIX possible crash in SemanticFindings:RememberedComment() code, FIXED
+- BUGFIX found general parser control-flow issue when identifying some forms of structure access, FIXED
+- BUGFIX found highlighter problem when preprocessor statement didn't start in column 0, FIXED
+
 ## [2.4.2] 2025-05-13
 
 Spin2 Minor Highlight repairs
