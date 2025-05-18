@@ -45,6 +45,8 @@ Additional pages:
 
 ```
 Latest Updates:
+17 May 2025
+- Adjusted Tasks content
 01 May 2025
 - Adjusted PNut-TS installation section
 31 Aug 2024
@@ -356,7 +358,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
             "command": "${config:spin2.fSpecCompiler}",
             "args": [
               {
-                "value": "${command:spinExtension.getCompArguments}",
+                "value": "${command:spinExtension.getCompilerArguments}",
                 "quoting": "weak"
               },
               "${fileBasename}"
@@ -393,7 +395,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
             "command": "${config:spin2.fSpecCompiler}",
             "args": [
               {
-                "value": "${command:spinExtension.getCompArguments}",
+                "value": "${command:spinExtension.getCompilerArguments}",
                 "quoting": "weak"
               },
               "${config:spin2.fNameTopLevel}"

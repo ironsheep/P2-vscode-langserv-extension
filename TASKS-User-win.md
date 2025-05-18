@@ -46,6 +46,8 @@ Additional pages:
 
 ```text
 Latest Updates:
+17 May 2025
+- Adjusted Tasks content
 01 May 2025
 - Adjusted PNut-TS installation section
 31 Aug 2024
@@ -324,7 +326,7 @@ In between the [] you can place your new task definitions. You should end up wit
             "command": "${config:spin2.fSpecCompiler}",
             "args": [
               {
-                "value": "${command:spinExtension.getCompArguments}",
+                "value": "${command:spinExtension.getCompilerArguments}",
                 "quoting": "weak"
               },
               "${fileBasename}"
@@ -361,7 +363,7 @@ In between the [] you can place your new task definitions. You should end up wit
             "command": "${config:spin2.fSpecCompiler}",
             "args": [
               {
-                "value": "${command:spinExtension.getCompArguments}",
+                "value": "${command:spinExtension.getCompilerArguments}",
                 "quoting": "weak"
               },
               "${config:spin2.fNameTopLevel}"
