@@ -1,0 +1,16 @@
+{Spin2_v51}
+    #define testing             'compile Err: VSC.spin2:2:error:Expected "," or end of line
+
+CON struct sFG1 ( byte A, byte B[3])
+
+VAR sFG1 FG1[8]
+
+PUB start ( ) | i, adr
+    repeat 8 with i
+        XYZ(-i)             'compile Err: VSC.spin2:12:error:NumberStack: attempted pop from empty stack
+        adr :=  @FG1[i].A   'A is decl.
+#ifdef testing
+        debug(uhex(adr))
+#endif
+
+PRI XYZ (i)

@@ -481,8 +481,8 @@ export class Spin1ParseUtils {
     }
 
     //if (didRemove) {
-    //  this._logMessage("  -- RDQS line [" + line + "]");
-    //  this._logMessage("  --           [" + trimmedLine + "]");
+    // this._logMessage(`  -- RDQS line [${line}]${line.length}`);
+    // this._logMessage(`  --           [${trimmedLine}](${trimmedLine.length})`);
     //}
 
     return trimmedLine;

@@ -840,10 +840,12 @@ export class Spin2ParseUtils {
       }
     }
 
+    /*
     if (didRemove) {
       this._logMessage(`  -- RDQS line [${line}]${line.length}, preservePacked=(${preservePacked})`);
       this._logMessage(`  --           [${trimmedLine}](${trimmedLine.length})`);
-    }
+	}
+	//*/
 
     return trimmedLine;
   }
