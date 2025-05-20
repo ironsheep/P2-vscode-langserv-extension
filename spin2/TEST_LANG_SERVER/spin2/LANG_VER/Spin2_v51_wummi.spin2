@@ -8,9 +8,20 @@ VAR sFG1 FG1[8]
 PUB start ( ) | i, adr
     repeat 8 with i
         XYZ(-i)             'compile Err: VSC.spin2:12:error:NumberStack: attempted pop from empty stack
-        adr :=  @FG1[i].A   'A is decl.
+        adr :=  @FG1[i].A   'OK now
+        XYZ(@FG1[i].A)      'more hightligting Errors
+        FG1[i].A++
+        ++FG1[i].A          'pre inc works
+        FG1[i].A += 3
+        FG1[i].A -= 3
+        FG1[i].B[1]--
+        --FG1[i].B[1]       'pre dec works
+        FG1[i].B[1]~
+        FG1[i].B[1]~~
+
 #ifdef testing
         debug(uhex(adr))
 #endif
 
-PRI XYZ (i)
+PRI XYZ ( val )
+    debug(sdec(val))

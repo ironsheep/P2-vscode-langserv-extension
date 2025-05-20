@@ -28,16 +28,24 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.4.4] 2025-05-19
+
+Spin2 Minor Highlight repairs, fixes resulting in stronger parser
+
+- BUGFIX repaired flaw in recognizing spin2 built-in methods correctly (only some cases were failing)
+- BUGFIX repaired flaw in finding names when names appeared in strings and as variable on same line
+- Add more flexibility for recognition of VAR declarations
+
 ## [2.4.3] 2025-05-18
 
 Spin2 Minor Highlight repairs, fixes resulting in stronger parser
 
-- BUGFIX Flexspin inline directives as comments were interfering with PUB/PRI signature identification, FIXED
-- BUGFIX local variable identification was flawed, FIXED
-- BUGFIX double quote string identification was broken for multiple strings on the same line, FIXED
-- BUGFIX possible crash in SemanticFindings:RememberedComment() code, FIXED
-- BUGFIX found general parser control-flow issue when identifying some forms of structure access, FIXED
-- BUGFIX found highlighter problem when preprocessor statement didn't start in column 0, FIXED
+- BUGFIX Flexspin inline directives as comments were interfering with PUB/PRI signature identification
+- BUGFIX local variable identification was flawed
+- BUGFIX double quote string identification was broken for multiple strings on the same line
+- BUGFIX eliminated crash in SemanticFindings:RememberedComment() code
+- BUGFIX found general parser control-flow issue when identifying some forms of structure access
+- BUGFIX found highlighter problem when preprocessor statement didn't start in column 0
 
 ## [2.4.2] 2025-05-13
 
