@@ -34,6 +34,7 @@ Spin2 Minor Highlight repairs, fixes resulting in stronger parser
 
 - BUGFIX repaired flaw in recognizing spin2 built-in methods correctly (only some cases were failing)
 - BUGFIX repaired flaw in finding names when names appeared in strings and as variable on same line
+- BUGFIX repaired flaw in logic recognizing object references or structure references in SPIN PUB or PRI (thank you @wummi)
 - Add more flexibility for recognition of VAR declarations
 
 ## [2.4.3] 2025-05-18

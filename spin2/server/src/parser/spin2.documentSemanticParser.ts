@@ -5519,7 +5519,7 @@ export class Spin2DocumentSemanticParser {
       if (possNames.length == 0) {
         this._logSPIN(`  -- rptSPIN() ERROR! =[${possNames}](${possNames.length})`);
       } else {
-        this._logSPIN(`  -- rptSPIN() possNames=[${possNames}](${possNames.length})`);
+        this._logSPIN(`  -- rptSPIN() a possNames=[${possNames}](${possNames.length})`);
         symbolName = possNames[0];
       }
       // SPECIAL case: handle case statements of value:instruction
@@ -5573,7 +5573,7 @@ export class Spin2DocumentSemanticParser {
         //    possNames = possNames[0].split("..");
         //}
 
-        this._logSPIN(`  -- rptSPIN() possNames=[${possNames}](${possNames.length})`);
+        this._logSPIN(`  -- rptSPIN() b possNames=[${possNames}](${possNames.length})`);
         const bIsDebugLine: boolean = haveDebugLine(nonStringAssignmentRHSStr);
         const assignmentStringOffset = currSingleLineOffset;
         this._logSPIN(`  -- rptSPIN() assignmentStringOffset=[${assignmentStringOffset}], bIsDebugLine=(${bIsDebugLine})`);
@@ -5624,7 +5624,8 @@ export class Spin2DocumentSemanticParser {
                   currSingleLineOffset = nameOffset + namePart.length;
                   continue;
                 }
-              } else if (this._isPossibleStructureReference(namePart)) {
+              }
+              if (this._isPossibleStructureReference(namePart)) {
                 // might have STRUCT reference
                 const [bIsStructReference, refString] = this._reportStructureReference(
                   namePart,
