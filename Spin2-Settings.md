@@ -7,7 +7,9 @@
 
 In general To open the Settings editor, navigate to **[Code]** > **Settings** > **Settings**.
 
-The Spin2 extension settings are in 3 sections.  If when you get to settings and type in "**SpinExt**" as a filter and you'll see the 3 sections of our new Spin2 Extension settings:
+The Spin2 extension settings are in 5 sections.  If when you get to settings and type in "**SpinExt**" as a filter and you'll see the 5 sections of our new Spin2 Extension settings:
+
+## Spin2 Settings - Section 1
 
 ![Settings 1 of 5](./DOCs/stgs-extn.png)
 **FIGURE 1**: Our three sections, with the first section selected
@@ -17,6 +19,9 @@ The Spin2 extension settings are in 3 sections.  If when you get to settings and
 - **Trace Server**- boared? want to see how the client interacts with the server then select a value here other then off. (this can slow things down)
 - **Color Editor Background** - check this to turn on Propeller Tool coloring (you'll also need to adjust the color theme to make this readable!)
 - **Editor Background Alpha** - if you wnat to something a bit darker then you can adjust this.
+
+
+## Spin2 Settings - Section 2
 
 Click on the 2nd section to see:
 
@@ -28,6 +33,9 @@ Click on the 2nd section to see:
 - **Propeller Tool**- click on link to adjust the tab columns (default is Propeller Tool defaults)
 - **User1** - click on link to adjust the tab columns (this one is meant for you to customize if you wnat your own settings)
 - Elastic Tabstops **Choice** - select the set of tabstops you wish to use
+
+
+## Spin2 Settings - Section 3
 
 Click on the 3rd section to see:
 
@@ -44,6 +52,9 @@ Insert Mode Adjustments:
 - **Per Editor** - Let's each editor have it's own current mode setting (Default off)
 - **Secondary Cursor Style** - Adjusts the Overtype cursor
 - **Ternary Cursor Style** - Adjusts the Align cursor
+
+
+## Spin2 Settings - Section 4
 
 Click on the 4th section to see:
 
@@ -68,7 +79,16 @@ The following are adjusted by clicking on status bar controls:
 - **Enable Debug()** - Click on "debug:[ON/off]" StatusBar control
 - **Enable Flash**- Click on "Dnld:[RAM/FLASH]" StatusBar control
 
-![Settings 4 of 5](./DOCs/stgs-toolchain2.png)
+
+## Spin2 Settings - Section 5
+
+Section 5 is a bit different. Only the very first item **Flexspin loadp2 command-line option: USer Baudrate (Default: 115200)** item is meant to be adjusted by you.  The remaining items in this section are visual feedback to you to see what the **toolchain discovery mechanism** has found with respect to the tools you have instlled.
+
+In general, you want to look here after installing any compilers to see if they were discovered correctly.
+
+Click on the 5th section to see:
+
+![Settings 5 of 5](./DOCs/stgs-toolchain2.png)
 **FIGURE 5**: with the 4th section selected (showing second group of entries)
 
 The 'paths' entries are all runtime configured. **Please do not adjust any of these paths.**
