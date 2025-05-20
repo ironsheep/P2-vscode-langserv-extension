@@ -66,7 +66,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -2520,8 +2520,8 @@ export class Spin2DocumentSemanticParser {
         let varName: string = varDeclStatement;
         let indexExpression: string = '';
         let isPtr: boolean = false;
+        // remove all whitespace before left bracket, if any
         if (/\s+\[/.test(varName)) {
-          // remove all whitespace before left bracket
           const openBracketPosn: number = varName.search(/[ \t]\[/);
           const namePart: string = varName.substring(0, openBracketPosn + 1).trimEnd();
           const indexPart: string = varName.substring(openBracketPosn + 1);
@@ -2537,18 +2537,18 @@ export class Spin2DocumentSemanticParser {
             const typePart: string = varName.substring(0, whitePosn);
             const namePart: string = varName.substring(whitePosn + 1);
             typeName = typePart;
-            varName = namePart;
+            varName = namePart.trim();
             isPtr = typeName.charAt(0) === '^'; // remember we have pointer
             typeName = isPtr ? typeName.substring(1) : typeName; // remove ptr indicator
           }
-          if (varName.includes('[') && varName.includes(']')) {
-            const openBracketPosn: number = varName.indexOf('[');
-            const closeBracketPosn: number = varName.includes(']') ? varName.lastIndexOf(']') : varName.length;
-            const indexedName: string = varName;
-            varName = indexedName.substring(0, openBracketPosn);
-            indexExpression = indexedName.substring(openBracketPosn + 1, closeBracketPosn);
-            this._logVAR(`  -- getVarDecl idx varName=[${varName}](${varName.length}), indexExpr=[${indexExpression}](${indexExpression.length})`);
-          }
+        }
+        if (varName.includes('[') && varName.includes(']')) {
+          const openBracketPosn: number = varName.indexOf('[');
+          const closeBracketPosn: number = varName.includes(']') ? varName.lastIndexOf(']') : varName.length;
+          const indexedName: string = varName;
+          varName = indexedName.substring(0, openBracketPosn);
+          indexExpression = indexedName.substring(openBracketPosn + 1, closeBracketPosn);
+          this._logVAR(`  -- getVarDecl idx varName=[${varName}](${varName.length}), indexExpr=[${indexExpression}](${indexExpression.length})`);
         }
         if ((typeName.length == 0 && varName.toLowerCase() == 'alignl') || varName.toLowerCase() == 'alignw') {
           typeName = varName;
@@ -6514,18 +6514,18 @@ export class Spin2DocumentSemanticParser {
               const typePart: string = newName.substring(0, whitePosn);
               const namePart: string = newName.substring(whitePosn + 1);
               newType = typePart;
-              newName = namePart;
+              newName = namePart.trim();
               isPtr = newType.charAt(0) === '^'; // remember we have pointer
               newType = isPtr ? newType.substring(1) : newType; // remove ptr indicator
             }
-            if (newName.includes('[') && newName.includes(']')) {
-              const openBracketPosn: number = newName.indexOf('[');
-              const closeBracketPosn: number = newName.includes(']') ? newName.lastIndexOf(']') : newName.length;
-              const indexedName: string = newName;
-              newName = indexedName.substring(0, openBracketPosn);
-              indexExpression = indexedName.substring(openBracketPosn + 1, closeBracketPosn);
-              this._logVAR(`  -- rptVarDecl idx newName=[${newName}](${newName.length}), indexExpr=[${indexExpression}](${indexExpression.length})`);
-            }
+          }
+          if (newName.includes('[') && newName.includes(']')) {
+            const openBracketPosn: number = newName.indexOf('[');
+            const closeBracketPosn: number = newName.includes(']') ? newName.lastIndexOf(']') : newName.length;
+            const indexedName: string = newName;
+            newName = indexedName.substring(0, openBracketPosn);
+            indexExpression = indexedName.substring(openBracketPosn + 1, closeBracketPosn);
+            this._logVAR(`  -- rptVarDecl idx newName=[${newName}](${newName.length}), indexExpr=[${indexExpression}](${indexExpression.length})`);
           }
           if ((newType.length == 0 && newName.toLowerCase() == 'alignl') || newName.toLowerCase() == 'alignw') {
             newType = newName;

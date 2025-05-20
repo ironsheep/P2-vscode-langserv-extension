@@ -30,7 +30,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 ## [2.4.4] 2025-05-19
 
-Spin2 Minor Highlight repairs, fixes resulting in stronger parser
+Spin2 Highlight repairs resulting in stronger parser
 
 - BUGFIX repaired flaw in recognizing spin2 built-in methods correctly (only some cases were failing)
 - BUGFIX repaired flaw in finding names when names appeared in strings and as variable on same line

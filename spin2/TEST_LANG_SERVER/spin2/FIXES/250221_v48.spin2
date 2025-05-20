@@ -22,5 +22,5 @@ PUB main()
 
 #endif
 
-ifdef __DEBUG__
+ifdef __DEBUG__  ' FIXME: this should be HIGHLIGHTED correctly
     debug("we are cpmpiling with debug enabled")

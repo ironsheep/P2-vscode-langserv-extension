@@ -1,0 +1,5 @@
+
+    MULTIPLIER = 3
+    COUNT = 5
+
+PUB start(pin)
