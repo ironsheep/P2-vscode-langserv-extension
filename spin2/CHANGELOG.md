@@ -28,6 +28,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.4.5] 2025-05-21
+
+Extension USB support update
+
+- Underlying support package 'serialport' updated from v12.0.0 to v13.0.0
+- Added indication of (is PropPlug) in USB Devices found report
+- Updated supported VSCode version to v1.96.0 (Dec. 2024 and later)
+
 ## [2.4.4] 2025-05-19
 
 Spin2 Highlight repairs resulting in stronger parser

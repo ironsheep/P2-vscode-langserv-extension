@@ -3,14 +3,14 @@
   "description": "VSCode part of a language server",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.0.0",
+  "version": "2.4.5",
   "publisher": "IronSheepProductionsLLC",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-extensions"
   },
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.96.0"
   },
   "os": [
     "win32",
@@ -23,15 +23,15 @@
     "ia32"
   ],
   "dependencies": {
-    "serialport": "^12.0.0",
-    "@serialport/bindings-cpp": "^12.0.1",
-    "@serialport/stream": "12.0.0",
-    "@serialport/parser-readline": "11.0.0",
-    "vscode-languageclient": "^8.1.0"
+    "serialport": "^13.0.0",
+    "@serialport/bindings-cpp": "^13.0.1",
+    "@serialport/stream": "13.0.0",
+    "@serialport/parser-readline": "13.0.0",
+    "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
-    "@types/vscode": "^1.75.1",
-    "@vscode/test-electron": "^2.2.3"
+    "@types/vscode": "^1.96.0",
+    "@vscode/test-electron": "^2.5.2"
   },
   "scripts": {
     "postinstall": "#prebuildify --install && electron-rebuild"

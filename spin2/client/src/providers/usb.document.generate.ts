@@ -59,7 +59,7 @@ export class USBDocGenerator {
 
         const rptFileID: number = fs.openSync(outFSpec, 'w');
 
-        const rptHoriz: string = '─';
+        const rptHoriz: string = '-';
 
         // write report title
         const platformString: string = this.platformString();
@@ -78,8 +78,8 @@ export class USBDocGenerator {
         // -------------------------------------------------------------------
         // LIBRARY: serialPort
         fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
-        const lib1Title: string = 'Using library [serialPort]:';
-        fs.appendFileSync(rptFileID, `${lib1Title}${this.endOfLineStr}`); // blank line
+        const lib1Title: string = 'Using library [serialport v13.0.0]:';
+        fs.appendFileSync(rptFileID, `${lib1Title}${this.endOfLineStr}${this.endOfLineStr}`); // blank line
         let deviceCount: number = 0;
         // on macOS, the serialPort library uses /dev/cu.usbserial-xxxxxx
         // Serial Devices:
@@ -100,6 +100,9 @@ export class USBDocGenerator {
               fs.appendFileSync(rptFileID, ` Location ID: ${port.locationId}${this.endOfLineStr}`);
               fs.appendFileSync(rptFileID, ` Vendor ID: ${port.vendorId}${this.endOfLineStr}`);
               fs.appendFileSync(rptFileID, ` Product ID: ${port.productId}${this.endOfLineStr}`);
+              const bIsPropPlug: boolean = port.vendorId == '0403' && port.productId == '6015';
+              const foundStr: string = bIsPropPlug ? `  - (is PropPlug)${this.endOfLineStr}` : '';
+              fs.appendFileSync(rptFileID, `${foundStr}${this.endOfLineStr}`);
             });
           })
           .catch((err) => {

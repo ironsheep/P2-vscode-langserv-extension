@@ -1,22 +1,26 @@
 {
   "name": "spin2-server",
   "description": "Spin2 implementation of our language server in node.",
-  "version": "2.0.0",
+  "version": "2.4.5",
   "author": "IronSheep",
   "license": "MIT",
   "publisher": "IronSheepProductionsLLC",
   "engines": {
-    "node": "*"
+    "node": "*",
+    "vscode": "^1.96.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-extensions"
   },
   "dependencies": {
-    "vscode-languageserver": "^8.1.0",
+    "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.8",
     "vscode-uri": "^3.0.3"
   },
   "scripts": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/vscode": "^1.96.0",
+    "@vscode/test-electron": "^2.5.2"
+  }
 }
