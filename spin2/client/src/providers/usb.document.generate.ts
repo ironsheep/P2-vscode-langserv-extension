@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { EndOfLine } from 'vscode';
 import { SerialPort } from 'serialport';
 import { UsbSerial } from '../usb.serial';
+import { toolchainConfiguration } from './spin.toolChain.configuration';
 
 import * as os from 'os';
 import * as fs from 'fs';
@@ -79,7 +80,12 @@ export class USBDocGenerator {
         // LIBRARY: serialPort
         fs.appendFileSync(rptFileID, `${rptHoriz.repeat(rptTitle.length)}${this.endOfLineStr}`); // horizontal line
         const lib1Title: string = 'Using library [serialport v13.0.0]:';
-        fs.appendFileSync(rptFileID, `${lib1Title}${this.endOfLineStr}${this.endOfLineStr}`); // blank line
+        fs.appendFileSync(rptFileID, `${lib1Title}${this.endOfLineStr}`); // blank line
+        let matchMode: string = 'Matching Parallax PropPlugs Only';
+        if (toolchainConfiguration.serialMatchVendorOnly == true) {
+          matchMode = 'Matching All FTDI serial devices (not just Parallax PropPlugs)';
+        }
+        fs.appendFileSync(rptFileID, `${matchMode}${this.endOfLineStr}${this.endOfLineStr}`); // 2 blank lines
         let deviceCount: number = 0;
         // on macOS, the serialPort library uses /dev/cu.usbserial-xxxxxx
         // Serial Devices:

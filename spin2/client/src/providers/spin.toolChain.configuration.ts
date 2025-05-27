@@ -10,6 +10,11 @@ export const PATH_LOADER_BIN: string = 'flashloader';
 
 export const validCompilerIDs: string[] = [PATH_PNUT_TS, PATH_PNUT, PATH_FLEXSPIN];
 
+export enum eResetType {
+  RT_DTR,
+  RT_RTS,
+  RT_DTR_N_RTS
+}
 const loadToolchainConfiguration = () => {
   // load the configuration settings making them easy to use
   const toolchainConfig = vscode.workspace.getConfiguration(`spinExtension.toolchain`);
@@ -45,6 +50,18 @@ const loadToolchainConfiguration = () => {
   const writeFlashEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableFlash');
   const termIsPstCompatible: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableCompatibilityPST');
 
+  const serialMatchVendorOnly: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsSerial.matchVendorOnly');
+  const serialResetControl: string = normalizeStringConfigValue(toolchainConfig, 'optionsSerial.resetControl');
+  let serialResetType: eResetType = eResetType.RT_DTR; // default value
+  if (serialResetControl !== undefined) {
+    if (serialResetControl.toLowerCase() === 'dtr') {
+      serialResetType = eResetType.RT_DTR;
+    } else if (serialResetControl.toLowerCase() === 'rts') {
+      serialResetType = eResetType.RT_RTS;
+    } else if (serialResetControl.toLowerCase() === 'dtr+rts') {
+      serialResetType = eResetType.RT_DTR_N_RTS;
+    }
+  }
   const downloadTerminalMode: string = normalizeStringConfigValue(toolchainConfig, 'optionsDownload.enterTerminalAfter');
   let enterTerminalAfterDownload: boolean = false;
   if (downloadTerminalMode !== undefined) {
@@ -114,7 +131,9 @@ const loadToolchainConfiguration = () => {
     downloadTerminalMode,
     enterTerminalAfterDownload,
     userBaudrate,
-    flexspinInstalled
+    flexspinInstalled,
+    serialMatchVendorOnly,
+    serialResetType
   };
 };
 
@@ -162,7 +181,9 @@ export const reloadToolchainConfiguration = () => {
     toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode &&
     toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload &&
     toolchainConfiguration.userBaudrate === newToolchainConfig.userBaudrate &&
-    toolchainConfiguration.flexspinInstalled === newToolchainConfig.flexspinInstalled
+    toolchainConfiguration.flexspinInstalled === newToolchainConfig.flexspinInstalled &&
+    toolchainConfiguration.serialMatchVendorOnly === newToolchainConfig.serialMatchVendorOnly &&
+    toolchainConfiguration.serialResetType === newToolchainConfig.serialResetType
   ) {
     return false;
   }
@@ -184,6 +205,8 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.enterTerminalAfterDownload = newToolchainConfig.enterTerminalAfterDownload;
   toolchainConfiguration.userBaudrate = newToolchainConfig.userBaudrate;
   toolchainConfiguration.flexspinInstalled = newToolchainConfig.flexspinInstalled;
+  toolchainConfiguration.serialMatchVendorOnly = newToolchainConfig.serialMatchVendorOnly;
+  toolchainConfiguration.serialResetType = newToolchainConfig.serialResetType;
 
   // post information to out-side world via our CONTEXT at config change
   vscode.commands.executeCommand('setContext', 'runtime.spin2.toolchain.enabled', toolchainConfiguration.advancedToolChainEnabled);

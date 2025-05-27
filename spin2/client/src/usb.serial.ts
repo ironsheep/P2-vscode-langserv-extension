@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { SerialPort } from 'serialport';
 import { ReadlineParser } from '@serialport/parser-readline';
 import { waitMSec } from './timerUtils';
+import { eResetType, toolchainConfiguration } from './providers/spin.toolChain.configuration';
 
 const DEFAULT_DOWNLOAD_BAUD = 2000000;
 
@@ -349,6 +350,11 @@ export class UsbSerial {
   private async requestPropellerVersion(): Promise<boolean> {
     const requestPropType: string = '> Prop_Chk 0 0 0 0';
     const didCheck = this.checkedForP2 == false;
+    let resetMode: eResetType = toolchainConfiguration.serialResetType; // get latest reset type
+    const bParallaxOnly: boolean = toolchainConfiguration.serialMatchVendorOnly ? false : true; // if matching VID, not PID then is NOT Parallax only
+    if (bParallaxOnly) {
+      resetMode = eResetType.RT_DTR; // Parallax only, use DTR
+    }
     if (this.checkedForP2 == false) {
       this.logMessage(`* requestPropellerVersion() - port open (${this._serialPort.isOpen})`);
       this.checkedForP2 = true;
@@ -356,9 +362,16 @@ export class UsbSerial {
         await this.waitForPortOpen();
         // continue with ID effort...
         await waitMSec(250);
-        await this.setDtr(true);
-        await waitMSec(10);
-        await this.setDtr(false);
+        if (resetMode === eResetType.RT_DTR || resetMode === eResetType.RT_DTR_N_RTS) {
+          await this.setDtr(true);
+          await waitMSec(2);
+          await this.setDtr(false);
+        }
+        if (resetMode === eResetType.RT_RTS || resetMode === eResetType.RT_DTR_N_RTS) {
+          await this.setRts(true);
+          await waitMSec(2);
+          await this.setRts(false);
+        }
         // Fm Silicon Doc:
         //   Unless preempted by a program in a SPI memory chip with a pull-up resistor on P60 (SPI_CK), the
         //     serial loader becomes active within 15ms of reset being released.
@@ -497,6 +510,20 @@ export class UsbSerial {
           reject(err);
         } else {
           this.logMessage(`DTR: ${value}`);
+          resolve();
+        }
+      });
+    });
+  }
+
+  private async setRts(value: boolean): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this._serialPort.set({ rts: value }, (err) => {
+        if (err) {
+          this.logMessage(`RTS: ERROR:${err.name} - ${err.message}`);
+          reject(err);
+        } else {
+          this.logMessage(`RTS: ${value}`);
           resolve();
         }
       });
