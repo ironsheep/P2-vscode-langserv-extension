@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.4.5",
+  "version": "2.4.6",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -604,6 +604,21 @@
             "minimum": 9600,
             "maximum": 2073600,
             "description": "Flexspin loadP2 command-line option: User Baudrate (default: 115,200 baud)"
+          },
+          "spinExtension.toolchain.optionsSerial.matchVendorOnly": {
+            "type": "boolean",
+            "default": false,
+            "description": "Allow use of non-Parallax serial devices (but FTDI) as PropPlug."
+          },
+          "spinExtension.toolchain.optionsSerial.resetControl": {
+            "type": "string",
+            "default": "DTR",
+            "enum": [
+              "DTR",
+              "RTS",
+              "DTR+RTS"
+            ],
+            "description": "For non-Parallax PropPlug devices, select the reset control to use."
           },
           "spinExtension.toolchain.paths.PNutTs": {
             "type": "string",
