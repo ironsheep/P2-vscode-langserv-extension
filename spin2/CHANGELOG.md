@@ -28,6 +28,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.4.7] 2025-05-27
+
+Spin2 Highlighting Update
+
+- BUGFIX: server crashed on byte/word/long[expression] within debug() statements
+
 ## [2.4.6] 2025-05-27
 
 Extension USB support update

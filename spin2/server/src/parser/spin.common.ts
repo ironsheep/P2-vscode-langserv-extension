@@ -546,21 +546,21 @@ export class ContinuedLines {
       const continuedLine: string = this.rawLines[index];
       if (continuedLine.endsWith('...')) {
         if (index == 0) {
-          // first line we don't left-trim
+          // first line, we don't left-trim
           nonContinusedStrings.push(continuedLine.slice(0, -3).trimEnd()); // removing "..." as we go
         } else {
-          // remaining lines we left and right trim
+          // remaining lines, we left and right trim
           nonContinusedStrings.push(continuedLine.slice(0, -3).trim()); // removing "..." as we go
         }
       } else {
         // this is last or only line
-        //if (index == 0) {
-        // only line we don't left-trim
-        //  nonContinusedStrings.push(continuedLine.trim()); // BUG should be trimEnd() not trim()
-        //} else {
-        // last-line we left and right trim
-        nonContinusedStrings.push(continuedLine.trim());
-        //}
+        if (index == 0) {
+          // only line we don't left-trim
+          nonContinusedStrings.push(continuedLine.trimEnd());
+        } else {
+          // last-line, we left and right trim
+          nonContinusedStrings.push(continuedLine.trim());
+        }
       }
     }
     this.singleLine = nonContinusedStrings.join(' ');

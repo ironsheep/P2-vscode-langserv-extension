@@ -1,0 +1,37 @@
+{Spin2_v51}
+CON
+    struct sPART (long adr, byte len)
+    struct sFG6 (byte DE, byte IV)
+
+OBJ
+    o:          "TestObj"
+DAT
+  Debug_Mode    byte 0
+  bitnot taskhlt, #1
+
+PUB start ( ) | x, ^sPART p, ^o.sLIST y
+    ABC( x := 1 )
+    ABC(x:=1)
+    ABC(x)
+
+    x := long[o.TLG_LEN]
+
+    word[at( 16 )] := 5
+    word[at(16)] := o.PAR
+
+    Debug_Mode := true
+
+    x := byte[p.adr][p.len]
+    x := byte [p.adr] [p.len]
+
+    [y] := 5
+    send(o.inc(5))
+PRI ABC ( val )
+    debug(sdec(val))
+
+PRI at ( offset ): hubAdr
+    return $1000 + offset
+
+PRI FXYZ ( ^o.sLIST Parts ) | ^sFG6 p
+    if Parts.Part[0].len
+        p.IV := 2

@@ -1,0 +1,9 @@
+{Spin2_v51}
+CON
+    TLG_LEN = 1
+    struct sPART(long adr, byte len)
+    struct sLIST(byte len, sPART Part[TLG_LEN])
+    PAR = 5
+
+PUB inc ( val ): Result
+    return val += 1
