@@ -23,7 +23,7 @@ import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './
 import { activeSpin1or2Filespec, findDebugPinTx, isSpin2Document, isSpin2File, isSpin1or2File, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
 import { isMac, isWindows, loadFileAsUint8Array, loadUint8ArrayFailed, locateExe, locateNonExe, platform, writeBinaryFile } from './fileUtils';
-import { UsbSerial } from './usb.serial';
+import { IUsbSerialDevice, UsbSerial } from './usb.serial';
 import { createStatusBarFlashDownloadItem, updateStatusBarFlashDownloadItem } from './providers/spin.downloadFlashMode.statusBarItem';
 import { createStatusBarCompileDebugItem, updateStatusBarCompileDebugItem } from './providers/spin.compileDebugMode.statusBarItem';
 import { createStatusBarPropPlugItem, updateStatusBarPropPlugItem } from './providers/spin.propPlug.statusBarItem';
@@ -40,7 +40,6 @@ import {
 } from './providers/spin.toolChain.configuration';
 import { ObjectImage } from './imageUtils';
 import { getFlashLoaderBin } from './spin.vscode.fileUtils';
-import { waitMSec } from './timerUtils';
 import { UsbSerialTerminal } from './usb.serial.terminal';
 import { LoaderPseudoterminal } from './pseudo.terminal';
 
@@ -274,12 +273,15 @@ function registerCommands(context: vscode.ExtensionContext): void {
       const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
       const devicesFound: string[] = [];
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      for (const [deviceNode, deviceSerial] of Object.entries(deviceNodesFound)) {
+      for (const deviceNode of Object.keys(deviceNodesFound)) {
+        const deviceSerialStr: string = deviceNodesFound[deviceNode];
+        const plugValueParts: string[] = deviceSerialStr.split(',');
+        const deviceSerial: string = plugValueParts.length > 0 ? plugValueParts[0] : '';
         if (isWindows()) {
           // On windows show COMn:SerialNumber
           devicesFound.push(`${deviceNode}:${deviceSerial}`);
         } else {
-          // On non-windows show DeviceNode name (in select list)
+          // On non-windows show Device Node name (in select list)
           devicesFound.push(deviceNode);
         }
       }
@@ -302,8 +304,12 @@ function registerCommands(context: vscode.ExtensionContext): void {
           // Show the list of choices to the user.
           vscode.window.showInformationMessage('Select the PropPlug connecting to your P2', ...devicesFound).then(async (userSelectedDevice) => {
             // Save the user's choice in the workspace configuration.
-            const selectedPort = comPortFromDevice(userSelectedDevice);
-            await updateConfig('toolchain.propPlug.selected', selectedPort, eConfigSection.CS_USER);
+            //logExtensionMessage(`USER: userSelectedDevice=[${userSelectedDevice}]`);
+            // NOTE: if dialog is cancelled then userSelectedDevice is undefined!
+            if (userSelectedDevice !== undefined) {
+              const selectedPort = comPortFromDevice(userSelectedDevice);
+              await updateConfig('toolchain.propPlug.selected', selectedPort, eConfigSection.CS_USER);
+            }
           });
           break;
       }
@@ -531,7 +537,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
                   let errMsg: string = '';
                   let noDownloadError: boolean = true;
                   try {
-                    usbPort = new UsbSerial(deviceNode);
+                    const [vendorID, productId] = getVidPidForDevice(deviceNode);
+                    usbPort = new UsbSerial(deviceNode, vendorID, productId);
                     if (await usbPort.deviceIsPropellerV2()) {
                       await usbPort.download(binaryImage, needsP2ChecksumVerify);
                       downloaderTerminal.sendText(`# DONE`);
@@ -636,6 +643,22 @@ function registerCommands(context: vscode.ExtensionContext): void {
       }
     })
   );
+
+  function getVidPidForDevice(deviceNode: string): [string, string] {
+    let desiredVid: string = '';
+    let desiredPid: string = '';
+    if (deviceNode !== undefined && deviceNode !== '') {
+      const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
+      if (deviceNodesFound[deviceNode] !== undefined) {
+        const plugValueParts: string[] = deviceNodesFound[deviceNode].split(',');
+        if (plugValueParts.length > 1) {
+          desiredVid = plugValueParts[1];
+          desiredPid = plugValueParts[2];
+        }
+      }
+    }
+    return [desiredVid, desiredPid];
+  }
 
   // try #1
   /*
@@ -981,17 +1004,26 @@ function initializeProviders(): void {
 //   Hook Startup scan for PropPlugs
 //
 async function locatePropPlugs(): Promise<void> {
+  logExtensionMessage(`* locatePropPlugs() ENTRY`);
   await scanForAndRecordPropPlugs(); // load current list into settings
   // get settings list
   const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
+  const numKeys = Object.keys(deviceNodesFound).length;
+  logExtensionMessage(`* PLUGs deviceNodesFound=[${JSON.stringify(deviceNodesFound, null, 2)}](${numKeys})`);
   const currDeviceNode = toolchainConfiguration.selectedPropPlug;
+  logExtensionMessage(`* PLUGs currDeviceNode=[${currDeviceNode}](${currDeviceNode.length})`);
   let selectionStillExists: boolean = false;
   const devicesNodes: string[] = [];
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  for (const [deviceNode, deviceSerial] of Object.entries(deviceNodesFound)) {
-    devicesNodes.push(deviceNode);
-    if (currDeviceNode && currDeviceNode === deviceNode) {
-      selectionStillExists = true;
+  for (const deviceNode of Object.keys(deviceNodesFound)) {
+    const deviceSerialStr = deviceNodesFound[deviceNode];
+    const plugValueParts: string[] = deviceSerialStr.split(',');
+    if (plugValueParts.length > 0) {
+      const deviceSerial: string = plugValueParts[0];
+      devicesNodes.push(deviceSerial);
+      if (currDeviceNode && currDeviceNode === deviceNode) {
+        selectionStillExists = true;
+      }
     }
   }
   logExtensionMessage(`* PLUGs [${devicesNodes}](${devicesNodes.length})`);
@@ -1032,52 +1064,28 @@ async function locatePropPlugs(): Promise<void> {
 }
 
 async function scanForAndRecordPropPlugs(): Promise<void> {
-  const deviceNodesDetail: string[] = await UsbSerial.serialDeviceList();
+  const deviceNodesDetail: IUsbSerialDevice[] = await UsbSerial.serialDeviceList();
+  logExtensionMessage(`* PLUGs deviceNodesDetail=[${JSON.stringify(deviceNodesDetail, null, 2)}](${deviceNodesDetail.length})`);
   const devicesFound: string[] = [];
   const plugsFoundSetting = {};
-  const RETRY_COUNT: number = 4;
   for (let index = 0; index < deviceNodesDetail.length; index++) {
     const deviceNodeInfo = deviceNodesDetail[index];
-    const portParts = deviceNodeInfo.split(',');
-    const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
-    const deviceNode: string = portParts[0];
+    const numKeys = Object.keys(deviceNodeInfo).length;
+    logExtensionMessage(`* PLUGs deviceNodesDetail[${index}]=[${JSON.stringify(deviceNodeInfo, null, 2)}](${numKeys})`);
+    const deviceSerial: string = deviceNodeInfo['serialNumber'];
+    const deviceNode: string = deviceNodeInfo['deviceNode'];
+    const vendorID: string = deviceNodeInfo['vendorId'];
+    const productId: string = deviceNodeInfo['productId'];
+    logExtensionMessage(`* PLUGs devicesFound[${index}] = [${deviceNode}](${deviceNode.length})`);
     devicesFound.push(deviceNode);
-    let usbPort: UsbSerial;
-    try {
-      usbPort = new UsbSerial(deviceNode);
-      // during VSCode startup other extensions can affect our timing... so,
-      //  we may miss getting to the P2 in time after reset.
-      //  so, let's try 4 times over 300 mSec to get the P2 response
-      for (let index = 0; index < RETRY_COUNT; index++) {
-        if (await usbPort.deviceIsPropellerV2()) {
-          plugsFoundSetting[deviceNode] = deviceSerial;
-        }
-        await waitMSec(100); // if not P2 found try again in 100msec
-      }
-      //this.testDownloadFile(usbPort);
-    } catch (error) {
-      if (error instanceof Error) {
-        logExtensionMessage(`Scan4Plug: Connect Error thrown: ${error.toString()}`);
-      } else {
-        // Handle the case where error is not an Error object
-        logExtensionMessage(`Scan4Plug: Connect Non-error thrown: ${JSON.stringify(error)}`);
-      } // Re-throw the error if you want to fail
-    } finally {
-      if (usbPort !== undefined) {
-        try {
-          await usbPort.close(); // we're done with this port
-        } catch (error) {
-          if (error instanceof Error) {
-            logExtensionMessage(`Scan4Plug: Close Error thrown: ${error.toString()}`);
-          } else {
-            // Handle the case where error is not an Error object
-            logExtensionMessage(`Scan4Plug: Close Non-error thrown: ${JSON.stringify(error)}`);
-          } // Re-throw the error if you want to fail
-        }
-      }
-    }
+    const deviceIDStr: string = `${deviceSerial},${vendorID},${productId}`;
+    logExtensionMessage(`* PLUGs plugsFoundSetting[${deviceNode}] = [${deviceIDStr}]`);
+    plugsFoundSetting[deviceNode] = deviceIDStr;
   }
-  logExtensionMessage(`* PLUGs [${devicesFound}](${devicesFound.length})`);
+
+  logExtensionMessage(`* PLUGs deviceNodesDetail=[${devicesFound}](${devicesFound.length})`);
+  const numKeys = Object.keys(plugsFoundSetting).length;
+  logExtensionMessage(`* PLUGs plugsFoundSetting=[${JSON.stringify(plugsFoundSetting, null, 2)}](${numKeys})`);
   // record all plug values found
   await updateConfig('toolchain.propPlug.devicesFound', plugsFoundSetting, eConfigSection.CS_USER);
 }

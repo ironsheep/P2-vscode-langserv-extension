@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { EndOfLine } from 'vscode';
 import { SerialPort } from 'serialport';
-import { UsbSerial } from '../usb.serial';
+import { IUsbSerialDevice, UsbSerial } from '../usb.serial';
 import { toolchainConfiguration } from './spin.toolChain.configuration';
 
 import * as os from 'os';
@@ -126,7 +126,7 @@ export class USBDocGenerator {
         const idDvcTitle: string = 'Open device and get P2 Info:';
         fs.appendFileSync(rptFileID, `${idDvcTitle}${this.endOfLineStr}`); // blank line
 
-        const deviceNodes: string[] = await UsbSerial.serialDeviceList();
+        const deviceNodes: IUsbSerialDevice[] = await UsbSerial.serialDeviceList();
         this.logMessage(`dvcNodes=[${deviceNodes}]`);
         this.logMessage(`CWD=[${process.cwd()}]`);
 
@@ -134,19 +134,21 @@ export class USBDocGenerator {
         //this.logMessage(`dvcNodes1=[${deviceNodes1}]`); // blank line
         if (deviceNodes.length > 0) {
           for (let index = 0; index < deviceNodes.length; index++) {
-            const deviceNode = deviceNodes[index];
-            fs.appendFileSync(rptFileID, ` [ #${index + 1} - ${deviceNode} ]${this.endOfLineStr}`);
+            const deviceNode: IUsbSerialDevice = deviceNodes[index];
+            const deviceNodeStr: string = `${deviceNode.deviceNode}, ${deviceNode.serialNumber}, [${deviceNode.vendorId}, ${deviceNode.productId}]`;
+            fs.appendFileSync(rptFileID, ` [ #${index + 1} - ${deviceNodeStr} ]${this.endOfLineStr}`);
           }
           fs.appendFileSync(rptFileID, `${this.endOfLineStr}`); // blank line
-          const portParts = deviceNodes[0].split(',');
-          const deviceSerial: string = portParts.length > 1 ? portParts[1] : '';
-          const deviceNode: string = portParts[0];
+          const deviceSerial: string = deviceNodes[0].serialNumber;
+          const deviceNode: string = deviceNodes[0].deviceNode;
+          const vendorID: string = deviceNodes[0].vendorId;
+          const productId: string = deviceNodes[0].productId;
           fs.appendFileSync(rptFileID, `Found PropPlug S/N #${deviceSerial} at [${deviceNode}]${this.endOfLineStr}`); // blank line
 
           let [deviceString, deviceErrorString] = ['', ''];
           let usbPort: UsbSerial;
           try {
-            usbPort = new UsbSerial(deviceNode);
+            usbPort = new UsbSerial(deviceNode, vendorID, productId);
             if (usbPort.deviceIsPropellerV2()) {
               [deviceString, deviceErrorString] = usbPort.getIdStringOrError();
             } // initiate request

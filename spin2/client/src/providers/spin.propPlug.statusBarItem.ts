@@ -39,16 +39,19 @@ export function getPropPlugSerialNumber(): string {
     desiredInterp = 'Not';
     if (deviceName !== undefined) {
       // now convert this to S/N
-      for (const deviceNode of Object.keys(toolchainConfiguration.deviceNodesFound)) {
-        const serialNumber = toolchainConfiguration.deviceNodesFound[deviceNode];
+      const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
+      for (const deviceNode of Object.keys(deviceNodesFound)) {
+        const deviceSerialStr: string = deviceNodesFound[deviceNode];
+        const plugValueParts: string[] = deviceSerialStr.split(',');
+        const deviceSerial: string = plugValueParts.length > 0 ? plugValueParts[0] : '';
         // Now you can use deviceNode and serialNumber
         if (deviceName.startsWith(deviceNode)) {
           if (isWindows()) {
             // On windows show COMn:SerialNumber
-            desiredInterp = `${deviceName}:${serialNumber}`;
+            desiredInterp = `${deviceName}:${deviceSerial}`;
           } else {
             // On non-windows show SerialNumber in status bar
-            desiredInterp = serialNumber;
+            desiredInterp = deviceSerial;
           }
           break;
         }

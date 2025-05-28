@@ -8,6 +8,12 @@ import { waitMSec } from './timerUtils';
 import { eResetType, toolchainConfiguration } from './providers/spin.toolChain.configuration';
 
 const DEFAULT_DOWNLOAD_BAUD = 2000000;
+export interface IUsbSerialDevice {
+  deviceNode: string;
+  serialNumber: string;
+  vendorId: string;
+  productId: string;
+}
 
 export class UsbSerial {
   private static isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -15,6 +21,8 @@ export class UsbSerial {
   private endOfLineStr: string = '\r\n';
   private _deviceNode: string = '';
   private _serialPort: SerialPort;
+  private _vendorID: string;
+  private _productID: string;
   private _serialParser: ReadlineParser;
   private _downloadBaud: number = DEFAULT_DOWNLOAD_BAUD;
   private _p2DeviceId: string = '';
@@ -32,8 +40,10 @@ export class UsbSerial {
   }
   */
 
-  constructor(deviceNode: string) {
+  constructor(deviceNode: string, vid: string = '', pid: string = '') {
     this._deviceNode = deviceNode;
+    this._vendorID = vid;
+    this._productID = pid;
     const resultText = UsbSerial.setupDebugChannel();
     if (resultText.length > 0) {
       this.logMessage(resultText);
@@ -74,8 +84,8 @@ export class UsbSerial {
     return UsbSerial.debugOutputChannel;
   }
 
-  static async serialDeviceList(): Promise<string[]> {
-    const devicesFound: string[] = [];
+  static async serialDeviceList(): Promise<IUsbSerialDevice[]> {
+    const devicesFound: IUsbSerialDevice[] = [];
     const ports = await SerialPort.list();
 
     // known bug? - sometimes the library returns no ports but they are plugged in
@@ -93,11 +103,18 @@ export class UsbSerial {
     }
 	*/
 
+    const matchVendorOnly: boolean = toolchainConfiguration.serialMatchVendorOnly;
     ports.forEach((port) => {
       const serialNumber: string = port.serialNumber;
       const deviceNode: string = port.path.replace('/dev/tty.us', '/dev/cu.us');
-      if (port.vendorId == '0403' && port.productId == '6015') {
-        devicesFound.push(`${deviceNode},${serialNumber}`);
+      if ((matchVendorOnly && port.vendorId == '0403') || (port.vendorId == '0403' && port.productId == '6015')) {
+        const deviceInfo: IUsbSerialDevice = {
+          deviceNode: deviceNode,
+          serialNumber: serialNumber,
+          vendorId: port.vendorId,
+          productId: port.productId
+        };
+        devicesFound.push(deviceInfo);
       }
     });
     return devicesFound;
@@ -124,6 +141,11 @@ export class UsbSerial {
   //
   get deviceInfo(): string {
     return this._p2DeviceId;
+  }
+
+  get isActualPropPlug(): boolean {
+    // returns T/F where T means vid/pid match real parallax hardware
+    return this._vendorID === '0403' && this._productID === '6015';
   }
 
   get deviceError(): string | undefined {
@@ -351,8 +373,8 @@ export class UsbSerial {
     const requestPropType: string = '> Prop_Chk 0 0 0 0';
     const didCheck = this.checkedForP2 == false;
     let resetMode: eResetType = toolchainConfiguration.serialResetType; // get latest reset type
-    const bParallaxOnly: boolean = toolchainConfiguration.serialMatchVendorOnly ? false : true; // if matching VID, not PID then is NOT Parallax only
-    if (bParallaxOnly) {
+    // If the selected device is a real Parallax PropPlug, then we ONLY use DTR
+    if (this.isActualPropPlug) {
       resetMode = eResetType.RT_DTR; // Parallax only, use DTR
     }
     if (this.checkedForP2 == false) {
