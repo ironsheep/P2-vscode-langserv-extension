@@ -28,6 +28,17 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.4.6] 2025-05-27
+
+Extension USB support update
+
+- NEW Setting: allow Non-Parallax (but still FTDI) USB Serial Devices
+- NEW Setting: control use of DTR, RTS for non-Parallax Serial Devices
+- Add more detail to the USB Detection Report Document
+- Internal track VID and PID for each allowed USB serial device
+- BUGFIX Allow Spin2 extension to recognize USB Serial devices whether or not the P2 is attached
+- BUGFIX Don't deselect a serial device if cancelling the selection dialog
+
 ## [2.4.5] 2025-05-21
 
 Extension USB support update
