@@ -3207,7 +3207,7 @@ export class Spin2DocumentSemanticParser {
                     line: symbolPosition.line,
                     startCharacter: nameOffset,
                     length: namePart.length,
-                    ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                    ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
                     ptTokenModifiers: ['builtin']
                   });
                   continue;
@@ -3800,7 +3800,7 @@ export class Spin2DocumentSemanticParser {
                 line: lineIdx,
                 startCharacter: nameOffset,
                 length: possibleName.length,
-                ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
                 ptTokenModifiers: ['builtin']
               });
               currentOffset = nameOffset + possibleName.length;
@@ -3823,7 +3823,7 @@ export class Spin2DocumentSemanticParser {
                 line: lineIdx,
                 startCharacter: nameOffset,
                 length: namePart.length,
-                ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
                 ptTokenModifiers: ['builtin']
               });
               currentOffset = nameOffset + namePart.length;
@@ -4197,7 +4197,7 @@ export class Spin2DocumentSemanticParser {
                     line: lineIdx,
                     startCharacter: nameOffset,
                     length: namePart.length,
-                    ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                    ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
                     ptTokenModifiers: ['builtin']
                   });
                 } else {
@@ -5524,7 +5524,7 @@ export class Spin2DocumentSemanticParser {
       const hasWhite: boolean = whiteOffset != -1;
       // we have a single element if we have "." with "[" and "[" is before "."
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const indexExpression: string = havePossIndex ? this._getIndexExpression(assignmentRHSStr.substring(ltBbracketOffset)) : ''; // dont' include the []
+      let indexExpression: string = havePossIndex ? this._getIndexExpression(assignmentRHSStr.substring(ltBbracketOffset)) : ''; // dont' include the []
       //const indexHasWHiteSpace: boolean = indexExpression.indexOf(' ') != -1 || indexExpression.indexOf('\t') != -1;
       //const indexedObjectRef: boolean = dotOffset != -1 && havePossIndex ? true : false;
       let singleElement: boolean = dotOffset != -1 && ltBbracketOffset != -1 && dotOffset > ltBbracketOffset ? true : false;
@@ -5558,14 +5558,40 @@ export class Spin2DocumentSemanticParser {
       symbolPosition = multiLineSet.locateSymbol(symbolName, currSingleLineOffset);
       nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
 
-      // BUGFIX remove indexExpression for later highlighting
-      if (symbolName.includes(indexExpression)) {
-        let adjSymbolName: string = symbolName.replace(indexExpression, '').trim();
-        // now remove empty barckets which could have whitespace between them
-        adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
-        this._logSPIN(`  -- rptSPIN() symbolName=[${symbolName}](${symbolName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
-        symbolName = adjSymbolName;
-        possNames[0] = adjSymbolName; // update possNames[0] to match
+      // BUGFIX treat multiple index expressions as a just symbol names
+      let countOfIndexExpressions = 0;
+      let nestingLevel = 0;
+      for (let i = 0; i < symbolName.length; i++) {
+        if (symbolName[i] === '[') {
+          if (nestingLevel === 0) {
+            // Only count if this is a top-level bracket
+            countOfIndexExpressions++;
+          }
+          nestingLevel++;
+        } else if (symbolName[i] === ']') {
+          nestingLevel = Math.max(0, nestingLevel - 1);
+        }
+      }
+      const multiIndexExpression: boolean = countOfIndexExpressions > 1;
+      if (countOfIndexExpressions > 1) {
+        // split the satement into parts by splitting left and right brackets, remove empty elements
+        // lastly remove possNames[0] and inject the list of parts in it's place
+        this._logSPIN(`  -- rptSPIN() multiple index expressions found, countOfIndexExpressions=(${countOfIndexExpressions})`);
+        const indexParts: string[] = symbolName.split(/[[\]]/).filter((part) => part.trim() !== '');
+        this._logSPIN(`  -- rptSPIN() indexParts=[${indexParts.join(', ')}](${indexParts.length})`);
+        possNames.splice(0, 1, ...indexParts); // replace possNames[0] with indexParts
+        indexExpression = ''; // reset indexExpression so it doesn't get used later
+        symbolName = possNames[0];
+      } else {
+        // BUGFIX remove indexExpression for later highlighting
+        if (symbolName.includes(indexExpression)) {
+          let adjSymbolName: string = symbolName.replace(indexExpression, '').trim();
+          // now remove empty brackets which could have whitespace between them
+          adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
+          this._logSPIN(`  -- rptSPIN() symbolName=[${symbolName}](${symbolName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
+          symbolName = adjSymbolName;
+          possNames[0] = adjSymbolName; // update possNames[0] to match
+        }
       }
 
       let bFoundStructureRef: boolean = this._isPossibleStructureReference(symbolName);
@@ -5757,7 +5783,25 @@ export class Spin2DocumentSemanticParser {
               nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
               this._logSPIN(`  -- rptSPIN() processing name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
 
-              // if special type then override with special type
+              // if special type then override with special coloring
+              if (this.parseUtils.isSpecialIndexType(namePart) && multiIndexExpression) {
+                // have a 'reg' of reg[cog-address][index]
+                // have a 'byte' of byte[hub-address][index]
+                // have a 'word' of word[hub-address][index]
+                // have a 'long' of long[hub-address][index]
+                this._logSPIN(`  -- rptSPIN() indexType=[${namePart}], ofs=(${nameOffset})`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: nameOffset,
+                  length: namePart.length,
+                  ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
+                  ptTokenModifiers: ['builtin']
+                });
+                currSingleLineOffset = nameOffset + namePart.length;
+                continue;
+              }
+
+              // if special type then override with special coloring
               if (this.parseUtils.isSpecialIndexType(namePart) && (isIndexOverride || isTypeOverride)) {
                 // have a 'reg' of reg[cog-address][index].[bitfield]
                 // have a 'byte' of byte[hub-address][index].[bitfield]
@@ -5768,7 +5812,7 @@ export class Spin2DocumentSemanticParser {
                   line: symbolPosition.line,
                   startCharacter: nameOffset,
                   length: namePart.length,
-                  ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                  ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
                   ptTokenModifiers: ['builtin']
                 });
                 currSingleLineOffset = nameOffset + namePart.length;
@@ -5974,6 +6018,8 @@ export class Spin2DocumentSemanticParser {
           );
         }
 
+        // FIXME: UNDONE this is badly associated with possNames[0]
+        //   (this whole routine expects only 1 indexExpression in line
         // report index value statement
         if (indexExpression.length > 0) {
           this._logMessage(`  --  rptStruRef() indexExpression=[${indexExpression}](${indexExpression.length}), ofs=(${nameOffset})`);
@@ -7104,7 +7150,7 @@ export class Spin2DocumentSemanticParser {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
                   length: newParameter.length,
-                  ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                  ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
                   ptTokenModifiers: ['builtin']
                 });
                 currSingleLineOffset = nameOffset + newParameter.length;
@@ -7487,7 +7533,7 @@ export class Spin2DocumentSemanticParser {
               line: symbolPosition.line,
               startCharacter: nameOffset,
               length: newParameter.length,
-              ptTokenType: 'operator', // method is blue?!, function is yellow?!
+              ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
               ptTokenModifiers: ['builtin']
             });
             currSingleLineOffset = nameOffset + newParameter.length;
@@ -7583,7 +7629,7 @@ export class Spin2DocumentSemanticParser {
                 line: symbolPosition.line,
                 startCharacter: symbolPosition.character,
                 length: newParameter.length,
-                ptTokenType: 'operator', // method is blue?!, function is yellow?!
+                ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
                 ptTokenModifiers: ['builtin']
               });
             } else {
@@ -9109,12 +9155,15 @@ export class Spin2DocumentSemanticParser {
     //  in second pass, if item dosn't have period but does have [...] then split a [] and push parts
     //
     const nonEqualsLine: string = this.parseUtils.removeDoubleQuotedStrings(line, preservePacked);
+    // to ease our parsing effort, later, let's remove any whitespace preceeding a left bracket
+    const nonEqualsLineNoBrackets: string = nonEqualsLine.replace(/\s*\[/g, '[');
     // first split
-    let lineParts: string[] | null = nonEqualsLine.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
+    let lineParts: string[] | null = nonEqualsLineNoBrackets.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
     if (lineParts == null) {
       lineParts = [];
     }
-    this._logMessage(`  -- gnwsplna line=[${nonEqualsLine}](${nonEqualsLine.length})`);
+
+    this._logMessage(`  -- gnwsplna line=[${nonEqualsLineNoBrackets}](${nonEqualsLineNoBrackets.length})`);
     this._logMessage(`   --- gnwsplna lineParts=[${lineParts}](${lineParts.length})`);
     let reducedLineParts: string[] = [];
     if (lineParts == null) {
@@ -9178,7 +9227,7 @@ export class Spin2DocumentSemanticParser {
     if (
       reducedLineParts[0] !== undefined &&
       this.parseUtils.isSpecialIndexType(reducedLineParts[0]) &&
-      nonEqualsLine.includes(`${reducedLineParts[0]}[`)
+      nonEqualsLineNoBrackets.includes(`${reducedLineParts[0]}[`)
     ) {
       const tmpLineParts: string[] = [reducedLineParts[0]];
       for (let index = 1; index < reducedLineParts.length; index++) {
