@@ -33,6 +33,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 Spin2 Highlighting Update
 
 - BUGFIX: server crashed on byte/word/long[expression] within debug() statements
+- Allow P1 reserved names (cnt, par - "common names") to be used as constant names in P2 CON sections
 
 ## [2.4.6] 2025-05-27
 

@@ -34,7 +34,6 @@ import {
 } from './spin.common';
 import { fileInDirExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
-import { TypeHierarchySubtypesRequest } from 'vscode-languageserver';
 
 // ----------------------------------------------------------------------------
 //   Semantic Highlighting Provider
@@ -1889,7 +1888,12 @@ export class Spin2DocumentSemanticParser {
               const lineParts: string[] = conDeclarationLine.split(/[ \t=]/).filter(Boolean);
               this._logCON(`  -- GetCDLMulti() SPLIT lineParts=[${lineParts}](${lineParts.length})`);
               const newName = lineParts[0];
-              if (newName !== undefined && this.parseUtils.isValidSpinSymbolName(newName) && !this.parseUtils.isP1AsmVariable(newName)) {
+              // BUGFIX? Allow P1 asm (par, cnt) variables to be used as constants in P2 code
+              let isDisAllowedP1AsmVariable: boolean = this.parseUtils.isP1AsmVariable(newName);
+              if (newName.toLowerCase() == 'par' || newName.toLowerCase() == 'cnt') {
+                isDisAllowedP1AsmVariable = false; // par and cnt are  allowed in P2 code
+              }
+              if (newName !== undefined && this.parseUtils.isValidSpinSymbolName(newName) && !isDisAllowedP1AsmVariable) {
                 // if this line is NOT disabled, record new global (or error with DUPLICATE)
                 const lineIsDisabled: boolean = this.semanticFindings.preProcIsLineDisabled(multiLineSet.lineStartIdx);
                 this._logCON(`  -- GetCDLMulti() newName=[${newName}], lineIsDisabled=(${lineIsDisabled})`);
@@ -2104,24 +2108,31 @@ export class Spin2DocumentSemanticParser {
     if (lineParts.length >= minDecodeCount) {
       const baseIndex: number = bHaveDatBlockId ? 1 : 0;
       const nameIndex: number = baseIndex + 0;
-      const haveLabel: boolean = lineParts.length > nameIndex ? this.parseUtils.isDatOrPAsmLabel(lineParts[nameIndex]) : false;
+      const haveLabel: boolean = lineParts.length >= nameIndex ? this.parseUtils.isDatOrPAsmLabel(lineParts[nameIndex]) : false;
       const typeIndex: number = haveLabel ? baseIndex + 1 : baseIndex + 0;
-      let dataType: string | undefined = lineParts.length > typeIndex ? lineParts[typeIndex] : undefined;
-      if (dataType && !this.parseUtils.isDatNFileStorageType(dataType) && !this.isStorageType(dataType)) {
+      let dataType: string | undefined = lineParts.length >= typeIndex ? lineParts[typeIndex] : undefined;
+      if (dataType !== undefined && !this.parseUtils.isDatNFileStorageType(dataType) && !this.isStorageType(dataType)) {
         // file, res, long, byte, word
         dataType = undefined;
       }
+      this._logDAT(
+        `   -- GetDatDecl baseIndex=[${baseIndex}], nameIndex=[${nameIndex}], typeIndex=[${typeIndex}], haveLabel=(${haveLabel}), dataType=[${dataType}]`
+      );
       const haveStorageType: boolean = dataType ? this.isStorageType(dataType) : false;
       const isNamedDataDeclarationLine: boolean = haveLabel && haveStorageType ? true : false;
       const isDataDeclarationLine: boolean = haveStorageType ? true : false;
 
       const lblFlag: string = haveLabel ? 'T' : 'F';
       const dataDeclFlag: string = isDataDeclarationLine ? 'T' : 'F';
-      const newName = haveLabel && !lineParts[nameIndex].toLowerCase().startsWith('debug') ? lineParts[nameIndex] : '';
+      const nameIsDebug: boolean = lineParts[nameIndex].toLowerCase() == 'debug';
+      this._logDAT(`   -- GetDatDecl haveLabel=(${haveLabel}), nameIsDebug=[${nameIsDebug}], lineParts[${nameIndex}]=[${lineParts[nameIndex]}]`);
+      const newName = haveLabel && !nameIsDebug ? lineParts[nameIndex] : '';
 
       const dataTypeOffset: number = dataType && haveStorageType ? dataDeclNonCommentStr.indexOf(dataType) : 0;
       const valueDeclNonCommentStr: string =
-        dataType && isDataDeclarationLine && dataTypeOffset != -1 ? dataDeclNonCommentStr.substring(dataTypeOffset + dataType.length).trim() : '';
+        dataType !== undefined && isDataDeclarationLine && dataTypeOffset != -1
+          ? dataDeclNonCommentStr.substring(dataTypeOffset + dataType.length).trim()
+          : '';
       this._logDAT(`   -- GetDatDecl valueDeclNonCommentStr=[${valueDeclNonCommentStr}](${valueDeclNonCommentStr.length})`);
       const bIsFileLine: boolean = dataType && dataType.toLowerCase() == 'file' ? true : false;
       this._logDAT(`   -- GetDatDecl newName=[${newName}], label=${lblFlag}, daDecl=${dataDeclFlag}, dataType=[${dataType}]`);
@@ -3805,7 +3816,7 @@ export class Spin2DocumentSemanticParser {
             const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : `${possibleNameSet[0]}.${possibleNameSet[1]}`;
             nameOffset = line.indexOf(searchString, currentOffset);
             this._logMessage(`  -- rDvdc() searchString=[${searchString}], ofs=(${nameOffset}), currentOffset=(${currentOffset})`);
-            if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
+            if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart) || this.parseUtils.isSpinRegister(namePart)) {
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -3846,6 +3857,7 @@ export class Spin2DocumentSemanticParser {
             } else {
               if (
                 !this.parseUtils.isP2AsmReservedWord(namePart) &&
+                !this.parseUtils.isTaskReservedRegisterName(namePart) &&
                 !this.parseUtils.isP2AsmReservedSymbols(namePart) &&
                 !this.parseUtils.isP2AsmInstruction(namePart) &&
                 !this.parseUtils.isSpinReservedWord(namePart) &&
