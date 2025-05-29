@@ -1691,7 +1691,9 @@ export class Spin2DocumentSemanticParser {
           const localsString: string = signatureLine.substring(posStartLocal, posEndLocal);
           const numberLocals: number = (localsString.match(/,/g) || []).length + 1;
           const localsNames = localsString.split(/[ \t,]/).filter(Boolean);
-          this._logMessage(`* gDClocalsString=[${localsString}], localsNames=[${localsNames}]`);
+          this._logMessage(
+            `* gDClocalsString=[${localsString}], numberLocals=(${numberLocals}), localsNames=[${localsNames.join(', ')}](${localsNames.length})`
+          );
           desiredDocComment.push(''); // empty line so following is not shown in comments for method
           desiredDocComment.push("' Local Variables:"); // blank line
           for (let localIdx = 0; localIdx < numberLocals; localIdx++) {
@@ -4370,6 +4372,7 @@ export class Spin2DocumentSemanticParser {
       }
     }
     const methodName: string = remainingNonCommentLineStr.substr(startNameOffset, currSingleLineOffset - startNameOffset).trim();
+    const methodNameToo: string = remainingNonCommentLineStr.substring(startNameOffset, currSingleLineOffset).trim();
     const validMethodName: boolean = this.parseUtils.isValidSpinSymbolName(methodName);
     //this._logSPIN(`  -- rptPubPriSig() possibleMethodName=[${methodName}](${methodName.length}),isValid=(${validMethodName})`);
     if (!validMethodName) {
@@ -4379,7 +4382,9 @@ export class Spin2DocumentSemanticParser {
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
 
     const methodFollowString: string = remainingNonCommentLineStr.substring(startNameOffset + methodName.length);
-    this._logSPIN(`  -- rptPubPriSig() methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+    this._logSPIN(
+      `  -- rptPubPriSig() methodNameToo=[${methodNameToo}], methodName=[${methodName}](${methodName.length}), methodFollowString=[${methodFollowString}](${methodFollowString.length})`
+    );
     const bHaveSpin2Method: boolean = isMethodCall(methodFollowString);
     let symbolPosition: Position = multiLineSet.locateSymbol(methodName, currSingleLineOffset);
     let nameOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -4424,14 +4429,15 @@ export class Spin2DocumentSemanticParser {
     //
     // find close paren - so we can study parameters
     if (bHaveSpin2Method) {
-      if (closeParenOffset != -1 && currSingleLineOffset + 1 != closeParenOffset) {
+      const parameterStr =
+        openParenOffset != -1 && closeParenOffset != -1 ? remainingNonCommentLineStr.substring(openParenOffset + 1, closeParenOffset).trim() : '';
+      if (parameterStr.length > 0) {
         //
         //   Parameter Variable(s)
         //    thru v44  {{BYTE|WORD|LONG} Parameter{, ...}}
         //     v45      {{BYTE|WORD|LONG|StructName} Parameter{, ...}}
         //     v49      {{^BYTE|^WORD|^LONG|^StructName} Parameter{, ...}}
         //
-        const parameterStr = remainingNonCommentLineStr.substring(openParenOffset + 1, closeParenOffset).trim();
         const parameterStringPosition: Position = multiLineSet.locateSymbol(parameterStr, 0);
         //this._logSPIN(`  -- rptPubPriSig() parameterStr=[${parameterStr}](${parameterStr.length}), ofs=(${parameterStringPosition})`);
         let parameterNames: string[] = [];
@@ -4791,10 +4797,13 @@ export class Spin2DocumentSemanticParser {
               const element = nameParts[index];
               if (alignType.length == 0 && this.parseUtils.isAlignType(element)) {
                 alignType = element;
+                //this._logSPIN(`  -- rptPubPriSig() found alignType [${alignType}](${alignType.length})`);
                 continue;
               }
-              if ((storageType.length == 0 && this.parseUtils.isStorageType(element)) || this.semanticFindings.isStructure(element)) {
+              const isObjRef: boolean = this._isPossibleObjectReference(element);
+              if (storageType.length == 0 && (this.parseUtils.isStorageType(element) || this.semanticFindings.isStructure(element) || isObjRef)) {
                 storageType = element;
+                //this._logSPIN(`  -- rptPubPriSig() found storageType [${storageType}](${storageType.length})`);
                 continue;
               }
               if (localVarName.length == 0 && this.parseUtils.isValidSpinSymbolName(element)) {
@@ -4807,6 +4816,7 @@ export class Spin2DocumentSemanticParser {
                 } else {
                   localVarName = element;
                 }
+                //this._logSPIN(`  -- rptPubPriSig() found localVarName [${localVarName}](${localVarName.length})`);
                 continue;
               }
               if (this.parseUtils.isValidSpinSymbolName(element) || this.parseUtils.isValidSpinNumericConstant(element)) {
@@ -4818,7 +4828,7 @@ export class Spin2DocumentSemanticParser {
             localVarName = nameParts[0];
           }
           this._logSPIN(
-            `  -- rptPubPriSig() localVar typeName=[${alignType}](${alignType.length}), isPtr=(${isPtr}), lclNm=[${localVarName}](${localVarName.length}), indexExpr=[${indexExpression}](${indexExpression.length})  : lclVar[${index + 1} of ${localVarNames.length}]`
+            `  -- rptPubPriSig() localVar alignType=[${alignType}](${alignType.length}), storageType=[${storageType}](${storageType.length}), isPtr=(${isPtr}), lclNm=[${localVarName}](${localVarName.length}), indexExpr=[${indexExpression}](${indexExpression.length})  : lclVar[${index + 1} of ${localVarNames.length}]`
           );
           let symbolPosition: Position = Position.create(-1, -1);
 
@@ -4934,7 +4944,7 @@ export class Spin2DocumentSemanticParser {
           //
           // handle local variable
           //
-          symbolPosition = multiLineSet.locateSymbol(localVarName, varNameOffsetBase);
+          symbolPosition = multiLineSet.locateSymbol(localVarName, varNameOffsetBase + storageType.length);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
           this._logSPIN(`  -- localName=[${localVarName}], ofs=(${nameOffset})`);
           // have name
@@ -5043,7 +5053,16 @@ export class Spin2DocumentSemanticParser {
 
       // locate key indicators of line style
       const assignmentCount: number = multiLineSet.line.split(':=').length - 1;
-      const assignmentOffset: number = assignmentCount == 1 ? multiLineSet.line.indexOf(':=', currSingleLineOffset) : -1;
+      let assignmentOffset: number = assignmentCount == 1 ? multiLineSet.line.indexOf(':=', currSingleLineOffset) : -1;
+      // BUGFIX is only assignment is within passed parameters, we don't have assignment at this point in processing!
+      // Ex: this does NOT qualify as an assignment: ABC(x:=1)
+      const parameterSets: string[] = this._isolateParameterSets(multiLineSet.line);
+      for (let index = 0; index < parameterSets.length; index++) {
+        const parameterExpr: string = parameterSets[index];
+        if (parameterExpr.includes(':=') && !parameterExpr.includes(':=:')) {
+          assignmentOffset = -1; // no assignment here!
+        }
+      }
       if (assignmentOffset != -1) {
         // -------------------------------------------
         // have line assigning value to variable(s)
@@ -5539,6 +5558,16 @@ export class Spin2DocumentSemanticParser {
       symbolPosition = multiLineSet.locateSymbol(symbolName, currSingleLineOffset);
       nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
 
+      // BUGFIX remove indexExpression for later highlighting
+      if (symbolName.includes(indexExpression)) {
+        let adjSymbolName: string = symbolName.replace(indexExpression, '').trim();
+        // now remove empty barckets which could have whitespace between them
+        adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
+        this._logSPIN(`  -- rptSPIN() symbolName=[${symbolName}](${symbolName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
+        symbolName = adjSymbolName;
+        possNames[0] = adjSymbolName; // update possNames[0] to match
+      }
+
       let bFoundStructureRef: boolean = this._isPossibleStructureReference(symbolName);
       let bFoundObjRef: boolean = false;
       if (bFoundStructureRef) {
@@ -5942,6 +5971,18 @@ export class Spin2DocumentSemanticParser {
           currSingleLineOffset = nameOffset > 0 ? nameOffset + namePart.length : currSingleLineOffset + namePart.length;
           this._logSPIN(
             `  -- rptSPIN() Multi loop currSingleLineOffset=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), namePart.length=(${namePart.length})`
+          );
+        }
+
+        // report index value statement
+        if (indexExpression.length > 0) {
+          this._logMessage(`  --  rptStruRef() indexExpression=[${indexExpression}](${indexExpression.length}), ofs=(${nameOffset})`);
+          nameOffset = this._reportSPIN_IndexExpression(
+            indexExpression,
+            symbolPosition.line,
+            nameOffset + possNames[0].length,
+            multiLineSet.line,
+            tokenSet
           );
         }
       }
@@ -8522,6 +8563,49 @@ export class Spin2DocumentSemanticParser {
     } while (nextString.length > 0);
 
     return tokenSet;
+  }
+
+  private _isolateParameterSets(line: string): string[] {
+    // for entire line, find enclosing parentheses and return the set of values beween them
+    //  allow for nested parentheses - returning only the outermost set
+    //  allow for empty sets, e.g. '()' or '( )', don't return these
+    //  allow for multiple sets, e.g. '(a,b,c)(d,e,f)', return each set as a separate string
+    const parameterSets: string[] = [];
+    let nestingLevel = 0;
+    let currentSet: string = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      // Toggle inQuotes state for double quotes
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      }
+      if (!inQuotes) {
+        if (char === '(') {
+          if (nestingLevel === 0) {
+            // Start of a new parameter set
+            currentSet = '';
+          }
+          nestingLevel++;
+        } else if (char === ')') {
+          nestingLevel--;
+          if (nestingLevel === 0) {
+            // End of the outermost parameter set
+            if (currentSet.trim().length > 0) {
+              parameterSets.push(currentSet.trim());
+            }
+            currentSet = '';
+          }
+        } else if (nestingLevel > 0) {
+          currentSet += char;
+        }
+      } else if (nestingLevel > 0) {
+        // Inside quotes and inside parens, still collect
+        currentSet += char;
+      }
+    }
+    this._logSPIN(`  --  isoParamSets([${line}]) -> sets=[${parameterSets}](${parameterSets.length})`);
+    return parameterSets;
   }
 
   private _getIndexExpression(line: string): string {
