@@ -80,12 +80,15 @@ FEATURE Latest Language Ver Updates:
 			- Jeff Debug Test 3 (syntax).spin2 - debug() statement methods/functions within Lot's of them!
 			- 231112-fixes-spin2 - highlight %"xx" strings in method call passed parameters
 			- 240822-fixes.spin2 - bad comment/line wrap highlighting
-			- d-1CogKbM_neoyume.spin2  - parsing within comments, BAD!! @done(2025-05-11)
 			- 240406-fixes.spin2 - tic debug fixes & wrapped lines using '}....{' wraps - this CAN be collected into multi-line, with some care
+		DONE:
+			- d-1CogKbM_neoyume.spin2  - parsing within comments, BAD!! @done(2025-05-11)
 			- debug_coloring_examples.spin2 - highlight of byte[i+1] statements @done(2025-05-11)
 			- chk_file_presence.spin2 - Ln#22-#24 - highlight of byte[i+1] references  should byte[] be violet or storageType? @done(2025-05-11)
 		
 	UPCOMING:
+		- _reportSPIN_CodeMultiLine() - BADly handling index expressions !!!!!!!!  (BAD patch-work to get it out the door)
+		- _reportSPIN_CodeMultiLine() - BADly nested statements
 		- cleanup multiline overall handling!
 		- Convert _getOBJ_Declaration() to multiline
 		- Convert _getVAR_Declaration() to multiline
