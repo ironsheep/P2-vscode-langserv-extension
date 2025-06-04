@@ -28,12 +28,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.4.7] 2025-05-27
+## [2.4.7] 2025-06-03
 
 Spin2 Highlighting Update
 
 - BUGFIX: server crashed on byte/word/long[expression] within debug() statements
-- Allow P1 reserved names (cnt, par - "common names") to be used as constant names in P2 CON sections
+- BUGFIX: dereference of PUB/PRI param/retVal/local symbol returned incorrect structure type
+- BUGFIX: Clean up miscellaneous highlight bugs
+- Allow P1 reserved names (cnt, par - "common english spellings") to be used as constant names in P2 CON sections
 
 ## [2.4.6] 2025-05-27
 

@@ -892,6 +892,60 @@ export class Spin2ParseUtils {
   }
 
   // ----------------------------------------------------------------------------
+  // Built-in SPIN variables P1, P2
+  //
+  private spin1ControlFlowKeywords: string[] = [
+    'if',
+    'ifnot',
+    'elseif',
+    'elseifnot',
+    'else',
+    'while',
+    'repeat',
+    'until',
+    'from',
+    'to',
+    'step',
+    'next',
+    'quit',
+    'case',
+    'other',
+    'abort',
+    'return'
+  ];
+
+  private spin2ControlFlowKeywords: string[] = [
+    'if',
+    'ifnot',
+    'elseif',
+    'elseifnot',
+    'else',
+    'case',
+    'case_fast',
+    'repeat',
+    'with',
+    'from',
+    'to',
+    'step',
+    'while',
+    'until',
+    'next',
+    'quit'
+  ];
+
+  public isSpin1ControlFlowKeyword(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    const reservedStatus: boolean = this.spin1ControlFlowKeywords.includes(nameKey);
+    return reservedStatus;
+  }
+
+  public isSpin2ControlFlowKeyword(name: string): boolean {
+    const nameKey: string = name.toLowerCase();
+    const reservedStatus: boolean = this.spin2ControlFlowKeywords.includes(nameKey);
+    return reservedStatus;
+  }
+
+  // ----------------------------------------------------------------------------
   // Built-in SPIN variables P2
   //
   private _tableSpinHubLocations: { [Identifier: string]: string } = {

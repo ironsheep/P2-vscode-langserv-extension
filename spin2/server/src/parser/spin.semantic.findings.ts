@@ -151,14 +151,14 @@ export interface IFoldSpan {
 //  Shared Data Storage for what our current document contains
 //   CLASS DocumentFindings
 export class DocumentFindings {
-  private globalTokens;
-  private globalStructures;
-  private includeGlobalTokens;
-  private methodLocalTokens;
+  private globalTokens: TokenSet;
+  private globalStructures: StructureSet;
+  private includeGlobalTokens: TokenSet;
+  private methodLocalTokens: NameScopedTokenSet;
   private instanceId: string = `ID:${new Date().getTime()}`;
-  private declarationInfoByGlobalTokenName;
-  private declarationInfoByLocalTokenName;
-  private methodLocalPasmTokens;
+  private declarationInfoByGlobalTokenName: Map<string, RememberedTokenDeclarationInfo>;
+  private declarationInfoByLocalTokenName: Map<string, RememberedTokenDeclarationInfo>;
+  private methodLocalPasmTokens: NameScopedTokenSet;
   private blockComments: RememberedComment[] = [];
   private fakeComments: RememberedComment[] = [];
   private spanInfoByMethodName = new Map<string, IMethodSpan>();
@@ -833,6 +833,15 @@ export class DocumentFindings {
     return nameSpaces.length > 0 ? true : false;
   }
 
+  public isNamespaceDefined(namespace: string): boolean {
+    const namespaceFoundStatus: boolean = false;
+    const namespaceKey: string = namespace.toLowerCase();
+    if (this.objectParseResultByObjectName.has(namespaceKey)) {
+      namespaceFoundStatus;
+    }
+    return namespaceFoundStatus;
+  }
+
   public getFindingsForNamespace(namespace: string): DocumentFindings | undefined {
     // return parsed findings if we have them for this namespace
     let symbolsInNamespace: DocumentFindings | undefined = undefined;
@@ -1192,8 +1201,11 @@ export class DocumentFindings {
 
   public isNameSpace(possibleNamespace: string): boolean {
     // return T/F where T means we have this name in our list
-    const objectNameKey: string = possibleNamespace.toLowerCase();
-    const namespaceStatus: boolean = this.objectFilenameByInstanceName.has(objectNameKey);
+    let namespaceStatus: boolean = false;
+    if (possibleNamespace !== undefined) {
+      const objectNameKey: string = possibleNamespace.toLowerCase();
+      namespaceStatus = this.objectFilenameByInstanceName.has(objectNameKey);
+    }
     this._logMessage(`  -- FND-OBJ nameSpace=[${possibleNamespace}] -> (${namespaceStatus})`);
     return namespaceStatus;
   }
@@ -1790,7 +1802,7 @@ export class DocumentFindings {
 
   public recordStructureDefn(structure: RememberedStructure): void {
     this.globalStructures.rememberStructure(structure);
-    this._logMessage(`  -- NEW-struct ${structure.name} -> ${structure.toString()}`);
+    //this._logMessage(`  -- NEW-struct ${structure.name} -> ${structure.toString()}`);
   }
 
   public getStructure(structureType: string): RememberedStructure | undefined {
@@ -1798,16 +1810,25 @@ export class DocumentFindings {
     return desiredStructure;
   }
 
-  public recordStructureInstance(structureType: string, instanceName: string): void {
-    const typeKey: string = structureType.toLowerCase();
-    const instanceKey: string = instanceName.toLowerCase();
-    if (this.isStructure(typeKey)) {
-      if (!this.structureNameByInstanceName.has(instanceKey)) {
-        this.structureNameByInstanceName.set(instanceKey, typeKey);
-        this._logMessage(`  -- NEW-struct-instance ${instanceName} is STRUCT ${structureType}`);
-      }
+  public recordStructureInstance(structureType: string, instanceName: string, methodScope: string = ''): void {
+    const structTypeKey: string = structureType.toLowerCase();
+    if (!this.isStructure(structTypeKey)) {
+      this._logMessage(`  -- rcdStruInst() ERROR STRUCT [${structureType}] is unknown!!`);
     } else {
-      this._logMessage(`  -- ERROR STRUCT ${structureType} is unknown!!`);
+      if (methodScope.length > 0) {
+        // record PUB/PRI structure instance
+        this.methodLocalTokens.setStructTypeForMethodVariable(methodScope, instanceName, structureType);
+        this._logMessage(`  -- rcdStruInst() NEW-struct-instance [${instanceName}] within [${methodScope}] is STRUCT [${structureType}]`);
+      } else {
+        const instanceKey: string = instanceName.toLowerCase();
+        // record VAR/DAT structure instance
+        if (!this.structureNameByInstanceName.has(instanceKey)) {
+          this.structureNameByInstanceName.set(instanceKey, structTypeKey);
+          this._logMessage(`  -- rcdStruInst() NEW-struct-instance [${instanceName}] is STRUCT [${structureType}]`);
+        } else {
+          this._logMessage(`  -- rcdStruInst() ERROR?? DUPE-struct-instance [${instanceName}] is STRUCT [${structureType}]`);
+        }
+      }
     }
   }
 
@@ -1817,7 +1838,26 @@ export class DocumentFindings {
     if (this.isStructureInstance(instanceKey)) {
       desiredType = this.structureNameByInstanceName.get(instanceKey);
     }
-    this._logMessage(`  -- getTypeForStructureInstance(${instanceName}) -> (${desiredType})`);
+    this._logMessage(`  -- getTypeForStructInst(${instanceName}) -> (${desiredType})`);
+    return desiredType;
+  }
+
+  public getTypeForLocalStructureInstance(tokenName: string, lineNbr: number): string | undefined {
+    // get the type of a local structure instance
+    let desiredType: string | undefined = undefined;
+    let methodName: string = '';
+    if (this.isLocalToken(tokenName)) {
+      const tmpMethodName: string | undefined = this._getMethodNameForLine(lineNbr);
+      if (tmpMethodName != undefined) {
+        methodName = tmpMethodName;
+        const desiredMethodKey: string = methodName.toLowerCase();
+        const tmpStructType: string | undefined = this.methodLocalTokens.getStructTypeForMethodVariable(desiredMethodKey, tokenName);
+        if (tmpStructType !== undefined) {
+          desiredType = tmpStructType;
+        }
+      }
+    }
+    this._logMessage(`  -- getTypeForLocalStructInst(${tokenName}, Ln#${lineNbr}) -> [${methodName}](${desiredType})`);
     return desiredType;
   }
 
@@ -1868,9 +1908,11 @@ export class DocumentFindings {
           `, cmt=[${declarationComment}]`
       );
       this.methodLocalTokens.setTokenForMethod(methodName, tokenName, token);
-      // and remember declataion line# for this token
+      // and remember declaration line# for this token
       const desiredTokenKey: string = tokenName.toLowerCase();
       this.declarationInfoByLocalTokenName.set(desiredTokenKey, new RememberedTokenDeclarationInfo(token.lineIndex, declarationComment));
+    } else {
+      this._logMessage(`  -- ERROR-LocTOK DUPE?! ln#${token.lineIndex + 1} method=[${methodName}], `);
     }
   }
 
@@ -2184,7 +2226,9 @@ export class StructureSet {
     const nameKey: string = structure.name.toLowerCase();
     if (!this.rememberedStructuresByName.has(nameKey)) {
       this.rememberedStructuresByName.set(nameKey, structure);
-      this._logMessage(`* ${this.id} #${this.rememberedStructuresByName.size}: ${structure.name} -> ${structure.toString()}`);
+      this._logMessage(`* ${this.id} ADD-struct #${this.rememberedStructuresByName.size}: ${structure.name} -> ${structure.toString()}`);
+    } else {
+      this._logMessage(`* ${this.id} DUPE-struct, NOT ADDED! ${structure.name} -> ${structure.toString()}`);
     }
   }
 
@@ -2317,6 +2361,7 @@ export class NameScopedTokenSet {
   private id: string = '';
   private methodScopedTokenSetByMethodKey = new Map<string, TokenSet>();
   private origMethodNamebyMethodKey = new Map<string, string>();
+  private structTypeNamebyVarNameKey = new Map<string, string>();
   private ctx: Context | undefined = undefined;
   private bLogEnabled: boolean = false;
 
@@ -2355,6 +2400,7 @@ export class NameScopedTokenSet {
 
   public clear(): void {
     this.methodScopedTokenSetByMethodKey.clear();
+    this.structTypeNamebyVarNameKey.clear();
     this.origMethodNamebyMethodKey.clear();
     this._logMessage(`* ${this.id} clear() now ` + this.length() + ' tokens');
   }
@@ -2414,6 +2460,42 @@ export class NameScopedTokenSet {
     return foundStatus;
   }
 
+  public setStructTypeForMethodVariable(methodName: string, localName: string, structureType: string): void {
+    let methodTokenSet: TokenSet | undefined = undefined;
+    const desiredMethodKey = methodName.toLowerCase();
+    const desiredTokenKey = localName.toLowerCase();
+    const structTypeKey: string = structureType.toLowerCase();
+    if (this.hasMethod(desiredMethodKey)) {
+      methodTokenSet = this._getMapForMethod(desiredMethodKey);
+      // if has localName, then set structType
+      if (methodTokenSet && methodTokenSet.hasToken(desiredTokenKey)) {
+        this._logMessage(`  -- SET-structType for method=[${methodName}] local=[${localName}] to structType=[${structureType}]`);
+        this.structTypeNamebyVarNameKey.set(desiredTokenKey, structTypeKey);
+      } else {
+        this._logMessage(`  -- ERROR setStructTypeForMethodVariable() no such methodName = [${methodName}]`);
+      }
+    }
+  }
+
+  public getStructTypeForMethodVariable(methodName: string, localName: string): string | undefined {
+    // get the type of a local structure instance
+    let desiredType: string | undefined = undefined;
+    const desiredMethodKey = methodName.toLowerCase();
+    const desiredTokenKey = localName.toLowerCase();
+    let methodTokenSet: TokenSet | undefined = undefined;
+    if (this.hasMethod(desiredMethodKey)) {
+      methodTokenSet = this._getMapForMethod(desiredMethodKey);
+      // if has localName, then set structType
+      if (methodTokenSet !== undefined && methodTokenSet.hasToken(desiredTokenKey)) {
+        const tmpStructType: string | undefined = this.structTypeNamebyVarNameKey.get(desiredTokenKey);
+        if (tmpStructType !== undefined) {
+          desiredType = tmpStructType;
+        }
+      }
+    }
+    return desiredType;
+  }
+
   public setTokenForMethod(methodName: string, tokenName: string, token: RememberedToken): void {
     let methodTokenSet: TokenSet | undefined = undefined;
     const desiredMethodKey = methodName.toLowerCase();
@@ -2431,7 +2513,7 @@ export class NameScopedTokenSet {
       );
     } else {
       if (methodTokenSet) {
-        this._logMessage('  -- NEW-lpTOK ' + desiredTokenKey + '=[' + token.type + '[' + token.modifiers + ']]');
+        this._logMessage(`  -- NEW-lpTOK [${desiredTokenKey}]=[${token.type}[${token.modifiers}]]`);
         methodTokenSet.setToken(desiredTokenKey, token);
       }
     }

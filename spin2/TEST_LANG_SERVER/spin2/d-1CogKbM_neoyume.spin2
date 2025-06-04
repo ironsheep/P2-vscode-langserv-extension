@@ -664,7 +664,7 @@ if button +<= 31
 
 PUB modtest(mask) : r
 
-return pressedKeys[0]&mask
+return pressedKeys[0]&mask ' FIXME: coloring
 
 PUB eventCheck(nil) : eventid
   if pinr(initData.byte[EVENT_P])
@@ -721,7 +721,7 @@ PUB flushKeys() | idx
 ' Clear the key report buffers
   repeat idx from 0 to KBD_IN_RPT_LEN
     kbCurReport[idx] := 0
-    kbPreReport[idx + KBD_IN_RPT_LEN] := 0
+    kbPreReport[idx + KBD_IN_RPT_LEN] := 0  ' FIXME: coloring offset wrong
 {
 PUB flushMouse() | idx
   repeat idx from 0 to MOUSE_RPT_LEN

@@ -55,6 +55,7 @@ export class ExtensionUtils {
     'abort',
     'return'
   ];
+
   private spin2ControlFlowKeywords: string[] = [
     'if',
     'ifnot',

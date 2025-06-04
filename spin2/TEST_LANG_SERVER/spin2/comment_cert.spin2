@@ -82,7 +82,7 @@ pub version() : result
 
   return LIB_VERSION
 
-pri get_file_head_signature(p_filename) : foundSignature | nameCrc, block_address, BYTE header[8 + FILENAME_SIZE]
+pri get_file_head_signature(p_filename) : foundSignature | nameCrc, block_address, BYTE header[8 + FILENAME_SIZE] ' FIXME: coloring again
 
 ' Look up file by name and return the block state bits of the files' head block (or 0 if file not found)
 '

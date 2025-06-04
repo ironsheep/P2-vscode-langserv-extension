@@ -33,5 +33,5 @@ PRI at ( offset ): hubAdr
     return $1000 + offset
 
 PRI FXYZ ( ^o.sLIST Parts ) | ^sFG6 p
-    if Parts.Part[0].len
-        p.IV := 2
+    if Parts.Part[0].len   ' param not carrying struct type from external object
+        p.IV := 2   ' local var not carrying struct type!!!
