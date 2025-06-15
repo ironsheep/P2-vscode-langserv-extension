@@ -1101,7 +1101,7 @@ export class Spin2ParseUtils {
         }
       }
     }
-    this._logMessage(`*   isValidSpinConstOrSym([${name}],pasm=(${inPasm})) = (${isSpinConstant}, ${isSpinSymbol})`);
+    this._logMessage(`    --- isValidSpinConstOrSym([${name}],pasm=(${inPasm})) = (${isSpinConstant}, ${isSpinSymbol})`);
     return [isSpinConstant, isSpinSymbol];
   }
 
