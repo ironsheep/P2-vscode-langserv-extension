@@ -5103,17 +5103,28 @@ export class Spin2DocumentSemanticParser {
         const possibleVariableName = multiLineSet.line.substring(0, assignmentOffset).trim();
         this._logSPIN(`  -- rptSPIN() FLOW LHS: possibleVariableName=[${possibleVariableName}](${possibleVariableName.length})`);
         let varNameList: string[] = [possibleVariableName];
-        if (possibleVariableName.includes(',')) {
-          varNameList = possibleVariableName.split(',');
-        }
+        let filteredLine: string = possibleVariableName;
+
         if (possibleVariableName.includes('..')) {
           // force special case range chars to be removed
           //  Ex: RESP_OVER..RESP_NOT_FOUND : error_code.byte[3] := mod
           // change .. to : so it is removed by getNonWhite...
-          const filteredLine: string = possibleVariableName.replace('..', ':');
+          filteredLine = possibleVariableName.replace('..', ':');
+        }
+        if (filteredLine.includes(':')) {
+          // if have case statement single-line assignment
+          // Ex:    case SchlTyp := typ
+          //         1: SchlLen, SchlAbst := 2_500, 4_000  ' FIXME: coloring!
+          //         2: SchlLen, SchlAbst := 1_000, 2_500
+          // - remove :
+          // - split on , to get multiple var names
           const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(filteredLine);
           varNameList = lineInfo.lineParts;
         }
+        if (varNameList[0] === possibleVariableName && possibleVariableName.includes(',')) {
+          varNameList = possibleVariableName.split(',');
+        }
+
         // BUGFIX: how to handle [y]:=5 - varname in this case is [y] (just an index value)
         this._logSPIN(`  -- rptSPIN() LHS: varNameList=[${varNameList.join(', ')}](${varNameList.length})`);
         for (let index = 0; index < varNameList.length; index++) {
@@ -5573,53 +5584,7 @@ export class Spin2DocumentSemanticParser {
         }
       }
       let indexExpressions: IIndexedExpression[] = [];
-      const isIndexOverride: boolean = false;
       if (assignmentRHSStr.length > 0) {
-        /*
-        //  --X1--------------------------------------------------------------------------------------------
-        indexExpressions = havePossIndex ? this._getIndexExpressions(assignmentRHSStr.substring(ltBbracketOffset)) : []; // dont' include the []
-        let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
-        // if we have any, get positon of first index expression
-        if (indexExpressions.length > 0 && indexExpressions[0].expression.length > 0) {
-          indexExpressionPosn = multiLineSet.locateSymbol(indexExpressions[0].expression, currSingleLineOffset + ltBbracketOffset);
-          this._logSPIN(
-            `  -- rptSPIN() C indexExpression=[${indexExpressions[0].expression}](${indexExpressions[0].expression.length}), posn=[Ln#${indexExpressionPosn.line + 1}:(${indexExpressionPosn.character})})`
-          );
-        }
-        // BUGFIX treat multiple index expressions as a just symbol names
-        let countOfIndexExpressions = 0;
-        let nestingLevel = 0;
-        for (let i = 0; i < symbolName.length; i++) {
-          if (symbolName[i] === '[') {
-            if (nestingLevel === 0) {
-              // Only count if this is a top-level bracket
-              countOfIndexExpressions++;
-            }
-            nestingLevel++;
-          } else if (symbolName[i] === ']') {
-            nestingLevel = Math.max(0, nestingLevel - 1);
-          }
-        }
-
-        const multiIndexExpression: boolean = countOfIndexExpressions > 1;
-        this._logMessage(`  -- rptSPIN() multiIndexExpression=(${multiIndexExpression}), countOfIndexExpressions=(${countOfIndexExpressions})`);
-        // BUGFIX remove indexExpression for later highlighting
-        for (let index = 0; index < indexExpressions.length; index++) {
-          const indexExpression: IIndexedExpression = indexExpressions[index];
-          if (symbolName.includes(indexExpression.expression)) {
-            // XYZZY FIXME:  this is how to remove index expressions
-            let adjSymbolName: string = symbolName.replace(indexExpression.expression, '').trim();
-            // now remove empty brackets which could have whitespace between them
-            adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
-            this._logSPIN(`  -- rptSPIN() C1 symbolName=[${symbolName}](${symbolName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
-            symbolName = adjSymbolName;
-            possNames[0] = adjSymbolName; // update possNames[0] to match
-            isIndexOverride = true; // set flag to true so we don't report index expression
-          }
-        }
-        //  --X1--------------------------------------------------------------------------------------------
-		//*/
-
         this._logSPIN(`  -- rptSPIN() FLOW assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length})`);
 
         // special code to handle case range strings:  [e.g., SEG_TOP..SEG_BOTTOM:]
