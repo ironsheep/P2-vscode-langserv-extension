@@ -5167,10 +5167,10 @@ export class Spin2DocumentSemanticParser {
             // BUGFIX remove indexExpression for later highlighting
             for (let index = 0; index < indexExpressions.length; index++) {
               const indexExpression: IIndexedExpression = indexExpressions[index];
-              if (variableName.includes(indexExpression.expression)) {
-                let adjSymbolName: string = variableName.replace(indexExpression.expression, '').trim();
-                // now remove empty brackets which could have whitespace between them
-                adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
+              const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+              const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
+              if (regex.test(variableName)) {
+                let adjSymbolName: string = variableName.replace(regex, '').trim();
                 // SPECIAL CASE
                 //  Ex:o.[2 addbits 5]  reduces to o.
                 //   Let's remove the trailing '.' as well
@@ -5364,6 +5364,7 @@ export class Spin2DocumentSemanticParser {
                 //const searchKey: string = namePart.toLowerCase();
                 //const isMethodNoParen: boolean = searchKey == 'return' || searchKey == 'abort';
                 // have unknown name!? is storage type spec?
+                const escapedNamePart: string = this.extensionUtils.escapeRegExp(namePart);
                 if (this.isStorageType(namePart)) {
                   this._logSPIN(`  -- rptSPIN() LHS storageType=[${namePart}]`);
                   this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -5375,7 +5376,7 @@ export class Spin2DocumentSemanticParser {
                   });
                 } else if (
                   this.parseUtils.isSpinBuiltinMethod(namePart) &&
-                  !new RegExp(`${namePart}\\s*\\(`).test(possibleVariableName) &&
+                  !new RegExp(`${escapedNamePart}\\s*\\(`).test(possibleVariableName) &&
                   !this.parseUtils.isSpinNoparenMethod(namePart)
                 ) {
                   // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
@@ -5736,11 +5737,10 @@ export class Spin2DocumentSemanticParser {
             // BUGFIX remove indexExpression for later highlighting
             for (let index = 0; index < indexExpressions.length; index++) {
               const indexExpression: IIndexedExpression = indexExpressions[index];
-              if (symbolName.includes(indexExpression.expression)) {
-                // XYZZY FIXME:  this is how to remove index expressions
-                let adjSymbolName: string = symbolName.replace(indexExpression.expression, '').trim();
-                // now remove empty brackets which could have whitespace between them
-                adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
+              const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+              const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
+              if (regex.test(symbolName)) {
+                const adjSymbolName: string = symbolName.replace(regex, '').trim();
                 this._logSPIN(`  -- rptSPIN() C1 symbolName=[${symbolName}](${symbolName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
                 symbolName = adjSymbolName;
                 possNames[0] = adjSymbolName; // update possNames[0] to match
@@ -5899,6 +5899,7 @@ export class Spin2DocumentSemanticParser {
                   });
                 } else {
                   const methodFollowString: string = multiLineSet.lineAt(symbolPosition.line).substring(nameOffset + namePart.length);
+                  const escapedNamePart: string = this.extensionUtils.escapeRegExp(namePart);
                   this._logSPIN(`  -- rptSPIN()-C methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
                   if (this.parseUtils.isSpinBuiltinMethod(namePart) && isMethodCall(methodFollowString)) {
                     this._logSPIN(`  --  override with method coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
@@ -5911,8 +5912,8 @@ export class Spin2DocumentSemanticParser {
                     });
                   } else if (
                     this.parseUtils.isFloatConversion(namePart) &&
-                    !new RegExp(`${namePart}\\s*\\(`).test(nonStringAssignmentRHSStr) &&
-                    new RegExp(`${namePart}\\s*\\(\\)`).test(nonStringAssignmentRHSStr)
+                    !new RegExp(`${escapedNamePart}\\s*\\(`).test(nonStringAssignmentRHSStr) &&
+                    new RegExp(`${escapedNamePart}\\s*\\(\\)`).test(nonStringAssignmentRHSStr)
                   ) {
                     // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('  (ABOVE LINEs)
                     this._logSPIN(`  -- rptSPIN() MISSING PARENS F1 name=[${namePart}]`);
@@ -5942,7 +5943,7 @@ export class Spin2DocumentSemanticParser {
                     });
                   } else if (
                     this.parseUtils.isSpinBuiltinMethod(namePart) &&
-                    !new RegExp(`${namePart}\\s*\\(`).test(nonStringAssignmentRHSStr) &&
+                    !new RegExp(`${escapedNamePart}\\s*\\(`).test(nonStringAssignmentRHSStr) &&
                     !this.parseUtils.isSpinNoparenMethod(namePart)
                   ) {
                     // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
@@ -7568,8 +7569,8 @@ export class Spin2DocumentSemanticParser {
             continue;
           }
           this._logMessage(`  -- rDbgStM() no-index newParameter=[${newParameter}](${newParameter.length})`);
-          const specialIndexTypeAccessRegEx = new RegExp(`${newParameter}\\s*\\[`);
-          //const specialIndexTypeAccessRegEx = new RegExp(`\\s*\\[`);
+          const escapedNewParameter = this.extensionUtils.escapeRegExp(newParameter);
+          const specialIndexTypeAccessRegEx = new RegExp(`${escapedNewParameter}\\s*\\[`);
           const bFoundAccessType: boolean = multiLineSet.line.slice(nameOffset).match(specialIndexTypeAccessRegEx) != null;
           // SPECIAL OVERRIDE Storage Type used as access override
           if (bFoundAccessType && this.parseUtils.isSpecialIndexType(newParameter)) {
@@ -8387,10 +8388,10 @@ export class Spin2DocumentSemanticParser {
           // XYZZY FIXME: iterate over all indexes returned
           for (let index = 0; index < indexExpressions.length; index++) {
             const indexExpression: IIndexedExpression = indexExpressions[index];
-            if (structInstanceName.includes(indexExpression.expression)) {
-              let adjSymbolName: string = structInstanceName.replace(indexExpression.expression, '').trim();
-              // now remove empty brackets which could have whitespace between them
-              adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
+            const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+            const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
+            if (regex.test(structInstanceName)) {
+              const adjSymbolName: string = structInstanceName.replace(regex, '').trim();
               this._logSPIN(
                 `  -- rptStruRef() A symbolName=[${structInstanceName}](${structInstanceName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`
               );
@@ -8508,10 +8509,10 @@ export class Spin2DocumentSemanticParser {
                   // XYZZY FIXME: iterate over all indexes returned
                   for (let index = 0; index < indexExpressions.length; index++) {
                     const indexExpression: IIndexedExpression = indexExpressions[index];
-                    if (memberName.includes(indexExpression.expression)) {
-                      let adjSymbolName: string = memberName.replace(indexExpression.expression, '').trim();
-                      // now remove empty brackets which could have whitespace between them
-                      adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
+                    const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+                    const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
+                    if (regex.test(memberName)) {
+                      const adjSymbolName: string = memberName.replace(regex, '').trim();
                       this._logSPIN(
                         `  -- rptStruRef() B symbolName=[${memberName}](${memberName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`
                       );
