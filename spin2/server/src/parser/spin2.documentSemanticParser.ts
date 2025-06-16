@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -5112,13 +5112,27 @@ export class Spin2DocumentSemanticParser {
         this._logSPIN(`  -- rptSPIN() LHS: varNameList=[${varNameList.join(', ')}](${varNameList.length})`);
         for (let index = 0; index < varNameList.length; index++) {
           let variableName: string = varNameList[index];
-          let haveIgnoreBuiltInSymbol: boolean = variableName === '_';
+          let haveIgnoreBuiltInSymbol: boolean = variableName === '_'; // ignore built-in symbols
           if (!haveIgnoreBuiltInSymbol) {
+            /*
+            // SPECIAL HANDLING:
+            //  Ex: _[x] - this is an ignore type size statement
+            const regexSkipSizeStatement = /^_\s*\[\s*.*?\s*\]$/;
+            if (regexSkipSizeStatement.test(variableName)) {
+              const removeSkipSizeWrap = /_\s*\[\s*(.*?)\s*\]/g;
+              const tmpVariableName: string = variableName.replace(removeSkipSizeWrap, '$1');
+              this._logSPIN(
+                `  -- rptSPIN() A skip size statement variableName=[${variableName}](${variableName.length}) -> [${tmpVariableName}](${tmpVariableName.length})`
+              );
+              variableName = tmpVariableName; // remove skip size statement
+			}
+			  //*/
+
             symbolPosition = multiLineSet.locateSymbol(variableName, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             this._logSPIN(`  -- rptSPIN() process variableName=[${variableName}](${variableName.length}), ofs=(${nameOffset})`);
           }
-          // FIXME: TODO: needs code to process index suff here..
+          // FIXME: TODO: needs code to process index stuff here..
 
           // Ex: m.cmds[motor].cmd[m.head[motor]]  is varNameList.length == 1
           if (!haveIgnoreBuiltInSymbol && this._isPossibleStructureReference(variableName, symbolPosition.line)) {
@@ -5166,7 +5180,7 @@ export class Spin2DocumentSemanticParser {
               }
             }
             this._logSPIN(
-              `  -- rptSPIN() hold index value highlight memberName=[${variableName}] [${indexExpressions.join(', ')}](${indexExpressions.length})`
+              `  -- rptSPIN() hold index value highlight memberName=[${variableName}] [${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length})`
             );
           }
 
@@ -5413,25 +5427,25 @@ export class Spin2DocumentSemanticParser {
                 currSingleLineOffset = nameOffset + namePart.length;
               }
             }
-            if (indexExpressions.length > 0) {
-              // XYZZY
-              // Iterate over all indexExpressions
-              let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
-              for (let index = 0; index < indexExpressions.length; index++) {
-                const indexExpression: IIndexedExpression = indexExpressions[index];
-                indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
-                this._logMessage(
-                  `  -- rptSPIN() B indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
-                );
-                /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(
-                  indexExpression.expression,
-                  indexExpressionPosn.line,
-                  indexExpressionPosn.character,
-                  multiLineSet.line,
-                  tokenSet
-                );
-                currSingleLineOffset += indexExpression.expression.length;
-              }
+          }
+          if (indexExpressions.length > 0) {
+            // XYZZY
+            // Iterate over all indexExpressions
+            let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+            for (let index = 0; index < indexExpressions.length; index++) {
+              const indexExpression: IIndexedExpression = indexExpressions[index];
+              indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
+              this._logMessage(
+                `  -- rptSPIN() B indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
+              );
+              /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(
+                indexExpression.expression,
+                indexExpressionPosn.line,
+                indexExpressionPosn.character,
+                multiLineSet.line,
+                tokenSet
+              );
+              currSingleLineOffset += indexExpression.expression.length;
             }
           }
         }

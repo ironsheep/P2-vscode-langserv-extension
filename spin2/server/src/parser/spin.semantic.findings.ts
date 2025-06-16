@@ -1923,9 +1923,9 @@ export class DocumentFindings {
     if (methodName) {
       desiredToken = this.methodLocalTokens.getTokenForMethod(methodName, tokenName);
       if (desiredToken !== undefined) {
-        this._logMessage(`  -- FND-locTOK ln#${lineNbr} method=[${methodName}], ` + this._rememberdTokenString(tokenName, desiredToken));
+        this._logMessage(`  -- FND-locTOK ln#${lineNbr} method=[${methodName}], [${this._rememberdTokenString(tokenName, desiredToken)}]`);
       } else {
-        this._logMessage(`  -- FAILED to FND-locTOK ln#${lineNbr} method=[${methodName}], ` + tokenName);
+        this._logMessage(`  -- FAILED to FND-locTOK ln#${lineNbr} method=[${methodName}], token=[${tokenName}]`);
       }
     } else {
       this._logMessage(`  -- FAILED to FND-locTOK no method found for ln#${lineNbr} token=[${tokenName}]`);
