@@ -5511,10 +5511,20 @@ export class Spin2DocumentSemanticParser {
       let symbolName: string = '';
       const nonStringAssignmentRHSStr: string = lineInfo.lineNoQuotes;
       if (possNames.length > 0) {
-        const tmpPossNames: string[] = possNames.filter((name) => !this.parseUtils.isSpin2ControlFlowKeyword(name));
+        const tmpPossNames: string[] = [];
+        let removedLength: number = 0;
+        for (let index = 0; index < possNames.length; index++) {
+          const name = possNames[index];
+          if (this.parseUtils.isSpin2ControlFlowKeyword(name)) {
+            removedLength += name.length;
+          } else {
+            tmpPossNames.push(name);
+          }
+        }
         if (possNames.length != tmpPossNames.length) {
           this._logSPIN(`  -- rptSPIN() possNames=[${possNames}](${possNames.length}) --> [${tmpPossNames}](${tmpPossNames.length})`);
           possNames = tmpPossNames;
+          currSingleLineOffset += removedLength; // adjust offset to skip over removed keywords
         }
       }
       if (possNames.length == 0) {
