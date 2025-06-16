@@ -5171,6 +5171,12 @@ export class Spin2DocumentSemanticParser {
                 let adjSymbolName: string = variableName.replace(indexExpression.expression, '').trim();
                 // now remove empty brackets which could have whitespace between them
                 adjSymbolName = adjSymbolName.replace(/\[\s*\]/, '').trim();
+                // SPECIAL CASE
+                //  Ex:o.[2 addbits 5]  reduces to o.
+                //   Let's remove the trailing '.' as well
+                if (adjSymbolName.endsWith('.')) {
+                  adjSymbolName = adjSymbolName.substring(0, adjSymbolName.length - 1);
+                }
                 this._logSPIN(`  -- rptSPIN() A symbolName=[${variableName}](${variableName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
                 variableName = adjSymbolName;
                 isIndexOverride = true; // set flag to true so we don't report index expression
@@ -8247,15 +8253,17 @@ export class Spin2DocumentSemanticParser {
             continue; // just skip this name which is just number range
           }
         }
-        this._logDEBUG(`  -- rptSPINIdxExpr() namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
         if (namePart.length > 0) {
           // handle named index value, constant, structure or object reference
+          nameOffset = line.indexOf(namePart, nameOffset);
+          this._logSPIN(`  -- rptSPINIdxExpr() namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
           // handle structure or object instance names
           if (namePart.includes('.')) {
             let bHaveObjReference: boolean = this._isPossibleObjectReference(namePart);
             if (bHaveObjReference) {
               bHaveObjReference = this._reportObjectReference(namePart, lineIdx, nameOffset, line, tokenSet);
               if (bHaveObjReference) {
+                nameOffset += namePart.length;
                 continue;
               }
             }
@@ -8269,6 +8277,7 @@ export class Spin2DocumentSemanticParser {
                     `  -- rptSPINIdxExpr(  ERROR?! [${refString}](${refString.length}) is only part of [${namePart}](${namePart.length}), how to handle the rest?`
                   );
                 }
+                nameOffset += refString.length;
                 continue;
               }
             }
@@ -8285,6 +8294,14 @@ export class Spin2DocumentSemanticParser {
               ptTokenType: 'number',
               ptTokenModifiers: []
             });
+            nameOffset += namePart.length;
+            continue;
+          } else if (
+            this.parseUtils.isBinaryOperator(namePart) ||
+            this.parseUtils.isUnaryOperator(namePart) ||
+            this.parseUtils.isFloatConversion(namePart)
+          ) {
+            // handle case when 'addbits' and its ilk are used in index expression
             nameOffset += namePart.length;
             continue;
           } else {
@@ -8844,7 +8861,7 @@ export class Spin2DocumentSemanticParser {
         }
       }
     }
-    this._logSPIN(`  --  getIdxExpr([${line}]) -> exStr=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length})`);
+    this._logSPIN(`   ---  getIdxExpr([${line}]) -> exStr=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length})`);
     return indexExpressions;
   }
 
