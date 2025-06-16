@@ -620,36 +620,40 @@ export class DocumentFindings {
     // record a new diagnostic message
     // NEW if is for disabled line, ignore it!
     const lineNbr: number = lineIdx + 1;
-    if (!this.preProcIsLineDisabled(lineNbr)) {
-      let severityStr: string = '??severity??';
-      if (this.isDebugLogEnabled) {
-        switch (severity) {
-          case eSeverity.Error: {
-            severityStr = 'ERROR';
-            break;
-          }
-          case eSeverity.Warning: {
-            severityStr = 'WARNING';
-            break;
-          }
-          case eSeverity.Hint: {
-            severityStr = 'HINT';
-            break;
-          }
-          case eSeverity.Information: {
-            severityStr = 'INFORMATION';
-            break;
+    if (lineIdx !== undefined && lineIdx != -1 && startChar != -1 && endChar != -1) {
+      if (!this.preProcIsLineDisabled(lineNbr)) {
+        let severityStr: string = '??severity??';
+        if (this.isDebugLogEnabled) {
+          switch (severity) {
+            case eSeverity.Error: {
+              severityStr = 'ERROR';
+              break;
+            }
+            case eSeverity.Warning: {
+              severityStr = 'WARNING';
+              break;
+            }
+            case eSeverity.Hint: {
+              severityStr = 'HINT';
+              break;
+            }
+            case eSeverity.Information: {
+              severityStr = 'INFORMATION';
+              break;
+            }
           }
         }
+        if (startChar == -1 || endChar == -1) {
+          this._logMessage(`ERROR(BAD) DIAGNOSIS SKIPPED - ${severityStr}(${lineIdx + 1})[${startChar} - ${endChar}]: [${message}]`);
+        } else {
+          const location: Range = Range.create(lineIdx, startChar, lineIdx, endChar);
+          const diagnosis: DiagnosticReport = new DiagnosticReport(message, severity, location);
+          this.diagnosticMessages.push(diagnosis);
+          this._logMessage(`Add DIAGNOSIS - ${severityStr}(${lineIdx + 1})[${startChar}-${endChar}]: [${message}]`);
+        }
       }
-      if (startChar == -1 || endChar == -1) {
-        this._logMessage(`ERROR(BAD) DIAGNOSIS SKIPPED - ${severityStr}(${lineIdx + 1})[${startChar} - ${endChar}]: [${message}]`);
-      } else {
-        const location: Range = Range.create(lineIdx, startChar, lineIdx, endChar);
-        const diagnosis: DiagnosticReport = new DiagnosticReport(message, severity, location);
-        this.diagnosticMessages.push(diagnosis);
-        this._logMessage(`Add DIAGNOSIS - ${severityStr}(${lineIdx + 1})[${startChar}-${endChar}]: [${message}]`);
-      }
+    } else {
+      this._logMessage(`   --- pushDiagMsg() Error: ln#${lineIdx + 1} [${startChar} - ${endChar}]: [${message}]`);
     }
   }
 
