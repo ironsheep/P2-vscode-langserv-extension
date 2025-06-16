@@ -331,6 +331,12 @@ export class ExtensionUtils {
     return [unmatchedCloseStatus, matchOffset];
   }
 
+  public escapeRegExp(str: string) {
+    // escap internal string for use in RegExp
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#escaping
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   public getStringPairOffsets(line: string): IPairs[] {
     const findings: IPairs[] = this._getPairOffsetsOfChar(line, '"');
     this._showPairsForChar(findings, '"');
