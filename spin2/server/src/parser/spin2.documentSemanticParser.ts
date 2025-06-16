@@ -50,12 +50,6 @@ interface IFilteredStrings {
   lineParts: string[];
 }
 
-/*
-enum eSpin2Directive {
-  Unknown = 0,
-  s2dDebugDisplayForLine
-}
-*/
 interface ISpin2Directive {
   lineNumber: number;
   displayType: string;
@@ -268,6 +262,7 @@ export class Spin2DocumentSemanticParser {
 			`  -- pre-scan Ln#${lineNbr} CHK3 line2Proc=(${bHaveLineToProcess}), continued=(${isLineContinued}), nonStringLine=[${nonStringLine}](${nonStringLine.length})`
 		  );
 		  //*/
+
       // NOTE: comment mid-line set a pending state so next line uses the new state
       // special blocks of doc-comment and non-doc comment lines handling
       // if we have comment in progress but not another comment line, close comment being built!
@@ -2158,18 +2153,6 @@ export class Spin2DocumentSemanticParser {
         let labelModifiers: string[] = ['declaration'];
         if (!isNamedDataDeclarationLine) {
           // have label...
-          /*
-          if (newName.startsWith(':')) {
-            const offset: number = line.indexOf(newName, startingOffset);
-            labelModifiers = ['illegalUse', 'declaration', 'static'];
-            this.semanticFindings.pushDiagnosticMessage(
-              lineNbr - 1,
-              offset,
-              offset + newName.length,
-              eSeverity.Error,
-              `P1 pasm local name [${newName}] not supported in P2 pasm`
-            );
-          }*/
           // .name and :name are now both static labels
           if (newName.startsWith('.') || newName.startsWith(':')) {
             labelModifiers = ['declaration', 'static'];
@@ -5504,29 +5487,12 @@ export class Spin2DocumentSemanticParser {
       symbolPosition = multiLineSet.locateSymbol(assignmentRHSStr, currSingleLineOffset);
       nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
       currSingleLineOffset = nameOffset;
-      //currSingleLineOffset = multiLineSet.lineAt(symbolPosition.line).indexOf(assignmentRHSStr, currSingleLineOffset);
       const KEEP_PACKED_CONSTANTS: boolean = true;
       const lineInfo: IFilteredStrings = this._getNonWhiteSpinLinePartsNonArray(preCleanAssignmentRHSStr, KEEP_PACKED_CONSTANTS);
-      let possNames: string[] = lineInfo.lineParts;
+      const possNames: string[] = lineInfo.lineParts;
       let symbolName: string = '';
       const nonStringAssignmentRHSStr: string = lineInfo.lineNoQuotes;
-      if (possNames.length > 0) {
-        const tmpPossNames: string[] = [];
-        let removedLength: number = 0;
-        for (let index = 0; index < possNames.length; index++) {
-          const name = possNames[index];
-          if (this.parseUtils.isSpin2ControlFlowKeyword(name)) {
-            removedLength += name.length;
-          } else {
-            tmpPossNames.push(name);
-          }
-        }
-        if (possNames.length != tmpPossNames.length) {
-          this._logSPIN(`  -- rptSPIN() possNames=[${possNames}](${possNames.length}) --> [${tmpPossNames}](${tmpPossNames.length})`);
-          possNames = tmpPossNames;
-          currSingleLineOffset += removedLength; // adjust offset to skip over removed keywords
-        }
-      }
+
       if (possNames.length == 0) {
         this._logSPIN(`  -- rptSPIN() ERROR! =[${possNames}](${possNames.length})`);
       } else {
@@ -5534,21 +5500,7 @@ export class Spin2DocumentSemanticParser {
         symbolName = possNames[0];
       }
 
-      /*
-      if (countOfIndexExpressions > 1) {
-        // split the satement into parts by splitting left and right brackets, remove empty elements
-        // lastly remove possNames[0] and inject the list of parts in it's place
-        this._logSPIN(`  -- rptSPIN() multiple index expressions found, countOfIndexExpressions=(${countOfIndexExpressions})`);
-        const indexParts: string[] = symbolName.split(/[[\]]/).filter((part) => part.trim() !== '');
-        this._logSPIN(`  -- rptSPIN() indexParts=[${indexParts.join(', ')}](${indexParts.length})`);
-        possNames.splice(0, 1, ...indexParts); // replace possNames[0] with indexParts
-        indexExpression = ''; // reset indexExpression so it doesn't get used later
-        symbolName = possNames[0];
-      } else {
-      }
-      //
       //  ------------------------------------------------------------------------------------------------
-	  */
       // SPECIAL case: handle case statements of value:instruction
       symbolPosition = multiLineSet.locateSymbol(symbolName, currSingleLineOffset);
       nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -5646,6 +5598,10 @@ export class Spin2DocumentSemanticParser {
             continue;
           } else if (paramIsSymbolName) {
             this._logSPIN(`  -- rptSPIN() symbol namePart=[${namePart}]`);
+            if (this.parseUtils.isSpin2ControlFlowKeyword(namePart)) {
+              currSingleLineOffset = nameOffset + namePart.length;
+              continue; // skip control flow keywords
+            }
             offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(namePart, offsetInNonStringRHS);
             let bHaveObjReference: boolean = false;
             if (namePart.includes('.')) {
@@ -6735,93 +6691,6 @@ export class Spin2DocumentSemanticParser {
             /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(indexExpression, lineIdx, statementOffset, line, tokenSet);
           }
         }
-      } else {
-        /*
-        // NEW: update to handle multiple declaration on a single line
-        this._logVAR(`  -- GLBL rvdl2 SPLIT lineParts=[${lineParts.join(',')}](${lineParts.length})`);
-        let nameSet: string[] = [lineParts[0]];
-        if (lineParts[0].includes('[')) {
-          nameSet = lineParts[0].split(/[[\]}]/).filter(Boolean);
-        }
-        let newName: string = nameSet[0];
-        let typeName: string = '';
-        if (newName.includes(' ')) {
-          nameSet = lineParts[0].split(/ \t/).filter(Boolean);
-          if (nameSet.length > 1) {
-            typeName = nameSet[0];
-            newName = nameSet[1];
-          }
-        }
-        this._logVAR(`  -- GLBL rvdl2 SPLIT2 typeName=[${typeName}], newName=[${newName}`);
-        if (typeName.length > 0 && this.isStorageType(typeName)) {
-          const nameOffset: number = line.indexOf(typeName, currentOffset);
-          this._logMessage(`  -- have Storage type! typeName=[${typeName}], ofs=(${nameOffset})`);
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: typeName.length,
-            ptTokenType: 'storageType',
-            ptTokenModifiers: []
-          });
-          if (this.parseUtils.requestedSpinVersion(45) && this.semanticFindings.isStructure(typeName)) {
-            // at v45, we allow structures as types for local vars!
-            this.semanticFindings.recordStructureInstance(typeName, newName); // VAR
-          }
-        }
-        if (newName !== undefined && this.parseUtils.isValidSpinSymbolName(newName)) {
-          this._logVAR(`  -- GLBL rvdl2 newName=[${newName}]`);
-          const nameOffset: number = line.indexOf(newName, currentOffset);
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: newName.length,
-            ptTokenType: 'variable',
-            ptTokenModifiers: ['declaration', 'instance']
-          });
-        }
-        if (nameSet.length > 1) {
-          // process remaining names is it only one size constant?
-          newName = nameSet[1];
-          this._logVAR(`  -- GLBL rvdl2 remaining newName=[${newName}]`);
-          if (this.semanticFindings.isGlobalToken(newName)) {
-            const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(newName);
-            const searchString: string = newName;
-            const nameOffset = line.indexOf(searchString, currentOffset);
-            if (referenceDetails !== undefined) {
-              this._logVAR('  --  FOUND global name=[' + newName + ']');
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: newName.length,
-                ptTokenType: referenceDetails.type,
-                ptTokenModifiers: referenceDetails.modifiers
-              });
-            } else {
-              // we don't have name registered so just mark it
-              if (
-                !this.parseUtils.isSpinReservedWord(newName) &&
-                !this.parseUtils.isBuiltinStreamerReservedWord(newName) &&
-                !this.parseUtils.isDebugMethod(newName)
-              ) {
-                this._logVAR('  --  VAR Add MISSING name=[' + newName + ']');
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: newName.length,
-                  ptTokenType: 'variable',
-                  ptTokenModifiers: ['missingDeclaration']
-                });
-                this.semanticFindings.pushDiagnosticMessage(
-                  lineIdx,
-                  nameOffset,
-                  nameOffset + newName.length,
-                  eSeverity.Error,
-                  `P2 Spin VAR B missing declaration [${newName}]`
-                );
-              }
-            }
-          }
-        }*/
       }
     }
     return tokenSet;
