@@ -5078,13 +5078,15 @@ export class Spin2DocumentSemanticParser {
         assignmentOffset = -1; // no assignment here!
         this._logSPIN(`  -- rptSPIN() BUGFIX: found control flow [${multiLineSet.line}](${multiLineSet.line.length}) NOT Assignment!`);
       }
+      //*
+      assignmentOffset = -1; // XYZZY  TEST  disable this path for now...
       if (assignmentOffset != -1) {
         // -------------------------------------------
         // have line assigning value to variable(s)
         //  Process LHS side of this assignment
         // -------------------------------------------
         const possibleVariableName = multiLineSet.line.substring(0, assignmentOffset).trim();
-        this._logSPIN(`  -- rptSPIN() FLOW LHS: possibleVariableName=[${possibleVariableName}](${possibleVariableName.length})`);
+        this._logSPIN(`  -- rptSPIN() FLOW Assign-LHS: possibleVariableName=[${possibleVariableName}](${possibleVariableName.length})`);
         let varNameList: string[] = [possibleVariableName];
         let filteredLine: string = possibleVariableName;
 
@@ -5114,7 +5116,7 @@ export class Spin2DocumentSemanticParser {
           let variableName: string = varNameList[index];
           let haveIgnoreBuiltInSymbol: boolean = variableName === '_'; // ignore built-in symbols
           if (!haveIgnoreBuiltInSymbol) {
-            /*
+            //*
             // SPECIAL HANDLING:
             //  Ex: _[x] - this is an ignore type size statement
             const regexSkipSizeStatement = /^_\s*\[\s*.*?\s*\]$/;
@@ -5125,8 +5127,8 @@ export class Spin2DocumentSemanticParser {
                 `  -- rptSPIN() A skip size statement variableName=[${variableName}](${variableName.length}) -> [${tmpVariableName}](${tmpVariableName.length})`
               );
               variableName = tmpVariableName; // remove skip size statement
-			}
-			  //*/
+            }
+            //*
 
             symbolPosition = multiLineSet.locateSymbol(variableName, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -5158,10 +5160,9 @@ export class Spin2DocumentSemanticParser {
           let indexExpressions: IIndexedExpression[] = [];
           let isIndexOverride: boolean = false;
           if (variableName.includes('[') && variableName.includes(']')) {
-            // yes remove array suffix
+            // yes remove index elemeents from name
             indexExpressions = this._getIndexExpressions(variableName);
             // Iterate over all indexes returned
-            // BUGFIX remove indexExpression for later highlighting
             for (let index = 0; index < indexExpressions.length; index++) {
               const indexExpression: IIndexedExpression = indexExpressions[index];
               const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
@@ -5179,9 +5180,6 @@ export class Spin2DocumentSemanticParser {
                 isIndexOverride = true; // set flag to true so we don't report index expression
               }
             }
-            this._logSPIN(
-              `  -- rptSPIN() hold index value highlight memberName=[${variableName}] [${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length})`
-            );
           }
 
           //
@@ -5234,6 +5232,7 @@ export class Spin2DocumentSemanticParser {
                 );
                 currSingleLineOffset += indexExpression.expression.length;
               }
+              indexExpressions = []; // reset so we don't report again
             }
             continue;
           }
@@ -5355,7 +5354,7 @@ export class Spin2DocumentSemanticParser {
                     );
                     currSingleLineOffset += indexExpression.expression.length;
                   }
-                  indexExpressions = [];
+                  indexExpressions = []; // reset so we don't report again
                 }
               } else {
                 //const searchKey: string = namePart.toLowerCase();
@@ -5438,7 +5437,7 @@ export class Spin2DocumentSemanticParser {
               this._logMessage(
                 `  -- rptSPIN() B indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
               );
-              /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(
+              const tmpNameOffset = this._reportSPIN_IndexExpression(
                 indexExpression.expression,
                 indexExpressionPosn.line,
                 indexExpressionPosn.character,
@@ -5447,15 +5446,19 @@ export class Spin2DocumentSemanticParser {
               );
               currSingleLineOffset += indexExpression.expression.length;
             }
+            indexExpressions = []; // reset so we don't report again
           }
         }
         currSingleLineOffset = assignmentOffset + 2;
       }
+      //*/
+
       // -------------------------------------------
       // could be line with RHS of assignment or a
       //  line with no assignment (process it)
       // -------------------------------------------
-      const lineType: string = assignmentOffset != -1 ? 'RHS' : 'non-assign';
+      const lineType: string = assignmentOffset != -1 ? 'Assign-RHS' : 'NON-Assign';
+      //const lineType: string = 'NO-MORE-ASSIGN';
       this._logSPIN(
         `  -- rptSPIN() FLOW LineEnd [${lineType}] line=[${multiLineSet.line}](${multiLineSet.line.length}), cslofs=(${currSingleLineOffset})`
       );
@@ -5468,49 +5471,22 @@ export class Spin2DocumentSemanticParser {
       if (assignmentRHSStr.length == 0) {
         return tokenSet; // XYZZY 002
       }
-      const dotOffset: number = assignmentRHSStr.indexOf('.');
-      const spaceOffset: number = assignmentRHSStr.indexOf(' ');
-      const tabOffset: number = assignmentRHSStr.indexOf('\t');
-      // return lowest bracket offset, if it's not -1 we have a bracket pair
-      const ltBbracketOffset: number = assignmentRHSStr.indexOf('[');
-      const rtBbracketOffset: number = assignmentRHSStr.indexOf(']');
-      const havePossIndex: boolean = ltBbracketOffset != -1 && rtBbracketOffset != -1 && ltBbracketOffset < rtBbracketOffset;
-      // return T/F where T means there are parens
-      const ltParenOffset: number = assignmentRHSStr.indexOf('(');
-      const rtParenOffset: number = assignmentRHSStr.indexOf(')');
-      const haveParens: boolean = ltParenOffset != -1 || rtParenOffset != -1;
-      // return offset to first non-white space or -1 if none
-      const whiteOffset: number = spaceOffset > tabOffset ? spaceOffset : tabOffset;
-      const hasWhite: boolean = whiteOffset != -1;
-      // we have a single element if we have "." with "[" and "[" is before "."
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
-      let singleElement: boolean = dotOffset != -1 && ltBbracketOffset != -1 && dotOffset > ltBbracketOffset ? true : false;
-      if (singleElement && hasWhite && ltParenOffset != -1 && ltParenOffset > whiteOffset) {
-        // if whitespace before paren we have white in statement vs in parameter list
-        singleElement = false;
-      }
-      if (singleElement && hasWhite && !haveParens) {
-        // if whitespace without parens we have white in statement
-        singleElement = false;
-      }
-      this._logSPIN(
-        `  -- rptSPIN() assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), singleElement=(${singleElement}), cslofs=(${currSingleLineOffset})`
-      );
+      this._logSPIN(`  -- rptSPIN() assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), cslofs=(${currSingleLineOffset})`);
       // Ex: m.head[motor].[encod cmdcount - 1..0]++  // this is structure with trailing bitfield index
       symbolPosition = multiLineSet.locateSymbol(assignmentRHSStr, currSingleLineOffset);
       nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
       currSingleLineOffset = nameOffset;
       const KEEP_PACKED_CONSTANTS: boolean = true;
       const lineInfo: IFilteredStrings = this._getNonWhiteSpinLinePartsNonArray(preCleanAssignmentRHSStr, KEEP_PACKED_CONSTANTS);
-      const possNames: string[] = lineInfo.lineParts;
+      let possNames: string[] = lineInfo.lineParts;
       let symbolName: string = '';
       const nonStringAssignmentRHSStr: string = lineInfo.lineNoQuotes;
 
       if (possNames.length == 0) {
         this._logSPIN(`  -- rptSPIN() ERROR! =[${possNames}](${possNames.length})`);
       } else {
-        this._logSPIN(`  -- rptSPIN() B1 possNames=[${possNames}](${possNames.length})`);
+        this._logSPIN(`  -- rptSPIN() assignmentRHSStr possNames=[${possNames}](${possNames.length})`);
         symbolName = possNames[0];
       }
 
@@ -5539,7 +5515,7 @@ export class Spin2DocumentSemanticParser {
             structRefOffset = preCleanAssignmentRHSStr.indexOf(refString);
             preCleanAssignmentRHSStr = preCleanAssignmentRHSStr.substring(structRefOffset + refString.length); // this gets used after the following object test
             this._logSPIN(
-              `  -- rptSPIN() AFTER StructREF assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), singleElement=(${singleElement}), preCleanAssignmentRHSStr=[${preCleanAssignmentRHSStr}](${preCleanAssignmentRHSStr.length})`
+              `  -- rptSPIN() AFTER StructREF assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), preCleanAssignmentRHSStr=[${preCleanAssignmentRHSStr}](${preCleanAssignmentRHSStr.length})`
             );
           }
         }
@@ -5563,12 +5539,18 @@ export class Spin2DocumentSemanticParser {
             assignmentRHSStr = assignmentRHSStr.substring(objRefOffset + symbolName.length);
             const objRefOffset2: number = preCleanAssignmentRHSStr.indexOf(symbolName);
             preCleanAssignmentRHSStr = preCleanAssignmentRHSStr.substring(objRefOffset2 + symbolName.length);
+            if (possNames.includes(symbolName)) {
+              // remove object reference from possNames
+              possNames = possNames.filter((name) => name !== symbolName);
+            }
+            currSingleLineOffset += symbolName.length; // adjust offset to end of object reference
           }
         }
       }
-      let indexExpressions: IIndexedExpression[] = [];
+
       if (assignmentRHSStr.length > 0) {
-        this._logSPIN(`  -- rptSPIN() FLOW assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length})`);
+        // ----- rptSPIN() FLOW RHS-START assignmentRHSStr -----
+        this._logSPIN(`  -- rptSPIN() FLOW RHS-start assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length})`);
 
         // special code to handle case range strings:  [e.g., SEG_TOP..SEG_BOTTOM:]
         //const isCaseValue: boolean = assignmentRHSStr.endsWith(':');
@@ -5576,23 +5558,141 @@ export class Spin2DocumentSemanticParser {
         //    possNames = possNames[0].split("..");
         //}
 
-        this._logSPIN(`  -- rptSPIN() C2 possNames=[${possNames}](${possNames.length})`);
         const bIsDebugLine: boolean = haveDebugLine(nonStringAssignmentRHSStr);
         const assignmentStringOffset = currSingleLineOffset;
         this._logSPIN(`  -- rptSPIN() assignmentStringOffset=[${assignmentStringOffset}], bIsDebugLine=(${bIsDebugLine})`);
-        let offsetInNonStringRHS = 0;
-        this._logSPIN(
-          `  -- rptSPIN() Multi upper loop start possNames=[${possNames.join(', ')}](${possNames.length}), cslofs=(${currSingleLineOffset})`
-        );
+        //let offsetInNonStringRHS = 0;
+        this._logSPIN(`  -- rptSPIN() FLOW Loop start possNames=[${possNames.join(', ')}](${possNames.length}), cslofs=(${currSingleLineOffset})`);
         for (let index = 0; index < possNames.length; index++) {
           let namePart = possNames[index];
+          const haveIgnoreBuiltInSymbol: boolean = namePart === '_'; // ignore built-in symbols
+          if (haveIgnoreBuiltInSymbol) {
+            currSingleLineOffset += 1; // skip over the underscore
+            continue; // skip this name
+          } else if (namePart.startsWith('_')) {
+            // ignore built-in symbols{
+            // SPECIAL HANDLING:
+            //  Ex: _[x] - this is an ignore type size statement
+            const regexSkipSizeStatement = /^_\s*\[\s*.*?\s*\]$/;
+            if (regexSkipSizeStatement.test(namePart)) {
+              const removeSkipSizeWrap = /_\s*\[\s*(.*?)\s*\]/g;
+              const tmpVariableName: string = namePart.replace(removeSkipSizeWrap, '$1');
+              this._logSPIN(
+                `  -- rptSPIN() A skip size statement namePart=[${namePart}](${namePart.length}) -> [${tmpVariableName}](${tmpVariableName.length})`
+              );
+              namePart = tmpVariableName; // remove skip size statement
+            }
+          }
+
           symbolPosition = multiLineSet.locateSymbol(namePart, currSingleLineOffset);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+
           // special code to handle case of var.[bitfield] leaving name a 'var.'
           if (namePart.endsWith('.')) {
             namePart = namePart.substr(0, namePart.length - 1);
           }
-          this._logSPIN(`  -- rptSPIN() upper raw name=[${namePart}](${namePart.length}), ofs=(${nameOffset}) [${index + 1} of ${possNames.length}]`);
+          this._logSPIN(`  -- rptSPIN() raw name=[${namePart}](${namePart.length}), ofs=(${nameOffset}) [${index + 1} of ${possNames.length}]`);
+          let indexExpressions: IIndexedExpression[] = [];
+          let bFoundStructureRef: boolean = false;
+          let bFoundObjRef: boolean = false;
+          let possStorageType: string = '';
+          if (namePart.includes('.')) {
+            // handle structure reference or object reference first
+            bFoundStructureRef = this._isPossibleStructureReference(namePart, symbolPosition.line);
+            if (bFoundStructureRef) {
+              const [bHaveStructReference, refString] = this._reportStructureReference(
+                namePart,
+                symbolPosition.line,
+                symbolPosition.character,
+                multiLineSet.lineAt(symbolPosition.line),
+                tokenSet
+              );
+              this._logSPIN(`  -- rptSPIN() bHaveStructReference=(${bHaveStructReference}), refString=[${refString}](${refString.length})`);
+              bFoundStructureRef = bHaveStructReference;
+              if (bHaveStructReference) {
+                // TODO: remove structure part from remainder of line and process the remainder
+                currSingleLineOffset += refString.length; // adjust offset to end of struct reference
+                if (namePart !== refString) {
+                  namePart = namePart.replace(refString, '').trim();
+                } else {
+                  continue;
+                }
+              }
+            } else {
+              // SPECIAL Ex: digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
+              // SPECIAL Ex: scroller[scrollerIndex].initialize()
+              bFoundObjRef = this._isPossibleObjectReference(namePart);
+              if (bFoundObjRef) {
+                // go register object reference!
+                // XYZZY poss crash
+                bFoundObjRef = this._reportObjectReference(
+                  namePart,
+                  symbolPosition.line,
+                  symbolPosition.character,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  tokenSet
+                );
+                if (bFoundObjRef) {
+                  // remove object reference from assignmentRHSStr
+                  const objRefOffset: number = assignmentRHSStr.indexOf(namePart);
+                  assignmentRHSStr = assignmentRHSStr.substring(objRefOffset + namePart.length);
+                  const objRefOffset2: number = preCleanAssignmentRHSStr.indexOf(namePart);
+                  preCleanAssignmentRHSStr = preCleanAssignmentRHSStr.substring(objRefOffset2 + namePart.length);
+                  currSingleLineOffset = nameOffset + namePart.length; // adjust offset to end of object reference
+                  continue;
+                }
+              }
+            }
+            if (!bFoundObjRef && !bFoundStructureRef) {
+              // still have '.' in namePart, so handle it
+              //   have a 'byte' of hub-address.byte
+              //   have a 'word' of hub-address.word
+              //   have a 'long' of hub-address.long
+              const varNameParts: string[] = namePart.split(/[.[]/);
+              if (varNameParts.length > 1) {
+                if (this.parseUtils.isDatStorageType(varNameParts[1])) {
+                  possStorageType = varNameParts[1];
+                  this._logSPIN(
+                    `  -- rptSPIN() still DOT varNameParts=[${varNameParts}](${varNameParts.length}), possStorageType=[${possStorageType}](${possStorageType.length})`
+                  );
+                }
+              }
+            }
+          }
+          // handle index expressions, if any
+          if (namePart.includes('[') && namePart.includes(']')) {
+            // yes remove index elemeents from name
+            indexExpressions = this._getIndexExpressions(namePart);
+            // Iterate over all indexes returned
+            for (let index = 0; index < indexExpressions.length; index++) {
+              const indexExpression: IIndexedExpression = indexExpressions[index];
+              const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+              const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
+              if (regex.test(namePart)) {
+                let adjSymbolName: string = namePart.replace(regex, '').trim();
+                // SPECIAL CASE
+                //  Ex:o.[2 addbits 5]  reduces to o.
+                //   Let's remove the trailing '.' as well
+                if (adjSymbolName.endsWith('.')) {
+                  adjSymbolName = adjSymbolName.substring(0, adjSymbolName.length - 1);
+                }
+                this._logSPIN(
+                  `  -- rptSPIN() Remove-Index symbolName=[${namePart}](${namePart.length}) -> [${adjSymbolName}](${adjSymbolName.length})`
+                );
+                namePart = adjSymbolName;
+              }
+            }
+          }
+          // if hubVar.{type} then remove type
+          if (possStorageType.length > 0) {
+            const regex = new RegExp(`\\.${possStorageType}`);
+            if (regex.test(namePart)) {
+              const adjSymbolName: string = namePart.replace(regex, '').trim();
+              this._logSPIN(`  -- rptSPIN() A1 symbolName=[${namePart}](${namePart.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
+              namePart = adjSymbolName;
+            }
+          }
+
           // special code to handle case of @pasmName leaving name a 'var.'
           //if (namePart.startsWith("@")) {
           //  namePart = namePart.substring(1); // remove leading char
@@ -5616,7 +5716,29 @@ export class Spin2DocumentSemanticParser {
               currSingleLineOffset = nameOffset + namePart.length;
               continue; // skip control flow keywords
             }
-            offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(namePart, offsetInNonStringRHS);
+            // if structure type with indexes then re-color it
+            if (this.parseUtils.isSpecialIndexType(namePart) && indexExpressions.length > 0) {
+              // have a 'reg' of reg[cog-address][index]
+              // have a 'byte' of byte[hub-address][index]
+              // have a 'word' of word[hub-address][index]
+              // have a 'long' of long[hub-address][index]
+              this._logSPIN(`  -- rptSPIN() B indexType=[${namePart}], ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: nameOffset,
+                length: namePart.length,
+                ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
+                ptTokenModifiers: ['builtin']
+              });
+              //currSingleLineOffset = nameOffset + namePart.length;
+              currSingleLineOffset = nameOffset + namePart.length;
+              this._logSPIN(
+                `  -- rptSPIN() DEBUG NAME cslofs=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), namePart.length=(${namePart.length})`
+              );
+            }
+
+            //offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(namePart, offsetInNonStringRHS);
+            /*
             let bHaveObjReference: boolean = false;
             if (namePart.includes('.')) {
               if (this._isPossibleObjectReference(namePart)) {
@@ -5646,7 +5768,7 @@ export class Spin2DocumentSemanticParser {
                   // TODO: remove structure part from remainder of line and process the remainder
                   if (namePart !== refString) {
                     this._logSPIN(
-                      `  -- rptSPIN() D ERROR?! [${refString}](${refString.length}) is only part of [${namePart}](${namePart.length}), how to handle the rest?`
+                      `  -- rptSPIN() Upper ERROR?! [${refString}](${refString.length}) is only part of [${namePart}](${namePart.length}), how to handle the rest?`
                     );
                   }
                   currSingleLineOffset = nameOffset + refString.length;
@@ -5654,18 +5776,26 @@ export class Spin2DocumentSemanticParser {
                 }
               }
             }
+            //*/
             // does name contain a dotted reference?
             const isBitSubscript: boolean = namePart.includes('.[');
-            let isTypeOverride: boolean = false; // name.SpecialType
-            let possibleNameSet: string[] = [namePart];
+            const isTypeOverride: boolean = false; // name.SpecialType
+            const possibleNameSet: string[] = [namePart];
             this._logSPIN(
               `  -- rptSPIN() namePart=[${namePart}](${namePart.length}), cslofs=(${currSingleLineOffset}) possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`
             );
-            let isIndexOverride: boolean = false;
+            //const isIndexOverride: boolean = false;
+            //*
+
+            ///  FIXME: should this be replaced with a sinple get/remove index expressions?
+
+            // Ex: kopf.byte[ID]
+            // Ex: BUT  long[o.TLG_LEN] this is broken!
+            /*
             if (namePart.includes('.') || namePart.includes('[')) {
+              this._logSPIN(`  -- rptSPIN() FLOW dot-or-bracket in [${namePart}](${namePart.length})`);
               const complexSymbolPosition = multiLineSet.locateSymbol(namePart, currSingleLineOffset);
               // set starting offset from here...
-              //currSingleLineOffset = multiLineSet.offsetIntoLineForPosition(complexSymbolPosition);
               nameOffset = multiLineSet.offsetIntoLineForPosition(complexSymbolPosition);
               possibleNameSet = namePart.split(/[.[\]]/).filter(Boolean);
               const origNameSet = possibleNameSet;
@@ -5683,12 +5813,22 @@ export class Spin2DocumentSemanticParser {
               }
               this._logSPIN(`  -- rptSPIN() index HUNT='${typeSearchString}'(${typeSearchString.length}) -> (${isIndexOverride})`);
             }
+            //*/
+
             const searchString: string =
               possibleNameSet.length == 1 || isBitSubscript ? possibleNameSet[0] : `${possibleNameSet[0]}.${possibleNameSet[1]}`;
 
-            //*
             //  --X2--------------------------------------------------------------------------------------------
-            indexExpressions = havePossIndex ? this._getIndexExpressions(assignmentRHSStr.substring(ltBbracketOffset)) : []; // dont' include the []
+            //
+            /*
+            this._logSPIN(`  -- rptSPIN() FLOW handle indexes in [${assignmentRHSStr}](${assignmentRHSStr.length})`);
+            indexExpressions = []; // dont' include the []
+            if (havePossIndex) {
+              indexExpressions = this._getIndexExpressions(assignmentRHSStr.substring(ltBbracketOffset));
+            }
+            //if (indexExpressions.length > 0) {
+            //  this._logSPIN(`  -- rptSPIN() found ct=${indexExpressions.length} indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}]`);
+            //}
             let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
             // if we have any, get positon of first index expression
             if (indexExpressions.length > 0 && indexExpressions[0].expression.length > 0) {
@@ -5697,17 +5837,18 @@ export class Spin2DocumentSemanticParser {
                 `  -- rptSPIN() C indexExpression=[${indexExpressions[0].expression}](${indexExpressions[0].expression.length}), posn=[Ln#${indexExpressionPosn.line + 1}:(${indexExpressionPosn.character})})`
               );
             }
+
             // BUGFIX treat multiple index expressions as a just symbol names
             let countOfIndexExpressions = 0;
             let nestingLevel = 0;
-            for (let i = 0; i < symbolName.length; i++) {
-              if (symbolName[i] === '[') {
+            for (let i = 0; i < namePart.length; i++) {
+              if (namePart[i] === '[') {
                 if (nestingLevel === 0) {
                   // Only count if this is a top-level bracket
                   countOfIndexExpressions++;
                 }
                 nestingLevel++;
-              } else if (symbolName[i] === ']') {
+              } else if (namePart[i] === ']') {
                 nestingLevel = Math.max(0, nestingLevel - 1);
               }
             }
@@ -5718,17 +5859,24 @@ export class Spin2DocumentSemanticParser {
             for (let index = 0; index < indexExpressions.length; index++) {
               const indexExpression: IIndexedExpression = indexExpressions[index];
               const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+              // BUG: long[BF[schl]][indx] -->
               const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
-              if (regex.test(symbolName)) {
-                const adjSymbolName: string = symbolName.replace(regex, '').trim();
-                this._logSPIN(`  -- rptSPIN() C1 symbolName=[${symbolName}](${symbolName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
-                symbolName = adjSymbolName;
-                possNames[0] = adjSymbolName; // update possNames[0] to match
-                isIndexOverride = true; // set flag to true so we don't report index expression
+              if (regex.test(namePart)) {
+                const adjNamePart: string = namePart.replace(regex, '').trim();
+                this._logSPIN(`  -- rptSPIN() indexExpression namePart=[${namePart}](${namePart.length}) -> [${adjNamePart}](${adjNamePart.length})`);
+                namePart = adjNamePart;
+                possNames[0] = adjNamePart; // update possNames[0] to match
+                possibleNameSet = [adjNamePart]; // update possNames[0] to match
+                searchString = adjNamePart; // update searchString to match
+                nonStringAssignmentRHSStr = nonStringAssignmentRHSStr.replace(regex, '');
+                this._logSPIN(
+                  `  -- rptSPIN() indexExpression possNames=[${possNames}](${possNames.length}), possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`
+                );
               }
             }
-            //  --X2--------------------------------------------------------------------------------------------
             //*/
+            //
+            //  --X2--------------------------------------------------------------------------------------------
 
             // SPECIAL: let's handle this:
             //   Ex:   WriteZStringToFile(@"file1", @file1)
@@ -5751,44 +5899,52 @@ export class Spin2DocumentSemanticParser {
               }
             }
 
-            // BAD currSingleLineOffset = nonStringAssignmentRHSStr.indexOf(searchString, currSingleLineOffset) + assignmentStringOffset; // so we don't match in in strings...
+            /*
             this._logSPIN(`  -- rptSPIN() RHS  nonStringAssignmentRHSStr=[${nonStringAssignmentRHSStr}]`);
             this._logSPIN(
-              `  -- rptSPIN() RHS   searchString=[${searchString}], isTypeOverride=(${isTypeOverride}), isIndexOverride=(${isIndexOverride})`
+              `  -- rptSPIN() RHS   searchString=[${searchString}], isTypeOverride=(${isTypeOverride}), indexElementCt=(${indexExpressions.length})`
             );
             this._logSPIN(
               `  -- rptSPIN() RHS    nameOffset=(${nameOffset}), offsetInNonStringRHS=(${offsetInNonStringRHS}), cslofs=(${currSingleLineOffset})`
             );
+			*/
             const openParenLocation: number = nonStringAssignmentRHSStr.indexOf('(');
             const bNameIsPossibleMethodCall: boolean = openParenLocation != -1;
             const methodFollowString: string = bNameIsPossibleMethodCall ? nonStringAssignmentRHSStr.substring(openParenLocation) : '';
 
+            /*
             this._logSPIN(
-              `  -- rptSPIN() Multi lower loop start possNames=[${possNames.join(', ')}](${possNames.length}), cslofs=(${currSingleLineOffset})`
+              `  -- rptSPIN() FLOW Multi lower loop start possNames=[${possNames.join(', ')}](${possNames.length}), cslofs=(${currSingleLineOffset})`
             );
-            for (let index = 0; index < possibleNameSet.length; index++) {
-              const namePart = possibleNameSet[index];
+            this._logSPIN(
+              `  -- rptSPIN()                  possibleNameSet=[${possibleNameSet.join(', ')}](${possibleNameSet.length}), cslofs=(${currSingleLineOffset})`
+            );
+			*/
+            this._logSPIN(`  -- rptSPIN() FLOW single-pass loop START`);
+            //for (let index = 0; index < possibleNameSet.length; index++) {
+            for (let index = 0; index < 1; index++) {
+              // one time thru
+              //const namePart = possibleNameSet[index];
               // XYZZY currSingleLineOffset Good here...
               this._logSPIN(
-                `  -- rptSPIN() lower raw name=[${namePart}](${namePart.length}) cslofs=(${currSingleLineOffset}) [${index + 1} of ${possibleNameSet.length}]`
+                `  -- rptSPIN() processing name=[${namePart}](${namePart.length}) cslofs=(${currSingleLineOffset}) [${index + 1} of ${possibleNameSet.length}]`
               );
               if (!this.parseUtils.isValidSpinSymbolName(namePart)) {
                 //currSingleLineOffset += namePart.length;
-                this._logSPIN(`  -- rptSPIN() Multi lower loop CONTINUE, not valid symbol`);
+                this._logSPIN(`  -- rptSPIN() CONTINUE, ${namePart} not valid symbol`);
                 continue;
               }
-              symbolPosition = multiLineSet.locateSymbol(namePart, currSingleLineOffset);
-              nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-              this._logSPIN(`  -- rptSPIN() processing name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+              //symbolPosition = multiLineSet.locateSymbol(namePart, currSingleLineOffset);
+              //nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
 
               // SPECIAL OVERRIDE Storage Type used as access override
               // if special type then override with special coloring
-              if (this.parseUtils.isSpecialIndexType(namePart) && multiIndexExpression) {
+              if (this.parseUtils.isSpecialIndexType(namePart) && indexExpressions.length > 0) {
                 // have a 'reg' of reg[cog-address][index]
                 // have a 'byte' of byte[hub-address][index]
                 // have a 'word' of word[hub-address][index]
                 // have a 'long' of long[hub-address][index]
-                this._logSPIN(`  -- rptSPIN() E indexType=[${namePart}], ofs=(${nameOffset})`);
+                this._logSPIN(`  -- rptSPIN() C indexType=[${namePart}], ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: nameOffset,
@@ -5806,12 +5962,12 @@ export class Spin2DocumentSemanticParser {
 
               // SPECIAL OVERRIDE Storage Type used as access override
               // if special type then override with special coloring
-              if (this.parseUtils.isSpecialIndexType(namePart) && (isIndexOverride || isTypeOverride)) {
+              if (this.parseUtils.isSpecialIndexType(namePart) && (indexExpressions.length > 0 || isTypeOverride)) {
                 // have a 'reg' of reg[cog-address][index].[bitfield]
                 // have a 'byte' of byte[hub-address][index].[bitfield]
                 // have a 'word' of word[hub-address][index].[bitfield]
                 // have a 'long' of long[hub-address][index].[bitfield]
-                this._logSPIN(`  -- rptSPIN() F indexType=[${namePart}], ofs=(${nameOffset})`);
+                this._logSPIN(`  -- rptSPIN() D indexType=[${namePart}], ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: nameOffset,
@@ -5823,10 +5979,9 @@ export class Spin2DocumentSemanticParser {
                 this._logSPIN(
                   `  -- rptSPIN() indexType cslofs=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), namePart.length=(${namePart.length})`
                 );
-                continue;
               }
               // if new  debug method in later version then highlight it
-              if (this.parseUtils.isNewlyAddedDebugSymbol(namePart)) {
+              else if (this.parseUtils.isNewlyAddedDebugSymbol(namePart)) {
                 this._logSPIN(`  -- rptSPIN() new DEBUG name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
@@ -6009,7 +6164,7 @@ export class Spin2DocumentSemanticParser {
               currSingleLineOffset = nameOffset + namePart.length;
               this._logSPIN(`  -- rptSPIN() cslofs=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), namePart.length=(${namePart.length})`);
             }
-            this._logSPIN(`  -- rptSPIN() Multi loop Lower DONE`);
+            this._logSPIN(`  -- rptSPIN() FLOW single-pass loop DONE`);
           } else if (namePart.startsWith('.')) {
             namePart = namePart.replace('.', '');
             symbolPosition = multiLineSet.locateSymbol(namePart, currSingleLineOffset);
@@ -6031,34 +6186,57 @@ export class Spin2DocumentSemanticParser {
             `  -- rptSPIN() Multi loop OFS BAD? cslofs=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), namePart.length=(${namePart.length})`
           );
 		  */
-        }
-        this._logSPIN(`  -- rptSPIN() Multi loop Upper RAW DONE`);
 
-        // FIXME: UNDONE this is badly associated with possNames[0]
-        //   (this whole routine expects only 1 indexExpression in line
-        // report index value statement
-        if (indexExpressions.length > 0) {
-          /*
-          // XYZZY FIXME: this should iterate over all indexExpressions
-          let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
-          for (let index = 0; index < indexExpressions.length; index++) {
-            const indexExpression: IIndexedExpression = indexExpressions[index];
-            indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
-            this._logMessage(
-              `  -- rptSPIN() B indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
+          if (possStorageType.length > 0) {
+            // if structure type with indexes then re-color it
+            if (this.parseUtils.isSpecialIndexType(possStorageType)) {
+              symbolPosition = multiLineSet.locateSymbol(possStorageType, currSingleLineOffset);
+              nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+              // have a 'byte' of hub-address.byte
+              // have a 'word' of hub-address.word
+              // have a 'long' of hub-address.long
+              this._logSPIN(`  -- rptSPIN() B indexType=[${possStorageType}], ofs=(${nameOffset})`);
+              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                line: symbolPosition.line,
+                startCharacter: nameOffset,
+                length: possStorageType.length,
+                ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
+                ptTokenModifiers: ['builtin']
+              });
+              currSingleLineOffset = nameOffset + possStorageType.length;
+            }
+          }
+
+          // FIXME: UNDONE this is badly associated with possNames[0]
+          //   (this whole routine expects only 1 indexExpression in line
+          // report index value statement
+          if (indexExpressions.length > 0) {
+            this._logSPIN(
+              `  -- rptSPIN() FINISH(would) HANDLE Ln#${multiLineSet.lineStartIdx + 1} indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length})`
             );
-            /* const tmpNameOffset = */
-          /* this._reportSPIN_IndexExpression(
-              indexExpression.expression,
-              indexExpressionPosn.line,
-              indexExpressionPosn.character,
-              multiLineSet.line,
-              tokenSet
-            );
-			  currSingleLineOffset += indexExpression.expression.length;
-			  */
-          //}
+            //*
+            let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+            for (let index = 0; index < indexExpressions.length; index++) {
+              const indexExpression: IIndexedExpression = indexExpressions[index];
+              indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
+              this._logMessage(
+                `  -- rptSPIN() X indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
+              );
+              /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(
+                indexExpression.expression,
+                indexExpressionPosn.line,
+                indexExpressionPosn.character,
+                multiLineSet.line,
+                tokenSet
+              );
+              currSingleLineOffset += indexExpression.expression.length;
+            }
+            indexExpressions = []; // reset so we don't report again
+            //*/
+          }
         }
+        this._logSPIN(`  -- rptSPIN() Loop RAW DONE`);
+        // ----- rptSPIN() FLOW RHS-END assignmentRHSStr -----
       }
     }
     return tokenSet;
@@ -8274,22 +8452,25 @@ export class Spin2DocumentSemanticParser {
         );
         let structInstanceName = structRefParts[0];
         let indexExpressions: IIndexedExpression[] = [];
-        let isIndexOverride: boolean = false;
         if (structInstanceName.includes('[') && structInstanceName.includes(']')) {
-          // yes remove array suffix
+          // yes remove index elemeents from name
           indexExpressions = this._getIndexExpressions(structInstanceName);
-          // XYZZY FIXME: iterate over all indexes returned
           for (let index = 0; index < indexExpressions.length; index++) {
             const indexExpression: IIndexedExpression = indexExpressions[index];
             const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
             const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
             if (regex.test(structInstanceName)) {
-              const adjSymbolName: string = structInstanceName.replace(regex, '').trim();
+              let adjSymbolName: string = structInstanceName.replace(regex, '').trim();
+              // SPECIAL CASE
+              //  Ex:o.[2 addbits 5]  reduces to o.
+              //   Let's remove the trailing '.' as well
+              if (adjSymbolName.endsWith('.')) {
+                adjSymbolName = adjSymbolName.substring(0, adjSymbolName.length - 1);
+              }
               this._logSPIN(
                 `  -- rptStruRef() A symbolName=[${structInstanceName}](${structInstanceName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`
               );
               structInstanceName = adjSymbolName;
-              isIndexOverride = true; // set flag to true so we don't report index expression
             }
           }
           this._logSPIN(
@@ -8363,6 +8544,7 @@ export class Spin2DocumentSemanticParser {
             priorExpressionLength = indexExpression.expression.length;
             /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(indexExpression.expression, lineIdx, nameOffset, line, tokenSet);
           }
+          indexExpressions = []; // reset so we don't report again
         }
         // remember initial offset for structure member names
         const memberNameBaseOffset: number = nameOffset;
@@ -8395,22 +8577,25 @@ export class Spin2DocumentSemanticParser {
                   continue;
                 }
                 let indexExpressions: IIndexedExpression[] = [];
-                let isIndexOverride: boolean = false;
                 if (memberName.includes('[') && memberName.includes(']')) {
-                  // yes remove array suffix
+                  // yes remove index elemeents from name
                   indexExpressions = this._getIndexExpressions(memberName);
-                  // XYZZY FIXME: iterate over all indexes returned
                   for (let index = 0; index < indexExpressions.length; index++) {
                     const indexExpression: IIndexedExpression = indexExpressions[index];
                     const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
                     const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
                     if (regex.test(memberName)) {
-                      const adjSymbolName: string = memberName.replace(regex, '').trim();
+                      let adjSymbolName: string = memberName.replace(regex, '').trim();
+                      // SPECIAL CASE
+                      //  Ex:o.[2 addbits 5]  reduces to o.
+                      //   Let's remove the trailing '.' as well
+                      if (adjSymbolName.endsWith('.')) {
+                        adjSymbolName = adjSymbolName.substring(0, adjSymbolName.length - 1);
+                      }
                       this._logSPIN(
                         `  -- rptStruRef() B symbolName=[${memberName}](${memberName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`
                       );
                       memberName = adjSymbolName;
-                      isIndexOverride = true; // set flag to true so we don't report index expression
                     }
                   }
                   this._logSPIN(`  -- rptStruRef() hold index value highlight memberName=[${memberName}] [ [${indexExpressions}] ]`);
@@ -8442,6 +8627,7 @@ export class Spin2DocumentSemanticParser {
                   priorExpressionLength = indexExpression.expression.length;
                   /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(indexExpression.expression, lineIdx, nameOffset, line, tokenSet);
                 }
+                indexExpressions = []; // reset so we don't report again
 
                 // descend into structure if member is structure
                 if (currStructure.memberNamed(memberName)?.isStructure) {
@@ -9234,58 +9420,103 @@ export class Spin2DocumentSemanticParser {
     //  don't initially remove [...] square brackets or periods
     //  in second pass, if item dosn't have period but does have [...] then split a [] and push parts
     //
-    const nonEqualsLine: string = this.parseUtils.removeDoubleQuotedStrings(line, preservePacked);
+    const noStringsLine: string = this.parseUtils.removeDoubleQuotedStrings(line, preservePacked);
     // to ease our parsing effort, later, let's remove any whitespace preceeding a left bracket
-    const nonEqualsLineNoBrackets: string = nonEqualsLine.replace(/\s*\[/g, '[');
+    //let noStringNoBracketSpaces: string = noStringsLine.replace(/\s*\[/g, '[');
+    //noStringNoBracketSpaces = noStringNoBracketSpaces.replace(/\s*\]/g, ']');
+    const noStringNoBracketSpaces: string = noStringsLine;
     // first split
-    let lineParts: string[] | null = nonEqualsLineNoBrackets.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
+    //let lineParts: string[] | null = noStringNoBracketSpaces.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
+    // let lineParts: string[] | null = noStringNoBracketSpaces.match(/[^\-:,+@()!*=<>&|?\\~^/]+/g);
+    let lineParts: string[] = this._splitOnWhitespaceButNotInBracketsAndPeriods(noStringNoBracketSpaces);
     if (lineParts == null) {
       lineParts = [];
     }
+    this._logMessage(`  -- gnwsplna noStringsLine=[${noStringNoBracketSpaces}](${noStringNoBracketSpaces.length})`);
+    this._logMessage(`   --- gnwsplna 1st lineParts=[${lineParts}](${lineParts.length})`);
 
-    this._logMessage(`  -- gnwsplna line=[${nonEqualsLineNoBrackets}](${nonEqualsLineNoBrackets.length})`);
-    this._logMessage(`   --- gnwsplna lineParts=[${lineParts}](${lineParts.length})`);
-    let reducedLineParts: string[] = [];
-    if (lineParts == null) {
-      reducedLineParts = [];
-    } else {
-      for (let index = 0; index < lineParts.length; index++) {
-        const name = lineParts[index];
-        if (name === '#' || name === '[') {
-          continue;
-        }
-        // handle bitfield indexes
-        if (name.includes('.[')) {
-          const nameParts: string[] = name.split('.[');
-          reducedLineParts.push(nameParts[0]);
-          const remainingParts: string[] = nameParts[1].split(/[[\]]/).filter(Boolean);
-          reducedLineParts.push(...remainingParts); // push all parts without brackets
-          continue;
-        }
-
-        let tempName: string = name;
-        if (/^#+$/.test(name)) {
-          // don't touch this ('###...###') all # signs
-        } else if (name.startsWith('#')) {
-          tempName = name.substring(1); // remvoe first char
-        } else if (name.endsWith('#')) {
-          tempName = name.slice(0, -1); // remove last char
-        }
-        // 2nd split
-        if (!tempName.includes('.') && /[[]|[\]]/.test(tempName)) {
-          const moreParts: string[] = tempName.split(/[[\]]/).filter(Boolean);
-          this._logMessage(`   --- gnwsplna tempName=[${tempName}] -> moreParts=[${moreParts}](${moreParts.length})`);
-          if (moreParts.length > 0) {
-            reducedLineParts.push(...moreParts);
-          }
-        } else {
-          if (/^#+$/.test(tempName) == false) {
-            reducedLineParts.push(tempName);
-          }
+    const tmpLineParts: string[] = lineParts;
+    lineParts = [];
+    for (let index = 0; index < tmpLineParts.length; index++) {
+      const namePart: string = tmpLineParts[index];
+      if (namePart !== undefined && (namePart.trim().length === 0 || namePart === '#' || namePart === '[')) {
+        continue;
+      }
+      const tmpName: string = namePart.trim();
+      if (tmpName.length > 0) {
+        const tmpLineParts: string[] = this._splitOnWhitespaceButNotInBrackets(tmpName);
+        if (tmpLineParts.length > 0) {
+          lineParts.push(...tmpLineParts);
         }
       }
     }
+    this._logMessage(`   --- gnwsplna 2nd lineParts=[${lineParts}](${lineParts.length})`);
+
+    let reducedLineParts: string[] = [];
+    for (let index = 0; index < lineParts.length; index++) {
+      const name = lineParts[index];
+      // handle bitfield indexes
+      if (name.includes('.[')) {
+        const nameParts: string[] = name.split('.[');
+        const tmpName: string = nameParts[0].trim();
+        if (tmpName.length > 0) {
+          const tmpLineParts: string[] = this._splitOnWhitespaceButNotInBrackets(tmpName);
+          if (tmpLineParts.length > 0) {
+            reducedLineParts.push(...tmpLineParts);
+          }
+        }
+        const remainingParts: string[] = nameParts[1].split(/[[\]]/).filter(Boolean);
+        for (let index = 0; index < remainingParts.length; index++) {
+          const tmpName = remainingParts[index].trim();
+          if (tmpName.length > 0) {
+            const tmpLineParts: string[] = this._splitOnWhitespaceButNotInBrackets(tmpName);
+            if (tmpLineParts.length > 0) {
+              reducedLineParts.push(...tmpLineParts);
+            }
+          }
+        }
+        continue;
+      }
+
+      let tempName: string = name;
+      if (/^#+$/.test(name)) {
+        // don't touch this ('###...###') all # signs
+      } else if (name.startsWith('#')) {
+        tempName = name.substring(1); // remvoe first char
+      } else if (name.endsWith('#')) {
+        tempName = name.slice(0, -1); // remove last char
+      } else if (!name.includes('[') && name.endsWith(']')) {
+        tempName = name.slice(0, -1); // remove last char
+      }
+      // 2nd split
+      /*
+        if (!tempName.includes('.') && /[[]|[\]]/.test(tempName)) {
+          const moreParts: string[] = tempName.split(/[[\]]/).filter(Boolean);
+          const tmpMoreParts: string[] = [];
+          for (let index = 0; index < moreParts.length; index++) {
+            const tmpName = moreParts[index].trim();
+            if (tmpName.length > 0) {
+              tmpMoreParts.push(tmpName);
+            }
+          }
+          this._logMessage(`   --- gnwsplna tempName=[${tempName}] -> moreParts=[${tmpMoreParts}](${tmpMoreParts.length})`);
+          if (tmpMoreParts.length > 0) {
+            reducedLineParts.push(...tmpMoreParts);
+          }
+        } else {
+          if (/^#+$/.test(tempName) == false) {
+            const tmpName = tempName.trim();
+            reducedLineParts.push(tmpName);
+          }
+		}
+		  //*/
+      if (/^#+$/.test(tempName) == false) {
+        const tmpName = tempName.trim();
+        reducedLineParts.push(tmpName);
+      }
+    }
     this._logMessage(`   --- gnwsplna reducedLineParts=[${reducedLineParts}](${reducedLineParts.length})`);
+
     // sigh... these were missed:
     //  handle case1: LONG[pValues][serialQueue.ENT_PARM2_IDX] where this is one single name
     //  handle case2: LONG [pValues][serialQueue.ENT_PARM2_IDX] where this is one single name
@@ -9294,33 +9525,328 @@ export class Spin2DocumentSemanticParser {
       reducedLineParts = [];
       for (let index = 0; index < srcStrings.length; index++) {
         const currString = srcStrings[index];
-        if (/[[]|[\]]/.test(currString)) {
-          const moreParts: string[] = currString.split(/[[\]]/).filter(Boolean);
-          if (moreParts.length > 0) {
-            reducedLineParts.push(...moreParts);
+        const tmpName: string = currString !== undefined ? currString.trim() : '';
+        // HRMF... what to do about
+        // Ex: long[o.TLG_LEN]
+        // Ex: byte[p.adr][p.len]
+        let isIndexedStorageType: boolean = false;
+        if (/[[]|[\]]/.test(tmpName)) {
+          const lineParts: string[] = tmpName.split('[').filter(Boolean);
+          this._logMessage(`   --- gnwsplna B/W/L check lineParts=[${lineParts}](${lineParts.length})`);
+          const possType: string = lineParts[0].trim();
+          if (possType.length > 0 && this.parseUtils.isSpecialIndexType(possType)) {
+            isIndexedStorageType = true;
+          }
+          if (!isIndexedStorageType) {
+            // if not idexed storage type, then split on brackets
+            const moreParts: string[] = tmpName.split(/[[\]]/).filter(Boolean);
+            for (let index = 0; index < moreParts.length; index++) {
+              const currString = moreParts[index];
+              const tmpName: string = currString !== undefined ? currString.trim() : '';
+              if (tmpName.length > 0) {
+                const tmpLineParts: string[] = this._splitOnWhitespaceButNotInBrackets(tmpName);
+                if (tmpLineParts.length > 0) {
+                  reducedLineParts.push(...tmpLineParts);
+                }
+              }
+            }
+          } else {
+            reducedLineParts.push(tmpName);
           }
         } else {
-          reducedLineParts.push(currString);
+          if (tmpName.length > 0) {
+            const tmpLineParts: string[] = this._splitOnWhitespaceButNotInBrackets(tmpName);
+            if (tmpLineParts.length > 0) {
+              reducedLineParts.push(...tmpLineParts);
+            }
+          }
         }
       }
     }
+
+    // one last pass
+    const finalLineParts: string[] = reducedLineParts;
+    reducedLineParts = [];
+    for (let index = 0; index < finalLineParts.length; index++) {
+      const nextPart = finalLineParts[index];
+      if (nextPart.includes('[')) {
+        reducedLineParts.push(nextPart);
+      } else {
+        const tmpLineParts: string[] | null = nextPart.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
+        //const tmpLineParts: string[] = this._splitOnWhitespaceButNotInBrackets(tmpName);
+        if (tmpLineParts != null && tmpLineParts.length > 0) {
+          reducedLineParts.push(...tmpLineParts);
+        }
+      }
+    }
+    this._logMessage(`   --- gnwsplna further reducedLineParts=[${reducedLineParts}](${reducedLineParts.length})`);
+    /*
     if (
       reducedLineParts[0] !== undefined &&
       this.parseUtils.isSpecialIndexType(reducedLineParts[0]) &&
-      nonEqualsLineNoBrackets.includes(`${reducedLineParts[0]}[`)
+      noStringNoBracketSpaces.includes(`${reducedLineParts[0]}[`)
     ) {
       const tmpLineParts: string[] = [reducedLineParts[0]];
+      // BUG EEEEE this transformed long[BF[schl]][indx]  into  long[BF][schl][indx]
+      let stagedElement: string = '';
       for (let index = 1; index < reducedLineParts.length; index++) {
         const element = reducedLineParts[index];
-        tmpLineParts.push(`[${element}]`);
+        // if element in "line" had trailing ']' then wrap it before push
+        const regexWithOpen = new RegExp(`${element}\\s*\\[`);
+        const regexWithClose = new RegExp(`${element}\\s*\\]`);
+        if (regexWithOpen.test(line)) {
+          stagedElement = element;
+          continue;
+        }
+        if (regexWithClose.test(line)) {
+          if (stagedElement.length > 0) {
+            tmpLineParts.push(`[${stagedElement}[${element}]]`);
+            stagedElement = '';
+          } else {
+            tmpLineParts.push(`[${element}]`);
+          }
+        } else {
+          tmpLineParts.push(element);
+        }
       }
       reducedLineParts = [tmpLineParts.join('')];
       this._logMessage(`   --- gnwsplna um... reducedLineParts=[${reducedLineParts}](${reducedLineParts.length})`);
-    }
+	}
+	  //*/
     return {
-      lineNoQuotes: nonEqualsLine,
+      lineNoQuotes: noStringsLine,
       lineParts: reducedLineParts
     };
+  }
+
+  private _splitOnWhitespaceButNotInBracketsAndPeriods(line: string): string[] {
+    const splitChars = [' ', '\t', '-', ':', ',', '+', '@', '(', ')', '!', '*', '=', '<', '>', '&', '|', '?', '\\', '~', '#', '^', '/'];
+    const result: string[] = [];
+    let current = '';
+    let bracketLevel = 0;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '[') {
+        bracketLevel++;
+        current += char;
+      } else if (char === ']') {
+        bracketLevel = Math.max(0, bracketLevel - 1);
+        current += char;
+      } else if (splitChars.includes(char) && bracketLevel === 0) {
+        // Special handling for whitespace
+        if (/\s/.test(char)) {
+          // (1) Do not split if whitespace is the only thing between a close bracket and the next open bracket
+          // (2) Do not split if whitespace precedes an open bracket
+          const prevChar = i > 0 ? line[i - 1] : '';
+          let j = i + 1;
+          // Skip over any additional whitespace
+          while (j < line.length && /\s/.test(line[j])) j++;
+          const nextChar = j < line.length ? line[j] : '';
+
+          if (
+            (prevChar === ']' && nextChar === '[') || // (1)
+            nextChar === '[' // (2)
+          ) {
+            current += char;
+            continue;
+          }
+        }
+        if (current.length > 0) {
+          result.push(current);
+          current = '';
+        }
+        // skip the split character
+      } else {
+        current += char;
+      }
+    }
+    if (current.length > 0) {
+      result.push(current);
+    }
+    return result;
+  }
+
+  private _splitOnWhitespaceButNotInBracketsAndPeriodsOLD3(line: string): string[] {
+    const splitChars = [' ', '\t', '-', ':', ',', '+', '@', '(', ')', '!', '*', '=', '<', '>', '&', '|', '?', '\\', '~', '#', '^', '/'];
+    const result: string[] = [];
+    let current = '';
+    let bracketLevel = 0;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '[') {
+        bracketLevel++;
+        current += char;
+      } else if (char === ']') {
+        bracketLevel = Math.max(0, bracketLevel - 1);
+        current += char;
+      } else if (splitChars.includes(char) && bracketLevel === 0) {
+        if (current.length > 0) {
+          result.push(current);
+          current = '';
+        }
+        // skip the split character
+      } else {
+        current += char;
+      }
+    }
+    if (current.length > 0) {
+      result.push(current);
+    }
+    return result;
+  }
+
+  private _splitOnWhitespaceButNotInBracketsAndPeriodsOLD2(line: string): string[] {
+    const splitChars = [' ', '\t', '-', ':', ',', '+', '@', '(', ')', '!', '*', '=', '<', '>', '&', '|', '?', '\\', '~', '#', '^', '/'];
+    const result: string[] = [];
+    let current = '';
+    let parenLevel = 0;
+    let bracketLevel = 0;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '(') {
+        parenLevel++;
+        current += char;
+      } else if (char === ')') {
+        current += char;
+        parenLevel = Math.max(0, parenLevel - 1);
+      } else if (char === '[') {
+        bracketLevel++;
+        current += char;
+      } else if (char === ']') {
+        current += char;
+        bracketLevel = Math.max(0, bracketLevel - 1);
+      } else if (splitChars.includes(char) && bracketLevel === 0 && (parenLevel === 0 || parenLevel === 1)) {
+        // Only split at outermost paren level (0 or 1), not inside nested parens or any brackets
+        if (current.length > 0) {
+          result.push(current.trim());
+          current = '';
+        }
+        // skip the split character
+      } else {
+        current += char;
+      }
+    }
+    if (current.trim().length > 0) {
+      result.push(current.trim());
+    }
+    return result;
+  }
+
+  private _removeAllOutermostParens(str: string): string {
+    let result = '';
+    let parenLevel = 0;
+    let start = -1;
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === '(') {
+        if (parenLevel === 0) {
+          start = i;
+          result += ' ';
+        }
+        parenLevel++;
+      } else if (str[i] === ')') {
+        parenLevel--;
+        if (parenLevel === 0 && start !== -1) {
+          // Remove the outermost parens by appending the inside only
+          result += str.substring(start + 1, i) + ' ';
+          start = -1;
+        } else if (parenLevel > 0) {
+          // Inside nested parens
+          // do nothing, will be handled when outer closes
+        }
+      } else if (parenLevel === 0) {
+        result += str[i];
+      }
+    }
+    this._logSPIN(`  -- removeOutermostParens()  input=[${str}](${str.length})`);
+    this._logSPIN(`  --                         result=[${result}](${result.length})`);
+    return result;
+  }
+
+  private _splitOnWhitespaceButNotInBracketsAndPeriodsOLD(line: string): string[] {
+    const splitChars = [' ', '\t', '-', ':', ',', '+', '@', '(', ')', '!', '*', '=', '<', '>', '&', '|', '?', '\\', '~', '#', '^', '/'];
+    const result: string[] = [];
+    let current = '';
+    let parenLevel = 0;
+    let bracketLevel = 0;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '(') {
+        parenLevel++;
+        current += char;
+      } else if (char === ')') {
+        parenLevel = Math.max(0, parenLevel - 1);
+        current += char;
+      } else if (char === '[') {
+        bracketLevel++;
+        current += char;
+      } else if (char === ']') {
+        bracketLevel = Math.max(0, bracketLevel - 1);
+        current += char;
+      } else if (splitChars.includes(char) && parenLevel === 0 && bracketLevel === 0) {
+        if (current.length > 0) {
+          result.push(current);
+          current = '';
+        }
+        // skip the split character
+      } else {
+        current += char;
+      }
+    }
+    if (current.length > 0) {
+      result.push(current);
+    }
+    return result;
+  }
+
+  private _splitOnWhitespaceButNotInBrackets(name: string): string[] {
+    // split on whitespace if the whitespace is not before a '[' and if the whitespace is not in-between square brackets
+    const result: string[] = [];
+    let current = '';
+    let inBrackets = false;
+
+    for (let i = 0; i < name.length; i++) {
+      const char = name[i];
+
+      if (char === '[') {
+        inBrackets = true;
+        current += char;
+      } else if (char === ']') {
+        inBrackets = false;
+        current += char;
+      } else if (/\s/.test(char)) {
+        // Only split if not in brackets and next non-whitespace is not '['
+        if (!inBrackets) {
+          // Look ahead to see if next non-whitespace is '['
+          let j = i + 1;
+          while (j < name.length && /\s/.test(name[j])) j++;
+          if (j < name.length && name[j] === '[') {
+            current += char;
+          } else {
+            if (current.length > 0) {
+              result.push(current);
+              current = '';
+            }
+            // skip this whitespace
+          }
+        } else {
+          current += char;
+        }
+      } else {
+        current += char;
+      }
+    }
+    if (current.length > 0) {
+      result.push(current);
+    }
+    return result;
   }
 
   private _reportNonDupeTokens(partialTokenSet: IParsedToken[], typeStr: string, line: string, tokenSet: IParsedToken[]) {
@@ -9367,7 +9893,7 @@ export class Spin2DocumentSemanticParser {
           // diff line -OR-
           //    xxxxxxxxxxxxxxx
           //                      yyy
-          this._logMessage(`  -- CASE:   ---- BREAK ---- no overlap`);
+          //this._logMessage(`  -- CASE:   ---- BREAK ---- no overlap`);
           break; // emit lhs(currentToken)
         }
 
