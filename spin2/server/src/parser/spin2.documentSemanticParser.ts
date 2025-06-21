@@ -5852,6 +5852,7 @@ export class Spin2DocumentSemanticParser {
                 continue;
               }
               let referenceDetails: RememberedToken | undefined = undefined;
+              let isStructureType: boolean = false;
               if (this.semanticFindings.isLocalToken(namePart)) {
                 referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, symbolPosition.line + 1);
                 this._logSPIN(`  --  FOUND Local name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
@@ -5866,15 +5867,18 @@ export class Spin2DocumentSemanticParser {
                     this._logSPIN(`  --  MISSING parens on method=[${namePart}]`);
                     referenceDetails = undefined;
                   }
+                } else if (referenceDetails !== undefined) {
+                  isStructureType = this.semanticFindings.isStructure(namePart);
                 }
               }
               if (referenceDetails !== undefined) {
                 this._logSPIN(`  -- rptSPIN() Bm RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                const symbolRefType: string = isStructureType ? 'storageType' : referenceDetails.type;
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
                   length: namePart.length,
-                  ptTokenType: referenceDetails.type,
+                  ptTokenType: symbolRefType,
                   ptTokenModifiers: referenceDetails.modifiers
                 });
               } else {
