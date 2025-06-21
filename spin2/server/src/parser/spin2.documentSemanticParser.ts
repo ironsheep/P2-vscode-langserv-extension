@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -4837,7 +4837,7 @@ export class Spin2DocumentSemanticParser {
           if (alignType.length > 0) {
             symbolPosition = multiLineSet.locateSymbol(alignType, varNameOffsetBase);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-            this._logMessage(`  -- checking Align type=[${alignType}], ofs=(${nameOffset})`);
+            this._logMessage(`  -- rptPubPriSig() checking Align type=[${alignType}], ofs=(${nameOffset})`);
             if (this.parseUtils.isAlignType(alignType)) {
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
@@ -4847,7 +4847,7 @@ export class Spin2DocumentSemanticParser {
                 ptTokenModifiers: []
               });
             } else {
-              this._logMessage(`  -- have illegal Align type! localName=[${alignType}], ofs=(${nameOffset})`);
+              this._logMessage(`  -- rptPubPriSig() have illegal Align type! localName=[${alignType}], ofs=(${nameOffset})`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: symbolPosition.character,
@@ -4872,7 +4872,7 @@ export class Spin2DocumentSemanticParser {
             let foundObjectRef: boolean = false;
             symbolPosition = multiLineSet.locateSymbol(storageType, varNameOffsetBase);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-            this._logMessage(`  -- have Storage type! localName=[${storageType}], ofs=(${nameOffset})`);
+            this._logMessage(`  -- rptPubPriSig() have Storage type! localName=[${storageType}], ofs=(${nameOffset})`);
             // at v49, we allow object.structure and object.structure pointer reference!
             const allowedObjRef: boolean = this.parseUtils.requestedSpinVersion(49);
             if (this._isPossibleObjectReference(storageType) && allowedObjRef) {
@@ -4902,7 +4902,7 @@ export class Spin2DocumentSemanticParser {
                 (this.parseUtils.isStorageType(storageType) && !isPtr) ||
                 allowedPtrRef
               ) {
-                this._logMessage(`  -- have Storage type! localName=[${storageType}], ofs=(${nameOffset})`);
+                this._logMessage(`  -- rptPubPriSig() have Storage type! localName=[${storageType}], ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -4985,8 +4985,12 @@ export class Spin2DocumentSemanticParser {
           // LOCAL token remembered, now associate struct instance with this local token
           if (structureType.length > 0) {
             // remember that this variable is a structure instance
+            // if is object reference, we want the whole name
             if (structureType.includes('.')) {
-              structureType = structureType.substring(structureType.indexOf('.') + 1);
+              const possStructureType: string = structureType.substring(structureType.indexOf('.') + 1);
+              if (this.semanticFindings.isStructure(possStructureType)) {
+                structureType = possStructureType;
+              }
             }
             this.semanticFindings.recordStructureInstance(structureType, localVarName, methodName); // PUB/PRI
           }

@@ -5,6 +5,7 @@
 .devcontainer/**
 scripts/**
 EarlyTesting/
+HOLD/
 REF-CHK/
 EarlyTesting.md
 b4-project-files.lst

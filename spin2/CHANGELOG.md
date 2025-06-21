@@ -28,12 +28,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.4.8] 2025-06-16
+## [2.4.8] 2025-06-21
 
 Spin2 Highlighting Update
 
-- BUGFIX: Clean up Index-expression highlight failures
-- BUGFIX: Clean up Complex single-line Case Statement highlight failures
+- BUGFIX: Clean up "Index-expression" highlight failures
+- BUGFIX: Clean up Complex single-line "Case Statement" highlight failures
+- BUGFIX: Clean up Complex "General Spin2 Statement" highlight failures
 - BUGFIX: server crashed on RegEx search when variable name contained RegEx control characters
 - BUGFIX: server crashed on failing name searches
 
