@@ -5437,7 +5437,7 @@ export class Spin2DocumentSemanticParser {
               this._logMessage(
                 `  -- rptSPIN() B indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
               );
-              const tmpNameOffset = this._reportSPIN_IndexExpression(
+              /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(
                 indexExpression.expression,
                 indexExpressionPosn.line,
                 indexExpressionPosn.character,
@@ -5737,46 +5737,6 @@ export class Spin2DocumentSemanticParser {
               );
             }
 
-            //offsetInNonStringRHS = nonStringAssignmentRHSStr.indexOf(namePart, offsetInNonStringRHS);
-            /*
-            let bHaveObjReference: boolean = false;
-            if (namePart.includes('.')) {
-              if (this._isPossibleObjectReference(namePart)) {
-                // XYZZY poss crash
-                bHaveObjReference = this._reportObjectReference(
-                  namePart,
-                  symbolPosition.line,
-                  symbolPosition.character,
-                  multiLineSet.lineAt(symbolPosition.line),
-                  tokenSet
-                );
-                if (bHaveObjReference) {
-                  currSingleLineOffset = nameOffset + namePart.length;
-                  continue;
-                }
-              }
-              if (this._isPossibleStructureReference(namePart, symbolPosition.line)) {
-                // might have STRUCT reference
-                const [bIsStructReference, refString] = this._reportStructureReference(
-                  namePart,
-                  symbolPosition.line,
-                  symbolPosition.character,
-                  multiLineSet.lineAt(symbolPosition.line),
-                  tokenSet
-                );
-                if (bIsStructReference) {
-                  // TODO: remove structure part from remainder of line and process the remainder
-                  if (namePart !== refString) {
-                    this._logSPIN(
-                      `  -- rptSPIN() Upper ERROR?! [${refString}](${refString.length}) is only part of [${namePart}](${namePart.length}), how to handle the rest?`
-                    );
-                  }
-                  currSingleLineOffset = nameOffset + refString.length;
-                  continue;
-                }
-              }
-            }
-            //*/
             // does name contain a dotted reference?
             const isBitSubscript: boolean = namePart.includes('.[');
             const isTypeOverride: boolean = false; // name.SpecialType
@@ -5784,99 +5744,9 @@ export class Spin2DocumentSemanticParser {
             this._logSPIN(
               `  -- rptSPIN() namePart=[${namePart}](${namePart.length}), cslofs=(${currSingleLineOffset}) possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`
             );
-            //const isIndexOverride: boolean = false;
-            //*
-
-            ///  FIXME: should this be replaced with a sinple get/remove index expressions?
-
-            // Ex: kopf.byte[ID]
-            // Ex: BUT  long[o.TLG_LEN] this is broken!
-            /*
-            if (namePart.includes('.') || namePart.includes('[')) {
-              this._logSPIN(`  -- rptSPIN() FLOW dot-or-bracket in [${namePart}](${namePart.length})`);
-              const complexSymbolPosition = multiLineSet.locateSymbol(namePart, currSingleLineOffset);
-              // set starting offset from here...
-              nameOffset = multiLineSet.offsetIntoLineForPosition(complexSymbolPosition);
-              possibleNameSet = namePart.split(/[.[\]]/).filter(Boolean);
-              const origNameSet = possibleNameSet;
-              this._logSPIN(
-                `  -- rptSPIN() origNameSet=[${origNameSet}](${origNameSet.length}) -> possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`
-              );
-              let typeSearchString: string = `${possibleNameSet[0]}.${possibleNameSet[1]}`;
-              const overridePosition = multiLineSet.locateSymbol(typeSearchString, currSingleLineOffset);
-              isTypeOverride = overridePosition.character != -1;
-              this._logSPIN(`  -- rptSPIN() type HUNT='${typeSearchString}'(${typeSearchString.length}) -> (${isTypeOverride})`);
-              typeSearchString = `${possibleNameSet[0]}[`;
-              if (possibleNameSet[0] !== undefined && this.parseUtils.isSpecialIndexType(possibleNameSet[0])) {
-                const indexPosition = multiLineSet.locateSymbol(typeSearchString, currSingleLineOffset);
-                isIndexOverride = indexPosition.character != -1;
-              }
-              this._logSPIN(`  -- rptSPIN() index HUNT='${typeSearchString}'(${typeSearchString.length}) -> (${isIndexOverride})`);
-            }
-            //*/
 
             const searchString: string =
               possibleNameSet.length == 1 || isBitSubscript ? possibleNameSet[0] : `${possibleNameSet[0]}.${possibleNameSet[1]}`;
-
-            //  --X2--------------------------------------------------------------------------------------------
-            //
-            /*
-            this._logSPIN(`  -- rptSPIN() FLOW handle indexes in [${assignmentRHSStr}](${assignmentRHSStr.length})`);
-            indexExpressions = []; // dont' include the []
-            if (havePossIndex) {
-              indexExpressions = this._getIndexExpressions(assignmentRHSStr.substring(ltBbracketOffset));
-            }
-            //if (indexExpressions.length > 0) {
-            //  this._logSPIN(`  -- rptSPIN() found ct=${indexExpressions.length} indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}]`);
-            //}
-            let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
-            // if we have any, get positon of first index expression
-            if (indexExpressions.length > 0 && indexExpressions[0].expression.length > 0) {
-              indexExpressionPosn = multiLineSet.locateSymbol(indexExpressions[0].expression, currSingleLineOffset + ltBbracketOffset);
-              this._logSPIN(
-                `  -- rptSPIN() C indexExpression=[${indexExpressions[0].expression}](${indexExpressions[0].expression.length}), posn=[Ln#${indexExpressionPosn.line + 1}:(${indexExpressionPosn.character})})`
-              );
-            }
-
-            // BUGFIX treat multiple index expressions as a just symbol names
-            let countOfIndexExpressions = 0;
-            let nestingLevel = 0;
-            for (let i = 0; i < namePart.length; i++) {
-              if (namePart[i] === '[') {
-                if (nestingLevel === 0) {
-                  // Only count if this is a top-level bracket
-                  countOfIndexExpressions++;
-                }
-                nestingLevel++;
-              } else if (namePart[i] === ']') {
-                nestingLevel = Math.max(0, nestingLevel - 1);
-              }
-            }
-
-            const multiIndexExpression: boolean = countOfIndexExpressions > 1;
-            this._logMessage(`  -- rptSPIN() multiIndexExpression=(${multiIndexExpression}), countOfIndexExpressions=(${countOfIndexExpressions})`);
-            // BUGFIX remove indexExpression for later highlighting
-            for (let index = 0; index < indexExpressions.length; index++) {
-              const indexExpression: IIndexedExpression = indexExpressions[index];
-              const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
-              // BUG: long[BF[schl]][indx] -->
-              const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
-              if (regex.test(namePart)) {
-                const adjNamePart: string = namePart.replace(regex, '').trim();
-                this._logSPIN(`  -- rptSPIN() indexExpression namePart=[${namePart}](${namePart.length}) -> [${adjNamePart}](${adjNamePart.length})`);
-                namePart = adjNamePart;
-                possNames[0] = adjNamePart; // update possNames[0] to match
-                possibleNameSet = [adjNamePart]; // update possNames[0] to match
-                searchString = adjNamePart; // update searchString to match
-                nonStringAssignmentRHSStr = nonStringAssignmentRHSStr.replace(regex, '');
-                this._logSPIN(
-                  `  -- rptSPIN() indexExpression possNames=[${possNames}](${possNames.length}), possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`
-                );
-              }
-            }
-            //*/
-            //
-            //  --X2--------------------------------------------------------------------------------------------
 
             // SPECIAL: let's handle this:
             //   Ex:   WriteZStringToFile(@"file1", @file1)
@@ -5899,27 +5769,10 @@ export class Spin2DocumentSemanticParser {
               }
             }
 
-            /*
-            this._logSPIN(`  -- rptSPIN() RHS  nonStringAssignmentRHSStr=[${nonStringAssignmentRHSStr}]`);
-            this._logSPIN(
-              `  -- rptSPIN() RHS   searchString=[${searchString}], isTypeOverride=(${isTypeOverride}), indexElementCt=(${indexExpressions.length})`
-            );
-            this._logSPIN(
-              `  -- rptSPIN() RHS    nameOffset=(${nameOffset}), offsetInNonStringRHS=(${offsetInNonStringRHS}), cslofs=(${currSingleLineOffset})`
-            );
-			*/
             const openParenLocation: number = nonStringAssignmentRHSStr.indexOf('(');
             const bNameIsPossibleMethodCall: boolean = openParenLocation != -1;
             const methodFollowString: string = bNameIsPossibleMethodCall ? nonStringAssignmentRHSStr.substring(openParenLocation) : '';
 
-            /*
-            this._logSPIN(
-              `  -- rptSPIN() FLOW Multi lower loop start possNames=[${possNames.join(', ')}](${possNames.length}), cslofs=(${currSingleLineOffset})`
-            );
-            this._logSPIN(
-              `  -- rptSPIN()                  possibleNameSet=[${possibleNameSet.join(', ')}](${possibleNameSet.length}), cslofs=(${currSingleLineOffset})`
-            );
-			*/
             this._logSPIN(`  -- rptSPIN() FLOW single-pass loop START`);
             //for (let index = 0; index < possibleNameSet.length; index++) {
             for (let index = 0; index < 1; index++) {
@@ -6178,14 +6031,6 @@ export class Spin2DocumentSemanticParser {
               ptTokenModifiers: []
             });
           }
-          /*
-          offsetInNonStringRHS += namePart.length + 1;
-          currSingleLineOffset = nameOffset + namePart.length;
-          // XYZZY currSingleLineOffset BAD HERE!!
-          this._logSPIN(
-            `  -- rptSPIN() Multi loop OFS BAD? cslofs=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), namePart.length=(${namePart.length})`
-          );
-		  */
 
           if (possStorageType.length > 0) {
             // if structure type with indexes then re-color it
@@ -6207,7 +6052,6 @@ export class Spin2DocumentSemanticParser {
             }
           }
 
-          // FIXME: UNDONE this is badly associated with possNames[0]
           //   (this whole routine expects only 1 indexExpression in line
           // report index value statement
           if (indexExpressions.length > 0) {
