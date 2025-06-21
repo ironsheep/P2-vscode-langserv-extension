@@ -5592,6 +5592,8 @@ export class Spin2DocumentSemanticParser {
             namePart = namePart.substr(0, namePart.length - 1);
           }
           this._logSPIN(`  -- rptSPIN() raw name=[${namePart}](${namePart.length}), ofs=(${nameOffset}) [${index + 1} of ${possNames.length}]`);
+          const indexedNameLength: number = namePart.includes('[') ? namePart.length : 0;
+          const offsetPastIndexedName: number = indexedNameLength > 0 ? nameOffset + indexedNameLength : 0;
           let indexExpressions: IIndexedExpression[] = [];
           let bFoundStructureRef: boolean = false;
           let bFoundObjRef: boolean = false;
@@ -6056,7 +6058,7 @@ export class Spin2DocumentSemanticParser {
           // report index value statement
           if (indexExpressions.length > 0) {
             this._logSPIN(
-              `  -- rptSPIN() FINISH(would) HANDLE Ln#${multiLineSet.lineStartIdx + 1} indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length})`
+              `  -- rptSPIN() FINISH HANDLE Ln#${multiLineSet.lineStartIdx + 1} indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length})`
             );
             //*
             let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
@@ -6076,7 +6078,11 @@ export class Spin2DocumentSemanticParser {
               currSingleLineOffset += indexExpression.expression.length;
             }
             indexExpressions = []; // reset so we don't report again
-            //*/
+
+            if (offsetPastIndexedName > 0) {
+              this._logSPIN(`  -- rptSPIN() IndexedName! adjust currSingleLineOffset: (${currSingleLineOffset}) -> (${offsetPastIndexedName})`);
+              currSingleLineOffset = offsetPastIndexedName; // adjust offset to end of indexed name
+            }
           }
         }
         this._logSPIN(`  -- rptSPIN() Loop RAW DONE`);
