@@ -8152,6 +8152,37 @@ export class Spin2DocumentSemanticParser {
     }
   }
 
+  private _parseNestedIndexExpression(indexExpression: string): string[] {
+    const expressionParts: string[] = [];
+    let indexExpressions: IIndexedExpression[] = [];
+    let variableName: string = indexExpression.trim();
+    if (variableName.includes('[') && variableName.includes(']')) {
+      // yes remove index elemeents from name
+      indexExpressions = this._getIndexExpressions(variableName);
+      // Iterate over all indexes returned
+      const subExpressions: string[] = [];
+      for (let index = 0; index < indexExpressions.length; index++) {
+        const indexExpression: IIndexedExpression = indexExpressions[index];
+        const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+        const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
+        if (regex.test(variableName)) {
+          let adjSymbolName: string = variableName.replace(regex, '').trim();
+          // SPECIAL CASE
+          //  Ex:o.[2 addbits 5]  reduces to o.
+          //   Let's remove the trailing '.' as well
+          if (adjSymbolName.endsWith('.')) {
+            adjSymbolName = adjSymbolName.substring(0, adjSymbolName.length - 1);
+          }
+          this._logSPIN(`  -- rptSPIN() A symbolName=[${variableName}](${variableName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
+          variableName = adjSymbolName;
+        }
+        subExpressions.push(indexExpression.expression);
+      }
+      expressionParts.push(variableName, ...subExpressions);
+    }
+    return expressionParts;
+  }
+
   private _reportSPIN_IndexExpression(
     indexExpression: string,
     lineIdx: number,
@@ -8160,7 +8191,18 @@ export class Spin2DocumentSemanticParser {
     tokenSet: IParsedToken[]
   ): number {
     let nameOffset: number = startingOffset;
-    if (indexExpression.length > 0) {
+    if (indexExpression !== undefined && indexExpression.length > 0 && indexExpression.includes('[')) {
+      // XYZZY nest expression handling
+      const expressionParts: string[] = this._parseNestedIndexExpression(indexExpression);
+      for (let index = 0; index < expressionParts.length; index++) {
+        const subExpression: string = expressionParts[index];
+        const subExpressionOffset: number = line.indexOf(subExpression, nameOffset);
+        startingOffset = this._reportSPIN_IndexExpression(subExpression, lineIdx, subExpressionOffset, line, tokenSet);
+        nameOffset += subExpression.length;
+      }
+      return startingOffset; // no change to offset
+    }
+    if (indexExpression !== undefined && indexExpression.length > 0) {
       this._logSPIN(
         `- Ln#${lineIdx + 1}: rptSPINIdxExpr() indexExpression=[${indexExpression}], ofs=(${startingOffset}), line=[${line}](${line.length})`
       );
