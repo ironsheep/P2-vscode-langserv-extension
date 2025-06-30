@@ -32,7 +32,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 Spin2 Highlighting Update
 
-- BUGFIX: Clean up Constant ENUM declaration with step offset highlight failures
+- BUGFIX: CON - Clean up Constant ENUM declaration with step offset highlight failures
+- BUGFIX: PUB/PRI - Repair coloring of nested index expressions
 
 ## [2.4.8] 2025-06-21
 
