@@ -2026,10 +2026,15 @@ export class Spin2DocumentSemanticParser {
           let nameOffset: number = 0;
           for (let index = 0; index < lineParts.length; index++) {
             let enumConstant: string = lineParts[index];
+            // BUGFIX? Allow P1 asm (par, cnt) variables to be used as constants in P2 code
+            let isDisAllowedP1AsmVariable: boolean = this.parseUtils.isP1AsmVariable(enumConstant);
+            if (enumConstant.toLowerCase() == 'par' || enumConstant.toLowerCase() == 'cnt') {
+              isDisAllowedP1AsmVariable = false; // par and cnt are  allowed in P2 code
+            }
             // use parseUtils.isDebugInvocation to filter out use of debug invocation command from constant def'
             if (this.parseUtils.isDebugInvocation(enumConstant)) {
               continue; // yep this is not a constant
-            } else if (this.parseUtils.isP1AsmVariable(enumConstant)) {
+            } else if (isDisAllowedP1AsmVariable) {
               this._logCON(`  -- GetCDLMulti() PASM1 skipped=[${enumConstant}]`);
               continue; // yep this is not a constant
             } else {
@@ -2039,6 +2044,7 @@ export class Spin2DocumentSemanticParser {
                 const enumNameParts: string[] = enumConstant.split('[');
                 enumConstant = enumNameParts[0];
               }
+
               if (this.parseUtils.isValidSpinSymbolName(enumConstant)) {
                 this._logCON(`  -- C GetCDLMulti() enumConstant=[${enumConstant}]`);
                 //const nameOffset = line.indexOf(enumConstant, currSingleLineOffset); // FIXME: UNDONE, do we have to dial this in?
@@ -3355,7 +3361,12 @@ export class Spin2DocumentSemanticParser {
           if (this.parseUtils.isValidSpinSymbolName(enumConstant)) {
             const symbolPosition: Position = multiLineSet.locateSymbol(enumConstant, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-            if (!this.parseUtils.isDebugInvocation(enumConstant) && !this.parseUtils.isP1AsmVariable(enumConstant)) {
+            // BUGFIX? Allow P1 asm (par, cnt) variables to be used as constants in P2 code
+            let isDisAllowedP1AsmVariable: boolean = this.parseUtils.isP1AsmVariable(enumConstant);
+            if (enumConstant.toLowerCase() == 'par' || enumConstant.toLowerCase() == 'cnt') {
+              isDisAllowedP1AsmVariable = false; // par and cnt are  allowed in P2 code
+            }
+            if (!this.parseUtils.isDebugInvocation(enumConstant) && !isDisAllowedP1AsmVariable) {
               this._logCON('  -- B GLBLMulti enumConstant=[' + enumConstant + ']');
               // our enum name can have a step offset
               //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
@@ -3366,7 +3377,7 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: 'enumMember',
                 ptTokenModifiers: ['declaration', 'readonly']
               });
-            } else if (this.parseUtils.isP1AsmVariable(enumConstant)) {
+            } else if (isDisAllowedP1AsmVariable) {
               // our SPIN1 name
               this._logCON('  -- B GLBL bad SPIN1=[' + enumConstant + ']');
               //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
