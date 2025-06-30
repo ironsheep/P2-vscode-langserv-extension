@@ -8280,6 +8280,22 @@ export class Spin2DocumentSemanticParser {
             });
             nameOffset += namePart.length;
             continue;
+          } else if (this.parseUtils.isStorageType(namePart)) {
+            // handle case when storage type is used in index expression
+            // SPECIAL OVERRIDE Storage Type used as access override
+            this._logDEBUG(`  -- rDbgStM() storage type=[${namePart}]`);
+            // have a 'byte' of byte[i+0]
+            // have a 'word' of word[i+0]
+            // have a 'long' of long[i+0]
+            this._recordToken(tokenSet, line, {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: namePart.length,
+              ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
+              ptTokenModifiers: ['builtin']
+            });
+            nameOffset += namePart.length;
+            continue;
           } else if (
             this.parseUtils.isBinaryOperator(namePart) ||
             this.parseUtils.isUnaryOperator(namePart) ||
