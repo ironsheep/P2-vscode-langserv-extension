@@ -5481,7 +5481,8 @@ export class Spin2DocumentSemanticParser {
       // BUGFIX Handle line with empty after ':=' assignment operator
 
       let assignmentRHSStr: string = currSingleLineOffset < multiLineSet.line.length - 1 ? multiLineSet.line.substring(currSingleLineOffset) : '';
-      let preCleanAssignmentRHSStr = assignmentRHSStr.length > 0 ? this.parseUtils.getNonInlineCommentLine(assignmentRHSStr).replace('..', '  ') : '';
+      //let preCleanAssignmentRHSStr = assignmentRHSStr.length > 0 ? this.parseUtils.getNonInlineCommentLine(assignmentRHSStr).replace('..', '  ') : '';
+      let preCleanAssignmentRHSStr = assignmentRHSStr.length > 0 ? this.parseUtils.getNonInlineCommentLine(assignmentRHSStr) : '';
       this._logSPIN(`  -- rptSPIN()  assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), assignmentOffset=(${assignmentOffset})`);
 
       if (assignmentRHSStr.length == 0) {
@@ -9383,8 +9384,10 @@ export class Spin2DocumentSemanticParser {
     let reducedLineParts: string[] = [];
     for (let index = 0; index < lineParts.length; index++) {
       const name = lineParts[index];
-      // handle bitfield indexes
-      if (name.includes('.[')) {
+      const leftBrktOffset: number = name.indexOf('[');
+      const dotBrktOffset: number = name.indexOf('.[');
+      // handle bitfield indexes if not within an index
+      if (dotBrktOffset != -1 && (leftBrktOffset == -1 || dotBrktOffset < leftBrktOffset)) {
         const nameParts: string[] = name.split('.[');
         const tmpName: string = nameParts[0].trim();
         if (tmpName.length > 0) {
