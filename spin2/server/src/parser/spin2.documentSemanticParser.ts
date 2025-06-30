@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -2858,17 +2858,15 @@ export class Spin2DocumentSemanticParser {
       const statements: string[] = this.splitLinesWithPossibleStruct(nonCommentConstantLine);
       const containsMultiStatements: boolean = statements.length > 1;
       this._logCON(
-        `- Ln#${
-          multiLineSet.lineStartIdx + 1
-        }: rptCDLMulti() haveEnum=(${haveEnumDeclaration}), containsMulti=(${containsMultiStatements}), nonCommentConstantLine=[${nonCommentConstantLine}], statements=[${statements}](${
+        `  -- rptCDLMulti() haveEnum=(${haveEnumDeclaration}), containsMulti=(${containsMultiStatements}), nonCommentConstantLine=[${nonCommentConstantLine}], statements=[${statements}](${
           statements.length
-        }`
+        })`
       );
       if (!haveEnumDeclaration && !this.conEnumInProgress) {
         this._logCON(`  -- rptCDLMulti() assignments Multi statements=[${statements}](${statements.length})`);
         for (let index = 0; index < statements.length; index++) {
           const conDeclarationLine: string = statements[index].trim();
-          this._logCON(`  -- rptCDLMulti()  conDeclarationLine=[${conDeclarationLine}][${index}]`);
+          this._logCON(`  -- rptCDLMulti()  conDeclarationLine=[${conDeclarationLine}][${index}] [${index + 1} of ${statements.length}]`);
           //currSingleLineOffset = line.indexOf(conDeclarationLine, currSingleLineOffset);
           // locate key indicators of line style
           const isAssignment: boolean = conDeclarationLine.indexOf('=') != -1;
@@ -2895,7 +2893,7 @@ export class Spin2DocumentSemanticParser {
               const structPosition: Position = multiLineSet.locateSymbol(structKeyWord, multiLineSet.offsetIntoLineForPosition(statementPosition));
               let lineIdx: number = structPosition.line;
               let nameOffset: number = structPosition.character;
-              this._logMessage(`  -- rptCDLMulti() ${structKeyWord}, ofs=(${nameOffset})`);
+              this._logCON(`  -- rptCDLMulti() ${structKeyWord}, ofs=(${nameOffset})`);
               this._recordToken(tokenSet, multiLineSet.lineAt(structPosition.line), {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -2908,7 +2906,7 @@ export class Spin2DocumentSemanticParser {
               let symbolPosition: Position = multiLineSet.locateSymbol(symbolName, currSingleLineOffset);
               lineIdx = symbolPosition.line;
               nameOffset = symbolPosition.character;
-              this._logMessage(`  -- rptCDLMulti() structName=[${structDeclaration.structName}], ofs=(${nameOffset})`);
+              this._logCON(`  -- rptCDLMulti() structName=[${structDeclaration.structName}], ofs=(${nameOffset})`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -2966,7 +2964,7 @@ export class Spin2DocumentSemanticParser {
               const structPosition: Position = multiLineSet.locateSymbol(structKeyWord, multiLineSet.offsetIntoLineForPosition(statementPosition));
               let lineIdx: number = structPosition.line;
               let nameOffset: number = structPosition.character;
-              this._logMessage(`  -- rptCDLMulti() ${structKeyWord}, ofs=(${nameOffset})`);
+              this._logCON(`  -- rptCDLMulti() ${structKeyWord}, ofs=(${nameOffset})`);
               this._recordToken(tokenSet, multiLineSet.lineAt(structPosition.line), {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -2982,7 +2980,7 @@ export class Spin2DocumentSemanticParser {
               );
               lineIdx = symbolPosition.line;
               nameOffset = symbolPosition.character;
-              this._logMessage(`  -- rptCDLMulti() structName=[${symbolName}], ofs=(${nameOffset})`);
+              this._logCON(`  -- rptCDLMulti() structName=[${symbolName}], ofs=(${nameOffset})`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -3010,7 +3008,7 @@ export class Spin2DocumentSemanticParser {
                 symbolPosition = multiLineSet.locateSymbol(typeStr, currPartOffset);
                 lineIdx = symbolPosition.line;
                 nameOffset = symbolPosition.character;
-                this._logMessage(`  -- rptCDLMulti() memberType=[${typeStr}], ofs=(${nameOffset})`);
+                this._logCON(`  -- rptCDLMulti() memberType=[${typeStr}], ofs=(${nameOffset})`);
                 if (nameOffset != -1) {
                   // OPTIONALLY color member type
                   this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -3027,7 +3025,7 @@ export class Spin2DocumentSemanticParser {
                 symbolPosition = multiLineSet.locateSymbol(memberName, currPartOffset);
                 lineIdx = symbolPosition.line;
                 nameOffset = symbolPosition.character;
-                this._logMessage(`  -- rptCDLMulti() memberName=[${memberName}], ofs=(${nameOffset})`);
+                this._logCON(`  -- rptCDLMulti() memberName=[${memberName}], ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: lineIdx,
                   startCharacter: nameOffset,
@@ -3042,7 +3040,7 @@ export class Spin2DocumentSemanticParser {
                   symbolPosition = multiLineSet.locateSymbol(indexName, currPartOffset);
                   lineIdx = symbolPosition.line;
                   nameOffset = symbolPosition.character;
-                  this._logMessage(`  -- rptCDLMulti() memberName=[${indexName}], ofs=(${nameOffset})`);
+                  this._logCON(`  -- rptCDLMulti() memberName=[${indexName}], ofs=(${nameOffset})`);
                   let referenceDetails: RememberedToken | undefined = undefined;
                   if (this.semanticFindings.isGlobalToken(indexName)) {
                     referenceDetails = this.semanticFindings.getGlobalToken(indexName);
@@ -3082,7 +3080,7 @@ export class Spin2DocumentSemanticParser {
             //const nameOffset = line.indexOf(lhsConstantName, currSingleLineOffset);
             const symbolPosition: Position = multiLineSet.locateSymbol(lhsConstantName, multiLineSet.offsetIntoLineForPosition(statementPosition));
             //const nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-            this._logCON(`  -- rptCDLMulti() assign lhsConstantName=[${lhsConstantName}]`);
+            this._logCON(`  -- rptCDLMulti() assign lhsConstantName=[${lhsConstantName}], ofs=(${symbolPosition.character})`);
             let referenceDetails: RememberedToken | undefined = undefined;
             if (this.semanticFindings.isGlobalToken(lhsConstantName)) {
               referenceDetails = this.semanticFindings.getGlobalToken(lhsConstantName);
@@ -3098,6 +3096,7 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: referenceDetails.type,
                 ptTokenModifiers: modifiersWDecl
               });
+              currSingleLineOffset += lhsConstantName.length; // skip past the name
             } else {
               this._logCON('  --  CON ERROR[CODE] missed recording declaration! name=[' + lhsConstantName + ']');
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -3127,9 +3126,9 @@ export class Spin2DocumentSemanticParser {
             }
             // remove front LHS of assignment and process remainder
             // process RHS
-            const fistEqualOffset: number = conDeclarationLine.indexOf('=');
-            const assignmentRHSStr = conDeclarationLine.substring(fistEqualOffset + 1).trim();
-            currSingleLineOffset = multiLineSet.line.indexOf(assignmentRHSStr, fistEqualOffset); // skip to RHS of assignment
+            const firstEqualOffset: number = conDeclarationLine.indexOf('=');
+            const assignmentRHSStr = conDeclarationLine.substring(firstEqualOffset + 1).trim();
+            currSingleLineOffset = multiLineSet.line.indexOf(assignmentRHSStr, currSingleLineOffset); // skip to RHS of assignment
             this._logCON(`  -- rptCDLMulti() assignmentRHSStr=[${assignmentRHSStr}], cslofs=(${currSingleLineOffset})`);
             const KEEP_PACKED_CONSTANTS: boolean = true;
             const possNames: string[] = this.parseUtils.getNonWhiteCONLineParts(assignmentRHSStr, KEEP_PACKED_CONSTANTS);
@@ -3316,8 +3315,10 @@ export class Spin2DocumentSemanticParser {
         // have line creating one or more of enum constants
         // -------------------------------------------------
         // recognize enum values getting initialized
-        const lineParts: string[] = nonCommentConstantLine.split(/[,#[\]]/).filter(Boolean);
-        this._logCON(`  -- enum lineParts=[${lineParts}](${lineParts.length})`);
+        // SPECIAL handl case of:
+        // Ex: UB_OFS      [UB_SIZE    * UB_INDX     ]
+        const lineParts: string[] = nonCommentConstantLine.split(/[ \t,#[\]]/).filter(Boolean);
+        this._logCON(`  -- rptCDLMulti() enum lineParts=[${lineParts}](${lineParts.length})`);
         let nameOffset: number = 0;
         let nameLen: number = 0;
         for (let index = 0; index < lineParts.length; index++) {

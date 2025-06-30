@@ -28,6 +28,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.4.9] 2025-07-xx
+
+Spin2 Highlighting Update
+
+- BUGFIX: Clean up Constant ENUM declaration with step offset highlight failures
+
 ## [2.4.8] 2025-06-21
 
 Spin2 Highlighting Update

@@ -1,0 +1,122 @@
+'' =================================================================================================
+''
+''   File....... clkOut.spin2
+''   Purpose.... driver smart pins to generate clock output
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2025 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... Jun 2025
+''   Updated.... 28 Jun 2025
+''
+'' =================================================================================================
+
+CON 'P2 clock setting
+    '_clkfreq        = 200_000_000
+    '_clkfreq        = 196_608_000  ' better 32.768 multiplier
+    _clkfreq        = 290_000_000  ' better 32.768 multiplier
+
+CON '' TEST PIN SETTINGS
+
+    ' set pin 10 to output frequency
+    clk_32Mhz  = 8
+    clk_32768Khz  = 10
+
+#0, MOD_Unknown, MOD_CLK32Mhz, MOD_CLK32768Khz
+
+VAR
+  long clk_pin
+
+pub Main()
+
+  Start(MOD_CLK32Mhz)  'start up clk pins
+  Start(MOD_CLK32768Khz)  'start up clk pins
+  repeat ' forever
+
+
+PUB Start(mode) 'start using usual pins
+
+  case mode
+    MOD_CLK32Mhz:
+      StartX(clk_32Mhz, 32_000_000)  'start up clk pins
+    MOD_CLK32768Khz:
+      StartX(clk_32768Khz, 32_768)  'start up clk pins
+    Other:
+
+
+PUB StartX(clkpin, freqHz) | bitperiod, bit_mode, mode, period, khz  'start using user defined pins
+  'Note:  The "mode" parameter, used by fullduplexserial, has been removed
+
+  ' save parameters in the object
+    clk_pin := clkpin
+
+    khz := freqHz / 1000
+  ' calculate delay between bits
+  'bitperiod := (CLKFREQ / freqHz)
+
+  ' calculate smartpin mode for 8 bits per character
+  'bit_mode := 7 + (bitperiod << 16)
+
+  ' set up the transmit pin
+  'pinf(clk_pin)
+  'wrpin(clk_pin, _txmode)
+  'wxpin(clk_pin, bit_mode)
+  'pinl(clk_pin)   ' turn smartpin on by making the pin an output
+
+' from SPI driver
+
+  'mode := P_TT_11 | P_PULSE                                           ' pulses for spi clock
+  'mode := P_OE | P_PULSE                                           ' pulses for spi clock
+  PulseTmg.word[0] := 2 #> (_clkfreq / (khz*1000)) <# $FFFF             ' ticks in period
+  PulseTmg.word[1] := PulseTmg.word[0] >> 1                              ' ticks in low cycle (50%)
+  debug("SETUP ", uhex_word(PulseTmg.word[0], PulseTmg.word[1]))  ' debug output
+  'pinstart(clkpin, PulseCfg, PulseTmg, Cycles)                                ' configure smart pin
+  pinf(clk_pin)
+  wrpin(clk_pin, PulseCfg)
+  wxpin(clk_pin, PulseTmg)
+  pinl(clk_pin)   ' turn smartpin on by making the pin an output
+  wypin(clk_pin, Cycles)
+
+{
+    org
+    dirl    #clk_pin
+    wrpin   PulseCfg, #clk_pin  ' set pin to output and pulse mode
+    wxpin   PulseTmg, #clk_pin  ' set pin to output and pulse mode
+    dirh    #clk_pin
+    wypin   Cycles, #clk_pin  ' set pin to output and pulse mode
+    ret
+    end
+'}
+DAT
+
+PulseCfg  long P_TT_11 | P_PULSE
+PulseTmg  long $01f4_05dc
+Cycles    long -1
+
+CON { license }
+
+{{
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2025 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+}}
