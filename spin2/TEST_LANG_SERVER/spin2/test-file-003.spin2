@@ -906,6 +906,7 @@ DAT { instructions by group }
                 XZERO     ' Streamer
 
 ' symbols that are used in setting up smartpins
+            P_AND_AB
             P_ADC
             P_ADC_100X
             P_ADC_10X
@@ -937,6 +938,10 @@ DAT { instructions by group }
             P_DAC_DITHER_RND
             P_DAC_NOISE
             P_EVENTS_TICKS
+            P_FILT0_AB
+            P_FILT1_AB
+            P_FILT2_AB
+            P_FILT3_AB
             P_HIGH_100UA
             P_HIGH_10UA
             P_HIGH_150K
@@ -949,10 +954,12 @@ DAT { instructions by group }
             P_INVERT_A
             P_INVERT_B
             P_INVERT_IN
+            P_INVERT_OUT
             P_INVERT_OUTPUT
             P_LEVEL_A
             P_LEVEL_A_FBN
-            P_LEVEL_A_FBP
+            P_LEVEL_B_FBP
+            P_LEVEL_B_FBN
             P_LOCAL_A
             P_LOCAL_B
             P_LOGIC_A
@@ -976,8 +983,10 @@ DAT { instructions by group }
             P_NCO_FREQ
             P_NORMAL
             P_OE
+            P_OR_AB
             P_OUTBIT_A
             P_OUTBIT_B
+            P_PASS_AB
             P_PERIODS_HIGHS
             P_PERIODS_TICKS
             P_PLUS1_A
@@ -991,7 +1000,7 @@ DAT { instructions by group }
             P_PWM_SMPS
             P_PWM_TRIANGLE
             P_QUADRATURE
-            P_REG_DOWN
+            P_REG_UP_DOWN
             P_REG_UP
             P_REPOSITORY
             P_SCHMITT_A
@@ -1005,12 +1014,14 @@ DAT { instructions by group }
             P_TRUE_A
             P_TRUE_B
             P_TRUE_IN
+            P_TRUE_OUT
             P_TRUE_OUTPUT
             P_TT_00
             P_TT_01
             P_TT_10
             P_TT_11
             P_USB_PAIR
+            P_XOR_AB
 
 ' symbols that are used to setup streamers
         X_16P_2DAC8_WFWORD

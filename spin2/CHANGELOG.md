@@ -30,10 +30,15 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 ## [2.4.9] 2025-07-xx
 
-Spin2 Highlighting Update
+Spin2 Semantic Highlighting Update
 
 - BUGFIX: CON - Clean up Constant ENUM declaration with step offset highlight failures
 - BUGFIX: PUB/PRI - Repair coloring of nested index expressions
+
+Spin2 Syntax Highlighting Update
+
+- BUGFIX: Add Highlighting of missing Smart Pin Constants (Including legal alternate spellings)
+
 
 ## [2.4.8] 2025-06-21
 

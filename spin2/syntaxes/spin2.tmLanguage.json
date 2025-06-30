@@ -839,7 +839,7 @@
         },
         {
           "name": "constant.language.smartpins.spin2",
-          "match": "(?i)\\b(P_HIGH_(100UA|10UA|150K|15K|1K5|1MA|FAST|FLOAT|TICKS)|P_COUNT_(HIGHS|RISES)|P_INVERT_(A|B|IN|OUTPUT))\\b"
+          "match": "(?i)\\b(P_HIGH_(100UA|10UA|150K|15K|1K5|1MA|FAST|FLOAT|TICKS)|P_COUNT_(HIGHS|RISES)|P_INVERT_(A|B|IN|OUTPUT|OUT))\\b"
         },
         {
           "name": "constant.language.smartpins.spin2",
@@ -847,7 +847,7 @@
         },
         {
           "name": "constant.language.smartpins.spin2",
-          "match": "(?i)\\b(P_(BITDAC|CHANNEL|EVENTS_TICKS|NORMAL|OE|PULSE|QUADRATURE|REPOSITORY|STATE_TICKS|TRANSITION|TRUE_OUTPUT|USB_PAIR))\\b"
+          "match": "(?i)\\b(P_(BITDAC|CHANNEL|EVENTS_TICKS|NORMAL|OE|PULSE|QUADRATURE|REPOSITORY|STATE_TICKS|TRANSITION|USB_PAIR))\\b"
         },
         {
           "name": "constant.language.smartpins.spin2",
@@ -855,7 +855,15 @@
         },
         {
           "name": "constant.language.smartpins.spin2",
-          "match": "(?i)\\b(P_SCHMITT_(A|A_FB|B_FB)|P_SYNC_(IO|RX|TX)|P_TRUE_(A|B|IN)|P_TT_(0|1)(0|1)|P_MINUS(1|2|3)_(A|B)|P_NCO_(DUTY|FREQ))\\b"
+          "match": "(?i)\\b(P_SCHMITT_(A|A_FB|B_FB)|P_SYNC_(IO|RX|TX)|P_TRUE_(A|B|IN|OUT|OUTPUT)|P_TT_(0|1)(0|1)|P_MINUS(1|2|3)_(A|B)|P_NCO_(DUTY|FREQ))\\b"
+        },
+        {
+          "name": "constant.language.smartpins.spin2",
+          "match": "(?i)\\b(P_FILT(0|1|2|3)_AB)\\b"
+        },
+        {
+          "name": "constant.language.smartpins.spin2",
+          "match": "(?i)\\b(P_(XOR|PASS|OR|AND)_AB)\\b"
         }
       ]
     },

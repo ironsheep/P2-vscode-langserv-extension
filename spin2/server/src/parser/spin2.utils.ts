@@ -1491,7 +1491,9 @@ export class Spin2ParseUtils {
     p_true_in: 'True IN bit<br>%0000_0000_000_0000000000000_00_00000_0',
     p_invert_in: 'Invert IN bit<br>%0000_0000_000_0000010000000_00_00000_0',
     // - Low-Level Pin Sub-Modes: Output Polarity
+    p_true_out: 'Select true output (a.k.a. P_TRUE_OUTPUT)<br>%0000_0000_000_0000000000000_00_00000_0',
     p_true_output: 'Select true output<br>%0000_0000_000_0000000000000_00_00000_0',
+    p_invert_out: 'Select inverted output (a.k.a.  P_INVERT_OUTPUT)<br>0000_0000_000_0000001000000_00_00000_0',
     p_invert_output: 'Select inverted output<br>0000_0000_000_0000001000000_00_00000_0',
     // - Low-Level Pin Sub-Modes: Drive-High Strength
     p_high_fast: 'Drive high fast (30mA)<br>%0000_0000_000_0000000000000_00_00000_0',

@@ -322,6 +322,7 @@ PUB allFlowControl()
 
 PUB allSmartPinAliases()
 ' symbols that are used in setting up smartpins
+            P_AND_AB
             P_ADC
             P_ADC_100X
             P_ADC_10X
@@ -353,6 +354,10 @@ PUB allSmartPinAliases()
             P_DAC_DITHER_RND
             P_DAC_NOISE
             P_EVENTS_TICKS
+            P_FILT0_AB
+            P_FILT1_AB
+            P_FILT2_AB
+            P_FILT3_AB
             P_HIGH_100UA
             P_HIGH_10UA
             P_HIGH_150K
@@ -365,6 +370,7 @@ PUB allSmartPinAliases()
             P_INVERT_A
             P_INVERT_B
             P_INVERT_IN
+            P_INVERT_OUT
             P_INVERT_OUTPUT
             P_LEVEL_A
             P_LEVEL_A_FBN
@@ -393,8 +399,10 @@ PUB allSmartPinAliases()
             P_NCO_FREQ
             P_NORMAL
             P_OE
+            P_OR_AB
             P_OUTBIT_A
             P_OUTBIT_B
+            P_PASS_AB
             P_PERIODS_HIGHS
             P_PERIODS_TICKS
             P_PLUS1_A
@@ -422,12 +430,14 @@ PUB allSmartPinAliases()
             P_TRUE_A
             P_TRUE_B
             P_TRUE_IN
+            P_TRUE_OUT
             P_TRUE_OUTPUT
             P_TT_00
             P_TT_01
             P_TT_10
             P_TT_11
             P_USB_PAIR
+            P_XOR_AB
 
 
 PUB symbolsThatAre()
