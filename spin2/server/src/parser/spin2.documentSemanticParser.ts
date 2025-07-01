@@ -4903,7 +4903,7 @@ export class Spin2DocumentSemanticParser {
               }
             }
             if (!foundObjectRef) {
-              // have struct or BWL modifier!
+              // have struct or BWL modifier!?
               // at v45, we allow structure and structure pointer reference!
               const allowedStructRef: boolean = this.parseUtils.requestedSpinVersion(45) || allowedObjRef;
               const allowedPtrRef: boolean = this.parseUtils.requestedSpinVersion(45);
@@ -4975,6 +4975,7 @@ export class Spin2DocumentSemanticParser {
               eSeverity.Error,
               `P2 Spin local [${localVarName}] hides global variable of same name`
             );
+            currSingleLineOffset = nameOffset + localVarName.length;
           } else {
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
@@ -4983,6 +4984,7 @@ export class Spin2DocumentSemanticParser {
               ptTokenType: 'variable',
               ptTokenModifiers: ['declaration', 'local']
             });
+            currSingleLineOffset = nameOffset + localVarName.length;
           }
           const struTypeStr: string = structureType.length > 0 ? ` type (${structureType})` : '';
           this._logMessage(`  -- rptPubPriSig() remember local variable [${localVarName}]${struTypeStr} for method [${methodName}]`);
@@ -5674,6 +5676,15 @@ export class Spin2DocumentSemanticParser {
                   this._logSPIN(
                     `  -- rptSPIN() still DOT varNameParts=[${varNameParts}](${varNameParts.length}), possStorageType=[${possStorageType}](${possStorageType.length})`
                   );
+                  this._logSPIN(`  -- rptSPIN() B indexType=[${possStorageType}], ofs=(${nameOffset})`);
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: symbolPosition.line,
+                    startCharacter: nameOffset,
+                    length: possStorageType.length,
+                    ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
+                    ptTokenModifiers: ['builtin']
+                  });
+                  currSingleLineOffset = nameOffset + possStorageType.length;
                 }
               }
             }
@@ -6820,7 +6831,7 @@ export class Spin2DocumentSemanticParser {
     let currSingleLineOffset: number = this.parseUtils.skipWhite(multiLineSet.line, startingOffset);
     const debugStatementStr: string = multiLineSet.line.substring(currSingleLineOffset).trimEnd();
     this._logDEBUG(`- Ln#${multiLineSet.lineStartIdx + 1}: rDbgStM() multiLineSet.line=[${multiLineSet.line}](${multiLineSet.line.length})`);
-    this._logMessage(`  -- rDbgStM() startingOffset=(${startingOffset}), cslofs=(${currSingleLineOffset})`);
+    this._logDEBUG(`  -- rDbgStM() startingOffset=(${startingOffset}), cslofs=(${currSingleLineOffset})`);
     const openParenOffset: number = debugStatementStr.indexOf('(');
     let haveBitfieldIndex: boolean = false;
     let bitfieldIndexValue: string = '';
@@ -7246,7 +7257,7 @@ export class Spin2DocumentSemanticParser {
               } else if (this.parseUtils.isSpinBuiltinMethod(newParameter)) {
                 // XYZZY here method coloring
                 // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
-                this._logSPIN(`  -- rDbgStM() built-in method=[${newParameter}]`);
+                this._logDEBUG(`  -- rDbgStM() built-in method=[${newParameter}]`);
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                   line: symbolPosition.line,
                   startCharacter: symbolPosition.character,
@@ -7419,7 +7430,7 @@ export class Spin2DocumentSemanticParser {
               adjLineParts.push(element);
             }
           }
-          this._logMessage(`  -- rDbgStM() - lineParts=[${lineParts}](${lineParts.length})`);
+          this._logDEBUG(`  -- rDbgStM() - lineParts=[${lineParts}](${lineParts.length})`);
           this._logMessage(`         is nowlineParts=[${adjLineParts}](${adjLineParts.length})`);
         }
         const firstParamIdx: number = adjLineParts.length > 1 && adjLineParts[0].toLowerCase().includes('debug') ? 1 : 0; // no prefix to skip
@@ -7454,36 +7465,121 @@ export class Spin2DocumentSemanticParser {
             continue;
           }
           if (!paramIsSymbolName) {
-            this._logSPIN(`  -- rDbgStM() SKIP not-sym name=[${newParameter}](${newParameter.length})`);
+            this._logDEBUG(`  -- rDbgStM() SKIP not-sym name=[${newParameter}](${newParameter.length})`);
             currSingleLineOffset += newParameter.length;
             continue;
           }
           if (newParameter.toLowerCase() == 'debug') {
             currSingleLineOffset += newParameter.length;
-            this._logSPIN(`  -- rDbgStM() SKIP debug name=[${newParameter}](${newParameter.length})`);
+            this._logDEBUG(`  -- rDbgStM() SKIP debug name=[${newParameter}](${newParameter.length})`);
             continue;
           }
           //symbolOffset = line.indexOf(newParameter, symbolOffset); // walk this past each
           symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
           this._logDEBUG(
-            `  --  rDbgStM() handle SYMBOL=[${newParameter}], currSingleLineOfs=(${currSingleLineOffset}), posn=[${symbolPosition.line}, ${symbolPosition.character}], nameOfs=(${nameOffset})`
+            `  -- rDbgStM() handle SYMBOL=[${newParameter}], currSingleLineOfs=(${currSingleLineOffset}), posn=[${symbolPosition.line}, ${symbolPosition.character}], nameOfs=(${nameOffset})`
           );
+          // handle object, structure, or array references
+          let possStorageType: string = '';
+          if (newParameter.includes('.')) {
+            // handle structure reference or object reference first
+            this._logDEBUG(`  -- rDbgStM() DOT newParameter=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
+            let bFoundObjRef: boolean = false;
+            let bFoundStructureRef: boolean = this._isPossibleStructureReference(newParameter, symbolPosition.line);
+            if (bFoundStructureRef) {
+              const [bHaveStructReference, refString] = this._reportStructureReference(
+                newParameter,
+                symbolPosition.line,
+                symbolPosition.character,
+                multiLineSet.lineAt(symbolPosition.line),
+                tokenSet
+              );
+              this._logDEBUG(`  -- rDbgStM() DOT bHaveStructReference=(${bHaveStructReference}), refString=[${refString}](${refString.length})`);
+              bFoundStructureRef = bHaveStructReference;
+              if (bHaveStructReference) {
+                // TODO: remove structure part from remainder of line and process the remainder
+                currSingleLineOffset += refString.length; // adjust offset to end of struct reference
+                if (newParameter !== refString) {
+                  newParameter = newParameter.replace(refString, '').trim();
+                } else {
+                  continue;
+                }
+              }
+            }
+            if (!bFoundStructureRef) {
+              // SPECIAL Ex: digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
+              // SPECIAL Ex: scroller[scrollerIndex].initialize()
+              bFoundObjRef = this._isPossibleObjectReference(newParameter);
+              if (bFoundObjRef) {
+                // go register object reference!
+                // XYZZY poss crash
+                bFoundObjRef = this._reportObjectReference(
+                  newParameter,
+                  symbolPosition.line,
+                  symbolPosition.character,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  tokenSet
+                );
+                this._logDEBUG(`  -- rDbgStM() DOT bHaveObjReference=(${bFoundObjRef}), newParameter=[${newParameter}](${newParameter.length})`);
+                if (bFoundObjRef) {
+                  // remove object reference from assignmentRHSStr
+                  currSingleLineOffset = nameOffset + newParameter.length; // adjust offset to end of object reference
+                  continue;
+                }
+              }
+            }
+            if (!bFoundObjRef && !bFoundStructureRef) {
+              // still have '.' in namePart, so handle it
+              //   have a 'byte' of hub-address.byte
+              //   have a 'word' of hub-address.word
+              //   have a 'long' of hub-address.long
+              this._logDEBUG(`  -- rDbgStM() DOT-REF! newParameter=[${newParameter}](${newParameter.length})`);
+              const varNameParts: string[] = newParameter.split(/[.[]/);
+              if (varNameParts.length > 1) {
+                if (this.parseUtils.isDatStorageType(varNameParts[1])) {
+                  possStorageType = varNameParts[1];
+                  //newParameter = varNameParts[0].trim();
+                  this._logSPIN(
+                    `  -- rDbgStM() DOT varNameParts=[${varNameParts}](${varNameParts.length}), possStorageType=[${possStorageType}](${possStorageType.length})`
+                  );
+                }
+              }
+            }
+          }
           // if [...] in name then put aside index expression and report it separately
-          let indexExpression: string = '';
-          const openBracketPosn: number = newParameter.indexOf('[');
-          if (openBracketPosn != -1 && newParameter.includes(']', openBracketPosn + 1)) {
-            const closeBracketPosn: number = newParameter.lastIndexOf(']');
-            const indexedName: string = newParameter; // save the whole thing
-            newParameter = indexedName.substring(0, openBracketPosn);
-            indexExpression = indexedName.substring(openBracketPosn + 1, closeBracketPosn);
-            this._logVAR(
-              `  -- getVarDecl indexed varName=[${newParameter}](${newParameter.length}), indexExpr=[${indexExpression}](${indexExpression.length})`
-            );
+          let indexExpressions: IIndexedExpression[] = [];
+          let isIndexOverride: boolean = false;
+          if (newParameter.includes('[') && newParameter.includes(']')) {
+            // yes remove index elemeents from name
+            indexExpressions = this._getIndexExpressions(newParameter);
+            // Iterate over all indexes returned
+            for (let index = 0; index < indexExpressions.length; index++) {
+              const indexExpression: IIndexedExpression = indexExpressions[index];
+              const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+              const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
+              if (regex.test(newParameter)) {
+                let adjSymbolName: string = newParameter.replace(regex, '').trim();
+                // SPECIAL CASE
+                //  Ex:o.[2 addbits 5]  reduces to o.
+                //   Let's remove the trailing '.' as well
+                if (adjSymbolName.endsWith('.')) {
+                  adjSymbolName = adjSymbolName.substring(0, adjSymbolName.length - 1);
+                }
+                this._logSPIN(`  -- rDbgStM() newParameter=[${newParameter}](${newParameter.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
+                newParameter = adjSymbolName;
+                isIndexOverride = true; // set flag to true so we don't report index expression
+              }
+            }
+          }
+          if (newParameter.includes('.') && possStorageType.length > 0) {
+            const adjName: string = newParameter.replace(`.${possStorageType}`, '').trim();
+            this._logSPIN(`  -- rDbgStM() ADJ newParameter=[${newParameter}](${newParameter.length}) -> [${adjName}](${adjName.length})`);
+            newParameter = adjName;
           }
           // if new  debug method in later version then highlight it
           if (this.parseUtils.isDebugMethod(newParameter) || this.parseUtils.isNewlyAddedDebugSymbol(newParameter)) {
-            this._logSPIN(`  -- rDbgStM() (possibly) new DEBUG name=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
+            this._logDEBUG(`  -- rDbgStM() (possibly) new DEBUG name=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: symbolPosition.character,
@@ -7528,7 +7624,7 @@ export class Spin2DocumentSemanticParser {
           }
           // have a B/W/L storage type?
           if (this.parseUtils.isStorageType(newParameter)) {
-            this._logMessage(`  -- rDbgStM() type=[${newParameter}], ofs=(${nameOffset})`);
+            this._logDEBUG(`  -- rDbgStM() type=[${newParameter}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: nameOffset,
@@ -7538,16 +7634,32 @@ export class Spin2DocumentSemanticParser {
             });
             currSingleLineOffset = nameOffset + newParameter.length;
             // report index value statement if present
-            if (indexExpression.length > 0) {
-              symbolPosition = multiLineSet.locateSymbol(indexExpression, currSingleLineOffset);
-              nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-              this._logMessage(`  --  rDbgStM() indexExpression=[${indexExpression}](${indexExpression.length}), ofs=(${nameOffset})`);
-              nameOffset = this._reportSPIN_IndexExpression(indexExpression, symbolPosition.line, nameOffset, multiLineSet.line, tokenSet);
-              currSingleLineOffset = nameOffset + indexExpression.length;
+            if (indexExpressions.length > 0) {
+              this._logMessage(
+                `  -- rDbgStM() A indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length}), ofs=(${nameOffset})`
+              );
+              // Iterate over all indexExpressions
+              let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+              for (let index = 0; index < indexExpressions.length; index++) {
+                const indexExpression: IIndexedExpression = indexExpressions[index];
+                indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
+                this._logMessage(
+                  `  -- rDbgStM() indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
+                );
+                nameOffset = this._reportSPIN_IndexExpression(
+                  indexExpression.expression,
+                  indexExpressionPosn.line,
+                  indexExpressionPosn.character,
+                  multiLineSet.line,
+                  tokenSet
+                );
+                currSingleLineOffset += indexExpression.expression.length;
+              }
+              indexExpressions = []; // reset so we don't report again
             }
             continue;
           }
-          this._logMessage(`  -- rDbgStM() no-index newParameter=[${newParameter}](${newParameter.length})`);
+          this._logDEBUG(`  -- rDbgStM() no-index newParameter=[${newParameter}](${newParameter.length})`);
           const escapedNewParameter = this.extensionUtils.escapeRegExp(newParameter);
           const specialIndexTypeAccessRegEx = new RegExp(`${escapedNewParameter}\\s*\\[`);
           const bFoundAccessType: boolean = multiLineSet.line.slice(nameOffset).match(specialIndexTypeAccessRegEx) != null;
@@ -7557,7 +7669,7 @@ export class Spin2DocumentSemanticParser {
             // have a 'byte' of byte[hub-address][index].[bitfield]
             // have a 'word' of word[hub-address][index].[bitfield]
             // have a 'long' of long[hub-address][index].[bitfield]
-            this._logMessage(`  -- rDbgStM() register=[${newParameter}], ofs=(${nameOffset})`);
+            this._logDEBUG(`  -- rDbgStM() register=[${newParameter}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: nameOffset,
@@ -7570,7 +7682,7 @@ export class Spin2DocumentSemanticParser {
           }
           // is spin builtin method?
           if (this.parseUtils.isSpinBuiltinMethod(newParameter)) {
-            this._logMessage(`  -- rDbgStM() type=[${newParameter}], ofs=(${nameOffset})`);
+            this._logDEBUG(`  -- rDbgStM() type=[${newParameter}], ofs=(${nameOffset})`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
               startCharacter: nameOffset,
@@ -7652,6 +7764,50 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: referenceDetails.type,
                 ptTokenModifiers: referenceDetails.modifiers
               });
+              currSingleLineOffset = nameOffset + newParameter.length;
+              // have a B/W/L storage type?
+              if (this.parseUtils.isStorageType(possStorageType)) {
+                symbolPosition = multiLineSet.locateSymbol(possStorageType, currSingleLineOffset);
+                nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+                // have a 'reg' of reg[cog-address][index]
+                // have a 'byte' of byte[hub-address][index]
+                // have a 'word' of word[hub-address][index]
+                // have a 'long' of long[hub-address][index]
+                this._logSPIN(`  -- rptSPIN() A indexType=[${possStorageType}], ofs=(${nameOffset})`);
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: nameOffset,
+                  length: possStorageType.length,
+                  ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
+                  ptTokenModifiers: ['builtin']
+                });
+                currSingleLineOffset = nameOffset + possStorageType.length;
+              }
+              // if we have index expression then report it
+              if (indexExpressions.length > 0) {
+                this._logMessage(
+                  `  -- rDbgStM() A indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length}), ofs=(${currSingleLineOffset})`
+                );
+                // Iterate over all indexExpressions
+                let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+                for (let index = 0; index < indexExpressions.length; index++) {
+                  const indexExpression: IIndexedExpression = indexExpressions[index];
+                  indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
+                  this._logMessage(
+                    `  -- rDbgStM() indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
+                  );
+                  nameOffset = this._reportSPIN_IndexExpression(
+                    indexExpression.expression,
+                    indexExpressionPosn.line,
+                    indexExpressionPosn.character,
+                    multiLineSet.line,
+                    tokenSet
+                  );
+                  currSingleLineOffset += indexExpression.expression.length;
+                }
+                indexExpressions = []; // reset so we don't report again
+              }
+              continue;
             } else if (this.parseUtils.isUnaryOperator(newParameter) || this.parseUtils.isBinaryOperator(newParameter)) {
               this._logPASM(`  --  Debug() version added operator=[${newParameter}]`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -8329,7 +8485,7 @@ export class Spin2DocumentSemanticParser {
           } else if (this.parseUtils.isStorageType(namePart)) {
             // handle case when storage type is used in index expression
             // SPECIAL OVERRIDE Storage Type used as access override
-            this._logDEBUG(`  -- rDbgStM() storage type=[${namePart}]`);
+            this._logDEBUG(`  -- rptSPINIdxExpr() storage type=[${namePart}]`);
             // have a 'byte' of byte[i+0]
             // have a 'word' of word[i+0]
             // have a 'long' of long[i+0]
