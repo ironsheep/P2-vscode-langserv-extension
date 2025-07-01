@@ -8164,9 +8164,10 @@ export class Spin2DocumentSemanticParser {
     }
   }
 
-  private _parseNestedIndexExpression(indexExpression: string): string[] {
+  private _parseNestedIndexExpression(indexExpression: string): [number, string[]] {
     const expressionParts: string[] = [];
     let indexExpressions: IIndexedExpression[] = [];
+    let lengthRemaining: number = 0;
     let variableName: string = indexExpression.trim();
     if (variableName.includes('[') && variableName.includes(']')) {
       // yes remove index elemeents from name
@@ -8185,14 +8186,16 @@ export class Spin2DocumentSemanticParser {
           if (adjSymbolName.endsWith('.')) {
             adjSymbolName = adjSymbolName.substring(0, adjSymbolName.length - 1);
           }
-          this._logSPIN(`  -- rptSPIN() A symbolName=[${variableName}](${variableName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
+          this._logSPIN(`  -- prsNstExpPrts() symbolName=[${variableName}](${variableName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
           variableName = adjSymbolName;
         }
         subExpressions.push(indexExpression.expression);
       }
+      lengthRemaining = variableName.length;
       expressionParts.push(variableName, ...subExpressions);
     }
-    return expressionParts;
+    this._logSPIN(`  -- prsNstExpPrts() expressionParts=[${expressionParts}](${expressionParts.length})`);
+    return [lengthRemaining, expressionParts];
   }
 
   private _reportSPIN_IndexExpression(
@@ -8203,14 +8206,18 @@ export class Spin2DocumentSemanticParser {
     tokenSet: IParsedToken[]
   ): number {
     let nameOffset: number = startingOffset;
-    if (indexExpression !== undefined && indexExpression.length > 0 && indexExpression.includes('[')) {
-      // XYZZY nest expression handling
-      const expressionParts: string[] = this._parseNestedIndexExpression(indexExpression);
+    if (indexExpression !== undefined && indexExpression.length > 0 && indexExpression.includes('[') && indexExpression.includes(']')) {
+      this._logSPIN(
+        `- Ln#${lineIdx + 1}: rptSPINIdxExpr() NESTED indexExpression=[${indexExpression}], ofs=(${startingOffset}), line=[${line}](${line.length})`
+      );
+      // nest expression handling
+      const [lengthRemaining, expressionParts] = this._parseNestedIndexExpression(indexExpression);
+      let nextOffset: number = nameOffset;
       for (let index = 0; index < expressionParts.length; index++) {
         const subExpression: string = expressionParts[index];
-        const subExpressionOffset: number = line.indexOf(subExpression, nameOffset);
+        const subExpressionOffset: number = nextOffset;
         startingOffset = this._reportSPIN_IndexExpression(subExpression, lineIdx, subExpressionOffset, line, tokenSet);
-        nameOffset += subExpression.length;
+        nextOffset += lengthRemaining; // FIXME: not good for more than one subIndex
       }
       return startingOffset; // no change to offset
     }
@@ -8220,7 +8227,7 @@ export class Spin2DocumentSemanticParser {
       );
       const lineInfo: IFilteredStrings = this._getNonWhiteSpinLinePartsNonArray(indexExpression);
       const expressionParts: string[] = lineInfo.lineParts.filter(Boolean);
-      this._logDEBUG(`  -- rptSPINIdxExpr() expressionParts=[${expressionParts.join(', ')}](${expressionParts.length})`);
+      this._logSPIN(`  -- rptSPINIdxExpr() expressionParts=[${expressionParts.join(', ')}](${expressionParts.length})`);
       for (let index = 0; index < expressionParts.length; index++) {
         const namePart: string = expressionParts[index];
         if (namePart.includes('..')) {
@@ -8240,8 +8247,9 @@ export class Spin2DocumentSemanticParser {
         }
         if (namePart.length > 0) {
           // handle named index value, constant, structure or object reference
+          this._logSPIN(`  -- rptSPINIdxExpr() A0 namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
           nameOffset = line.indexOf(namePart, nameOffset);
-          this._logSPIN(`  -- rptSPINIdxExpr() namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+          this._logSPIN(`  -- rptSPINIdxExpr() A1 namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
           // handle structure or object instance names
           if (namePart.includes('.')) {
             let bHaveObjReference: boolean = this._isPossibleObjectReference(namePart);
@@ -8271,7 +8279,7 @@ export class Spin2DocumentSemanticParser {
           // colorize index value if non-constant, or constant
           const paramIsNumber: boolean = this.parseUtils.isValidSpinNumericConstant(namePart);
           if (paramIsNumber) {
-            this._logDEBUG(`  -- rptSPINIdxExpr() index is Number=[${namePart}]`);
+            this._logSPIN(`  -- rptSPINIdxExpr() index is Number=[${namePart}]`);
             this._recordToken(tokenSet, line, {
               line: lineIdx,
               startCharacter: nameOffset,
@@ -8311,17 +8319,17 @@ export class Spin2DocumentSemanticParser {
             if (paramIsSymbolName) {
               if (this.semanticFindings.isLocalToken(namePart)) {
                 referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineIdx + 1);
-                this._logMessage(`  --  rptSPINIdxExpr() FOUND local name=[${namePart}]`);
+                this._logSPIN(`  -- rptSPINIdxExpr() FOUND local name=[${namePart}]`);
               } else if (this.semanticFindings.isGlobalToken(namePart)) {
                 referenceDetails = this.semanticFindings.getGlobalToken(namePart);
-                this._logDEBUG(
-                  `  --  rptSPINIdxExpr() FOUND global name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`
+                this._logSPIN(
+                  `  -- rptSPINIdxExpr() FOUND global name=[${namePart}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`
                 );
               }
             }
-            this._logSPIN(`  -- rptSPINIdxExpr() namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset}), lineIdx=(${lineIdx})`);
+            this._logSPIN(`  -- rptSPINIdxExpr() B namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset}), lineIdx=(${lineIdx})`);
             if (referenceDetails !== undefined && paramIsSymbolName) {
-              this._logDEBUG(`  --  rptSPINIdxExpr() index is symbol=[${namePart}]`);
+              this._logSPIN(`  -- rptSPINIdxExpr() index is symbol=[${namePart}]`);
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: nameOffset,
@@ -8332,7 +8340,7 @@ export class Spin2DocumentSemanticParser {
               nameOffset += namePart.length;
             } else {
               // handle unknown-name case -OR- invalid symbol name
-              this._logDEBUG(`  -- rptSPINIdxExpr() index is unknown=[${namePart}]`);
+              this._logSPIN(`  -- rptSPINIdxExpr() index is unknown=[${namePart}]`);
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
                 startCharacter: nameOffset,
