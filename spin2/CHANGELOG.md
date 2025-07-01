@@ -34,6 +34,7 @@ Spin2 Semantic Highlighting Update
 
 - BUGFIX: CON - Clean up Constant ENUM declaration with step offset highlight failures
 - BUGFIX: PUB/PRI - Repair coloring of nested index expressions
+- BUGFIX: debug() statements - Repair coloring of object/structure references
 
 Spin2 Syntax Highlighting Update
 

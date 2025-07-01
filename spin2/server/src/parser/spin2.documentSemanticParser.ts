@@ -6913,7 +6913,7 @@ export class Spin2DocumentSemanticParser {
       const displayType: string = lineParts.length >= 2 ? lineParts[1] : '';
       this._logDEBUG(`  -- rDbgStM() possible displayType=[${displayType}](${displayType.length}), lineParts=[${lineParts}](${lineParts.length})`);
       if (displayType.startsWith('`')) {
-        this._logDEBUG(`  -- rDbgStM() have "debug("\` lineParts=[${lineParts}](${lineParts.length})`);
+        this._logDEBUG(`  -- rDbgStM() have debug(\`...) lineParts=[${lineParts}](${lineParts.length})`);
         //symbolOffset = line.indexOf(displayType, symbolOffset) + 1; // plus 1 to get past back-tic
         const newDisplayType: string = displayType.substring(1, displayType.length);
         let displayTestName: string = lineParts[1] == '`' ? lineParts[1] + lineParts[2] : lineParts[1];
@@ -6993,61 +6993,98 @@ export class Spin2DocumentSemanticParser {
                   ptTokenModifiers: ['reference', 'defaultLibrary']
                 });
               } else {
-                // unknown parameter, is known symbol?
-                let referenceDetails: RememberedToken | undefined = undefined;
-                if (this.semanticFindings.hasLocalPAsmTokenForMethod(this.currentMethodName, newParameter)) {
-                  referenceDetails = this.semanticFindings.getLocalPAsmTokenForMethod(this.currentMethodName, newParameter);
-                  this._logPASM(`  --  FOUND local PASM name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
-                } else if (this.semanticFindings.isLocalToken(newParameter)) {
-                  referenceDetails = this.semanticFindings.getLocalTokenForLine(newParameter, symbolPosition.line + 1);
-                  this._logPASM(`  --  FOUND local name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
-                } else if (this.semanticFindings.isGlobalToken(newParameter)) {
-                  referenceDetails = this.semanticFindings.getGlobalToken(newParameter);
-                  this._logPASM(`  --  FOUND global name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
+                let bHaveObjReference: boolean = false;
+                let bHaveStructureReference: boolean = false;
+                if (newParameter.includes('.')) {
+                  // does name contain a namespace reference?
+                  if (this._isPossibleObjectReference(newParameter)) {
+                    bHaveObjReference = this._reportObjectReference(
+                      newParameter,
+                      symbolPosition.line,
+                      symbolPosition.character,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      tokenSet
+                    );
+                    if (bHaveObjReference) {
+                      currSingleLineOffset = nameOffset + newParameter.length;
+                    }
+                  }
+                  if (!bHaveObjReference && this._isPossibleStructureReference(newParameter, symbolPosition.line)) {
+                    const [bHaveStructReference, refString] = this._reportStructureReference(
+                      newParameter,
+                      symbolPosition.line,
+                      symbolPosition.character,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      tokenSet
+                    );
+                    if (bHaveStructReference) {
+                      bHaveStructureReference = true;
+                      currSingleLineOffset = nameOffset + refString.length;
+                      if (newParameter !== refString) {
+                        this._logSPIN(
+                          `  -- rptSPIN() C ERROR?! [${refString}](${refString.length}) is only part of [${newParameter}](${newParameter.length}), how to handle the rest?`
+                        );
+                      }
+                    }
+                  }
                 }
-                if (referenceDetails !== undefined) {
-                  this._logPASM(`  --  SPIN/PAsm add name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: symbolPosition.character,
-                    length: newParameter.length,
-                    ptTokenType: referenceDetails.type,
-                    ptTokenModifiers: referenceDetails.modifiers
-                  });
-                } else {
-                  // handle unknown-name case
-                  const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(newParameter) ? true : false;
-                  if (
-                    paramIsSymbolName &&
-                    !this.parseUtils.isDebugMethod(newParameter) &&
-                    newParameter.indexOf('`') == -1 &&
-                    !this.parseUtils.isUnaryOperator(newParameter) &&
-                    !this.parseUtils.isBinaryOperator(newParameter) &&
-                    !this.parseUtils.isFloatConversion(newParameter) &&
-                    !this.parseUtils.isSpinBuiltinMethod(newParameter) &&
-                    !this.parseUtils.isDebugBitmapColorMode(newParameter) &&
-                    !this.parseUtils.isBuiltinStreamerReservedWord(newParameter)
-                  ) {
-                    this._logDEBUG('  -- rDbgStM() 1 unkParam=[${newParameter}]');
+                // unknown parameter, is known symbol?
+                if (!bHaveObjReference && !bHaveStructureReference) {
+                  let referenceDetails: RememberedToken | undefined = undefined;
+                  if (this.semanticFindings.hasLocalPAsmTokenForMethod(this.currentMethodName, newParameter)) {
+                    referenceDetails = this.semanticFindings.getLocalPAsmTokenForMethod(this.currentMethodName, newParameter);
+                    this._logPASM(`  --  FOUND local PASM name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
+                  } else if (this.semanticFindings.isLocalToken(newParameter)) {
+                    referenceDetails = this.semanticFindings.getLocalTokenForLine(newParameter, symbolPosition.line + 1);
+                    this._logPASM(`  --  FOUND local name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
+                  } else if (this.semanticFindings.isGlobalToken(newParameter)) {
+                    referenceDetails = this.semanticFindings.getGlobalToken(newParameter);
+                    this._logPASM(`  --  FOUND global name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
+                  }
+                  if (referenceDetails !== undefined) {
+                    this._logPASM(`  --  SPIN/PAsm add name=[${newParameter}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
                     this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                       line: symbolPosition.line,
                       startCharacter: symbolPosition.character,
                       length: newParameter.length,
-                      ptTokenType: 'setupParameter',
-                      ptTokenModifiers: ['illegalUse']
+                      ptTokenType: referenceDetails.type,
+                      ptTokenModifiers: referenceDetails.modifiers
                     });
-                    this.semanticFindings.pushDiagnosticMessage(
-                      symbolPosition.line,
-                      symbolPosition.character,
-                      symbolPosition.character + newParameter.length,
-                      eSeverity.Error,
-                      `P2 Spin debug() mA unknown name [${newParameter}]`
-                    );
+                  } else {
+                    // handle unknown-name case
+                    const paramIsSymbolName: boolean = this.parseUtils.isValidSpinSymbolName(newParameter) ? true : false;
+                    if (
+                      paramIsSymbolName &&
+                      !this.parseUtils.isDebugMethod(newParameter) &&
+                      newParameter.indexOf('`') == -1 &&
+                      !this.parseUtils.isUnaryOperator(newParameter) &&
+                      !this.parseUtils.isBinaryOperator(newParameter) &&
+                      !this.parseUtils.isFloatConversion(newParameter) &&
+                      !this.parseUtils.isSpinBuiltinMethod(newParameter) &&
+                      !this.parseUtils.isDebugBitmapColorMode(newParameter) &&
+                      !this.parseUtils.isBuiltinStreamerReservedWord(newParameter)
+                    ) {
+                      this._logDEBUG('  -- rDbgStM() 1 unkParam=[${newParameter}]');
+                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: newParameter.length,
+                        ptTokenType: 'setupParameter',
+                        ptTokenModifiers: ['illegalUse']
+                      });
+                      this.semanticFindings.pushDiagnosticMessage(
+                        symbolPosition.line,
+                        symbolPosition.character,
+                        symbolPosition.character + newParameter.length,
+                        eSeverity.Error,
+                        `P2 Spin debug() mA unknown name [${newParameter}]`
+                      );
+                    }
                   }
+                  currSingleLineOffset = nameOffset + newParameter.length;
                 }
               }
             }
-            currSingleLineOffset = nameOffset + newParameter.length;
           }
         } else {
           // -------------------------------------

@@ -188,8 +188,14 @@ export class Spin2ParseUtils {
           // don't do anything with these: ']' or '['
         }
       } else if (element.length > 0) {
-        // keep as is
-        newElements = [element];
+        // BUGIFX found case where "...(`TERM EFZ`(i+1) POS..." parsed and left EFZ` as a single element (BAD)
+        if (element.endsWith('`')) {
+          // remove ending back tic
+          newElements.push(element.substring(0, element.length - 1));
+        } else {
+          // keep as is
+          newElements = [element];
+        }
       }
 
       if (newElements.length > 0) {
