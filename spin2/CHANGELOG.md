@@ -18,7 +18,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - v45 Add Structures to OBJ I/F DOC
 - v51 If sizeof(): Validate variable is a structure instance
 - v45 Hover of structure name should show structure def'n
-	- (and point to source where declared?)
+  - (and point to source where declared?)
 
 ### More distant next Additions
 
@@ -28,20 +28,20 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.4.9] 2025-07-xx
+## [2.4.9] 2025-07-02
 
 Spin2 Semantic Highlighting Update
 
 - BUGFIX: CON - Clean up Constant ENUM declaration with step offset highlight failures
 - BUGFIX: PUB/PRI - Repair coloring of nested index expressions
 - BUGFIX: PUB/PRI - Repair coloring local variables with overlapping names
+- BUGFIX: PUB/PRI - Repair coloring of indexed size overrides
 - BUGFIX: debug() statements - Repair coloring of object/structure references
 - BUGFIX: debug() statements - Repair coloring of size-override references
 
 Spin2 Syntax Highlighting Update
 
 - BUGFIX: Add Highlighting of missing Smart Pin Constants (Including legal alternate spellings)
-
 
 ## [2.4.8] 2025-06-21
 

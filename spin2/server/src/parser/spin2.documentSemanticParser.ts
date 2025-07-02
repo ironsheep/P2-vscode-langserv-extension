@@ -5713,6 +5713,7 @@ export class Spin2DocumentSemanticParser {
               }
             }
           }
+
           // if hubVar.{type} then remove type
           if (possStorageType.length > 0) {
             const regex = new RegExp(`\\.${possStorageType}`);
@@ -5727,6 +5728,7 @@ export class Spin2DocumentSemanticParser {
           //if (namePart.startsWith("@")) {
           //  namePart = namePart.substring(1); // remove leading char
           //}
+          let sizeOverrideAlreadyColored: boolean = false;
           const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(namePart);
           this._logSPIN(`  -- rptSPIN() name=[${namePart}], paramIsNumber=(${paramIsNumber}), paramIsSymbolName=(${paramIsSymbolName})`);
           if (paramIsNumber) {
@@ -5752,7 +5754,7 @@ export class Spin2DocumentSemanticParser {
               // have a 'byte' of byte[hub-address][index]
               // have a 'word' of word[hub-address][index]
               // have a 'long' of long[hub-address][index]
-              this._logSPIN(`  -- rptSPIN() B indexType=[${namePart}], ofs=(${nameOffset})`);
+              this._logSPIN(`  -- rptSPIN() index size override=[${namePart}], ofs=(${nameOffset})`);
               this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                 line: symbolPosition.line,
                 startCharacter: nameOffset,
@@ -5760,11 +5762,33 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
                 ptTokenModifiers: ['builtin']
               });
+              sizeOverrideAlreadyColored = true; // don't color again
               //currSingleLineOffset = nameOffset + namePart.length;
               currSingleLineOffset = nameOffset + namePart.length;
               this._logSPIN(
                 `  -- rptSPIN() DEBUG NAME cslofs=(${currSingleLineOffset}) <-- nameOffset=(${nameOffset}), namePart.length=(${namePart.length})`
               );
+            } else if (this.parseUtils.isSpecialIndexType(namePart)) {
+              // have a 'reg' of reg[cog-address][index]
+              // have a 'byte' of byte[hub-address][index]
+              // have a 'word' of word[hub-address][index]
+              // have a 'long' of long[hub-address][index]
+              const desiredLine: string = multiLineSet.lineAt(symbolPosition.line);
+              const afterName = desiredLine.substring(nameOffset + namePart.length);
+              const isFollowedByBracket = /^\s*\[/.test(afterName);
+              this._logSPIN(`  -- rptSPIN() afterName=[${afterName}], ofs=(${nameOffset}), isFollowedByBracket=(${isFollowedByBracket})`);
+              if (isFollowedByBracket) {
+                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                  line: symbolPosition.line,
+                  startCharacter: nameOffset,
+                  length: namePart.length,
+                  ptTokenType: 'operator', // method is blue?!, function is yellow?!, operator is violet?!
+                  ptTokenModifiers: ['builtin']
+                });
+                sizeOverrideAlreadyColored = true; // don't color again
+                //currSingleLineOffset = nameOffset + namePart.length;
+                currSingleLineOffset = nameOffset + namePart.length;
+              }
             }
 
             // does name contain a dotted reference?
@@ -5953,7 +5977,7 @@ export class Spin2DocumentSemanticParser {
                       eSeverity.Error,
                       'P2 Spin missing parens'
                     );
-                  } else if (this.isStorageType(namePart) && !isMethodCall(methodFollowString)) {
+                  } else if (this.isStorageType(namePart) && !isMethodCall(methodFollowString) && !sizeOverrideAlreadyColored) {
                     // have unknown name!? is storage type spec?
                     this._logSPIN(`  -- rptSPIN() RHS storageType=[${namePart}]`);
                     this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
