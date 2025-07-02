@@ -9767,6 +9767,14 @@ export class Spin2DocumentSemanticParser {
       const nextPart = finalLineParts[index];
       if (nextPart.includes('[')) {
         reducedLineParts.push(nextPart);
+      } else if (this._includesOutsideBrackets(nextPart, '..')) {
+        // we are leving rage spec in place
+        //  Ex: v2..v3
+        // remove the '..' part and report surrounding vars
+        const tmpLineParts: string[] = nextPart.split('..').filter(Boolean);
+        if (tmpLineParts.length > 0) {
+          reducedLineParts.push(...tmpLineParts);
+        }
       } else {
         const tmpLineParts: string[] | null = nextPart.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
         //const tmpLineParts: string[] = this._splitOnWhitespaceButNotInBrackets(tmpName);
@@ -9813,6 +9821,22 @@ export class Spin2DocumentSemanticParser {
       lineNoQuotes: noStringsLine,
       lineParts: reducedLineParts
     };
+  }
+
+  private _includesOutsideBrackets(text: string, search: string): boolean {
+    let bracketLevel = 0;
+    for (let i = 0; i <= text.length - search.length; i++) {
+      const char = text[i];
+      if (char === '[') {
+        bracketLevel++;
+      } else if (char === ']') {
+        bracketLevel = Math.max(0, bracketLevel - 1);
+      }
+      if (bracketLevel === 0 && text.substr(i, search.length) === search) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private _splitOnWhitespaceButNotInBracketsAndPeriods(line: string): string[] {
