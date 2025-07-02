@@ -9543,6 +9543,30 @@ export class Spin2DocumentSemanticParser {
     };
   }
 
+  private countPairsAndNesting(charOpen: string, charClose: string, line: string): { pairCount: number; maxDepth: number } {
+    let pairCount = 0;
+    let currentDepth = 0;
+    let maxDepth = 0;
+
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === charOpen) {
+        currentDepth++;
+        if (currentDepth > maxDepth) {
+          maxDepth = currentDepth;
+        }
+      } else if (line[i] === charClose) {
+        if (currentDepth > 0) {
+          pairCount++;
+          currentDepth--;
+        }
+      }
+    }
+    this._logSPIN(
+      `  -- cntPrsAndNest() charOpen=[${charOpen}], charClose=[${charClose}], line=[${line}](${line.length}) -> pairCount=(${pairCount}), maxDepth=(${maxDepth})`
+    );
+    return { pairCount, maxDepth };
+  }
+
   private _getNonWhiteSpinLinePartsNonArray(line: string, preservePacked: boolean = false): IFilteredStrings {
     //                                     split(/[ \t\-\:\,\+\[\]\@\(\)\!\*\=\<\>\&\|\?\\\~\#\^\/]/);
     // mods to allow returning of objInstanceName#constant  form of names
@@ -9555,10 +9579,26 @@ export class Spin2DocumentSemanticParser {
     //let noStringNoBracketSpaces: string = noStringsLine.replace(/\s*\[/g, '[');
     //noStringNoBracketSpaces = noStringNoBracketSpaces.replace(/\s*\]/g, ']');
     const noStringNoBracketSpaces: string = noStringsLine;
+    //  as complexity measure :
+    //    count the number of open-close brackets and nesting depth
+    const parenResult = this.countPairsAndNesting('(', ')', noStringNoBracketSpaces);
+    //    count the number of open-close parens and nesting depth
+    const bracketResult = this.countPairsAndNesting('[', ']', noStringNoBracketSpaces);
+    //   if measure is high just split on expression chars along with brackets and parens
+    let highComplexityStatement: boolean = false;
+    if ((parenResult.pairCount > 2 || bracketResult.pairCount > 2) && (parenResult.maxDepth > 1 || bracketResult.maxDepth > 1)) {
+      this._logMessage(`  -- gnwsplna: high complexity, using regular split`);
+      highComplexityStatement = true;
+    }
     // first split
+    let lineParts: string[] | null = null;
     //let lineParts: string[] | null = noStringNoBracketSpaces.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
     // let lineParts: string[] | null = noStringNoBracketSpaces.match(/[^\-:,+@()!*=<>&|?\\~^/]+/g);
-    let lineParts: string[] = this._splitOnWhitespaceButNotInBracketsAndPeriods(noStringNoBracketSpaces);
+    if (highComplexityStatement) {
+      lineParts = noStringNoBracketSpaces.match(/[^\-:,+@[\]()!*=<>&|?\\~^/]+/g);
+    } else {
+      lineParts = this._splitOnWhitespaceButNotInBracketsAndPeriods(noStringNoBracketSpaces);
+    }
     if (lineParts == null) {
       lineParts = [];
     }
