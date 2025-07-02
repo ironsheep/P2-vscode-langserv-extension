@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -2522,7 +2522,9 @@ export class Spin2DocumentSemanticParser {
         // Ea. Statement: -or- ALIGNW|ALIGNL
         const varDeclStatement: string = declStatements[index];
         currentOffset = line.indexOf(varDeclStatement, currentOffset);
-        this._logSPIN(`  -- getVarDecl declaration=[${varDeclStatement}](${varDeclStatement.length}), ofs=(${currentOffset})`);
+        this._logSPIN(
+          `  -- getVarDecl declaration=[${varDeclStatement}](${varDeclStatement.length}), ofs=(${currentOffset}) [${index + 1} of ${declStatements.length}]`
+        );
         let typeName: string = '';
         let varName: string = varDeclStatement;
         let indexExpression: string = '';
@@ -2538,7 +2540,7 @@ export class Spin2DocumentSemanticParser {
           );
           varName = rebuiltName; // remove all whitespace, then put back together
         }
-        if (/[ \t]/.test(varName)) {
+        if (/[ \t]/.test(varName) && !varName.includes('[')) {
           const whitePosn: number = varName.search(/[ \t]/);
           if (whitePosn != -1) {
             const typePart: string = varName.substring(0, whitePosn);
@@ -6720,7 +6722,7 @@ export class Spin2DocumentSemanticParser {
             );
             newName = rebuiltName; // remove all whitespace, then put back together
           }
-          if (/[ \t]/.test(newName)) {
+          if (/[ \t]/.test(newName) && !newName.includes('[')) {
             const whitePosn: number = newName.search(/[ \t]/);
             if (whitePosn != -1) {
               const typePart: string = newName.substring(0, whitePosn);

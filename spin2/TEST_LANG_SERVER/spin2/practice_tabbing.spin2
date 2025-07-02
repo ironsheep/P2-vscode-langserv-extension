@@ -25,12 +25,12 @@ PRI showbmp(letter, image_address, lut_offset, lut_size, image_longs) | i
 '-+-+-+-+-+-+-+-+---------------+-----------------------+-----------------------+
   image_address += lut_offset
   {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
-  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size)) ' FIXME: coloring!
   'debug(` zstr_(letter) lutcolors `uhex_long_array_(image_address, lut_size))
   'debug(`lstr_(letter, 4) lutcolors `uhex_long_array_(image_address, lut_size))
   image_address += lut_size << 2 - 4
   repeat image_longs
-    debug(``#(letter) `uhex_(long[image_address += 4]))
+    debug(``#(letter) `uhex_(long[image_address += 4])) ' FIXME: coloring!
 
 CON
  DISK_BUFF = $1000
