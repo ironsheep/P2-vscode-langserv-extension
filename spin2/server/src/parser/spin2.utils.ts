@@ -72,7 +72,7 @@ export class Spin2ParseUtils {
 
   public requestedSpinVersion(requiredVersion: number): boolean {
     const supportedStatus: boolean = this.languageVersion >= requiredVersion ? true : false;
-    this._logMessage(`sp2u:  -- langV=${this.languageVersion}, requestedSpinVersion(${requiredVersion}) -> ${supportedStatus}`);
+    //this._logMessage(`sp2u:  -- langV=${this.languageVersion}, requestedSpinVersion(${requiredVersion}) -> ${supportedStatus}`);
     return supportedStatus;
   }
 
@@ -852,7 +852,7 @@ export class Spin2ParseUtils {
       }
     }
 
-    //*
+    /*
     if (didRemove) {
       this._logMessage(`  -- RDQS line [${line}]${line.length}, preservePacked=(${preservePacked})`);
       this._logMessage(`  --           [${trimmedLine}](${trimmedLine.length})`);
@@ -926,17 +926,20 @@ export class Spin2ParseUtils {
     'elseif',
     'elseifnot',
     'else',
-    'case',
-    'case_fast',
     'repeat',
-    'with',
+    'while',
+    'until',
     'from',
     'to',
     'step',
-    'while',
-    'until',
     'next',
-    'quit'
+    'quit',
+    'with',
+    'case',
+    'case_fast',
+    'other',
+    'abort',
+    'return'
   ];
 
   public isSpin1ControlFlowKeyword(name: string): boolean {

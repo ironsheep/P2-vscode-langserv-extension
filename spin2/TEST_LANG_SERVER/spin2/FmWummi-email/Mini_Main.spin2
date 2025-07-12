@@ -1,0 +1,26 @@
+OBJ
+
+  FG1[4]  : "Mini_FG1"
+
+CON
+  maxPageY  = 5
+  maxPageX  = 5
+  PAGE      = 0
+  X_PAGE    = 0  addbits 3
+  Y_PAGE    = 4  addbits 3
+  INDX1     = 8  addbits 6
+  INDX2     = 15 addbits 6
+  LABL      = 22
+  LINK      = 23
+
+
+PRI Page2x ( dp, k ): nextPage, nextKey | DS
+  DS := DP.[X_PAGE]-1
+  return FG1[DS].Page2x(DS, dp, k)
+
+PRI PageEx0 ( dp, k ): nextPage, nextKey | DS
+        DS := DP.[X_PAGE]-1
+        return FG1[DS].PageEx(dp, k)
+
+PRI PageEx ( dp, k ): nextPage, nextKey | DS
+  return FG1[DP.[X_PAGE]-1].PageEx(dp, k)

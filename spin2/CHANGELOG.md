@@ -28,6 +28,11 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.4.10] 2025-07-12
+
+- BUGFIX: VAR - Clean up arrayed structure declarations
+- BUGFIX: General highlight don't match on variable names when name match is within quoted string
+
 ## [2.4.9] 2025-07-02
 
 Spin2 Semantic Highlighting Update

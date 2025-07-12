@@ -5529,60 +5529,62 @@ export class Spin2DocumentSemanticParser {
         symbolName = possNames[0];
       }
 
-      //  ------------------------------------------------------------------------------------------------
-      // SPECIAL case: handle case statements of value:instruction
-      symbolPosition = multiLineSet.locateSymbol(symbolName, currSingleLineOffset);
-      nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
+      if (!this.parseUtils.isSpin2ControlFlowKeyword(symbolName)) {
+        //  ------------------------------------------------------------------------------------------------
+        // SPECIAL case: handle case statements of value:instruction
+        symbolPosition = multiLineSet.locateSymbol(symbolName, currSingleLineOffset);
+        nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
 
-      let bFoundStructureRef: boolean = this._isPossibleStructureReference(symbolName, symbolPosition.line);
-      let bFoundObjRef: boolean = false;
-      if (bFoundStructureRef) {
-        const [bHaveStructReference, refString] = this._reportStructureReference(
-          symbolName,
-          symbolPosition.line,
-          symbolPosition.character,
-          multiLineSet.lineAt(symbolPosition.line),
-          tokenSet
-        );
-        this._logSPIN(`  -- rptSPIN() bHaveStructReference=(${bHaveStructReference}), refString=[${refString}](${refString.length})`);
-        bFoundStructureRef = bHaveStructReference;
-        if (bHaveStructReference) {
-          // TODO: remove structure part from remainder of line and process the remainder
-          if (assignmentRHSStr !== refString) {
-            let structRefOffset: number = assignmentRHSStr.indexOf(refString);
-            assignmentRHSStr = assignmentRHSStr.substring(structRefOffset + refString.length);
-            structRefOffset = preCleanAssignmentRHSStr.indexOf(refString);
-            preCleanAssignmentRHSStr = preCleanAssignmentRHSStr.substring(structRefOffset + refString.length); // this gets used after the following object test
-            this._logSPIN(
-              `  -- rptSPIN() AFTER StructREF assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), preCleanAssignmentRHSStr=[${preCleanAssignmentRHSStr}](${preCleanAssignmentRHSStr.length})`
-            );
-          }
-        }
-      } else {
-        // SPECIAL Ex: digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
-        // SPECIAL Ex: scroller[scrollerIndex].initialize()
-        bFoundObjRef = this._isPossibleObjectReference(symbolName);
-        if (bFoundObjRef) {
-          // go register object reference!
-          // XYZZY poss crash
-          bFoundObjRef = this._reportObjectReference(
+        let bFoundStructureRef: boolean = this._isPossibleStructureReference(symbolName, symbolPosition.line);
+        let bFoundObjRef: boolean = false;
+        if (bFoundStructureRef) {
+          const [bHaveStructReference, refString] = this._reportStructureReference(
             symbolName,
             symbolPosition.line,
             symbolPosition.character,
             multiLineSet.lineAt(symbolPosition.line),
             tokenSet
           );
-          if (bFoundObjRef) {
-            // remove object reference from assignmentRHSStr
-            const objRefOffset: number = assignmentRHSStr.indexOf(symbolName);
-            assignmentRHSStr = assignmentRHSStr.substring(objRefOffset + symbolName.length);
-            const objRefOffset2: number = preCleanAssignmentRHSStr.indexOf(symbolName);
-            preCleanAssignmentRHSStr = preCleanAssignmentRHSStr.substring(objRefOffset2 + symbolName.length);
-            if (possNames.includes(symbolName)) {
-              // remove object reference from possNames
-              possNames = possNames.filter((name) => name !== symbolName);
+          this._logSPIN(`  -- rptSPIN() bHaveStructReference=(${bHaveStructReference}), refString=[${refString}](${refString.length})`);
+          bFoundStructureRef = bHaveStructReference;
+          if (bHaveStructReference) {
+            // TODO: remove structure part from remainder of line and process the remainder
+            if (assignmentRHSStr !== refString) {
+              let structRefOffset: number = assignmentRHSStr.indexOf(refString);
+              assignmentRHSStr = assignmentRHSStr.substring(structRefOffset + refString.length);
+              structRefOffset = preCleanAssignmentRHSStr.indexOf(refString);
+              preCleanAssignmentRHSStr = preCleanAssignmentRHSStr.substring(structRefOffset + refString.length); // this gets used after the following object test
+              this._logSPIN(
+                `  -- rptSPIN() AFTER StructREF assignmentRHSStr=[${assignmentRHSStr}](${assignmentRHSStr.length}), preCleanAssignmentRHSStr=[${preCleanAssignmentRHSStr}](${preCleanAssignmentRHSStr.length})`
+              );
             }
-            currSingleLineOffset += symbolName.length; // adjust offset to end of object reference
+          }
+        } else {
+          // SPECIAL Ex: digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
+          // SPECIAL Ex: scroller[scrollerIndex].initialize()
+          bFoundObjRef = this._isPossibleObjectReference(symbolName);
+          if (bFoundObjRef) {
+            // go register object reference!
+            // XYZZY poss crash
+            bFoundObjRef = this._reportObjectReference(
+              symbolName,
+              symbolPosition.line,
+              symbolPosition.character,
+              multiLineSet.lineAt(symbolPosition.line),
+              tokenSet
+            );
+            if (bFoundObjRef) {
+              // remove object reference from assignmentRHSStr
+              const objRefOffset: number = assignmentRHSStr.indexOf(symbolName);
+              assignmentRHSStr = assignmentRHSStr.substring(objRefOffset + symbolName.length);
+              const objRefOffset2: number = preCleanAssignmentRHSStr.indexOf(symbolName);
+              preCleanAssignmentRHSStr = preCleanAssignmentRHSStr.substring(objRefOffset2 + symbolName.length);
+              if (possNames.includes(symbolName)) {
+                // remove object reference from possNames
+                possNames = possNames.filter((name) => name !== symbolName);
+              }
+              currSingleLineOffset += symbolName.length; // adjust offset to end of object reference
+            }
           }
         }
       }
@@ -5605,6 +5607,7 @@ export class Spin2DocumentSemanticParser {
         for (let index = 0; index < possNames.length; index++) {
           let namePart = possNames[index];
           const haveIgnoreBuiltInSymbol: boolean = namePart === '_'; // ignore built-in symbols
+          this._logSPIN(`  -- rptSPIN() handle namePart=[${namePart}](${namePart.length}), index=(${index + 1} of ${possNames.length})`);
           if (haveIgnoreBuiltInSymbol) {
             currSingleLineOffset += 1; // skip over the underscore
             continue; // skip this name
@@ -5617,10 +5620,16 @@ export class Spin2DocumentSemanticParser {
               const removeSkipSizeWrap = /_\s*\[\s*(.*?)\s*\]/g;
               const tmpVariableName: string = namePart.replace(removeSkipSizeWrap, '$1');
               this._logSPIN(
-                `  -- rptSPIN() A skip size statement namePart=[${namePart}](${namePart.length}) -> [${tmpVariableName}](${tmpVariableName.length})`
+                `  -- rptSPIN() SKIP size statement [${namePart}](${namePart.length}) -> [${tmpVariableName}](${tmpVariableName.length})`
               );
               namePart = tmpVariableName; // remove skip size statement
             }
+          }
+
+          if (this.parseUtils.isSpin2ControlFlowKeyword(namePart)) {
+            currSingleLineOffset += namePart.length; // skip over the keyword
+            this._logSPIN(`  -- rptSPIN() SKIP keyword [${namePart}](${namePart.length})`);
+            continue; // skip this name
           }
 
           symbolPosition = multiLineSet.locateSymbol(namePart, currSingleLineOffset);

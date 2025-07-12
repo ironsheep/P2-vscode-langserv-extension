@@ -304,6 +304,7 @@ export class SpinControlFlowTracker {
 
 export class ContinuedLines {
   private rawLines: string[] = [];
+  private rawNoDoubleQuoteLines: string[] = [];
   private rawLineIdxs: number[] = [];
   private singleLine: string = '';
   private haveAllLines: boolean = false;
@@ -322,6 +323,7 @@ export class ContinuedLines {
     //this._logMessage(`    --- ContLn: Clear()`);
     this.rawLineIdxs = [];
     this.rawLines = [];
+    this.rawNoDoubleQuoteLines = [];
     this.singleLine = '';
     this.haveAllLines = false;
     this.isActive = false;
@@ -331,6 +333,11 @@ export class ContinuedLines {
     if (this.haveAllLines == false) {
       this.rawLines.push(nextLine);
       this.rawLineIdxs.push(lineIdx);
+      if (nextLine.split('"').length >= 3) {
+        this.rawNoDoubleQuoteLines.push(this.removeDoubleQuotedStrings(nextLine));
+      } else {
+        this.rawNoDoubleQuoteLines.push(nextLine);
+      }
       if (!this.isActive) {
         this.isActive = true;
       }
@@ -500,9 +507,10 @@ export class ContinuedLines {
       this._logMessage(`    --- ContLn: ERROR locateSymbol([${symbolName}], ofs=(${offset})) - math when off of end of lineSet`);
     } else {
       const lineIdx: number = this.rawLineIdxs[rawIdx];
-      const searchLine: string = this.rawLines[rawIdx];
+      const searchLine: string = symbolName.includes('"') ? this.rawLines[rawIdx] : this.rawNoDoubleQuoteLines[rawIdx];
       const leadingWhiteLength: number = rawIdx > 0 ? this._skipWhite(searchLine, 0) : 0;
-      const symbolOffset: number = this.rawLines[rawIdx].toUpperCase().indexOf(symbolName.toUpperCase(), leadingWhiteLength + remainingOffset);
+      // NEVER look within double-quoted strings
+      const symbolOffset: number = searchLine.toUpperCase().indexOf(symbolName.toUpperCase(), leadingWhiteLength + remainingOffset);
       /*/
       this._logMessage(
         `    --- ContLn: lineIdx=(${lineIdx}),  leadingWhiteLength=(${leadingWhiteLength}), remOffset=(${remainingOffset}), searchLine=[${searchLine}](${searchLine.length})`
@@ -511,12 +519,42 @@ export class ContinuedLines {
       desiredLocation = Position.create(lineIdx, symbolOffset);
       //this._logMessage(`    --- ContLn: locateSymbol() -> Posn=[line=(${lineIdx}), char=(${symbolOffset})]`);
       if (symbolOffset != -1) {
-        this._logMessage(`    --- ContLn:    Found [${symbolName}] IN Ln#${lineIdx + 1} [${this.rawLines[rawIdx]}](${this.rawLines[rawIdx].length})`);
+        this._logMessage(`    --- ContLn:    Found [${symbolName}] IN Ln#${lineIdx + 1} [${searchLine}](${searchLine.length})`);
       } else {
-        this._logMessage(`    --- ERROR NOT found! ?? [${symbolName}] NOT in line=[${this.rawLines[rawIdx]}] ??`);
+        this._logMessage(`    --- ERROR NOT found! ?? [${symbolName}] NOT in line=[${searchLine}] ??`);
       }
     }
     return desiredLocation;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public removeDoubleQuotedStrings(line: string, showDebug: boolean = true): string {
+    //this.logMessage('- RQS line [' + line + ']');
+    let trimmedLine: string = line;
+    //this.logMessage('- RQS line [' + line + ']');
+    const doubleQuote: string = '"';
+    let quoteStartOffset: number = 0; // value doesn't matter
+    //let didRemove: boolean = false;
+    while ((quoteStartOffset = trimmedLine.indexOf(doubleQuote)) != -1) {
+      const quoteEndOffset: number = trimmedLine.indexOf(doubleQuote, quoteStartOffset + 1);
+      //this.logMessage('  -- quoteStartOffset=[' + quoteStartOffset + '] quoteEndOffset=[' + quoteEndOffset + ']');
+      if (quoteEndOffset != -1) {
+        const badElement = trimmedLine.substr(quoteStartOffset, quoteEndOffset - quoteStartOffset + 1);
+        //this.logMessage('  -- badElement=[' + badElement + ']');
+        trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
+        //didRemove = showDebug ? true : false;
+        //this.logMessage('-         post[' + trimmedLine + ']');
+      } else {
+        break; // we don't handle a single double-quote
+      }
+    }
+
+    //if (didRemove) {
+    //    this.logMessage('  -- RQS line [' + line + ']');
+    //    this.logMessage('  --          [' + trimmedLine + ']');
+    //}
+
+    return trimmedLine;
   }
 
   private _skipWhite(line: string, currentOffset: number): number {

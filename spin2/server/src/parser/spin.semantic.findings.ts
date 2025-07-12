@@ -351,15 +351,17 @@ export class DocumentFindings {
         break;
       }
     }
+    /*
     this._logMessage(
       `* [PreProc] isLineDisabled(Ln#${lineNbr}) inPreProcStmnt=(${this.inPreProcIfStatement}), nestDepth=(${
         this.preProcNestDepth
       }), isLineEnabled=(${this.isLineEnabled[this.preProcNestDepth]})`
     );
+	//*/
     if (!isDisabledStatus) {
       isDisabledStatus = this.isLineEnabled[this.preProcNestDepth] == false;
     }
-    this._logMessage(`* [PreProc]   preProcIsLineDisabled() -> (${isDisabledStatus})`);
+    //this._logMessage(`* [PreProc]   preProcIsLineDisabled() -> (${isDisabledStatus})`);
     return isDisabledStatus;
   }
 
