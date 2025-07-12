@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -2540,7 +2540,7 @@ export class Spin2DocumentSemanticParser {
           );
           varName = rebuiltName; // remove all whitespace, then put back together
         }
-        if (/[ \t]/.test(varName) && !varName.includes('[')) {
+        if (/[ \t]/.test(varName) && this._hasWhitespaceOutsideBrackets(varName)) {
           const whitePosn: number = varName.search(/[ \t]/);
           if (whitePosn != -1) {
             const typePart: string = varName.substring(0, whitePosn);
@@ -2611,6 +2611,24 @@ export class Spin2DocumentSemanticParser {
         }
       }
     }
+  }
+
+  private _hasWhitespaceOutsideBrackets(text: string): boolean {
+    let bracketLevel = 0;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+
+      if (char === '[') {
+        bracketLevel++;
+      } else if (char === ']') {
+        bracketLevel = Math.max(0, bracketLevel - 1);
+      } else if (/[ \t]/.test(char) && bracketLevel === 0) {
+        return true; // Found whitespace outside brackets
+      }
+    }
+
+    return false; // No whitespace found outside brackets
   }
 
   private _getDebugDisplay_Declaration(startingOffset: number, lineNbr: number, line: string): void {
@@ -6722,7 +6740,7 @@ export class Spin2DocumentSemanticParser {
             );
             newName = rebuiltName; // remove all whitespace, then put back together
           }
-          if (/[ \t]/.test(newName) && !newName.includes('[')) {
+          if (/[ \t]/.test(newName) && this._hasWhitespaceOutsideBrackets(newName)) {
             const whitePosn: number = newName.search(/[ \t]/);
             if (whitePosn != -1) {
               const typePart: string = newName.substring(0, whitePosn);

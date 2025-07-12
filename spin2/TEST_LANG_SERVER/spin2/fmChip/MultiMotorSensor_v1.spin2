@@ -1,0 +1,93 @@
+{spin2_v51}
+
+CON
+
+  SensorCount		= 1				'object parameter, number of sensor pins
+
+  ActiveLow		= %000				'sensor pin modes (used to configure sensor pins)
+  ActiveLow_PullDown	= %010
+  ActiveLow_PullUp	= %011
+  ActiveHigh		= %100
+  ActiveHigh_PullDown	= %110
+  ActiveHigh_PullUp	= %111
+
+  SensorBaseConfig	= P_FILT0_AB | P_SCHMITT_A | P_HIGH_1K5 | P_LOW_1K5	'base configuration for sensor pins
+
+  STRUCT MotorSensor(	SensorPin,		...	'sensor pin
+                        SensorState,		...	'sensor pin boolean state
+                        CapturePin,		...	'position-capture pin
+  			CaptureValue)			'position-capture value at sensor pin active edge
+
+VAR
+
+  MotorSensor s[SensorCount]
+
+  SensorCog
+  SensorStack[50]
+
+
+'==================
+'  Public Methods
+'==================
+
+PUB Start()
+
+  Stop()
+
+  SensorCog := cogspin(newcog, Monitor(), @SensorStack) + 1
+
+
+PUB Stop()
+
+  if SensorCog
+    cogstop(SensorCog~ - 1)
+
+
+PUB SelectFilterTap(Tap)
+
+'' Select the system counter tap (0..31) for filtering the trigger pins
+
+  hubset($40000060 + Tap)
+
+
+PUB ConfigureSensor(Sensor, SensorPin, SensorConfig, CapturePin) | i, pin, cfg
+
+'' Set the sensor and capture pins and configure the sensor pin
+
+  s[Sensor].SensorPin := SensorPin
+  s[Sensor].CapturePin := CapturePin
+
+  wrpin(pin, SensorBaseConfig | (SensorConfig & %100 ? P_INVERT_IN : 0))
+
+  if SensorConfig & %010
+    pinwrite(pin, SensorConfig & %001)
+  else
+    pinfloat(pin)
+
+
+PUB SensorStatus(Sensor) : state
+
+  return s[Sensor].SensorState
+
+
+PUB SensorCapture(Sensor) : capture
+
+  return s[Sensor].CaptureValue
+
+
+'===================
+'  Private Methods  
+'===================
+
+PRI Monitor() | sensor, sensor, pinstate, bitstate
+
+  repeat SensorCount with sensor					'init sensor pins
+    wrpin(s[Sensor].SensorPin, SensorBaseConfig)
+
+  repeat								'scan sensors, tracking states and capturing positions
+    repeat MotorCount with motor					'motor loop
+      repeat SensorCount with sensor					'sensor loop
+        pinstate := pinread(BasePin + motor << 2 + 2 + sensor)		'get current state of sensor
+        bitstate := m.sens[motor].sen[sensor].state \ pinstate		'get prior state, update to current state
+        if pinstate and not bitstate					'if positive edge, capture position
+          m.sens[motor].sen[sensor].capture := rdpin(BasePin + motor << 2 + 1)
