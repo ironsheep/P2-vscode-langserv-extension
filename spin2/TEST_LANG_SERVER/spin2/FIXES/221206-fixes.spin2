@@ -35,10 +35,10 @@ y		res	1
 
 PRI showbmp(letter, image_address, lut_offset, lut_size, image_longs) | i
   image_address += lut_offset
-  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))
+  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))   ' FIXME: coloring!
   image_address += lut_size << 2 - 4
   repeat image_longs
-    debug(``#(letter) `uhex_(long[image_address += 4]))
+    debug(``#(letter) `uhex_(long[image_address += 4]))   ' FIXME: coloring!
 
 ' -----------------------------------------------------------------
 

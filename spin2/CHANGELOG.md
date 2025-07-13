@@ -28,10 +28,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.4.10] 2025-07-12
+## [2.4.10] 2025-07-13
 
-- BUGFIX: VAR - Clean up arrayed structure declarations
+Spin2 Semantic Highlighting Update
+
+- BUGFIX: VAR - repair highlight of arrayed structure declarations
 - BUGFIX: General highlight don't match on variable names when name match is within quoted string
+- BUGFIX: highlight variable.[bit-field] specification within index correctly
 
 ## [2.4.9] 2025-07-02
 

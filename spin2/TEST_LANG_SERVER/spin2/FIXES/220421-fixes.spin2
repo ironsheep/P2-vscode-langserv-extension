@@ -11,7 +11,7 @@ CON { app io pins }
 
 PUB main() | position
 
-    debug(`logic MyLogic pos 30 150 samples 112 'p0=SO' 1 'p1=CLK' 1 'p2=CS' 1) ' FIXME: count problem
+    debug(`logic MyLogic pos 30 150 samples 112 'p0=SO' 1 'p1=CLK' 1 'p2=CS' 1) ' FIXME: count
     debug(`myLogic trigger %100 $100 holdoff 32)
 
 PRI sendOutputToLA()

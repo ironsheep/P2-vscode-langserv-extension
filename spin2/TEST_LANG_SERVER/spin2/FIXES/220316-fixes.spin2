@@ -4,11 +4,11 @@
 PRI showbmp(letter, image_address, lut_offset, lut_size, image_longs) | i,
   image_address += lut_offset
   {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
-  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))   ' <-- (lutcolors SHOULD be red!)
+  debug(``#(letter) lutcolors `uhex_long_array_(image_address, lut_size))   ' <-- (FIXME: lutcolors SHOULD be red!)
   image_address += lut_size << 2 - 4
   repeat image_longs
    {-* VSCode-Spin2: nextline debug()-display: bitmap  *-}
-   debug(``#(letter) `uhex_(long[image_address += 4]))
+   debug(``#(letter) `uhex_(long[image_address += 4])) ' FIXME: colring!
 
 ' ---------------------------------------------------
 ' from Goertzel_DEBUG_Demo.spin2 (w/PNut)

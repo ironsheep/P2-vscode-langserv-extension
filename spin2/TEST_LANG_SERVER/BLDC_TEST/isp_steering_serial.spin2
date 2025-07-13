@@ -190,7 +190,7 @@ DAT { parse work variables }
     bHoldEnable     LONG    0
 
 PRI processCommand(pValues)
-    debug("* HANDLE ", zstr_(long [pValues][serialQueue.ENT_CMDSTR_IDX]))
+    debug("* HANDLE ", zstr_(long [pValues][serialQueue.ENT_CMDSTR_IDX]))  ' FIXME: coloring
 '   pValues -> [0:nbrValues(1-n)]  (doesn't count "full string")    ENT_VALUE_CT_IDX
 '              [1:pStr] -> "full string"                            ENT_RAWSTR_IDX
 '              [2:pCmd] -> "cmd"                                    ENT_CMDSTR_IDX

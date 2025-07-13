@@ -37,7 +37,7 @@ PUB initTextOutput(ctx, display, region, fg, bg, hwcursor, clearscreen) | cogNbr
     if hwcursor
         setCursorPos(region, (hwcursor - 1) & 1, 0, 0)
     cogNbr := cogid()
-    context[cogid()] := ctx         ' <----- cogid() should be hightlighted yellow! SYNTAX ISSUE?!
+    context[cogid()] := ctx         ' <-----' FIXME: coloring! cogid() should be hightlighted yellow! SYNTAX ISSUE?!
     if clearscreen
         clear()
 
