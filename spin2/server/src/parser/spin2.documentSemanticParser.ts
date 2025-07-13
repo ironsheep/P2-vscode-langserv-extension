@@ -8085,50 +8085,53 @@ export class Spin2DocumentSemanticParser {
       const isP2ObjectOverrideConstantRef: boolean = dotRef.includes('%');
       if ((dotRef.includes('.') || isP1ObjectConstantRef || isP2ObjectOverrideConstantRef) && !dotRef.includes('..')) {
         const symbolOffset: number = line.indexOf(dotRef.trimStart(), initialOffset); // walk this past each
-        possibleNameSet = dotRef.trimStart().split(/[.#%]/).filter(Boolean);
-        let objInstanceName = possibleNameSet[0];
-        this._logMessage(`  --  rObjRef possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
-        let nameParts: string[] = [objInstanceName];
-        const indexNames: string[] = [];
-        let objectRefContainsIndex: boolean = false;
+        let objInstanceName = dotRef;
+
         // if we have arrayed object instances...
-        let indexesOffset: number = -1;
+        let objectRefContainsIndex: boolean = false;
         let bIsStructureInstance: boolean = false;
-        if (objInstanceName.includes('[')) {
-          // remove parens, brackets, and math ops
-          const leftBracketOffset: number = line.indexOf('[', symbolOffset);
-          indexesOffset = leftBracketOffset + 1;
-          nameParts = objInstanceName.split(/[ ()*+\-/[\]]/).filter(Boolean);
-          objInstanceName = nameParts[0]; // collect the object instance name
-          this._logMessage(`  --  rObjRef-Idx nameParts=[${nameParts}]`);
-          // FIXME: handle nameParts[1] is likely a local file variable
-          if (nameParts.length > 1) {
-            for (let index = 1; index < nameParts.length; index++) {
-              const indexName = nameParts[index];
-              if (this.parseUtils.isValidSpinSymbolName(indexName)) {
-                indexNames.push(indexName);
+        let indexExpressions: IIndexedExpression[] = [];
+        if (objInstanceName.includes('[') && objInstanceName.includes(']')) {
+          // yes remove index elemeents from name
+          indexExpressions = this._getIndexExpressions(objInstanceName);
+          // Iterate over all indexes returned
+          for (let index = 0; index < indexExpressions.length; index++) {
+            const indexExpression: IIndexedExpression = indexExpressions[index];
+            const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
+            const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
+            if (regex.test(objInstanceName)) {
+              let adjSymbolName: string = objInstanceName.replace(regex, '').trim();
+              // SPECIAL CASE
+              //  Ex:  o.[2 addbits 5]  reduces to o.
+              //   Let's remove the trailing '.' as well
+              if (adjSymbolName.endsWith('.')) {
+                adjSymbolName = adjSymbolName.substring(0, adjSymbolName.length - 1);
               }
+              this._logSPIN(
+                `   --- rObjRef rmvINDEX symbolName=[${objInstanceName}](${objInstanceName.length}) -> [${adjSymbolName}](${adjSymbolName.length})`
+              );
+              objInstanceName = adjSymbolName;
             }
           }
           if (this.semanticFindings.isStructureInstance(objInstanceName)) {
             this._logMessage(`  --  rObjRef instanceName=[${objInstanceName}] is a STRUCT instance, NOT object!`);
             bIsStructureInstance = true;
           }
-          objectRefContainsIndex = indexNames.length > 0 ? true : false;
-
-          if (!bIsStructureInstance && objectRefContainsIndex) {
-            // handle case: instance[index].reference[()]  - "index" value
-            // now too handle case: digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
-            this.reportsSymbolsForSet('index value', indexesOffset, indexNames, line, lineNbr, tokenSet, lineIdx);
-          }
+          objectRefContainsIndex = indexExpressions.length > 0 ? true : false;
         }
+
+        possibleNameSet = objInstanceName.trimStart().split(/[.#%]/).filter(Boolean);
+        objInstanceName = possibleNameSet[0];
+        this._logMessage(`  --  rObjRef possibleNameSet=[${possibleNameSet}](${possibleNameSet.length})`);
+
         // processed objectInstance[index] (indexes now marked)
         // now do objectInstance.constant or objectInstance.method() reference
         if (!bIsStructureInstance && this.semanticFindings.isNameSpace(objInstanceName)) {
+          let nameOffset = symbolOffset; // start at the dotRef offset
           let referenceDetails: RememberedToken | undefined = undefined;
           if (this.semanticFindings.isGlobalToken(objInstanceName)) {
             referenceDetails = this.semanticFindings.getGlobalToken(objInstanceName);
-            this._logMessage(`  --  FOUND global name=[${objInstanceName}]`);
+            this._logMessage(`  --  rObjRefFOUND global name=[${objInstanceName}]`);
           }
           if (referenceDetails !== undefined) {
             // SPECIAL: of we can only return a structure reference then hold off on marking we found a reference
@@ -8137,12 +8140,29 @@ export class Spin2DocumentSemanticParser {
             if (!isP2ObjectOverrideConstantRef) {
               this._recordToken(tokenSet, line, {
                 line: lineIdx,
-                startCharacter: symbolOffset,
+                startCharacter: nameOffset,
                 length: objInstanceName.length,
                 ptTokenType: referenceDetails.type,
                 ptTokenModifiers: referenceDetails.modifiers
               });
+              nameOffset += objInstanceName.length; // skip past the objectInstanceName
             }
+
+            // report object index statement
+            if (objectRefContainsIndex) {
+              this._logMessage(
+                `  -- rObjRef indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length}), ofs=(${nameOffset})`
+              );
+              let priorExpressionLength: number = 0;
+              for (let index = 0; index < indexExpressions.length; index++) {
+                const indexExpression: IIndexedExpression = indexExpressions[index];
+                nameOffset = line.indexOf(indexExpression.expression, nameOffset + priorExpressionLength); // skip past '['
+                priorExpressionLength = indexExpression.expression.length;
+                /* const tmpNameOffset = */ this._reportSPIN_IndexExpression(indexExpression.expression, lineIdx, nameOffset, line, tokenSet);
+              }
+              indexExpressions = []; // reset so we don't report again
+            }
+
             if (possibleNameSet.length > 1) {
               // we have .constant namespace suffix
               // determine if this is method has '(' or is constant name
@@ -8150,7 +8170,7 @@ export class Spin2DocumentSemanticParser {
               // XYZZY NEW if onlyStructRefs: need to fail objInstance.CONSTANT too
               const refParts: string[] = possibleNameSet[1].split(/[ ()*+,\-/[\]]/).filter(Boolean);
               const parameters: string[] = [];
-              this._logMessage(`  -- possibleNameSet[1]=[${possibleNameSet[1]}] split into refParts=[${refParts}](${refParts.length})`);
+              this._logMessage(`  -- rObjRef possibleNameSet[1]=[${possibleNameSet[1]}] split into refParts=[${refParts}](${refParts.length})`);
               const refPart = refParts[0];
               //const rhsOffset = line.indexOf(possibleNameSet[1], initialOffset);
               const referenceOffset = line.indexOf(refPart, initialOffset);
@@ -8160,7 +8180,7 @@ export class Spin2DocumentSemanticParser {
               if (isMethod) {
                 // ok, now let's be really sure!
                 const methodFollowString: string = line.substring(matchOffset + dotRef.length);
-                this._logSPIN(`  --  ObjRef func Paren chk methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
+                this._logSPIN(`  --  rObjRef func Paren chk methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
                 isMethod = isMethodCall(methodFollowString);
               }
               if (isMethod && refParts.length > 1) {
@@ -8420,12 +8440,14 @@ export class Spin2DocumentSemanticParser {
       indexExpressions = this._getIndexExpressions(variableName);
       // Iterate over all indexes returned
       const subExpressions: string[] = [];
+      const hasBitfieldIndex: boolean = variableName.includes('.[');
       for (let index = 0; index < indexExpressions.length; index++) {
         const indexExpression: IIndexedExpression = indexExpressions[index];
         const escapedExpression: string = this.extensionUtils.escapeRegExp(indexExpression.expression);
         const regex = new RegExp(`\\[\\s*${escapedExpression}\\s*\\]`);
         if (regex.test(variableName)) {
-          let adjSymbolName: string = variableName.replace(regex, '').trim();
+          const tmpVariableName: string = hasBitfieldIndex ? variableName.replace('.[', '[') : variableName;
+          let adjSymbolName: string = tmpVariableName.replace(regex, '').trim();
           // SPECIAL CASE
           //  Ex:o.[2 addbits 5]  reduces to o.
           //   Let's remove the trailing '.' as well
