@@ -69,6 +69,7 @@ FEATURE Latest Language Ver Updates:
 		- complete SPIN unification @done(2025-04-28)
 		- Add support for multiple VAR declarations per line @done(2025-05-08)
 	
+		
 	FIX NOW:
 		FIX:
 			- 231021-fixes.spin2 - Ln#42 - line[px,py  white vs. highlighted @done(2025-05-07)
@@ -101,6 +102,11 @@ FEATURE Latest Language Ver Updates:
 		- v45 Hover of structure name should show structure def'n 
 			- (and point to source where declared?)
 	
+	
+DOWNLOAD/RUN FIXs:
+			- not setting only PropPlug on startup
+			- not updating toolbar with propplug change
+			- should check for propplug to appear/disappear on file load
 FEATURE Code Folding - DONE:
 	- IF @done(2023-12-23)
 	- REPEAT @done(2023-12-23)
