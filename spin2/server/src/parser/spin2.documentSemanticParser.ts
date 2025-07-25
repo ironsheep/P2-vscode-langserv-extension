@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -1890,8 +1890,8 @@ export class Spin2DocumentSemanticParser {
               this._logCON(`  -- GetCDLMulti() SPLIT lineParts=[${lineParts}](${lineParts.length})`);
               const newName = lineParts[0];
               // BUGFIX? Allow P1 asm (par, cnt) variables to be used as constants in P2 code
-              let isDisAllowedP1AsmVariable: boolean = this.parseUtils.isP1AsmVariable(newName);
-              if (newName.toLowerCase() == 'par' || newName.toLowerCase() == 'cnt') {
+              let isDisAllowedP1AsmVariable: boolean = newName !== undefined ? this.parseUtils.isP1AsmVariable(newName) : false;
+              if (newName !== undefined && (newName.toLowerCase() == 'par' || newName.toLowerCase() == 'cnt')) {
                 isDisAllowedP1AsmVariable = false; // par and cnt are  allowed in P2 code
               }
               if (newName !== undefined && this.parseUtils.isValidSpinSymbolName(newName) && !isDisAllowedP1AsmVariable) {
@@ -8074,7 +8074,8 @@ export class Spin2DocumentSemanticParser {
     // NOTE BUG: not handled:
     //   digits[(numberDigits - 1) - digitIdx].setValue(digitValue)
     let bGeneratedReference: boolean = false;
-    this._logMessage(`- rptObjectReference() ln#${lineIdx + 1}: dotRef=[${dotRef}], ofs=(${initialOffset}), line=[${line}](${line.length})`);
+    const lineInterp: string = line !== undefined ? `[${line}](${line.length})` : '{undefined}';
+    this._logMessage(`- rptObjectReference() ln#${lineIdx + 1}: dotRef=[${dotRef}], ofs=(${initialOffset}), line=${lineInterp}`);
     if (line !== undefined && line.length > 0 && lineIdx != -1 && initialOffset != -1) {
       const lineLength: number = line.length;
       const matchOffset: number = line.indexOf(dotRef, initialOffset);
@@ -8641,7 +8642,7 @@ export class Spin2DocumentSemanticParser {
   ): [boolean, string] {
     let bGeneratedReference: boolean = false;
     let usedRefPart: string = '';
-    let nameOffset: number = line.indexOf(dotRef.trimStart(), startingOffset - 1); // walk this past each
+    let nameOffset: number = line !== undefined ? line.indexOf(dotRef.trimStart(), startingOffset - 1) : -1; // walk this past each
     // many forms of structure references
     //  Ex: a.n[3]
     //  Ex: a.n[1].[31]
@@ -9687,7 +9688,7 @@ export class Spin2DocumentSemanticParser {
       if (namePart !== undefined && (namePart.trim().length === 0 || namePart === '#' || namePart === '[')) {
         continue;
       }
-      const tmpName: string = namePart.trim();
+      const tmpName: string = namePart !== undefined ? namePart.trim() : '';
       if (tmpName.length > 0) {
         const tmpLineParts: string[] = this._splitOnWhitespaceButNotInBrackets(tmpName);
         if (tmpLineParts.length > 0) {
