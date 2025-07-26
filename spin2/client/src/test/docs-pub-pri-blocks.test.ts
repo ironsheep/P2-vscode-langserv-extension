@@ -4,10 +4,8 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as vscode from 'vscode';
-import * as assert from 'assert';
 import { getDocUri, activate, showObject } from './helper';
 import { SemanticTokens } from 'vscode-languageclient/node';
-import { types } from 'util';
 
 suite('Should do Spin2 PUB/PRI Highlight display', () => {
   const docSpin2Uri = getDocUri('docs-pub-pri-blocks.spin2');

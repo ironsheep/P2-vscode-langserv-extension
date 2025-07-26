@@ -1,0 +1,11 @@
+con
+
+  LED_PINS = 56 addpins 1
+  LED_PIN0 = 56
+  LED_PIN1 = 57
+
+pub go() | x
+
+  repeat
+    pinwrite(LED_PINS, getrnd())
+    waitms(100)

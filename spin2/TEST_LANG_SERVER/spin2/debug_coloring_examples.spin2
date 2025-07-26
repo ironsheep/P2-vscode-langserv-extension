@@ -28,8 +28,8 @@ PUB oscilloscope() | chanA, chanB, chanC
 ' -----------------
 ' From my code
 PRI myDebugTest(position)
-      debug(`scope_xy xy size 200 range 1000 samples 200 dotsize 5 'Goertzel' `dly(#200))
-      debug(`logic MyLogic pos 30 150 samples 112 'p0=SO' 1 'p1=CLK' 1 'p2=CS' 1)
+      debug(`scope_xy xy size 200 range 1000 samples 200 dotsize 5 'Goertzel' `dly(#200)) ' FIXME: coloring!
+      debug(`logic MyLogic pos 30 150 samples 112 'p0=SO' 1 'p1=CLK' 1 'p2=CS' 1) ' FIXME: coloring!
       debug(`term testTerm pos 914 71 size 30 1 textsize 20 color red) ' end of line comments
       debug(`testTerm 1 'Pulse Width = ', '`(position)', ' microseconds  ')
 

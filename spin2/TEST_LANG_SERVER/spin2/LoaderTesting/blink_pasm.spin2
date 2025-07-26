@@ -1,0 +1,26 @@
+' blink but in PASM2
+
+con
+
+  CLK_FREQ = 240_000_000                                        ' system freq as a constant
+  _clkfreq = CLK_FREQ                                           ' set system clock
+
+  MS_001   = CLK_FREQ / 1_000                                   ' ticks in 1ms
+  US_001   = CLK_FREQ / 1_000_000                               ' ticks in 1us
+
+  BR_TERM  = 115_200                                            ' terminal baud rate
+
+  LED_PINS = 56 addpins 1
+  LED_PIN0 = 56
+  LED_PIN1 = 57
+
+DAT
+        org
+        asmclk
+        drvh    #LED_PINS
+entry
+        outrnd  #LED_PINS
+        waitx   timeVal
+        jmp     #entry
+
+timeVal      LONG    MS_001 * 100

@@ -24,7 +24,9 @@ VAR
 
   SensorCog
   SensorStack[50]
-
+  MotorCount
+  Motor
+  BasePin
 
 '==================
 '  Public Methods
@@ -76,7 +78,7 @@ PUB SensorCapture(Sensor) : capture
 
 
 '===================
-'  Private Methods  
+'  Private Methods
 '===================
 
 PRI Monitor() | sensor, sensor, pinstate, bitstate
