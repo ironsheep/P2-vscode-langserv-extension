@@ -8371,7 +8371,8 @@ export class Spin2DocumentSemanticParser {
         }
       }
     } else {
-      this._logMessage(`- rptObjectReference() ERROR: ln#${lineIdx + 1}: dotRef=[${dotRef}], ofs=(${initialOffset}), line=[${line}](${line.length})`);
+      const lineInterp: string = line !== undefined ? `[${line}](${line.length})` : '{undefined}';
+      this._logMessage(`- rptObjectReference() ERROR: ln#${lineIdx + 1}: dotRef=[${dotRef}], ofs=(${initialOffset}), line=${lineInterp}`);
     }
     this._logMessage(`- rptObjectReference() EXIT returns=(${bGeneratedReference})`);
     return bGeneratedReference;
