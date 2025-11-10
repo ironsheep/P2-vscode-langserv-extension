@@ -347,7 +347,9 @@ So, as you might have guessed, I use Bash here too.  On RPi I tend to install sp
 
 Unlike my Macs which have .bash_profile, my RPis have, instead, a .profile file.  So here I edit the RPi ~/.profile.  I'm using the pattern for "optionally installed tools" so that I can sync this .profile between my many RPi's.
 
-I edit my ~/.profile and add the path to flexprop.  (*I have multiple groups of lines such as this for various tools I've installed.*)
+**!! WARNING !!!** When I SSH into my RPi the ~/.profile is run. But when i run with keyboard/screen (or remote desktop with VNC) then the bash shell only loads ~/.bashrc  This is why i say .profile (or .bashrc) for making the PATH adjustments below. Do one or the other but not both unless you detect if it's already set (which i'm not shoing below, this is left to the reader...)
+
+I edit my ~/.profile (or .bashrc) and add the path to flexprop.  (*I have multiple groups of lines such as this for various tools I've installed.*)
 
 ```bash
 # set PATH so it includes optional install of flexprop/bin if it exists
@@ -358,7 +360,7 @@ fi
 
 If you installed PNut-TS you will also want to do this for it as well.
 
-Here I edit my ~/.profile and add the path to pnut_ts.
+Here I edit my ~/.profile (or .bashrc) and add the path to pnut_ts.
 
 ```bash
 # set PATH so it includes optional install of pnut_ts if it exists
@@ -369,12 +371,12 @@ fi
 
 If you installed PNut-Term-TS you will also want to do this for it as well.
 
-Here I edit my ~/.profile and add the path to pnut\_term\_ts.
+Here I edit my ~/.profile (or .bashrc) and add the path to pnut\_term\_ts.
 
 ```bash
 # set PATH so it includes optional install of pnut_term_ts if it exists
 if [ -d "/opt/pnut_term_ts" ] ; then
-    PATH="$PATH:/opt/pnut_term_ts"
+    PATH="$PATH:/opt/pnut_term_ts/bin"
 fi
 ```
 
