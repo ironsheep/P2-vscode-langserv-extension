@@ -13,7 +13,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from **[Windows](TASKS_USer.md)**, **MacOS** (this page), and **[RaspiOS](TASKS_USer.md)** (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **flexprop**, **PNut-TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**, and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -26,6 +26,9 @@ On this Page:
 - [Being consistent in your machine configuration](#being-consistent-in-your-machine-configuration) - why we are doing things this way
 - [Installation and Setup](#development-machine-setup-and-configuration) - preparing your machine for P2 development using tools from within vscode
   - [Installing FlexProp](#installing-flexprop)
+  - [Installing PNut-TS](#installing-pnut-ts)
+  - [Installing PNut-Term-TS](#installing-pnut-term-ts)
+  
 - [Tasks in VScode](#tasks-in-vscode) - this provides more detail about vscode tasks and lists work that is still needing to be done 
   - [Adding the P2 Tasks](#adding-the-p2-tasks)
   - [Adding our Custom Keybindings](#custom-keybindings)
@@ -45,6 +48,8 @@ Additional pages:
 
 ```
 Latest Updates:
+09 Nov 2025
+- Added PNut-Term-TS installation section
 17 May 2025
 - Adjusted Tasks content
 01 May 2025
@@ -96,7 +101,7 @@ For each P2 Project:
 
 ## Enabling P2 Code Development with PNut-TS on macOS
 
-Additionally, you can use PNut-TS on your mac under VScode you'll need to:
+Additionally, you can use PNut-TS on your Mac under VScode you'll need to:
 
 One time:
 
@@ -111,6 +116,16 @@ For each P2 Project:
 
 - Install a settings.json file identiyfing the project top-level file
     - Make sure the name of your top-level file is correctly placed in this settings.json file
+
+## Enabling P2 Code Download and Debugging with PNut-Term-TS on macOS
+
+To complete your setup so you can use PNut-Term-TS on your Mac under VScode you'll need to:
+
+One time:
+
+- Install PNut-Term-TS for all users to use on your Mac
+
+*The spin2 extension for VSCode will automatically see and use PNut-Term-TS when you select the PNut-TS compiler.*
 
 ## Being consistent in your machine configuration
 
@@ -185,12 +200,12 @@ Architecture specific PNut-TS .zip files available for MacOS:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
-| macos-arm64-{MMmmpp}.zip| MacOS | Arm 64 bit | pnut_ts/
-| macos-x64-{MMmmpp}.zip| MacOS | Intel x86-64 bit | pnut_ts/
+| pnut-ts-macos-arm64-{MMmmpp}.zip| MacOS | Arm 64 bit | pnut_ts/
+| pnut-ts-macos-x64-{MMmmpp}.zip| MacOS | Intel x86-64 bit | pnut_ts/
 
 **NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
 
-Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+Get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
 If you have an intel-based mac then get the x64 .zip file, if you have an Apple-silicon-based make then get the arm64 .zip file.
 
@@ -202,7 +217,7 @@ If you have an intel-based mac then get the x64 .zip file, if you have an Apple-
 
 If I'm updating to a new verison I do the following:
 
-- Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+- Get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 - Dounble click on the .zip file to extract the pnut_ts/ folder.
 - Remove the `/Applications/pnut_ts-prior` folder (move to trash)
 - Rename the `/Applications/pnut_ts` folder to `/Applications/pnut_ts-prior` 
@@ -210,6 +225,25 @@ If I'm updating to a new verison I do the following:
 - Close this finder window
 
 **NOTE:** We use this move-aside technique for updating the PNut-TS compiler.  When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code.  Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version.  *You can always skip this move-aside step if you don't care about this issue.*
+
+### Installing PNut-Term-TS on macOS
+
+On MacOS  machines we get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown and upacking the zip file to produce a .dmg install image. 
+ 
+If you have an intel-based mac then get the x64 .zip file, if you have an Apple-silicon-based make then get the arm64 .zip file.
+
+Once you have your selected .zip file then double click on it to extract the pnut-term-ts-{os-arch}-{MMmmpp}.dmg file.
+
+#### Install PNut-Term-TS
+
+Initial installation is easy. Open the .dmg file then drag the app into the Applications folder then unmount the .dmg.
+
+- Double-click on the .dmg file to mount it. It opens a window
+- In the window, drag the pnut_term_ts.app icon into the /Applications folder.
+- Close the .dmg window
+- Eject (unmount) the installer .dmg file.
+
+#### Update PNut-Term-TS
 
 ### Setting paths for your P2 Compilers/Tools on macOS
 
@@ -229,6 +263,13 @@ export PATH=${PATH}:/Applications/pnut_ts
 
 From here on when I start new terminal windows we can invoke the flexprop binaries by name without using the path to them.
 
+If i have install PNut-Term-TS then I also add its path:
+
+```bash
+export PATH=${PATH}:/Applications/PNut-Term-TS.app
+```
+
+From here on when I start new terminal windows we can invoke the flexprop, pnut_ts, and pnut-term-ts binaries by name without using the path to them.
 
 ## Tasks in VScode
 

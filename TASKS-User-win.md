@@ -12,7 +12,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from **Windows** (_this page_), [**MacOS**](TASKS-User-macOS.md), and [**RaspiOS**](TASKS-User.md) (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **flexprop**, **PNut-TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**,and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -26,6 +26,8 @@ On this Page:
 - [Being consistent in your machine configuration](#being-consistent-in-your-machine-configuration) - why we are doing things this way
 - [Installation and Setup](#development-machine-setup-and-configuration) - preparing your machine for P2 development using tools from within vscode
   - [Installing FlexProp](#installing-flexprop)
+  - [Installing PNut-TS](#installing-pnut-ts)
+  - [Installing PNut-Term-TS](#installing-pnut-term-ts)
   - [Installing PNut](#installing-pnut)
 - [Tasks in VScode](#tasks-in-vscode) - this provides more detail about vscode tasks and lists work that is still needing to be done
   - [Adding the P2 Tasks](#adding-the-p2-tasks)
@@ -46,6 +48,8 @@ Additional pages:
 
 ```text
 Latest Updates:
+09 Nov 2025
+- Added PNut-Term-TS installation section
 17 May 2025
 - Adjusted Tasks content
 01 May 2025
@@ -113,6 +117,16 @@ For each P2 Project:
 
 - Install a settings.json file identifying the project top-level file
   - Make sure the name of your top-level file is correctly placed in this settings.json file
+  
+## Enabling P2 Code Download and Debugging with PNut-Term-TS
+
+To complete your setup so you can use PNut-Term-TS on your Windows machine under VScode you'll need to:
+
+One time:
+
+- Install PNut-Term-TS for all users to use on your windows machine
+
+*The spin2 extension for VSCode will automatically see and use PNut-Term-TS when you select the PNut-TS compiler.*
 
 ## Enabling P2 Code Development with PNut
 
@@ -214,6 +228,43 @@ Like we do on the other platforms here's the suggested update strategy:
 
 **NOTE:** We use this move-aside technique for updating the PNut-TS compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
 
+### Installing PNut-Term-TS on Windows
+
+On Windows machines we get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_term_ts` folder containing the new version.
+
+**NOTE**: _The **PNut\_Term\_TS** tool-set does not have a standard install location on Windows. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
+
+Next we move this new version into place.
+
+#### Install PNut-Term-TS
+
+Architecture specific PNut-Term-TS .zip files available for Windows:
+
+| Archive Name | Operating System | Architecture | Unpack Leaves
+| --- | --- | --- | --- |
+| pnut-term-ts-windows-arm64-{MMmmpp}.zip| Windows | Arm 64 bit | pnut\_term\_ts/
+| pnut-term-ts-windows-x64-{MMmmpp}.zip| Windows | Intel x86-64 bit | pnut\_term\_ts/
+
+**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
+
+Get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.
+
+We are making a new program install location in these steps. We are going to use the same root directory as FlexProp but we have a new vendor. So, Create a new program files directory called `C:\Programs\IronSheepProductions\` and unpack the .zip file into that directory. Depnding upon which command you use to do this you may have created a folder named after the .zip file. If this happens then inside that folder is the pnut\_term\_ts folder. Just move it out of the .zip-named folder into this folder. Then remove the now empty .zip-named folder.  In the end you should have a `C:\Programs\IronSheepProductions\pnut\_term\_ts\` folder with a pnut-term-ts.exe file within it along with other documentation.
+
+Finish up by adding `C:\Programs\IronSheepProductions\pnut_term_ts` to PATH as described in [add a new PATH element](#os-windows).
+
+#### Update PNut-Term-TS
+
+Like we do on the other platforms here's the suggested update strategy:
+
+- Download and zip the latest version from [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.
+- Remove any `C:\Programs\IronSheepProductions\pnut_term_ts-prior` (the prior version of PNut-TS)
+- Rename your existing `C:\Programs\IronSheepProductions\pnut_term_ts` folder to `C:\Programs\IronSheepProductions\pnut_term_ts-prior`
+- Create a new empty directory `C:\Programs\IronSheepProductions\pnut_term_ts` 
+- Unpack the latest downloaded .zip into the newly re-created `C:\Programs\IronSheepProductions\pnut_term_ts` folder
+
+**NOTE:** We use this move-aside technique for updating the PNut-Term-TS debugger/downloader. When a development tool is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new development tool handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can debug the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
+
 ### Installing PNut on Windows
 
 The PNut compiler/debug tool does not have a standard install location. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed PNut and then [add a new PATH element](#os-windows) using the windows settings app. to point to where your binaries ended up on your file system.
@@ -247,12 +298,13 @@ I haven't found the need to keep any prior version. I simply:
 
 Once we've installed our compiler(s) we need to make sure that all users can use them from the command line. We do this by adding the path to each compiler to the System Envrironment settings PATH variable.
 
-We have three compilers mentioned above. If you are using the paths i use then we have:
+We have three compilers mentioned above. If you are using the paths I use then we have:
 
 | Compiler | Path
 | --- | --- |
 |  FlexProp | C:\Programs\TotalSpectrum\FlexProp
 | PNut-TS | C:\Programs\IronSheepProductions\pnut_ts
+| PNut-Term-TS | C:\Programs\IronSheepProductions\pnut\_term\_ts
 | PNut | C:\Program Files (x86)\Parallax Inc\PNut
 
 #### OS: Windows
@@ -263,7 +315,7 @@ If you routinely install these compilers in the same place
 
 **NOTE** _the above is referring to **Windows 10** settings names. On earlier versions of Windows the concept is the same. Locate the environment values and make the appropriate changes._
 
-From here on, when we run in terminal windows, we can invoke the FlexProp and PNut binaries by name without using the path to them.
+From here on, when we run in terminal windows, we can invoke the FlexProp, PNut-TS, PNut-Term-TS, and PNut binaries by name without using the path to them.
 
 ## Tasks in VScode
 

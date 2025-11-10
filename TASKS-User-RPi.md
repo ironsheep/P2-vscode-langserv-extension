@@ -13,7 +13,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from [**Windows**](TASKS-User-win.md), [**MacOS**](TASKS-User-macOS.md), and **RaspiOS** (_this page_) (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **flexprop**, **PNut-TS**,  and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**, and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -26,6 +26,8 @@ On this Page:
 - [Being consistent in your machine configuration](#being-consistent-in-your-machine-configuration) - why we are doing things this way
 - [Installation and Setup](#development-machine-setup-and-configuration) - preparing your machine for P2 development using tools from within vscode
   - [Installing FlexProp](#installing-flexprop)
+  - [Installing PNut-TS](#installing-pnut-ts)
+  - [Installing PNut-Term-TS](#installing-pnut-term-ts)
 - [Tasks in VScode](#tasks-in-vscode) - this provides more detail about vscode tasks and lists work that is still needing to be done 
   - [Adding the P2 Tasks](#adding-the-p2-tasks)
   - [Adding our Custom Keybindings](#custom-keybindings)
@@ -45,6 +47,8 @@ Additional pages:
 
 ```
 Latest Updates:
+09 Nov 2025
+- Added PNut-Term-TS installation section
 17 May 2025
 - Adjusted Tasks content
 01 May 2025
@@ -114,6 +118,17 @@ For each P2 Project:
 - Install a settings.json file identiyfing the project top-level file
     - Make sure the name of your top-level file is correctly placed in this settings.json file
 
+## Enabling P2 Code Download and Debugging with PNut-Term-TS
+
+To complete your setup so you can use PNut-Term-TS on your Raspberry Pi under VScode you'll need to:
+
+One time:
+
+- Install PNut-Term-TS for all users to use on your RPi
+
+*The spin2 extension for VSCode will automatically see and use PNut-Term-TS when you select the PNut-TS compiler.*
+
+  
 ## Being consistent in your machine configuration
 
 I have mostly macs for development but I also have a Windows machine and a number of Raspberry PIs (derived from Debian Linux Distribution (distro.)) and even some larger Ubuntu Machines (also derived from Debian Linux distro.). If you, like me, intend to be able to run VSCode on many of your development machines and you want to make your life easier then there are a couple of things we know already that can help you.
@@ -211,9 +226,9 @@ sudo make install INSTALL=/opt/flexprop
 
 ### Installing PNut-TS on RPi/Linux
 
-On the Raspberry Pi platform we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new compiler and its documents.
+On the Raspberry Pi platform we get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new compiler and its documents.
 
-**NOTE**: _The PNut\_TS tool-set does not have a standard install location on Windows. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
+**NOTE**: _The **PNut\_TS** tool-set does not have a standard install location on Linux. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
 
 Next we move this new version into place.
 
@@ -224,18 +239,18 @@ Architecture specific PNut-TS .zip files available for RPIi/Linux:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
-| linux-arm64-{MMmmpp}.zip | Linux, RPi | Arm 64 bit | pnut_ts/
-| linux-x64-{MMmmpp}.zip| Linux | Intel x86-64 bit | pnut_ts/
+| pnut-ts-linux-arm64-{MMmmpp}.zip | Linux, RPi | Arm 64 bit | pnut_ts/
+| pnut-ts-linux-x64-{MMmmpp}.zip| Linux | Intel x86-64 bit | pnut_ts/
 
 **NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
 
-Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+Get the latest binaries by downloading a ` pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
 We are making a new program install location in these steps. We are going to use the same root directory as FlexProp. So, unzip the downloaded file and move the new folder into place:
 
  ```bash
  # unzip folder
- unzip {os-arch}.zip  # should leave a new folder pnut_ts/
+ unzip pnut-ts-{os-arch}-{MMmmpp}.zip  # should leave a new folder pnut_ts/
  # move the new folder to our /opt tree, right along side flexprop
  sudo mv pnut_ts /opt
  ```
@@ -256,13 +271,71 @@ sudo mv /opt/pnut_ts /opt/pnut_ts-prior
 # navigate to source tree
 cd {downloadFolder}   # to location where you downloaded the latest .zip of PNut-TS
 # extract the new pnut_ts folder
-unzip {os-arch}.zip   # should leave a new folder pnut_ts/
+unzip pnut-ts-{os-arch}-{MMmmpp}.zip   # should leave a new folder pnut_ts/
 # move folder into place
 sudo mv pnut_ts /opt  # move the new folder to our /opt tree, right along side flexprop
 # remove the .zip as it's no longer needed
-rm {os-arch}.zip
+rm pnut-ts-{os-arch}-{MMmmpp}.zip
 cd -                  # return to the directory you were in before you entered {downloadFolder} 
 ```
+
+**NOTE:** We use this move-aside technique for updating the PNut-TS compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
+
+### Installing PNut-Term-TS on RPi/Linux
+
+On the Raspberry Pi platform we get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_term_ts` folder containing the new version.
+
+**NOTE**: _The **PNut\_Term\_TS** tool-set does not have a standard install location on Linux. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
+
+Next we move this new version into place.
+
+#### Install PNut-Term-TS: RaspiOS
+
+Architecture specific PNut-Term-TS .zip files available for RPIi/Linux:
+
+| Archive Name | Operating System | Architecture | Unpack Leaves
+| --- | --- | --- | --- |
+| pnut-term-ts-linux-arm64-{MMmmpp}.zip| Linux, RPi  | Arm 64 bit | pnut\_term\_ts/
+| pnut-term-ts-linux-x64-{MMmmpp}.zip| Linux | Intel x86-64 bit | pnut\_term\_ts/
+
+**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
+
+Get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.
+
+We are making a new program install location in these steps. We are going to use the same root directory as FlexProp. So, unzip the downloaded file and move the new folder into place:
+
+ ```bash
+ # unzip folder
+ unzip pnut-term-ts-{os-arch}-{MMmmpp}.zip  # should leave a new folder pnut_term_ts/
+ # move the new folder to our /opt tree, right along side flexprop
+ sudo mv pnut_term_ts /opt
+ ```
+
+ (**NOTE** *We use `sudo` because the normal user is not able to write in the /opt tree.*)
+
+Additionally, I [added a new PATH element](#setting-paths-for-your-p2-compilerstools) in my ~/.profile file to point to the pnut_ts directory.  Now if you are running interactively on this RPi you can reference the pnut-ts executable by name and it will run.
+
+#### Update PNut-Term-TS: RaspiOS
+
+If I'm updating to a new verison I do the following after downloading the latest version from [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.:
+
+```bash
+# remove old prior version
+sudo rm -rf /opt/pnut_term_ts-prior
+# move current to prior
+sudo mv /opt/pnut_term_ts /opt/pnut_term_ts-prior
+# navigate to source tree
+cd {downloadFolder}   # to location where you downloaded the latest .zip of PNut-Term-TS
+# extract the new pnut_ts folder
+unzip pnut-term-ts-{os-arch}-{MMmmpp}.zip   # should leave a new folder pnut_term_ts/
+# move folder into place
+sudo mv pnut_term_ts /opt  # move the new folder to our /opt tree, right along side flexprop
+# remove the .zip as it's no longer needed
+rm pnut-term-ts-{os-arch}-{MMmmpp}.zip
+cd -                  # return to the directory you were in before you entered {downloadFolder} 
+```
+
+**NOTE:** We use this move-aside technique for updating the PNut-Term-TS debugger/downloader. When a development tool is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new development tool handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can debug the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
 
 ### Setting paths for your P2 Compilers/Tools
 
@@ -291,6 +364,17 @@ Here I edit my ~/.profile and add the path to pnut_ts.
 # set PATH so it includes optional install of pnut_ts if it exists
 if [ -d "/opt/pnut_ts" ] ; then
     PATH="$PATH:/opt/pnut_ts"
+fi
+```
+
+If you installed PNut-Term-TS you will also want to do this for it as well.
+
+Here I edit my ~/.profile and add the path to pnut\_term\_ts.
+
+```bash
+# set PATH so it includes optional install of pnut_term_ts if it exists
+if [ -d "/opt/pnut_term_ts" ] ; then
+    PATH="$PATH:/opt/pnut_term_ts"
 fi
 ```
 
