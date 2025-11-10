@@ -9,11 +9,11 @@
 
 ## Automating Build and Download to our P2 development boards
 
-This document is being developed over time as we prove-out a working environment for macOS. 
+This document is being developed over time as we prove out a working macOS environment. 
 
-To date, we have installations, compilation and downloading from **[Windows](TASKS_USer.md)**, **MacOS** (this page), and **[RaspiOS](TASKS_USer.md)** (the Raspberry Pi OS - a Debian derived distribution).
+To date, we have installations, compilation, and downloading from **[Windows](TASKS_USer.md)**, **MacOS** (this page), and **[RaspiOS](TASKS_USer.md)** (the Raspberry Pi OS - a Debian-derived distribution).
 
-Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**, and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
+Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**, and **PNut** (*PNut is Windows or Windows Emulator only.*) with direct USB-attached boards.
 
 In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
 
@@ -28,7 +28,7 @@ On this Page:
   - [Installing FlexProp](#installing-flexprop-on-macos)
   - [Installing PNut-TS](#installing-pnut-ts-on-macos)
   - [Installing PNut-Term-TS](#installing-pnut-term-ts-on-macos)
-- [Tasks in VScode](#tasks-in-vscode) - this provides more detail about vscode tasks and lists work that is still needing to be done 
+- [Tasks in VScode](#tasks-in-vscode) - this provides more detail about VSCode tasks and lists work that is still needing to be done 
   - [Adding the P2 Tasks](#adding-the-p2-tasks)
   - [Adding our Custom Keybindings](#custom-keybindings)
   - [Adding our notion of Top-level file for tasks to use](#adding-our-notion-of-top-level-file-for-tasks-to-use)
@@ -36,7 +36,7 @@ On this Page:
 Additional pages:
 
 - [TOP Level README](README.md) - Back to the top page of this repo
-- [Migrate to v2.3.0](Migrate-v230.md) - checklist to ensure you have migrated to our latest configuration which supports locating installed compilers and compiling and downloading with any of the installed compilers to your USB attached P2
+- [Migrate to v2.3.0](Migrate-v230.md) - checklist to ensure you have migrated to our latest configuration, which supports locating installed compilers and compiling and downloading with any of the installed compilers to your USB-attached P2
 - [Setup focused on Windows only](TASKS-User-win.md) - All **Windows** notes 
 - [Setup focused on RPi only](TASKS-User-RPi.md) - All **Raspberry Pi** notes 
 - [VSCode REF: Tasks](https://code.visualstudio.com/docs/editor/tasks) - Offsite: VSCode Documentation for reference
@@ -56,7 +56,7 @@ Latest Updates:
 31 Aug 2024
 - Add PNut-TS notes and installation
 - 12 Jun 2024
-- Updated to reflect new Spin2 Extension built-in compile/download support
+- Updated to reflect the new Spin2 Extension built-in compile/download support
 18 Jul 2023
 - Misc updates to keep these pages in sync
 15 Mar 2023
@@ -65,7 +65,7 @@ Latest Updates:
 
 ## VSCode development of P2 Projects
 
-By choosing to adopt the Custom Tasks described in this document along with the keybindings your work flow is now quite sweet.
+By choosing to adopt the Custom Tasks described in this document, along with the keybindings, your workflow is now quite sweet.
 
 - Create a new project
 - Add existing files you have already created or are using from P2 Obex.
@@ -75,14 +75,14 @@ By choosing to adopt the Custom Tasks described in this document along with the 
 Iterate until your project works as desired:
 
 - Make changes to file(s)
-- Compile the files to see if they compile cleanly (cmd-shift-B) on which ever file you are editing
+- Compile the files to see if they compile cleanly (cmd-shift-B) on whichever file you are editing
 - Once the files compile cleanly
 - Download and test (ctrl-shift-D, F10) 
 - Alternatively, download your project to FLASH and test (ctrl-shift-F, F11) 
 
 ## Enabling P2 Code Development with FlexProp on macOS
 
-To complete your setup so you can use FlexProp on your mac under VScode you'll need to:
+To complete your setup so you can use FlexProp on your Mac under VSCode you'll need to:
 
 One time:
 
@@ -90,17 +90,17 @@ One time:
 - Add our tasks to the user tasks.json file (*works across all your P2 projects*)</br>(*NOTE: there is no longer any tool-path informaton in this file!*)
 - Remove any old compile/download keybindings you may have.
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
-    - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
+    - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile error messages to the associated line of code
     - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
 
 For each P2 Project:
 
-- Install a settings.json file identiyfing the project top-level file
+- Install a settings.json file identifying the project top-level file
     - Make sure the name of your top-level file is correctly placed in this settings.json file
 
 ## Enabling P2 Code Development with PNut-TS on macOS
 
-Additionally, you can use PNut-TS on your Mac under VScode you'll need to:
+Additionally, you can use PNut-TS on your Mac under VSCode you'll need to:
 
 One time:
 
@@ -108,17 +108,17 @@ One time:
 - Add our tasks to the user tasks.json file (*works across all your P2 projects*)
 - Remove any old compile/download keybindings you may have.
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
-    - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile errors messages to the associated line of code
+    - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile error messages to the associated line of code
     - "[Explorer Exclude](https://marketplace.visualstudio.com/items?itemName=PeterSchmalfeldt.explorer-exclude)" which allows you to hide file types (e.g., .p2asm, .binary) from the explorer panel
 
 For each P2 Project:
 
-- Install a settings.json file identiyfing the project top-level file
+- Install a settings.json file identifying the project top-level file
     - Make sure the name of your top-level file is correctly placed in this settings.json file
 
 ## Enabling P2 Code Download and Debugging with PNut-Term-TS on macOS
 
-To complete your setup so you can use PNut-Term-TS on your Mac under VScode you'll need to:
+To complete your setup so you can use PNut-Term-TS on your Mac under VSCode you'll need to:
 
 One time:
 
@@ -128,25 +128,25 @@ One time:
 
 ## Being consistent in your machine configuration
 
-I have mostly macs for development but I also have a Windows machine and a number of Raspberry PIs (derived from Debian Linux distro.) and even some larger Ubuntu Machines (also derived from Debian Linux distro.).  If you, like me, intend to be able to run VSCode on many of your development machines and you want to make your life easier then there are a couple of things we know already that can help you.
+I have mostly Macs for development, but I also have a Windows machine and a number of Raspberry Pis (derived from the Debian Linux distro), and even some larger Ubuntu Machines (also derived from the Debian Linux distro).  If you, like me, intend to be able to run VSCode on many of your development machines and you want to make your life easier, then there are a couple of things we know already that can help you.
 
-- **Synchronize your VSCode settings and extensions** automatically by installing and using the **Settings Sync** VScode extension. Any changes you make to one machine then will be sync'd to your other VScode machines.
+- **Synchronize your VSCode settings and extensions** automatically by installing and using the **Settings Sync** VSCode extension. Any changes you make to one machine then will be sync'd to your other VScode machines.
 
-- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut-TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
+- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines, make sure you install FlexProp, PNut-TS, and PNut in the same location on each Windows machine.) By being consistent, your tasks will run no matter which machine you are running on.
 There is nothing worse than trying to remember where you installed a specific tool on the machine you are currently logged into. Because you install say FlexProp in the same place on all your Raspberry Pi's you will know where to find it no matter which RPi you are logged in to.
 
-    - All like operating systems should have a specific tool installed in the same location on each. (e.g., all Windows machines have FlexProp installed in one location, all macOS machines have FlexProp installed in a different location that on Windows but it is the same location across all Macs, etc.)
-    - During installation of a tool on a machine, finish the process by configuring the PATH to the tool so that terminals/consoles can access the tool by name. This allows VSCode to run the tool from its build tasks.json file without needing to know where the tool is installed!  On Windows machines this is done by editing the User Environment from within the Settings Application. On Mac's and Linux machines (RPi's) this is done by editing the shell configuration file (e.g., Bash you edit the ~/.bashrc file)
+    - All like operating systems should have a specific tool installed in the same location on each. (e.g., all Windows machines have FlexProp installed in one location, all macOS machines have FlexProp installed in a different location than on Windows but it is the same location across all Macs, etc.)
+    - During installation of a tool on a machine, finish the process by configuring the PATH to the tool so that terminals/consoles can access the tool by name. This allows VSCode to run the tool from its build tasks.json file without needing to know where the tool is installed!  On Windows machines, this is done by editing the User Environment from within the Settings Application. On Mac's and Linux machines (RPi's) this is done by editing the shell configuration file (e.g., Bash, you edit the ~/.bashrc file)
 
 ## Development Machine Setup and Configuration
 
 ### Installing FlexProp on macOS
 
-On MacOS  machines we get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and upacking the zip file to produce a `flexprop` folder containing the new version.  
+On MacOS machines, we get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and unpacking the zip file to produce a `flexprop` folder containing the new version.  
 
-**NOTE**: *The FlexProp toolset does not have a standard install location. So we will likely have many locations amongst all of us P2 users.  You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system.  Alternatively, it should be safe to just follow what I do in these instructions explictly.  This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same.*
+**NOTE**: *The FlexProp toolset does not have a standard install location. So we will likely have many locations amongst all of us P2 users.  You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system.  Alternatively, it should be safe to just follow what I do in these instructions explicitly.  This has the benefit that more of us will be able to help each other out with tool problems as more of us will be set up the same.*
 
-Next we move this new version into place.
+Next, we move this new version into place.
 
 #### Install FlexProp
 
@@ -154,38 +154,38 @@ On my Mac's, I install the FlexProp into a folder which I've created at `/Applic
 
 #### Update FlexProp
 
-If I'm updating to a new verison I do the following:
+If I'm updating to a new version I do the following:
 
 - Remove `/Applications/flexprop-prior`
 - Rename the `/Applications/flexprop` to `/Applications/flexprop-prior` 
 - Create a new empty `/Applications/flexprop` folder
 - Move all of the content of the `flexprop` folder (created during the unzip) to the `/Applications/flexprop` folder
 
-**NOTE:** We use this move-aside technique for updating the FlexProp compiler.  When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code.  Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version.  *You can always skip this move-aside step if you don't care about this issue.*
+**NOTE:** We use this move-aside technique for updating the FlexProp compiler.  When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code.  Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects, you will still have the prior version, so you can build the project with the older version that would fail with the new version.  *You can always skip this move-aside step if you don't care about this issue.*
 
 ### Installing PNut-TS on macOS
 
 #### (Hopefully Temporary) Install of Node.js runtime
 
-The packaging o PNut-TS for macOS for some reason, doesn't run (I'm working to understand this.) So as a workaround we install a Node.js runtime so we can run our compiler.
+The packaging o PNut-TS for macOS for some reason, doesn't run (I'm working to understand this.) So, as a workaround, we install a Node.js runtime so we can run our compiler.
 
 To see if you have Node.js installed (or to check what version you have installed) run:
 
 ```bash
 $ node -v
-v20.17.0   # output on authors Mac
+v20.17.0   # output on author's Mac
 $
 ```
 
-If you don't have it installed then visit [Download Node.js®](https://nodejs.org/en/download/prebuilt-installer) and download the installer appropriate to you Mac Processor. I For example, I run Apple Silicon and I've tested with v20.17.0 (LTS) on macOS running Arm64, and it just works. This installs in `/usr/local/bin/` so you will want to make sure `/usr/local/bin/` is in your PATH.  Check this with:
+If you don't have it installed, then visit [Download Node.js®](https://nodejs.org/en/download/prebuilt-installer) and download the installer appropriate to your Mac Processor. For example, I run Apple Silicon and I've tested with v20.17.0 (LTS) on macOS running Arm64, and it just works. This installs in `/usr/local/bin/` so you will want to make sure `/usr/local/bin/` is in your PATH.  Check this with:
 
 ```bash
 $ whereis node
-node: /usr/local/bin/node /usr/local/share/man/man1/node.1   # output on authors Mac
+node: /usr/local/bin/node /usr/local/share/man/man1/node.1   # output on author's Mac
 $
 ```
 
-Once you have node running and it's found in your PATH then you can proceed with installing PNut-TS.
+Once you have a node running and it's found in your PATH, then you can proceed with installing PNut-TS.
 
 #### Now installing PNut-TS
 
@@ -214,28 +214,28 @@ If you have an intel-based mac then get the x64 .zip file, if you have an Apple-
 
 #### Update PNut-TS
 
-If I'm updating to a new verison I do the following:
+If I'm updating to a new version I do the following:
 
 - Get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
-- Dounble click on the .zip file to extract the pnut_ts/ folder.
+- Double-click on the .zip file to extract the pnut_ts/ folder.
 - Remove the `/Applications/pnut_ts-prior` folder (move to trash)
 - Rename the `/Applications/pnut_ts` folder to `/Applications/pnut_ts-prior` 
-- In a finder window, drag the new pnut_ts/ folder to the /Applications folder.
+- In a Finder window, drag the new pnut_ts/ folder to the /Applications folder.
 - Close this finder window
 
 **NOTE:** We use this move-aside technique for updating the PNut-TS compiler.  When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code.  Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version.  *You can always skip this move-aside step if you don't care about this issue.*
 
 ### Installing PNut-Term-TS on macOS
 
-On MacOS  machines we get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown and upacking the zip file to produce a .dmg install image. 
+On MacOS machines, we get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown and unpacking the zip file to produce a .dmg install image. 
  
-If you have an intel-based mac then get the x64 .zip file, if you have an Apple-silicon-based make then get the arm64 .zip file.
+If you have an Intel-based Mac, then get the x64 .zip file; if you have an Apple Silicon-based Mac, then get the arm64 .zip file.
 
 Once you have your selected .zip file then double click on it to extract the pnut-term-ts-{os-arch}-{MMmmpp}.dmg file.
 
 #### Install PNut-Term-TS
 
-Initial installation is easy. Open the .dmg file then drag the app into the Applications folder then unmount the .dmg.
+Initial installation is easy. Open the .dmg file, then drag the app into the Applications folder, then unmount the .dmg.
 
 - Double-click on the .dmg file to mount it. It opens a window
 - In the window, drag the pnut_term_ts.app icon into the /Applications folder.
@@ -246,33 +246,33 @@ Initial installation is easy. Open the .dmg file then drag the app into the Appl
 
 ### Setting paths for your P2 Compilers/Tools on macOS
 
-On MacOS this is really shell dependent. I tend to stick with [Bash](https://www.gnu.org/software/bash/manual/html_node/Introduction.html) as I've used it for many 10s of years now.  [zsh](https://scriptingosx.com/2019/06/moving-to-zsh/) (ZShell) is the new shell on the block (*well, new to mac's not a new shell*.) I avoided moving to it but the concepts are the same.
+On macOS, this is really shell-dependent. I tend to stick with [Bash](https://www.gnu.org/software/bash/manual/html_node/Introduction.html) as I've used it for many 10s of years now.  [zsh](https://scriptingosx.com/2019/06/moving-to-zsh/) (ZShell) is the new shell on the block (*well, new to Mac's, not a new shell*). I avoided moving to it, but the concepts are the same.
 
-On my Macs I install the flexprop folder into my /Applications folder.  I then edit my .bash_profile and add the following line.  (*I have multiple lines such as this for various tools I've installed.*)
+On my Macs, I install the flexprop folder into my /Applications folder.  I then edit my .bash_profile and add the following line.  (*I have multiple lines such as this for various tools I've installed.*)
 
 ```bash
 export PATH=${PATH}:/Applications/flexprop/bin:/Applications/flexprop
 ```
 
-If i have install PNut-TS then I also add its path:
+If I have installed PNut-TS, then I also add its path:
 
 ```bash
 export PATH=${PATH}:/Applications/pnut_ts
 ```
 
-From here on when I start new terminal windows we can invoke the flexprop binaries by name without using the path to them.
+From here on, when I start new terminal windows, we can invoke the flexprop binaries by name without using the path to them.
 
-If i have install PNut-Term-TS then I also add its path:
+If I have installed PNut-Term-TS, then I also add its path:
 
 ```bash
 export PATH=${PATH}:/Applications/PNut-Term-TS.app
 ```
 
-From here on when I start new terminal windows we can invoke the flexprop, pnut_ts, and pnut-term-ts binaries by name without using the path to them.
+From here on, when I start new terminal windows, we can invoke the flexprop, pnut_ts, and pnut-term-ts binaries by name without using the path to them.
 
-## Tasks in VScode
+## Tasks in VSCode
 
-A Task is how we integrate with External tools in VScode.
+A Task is how we integrate with External tools in VSCode.
 
 See: [VSCode "Tasks" Reference Page](https://code.visualstudio.com/docs/editor/tasks)
 
