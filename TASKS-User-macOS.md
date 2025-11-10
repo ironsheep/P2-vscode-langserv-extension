@@ -25,10 +25,9 @@ On this Page:
 - [P2 Code Development with FlexProp](#enabling-p2-code-development-with-flexprop-on-macos) - setting up
 - [Being consistent in your machine configuration](#being-consistent-in-your-machine-configuration) - why we are doing things this way
 - [Installation and Setup](#development-machine-setup-and-configuration) - preparing your machine for P2 development using tools from within vscode
-  - [Installing FlexProp](#installing-flexprop)
-  - [Installing PNut-TS](#installing-pnut-ts)
-  - [Installing PNut-Term-TS](#installing-pnut-term-ts)
-  
+  - [Installing FlexProp](#installing-flexprop-on-macos)
+  - [Installing PNut-TS](#installing-pnut-ts-on-macos)
+  - [Installing PNut-Term-TS](#installing-pnut-term-ts-on-macos)
 - [Tasks in VScode](#tasks-in-vscode) - this provides more detail about vscode tasks and lists work that is still needing to be done 
   - [Adding the P2 Tasks](#adding-the-p2-tasks)
   - [Adding our Custom Keybindings](#custom-keybindings)
