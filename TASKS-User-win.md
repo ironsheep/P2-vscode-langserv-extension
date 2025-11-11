@@ -205,12 +205,12 @@ Architecture specific PNut-TS .zip files available for Windows:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
-| win-arm64-{MMmmpp}.zip| Windows | Arm 64 bit | pnut_ts/
-| win-x64-{MMmmpp}.zip| Windows | Intel x86-64 bit | pnut_ts/
+| pnut-ts-win-arm64-{MMmmpp}.zip| Windows | Arm 64 bit | pnut_ts/
+| pnut-ts-win-x64-{MMmmpp}.zip| Windows | Intel x86-64 bit | pnut_ts/
 
 **NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
 
-Get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
+Get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
 We are making a new program install location in these steps. We are going to use the same root directory as FlexProp but we have a new vendor. So, Create a new program files directory called `C:\Programs\IronSheepProductions\` and unpack the .zip file into that directory. Depnding upon which command you use to do this you may have created a folder named after the .zip file. If this happens then inside that folder is the pnut\_ts folder. Just move it out of the .zip-named folder into this folder. Then remove the now empty .zip-named folder.  In the end you should have a `C:\Programs\IronSheepProductions\pnut_ts\` folder with a pnut_ts.exe file within it along with other documentation.
 
@@ -298,11 +298,11 @@ I haven't found the need to keep any prior version. I simply:
 
 Once we've installed our compiler(s) we need to make sure that all users can use them from the command line. We do this by adding the path to each compiler to the System Envrironment settings PATH variable.
 
-We have three compilers mentioned above. If you are using the paths I use then we have:
+We have three compilers and new PNut-Term-TS mentioned above. If you are using the paths I use then we have:
 
 | Compiler | Path
 | --- | --- |
-|  FlexProp | C:\Programs\TotalSpectrum\FlexProp
+| FlexProp | C:\Programs\TotalSpectrum\FlexProp
 | PNut-TS | C:\Programs\IronSheepProductions\pnut_ts
 | PNut-Term-TS | C:\Programs\IronSheepProductions\pnut\_term\_ts
 | PNut | C:\Program Files (x86)\Parallax Inc\PNut

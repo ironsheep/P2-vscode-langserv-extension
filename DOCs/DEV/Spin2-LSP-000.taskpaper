@@ -107,6 +107,8 @@ DOWNLOAD/RUN FIXs:
 			- not setting only PropPlug on startup
 			- not updating toolbar with propplug change
 			- should check for propplug to appear/disappear on file load
+			- loadp2 requires -t or -T to run downloaded code
+			- Add detection/use of pnut-term-ts
 FEATURE Code Folding - DONE:
 	- IF @done(2023-12-23)
 	- REPEAT @done(2023-12-23)
