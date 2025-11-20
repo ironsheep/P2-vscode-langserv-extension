@@ -31,7 +31,7 @@ export const destroyStatusBarPropPlugItem = () => {
 
 let availablePlugCount: number = 0;
 
-export function getPropPlugSerialNumber(): string {
+function getPropPlugSerialNumber(): string {
   const deviceName: string | undefined = toolchainConfiguration.selectedPropPlug;
   let desiredInterp: string = 'None';
   availablePlugCount = Object.keys(toolchainConfiguration.deviceNodesFound).length;
@@ -45,13 +45,13 @@ export function getPropPlugSerialNumber(): string {
         const plugValueParts: string[] = deviceSerialStr.split(',');
         const deviceSerial: string = plugValueParts.length > 0 ? plugValueParts[0] : '';
         // Now you can use deviceNode and serialNumber
-        if (deviceName.startsWith(deviceNode)) {
+        if (deviceName.startsWith(deviceNode) || deviceNode.includes(deviceName)) {
           if (isWindows()) {
             // On windows show COMn:SerialNumber
             desiredInterp = `${deviceName}:${deviceSerial}`;
           } else {
             // On non-windows show SerialNumber in status bar
-            desiredInterp = deviceSerial;
+            desiredInterp = `${deviceSerial}`;
           }
           break;
         }

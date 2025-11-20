@@ -1,6 +1,7 @@
 .gitignore
 **/.DS_Store/**
 .vscode/**
+.claude/**
 .history/**
 **/.history
 .devcontainer/**
@@ -18,6 +19,7 @@ HOLD/
 REF-CHK/
 EarlyTesting.md
 INSTALL.md
+CLAUDE.md
 **/*NEW
 **/*ORIG
 **/*REF

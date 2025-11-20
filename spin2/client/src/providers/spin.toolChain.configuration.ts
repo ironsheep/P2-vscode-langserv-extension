@@ -6,9 +6,10 @@ export const PATH_LOADP2: string = 'loadp2';
 export const PATH_PROPLOADER: string = 'proploader';
 export const PATH_PNUT: string = 'pnut';
 export const PATH_PNUT_TS: string = 'pnut_ts';
+export const PATH_PNUT_TERM_TS: string = 'pnut-term-ts';
 export const PATH_LOADER_BIN: string = 'flashloader';
 
-export const validCompilerIDs: string[] = [PATH_PNUT_TS, PATH_PNUT, PATH_FLEXSPIN];
+export const validCompilerIDs: string[] = [PATH_PNUT_TS, PATH_PNUT_TERM_TS, PATH_PNUT, PATH_FLEXSPIN];
 
 export enum eResetType {
   RT_DTR,
@@ -31,6 +32,18 @@ const loadToolchainConfiguration = () => {
       deviceNodesFound[deviceNode] = serialNumber;
     }
   }
+  const deviceNodesIsParallax = {};
+  const deviceIsParallaxSet = toolchainConfig.get('propPlug.devicesIsParallax');
+  if (typeof deviceIsParallaxSet === 'object' && deviceIsParallaxSet !== null) {
+    for (const [deviceNode, isParallax] of Object.entries(deviceIsParallaxSet)) {
+      deviceNodesIsParallax[deviceNode] = isParallax;
+    }
+  }
+  // Determine if selected device is Parallax by looking it up in the map
+  let selectedPropPlugIsParallax: boolean = false;
+  if (selectedPropPlug !== undefined && deviceNodesIsParallax[selectedPropPlug] !== undefined) {
+    selectedPropPlugIsParallax = deviceNodesIsParallax[selectedPropPlug];
+  }
   const compilersFound = {};
   const installedCompilers = toolchainConfig.get('compiler.installationsFound');
   if (typeof installedCompilers === 'object' && installedCompilers !== null) {
@@ -48,8 +61,9 @@ const loadToolchainConfiguration = () => {
   const advancedToolChainEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'advanced.enable');
   const lstOutputEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsCompile.enableLstOutput');
   const writeFlashEnabled: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableFlash');
+  const usePNutTermTS: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.usePnutTermTS');
   const termIsPstCompatible: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.enableCompatibilityPST');
-
+  const forceLoadP2Use: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsDownload.useLoadP2');
   const serialMatchVendorOnly: boolean = normalizeBooleanConfigValue(toolchainConfig, 'optionsSerial.matchVendorOnly');
   const serialResetControl: string = normalizeStringConfigValue(toolchainConfig, 'optionsSerial.resetControl');
   let serialResetType: eResetType = eResetType.RT_DTR; // default value
@@ -82,6 +96,10 @@ const loadToolchainConfiguration = () => {
   const pnutTsPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.PNutTs');
   if (pnutTsPath !== undefined) {
     toolPaths[PATH_PNUT_TS] = pnutTsPath;
+  }
+  const pnutTermTsPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.PNutTermTs');
+  if (pnutTermTsPath !== undefined) {
+    toolPaths[PATH_PNUT_TERM_TS] = pnutTermTsPath;
   }
   const flexspinPath: string | undefined = normalizeStringConfigValue(toolchainConfig, 'paths.flexspin');
   if (flexspinPath !== undefined) {
@@ -119,6 +137,7 @@ const loadToolchainConfiguration = () => {
     topFilename,
     deviceNodesFound,
     selectedPropPlug,
+    selectedPropPlugIsParallax,
     compilersFound,
     selectedCompilerID,
     debugEnabled,
@@ -126,7 +145,9 @@ const loadToolchainConfiguration = () => {
     advancedToolChainEnabled,
     lstOutputEnabled,
     writeFlashEnabled,
+    usePNutTermTS,
     termIsPstCompatible,
+    forceLoadP2Use,
     toolPaths,
     downloadTerminalMode,
     enterTerminalAfterDownload,
@@ -169,6 +190,7 @@ export const reloadToolchainConfiguration = () => {
     toolchainConfiguration.topFilename === newToolchainConfig.topFilename &&
     objectsAreEqual(toolchainConfiguration.deviceNodesFound, newToolchainConfig.deviceNodesFound) &&
     toolchainConfiguration.selectedPropPlug === newToolchainConfig.selectedPropPlug &&
+    toolchainConfiguration.selectedPropPlugIsParallax === newToolchainConfig.selectedPropPlugIsParallax &&
     objectsAreEqual(toolchainConfiguration.compilersFound, newToolchainConfig.compilersFound) &&
     toolchainConfiguration.selectedCompilerID === newToolchainConfig.selectedCompilerID &&
     toolchainConfiguration.debugEnabled === newToolchainConfig.debugEnabled &&
@@ -176,7 +198,9 @@ export const reloadToolchainConfiguration = () => {
     toolchainConfiguration.advancedToolChainEnabled === newToolchainConfig.advancedToolChainEnabled &&
     toolchainConfiguration.lstOutputEnabled === newToolchainConfig.lstOutputEnabled &&
     toolchainConfiguration.writeFlashEnabled === newToolchainConfig.writeFlashEnabled &&
+    toolchainConfiguration.usePNutTermTS === newToolchainConfig.usePNutTermTS &&
     toolchainConfiguration.termIsPstCompatible === newToolchainConfig.termIsPstCompatible &&
+    toolchainConfiguration.forceLoadP2Use === newToolchainConfig.forceLoadP2Use &&
     objectsAreEqual(toolchainConfiguration.toolPaths, newToolchainConfig.toolPaths) &&
     toolchainConfiguration.downloadTerminalMode === newToolchainConfig.downloadTerminalMode &&
     toolchainConfiguration.enterTerminalAfterDownload === newToolchainConfig.enterTerminalAfterDownload &&
@@ -192,6 +216,7 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.topFilename = newToolchainConfig.topFilename;
   toolchainConfiguration.deviceNodesFound = newToolchainConfig.deviceNodesFound;
   toolchainConfiguration.selectedPropPlug = newToolchainConfig.selectedPropPlug;
+  toolchainConfiguration.selectedPropPlugIsParallax = newToolchainConfig.selectedPropPlugIsParallax;
   toolchainConfiguration.compilersFound = newToolchainConfig.compilersFound;
   toolchainConfiguration.selectedCompilerID = newToolchainConfig.selectedCompilerID;
   toolchainConfiguration.debugEnabled = newToolchainConfig.debugEnabled;
@@ -199,7 +224,9 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.advancedToolChainEnabled = newToolchainConfig.advancedToolChainEnabled;
   toolchainConfiguration.lstOutputEnabled = newToolchainConfig.lstOutputEnabled;
   toolchainConfiguration.writeFlashEnabled = newToolchainConfig.writeFlashEnabled;
+  toolchainConfiguration.usePNutTermTS = newToolchainConfig.usePNutTermTS;
   toolchainConfiguration.termIsPstCompatible = newToolchainConfig.termIsPstCompatible;
+  toolchainConfiguration.forceLoadP2Use = newToolchainConfig.forceLoadP2Use;
   toolchainConfiguration.toolPaths = newToolchainConfig.toolPaths;
   toolchainConfiguration.downloadTerminalMode = newToolchainConfig.downloadTerminalMode;
   toolchainConfiguration.enterTerminalAfterDownload = newToolchainConfig.enterTerminalAfterDownload;

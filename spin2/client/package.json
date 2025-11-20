@@ -3,11 +3,11 @@
   "description": "VSCode part of a language server",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.4.5",
+  "version": "2.5.0",
   "publisher": "IronSheepProductionsLLC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ironsheep/P2-vscode-extensions"
+    "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
   },
   "engines": {
     "vscode": "^1.96.0"

@@ -49,15 +49,16 @@ Step-by-step, one-time, migration of your environment to v2.3.0 is covered in ou
 - Provides rich companion themes for use with non-color backgrounds or with colored backgrounds as well as Syntax only theme (mostly used during semantic highlighting development.
 - **P1 Compile only, P2 Compile/Download Support** built-in:
    - Auto detection of installed compilers; supports **FlexSpin**, **pnut_ts** (and **PNut** when on Windows)
+   - Auto detection of installed downloaders/debuggers; supports **loadp2** (FlexProp), **pnut_ts** (built-in loader), and **pnut-term-ts** (debug terminal with loader)
    - Status Bar control for enable/disable of debug() compilation.
    - Status Bar control of download to RAM or FLASH.
    - Status Bar control over which PropPlug to use.
    - Settings for selecting default and workspace-specific compiler
+   - Settings for selecting default and workspace-specific downloader/debugger
 
 ### Up next
 We are working on the next updates:
 
-- Add ability to use external loaders/terminal for P1 & P2
 - Improve Hover support (more doc details such as pasm code help)
 
 These are not yet definate but I'm:

@@ -20,9 +20,9 @@ import { editModeConfiguration, reloadEditModeConfiguration } from './providers/
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
-import { activeSpin1or2Filespec, findDebugPinTx, isSpin2Document, isSpin2File, isSpin1or2File, isSpinOrPasmDocument } from './spin.vscode.utils';
+import { activeSpin1or2Filespec, findDebugBaud, isSpin2Document, isSpin2File, isSpin1or2File, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
-import { isMac, isWindows, loadFileAsUint8Array, loadUint8ArrayFailed, locateExe, locateNonExe, platform, writeBinaryFile } from './fileUtils';
+import { isMac, isWindows, locateExe, locateNonExe, platform } from './fileUtils';
 import { IUsbSerialDevice, UsbSerial } from './usb.serial';
 import { createStatusBarFlashDownloadItem, updateStatusBarFlashDownloadItem } from './providers/spin.downloadFlashMode.statusBarItem';
 import { createStatusBarCompileDebugItem, updateStatusBarCompileDebugItem } from './providers/spin.compileDebugMode.statusBarItem';
@@ -34,14 +34,12 @@ import {
   PATH_PROPLOADER,
   PATH_PNUT,
   PATH_PNUT_TS,
+  PATH_PNUT_TERM_TS,
+  eResetType,
   reloadToolchainConfiguration,
   toolchainConfiguration,
   validCompilerIDs
 } from './providers/spin.toolChain.configuration';
-import { ObjectImage } from './imageUtils';
-import { getFlashLoaderBin } from './spin.vscode.fileUtils';
-import { UsbSerialTerminal } from './usb.serial.terminal';
-import { LoaderPseudoterminal } from './pseudo.terminal';
 
 let client: LanguageClient;
 let spin2Context: vscode.ExtensionContext;
@@ -51,7 +49,7 @@ enum eConfigSection {
   CS_WORKSPACE
 }
 
-const isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
@@ -69,7 +67,6 @@ const logExtensionMessage = (message: string): void => {
   }
 };
 
-let useInternalDownloader: boolean = false;
 let runtimeSettingChangeInProgress: boolean = false;
 
 function getSetupExtensionClient(context: vscode.ExtensionContext): LanguageClient {
@@ -214,6 +211,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.window.visibleTextEditors.map((editor) => {
       recolorizeSpinDocumentIfChanged(editor, 'handleTextDocumentChanged', 'Ext-docDidChg');
     });
+    //locateAndConfigurePropPlugSelection(); // BAD!!
     updateStatusBarItems('handleTextDocumentChanged');
   }
 
@@ -293,6 +291,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
             const selectedPort = comPortFromDevice(devicesFound[0]);
             vscode.window.showInformationMessage(`The only PropPlug ${selectedDevice} was selected for you automatically.`);
             await updateConfig('toolchain.propPlug.selected', selectedPort, eConfigSection.CS_USER);
+            // Device type already determined and stored during discovery
           }
           break;
         case 0:
@@ -309,6 +308,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
             if (userSelectedDevice !== undefined) {
               const selectedPort = comPortFromDevice(userSelectedDevice);
               await updateConfig('toolchain.propPlug.selected', selectedPort, eConfigSection.CS_USER);
+              // Device type already determined and stored during discovery
             }
           });
           break;
@@ -457,208 +457,32 @@ function registerCommands(context: vscode.ExtensionContext): void {
   //
   const downloadTopFileCommand: string = 'spinExtension.download.topfile';
 
-  let downloaderTerminal: LoaderPseudoterminal | undefined = undefined;
-
   context.subscriptions.push(
     vscode.commands.registerCommand(downloadTopFileCommand, async () => {
       logExtensionMessage('CMD: downloadTopFile');
-      const activeTopFilename: string = getActiveSourceFilename();
-      const haveP1Download: boolean = activeTopFilename !== undefined && activeTopFilename.endsWith('.spin');
-      const haveFlexspin: boolean = toolchainConfiguration.flexspinInstalled;
-      let downloadCanProceed: boolean = true;
       if (await ensureIsGoodCompilerSelection()) {
-        const selectedCompiler: string | undefined = toolchainConfiguration.selectedCompilerID;
-        // using internal downloader for pnut_ts (and flexspin on macOS after discussion with Eric R Smith, 18 Jun)
-        if (selectedCompiler !== undefined) {
-          if (selectedCompiler == PATH_PNUT_TS) {
-            useInternalDownloader = false; // this is disabled for v3.0.0 release
-            if (haveFlexspin == false) {
-              downloadCanProceed = false;
-              logExtensionMessage(`* WARNING flexspin NOT found, aborting download`);
-              await vscode.window.showErrorMessage('ERROR: unable to download to P2 without flexspin compiler installed');
-            }
-          }
-        }
-        if (useInternalDownloader) {
-          // TODO: run compileTopP2, first! (implement the dependsOn ourself!)
-          if (haveP1Download) {
-            const errorMessage: string = `CMD: DOWNLOAD - P1 download on macOS not yet supported!`;
-            logExtensionMessage(errorMessage);
-            await vscode.window.showErrorMessage(errorMessage);
-          } else {
-            logExtensionMessage(`* Running built-in downloader...!`);
-            const deviceNode = toolchainConfiguration.selectedPropPlug;
-            if (deviceNode !== undefined && deviceNode !== '') {
-              // create terminal
-              if (downloaderTerminal === undefined) {
-                const compilerName = selectedCompiler == PATH_PNUT_TS ? 'pnut_ts' : 'flexspin';
-                // OLD downloaderTerminal = vscode.window.createTerminal(`'${compilerName}' Downloader Output`);
-                downloaderTerminal = new LoaderPseudoterminal(`'${compilerName}' Downloader Output`);
-              }
-              // Clear the terminal
-              downloaderTerminal.sendText('clear');
-              // load binary file
-              let binaryFilespec: string = '';
-              const filenameToDownload: string = getRuntimeConfigValue('optionsBinaryFname');
-              if (filenameToDownload !== undefined && filenameToDownload !== '') {
-                // write file info to terminal
-                const rootDir: string = currenWorkingDir();
-                binaryFilespec = path.join(rootDir, filenameToDownload);
-                let binaryImage: Uint8Array = loadFileAsUint8Array(binaryFilespec);
-                const failedToLoad: boolean = loadUint8ArrayFailed(binaryImage) ? true : false;
-                if (failedToLoad == false) {
-                  logExtensionMessage(`  -- load image = (${binaryImage.length}) bytes`);
-                  let target: string = 'RAM';
-                  const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
-                  const needsP2ChecksumVerify: boolean = false;
-                  if (writeToFlash) {
-                    target = 'FLASH';
-                    binaryImage = await insertP2FlashLoader(binaryImage);
-                    logExtensionMessage(`  -- load image w/flasher = (${binaryImage.length}) bytes`);
-                    writeBinaryFile(binaryImage, `${binaryFilespec}fext`);
-                    /*
-                    } else {
-                    // not flashing append a checksum then ask P2 for verification
-                    //
-                    // don't enable verify until we get it working
-                    needsP2ChecksumVerify = true;
-                    const tmpImage = new ObjectImage('temp-image');
-                    tmpImage.adopt(binaryImage);
-                    tmpImage.padToLong();
-                    //const imageSum = 0xdeadf00d; //  TESTING
-                    const imageSum = tmpImage.loadRamChecksum();
-                    tmpImage.appendLong(imageSum);
-                    binaryImage = tmpImage.rawUint8Array.subarray(0, tmpImage.offset);
-                    //*/
-                  }
-                  downloaderTerminal.sendText(`# Downloading [${filenameToDownload}] ${binaryImage.length} bytes to ${target}`);
-                  // write to USB PropPlug
-                  let usbPort: UsbSerial;
-                  let errMsg: string = '';
-                  let noDownloadError: boolean = true;
-                  try {
-                    const [vendorID, productId] = getVidPidForDevice(deviceNode);
-                    usbPort = new UsbSerial(deviceNode, vendorID, productId);
-                    if (await usbPort.deviceIsPropellerV2()) {
-                      await usbPort.download(binaryImage, needsP2ChecksumVerify);
-                      downloaderTerminal.sendText(`# DONE`);
-                      //await usbPort.changeBaudRate(115200);
-                    } else {
-                      downloaderTerminal.sendText(`# ERROR: No Propller v2 found`);
-                      noDownloadError = false;
-                    }
-                    //this.testDownloadFile(usbPort);
-                  } catch (error) {
-                    noDownloadError = false;
-                    if (error instanceof Error) {
-                      errMsg = `Dnld: Error thrown: ${error.toString()}`;
-                    } else {
-                      // Handle the case where error is not an Error object
-                      errMsg = `Dnld: Non-error thrown: ${JSON.stringify(error)}`;
-                    } // Re-throw the error if you want to fail
-                  } finally {
-                    if (errMsg.length > 0) {
-                      this.logMessage(errMsg);
-                      downloaderTerminal.sendText(`# ERROR: ${errMsg}`);
-                    }
-                    if (usbPort !== undefined) {
-                      try {
-                        await usbPort.close(); // we're done with this port
-                      } catch (error) {
-                        noDownloadError = false;
-                        if (error instanceof Error) {
-                          errMsg = `Dnld: close Error thrown: ${error.toString()}`;
-                        } else {
-                          // Handle the case where error is not an Error object
-                          errMsg = `Dnld: close Non-error thrown: ${JSON.stringify(error)}`;
-                        } // Re-throw the error if you want to fail
-                      }
-                      if (errMsg.length > 0) {
-                        this.logMessage(errMsg);
-                        downloaderTerminal.sendText(`# ERROR: ${errMsg}`);
-                      }
-                    }
-                  }
-                  // if we want terminal after download then switch to handing terminal I/O <-> USB
-                  if (noDownloadError && toolchainConfiguration.enterTerminalAfterDownload) {
-                    const userBaudRate: number = toolchainConfiguration.userBaudrate;
-                    const usbTermPort = new UsbSerialTerminal(deviceNode, userBaudRate);
-                    downloaderTerminal.sendText(`# ---- switching to P2 I/O ----`);
-                    // Listen for the terminal-closed event
-                    downloaderTerminal.onDidClose(() => {
-                      this.logMessage('Dnld: LoaderPseudoterminal instance closed');
-                      // shutdown the USB port
-                      usbTermPort.close();
-                    });
-                    // listen for data from P2
-                    usbTermPort.on('line', (line: string) => {
-                      this.logMessage('Dnld: Received line:', line);
-                      // send to terminal window
-                      downloaderTerminal.sendText(line);
-                    });
+        logExtensionMessage(`* Run download task!`);
+        const tasks = await vscode.tasks.fetchTasks();
+        const taskToRun = tasks.find((task) => task.name === 'downloadP2');
 
-                    // listen for data from terminal keyboard entry
-                    downloaderTerminal.on('line', (line: string) => {
-                      this.logMessage('Dnld: Received data from terminal:', line);
-                      // send to USB port
-                      usbTermPort.write(line);
-                    });
-                  }
-                } else {
-                  downloaderTerminal.sendText(`# ERROR: failed to load [${binaryFilespec}]`);
-                }
-                // write success or error info to terminal
-              } else {
-                // no filename to download
-                downloaderTerminal.sendText(`# ERROR: No file to download (spin2.optionsBinaryFname not set)`);
-              }
-            } else {
-              const errorMessage: string = `CMD: DOWNLOAD - no propplug selected!`;
-              logExtensionMessage(errorMessage);
-              await vscode.window.showErrorMessage(errorMessage);
-              console.error(errorMessage);
-            }
-          }
-        } else if (downloadCanProceed) {
-          logExtensionMessage(`* NOT pnut_ts (or v3.0.0 pnut_ts), run download task!`);
-          const tasks = await vscode.tasks.fetchTasks();
-          const taskToRun = tasks.find((task) => task.name === 'downloadP2');
-
-          if (taskToRun) {
-            // We select between based on compiling with debug and/or terminal after download setting...
-            const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
-            logExtensionMessage(`* downloadP2 - enterTerminalAfter=(${enterTerminalAfter})`);
-            if (enterTerminalAfter) {
-              runTaskAndFocusTerminal(taskToRun);
-            } else {
-              // TODO: should the following be await or not? (seems to not be needed?)
-              vscode.tasks.executeTask(taskToRun);
-            }
+        if (taskToRun) {
+          // We select between based on compiling with debug and/or terminal after download setting...
+          const enterTerminalAfter: boolean = toolchainConfiguration.enterTerminalAfterDownload;
+          logExtensionMessage(`* downloadP2 - enterTerminalAfter=(${enterTerminalAfter})`);
+          if (enterTerminalAfter) {
+            runTaskAndFocusTerminal(taskToRun);
           } else {
-            const errorMessage: string = 'Task:downloadP2 not found in User-Tasks';
-            await vscode.window.showErrorMessage(errorMessage);
-            console.error(errorMessage);
+            // TODO: should the following be await or not? (seems to not be needed?)
+            vscode.tasks.executeTask(taskToRun);
           }
+        } else {
+          const errorMessage: string = 'Task:downloadP2 not found in User-Tasks';
+          await vscode.window.showErrorMessage(errorMessage);
+          console.error(errorMessage);
         }
       }
     })
   );
-
-  function getVidPidForDevice(deviceNode: string): [string, string] {
-    let desiredVid: string = '';
-    let desiredPid: string = '';
-    if (deviceNode !== undefined && deviceNode !== '') {
-      const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
-      if (deviceNodesFound[deviceNode] !== undefined) {
-        const plugValueParts: string[] = deviceNodesFound[deviceNode].split(',');
-        if (plugValueParts.length > 1) {
-          desiredVid = plugValueParts[1];
-          desiredPid = plugValueParts[2];
-        }
-      }
-    }
-    return [desiredVid, desiredPid];
-  }
 
   // try #1
   /*
@@ -690,67 +514,6 @@ function registerCommands(context: vscode.ExtensionContext): void {
     if (taskTerminal) {
       taskTerminal.show();
     }
-  }
-
-  async function insertP2FlashLoader(binaryImage: Uint8Array): Promise<Uint8Array> {
-    // PNut insert_flash_loader:
-    const objImage = new ObjectImage('bin-w/loader');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const debugPinRx: number = 63; // default maybe overridden by code
-    let debugPinTx: number = 62; //default maybe overridden by code
-    const overrideDebugPinTx = await findDebugPinTx();
-    if (overrideDebugPinTx !== null) {
-      logExtensionMessage(`  -- insertFL default=(${debugPinTx}) but found debugPinTx=(${overrideDebugPinTx}) in Spin2 src`);
-      debugPinTx = overrideDebugPinTx;
-    }
-    logExtensionMessage(`  -- insertFL using - debugPinTx=(${debugPinTx})`);
-    objImage.adopt(binaryImage);
-    // pad object to next long
-    while (objImage.offset & 0b11) {
-      objImage.append(0);
-    }
-    const _checksum_ = 0x04;
-    const _debugnop_ = 0x08;
-    const _NOP_INSTRU_ = 0;
-    const flashLoaderBin: Uint8Array = getFlashLoaderBin(spin2Context);
-    const flashLoaderLength = flashLoaderBin.length;
-    // move object upwards to accommodate flash loader
-    logExtensionMessage(`  -- move object up - flashLoaderLength=(${flashLoaderLength}) bytes`);
-    moveObjectUp(objImage, flashLoaderLength, 0, objImage.offset);
-    // install flash loader
-    logExtensionMessage(`  -- load flash loader`);
-    objImage.rawUint8Array.set(flashLoaderBin, 0);
-    objImage.setOffsetTo(flashLoaderLength + binaryImage.length);
-    const isDebugMode: boolean = toolchainConfiguration.debugEnabled;
-    if (isDebugMode) {
-      // debug is on
-      const debugInstru = objImage.readLong(_debugnop_);
-      objImage.replaceLong(debugInstru | debugPinTx, _debugnop_);
-    } else {
-      // debug is off
-      objImage.replaceLong(_NOP_INSTRU_, _debugnop_);
-    }
-    // compute negative sum of all data
-    const checkSum: number = objImage.flasherChecksum();
-    // insert checksum into loader
-    objImage.replaceLong(checkSum, _checksum_);
-    // return only the active portion of the array
-    return objImage.rawUint8Array.subarray(0, objImage.offset);
-  }
-
-  function moveObjectUp(objImage: ObjectImage, destOffset: number, sourceOffset: number, nbrBytes: number) {
-    const currOffset = objImage.offset;
-    logExtensionMessage(`* moveObjUp() from=(${sourceOffset}), to=(${destOffset}), length=(${nbrBytes})`);
-    if (currOffset + nbrBytes > ObjectImage.MAX_SIZE_IN_BYTES) {
-      // [error_pex]
-      throw new Error('Program exceeds 1024KB');
-    }
-    for (let index = 0; index < nbrBytes; index++) {
-      const invertedIndex = nbrBytes - index - 1;
-      objImage.replaceByte(objImage.read(sourceOffset + invertedIndex), destOffset + invertedIndex);
-    }
-    logExtensionMessage(`* moveObjUp()offset (${currOffset}) -> (${currOffset + destOffset}) `);
-    objImage.setOffsetTo(currOffset + destOffset);
   }
 
   function currenWorkingDir(): string {
@@ -1003,20 +766,30 @@ function initializeProviders(): void {
 // ----------------------------------------------------------------------------
 //   Hook Startup scan for PropPlugs
 //
-async function locatePropPlugs(): Promise<void> {
-  logExtensionMessage(`* locatePropPlugs() ENTRY`);
-  await scanForAndRecordPropPlugs(); // load current list into settings
+async function locateAndConfigurePropPlugSelection(): Promise<void> {
+  logExtensionMessage(`* ldcPLUGs() ENTRY`);
+  try {
+    await scanForAndRecordPropPlugs(); // load current list into settings
+  } catch (error) {
+    logExtensionMessage(`* ldcPLUGs() EXCEPTION scanForAndRecordPropPlugs() exit w/ERROR: ${error}`);
+    throw error;
+  }
   // get settings list
   const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
-  const numKeys = Object.keys(deviceNodesFound).length;
-  logExtensionMessage(`* PLUGs deviceNodesFound=[${JSON.stringify(deviceNodesFound, null, 2)}](${numKeys})`);
+  const numDeviceNodeKeys = Object.keys(deviceNodesFound).length;
+  logExtensionMessage(`* ldcPLUGs deviceNodesFound=[${JSON.stringify(deviceNodesFound, null, 2)}](${numDeviceNodeKeys})`);
   const currDeviceNode = toolchainConfiguration.selectedPropPlug;
-  logExtensionMessage(`* PLUGs currDeviceNode=[${currDeviceNode}](${currDeviceNode.length})`);
+  logExtensionMessage(`* ldcPLUGs currDeviceNode=[${currDeviceNode}](${currDeviceNode.length})`);
   let selectionStillExists: boolean = false;
   const devicesNodes: string[] = [];
+  //
+  // entry is:
+  //  Ex: "/dev/cu.usbserial-P9cektn7": "P9cektn7,0403,6015"
+  //
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   for (const deviceNode of Object.keys(deviceNodesFound)) {
     const deviceSerialStr = deviceNodesFound[deviceNode];
+    logExtensionMessage(`  -- ldcPLUGs check [${deviceSerialStr}](${deviceSerialStr.length})`);
     const plugValueParts: string[] = deviceSerialStr.split(',');
     if (plugValueParts.length > 0) {
       const deviceSerial: string = plugValueParts[0];
@@ -1026,29 +799,37 @@ async function locatePropPlugs(): Promise<void> {
       }
     }
   }
-  logExtensionMessage(`* PLUGs [${devicesNodes}](${devicesNodes.length})`);
-  // record all plug values found
-  await updateConfig('toolchain.propPlug.devicesFound', deviceNodesFound, eConfigSection.CS_USER);
+  logExtensionMessage(`* ldcPLUGs selectionStillExists=${selectionStillExists}, [${devicesNodes}](${devicesNodes.length})`);
 
-  if (devicesNodes.length == 1) {
-    // if only 1 device, select it
-    if (currDeviceNode && currDeviceNode != devicesNodes[0]) {
-      // changing from prior selection, notify user
-      vscode.window.showWarningMessage(`Changing PropPlug to ${devicesNodes[0]} from ${currDeviceNode}`);
+  logExtensionMessage(`* ldcPLUGs FOUND current=[${currDeviceNode}]  PLUGs [${devicesNodes}](${devicesNodes.length})`);
+
+  if (numDeviceNodeKeys == 1) {
+    // if only 1 device, select it. Notify
+    logExtensionMessage(`* ldcPLUGs only 1 device active`);
+    if (currDeviceNode === undefined || selectionStillExists == false) {
+      if (currDeviceNode !== undefined) {
+        // changing from prior selection, notify user
+        vscode.window.showWarningMessage(`Changing PropPlug to ${devicesNodes[0]} from ${currDeviceNode}`);
+      } else {
+        // seleting only, notify user
+        vscode.window.showWarningMessage(`Selecting only PropPlug ${devicesNodes[0]}`);
+      }
     }
     await updateConfig('toolchain.propPlug.selected', devicesNodes[0], eConfigSection.CS_USER);
-  } else if (devicesNodes.length == 0) {
+  } else if (numDeviceNodeKeys == 0) {
     // if NO devices, select NONE
+    logExtensionMessage(`* ldcPLUGs no devices active`);
     await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
-    if (currDeviceNode) {
+    if (currDeviceNode === undefined) {
       // changing from prior selection, notify user
       vscode.window.showWarningMessage(`Removed PropPlug ${currDeviceNode} - No longer available`);
     }
   } else {
     // we have more than one!
+    logExtensionMessage(`* ldcPLUGs more than 1 device active`);
     // if one is selected and it is still present then DO NOTHING
     // else if the selection doesn't exist then clear the selection forcing the user to select a new one
-    if (selectionStillExists == false && currDeviceNode) {
+    if (selectionStillExists == false && currDeviceNode !== undefined) {
       // we have a selection but it is no longer present
       await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
       vscode.window.showWarningMessage(
@@ -1061,6 +842,7 @@ async function locatePropPlugs(): Promise<void> {
       );
     }
   }
+  logExtensionMessage(`* ldcPLUGs() EXIT`);
 }
 
 async function scanForAndRecordPropPlugs(): Promise<void> {
@@ -1068,10 +850,11 @@ async function scanForAndRecordPropPlugs(): Promise<void> {
   logExtensionMessage(`* PLUGs deviceNodesDetail=[${JSON.stringify(deviceNodesDetail, null, 2)}](${deviceNodesDetail.length})`);
   const devicesFound: string[] = [];
   const plugsFoundSetting = {};
+  const plugsIsParallaxSetting = {};
   for (let index = 0; index < deviceNodesDetail.length; index++) {
     const deviceNodeInfo = deviceNodesDetail[index];
     const numKeys = Object.keys(deviceNodeInfo).length;
-    logExtensionMessage(`* PLUGs deviceNodesDetail[${index}]=[${JSON.stringify(deviceNodeInfo, null, 2)}](${numKeys})`);
+    logExtensionMessage(`* PLUGs deviceNodeDetail[${index}]=[${JSON.stringify(deviceNodeInfo, null, 2)}](${numKeys})`);
     const deviceSerial: string = deviceNodeInfo['serialNumber'];
     const deviceNode: string = deviceNodeInfo['deviceNode'];
     const vendorID: string = deviceNodeInfo['vendorId'];
@@ -1081,13 +864,19 @@ async function scanForAndRecordPropPlugs(): Promise<void> {
     const deviceIDStr: string = `${deviceSerial},${vendorID},${productId}`;
     logExtensionMessage(`* PLUGs plugsFoundSetting[${deviceNode}] = [${deviceIDStr}]`);
     plugsFoundSetting[deviceNode] = deviceIDStr;
+    // Determine if this is a Parallax device (VID=0403, PID=6015) and store it
+    const isParallaxDevice = vendorID === '0403' && productId === '6015';
+    plugsIsParallaxSetting[deviceNode] = isParallaxDevice;
+    logExtensionMessage(`* PLUGs isParallax[${deviceNode}] = ${isParallaxDevice}`);
   }
 
-  logExtensionMessage(`* PLUGs deviceNodesDetail=[${devicesFound}](${devicesFound.length})`);
+  logExtensionMessage(`* PLUGs deviceNodesFinal=[${devicesFound}](${devicesFound.length})`);
   const numKeys = Object.keys(plugsFoundSetting).length;
   logExtensionMessage(`* PLUGs plugsFoundSetting=[${JSON.stringify(plugsFoundSetting, null, 2)}](${numKeys})`);
+  logExtensionMessage(`* PLUGs plugsIsParallaxSetting=[${JSON.stringify(plugsIsParallaxSetting, null, 2)}](${numKeys})`);
   // record all plug values found
   await updateConfig('toolchain.propPlug.devicesFound', plugsFoundSetting, eConfigSection.CS_USER);
+  await updateConfig('toolchain.propPlug.devicesIsParallax', plugsIsParallaxSetting, eConfigSection.CS_USER);
 }
 
 // ----------------------------------------------------------------------------
@@ -1110,9 +899,10 @@ async function locateTools(): Promise<void> {
     // C:\Programs\TotalSpectrum\flexprop
     const appFlexProp = path.join(`C:${path.sep}Programs`, 'TotalSpectrum', 'flexprop', 'bin');
     const appPNutTS = path.join(`C:${path.sep}Programs`, 'IronSheepProductions', 'pnut_ts');
+    const appPNutTermTS = path.join(`C:${path.sep}Programs`, 'IronSheepProductions', 'pnut_term_ts');
     const appParallax = path.join(`C:${path.sep}Program Files (x86)`, 'Parallax Inc');
     const appPNut = path.join(`${appParallax}`, 'PNut');
-    platformPaths = [...envDirs, appParallax, appPNut, appPNutTS, appFlexProp];
+    platformPaths = [...envDirs, appParallax, appPNut, appPNutTS, appPNutTermTS, appFlexProp];
   } else if (isMac()) {
     const envDirs = envPath.split(':').filter(Boolean); // macOS is ':' separated
     // /Applications/flexprop/bin
@@ -1122,15 +912,17 @@ async function locateTools(): Promise<void> {
     const applicationsFlex = path.join(`${path.sep}Applications`, 'flexprop', 'bin');
     const applicationsUser = path.join('~', 'Applications');
     const applicationsPNutTS = path.join(`${path.sep}Applications`, 'pnut_ts');
-    platformPaths = [...envDirs, applicationsFlex, applicationsUser, applicationsPNutTS, userBin, userLocalBin, optLocalBin];
+    const applicationsPNutTermTS = path.join(`${path.sep}Applications`, 'PNut-Term-TS.app', 'Contents', 'Resources', 'bin');
+    platformPaths = [...envDirs, applicationsFlex, applicationsUser, applicationsPNutTS, applicationsPNutTermTS, userBin, userLocalBin, optLocalBin];
   } else {
     // assume linux, RPi
     //  /opt/flexprop
     //  /opt/pnut_ts
     const envDirs = envPath.split(':').filter(Boolean); // linux is ':' separated
     const optPNutTS = path.join(`${path.sep}opt`, 'pnut_ts');
+    const optPNutTermTS = path.join(`${path.sep}opt`, 'pnut_term_ts', 'bin');
     const optFlexpropBin = path.join(`${path.sep}opt`, 'flexprop', 'bin');
-    platformPaths = [...envDirs, userBin, userLocalBin, optFlexpropBin, optPNutTS];
+    platformPaths = [...envDirs, userBin, userLocalBin, optFlexpropBin, optPNutTS, optPNutTermTS];
   }
   // and ensure there is only one occurance of each path in list
   //platformPaths = platformPaths.sort().filter((item, index, self) => index === self.indexOf(item));
@@ -1165,6 +957,12 @@ async function locateTools(): Promise<void> {
     toolsFound = true;
   }
   await updateConfig('toolchain.paths.PNutTs', pnutTsFSpec, eConfigSection.CS_USER);
+
+  const pnutTermTsFSpec: string | undefined = await getSingleLocation('pnut-term-ts', platformPaths);
+  if (pnutTermTsFSpec !== undefined) {
+    toolsFound = true;
+  }
+  await updateConfig('toolchain.paths.PNutTermTs', pnutTermTsFSpec, eConfigSection.CS_USER);
 
   // ---------------
   //  FlexProp tools
@@ -1240,6 +1038,9 @@ async function getSingleLocation(exeName: string, platformPaths: string[]): Prom
   } else if (exeFSpec !== undefined) {
     // Update the configuration with the path of the executable.
     logExtensionMessage(`* TOOL: ${exeFSpec}`);
+  } else {
+    // Update the configuration with the path of the executable.
+    logExtensionMessage(`* WARNING, failed to locate [${exeName}] in [${platformPaths}](${platformPaths.length})`);
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return new Promise((resolve, reject) => {
@@ -1358,7 +1159,7 @@ export function activate(context: vscode.ExtensionContext) {
   // NOPE! handleDidChangeConfiguration();
   locateTools(); // load toolchain settings
   if (toolchainConfiguration.advancedToolChainEnabled) {
-    locatePropPlugs(); // load Serial Port Settings
+    locateAndConfigurePropPlugSelection(); // load Serial Port Settings
     isCompilerInstalled(toolchainConfiguration.selectedCompilerID);
   }
 
@@ -1527,9 +1328,11 @@ function showHideLoaderSBControls(textDocument: vscode.TextDocument) {
   if (haveCompilerAndDocument && toolchainConfiguration.advancedToolChainEnabled) {
     updateStatusBarCompileDebugItem(true);
     updateStatusBarFlashDownloadItem(true);
+    logExtensionMessage(`* SHOW SB-ITEM prop PLUG`);
     updateStatusBarPropPlugItem(true);
   } else {
     hideSpin2StatusBarItems();
+    logExtensionMessage(`* HIDE SB-ITEM prop PLUG`);
   }
 }
 
@@ -1677,6 +1480,7 @@ const handleDidChangeConfiguration = async () => {
     }
   }
   if (textEditor !== undefined) {
+    logExtensionMessage(`* (DBG) handleDidChangeConfiguration edit.doc=[${textEditor.document}]`);
     showHideLoaderSBControls(textEditor.document);
   }
 
@@ -1777,6 +1581,19 @@ function isCompilerInstalled(compilerId: string | undefined): boolean {
   return installedStatus;
 }
 
+function isToolInstalled(toolId: string): boolean {
+  let installedStatus: boolean = false;
+  const toolPaths: object = toolchainConfiguration.toolPaths;
+  for (const key in toolPaths) {
+    if (key === toolId) {
+      installedStatus = true;
+      break;
+    }
+  }
+  logExtensionMessage(`* isToolInstalled(${toolId}) --> (${installedStatus})`);
+  return installedStatus;
+}
+
 async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: boolean, currFspec?: string): Promise<void> {
   // NOTE: this runs on startup and when the active editor changes
   if (toolchainConfiguration.advancedToolChainEnabled) {
@@ -1819,7 +1636,10 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
           // build filename to be loaded (is complex name if writing to flash)
           const fileSuffix: string = fileBaseName.endsWith('.spin2') ? '.spin2' : '.spin';
           let flexBinaryFile: string = `${fileBaseName.replace(fileSuffix, '.binary')}`;
-          if (writeToFlash && haveP2 && useLoaderInFilename) {
+          const usePNutTermTS: boolean = toolchainConfiguration.usePNutTermTS;
+          const pnutTermTsInstalled: boolean = isToolInstalled(PATH_PNUT_TERM_TS);
+          if (writeToFlash && haveP2 && useLoaderInFilename && !(usePNutTermTS && pnutTermTsInstalled)) {
+            // Only use multi-file format for loadP2, not for pnut-term-ts
             const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
             flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
           }
@@ -1833,7 +1653,7 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
           await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
         } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS && haveP2) {
           // -----------------------------------------------------------
-          // pnut_ts only has the compiler (loader is built-into Spin2 Extension)
+          // pnut_ts only has the compiler (loader is built-into PNut-Term-TS)
           //
           // for pnut_ts we use the source name with a .bin suffix
           await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
@@ -1880,6 +1700,7 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     const loadSerialPort: string = selectedDeviceNode;
     // are we generating a .lst file?
     const lstOutputEnabled: boolean = toolchainConfiguration.lstOutputEnabled;
+    const useLoadP2ForP2: boolean = toolchainConfiguration.forceLoadP2Use;
     // what is our active file type
     const activeSpin1or2Filename: string | undefined = getActiveSourceFilename();
     logExtensionMessage(`* wrToolchainBuildVariables(${callerID}) ACTIVEfn=[${activeSpin1or2Filename}]`);
@@ -1887,18 +1708,53 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
     //
     if (cachedIsCompilerInstalled && selectedCompilerId === PATH_FLEXSPIN) {
       // -----------------------------------------------------------
-      // flexProp toolset has compiler, loadP2, and flashBinary
+      // flexProp toolset has compiler, loadP2/proploader, and flashBinary
       //
       const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_FLEXSPIN];
       await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
-      let loaderBinFSpec: string | undefined = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
-      if (!haveP2) {
-        loaderBinFSpec = undefined; // we don't use this on P1 downloads
+
+      // Check if user wants to use PNut-Term-TS as downloader
+      const usePNutTermTS: boolean = toolchainConfiguration.usePNutTermTS;
+      const pnutTermTsInstalled: boolean = isToolInstalled(PATH_PNUT_TERM_TS);
+
+      if (usePNutTermTS && haveP2 && pnutTermTsInstalled) {
+        // -----------------------------------------------------------
+        // Use PNut-Term-TS as downloader (user override via switch)
+        // Only if: switch is ON, P2 file, and pnut-term-ts is installed
+        //
+        logExtensionMessage(`* FlexBin using PNut-Term-TS as downloader (user preference)`);
+
+        const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TERM_TS];
+        await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+
+        // Flash binary not used with pnut-term-ts (handles flash internally)
+        await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
+
+        // Build pnut-term-ts loader switches
+        const loaderOptions: string[] = await buildPnutTermTsSwitches(writeToFlash, loadSerialPort);
+        await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
+      } else {
+        // -----------------------------------------------------------
+        // Use loadP2/proploader as downloader (default behavior)
+        // Used when: switch is OFF, P1 file, or pnut-term-ts not installed
+        //
+        if (usePNutTermTS && haveP2 && !pnutTermTsInstalled) {
+          logExtensionMessage(`* WARNING: PNut-Term-TS requested but not found, falling back to loadP2`);
+        }
+
+        let loaderBinFSpec: string | undefined = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
+        if (!haveP2) {
+          loaderBinFSpec = undefined; // we don't use this on P1 downloads
+        }
+        await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
+
+        const loaderFSpec: string = buildLoaderFSpec(haveP2, useProploaderForP2, useLoadP2ForP2);
+        await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+
+        // Build loadP2/proploader loader switches
+        const loaderOptions: string[] = await buildLoaderSwitches(haveP2, writeToFlash, loadSerialPort);
+        await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
       }
-      await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
-      //
-      const loaderFSpec: string = buildLoaderFSpec(haveP2, useProploaderForP2);
-      await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
 
       // build compiler switches
       // this is -gbrk -2 -Wabs-paths -Wmax-errors=99, etc.
@@ -1930,9 +1786,6 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
       flexBuildOptions.push('--compress');
       await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
       //
-      const loaderOptions: string[] = await buildLoaderSwitches(haveP2, writeToFlash, loadSerialPort);
-      await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
-      //
     } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT && haveP2) {
       // -----------------------------------------------------------
       // PNut toolset has compiler, and loader which are the same!
@@ -1954,17 +1807,12 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
       //
     } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS && haveP2) {
       // -----------------------------------------------------------
-      // pnut_ts only has the compiler (loader is built-into Spin2 Extension or we use loadp2)
+      // pnut_ts Compiler with PNut-Term-TS loader (or loadp2 if forced)
       //
       const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
-      const haveFlexspin: boolean = toolchainConfiguration.flexspinInstalled;
-
       await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
+
       // build compiler switches
-      //
-      // we are working to keep the options list as 4 our less options!
-      //  this is a limit when sending to user-tasks for now
-      //
       // this is -d -O -l, etc.
       const buildOptions: string[] = [];
       if (compilingDebug) {
@@ -1974,34 +1822,33 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
         buildOptions.push('-l');
       }
       await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
-      // FIXME: let's make this conditional upon using internal loader or not (external is loadp2!!)
-      if (haveFlexspin == false) {
-        logExtensionMessage(`* WARNING flexspin NOT found, setting up for internal downloader`);
-        useInternalDownloader = true;
-        //await vscode.window.showErrorMessage('ERROR: unable to download to P2 without flexspin compiler installed');
-      }
-      if (useInternalDownloader) {
+
+      const useLoadP2ForP2: boolean = toolchainConfiguration.forceLoadP2Use;
+
+      if (useLoadP2ForP2) {
         // -----------------------------------------------------------
-        // pnut_ts Compiler, using Spin2 Extension internal loader
+        // pnut_ts Compiler, use flexProp toolset loadP2, and flashBinary (user override)
         //
-        // these are NOT used in this environment
-        await updateRuntimeConfig('spin2.optionsLoader', undefined);
-        await updateRuntimeConfig('spin2.fSpecLoader', undefined);
-        await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
-      } else {
-        // -----------------------------------------------------------
-        // pnut_ts Compiler, use flexProp toolset loadP2, and flashBinary
-        //
-        // build flasher binary FileSpec
         const loaderBinFSpec: string | undefined = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
         await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
         // build loader FileSpec
         const useOnlyP2: boolean = true;
-        const loaderFSpec: string = buildLoaderFSpec(useOnlyP2, useProploaderForP2);
+        const loaderFSpec: string = buildLoaderFSpec(useOnlyP2, useProploaderForP2, useLoadP2ForP2);
         await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
         // build loader switches
         const loaderOptions: string[] = await buildLoaderSwitches(useOnlyP2, writeToFlash, loadSerialPort);
         await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
+      } else {
+        // -----------------------------------------------------------
+        // pnut_ts Compiler, use PNut-Term-TS as loader (default)
+        //
+        const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TERM_TS];
+        await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);
+        // build loader switches for pnut-term-ts
+        const loaderOptions: string[] = await buildPnutTermTsSwitches(writeToFlash, loadSerialPort);
+        await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
+        // flash loader binary not used (pnut-term-ts handles flash internally)
+        await updateRuntimeConfig('spin2.fSpecFlashBinary', undefined);
       }
       //
     } else {
@@ -2020,13 +1867,15 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
   }
 }
 
-function buildLoaderFSpec(haveP2, useProploaderForP2): string {
+function buildLoaderFSpec(haveP2, useProploaderForP2, useLoadP2ForP2): string {
   // build loader FileSpec
   const loadp2FSpec: string = toolchainConfiguration.toolPaths[PATH_LOADP2];
   const proploaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PROPLOADER];
   let loaderFSpec: string = haveP2 ? loadp2FSpec : proploaderFSpec;
   if (useProploaderForP2 && haveP2) {
     loaderFSpec = proploaderFSpec;
+  } else if (useLoadP2ForP2 && haveP2) {
+    loaderFSpec = loadp2FSpec;
   }
   return loaderFSpec;
 }
@@ -2102,6 +1951,74 @@ async function buildLoaderSwitches(haveP2: boolean, writeToFlash: boolean, seria
   if (desiredPort.length > 0) {
     loaderOptions.push(desiredPort);
   }
+  return loaderOptions;
+}
+
+async function buildPnutTermTsSwitches(writeToFlash: boolean, serialPort: string): Promise<string[]> {
+  // build PNut-Term-TS loader switches
+  // pnut-term-ts --ide [-r|-f] <fileSpec> -p <dvcNode> [-b <rate>] [--rts]
+  //
+  // PNut-Term-TS Command-line reference (from --help):
+  //   -f, --flash <fileSpec>  Download to FLASH and run
+  //   -r, --ram <fileSpec>    Download to RAM and run
+  //   -b, --debugbaud <rate>  set debug baud rate (default 2000000)
+  //   -p, --plug <dvcNode>    Receive serial data from Propeller attached to <dvcNode>
+  //   --ide                   IDE mode - minimal UI for VSCode/IDE integration
+  //   --rts                   Use RTS instead of DTR for device reset (requires --ide)
+  //
+  // Example: pnut-term-ts --ide -r myTopfile.bin -p P9cektn7 -b 2000000
+  //
+  // NOTE: -r/-f requires <fileSpec> immediately after. The filename is added by tasks.json
+  //       as a separate argument. By placing -r/-f as the LAST option in the array,
+  //       tasks.json naturally creates: pnut-term-ts --ide -p P9cektn7 -b 2000000 -r filename.bin
+  //       tasks.json uses "quoting": "weak" to properly split space-separated arguments
+  //
+  const loaderOptions: string[] = [];
+  const DEFAULT_DEBUG_BAUD = 2000000;
+
+  // Always use --ide mode when running from VSCode
+  loaderOptions.push('--ide');
+
+  // Add serial port if specified
+  // For pnut-term-ts, use serial number instead of full device path (simpler, more portable)
+  if (serialPort !== undefined && serialPort.length > 0) {
+    const deviceNodesFound = toolchainConfiguration.deviceNodesFound;
+    if (deviceNodesFound[serialPort] !== undefined) {
+      const deviceInfo = deviceNodesFound[serialPort]; // "P9cektn7,0403,6015"
+      const serialNumber = deviceInfo.split(',')[0]; // "P9cektn7"
+      loaderOptions.push('-p');
+      loaderOptions.push(serialNumber);
+    }
+  }
+
+  // Check for DEBUG_BAUD in source file
+  const debugBaudFromSource = await findDebugBaud();
+  const debugBaud = debugBaudFromSource !== null ? debugBaudFromSource : DEFAULT_DEBUG_BAUD;
+
+  // Only add -b flag if baud rate differs from pnut-term-ts default
+  if (debugBaud !== DEFAULT_DEBUG_BAUD) {
+    loaderOptions.push('-b');
+    loaderOptions.push(debugBaud.toString());
+  }
+
+  // Determine if we need --rts flag based on stored device type
+  // Parallax PropPlug devices always use DTR (default)
+  // Non-Parallax devices use the serialResetType setting
+  const isParallaxDevice = toolchainConfiguration.selectedPropPlugIsParallax;
+
+  if (!isParallaxDevice) {
+    // For non-Parallax devices, check the user's reset control setting
+    const serialResetType = toolchainConfiguration.serialResetType;
+    if (serialResetType === eResetType.RT_RTS || serialResetType === eResetType.RT_DTR_N_RTS) {
+      loaderOptions.push('--rts');
+    }
+  }
+  // If Parallax device, don't add --rts (uses DTR by default)
+
+  // Add -r (RAM) or -f (FLASH) flag as the LAST option
+  // This ensures it comes right before the filename when tasks.json appends it
+  loaderOptions.push(writeToFlash ? '-f' : '-r');
+
   return loaderOptions;
 }
 

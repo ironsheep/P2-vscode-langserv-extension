@@ -13,7 +13,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 ### Follow-on work to appear in Upcoming releases
 
 - Report in PUB/PRI warning for unused param, return, and local vars
-- v43 Outline: if code on  block (CON,VAR,PUB, etc.) line the don't use comment on line for this block
+- v43 Outline: if code on block (CON,VAR,PUB, etc.) line the don't use comment on line for this block
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
 - v51 If sizeof(): Validate variable is a structure instance
@@ -27,6 +27,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
+
+## [2.5.0] 2025-11-20
+
+Spin2 Add pnut-term-ts use as downloader when using pnut_ts as compiler
+
+- optionally, allow pnut-term-ts to be used with flexspin compiler
 
 ## [2.4.10] 2025-07-13
 
@@ -123,7 +129,7 @@ Spin2 Minor Highlight repairs
 Spin2 Language upgrades
 
 - Highlight %"...." packed character constants as numeric constants
-- BUGFIX: dial-in various coloring *faux pas* - small corner cases fixed
+- BUGFIX: dial-in various coloring _faux pas_ - small corner cases fixed
 
 ## [2.4.0] 2025-05-01
 
@@ -202,7 +208,7 @@ Update P2 Only
 - BUGFIX: Syntax: add missing bytefit/wordfit recognition in DAT blocks (#6)
 - BUGFIX: Semantic: repair handling of {Spin2_v??} built-in method name support
 - BUGFIX: File access issues on Windows (11?) repaired
-- Cleaned up the code-fold detection... now handling ORG* forms better
+- Cleaned up the code-fold detection... now handling ORG\* forms better
 - Adjusted report key-chords for windows:
   - Ctrl+Win+r - Generate Object Hierarchy Report
   - Ctrl+Win+d - Generate OBject Public Interface Report
@@ -221,8 +227,8 @@ Update P2 Only
 - Add highlighting of object[index] expressions where index itself is an expression
 - BUGFIX don't report `@instance[index].method` reference as bad constant use when it really is a method
 - preliminary flexspin support changes:
- - update conditional compile suppot to grey out deslected code
- - add support for #import of .spin2 code
+- update conditional compile suppot to grey out deslected code
+- add support for #import of .spin2 code
 
 ## [2.2.14] 2024-01-11
 

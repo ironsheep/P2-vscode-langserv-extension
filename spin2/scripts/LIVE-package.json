@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.4.10",
+  "version": "2.5.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -362,6 +362,15 @@
               "description": "S/N for the propPlug Device Node"
             }
           },
+          "spinExtension.toolchain.propPlug.devicesIsParallax": {
+            "type": "object",
+            "default": {},
+            "description": "Discovered PropPlug Device Nodes and whether they are Parallax devices",
+            "additionalProperties": {
+              "type": "boolean",
+              "description": "True if the device is a Parallax PropPlug"
+            }
+          },
           "spinExtension.toolchain.compiler.installationsFound": {
             "type": "object",
             "default": {},
@@ -414,6 +423,11 @@
             "maximum": 2073600,
             "description": "Flexspin loadP2 command-line option: User Baudrate (default: 115,200 baud)"
           },
+          "spinExtension.toolchain.optionsDownload.usePnutTermTS": {
+            "type": "boolean",
+            "default": false,
+            "description": "Use PNut Term TS for all compilers (default is to use only with PNut_TS compiler)."
+          },
           "spinExtension.toolchain.optionsSerial.matchVendorOnly": {
             "type": "boolean",
             "default": false,
@@ -429,6 +443,11 @@
             "type": "string",
             "default": "",
             "description": "Absolute path of the pnut_ts executable"
+          },
+          "spinExtension.toolchain.paths.PNutTermTs": {
+            "type": "string",
+            "default": "",
+            "description": "Absolute path of the pnut_term_ts executable"
           },
           "spinExtension.toolchain.paths.flexspin": {
             "type": "string",
