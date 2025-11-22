@@ -155,11 +155,15 @@ export class Formatter {
       blockName = 'con';
     }
     const block = this.blocks[blockName.toLowerCase()];
+    if (!block) {
+      this.logMessage(`+ (WARN) getPreviousTabStop: Block '${blockName}' not found, using 'con' defaults`);
+      return this.getPreviousTabStop('con', character);
+    }
 
     const stops = block.tabStops ?? [this.tabSize];
     const tabStops =
       stops.length > 1
-        ? stops.sort((a, b) => {
+        ? [...stops].sort((a, b) => {
             return a - b;
           })
         : stops;
@@ -167,9 +171,14 @@ export class Formatter {
     let index: number;
     while ((index = tabStops.findIndex((element) => element > character)) === -1) {
       const lastTabStop = tabStops[tabStops.length - 1];
-      const lastTabStop2 = tabStops[tabStops.length - 2];
-      const lengthTabStop = lastTabStop - lastTabStop2;
-      tabStops.push(lastTabStop + lengthTabStop);
+      if (tabStops.length < 2) {
+        // Only one or no stops defined, use default increment
+        tabStops.push(lastTabStop + this.tabSize);
+      } else {
+        const lastTabStop2 = tabStops[tabStops.length - 2];
+        const lengthTabStop = lastTabStop - lastTabStop2;
+        tabStops.push(lastTabStop + lengthTabStop);
+      }
     }
     //this.logMessage(`+ (DBG) tabStops-[${tabStops}]`);
     let prevTabStop: number = tabStops[index - 1] ?? 0;
@@ -191,11 +200,15 @@ export class Formatter {
       blockName = 'con';
     }
     const block = this.blocks[blockName.toLowerCase()];
+    if (!block) {
+      this.logMessage(`+ (WARN) getCurrentTabStop: Block '${blockName}' not found, using 'con' defaults`);
+      return this.getCurrentTabStop('con', character);
+    }
 
     const stops = block.tabStops ?? [this.tabSize];
     const tabStops =
       stops.length > 1
-        ? stops.sort((a, b) => {
+        ? [...stops].sort((a, b) => {
             return a - b;
           })
         : stops;
@@ -203,9 +216,14 @@ export class Formatter {
     let index: number;
     while ((index = tabStops.findIndex((element) => element > character)) === -1) {
       const lastTabStop = tabStops[tabStops.length - 1];
-      const lastTabStop2 = tabStops[tabStops.length - 2];
-      const lengthTabStop = lastTabStop - lastTabStop2;
-      tabStops.push(lastTabStop + lengthTabStop);
+      if (tabStops.length < 2) {
+        // Only one or no stops defined, use default increment
+        tabStops.push(lastTabStop + this.tabSize);
+      } else {
+        const lastTabStop2 = tabStops[tabStops.length - 2];
+        const lengthTabStop = lastTabStop - lastTabStop2;
+        tabStops.push(lastTabStop + lengthTabStop);
+      }
     }
     //this.logMessage(`+ (DBG) tabStops-[${tabStops}]`);
     const currTabStop: number = tabStops[index - 1] ?? 0;
@@ -224,11 +242,15 @@ export class Formatter {
       blockName = 'con';
     }
     const block = this.blocks[blockName.toLowerCase()];
+    if (!block) {
+      this.logMessage(`+ (WARN) getNextTabStop: Block '${blockName}' not found, using 'con' defaults`);
+      return this.getNextTabStop('con', character);
+    }
 
     const stops = block.tabStops ?? [this.tabSize];
     const tabStops =
       stops.length > 1
-        ? stops.sort((a, b) => {
+        ? [...stops].sort((a, b) => {
             return a - b;
           })
         : stops;
@@ -236,9 +258,14 @@ export class Formatter {
     let index: number;
     while ((index = tabStops.findIndex((element) => element > character)) === -1) {
       const lastTabStop = tabStops[tabStops.length - 1];
-      const lastTabStop2 = tabStops[tabStops.length - 2];
-      const lengthTabStop = lastTabStop - lastTabStop2;
-      tabStops.push(lastTabStop + lengthTabStop);
+      if (tabStops.length < 2) {
+        // Only one or no stops defined, use default increment
+        tabStops.push(lastTabStop + this.tabSize);
+      } else {
+        const lastTabStop2 = tabStops[tabStops.length - 2];
+        const lengthTabStop = lastTabStop - lastTabStop2;
+        tabStops.push(lastTabStop + lengthTabStop);
+      }
     }
     //this.logMessage(`+ (DBG) tabStops-[${tabStops}]`);
 
@@ -808,7 +835,7 @@ export class Formatter {
               if (getMode(editor) == eEditMode.ALIGN) {
                 // see if we have double-white-space to manipulate...
                 const doubleWhitePos: vscode.Position = this.locateDoubleWhiteLeftEdge(currLineText, textLeftEdgePos);
-                if (doubleWhitePos.line != 0 && doubleWhitePos.character != 0) {
+                if (doubleWhitePos.character > 0 && doubleWhitePos.character < currLineText.length) {
                   // yes we do!
                   // insert length of spaces we removed but at this doubleWhite location
                   const charactersToInsert: string = ' '.repeat(deleteRange.end.character - deleteRange.start.character);
@@ -830,7 +857,7 @@ export class Formatter {
               if (getMode(editor) == eEditMode.ALIGN) {
                 // see if we have double-white-space to manipulate...
                 const doubleWhitePos: vscode.Position = this.locateDoubleWhiteLeftEdge(currLineText, textLeftEdgePos);
-                if (doubleWhitePos.line != 0 && doubleWhitePos.character != 0) {
+                if (doubleWhitePos.character > 0 && doubleWhitePos.character < currLineText.length) {
                   // yes we do!
                   // delete length of spaces we inserted but from this doubleWhite location
                   const doubleWhiteLength: number = this.countOfWhiteChars(currLineText, doubleWhitePos) - 1;

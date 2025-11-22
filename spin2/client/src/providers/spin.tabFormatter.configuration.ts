@@ -48,7 +48,7 @@ const loadTabConfiguration = () => {
   };
 };
 
-export const tabConfiguration = loadTabConfiguration();
+export let tabConfiguration = loadTabConfiguration();
 
 export const reloadTabConfiguration = () => {
   const newTabConfiguration = loadTabConfiguration();
@@ -57,16 +57,14 @@ export const reloadTabConfiguration = () => {
   if (
     tabConfiguration.enable === newTabConfiguration.enable &&
     tabConfiguration.tabSet === newTabConfiguration.tabSet &&
-    tabConfiguration.tabSize === newTabConfiguration.tabSize
+    tabConfiguration.tabSize === newTabConfiguration.tabSize &&
+    JSON.stringify(tabConfiguration.blocks) === JSON.stringify(newTabConfiguration.blocks)
   ) {
     return false;
   }
 
-  tabConfiguration.enable = newTabConfiguration.enable;
-  tabConfiguration.tabSet = newTabConfiguration.tabSet;
-  tabConfiguration.tabSize = newTabConfiguration.tabSize;
-  // and copy our new tab stops too
-  tabConfiguration.blocks = newTabConfiguration.blocks;
+  // Replace the entire configuration object instead of mutating
+  tabConfiguration = newTabConfiguration;
 
   // post information to out-side world via our CONTEXT at config change
   vscode.commands.executeCommand('setContext', 'runtime.spin2.elasticTabstops.enabled', tabConfiguration.enable);

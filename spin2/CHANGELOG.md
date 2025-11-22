@@ -28,6 +28,17 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.5.1] 2025-11-23
+
+Tab Formatting Defect Fixes
+
+- BUGFIX: Corrected malformed JSON schema for elastic tabstops configuration
+- BUGFIX: Fixed runtime crashes when invalid block names encountered in tab formatting
+- BUGFIX: Fixed NaN generation when custom tab stop configurations have minimal stops
+- BUGFIX: Fixed array mutation issue causing configuration corruption during tab operations
+- BUGFIX: Fixed Align mode not working on first line of file (line 0)
+- BUGFIX: Fixed configuration object mutation preventing proper state management
+
 ## [2.5.0] 2025-11-20
 
 Spin2 Add pnut-term-ts use as downloader when using pnut_ts as compiler

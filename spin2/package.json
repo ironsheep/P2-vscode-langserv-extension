@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -198,10 +198,77 @@
           "spinExtension.elasticTabstops.blocks.PropellerTool": {
             "type": "object",
             "properties": {
-              "type": "array",
-              "items": {
-                "type": "integer",
-                "minimum": 0
+              "con": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "var": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "obj": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "pub": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "pri": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "dat": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
               }
             },
             "default": {
@@ -284,10 +351,77 @@
           "spinExtension.elasticTabstops.blocks.IronSheep": {
             "type": "object",
             "properties": {
-              "type": "array",
-              "items": {
-                "type": "integer",
-                "minimum": 0
+              "con": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "var": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "obj": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "pub": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "pri": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "dat": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
               }
             },
             "default": {
@@ -379,10 +513,77 @@
           "spinExtension.elasticTabstops.blocks.User1": {
             "type": "object",
             "properties": {
-              "type": "array",
-              "items": {
-                "type": "integer",
-                "minimum": 0
+              "con": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "var": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "obj": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "pub": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "pri": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "dat": {
+                "type": "object",
+                "properties": {
+                  "tabStops": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
               }
             },
             "default": {
