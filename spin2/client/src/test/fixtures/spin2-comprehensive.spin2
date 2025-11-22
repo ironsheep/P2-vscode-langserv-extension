@@ -1,0 +1,451 @@
+'' Comprehensive Spin2 Grammar Test Fixture
+'' This file exercises all major language constructs for grammar testing
+{{
+  Multi-line documentation block comment
+  Tests: nested { comments } within documentation
+  Purpose: Validate grammar coverage
+}}
+
+CON
+  ' Configuration constants
+  _CLKFREQ = 200_000_000
+  _XINFREQ = 20_000_000
+
+  ' Numeric literals - all bases
+  DEC_NUM = 42
+  DEC_SIGNED = -123
+  DEC_UNDER = 1_000_000
+  HEX_NUM = $DEADBEEF
+  HEX_UNDER = $FF_00_AA_55
+  BIN_NUM = %11010101
+  BIN_UNDER = %1101_0101
+  QUAT_NUM = %%3210
+
+  ' Float literals
+  PI_VAL = 3.14159
+  SCI_NOT = 1.23e-4
+  FLOAT_POINT = .5
+
+  ' Boolean and special constants
+  MY_TRUE = TRUE
+  MY_FALSE = FALSE
+  POS_INF = POSX
+  NEG_INF = NEGX
+  PI_CONST = PI
+
+  ' Clock mode constants
+  CLK1 = RCFAST
+  CLK2 = RCSLOW
+  CLK3 = XINPUT
+  CLK4 = XTAL1 | PLL16X
+
+VAR
+  ' Variable declarations
+  BYTE single_byte
+  BYTE byte_array[256]
+
+  WORD word_var
+  WORD word_buffer[128]
+
+  LONG counter
+  LONG data_array[100]
+
+  ' Storage modifiers
+  ALIGNL
+  LONG aligned_long
+
+OBJ
+  ' Object declarations
+  ser : "com.serial.terminal"
+  drivers[4] : "driver.system"
+  math : "math.float"
+
+PUB main() | local1, local2, temp
+  '' Main entry point
+  '' Demonstrates: public method with local variables
+
+  ' Control flow - IF statements
+  IF condition
+    do_something()
+  ELSEIF other_condition
+    do_other()
+  ELSEIFNOT third_condition
+    do_third()
+  ELSE
+    do_default()
+
+  ' Control flow - CASE statements
+  CASE value
+    1..10:
+      small_value()
+    100:
+      hundred()
+    OTHER:
+      default_case()
+
+  CASE_FAST index
+    0: zero_handler()
+    1: one_handler()
+    2: two_handler()
+
+  ' REPEAT loops
+  REPEAT
+    ' Infinite loop
+    check_condition()
+  UNTIL done
+
+  REPEAT 10
+    ' Loop 10 times
+    process()
+
+  REPEAT index FROM 0 TO 99 STEP 2
+    ' Loop with index
+    buffer[index] := 0
+
+  REPEAT WHILE running
+    ' While loop
+    update()
+
+  REPEAT WITH index
+    ' Repeat with auto-increment
+    data[index] := value
+    IF index > MAX
+      QUIT
+
+  ' Loop control
+  REPEAT
+    IF skip_condition
+      NEXT
+    IF exit_condition
+      QUIT
+    process()
+
+  ' Unary operators
+  x := !!value           ' Force boolean
+  x := !flag             ' Logical NOT
+  x := NOT mask          ' Bitwise NOT
+  x := -number           ' Negate
+  x := ABS value         ' Absolute value
+  x := FABS float_val    ' Float absolute
+  x := ENCOD bits        ' Encode
+  x := DECOD bits        ' Decode
+  x := BMASK bits        ' Bit mask
+  x := ONES bits         ' Count ones
+  x := SQRT number       ' Square root
+  x := FSQRT float_num   ' Float square root
+  x := QLOG value        ' Q-format log
+  x := QEXP value        ' Q-format exp
+
+  ' Binary operators
+  x := a SAR b           ' Shift arithmetic right
+  x := a ROR b           ' Rotate right
+  x := a ROL b           ' Rotate left
+  x := a REV b           ' Reverse bits
+  x := a ZEROX b         ' Zero extend
+  x := a SIGNX b         ' Sign extend
+  x := a SCA b           ' Scale
+  x := a SCAS b          ' Scale signed
+  x := a FRAC b          ' Fraction
+  x := a AND b           ' Logical AND
+  x := a OR b            ' Logical OR
+  x := a XOR b           ' Logical XOR
+
+  ' COG functions
+  id := COGID()
+  COGINIT(cog, @entry, @params)
+  COGSPIN(cog, @method, @params)
+  COGSTOP(cog)
+  result := COGCHK(cog)
+
+  ' HUB functions
+  HUBSET(mode)
+  CLKSET(mode, freq)
+
+  ' Lock functions
+  lock := LOCKNEW()
+  LOCKRET(lock)
+  success := LOCKTRY(lock)
+  LOCKREL(lock)
+  status := LOCKCHK(lock)
+
+  ' ATN functions
+  COGATN(mask)
+  POLLATN()
+  WAITATN()
+
+  ' PIN functions
+  PINWRITE(pin, state)
+  PINW(pin, state)
+  PINLOW(pin)
+  PINL(pin)
+  PINHIGH(pin)
+  PINH(pin)
+  PINTOGGLE(pin)
+  PINT(pin)
+  PINFLOAT(pin)
+  PINF(pin)
+  state := PINREAD(pin)
+  state := PINR(pin)
+  PINSTART(pin, mode, xval, yval)
+  PINCLEAR(pin)
+
+  WRPIN(pin, mode)
+  WXPIN(pin, xval)
+  WYPIN(pin, yval)
+  AKPIN(pin)
+  x := RDPIN(pin)
+  y := RQPIN(pin)
+
+  ' Memory functions
+  BYTEMOVE(@dest, @src, count)
+  BYTEFILL(@dest, value, count)
+  WORDMOVE(@dest, @src, count)
+  WORDFILL(@dest, value, count)
+  LONGMOVE(@dest, @src, count)
+  LONGFILL(@dest, value, count)
+
+  GETREGS(@buffer, start, count)
+  SETREGS(@buffer, start, count)
+
+  ' Timing functions
+  cycles := GETCT()
+  POLLCT(target)
+  WAITCT(target)
+  ms := GETMS()
+  sec := GETSEC()
+  WAITMS(100)
+  WAITUS(1000)
+
+  ' String functions
+  len := STRSIZE(@str)
+  result := STRCOMP(@str1, @str2)
+  STRING("Hello")
+
+  ' Index functions
+  value := LOOKUP(index: 10, 20, 30, 40)
+  value := LOOKUPZ(index: 10, 20, 30, 40)
+  value := LOOKDOWN(value: 10, 20, 30, 40)
+  value := LOOKDOWNZ(value: 10, 20, 30, 40)
+
+  ' Math functions
+  ROTXY(@x, @y, angle)
+  POLXY(@x, @y)
+  XYPOL(x, y)
+  result := MULDIV64(a, b, c)
+  rnd := GETRND()
+  sine := QSIN(angle)
+  cosine := QCOS(angle)
+
+  ' Debug statements
+  debug("Starting main")
+  debug("Counter: ", udec(counter))
+  debug[terminal]("Value: ", uhex(value))
+
+  ' String literals
+  msg := "Hello, World!"
+  path := "path/to/file"
+  quote := "don't"
+
+  ' Array indexing
+  buffer[0] := 42
+  value := data_array[index]
+  multi[x][y] := value
+
+  ' PASM interface
+  CALL(@pasm_routine)
+  result := REGEXEC(@cog_code)
+  REGLOAD(@cog_data)
+
+  RETURN result
+
+PRI helper(param1, param2) : result | local
+  '' Private helper method
+  '' Returns: calculated result
+
+  result := param1 + param2
+
+  ' Abort on error
+  IF error_condition
+    ABORT
+
+  RETURN result
+
+DAT
+  ' Data section with PASM2
+  ORG 0
+
+entry
+  ' Hub RAM access
+  RDBYTE    data, ptra++
+  RDWORD    value, ptrb
+  RDLONG    longval, addr
+
+  WRBYTE    data, ptra++
+  WRWORD    value, ptrb
+  WRLONG    longval, addr
+  WMLONG    mask, addr
+
+  ' Stack operations
+  PUSHA     x
+  PUSHB     y
+  POPA      x
+  POPB      y
+
+  ' Math/Logic
+  ADD       x, y        WC, WZ
+  ADDS      x, y
+  ADDX      x, y
+  ADDSX     x, y
+
+  SUB       x, y        WC, WZ
+  SUBS      x, y
+  SUBX      x, y
+  SUBSX     x, y
+
+  MUL       x, y
+  MULS      x, y
+
+  AND       x, y
+  ANDN      x, y
+  OR        x, y
+  XOR       x, y
+  NOT       x
+
+  ABS       x
+  NEG       x           WC, WZ
+  NEGC      x
+  NEGNC     x
+  NEGZ      x
+  NEGNZ     x
+
+  SHL       x, #3
+  SHR       x, #3
+  SAR       x, #3
+  ROR       x, #3
+  ROL       x, #3
+
+  MINS      x, y
+  MAXS      x, y
+  MIN       x, y
+  MAX       x, y
+
+  ' Branching
+  JMP       #target
+  JMPREL    offset
+
+  CALL      #subroutine
+  CALLA     #sub_a
+  CALLB     #sub_b
+  CALLD     result, #routine
+  CALLPA    #param, #routine
+  CALLPB    #param, #routine
+
+  RET
+  RETA
+  RETB
+
+  ' Conditional jumps
+  TJZ       x, #target
+  TJNZ      x, #target
+  TJF       x, #target
+  TJNF      x, #target
+  TJS       x, #target
+  TJNS      x, #target
+  TJV       x, #target
+
+  DJZ       x, #loop
+  DJNZ      x, #loop
+  DJF       x, #loop
+  DJNF      x, #loop
+
+  ' Smart pins
+  WRPIN     mode, pin
+  WXPIN     xval, pin
+  WYPIN     yval, pin
+  AKPIN     pin
+  RDPIN     result, pin
+  RQPIN     result, pin
+
+  ' COG control
+  COGID     id
+  COGINIT   cog, addr
+  COGSTOP   cog
+
+  ' Hub control
+  HUBSET    mode
+  LOCKNEW   lock
+  LOCKRET   lock
+  LOCKTRY   lock        WC
+  LOCKREL   lock
+
+  ' Interrupts
+  STALLI
+  ALLOWI
+  TRGINT1
+  TRGINT2
+  TRGINT3
+  NIXINT1
+  NIXINT2
+  NIXINT3
+  SETINT1   event
+  SETINT2   event
+  SETINT3   event
+
+  ' Conditionals
+  IF_Z      MOV  x, y
+  IF_NZ     ADD  x, #1
+  IF_C      SUB  x, #1
+  IF_NC     JMP  #skip
+  IF_E      CALL #handler
+  IF_NE     RET
+
+  IF_C_AND_Z   MOV x, y
+  IF_C_AND_NZ  MOV x, y
+  IF_NC_AND_Z  MOV x, y
+  IF_NC_AND_NZ MOV x, y
+
+  IF_C_OR_Z    MOV x, y
+  IF_C_OR_NZ   MOV x, y
+  IF_NC_OR_Z   MOV x, y
+  IF_NC_OR_NZ  MOV x, y
+
+  ' Effects
+  ADD       x, y        WC
+  SUB       x, y        WZ
+  CMP       x, y        WCZ
+  TEST      x, y        ANDC
+  TEST      x, y        ORC
+  TEST      x, y        XORC
+  TEST      x, y        ANDZ
+  TEST      x, y        ORZ
+  TEST      x, y        XORZ
+
+  ' COG registers
+  MOV       PR0, x
+  MOV       IJMP1, addr
+  MOV       IRET1, addr
+  MOV       PA, ptra
+  MOV       PB, ptrb
+
+  ' Storage directives
+  FIT       $1F0
+
+  ALIGNL
+  LONG      $12345678
+  WORD      $1234
+  BYTE      $12, $34, $56
+
+  RES       16
+
+target
+  NOP
+
+subroutine
+  RET
+
+skip
+  NOP
+
+  FIT
+
+' End of comprehensive test fixture
