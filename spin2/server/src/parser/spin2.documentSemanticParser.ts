@@ -9202,6 +9202,76 @@ export class Spin2DocumentSemanticParser {
     return nextString;
   }
 
+  // Helper method to create a token object
+  private _createToken(
+    lineIdx: number,
+    startChar: number,
+    length: number,
+    tokenType: string,
+    modifiers: string[] = []
+  ): IParsedToken {
+    return {
+      line: lineIdx,
+      startCharacter: startChar,
+      length: length,
+      ptTokenType: tokenType,
+      ptTokenModifiers: modifiers
+    };
+  }
+
+  // Helper method to create and record a token in one call
+  private _createAndRecordToken(
+    tokenSet: IParsedToken[],
+    line: string,
+    lineIdx: number,
+    startChar: number,
+    length: number,
+    tokenType: string,
+    modifiers: string[] = []
+  ): void {
+    this._recordToken(tokenSet, line, this._createToken(lineIdx, startChar, length, tokenType, modifiers));
+  }
+
+  // Helper method to create a token with diagnostic message
+  private _recordTokenWithDiagnostic(
+    tokenSet: IParsedToken[],
+    line: string,
+    lineIdx: number,
+    startChar: number,
+    length: number,
+    tokenType: string,
+    modifiers: string[],
+    diagnosticMessage: string,
+    severity: eSeverity = eSeverity.Error
+  ): void {
+    this._createAndRecordToken(tokenSet, line, lineIdx, startChar, length, tokenType, modifiers);
+    this.semanticFindings.pushDiagnosticMessage(lineIdx, startChar, startChar + length, severity, diagnosticMessage);
+  }
+
+  // Helper method to get global token if it exists (with optional logging)
+  private _getGlobalTokenIfExists(symbolName: string, logCategory?: 'TokenSet' | 'State' | 'SPIN' | 'PreProc' | 'CON' | 'VAR' | 'DAT' | 'OBJ' | 'PASM' | 'DEBUG'): RememberedToken | undefined {
+    if (this.semanticFindings.isGlobalToken(symbolName)) {
+      const token = this.semanticFindings.getGlobalToken(symbolName);
+      if (logCategory) {
+        this._conditionalLog(logCategory, `  --  FOUND global name=[${symbolName}]`);
+      }
+      return token;
+    }
+    return undefined;
+  }
+
+  // Helper method to get local token if it exists (with optional logging)
+  private _getLocalTokenIfExists(symbolName: string, lineNbr: number, logCategory?: 'TokenSet' | 'State' | 'SPIN' | 'PreProc' | 'CON' | 'VAR' | 'DAT' | 'OBJ' | 'PASM' | 'DEBUG'): RememberedToken | undefined {
+    if (this.semanticFindings.isLocalToken(symbolName)) {
+      const token = this.semanticFindings.getLocalTokenForLine(symbolName, lineNbr);
+      if (logCategory) {
+        this._conditionalLog(logCategory, `  --  FOUND local name=[${symbolName}]`);
+      }
+      return token;
+    }
+    return undefined;
+  }
+
   private _recordToken(tokenSet: IParsedToken[], line: string | null, newToken: IParsedToken | undefined) {
     if (newToken) {
       if (newToken.line != -1 && newToken.startCharacter != -1) {
