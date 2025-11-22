@@ -117,10 +117,6 @@ repository:
   debug_functions:
     name: support.function.debug.methods.spin2
     match: '(?i)\b(FDEC(_ARRAY|_REG_ARRAY)?|(S|U)(DEC|HEX|BIN)(_BYTE|_LONG|_WORD|_REG_ARRAY|_BYTE_ARRAY|_LONG_ARRAY|_WORD_ARRAY)?(_)?|ZSTR(_)?|LSTR(_)?|debug(_main|_coginit)?|DEBUG_(BAUD|COGS|DELAY|DISPLAY_LEFT|DISPLAY_TOP|ENABLE|HEIGHT|LEFT|LOG_SIZE|PIN_TX|PIN_RX|TIMESTAMP|TOP|WIDTH|WINDOWS_OFF)|DLY|PC_(KEY|MOUSE)|DOWNLOAD_BAUD)\b'
-  no_debug_statements:
-    name: meta.skip.debug.statement.spin2
-    begin: "\\bdebug(\\[\\w+\\])?\\s*\\("
-    end: "\\)"
   debug_statements:
     name: meta.debug.statement.spin2
     begin: "\\bdebug(\\[\\w+\\])?\\s*\\("
@@ -460,25 +456,15 @@ repository:
       - include: "#number"
       - include: "#array_index"
       - include: "#pasm_storage_alignment"
-      - match: '(?i)\b(BYTE|WORD|(BYTE|WORD)FIT|LONG)\s*(\w+)(\[.*\])?\b'
+      - match: '(?i)\b(BYTE(?:FIT)?|WORD(?:FIT)?|LONG)\s*(\w+)(\[.*\])?\b'
         captures:
           "1": { name: storage.type.spin2 }
           "2": { name: variable.name.var.spin2 }
           "3": { patterns: [{ include: "#number" }, { include: "#constants" }, { include: "#array_index" }] }
   line_comment:
-      patterns:
+    patterns:
       - include: "#line_comment_entire"
       - include: "#line_comment_basic"
-
-  save_this:
-      patterns:
-      - include: "#line_comment_entire"
-      - include: "#no_hightlight_debug_lines"
-      - include: "#line_comment_basic"
-
-  no_hightlight_debug_lines:
-      name: meta.skip.highlightx.spin2
-      match: "^(?=.*\\bdebug\\b).*'[^']*$"
 
   line_comment_entire:
     name: comment.line.spin2
@@ -487,12 +473,5 @@ repository:
   line_comment_basic:
     name: comment.line.spin2
     match: "(?<!\")'(.*)$"
-
-  line_comment_basic_GOODBAD:
-    name: meta.skip.highlighty.spin2
-    match: "^(?:[^\"']|\"[^\"]*\")*('.*)$"
-    captures:
-      "1":
-        name: comment.line.spin2
 
 scopeName: source.spin2

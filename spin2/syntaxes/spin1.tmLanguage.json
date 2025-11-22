@@ -354,7 +354,7 @@
           "match": "\\b([0-9][0-9_]*)\\b"
         },
         {
-          "name": "constant.numeric.base10.spin2",
+          "name": "constant.numeric.base10.spin",
           "match": "\\b([0-9]+)[eE][\\+\\-]?[0-9]+\\b"
         }
       ]
