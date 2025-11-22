@@ -64,7 +64,7 @@ export class Spin2DocumentSemanticParser {
 
   private bLogStarted: boolean = false;
   // adjust following true/false to show specific parsing debug
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // Debug logging disabled in production
   private showSpinCode: boolean = true;
   private showPreProc: boolean = true;
   private showCON: boolean = true;
@@ -211,7 +211,7 @@ export class Spin2DocumentSemanticParser {
       const bHaveEmptyLine: boolean = trimmedLine.length == 0;
       const isDebugLine: boolean = !bHaveEmptyLine ? haveDebugLine(line) : false;
 
-      // Nnew PNut/Propeller Tool directive support: {Spin2_v##}
+      // New PNut/Propeller Tool directive support: {Spin2_v##}
       if (!bHaveEmptyLine && this.bHuntingForVersion && containsSpinLanguageSpec(trimmedLine, this.ctx)) {
         //this._logMessage(`  -- POSSIBLE spec: stopping HUNT Ln#${lineNbr}=[${trimmedLine}]`);
         this.bHuntingForVersion = false; // done we found it
@@ -361,7 +361,7 @@ export class Spin2DocumentSemanticParser {
         } else {
           isLineContinued = false;
           this._logMessage(
-            `* pre-scan Ln#${lineNbr} foundMuli EOL end-} enidng FakeLineContinuation, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+            `* pre-scan Ln#${lineNbr} foundMuli EOL end-} ending FakeLineContinuation, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
           );
           currState = priorState;
         }
@@ -1047,7 +1047,7 @@ export class Spin2DocumentSemanticParser {
         } else {
           isLineContinued = false;
           this._logMessage(
-            `* pre-scan Ln#${lineNbr} foundMuli EOL end-} enidng FakeLineContinuation, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
+            `* pre-scan Ln#${lineNbr} foundMuli EOL end-} ending FakeLineContinuation, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
           );
           currState = priorState;
         }
@@ -9247,58 +9247,61 @@ export class Spin2DocumentSemanticParser {
     return desiredType;
   }
 
-  private _logTokenSet(message: string): void {
-    if (this.logTokenDiscover) {
+  // Consolidated logging method to reduce code duplication
+  private _conditionalLog(category: 'TokenSet' | 'State' | 'SPIN' | 'PreProc' | 'CON' | 'VAR' | 'DAT' | 'OBJ' | 'PASM' | 'DEBUG', message: string): void {
+    const flags: Record<string, boolean> = {
+      'TokenSet': this.logTokenDiscover,
+      'State': this.showState,
+      'SPIN': this.showSpinCode,
+      'PreProc': this.showPreProc,
+      'CON': this.showCON,
+      'VAR': this.showVAR,
+      'DAT': this.showDAT,
+      'OBJ': this.showOBJ,
+      'PASM': this.showPAsmCode,
+      'DEBUG': this.showDEBUG
+    };
+
+    if (flags[category]) {
       this._logMessage(message);
     }
+  }
+
+  // Legacy wrapper methods for backward compatibility
+  private _logTokenSet(message: string): void {
+    this._conditionalLog('TokenSet', message);
   }
 
   private _logState(message: string): void {
-    if (this.showState) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('State', message);
   }
 
   private _logSPIN(message: string): void {
-    if (this.showSpinCode) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('SPIN', message);
   }
 
   private _logPreProc(message: string): void {
-    if (this.showPreProc) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('PreProc', message);
   }
 
   private _logCON(message: string): void {
-    if (this.showCON) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('CON', message);
   }
 
   private _logVAR(message: string): void {
-    if (this.showVAR) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('VAR', message);
   }
 
   private _logDAT(message: string): void {
-    if (this.showDAT) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('DAT', message);
   }
 
   private _logOBJ(message: string): void {
-    if (this.showOBJ) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('OBJ', message);
   }
 
   private _logPASM(message: string): void {
-    if (this.showPAsmCode) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('PASM', message);
   }
 
   private _logMessage(message: string): void {
@@ -9309,9 +9312,7 @@ export class Spin2DocumentSemanticParser {
   }
 
   private _logDEBUG(message: string): void {
-    if (this.showDEBUG) {
-      this._logMessage(message);
-    }
+    this._conditionalLog('DEBUG', message);
   }
 
   private _getDebugNonCommentLine(startingOffset: number, line: string): string {
@@ -9562,32 +9563,37 @@ export class Spin2DocumentSemanticParser {
     return desiredToken;
   }
 
+  // Helper method to process matched line parts and remove # characters
+  private _processMatchedLineParts(lineParts: string[] | null): string[] {
+    if (lineParts == null) {
+      return [];
+    }
+
+    const reducedLineParts: string[] = [];
+    for (let index = 0; index < lineParts.length; index++) {
+      const name = lineParts[index];
+      if (name === '#') {
+        continue;
+      }
+      if (name.startsWith('#')) {
+        reducedLineParts.push(name.substring(1)); // remove first char
+      } else if (name.endsWith('#')) {
+        reducedLineParts.push(name.slice(0, -1)); // remove last char
+      } else {
+        reducedLineParts.push(name);
+      }
+    }
+    return reducedLineParts;
+  }
+
   private _getNonWhiteSpinLinePartsWithIndexValues(line: string): IFilteredStrings {
     //                                     split(/[ \t\-\:\,\+\@\(\)\!\*\=\<\>\&\|\?\\\~\#\^\/]/);
     // mods to allow returning of objInstanceName#constant  form of names AND var[x] form of names
     const nonEqualsLine: string = this.parseUtils.removeDoubleQuotedStrings(line);
     const lineParts: string[] | null = nonEqualsLine.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
-    let reducedLineParts: string[] = [];
-    if (lineParts == null) {
-      reducedLineParts = [];
-    } else {
-      for (let index = 0; index < lineParts.length; index++) {
-        const name = lineParts[index];
-        if (name === '#') {
-          continue;
-        }
-        if (name.startsWith('#')) {
-          reducedLineParts.push(name.substring(1)); // remvoe first char
-        } else if (name.endsWith('#')) {
-          reducedLineParts.push(name.slice(0, -1)); // remove last char
-        } else {
-          reducedLineParts.push(name);
-        }
-      }
-    }
     return {
       lineNoQuotes: nonEqualsLine,
-      lineParts: reducedLineParts
+      lineParts: this._processMatchedLineParts(lineParts)
     };
   }
 
@@ -9596,27 +9602,9 @@ export class Spin2DocumentSemanticParser {
     // mods to allow returning of objInstanceName#constant  form of names
     const nonEqualsLine: string = this.parseUtils.removeDoubleQuotedStrings(line);
     const lineParts: string[] | null = nonEqualsLine.match(/[^ \t\-:,+[\]@()!*=<>&|?\\~^/]+/g);
-    let reducedLineParts: string[] = [];
-    if (lineParts == null) {
-      reducedLineParts = [];
-    } else {
-      for (let index = 0; index < lineParts.length; index++) {
-        const name = lineParts[index];
-        if (name === '#') {
-          continue;
-        }
-        if (name.startsWith('#')) {
-          reducedLineParts.push(name.substring(1)); // remvoe first char
-        } else if (name.endsWith('#')) {
-          reducedLineParts.push(name.slice(0, -1)); // remove last char
-        } else {
-          reducedLineParts.push(name);
-        }
-      }
-    }
     return {
       lineNoQuotes: nonEqualsLine,
-      lineParts: reducedLineParts
+      lineParts: this._processMatchedLineParts(lineParts)
     };
   }
 
@@ -9731,7 +9719,7 @@ export class Spin2DocumentSemanticParser {
       if (/^#+$/.test(name)) {
         // don't touch this ('###...###') all # signs
       } else if (name.startsWith('#')) {
-        tempName = name.substring(1); // remvoe first char
+        tempName = name.substring(1); // remove first char
       } else if (name.endsWith('#')) {
         tempName = name.slice(0, -1); // remove last char
       } else if (!name.includes('[') && name.endsWith(']')) {
