@@ -105,7 +105,8 @@ export default class HoverProvider implements Provider {
         const hoverTexts: string[] = [];
         const breakRegEx = /<br>/gi; // we are globally replacing <br> or <BR> markers
 
-        hoverTexts.push(this.codeBlock(text, 'spin2'));
+        const langId = this.haveSpin1File ? 'spin' : 'spin2';
+        hoverTexts.push(this.codeBlock(text, langId));
         if (IDefinitionInfo.doc != null) {
           // SIGH: Markdown renders line breaks when there are two or more of them.
           // so replace <br/> with two newLines!
@@ -130,6 +131,12 @@ export default class HoverProvider implements Provider {
     );
   }
 
+  /**
+   * Wraps text in a markdown code fence with syntax highlighting
+   * @param text - The code to display
+   * @param codeType - Language identifier ('spin' for Spin1 or 'spin2' for Spin2)
+   * @returns Markdown-formatted code block
+   */
   private codeBlock(text: string, codeType: string): string {
     return `\`\`\`${codeType}\n${text}\n\`\`\``;
   }
