@@ -25,7 +25,7 @@ export interface IBlockSpan {
 //   CLASS DocumentFindings
 export class LocatedBlockFindings {
   // tracking of Spin Code Blocks
-  private isDebugLogEnabled: boolean = false;
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
   private instanceId: string = `BT:${new Date().getTime()}`;

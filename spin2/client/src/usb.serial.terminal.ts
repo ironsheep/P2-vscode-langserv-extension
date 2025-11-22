@@ -10,7 +10,7 @@ import { UsbSerial } from './usb.serial';
 const DEFAULT_DEBUG_BAUD = 2000000;
 
 export class UsbSerialTerminal extends EventEmitter {
-  private static isDebugLogEnabled: boolean = false;
+  private static isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private static debugOutputChannel: vscode.OutputChannel | undefined = undefined;
   private endOfLineStr: string = '\r\n';
   private _deviceNode: string = '';
