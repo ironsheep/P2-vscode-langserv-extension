@@ -268,7 +268,9 @@ If I have installed PNut-Term-TS, then I also add its path:
 export PATH=${PATH}:/Applications/PNut-Term-TS.app
 ```
 
-From here on, when I start new terminal windows, we can invoke the flexprop, pnut_ts, and pnut-term-ts binaries by name without using the path to them.
+From here on, when I start new terminal windows, we can invoke the flexprop, pnut-ts, and pnut-term-ts binaries by name without using the path to them.
+
+**NOTE:** The executable is named `pnut-ts`. For backwards compatibility, a `pnut_ts` alias is also provided, so existing scripts will continue to work.
 
 ## Tasks in VSCode
 

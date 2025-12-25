@@ -195,7 +195,7 @@ Like we do on the other platforms here's the suggested update strategy:
 
 On Windows machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new version.
 
-**NOTE**: _The PNut\_TS tool-set does not have a standard install location on Windows. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
+**NOTE**: _The PNut-TS tool-set does not have a standard install location on Windows. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
 
 Next we move this new version into place.
 
@@ -315,7 +315,9 @@ If you routinely install these compilers in the same place
 
 **NOTE** _the above is referring to **Windows 10** settings names. On earlier versions of Windows the concept is the same. Locate the environment values and make the appropriate changes._
 
-From here on, when we run in terminal windows, we can invoke the FlexProp, PNut-TS, PNut-Term-TS, and PNut binaries by name without using the path to them.
+From here on, when we run in terminal windows, we can invoke the FlexProp, pnut-ts, pnut-term-ts, and PNut binaries by name without using the path to them.
+
+**NOTE:** The PNut-TS executable is named `pnut-ts`. For backwards compatibility, a `pnut_ts` alias is also provided, so existing scripts will continue to work.
 
 ## Tasks in VScode
 

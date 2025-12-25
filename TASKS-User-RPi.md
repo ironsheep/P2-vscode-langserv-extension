@@ -228,7 +228,7 @@ sudo make install INSTALL=/opt/flexprop
 
 On the Raspberry Pi platform we get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown, and unpacking the zip file to produce a `pnut_ts` folder containing the new compiler and its documents.
 
-**NOTE**: _The **PNut\_TS** tool-set does not have a standard install location on Linux. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
+**NOTE**: _The **PNut-TS** tool-set does not have a standard install location on Linux. So we will likely have many locations amongst all of us P2 users. You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system. Alternatively, it should be safe to just follow what I do in these instructions explicitly. This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same._
 
 Next we move this new version into place.
 
@@ -380,7 +380,9 @@ if [ -d "/opt/pnut_term_ts" ] ; then
 fi
 ```
 
-From here on when I start new terminal windows we can invoke the flexprop binaries or pnut_ts by name without using the path to them.
+From here on when I start new terminal windows we can invoke the flexprop binaries or pnut-ts by name without using the path to them.
+
+**NOTE:** The executable is named `pnut-ts`. For backwards compatibility, a `pnut_ts` alias is also provided, so existing scripts will continue to work.
 
 ## Tasks in VScode
 
