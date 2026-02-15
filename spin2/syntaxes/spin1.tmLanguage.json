@@ -121,7 +121,7 @@
     "constant_block": {
       "name": "meta.block.constant.spin",
       "begin": "(?i)^(CON)\\b",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT))\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.con.spin"
@@ -170,9 +170,6 @@
                   "include": "#comment"
                 },
                 {
-                  "include": "#number"
-                },
-                {
                   "include": "#constants"
                 },
                 {
@@ -192,7 +189,7 @@
     },
     "constant_top_block": {
       "name": "meta.block.constant.spin",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT))\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "patterns": [
         {
           "include": "#comment"
@@ -236,9 +233,6 @@
                   "include": "#comment"
                 },
                 {
-                  "include": "#number"
-                },
-                {
                   "include": "#constants"
                 },
                 {
@@ -259,7 +253,7 @@
     "data_block": {
       "name": "meta.block.data.spin",
       "begin": "(?i)^(DAT)\\b",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT))\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.dat.spin"
@@ -338,7 +332,11 @@
         },
         {
           "name": "keyword.operator.pasm",
-          "match": "(?i)\\b(\\+|\\-|\\^\\^|\\|\\||\\|<|>\\||!|@|\\*\\*?|//?|#>|<#|~>|<<|>>|<-|->|><|&|\\||\\^|AND|OR|==|<>|<|>|=<|=>)\\b"
+          "match": "(?i)\\b(AND|OR)\\b"
+        },
+        {
+          "name": "keyword.operator.pasm",
+          "match": "(\\+|\\-|\\^\\^|\\|\\||\\|<|>\\||!|@|\\*\\*?|//?|#>|<#|~>|<<|>>|<-|->|><|&|\\||\\^|==|<>|<|>|=<|=>)"
         }
       ]
     },
@@ -449,7 +447,7 @@
     "object_block": {
       "name": "meta.block.object.spin",
       "begin": "(?i)^(OBJ)\\b",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT))\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.obj.spin"
@@ -499,13 +497,21 @@
       ]
     },
     "operator": {
-      "name": "keyword.operator.spin",
-      "match": "(?i)\\b(\\+(\\+|=)?|-(-|=)?|\\^(\\^|=)?|\\|(\\||=)?|~(~|>)?=?|\\?|\\|<|>\\||!|NOT|@@?|:?=|\\*(\\*|=)?|/(/|=)?|#>=?|<#=?|<<?=?|>>?=?|<-=?|->=?|><=?|&=|AND=?|OR=?|===?|<>=?|=[<>]=?)\\b"
+      "patterns": [
+        {
+          "name": "keyword.operator.spin",
+          "match": "(?i)\\b(NOT|AND|OR)\\b"
+        },
+        {
+          "name": "keyword.operator.spin",
+          "match": "(\\+(\\+|=)?|-(-|=)?|\\^(\\^|=)?|\\|(\\||=)?|~(~|>)?=?|\\?|\\|<|>\\||!|@@?|:?=|\\*(\\*|=)?|/(/|=)?|#>=?|<#=?|<<?=?|>>?=?|<-=?|->=?|><=?|&=|AND=|OR=|===?|<>=?|=[<>]=?)"
+        }
+      ]
     },
     "private_block": {
       "name": "meta.block.private.spin",
       "begin": "(?i)^(PRI)(\\s+)",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT))\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.pri.spin"
@@ -571,7 +577,7 @@
     "public_block": {
       "name": "meta.block.public.spin",
       "begin": "(?i)^(PUB)(\\s+)",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT))\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.pub.spin"
@@ -659,7 +665,7 @@
     "variable_block": {
       "name": "meta.block.variable.spin",
       "begin": "(?i)^(VAR)\\b",
-      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT))\\b",
+      "end": "(?i)^(?=(CON|VAR|OBJ|PUB|PRI|DAT)\\b)",
       "beginCaptures": {
         "0": {
           "name": "keyword.block.var.spin"
@@ -709,7 +715,7 @@
     },
     "line_comment": {
       "name": "comment.line.spin",
-      "match": "(?<!debug\\s*\\(`.*)'[^'].*$"
+      "match": "'[^'].*$"
     }
   },
   "scopeName": "source.spin"
