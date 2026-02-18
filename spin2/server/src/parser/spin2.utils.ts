@@ -2,6 +2,7 @@
 // src/spin2.utils.ts
 
 import { eBuiltInType, eDebugDisplayType, IBuiltinDescription } from './spin.common';
+import { Pasm2DocUtils } from './spin2.pasm2.utils';
 import { Context } from '../context';
 
 export const displayEnumByTypeName = new Map<string, eDebugDisplayType>([
@@ -31,6 +32,7 @@ export class Spin2ParseUtils {
   private utilsLogEnabled: boolean = false;
   private ctx: Context | undefined = undefined;
   private languageVersion: number = 0;
+  private pasm2Utils: Pasm2DocUtils = new Pasm2DocUtils();
 
   public enableLogging(ctx: Context, doEnable: boolean = true): void {
     this.utilsLogEnabled = doEnable;
@@ -1314,8 +1316,14 @@ export class Spin2ParseUtils {
       desiredDocText.category = 'Smart Pin Configuration';
       desiredDocText.description = this._tableSmartPinNames[nameKey];
     } else if (this.isBuiltinStreamerReservedWord(nameKey)) {
-      desiredDocText.category = 'Streamer Mode Configuration';
-      desiredDocText.description = ''; // TODO: add decription table and then fill this in!
+      const streamerDoc = this.pasm2Utils.docTextForStreamerConstant(nameKey);
+      if (streamerDoc.found) {
+        desiredDocText.category = streamerDoc.category;
+        desiredDocText.description = streamerDoc.description;
+      } else {
+        desiredDocText.category = 'Streamer Mode Configuration';
+        desiredDocText.description = '';
+      }
     } else if (nameKey in this._tableEventNames) {
       desiredDocText.category = 'Event / Interrupt Source';
       desiredDocText.description = this._tableEventNames[nameKey];
@@ -1374,8 +1382,21 @@ export class Spin2ParseUtils {
     return desiredDocText;
   }
 
-  public docTextForBuiltIn(name: string, typeFilter: eSearchFilterType = eSearchFilterType.FT_NO_PREFERENCE): IBuiltinDescription {
-    this._logMessage(`sp2u: - docTextForBuiltIn([${name}], ${eSearchFilterType[typeFilter]})`);
+  public docTextForBuiltIn(
+    name: string,
+    typeFilter: eSearchFilterType = eSearchFilterType.FT_NO_PREFERENCE,
+    inPasmCode: boolean = false
+  ): IBuiltinDescription {
+    this._logMessage(`sp2u: - docTextForBuiltIn([${name}], ${eSearchFilterType[typeFilter]}, inPasm=${inPasmCode})`);
+    // When in PASM context, check PASM2 instructions/conditionals/effects FIRST
+    // This handles name collisions (AND, OR, NOT, ABS, etc.) by giving PASM2 priority
+    if (inPasmCode) {
+      const pasmResult = this._lookupPasm2(name);
+      if (pasmResult.found) {
+        this._logMessage(`sp2u:  -- docTextForBuiltIn [${name}] -> PASM2 hit (${pasmResult.type})`);
+        return pasmResult;
+      }
+    }
     let desiredDocText: IBuiltinDescription = this._docTextForSpinBuiltInVariable(name);
     if (desiredDocText.found) {
       desiredDocText.type = eBuiltInType.BIT_VARIABLE;
@@ -1416,7 +1437,8 @@ export class Spin2ParseUtils {
                   if (desiredDocText.found) {
                     desiredDocText.type = eBuiltInType.BIT_DEBUG_SYMBOL;
                   } else {
-                    // TODO: add more calls here
+                    // Fallback: check PASM2 tables (for items appearing outside PASM context)
+                    desiredDocText = this._lookupPasm2(name);
                   }
                 }
               }
@@ -1427,6 +1449,24 @@ export class Spin2ParseUtils {
     }
     this._logMessage(`sp2u:  -- docTextForBuiltIn [${name}],(${eSearchFilterType[typeFilter]}) -> (${JSON.stringify(desiredDocText, null, 2)})`);
     return desiredDocText;
+  }
+
+  private _lookupPasm2(name: string): IBuiltinDescription {
+    // Try PASM2 instruction first, then conditional, then effect, then MODCZ operand
+    let result = this.pasm2Utils.docTextForPasm2Instruction(name);
+    if (!result.found) {
+      result = this.pasm2Utils.docTextForPasm2Conditional(name);
+    }
+    if (!result.found) {
+      result = this.pasm2Utils.docTextForPasm2Effect(name);
+    }
+    if (!result.found) {
+      result = this.pasm2Utils.docTextForModczOperand(name);
+    }
+    if (!result.found) {
+      result = this.pasm2Utils.docTextForStreamerConstant(name);
+    }
+    return result;
   }
 
   private _tableSmartPinNames: { [Identifier: string]: string } = {
