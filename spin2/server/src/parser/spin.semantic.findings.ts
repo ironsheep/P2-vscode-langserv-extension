@@ -1192,6 +1192,14 @@ export class DocumentFindings {
     return this.objectFilenameByInstanceName;
   }
 
+  public objectReferences(): { instanceName: string; fileName: string }[] {
+    const references: { instanceName: string; fileName: string }[] = [];
+    for (const [instanceName, fileName] of this.objectFilenameByInstanceName) {
+      references.push({ instanceName, fileName });
+    }
+    return references;
+  }
+
   public includeNamesForFilename(includerName: string): string[] {
     // return the set: files include by includer
     let includedFiles: string[] = [];

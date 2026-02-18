@@ -49,6 +49,7 @@ export default class TextDocumentSyncProvider implements Provider {
     const document = TextDocument.create(uri, languageId, version, text);
     await this.processor.process(document).then(() => {
       this.fileDiagnostics(uri);
+      this.sendDependenciesChangedNotification(uri);
     });
   }
 
@@ -71,6 +72,7 @@ export default class TextDocumentSyncProvider implements Provider {
         // Send just local parser diagnostics
         // FIXME: not quite correct but works for now...
         this.fileDiagnostics(uri);
+        this.sendDependenciesChangedNotification(uri);
       });
     } else if (existingInclude && !existingTopLevel) {
       //
@@ -81,6 +83,7 @@ export default class TextDocumentSyncProvider implements Provider {
 
       await this.processor.process(updatedDoc);
       await this.processor.updateFindings(uri);
+      this.sendDependenciesChangedNotification(uri);
     }
     await this.processor.processEnclosing(uri).then((x) => {
       // Send Diagnostics for each URI affected by the include
@@ -243,8 +246,17 @@ export default class TextDocumentSyncProvider implements Provider {
             uri,
             diagnostics: [...captureDiagnostics]
           });
+          this.sendDependenciesChangedNotification(uri);
         }
       }
+    }
+  }
+
+  private sendDependenciesChangedNotification(docUri: string): void {
+    try {
+      this.connection.sendNotification('spin/objectDependenciesChanged', { uri: docUri });
+    } catch {
+      // Client may not be listening yet; ignore
     }
   }
 

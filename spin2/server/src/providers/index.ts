@@ -19,6 +19,7 @@ import HoverProvider from './HoverProvider';
 // import RenameProvider from "./RenameProvider";
 import SignatureHelpProvider from './SignatureHelpProvider';
 import TextDocumentSyncProvider from './TextDocumentSyncProvider';
+import ObjectDependencyProvider from './ObjectDependencyProvider';
 // import WorkspaceSymbolProvider from "./WorkspaceSymbolProvider";
 
 export interface Provider {
@@ -39,7 +40,8 @@ const providers = [
   //   ReferencesProvider,
   //   RenameProvider,
   SignatureHelpProvider,
-  TextDocumentSyncProvider
+  TextDocumentSyncProvider,
+  ObjectDependencyProvider
   //   WorkspaceSymbolProvider,
 ];
 

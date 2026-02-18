@@ -1215,7 +1215,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Start the client. This will also launch the server
   logExtensionMessage(`* Starting extension client/server`);
-  client.start();
+  client.start().then(() => {
+    logExtensionMessage(`* Client started, connecting ObjectTreeProvider to language client`);
+    objTreeProvider.setLanguageClient(client);
+  });
 }
 
 export function deactivate(): Thenable<void> | undefined {

@@ -9,7 +9,7 @@ import * as path from 'path';
 
 import { isSpin1Document, isSpin2File, isSpin1File } from '../spin.vscode.utils';
 import { SpinCodeUtils, eParseState } from '../spin.code.utils';
-import { ObjectTreeProvider, SpinDependency } from '../spin.object.dependencies';
+import { ObjectTreeProvider, IObjectDependencyNode } from '../spin.object.dependencies';
 
 export class DocGenerator {
   private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -577,20 +577,18 @@ export class DocGenerator {
         fs.appendFileSync(outFile, `    Tool :  VSCode Spin2 Extension ${versionStr} ${this.endOfLineStr}${this.endOfLineStr}`);
         fs.appendFileSync(outFile, `${this.endOfLineStr}`); // blank line
 
-        // Get object tree from ObjectTreeProvider (may have to add supporting code therein)
-        // then report on object tree obtained
-        const [topFilename, depMap] = this.objTreeProvider.getObjectHierarchy();
-        this.hierarchyFilenameTotal = this.countFiles(topFilename, depMap);
+        // Get object tree from ObjectTreeProvider (server-backed)
+        const [topFilename, rootNode] = this.objTreeProvider.getObjectHierarchy();
+        this.hierarchyFilenameTotal = this.countFiles(rootNode);
         this.hierarchyFilenameCount = 0;
-        if (topFilename.length == 0 || depMap.size == 0) {
+        if (topFilename.length == 0 || !rootNode) {
           fs.appendFileSync(outFile, `NO Dependencies found!${this.endOfLineStr}`); // blank line
         } else {
-          this.logMessage(`+ (DBG) generateHierarchyDocument() topFilename=[${topFilename}], deps=(${depMap.size})`);
+          this.logMessage(`+ (DBG) generateHierarchyDocument() topFilename=[${topFilename}], children=(${rootNode.children.length})`);
           const depth: number = 0;
-          const topChildren = depMap.get(topFilename);
-          const lastParent: boolean = this.isOnlyParent(topFilename, depMap);
+          const lastParent: boolean = this.isOnlyParent(rootNode);
           const lastChild = false;
-          this.reportDeps(depth, [], topFilename, depMap, outFile, lastParent, lastChild);
+          this.reportDeps(depth, [], rootNode, outFile, lastParent, lastChild);
         }
         fs.appendFileSync(outFile, `${this.endOfLineStr}`); // blank line
         fs.appendFileSync(outFile, `${this.endOfLineStr}`); // blank line
@@ -609,45 +607,30 @@ export class DocGenerator {
     }
   }
 
-  private countFiles(topFilename: string, deps: Map<string, SpinDependency>): number {
-    let desiredFileCount: number = topFilename && topFilename.length > 0 ? 1 : 0;
-    const topDep: SpinDependency | undefined = deps.get(topFilename);
-    if (topDep !== undefined) {
-      desiredFileCount += topDep.children.length;
-      let currChildren: string[] = topDep.children.map((child) => child.name);
-      while (currChildren.length > 0) {
-        const childrenThisPass: string[] = currChildren;
-        currChildren = [];
-        for (let index = 0; index < childrenThisPass.length; index++) {
-          const childName = childrenThisPass[index];
-          const childDep: SpinDependency | undefined = deps.get(childName);
-          if (childDep.hasChildren) {
-            desiredFileCount += childDep.children.length;
-            const grandChildrenName: string[] = childDep.children.map((grandChild) => grandChild.name);
-            currChildren.push(...grandChildrenName);
-          }
+  private countFiles(rootNode: IObjectDependencyNode | null): number {
+    if (!rootNode) return 0;
+    let desiredFileCount: number = 1;
+    const countChildren = (node: IObjectDependencyNode): void => {
+      for (const child of node.children) {
+        desiredFileCount++;
+        if (!child.isCircular && !child.isFileMissing) {
+          countChildren(child);
         }
       }
-    }
+    };
+    countChildren(rootNode);
     this.logMessage(`* countFiles() desiredFileCount=(${desiredFileCount})`);
     return desiredFileCount;
   }
 
-  private isOnlyParent(topFilename: string, depMap: Map<string, SpinDependency>): boolean {
+  private isOnlyParent(rootNode: IObjectDependencyNode): boolean {
     let onlyParentStatus: boolean = true;
-    if (depMap.has(topFilename)) {
-      const fileWithchildren: SpinDependency = depMap.get(topFilename);
-      if (fileWithchildren !== undefined) {
-        this.logMessage(`* isOnlyParent() childrenCt=[${fileWithchildren.children.length}]`);
-        for (let index = 0; index < fileWithchildren.children.length; index++) {
-          const child = fileWithchildren.children[index];
-          const grandChildWithChildren = depMap.get(child.name);
-          if (grandChildWithChildren !== undefined && grandChildWithChildren.children.length > 0) {
-            this.logMessage(`* isOnlyParent() [${child.name}] grandChildren=[${grandChildWithChildren.children.length}]`);
-            onlyParentStatus = false;
-            break;
-          }
-        }
+    this.logMessage(`* isOnlyParent() childrenCt=[${rootNode.children.length}]`);
+    for (const child of rootNode.children) {
+      if (child.children.length > 0) {
+        this.logMessage(`* isOnlyParent() [${child.fileName}] grandChildren=[${child.children.length}]`);
+        onlyParentStatus = false;
+        break;
       }
     }
     this.logMessage(`* isOnlyParent()=(${onlyParentStatus})`);
@@ -657,22 +640,19 @@ export class DocGenerator {
   private reportDeps(
     depth: number,
     nestList: boolean[],
-    filename: string,
-    depMap: Map<string, SpinDependency>,
+    node: IObjectDependencyNode,
     outFile: number,
     isLastParent: boolean,
     isLastChild: boolean
   ) {
-    this.logMessage(`+ rD() d=(${depth}), nd=[${nestList}], ilp=(${isLastParent}), ilc=(${isLastChild}), fn=[${filename}]`);
+    this.logMessage(`+ rD() d=(${depth}), nd=[${nestList}], ilp=(${isLastParent}), ilc=(${isLastChild}), fn=[${node.fileName}]`);
     const baseIndent: number = 12;
     const rptHoriz: string = '─';
     const rptVert: string = '│';
     const rptTeeRight: string = '├';
     const rptElbow: string = '└';
-    const childWithChildren: SpinDependency | undefined = depMap.get(filename);
-    const haveChildren: boolean = childWithChildren !== undefined && childWithChildren.children.length > 0;
+    const haveChildren: boolean = node.children.length > 0 && !node.isCircular && !node.isFileMissing;
     const NoEndBlank: boolean = true;
-    const AllowEndBlank: boolean = false;
     // file line prefix
     const fileEndChar: string = isLastChild ? rptElbow : rptTeeRight;
     const prefixFillTee: string = this.fillWithVerts(nestList, fileEndChar, NoEndBlank);
@@ -696,7 +676,7 @@ export class DocGenerator {
       linePrefixSpacer = `${linePrefixSpacer}${prefixFillVert}`;
     }
     // write one or both lines
-    fs.appendFileSync(outFile, `${linePrefixFile}${filename}${this.endOfLineStr}`); // filename line
+    fs.appendFileSync(outFile, `${linePrefixFile}${node.fileName}${this.endOfLineStr}`); // filename line
     this.hierarchyFilenameCount++;
     // show last line of not last line to be drawn in chart
     //  last line is when we are both at last parent and last child
@@ -709,13 +689,13 @@ export class DocGenerator {
     }
     // process children of this object
     if (haveChildren) {
-      for (let index = 0; index < childWithChildren.children.length; index++) {
-        const childDep = childWithChildren.children[index];
-        const isLastChild: boolean = index == childWithChildren.children.length - 1;
+      for (let index = 0; index < node.children.length; index++) {
+        const childNode = node.children[index];
+        const isLastChild: boolean = index == node.children.length - 1;
 
         const nextIsLastParent = depth == 0 && isLastChild ? true : isLastParent;
         nestList.push(nextIsLastParent ? false : true);
-        this.reportDeps(depth + 1, nestList, childDep.name, depMap, outFile, nextIsLastParent, isLastChild);
+        this.reportDeps(depth + 1, nestList, childNode, outFile, nextIsLastParent, isLastChild);
       }
     }
     if (nestList.length > 0) {
