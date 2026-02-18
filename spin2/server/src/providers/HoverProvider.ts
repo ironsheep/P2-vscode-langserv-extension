@@ -176,7 +176,7 @@ export default class HoverProvider implements Provider {
     );
 
     this._logMessage(`+ Hvr: definitionLocation() EXIT after getting symbol details`);
-    return this.getSymbolDetails(document, sourcePosition, objectRef, hoverSource, bMethodCall, bMaskedMethodCall);
+    return this.getSymbolDetails(document, sourcePosition, objectRef, hoverSource, bMethodCall, bMaskedMethodCall, inPasmCodeStatus);
   }
 
   private _objectNameFromDeclaration(line: string): string {
@@ -228,7 +228,8 @@ export default class HoverProvider implements Provider {
     objRef: string,
     searchWord: string,
     isMethodCall: boolean,
-    isMaskedMethodCall: boolean
+    isMaskedMethodCall: boolean,
+    inPasmCode: boolean = false
   ): Promise<IDefinitionInfo | null> {
     return new Promise((resolve, reject) => {
       const defInfo: IDefinitionInfo = {
@@ -282,7 +283,9 @@ export default class HoverProvider implements Provider {
       }
       const builtInFindings = isDebugLine
         ? this.parseUtils.docTextForDebugBuiltIn(searchWord, filterType)
-        : this.parseUtils.docTextForBuiltIn(searchWord, filterType);
+        : this.parseUtils instanceof Spin2ParseUtils
+          ? (this.parseUtils as Spin2ParseUtils).docTextForBuiltIn(searchWord, filterType, inPasmCode)
+          : this.parseUtils.docTextForBuiltIn(searchWord);
       if (!builtInFindings.found) {
         this._logMessage(`+ Hvr: built-in=[${searchWord}], NOT found!`);
       } else {
@@ -476,6 +479,42 @@ export default class HoverProvider implements Provider {
             defInfo.toolUsed = 'built-in directive';
             defInfo.declarationlines = [builtInFindings.signature];
             subTitleText = `: *${langIdString} built-in*`;
+          } else if (builtInFindings.type == eBuiltInType.BIT_PASM_INSTRUCTION) {
+            defInfo.toolUsed = `PASM2 instruction (${builtInFindings.category})`;
+            defInfo.declarationlines = [builtInFindings.signature];
+            // Build rich description with flag and timing info
+            let instrDescr = '- ' + builtInFindings.description;
+            if (builtInFindings.flagC) {
+              instrDescr += `<br><br>**C flag:** ${builtInFindings.flagC}`;
+            }
+            if (builtInFindings.flagZ) {
+              instrDescr += builtInFindings.flagC ? `<br>**Z flag:** ${builtInFindings.flagZ}` : `<br><br>**Z flag:** ${builtInFindings.flagZ}`;
+            }
+            if (builtInFindings.timing) {
+              instrDescr += `<br>**Timing:** ${builtInFindings.timing} clocks`;
+            }
+            defInfo.doc = `${builtInFindings.category}: *PASM2 instruction*<br>${instrDescr}`;
+            mdLines = [];
+            titleText = undefined;
+            subTitleText = undefined;
+          } else if (builtInFindings.type == eBuiltInType.BIT_PASM_CONDITIONAL) {
+            defInfo.toolUsed = 'PASM2 conditional';
+            defInfo.declarationlines = [builtInFindings.signature];
+            let condDescr = '- ' + builtInFindings.description;
+            if (builtInFindings.aliases && builtInFindings.aliases.length > 0) {
+              condDescr += `<br><br>**Aliases:** ${builtInFindings.aliases.join(', ')}`;
+            }
+            defInfo.doc = `Conditional Execution: *PASM2*<br>${condDescr}`;
+            mdLines = [];
+            titleText = undefined;
+            subTitleText = undefined;
+          } else if (builtInFindings.type == eBuiltInType.BIT_PASM_EFFECT) {
+            defInfo.toolUsed = 'PASM2 instruction effect';
+            defInfo.declarationlines = [builtInFindings.signature];
+            defInfo.doc = `Instruction Effect: *PASM2*<br>- ${builtInFindings.description}`;
+            mdLines = [];
+            titleText = undefined;
+            subTitleText = undefined;
           } else if (this.haveSpin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_SYMBOL) {
             this._logMessage(`+ Hvr: builtInFindings.type=[eBuiltInType.BIT_DEBUG_SYMBOL]`);
             if (bISdebugStatement) {
