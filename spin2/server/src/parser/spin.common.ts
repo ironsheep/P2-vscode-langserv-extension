@@ -29,6 +29,9 @@ export enum eBuiltInType {
   BIT_METHOD,
   BIT_METHOD_POINTER, // spin2
   BIT_PASM_DIRECTIVE,
+  BIT_PASM_INSTRUCTION,
+  BIT_PASM_CONDITIONAL,
+  BIT_PASM_EFFECT,
   BIT_SYMBOL,
   BIT_TYPE,
   BIT_VARIABLE
@@ -77,6 +80,10 @@ export interface IBuiltinDescription {
   signature: string;
   parameters?: string[];
   returns?: string[];
+  flagC?: string;
+  flagZ?: string;
+  timing?: string;
+  aliases?: string[];
 }
 
 export function haveDebugLine(line: string, startsWith: boolean = false, ctx: Context | undefined = undefined): boolean {
