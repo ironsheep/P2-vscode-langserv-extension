@@ -279,13 +279,24 @@ async function testDocumentSymbols(docUri: vscode.Uri, expectedDocumentSymbolsLi
   console.log(`spin2-actualCompletionList is ${showObject(actualDocumentSymbolsList)})`);
   console.log(`spin2-expectedDocumentSymbolsList is ${showObject(expectedDocumentSymbolsList)})`);
 
-  assert.ok(actualDocumentSymbolsList.length == expectedDocumentSymbolsList.length);
+  assert.strictEqual(actualDocumentSymbolsList.length, expectedDocumentSymbolsList.length);
   expectedDocumentSymbolsList.forEach((expectedItem, i) => {
     const actualItem = actualDocumentSymbolsList[i];
-    assert.equal(actualItem.name, expectedItem.name);
-    assert.equal(actualItem.detail, expectedItem.detail);
-    assert.equal(actualItem.kind, expectedItem.kind);
-    assert.equal(actualItem.range, expectedItem.range);
-    assert.equal(actualItem.selectionRange, expectedItem.selectionRange);
+    assert.strictEqual(actualItem.name, expectedItem.name);
+    assert.strictEqual(actualItem.detail, expectedItem.detail);
+    assert.strictEqual(actualItem.kind, expectedItem.kind);
+    assert.deepStrictEqual(actualItem.range, expectedItem.range);
+    assert.deepStrictEqual(actualItem.selectionRange, expectedItem.selectionRange);
+    if (expectedItem.children) {
+      assert.ok(actualItem.children, `Expected children for symbol "${expectedItem.name}" but found none`);
+      assert.strictEqual(actualItem.children!.length, expectedItem.children.length, `Child count mismatch for "${expectedItem.name}"`);
+      expectedItem.children.forEach((expectedChild, j) => {
+        const actualChild = actualItem.children![j];
+        assert.strictEqual(actualChild.name, expectedChild.name);
+        assert.strictEqual(actualChild.kind, expectedChild.kind);
+        assert.deepStrictEqual(actualChild.range, expectedChild.range);
+        assert.deepStrictEqual(actualChild.selectionRange, expectedChild.selectionRange);
+      });
+    }
   });
 }
