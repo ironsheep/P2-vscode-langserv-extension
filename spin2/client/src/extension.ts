@@ -14,6 +14,7 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 import { Formatter } from './providers/spin.tabFormatter';
 import { DocGenerator } from './providers/spin.document.generate';
 import { ObjectTreeProvider, Dependency } from './spin.object.dependencies';
+import { IncludeDirectoriesProvider } from './providers/spin.includeDirectories.treeView';
 import { RegionColorizer } from './providers/spin.color.regions';
 import { overtypeBeforePaste, overtypeBeforeType } from './providers/spin.editMode.behavior';
 import { editModeConfiguration, reloadEditModeConfiguration } from './providers/spin.editMode.configuration';
@@ -53,6 +54,7 @@ const isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- chan
 let debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
 const objTreeProvider: ObjectTreeProvider = new ObjectTreeProvider();
+const includeDirsProvider: IncludeDirectoriesProvider = new IncludeDirectoriesProvider();
 const tabFormatter: Formatter = new Formatter();
 const docGenerator: DocGenerator = new DocGenerator(objTreeProvider);
 const codeBlockColorizer: RegionColorizer = new RegionColorizer();
@@ -729,6 +731,36 @@ echo $? >${outputFile}.status
   vscode.commands.registerCommand(objectTreeViewExpandAllCommand, async () => objTreeProvider.expandAll());
   vscode.commands.registerCommand(objectTreeViewCollapseAllCommand, async () => objTreeProvider.collapseAll());
   vscode.commands.registerCommand(objectTreeViewActivateFileCommand, async (arg1) => objTreeProvider.onElementClick(arg1));
+
+  // ----------------------------------------------------------------------------
+  //   Include Directories Tree View
+  //
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const includeDirTreeView = vscode.window.createTreeView('spinExtension.includeDirectories', {
+    canSelectMany: false,
+    showCollapseAll: true,
+    treeDataProvider: includeDirsProvider
+  });
+
+  // Enable the include directories view when toolchain is enabled
+  vscode.commands.executeCommand('setContext', 'runtime.spin2.includeDirs.enabled', true);
+
+  vscode.commands.registerCommand('spinExtension.includeDirs.rescanAll', async () => includeDirsProvider.refresh());
+  vscode.commands.registerCommand('spinExtension.includeDirs.addLocalDir', async (node) => includeDirsProvider.addLocalDir(node));
+  vscode.commands.registerCommand('spinExtension.includeDirs.resetToAuto', async (node) => includeDirsProvider.resetToAuto(node));
+  vscode.commands.registerCommand('spinExtension.includeDirs.addLibraryDir', async () => includeDirsProvider.addLibraryDir());
+  vscode.commands.registerCommand('spinExtension.includeDirs.removeEntry', async (node) => includeDirsProvider.removeEntry(node));
+  vscode.commands.registerCommand('spinExtension.includeDirs.editEntry', async (node) => includeDirsProvider.editEntry(node));
+  vscode.commands.registerCommand('spinExtension.includeDirs.moveUp', async (node) => includeDirsProvider.moveUp(node));
+  vscode.commands.registerCommand('spinExtension.includeDirs.moveDown', async (node) => includeDirsProvider.moveDown(node));
+
+  // Register the command that the server uses to push discovered local includes
+  vscode.commands.registerCommand('spinExtension.includeDirs.updateLocalIncludes', async (discoveredIncludes) => {
+    if (discoveredIncludes) {
+      await vscode.workspace.getConfiguration('spin2').update('localIncludes', discoveredIncludes, vscode.ConfigurationTarget.Workspace);
+      includeDirsProvider.refresh();
+    }
+  });
 }
 
 function initializeProviders(): void {
@@ -1784,6 +1816,9 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
         flexBuildOptions.push('-l');
       }
       flexBuildOptions.push('--compress');
+      // Add include directory flags for the current file's folder
+      const flexIncludeFlags = getIncludeDirFlags(activeSpin1or2Filespec());
+      flexBuildOptions.push(...flexIncludeFlags);
       await updateRuntimeConfig('spin2.optionsBuild', flexBuildOptions);
       //
     } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT && haveP2) {
@@ -1821,6 +1856,9 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
       if (lstOutputEnabled) {
         buildOptions.push('-l');
       }
+      // Add include directory flags for the current file's folder
+      const pnutTsIncludeFlags = getIncludeDirFlags(activeSpin1or2Filespec());
+      buildOptions.push(...pnutTsIncludeFlags);
       await updateRuntimeConfig('spin2.optionsBuild', buildOptions);
 
       const useLoadP2ForP2: boolean = toolchainConfiguration.forceLoadP2Use;
@@ -1865,6 +1903,53 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
   } else {
     logExtensionMessage(`* SKIP writeToolchainBuildVariables() NOT ENABLED - EXIT`);
   }
+}
+
+function getIncludeDirFlags(srcFileFSpec: string | undefined): string[] {
+  // Build -I flags from the include directories configuration for the source file's folder
+  const includeFlags: string[] = [];
+
+  if (!srcFileFSpec) {
+    return includeFlags;
+  }
+
+  const srcDir = path.dirname(srcFileFSpec);
+  const workspaceRoot =
+    vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0 ? vscode.workspace.workspaceFolders[0].uri.fsPath : undefined;
+
+  if (!workspaceRoot) {
+    return includeFlags;
+  }
+
+  // Get per-folder local includes (Tier 2)
+  const localIncludes = vscode.workspace.getConfiguration('spin2').get<{ [key: string]: { auto: boolean; dirs: string[] } }>('localIncludes') || {};
+  let relFolder = path.relative(workspaceRoot, srcDir).replace(/\\/g, '/');
+  if (relFolder === '') {
+    relFolder = '.';
+  }
+
+  const folderEntry = localIncludes[relFolder];
+  if (folderEntry && folderEntry.dirs) {
+    for (const dir of folderEntry.dirs) {
+      const resolved = path.resolve(srcDir, dir);
+      includeFlags.push('-I');
+      includeFlags.push(resolved);
+    }
+  }
+
+  // Get central library paths (Tier 1)
+  const centralPaths: string[] = toolchainConfiguration.centralLibraryPaths || [];
+  for (const libDir of centralPaths) {
+    let expandedDir = libDir;
+    if (expandedDir.startsWith('~/') || expandedDir === '~') {
+      const home = process.env.HOME || process.env.USERPROFILE || '';
+      expandedDir = path.join(home, expandedDir.slice(1));
+    }
+    includeFlags.push('-I');
+    includeFlags.push(expandedDir);
+  }
+
+  return includeFlags;
 }
 
 function buildLoaderFSpec(haveP2, useProploaderForP2, useLoadP2ForP2): string {

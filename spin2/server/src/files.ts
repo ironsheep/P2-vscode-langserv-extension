@@ -50,13 +50,21 @@ export function readDocumentFromUri(uri: string, ctx: Context): TextDocument | n
  * convert list of filenames (possibly without type) to filespecs
  */
 
-export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: string, ctx: Context): string[] {
+export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: string, ctx: Context, additionalDirs: string[] = []): string[] {
   //const roots = ctx.workspaceFolders.map((f) => URI.parse(f.uri).fsPath);
   //const rootDir = ctx.workspaceFolders[0];
   const matchedFiles: string[] = [];
-  ctx.logger.log(`TRC: resolveReferencedIncludes(includedFiles=[${includedFiles}], rootDirSpec=[${rootDirSpec}])`);
+  ctx.logger.log(`TRC: resolveReferencedIncludes(includedFiles=[${includedFiles}], rootDirSpec=[${rootDirSpec}], additionalDirs=[${additionalDirs}])`);
 
-  const fileSpecs: string[] = getSpinFilesInDirSync(rootDirSpec, includedFiles, ctx);
+  // Build ordered list of directories to search: rootDir first, then additional include dirs
+  const searchDirs: string[] = [rootDirSpec, ...additionalDirs];
+
+  // Collect spin files from all search directories
+  const fileSpecs: string[] = [];
+  for (const dirSpec of searchDirs) {
+    const dirFiles = getSpinFilesInDirSync(dirSpec, includedFiles, ctx);
+    fileSpecs.push(...dirFiles);
+  }
   ctx.logger.log(`TRC: found fileSpecs=[${fileSpecs}]`);
   for (let index = 0; index < includedFiles.length; index++) {
     const fileBaseName = includedFiles[index];
@@ -66,8 +74,9 @@ export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: 
       matchFilename = `${fileBaseName}.`.toLowerCase();
     }
     ctx.logger.log(`TRC: looking for matchFilename=[${matchFilename}]`);
-    for (let index = 0; index < fileSpecs.length; index++) {
-      const fileSpec: string = fileSpecs[index];
+    let foundMatch: boolean = false;
+    for (let fsIdx = 0; fsIdx < fileSpecs.length; fsIdx++) {
+      const fileSpec: string = fileSpecs[fsIdx];
       const pathParts: string[] = fileSpec.split(/[/\\]/).filter(Boolean); // handle windows/linux paths
       const fileName = pathParts[pathParts.length - 1].toLowerCase();
       //ctx.logger.log(`TRC: found fileSpec=[${fileSpec}], pathParts=[${pathParts}](${pathParts.length}), fileName=[${fileName}]`);
@@ -75,7 +84,12 @@ export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: 
       if (fileName.startsWith(matchFilename)) {
         matchedFiles.push(fileSpec);
         ctx.logger.log(`TRC: matched fileSpec=[${fileSpec}]`);
+        foundMatch = true;
+        break; // first match wins (search order priority)
       }
+    }
+    if (!foundMatch) {
+      ctx.logger.log(`TRC: no match found for [${fileBaseName}] in any search directory`);
     }
   }
   return matchedFiles;
@@ -188,6 +202,23 @@ export function fileInDirExists(dirSpec: string, fileName: string, ctx: Context 
     ctx.logger.log(`TRC: fileInDirExists([${fspec}]) returns (${existsStatus})`);
   }
   return existsStatus;
+}
+
+export function fileInDirOrIncludeDirsExists(dirSpec: string, fileName: string, includeDirs: string[], ctx: Context | undefined = undefined): boolean {
+  // Check current directory first
+  if (fileInDirExists(dirSpec, fileName, ctx)) {
+    return true;
+  }
+  // Then check each include directory in order
+  for (const includeDir of includeDirs) {
+    if (fileInDirExists(includeDir, fileName, ctx)) {
+      if (ctx) {
+        ctx.logger.log(`TRC: fileInDirOrIncludeDirsExists() found [${fileName}] in includeDir=[${includeDir}]`);
+      }
+      return true;
+    }
+  }
+  return false;
 }
 
 export function fileExists(pathSpec: string): boolean {

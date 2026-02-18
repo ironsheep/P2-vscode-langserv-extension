@@ -13,6 +13,7 @@ import { Spin1DocumentSemanticParser } from './parser/spin1.documentSemanticPars
 import { Spin2DocumentSemanticParser } from './parser/spin2.documentSemanticParser';
 import { Spin2ObjectReferenceParser } from './parser/spin.objectReferenceParser';
 import { isSpin1File, fileSpecFromURI } from './parser/lang.utils';
+import { IncludeDiscovery } from './includeDiscovery';
 import * as path from 'path';
 
 // ----------------------------------------------------------------------------
@@ -80,6 +81,7 @@ export default class DocumentProcessor {
   private spin1semanticParser: Spin1DocumentSemanticParser;
   private spin2semanticParser: Spin2DocumentSemanticParser;
   private spin2ObjectReferenceParser: Spin2ObjectReferenceParser;
+  private includeDiscovery: IncludeDiscovery;
   private readonly PARM_ALL_BUT_INCLUDES: boolean = false;
   private readonly PARM_INCLUDES_TOO: boolean = true;
 
@@ -90,6 +92,7 @@ export default class DocumentProcessor {
     this.spin1semanticParser = new Spin1DocumentSemanticParser(ctx);
     this.spin2semanticParser = new Spin2DocumentSemanticParser(ctx);
     this.spin2ObjectReferenceParser = new Spin2ObjectReferenceParser(ctx);
+    this.includeDiscovery = new IncludeDiscovery(ctx);
   }
 
   get topDocFileSpecs() {
@@ -236,8 +239,11 @@ export default class DocumentProcessor {
     this.ctx.logger.log(`TRC: [${currDocumentFindings.instanceName()}] includedFiles=[${includedFiles}]`);
 
     if (includedFiles.length > 0) {
+      // get include directories for this folder
+      const additionalDirs: string[] = this.includeDiscovery.getIncludeDirsForFolder(currDocumentInProcess.folder);
+      this.ctx.logger.log(`TRC: DP.process() include dirs for [${currDocumentInProcess.folder}]: [${additionalDirs}]`);
       // convert to matching filespecs
-      const resolved: string[] = await resolveReferencedIncludes(includedFiles, currDocumentInProcess.folder, this.ctx);
+      const resolved: string[] = await resolveReferencedIncludes(includedFiles, currDocumentInProcess.folder, this.ctx, additionalDirs);
       this.ctx.logger.log(`TRC: -- STEP back from resolveReferencedIncludes()... resolved=[${resolved}]`);
       currDocumentInProcess.pushReferencedFileSpecs(...resolved);
       this.ctx.logger.log(`TRC: -- STEP scan the includes...`);
@@ -416,9 +422,11 @@ export default class DocumentProcessor {
       this.spin1symbolParser.reportDocumentSymbols(document, parserFindings); // for outline
       this.spin1semanticParser.reportDocumentSemanticTokens(document, parserFindings, processedDoc.folder); // for highlight
     } else {
-      this.ctx.logger.log(`TRC: DP._parseDocument() ${reason} Spin2 Document: ${docBasename}`);
+      // Get include directories for this folder to pass to semantic parser
+      const includeDirs: string[] = this.includeDiscovery.getIncludeDirsForFolder(processedDoc.folder);
+      this.ctx.logger.log(`TRC: DP._parseDocument() ${reason} Spin2 Document: ${docBasename}, includeDirs=[${includeDirs}]`);
       this.spin2symbolParser.reportDocumentSymbols(document, parserFindings); // for outline
-      this.spin2semanticParser.reportDocumentSemanticTokens(document, parserFindings, processedDoc.folder); // for highlight
+      this.spin2semanticParser.reportDocumentSemanticTokens(document, parserFindings, processedDoc.folder, includeDirs); // for highlight
     }
   }
 }

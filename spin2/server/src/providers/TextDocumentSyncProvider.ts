@@ -3,11 +3,12 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 //import Parser from "web-tree-sitter";
 
 import { Provider } from '.';
-import { Context, ServerBehaviorConfiguration, EditorConfiguration } from '../context';
+import { Context, ServerBehaviorConfiguration, EditorConfiguration, LocalIncludesByFolder } from '../context';
 //import DiagnosticProcessor from "../diagnostics";
 import DocumentProcessor, { ProcessedDocument } from '../DocumentProcessor';
 import { positionToPoint, Point } from '../geometry';
 import { fileSpecFromURI } from '../parser/lang.utils';
+import { IncludeDiscovery } from '../includeDiscovery';
 
 export interface Edit {
   startIndex: number;
@@ -22,11 +23,13 @@ export default class TextDocumentSyncProvider implements Provider {
   private processor: DocumentProcessor;
   //private diagnostics: DiagnosticProcessor;
   private connection: lsp.Connection;
+  private includeDiscovery: IncludeDiscovery;
 
   constructor(protected readonly ctx: Context) {
     this.processor = new DocumentProcessor(ctx);
     //this.diagnostics = new DiagnosticProcessor(ctx);
     this.connection = ctx.connection;
+    this.includeDiscovery = new IncludeDiscovery(ctx);
   }
 
   async handleOpenTextDocument({ textDocument: { uri, languageId, text, version } }: lsp.DidOpenTextDocumentParams) {
@@ -35,10 +38,12 @@ export default class TextDocumentSyncProvider implements Provider {
     this.ctx.topDocsByFSpec.set(docFSpec, uri);
     this._showStats(); // dump storage stats
 
-    // ensure we have the clint settings before proceeding
+    // ensure we have the client settings before proceeding
     if (this.ctx.parserConfig.maxNumberOfReportedIssues == -1) {
       this.ctx.logger.log(`TRC: LOAD client configuration`);
       await this.getLatestClientConfig();
+      // run initial auto-discovery of include directories
+      await this.includeDiscovery.runDiscovery();
     }
 
     const document = TextDocument.create(uri, languageId, version, text);
@@ -125,6 +130,32 @@ export default class TextDocumentSyncProvider implements Provider {
         `  DBG --  ctx.editorConfiguration.tabSize=(${this.ctx.editorConfig.tabSize}), insertSpaces=[${this.ctx.editorConfig.insertSpaces}], changes=(${configChanged})`
       );
     });
+    // fetch central library include paths
+    await this.ctx.connection.workspace.getConfiguration('spinExtension.library').then((libraryConfig: { includePaths?: string[] }) => {
+      if (libraryConfig != null) {
+        const newPaths: string[] = libraryConfig['includePaths'] || [];
+        const oldPathsJson = JSON.stringify(this.ctx.parserConfig.centralLibraryPaths);
+        const newPathsJson = JSON.stringify(newPaths);
+        if (oldPathsJson !== newPathsJson) {
+          this.ctx.parserConfig.centralLibraryPaths = newPaths;
+          configChanged = true;
+        }
+        this.ctx.logger.log(`  DBG --  ctx.parserConfig.centralLibraryPaths=(${JSON.stringify(this.ctx.parserConfig.centralLibraryPaths)})`);
+      }
+    });
+    // fetch per-folder local include settings
+    await this.ctx.connection.workspace.getConfiguration('spin2').then((spin2Config: { localIncludes?: LocalIncludesByFolder }) => {
+      if (spin2Config != null) {
+        const newLocalIncludes: LocalIncludesByFolder = spin2Config['localIncludes'] || {};
+        const oldJson = JSON.stringify(this.ctx.parserConfig.localIncludes);
+        const newJson = JSON.stringify(newLocalIncludes);
+        if (oldJson !== newJson) {
+          this.ctx.parserConfig.localIncludes = newLocalIncludes;
+          configChanged = true;
+        }
+        this.ctx.logger.log(`  DBG --  ctx.parserConfig.localIncludes=(${JSON.stringify(this.ctx.parserConfig.localIncludes)})`);
+      }
+    });
     return configChanged;
   }
 
@@ -195,6 +226,8 @@ export default class TextDocumentSyncProvider implements Provider {
       }
     }
     if (needTopDocsUpdated) {
+      // re-run auto-discovery when files are created/deleted
+      await this.includeDiscovery.runDiscovery();
       await this.processor.reparseTopDocs();
       const listOfTopDocFSpecs: string[] = this.processor.docFileSpecs;
       for (let index = 0; index < listOfTopDocFSpecs.length; index++) {

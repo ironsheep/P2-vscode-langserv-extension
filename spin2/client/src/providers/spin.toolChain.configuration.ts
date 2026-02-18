@@ -133,6 +133,10 @@ const loadToolchainConfiguration = () => {
     flexspinInstalled = true;
   }
 
+  // Load central library include paths
+  const libraryConfig = vscode.workspace.getConfiguration('spinExtension.library');
+  const centralLibraryPaths: string[] = libraryConfig.get<string[]>('includePaths') || [];
+
   return {
     topFilename,
     deviceNodesFound,
@@ -154,7 +158,8 @@ const loadToolchainConfiguration = () => {
     userBaudrate,
     flexspinInstalled,
     serialMatchVendorOnly,
-    serialResetType
+    serialResetType,
+    centralLibraryPaths
   };
 };
 
@@ -207,7 +212,8 @@ export const reloadToolchainConfiguration = () => {
     toolchainConfiguration.userBaudrate === newToolchainConfig.userBaudrate &&
     toolchainConfiguration.flexspinInstalled === newToolchainConfig.flexspinInstalled &&
     toolchainConfiguration.serialMatchVendorOnly === newToolchainConfig.serialMatchVendorOnly &&
-    toolchainConfiguration.serialResetType === newToolchainConfig.serialResetType
+    toolchainConfiguration.serialResetType === newToolchainConfig.serialResetType &&
+    JSON.stringify(toolchainConfiguration.centralLibraryPaths) === JSON.stringify(newToolchainConfig.centralLibraryPaths)
   ) {
     return false;
   }
@@ -234,6 +240,7 @@ export const reloadToolchainConfiguration = () => {
   toolchainConfiguration.flexspinInstalled = newToolchainConfig.flexspinInstalled;
   toolchainConfiguration.serialMatchVendorOnly = newToolchainConfig.serialMatchVendorOnly;
   toolchainConfiguration.serialResetType = newToolchainConfig.serialResetType;
+  toolchainConfiguration.centralLibraryPaths = newToolchainConfig.centralLibraryPaths;
 
   // post information to out-side world via our CONTEXT at config change
   vscode.commands.executeCommand('setContext', 'runtime.spin2.toolchain.enabled', toolchainConfiguration.advancedToolChainEnabled);

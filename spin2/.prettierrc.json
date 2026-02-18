@@ -9,5 +9,13 @@
 	"singleAttributePerLine": false,
 	"singleQuote": true,
 	"tabWidth": 2,
-	"trailingComma": "none"
+	"trailingComma": "none",
+	"overrides": [
+		{
+			"files": ["package.json", "scripts/*.json"],
+			"options": {
+				"parser": "json"
+			}
+		}
+	]
   }

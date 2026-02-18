@@ -20,5 +20,9 @@
   },
   "explorerExclude.backup": {},
   "cSpell.enableFiletypes": ["!json", "!typescript"],
-  "cSpell.words": ["FTDI"]
+  "cSpell.words": ["FTDI"],
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  }
 }

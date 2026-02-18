@@ -32,7 +32,7 @@ import {
   versionFromSpinLanguageSpec,
   isMethodCallEmptyParens
 } from './spin.common';
-import { fileInDirExists } from '../files';
+import { fileInDirExists, fileInDirOrIncludeDirsExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
 
 // ----------------------------------------------------------------------------
@@ -89,6 +89,7 @@ export class Spin2DocumentSemanticParser {
   private currentFilespec: string = '';
   private isSpin1Document: boolean = false;
   private directory: string = '';
+  private includeDirs: string[] = [];
   private desiredDocVersion: number = 0;
 
   private bRecordTrailingComments: boolean = false; // initially, we don't generate tokens for trailing comments on lines
@@ -119,9 +120,10 @@ export class Spin2DocumentSemanticParser {
   // SEE https://www.codota.com/code/javascript/functions/vscode/CancellationToken/isCancellationRequested
   //if (cancelToken) {
   //} // silence our compiler for now... TODO: we should adjust loop so it can break on cancelToken.isCancellationRequested
-  public reportDocumentSemanticTokens(document: TextDocument, findings: DocumentFindings, dirSpec: string): void {
+  public reportDocumentSemanticTokens(document: TextDocument, findings: DocumentFindings, dirSpec: string, includeDirs: string[] = []): void {
     this.semanticFindings = findings;
     this.directory = dirSpec;
+    this.includeDirs = includeDirs;
     const startingLangVersion: number = this.parseUtils.selectedSpinVersion();
     if (this.isDebugLogEnabled) {
       this.semanticFindings.enableLogging(this.ctx);
@@ -2244,7 +2246,7 @@ export class Spin2DocumentSemanticParser {
           eSeverity.Error,
           `P2 spin Invalid filename character "/" in [${filenameNoQuotes}]`
         );
-      } else if (!fileInDirExists(this.directory, filenameNoQuotes, logCtx)) {
+      } else if (!fileInDirOrIncludeDirsExists(this.directory, filenameNoQuotes, this.includeDirs, logCtx)) {
         this.semanticFindings.pushDiagnosticMessage(
           lineIdx,
           nameOffset,
@@ -2273,7 +2275,7 @@ export class Spin2DocumentSemanticParser {
           eSeverity.Error,
           `P2 spin Invalid filename character "/" in [${filenameNoQuotes}]`
         );
-      } else if (!fileInDirExists(this.directory, checkFilename, logCtx)) {
+      } else if (!fileInDirOrIncludeDirsExists(this.directory, checkFilename, this.includeDirs, logCtx)) {
         const displayName: string = hasSuffix ? filenameNoQuotes : `${filenameNoQuotes}.spin2`;
         this.semanticFindings.pushDiagnosticMessage(
           lineIdx,

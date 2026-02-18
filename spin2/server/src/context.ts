@@ -11,9 +11,20 @@ import { ProcessedDocumentByFSpec, DocumentFindingsByFSpec, TopDocsByFSpec } fro
 //  client-side configuration details
 //   CLASS ServerBehaviorConfiguration
 //
+// Per-folder include directory entry
+export interface ILocalIncludeEntry {
+  auto: boolean;
+  dirs: string[];
+}
+
+// Map of relative folder path -> include entry
+export type LocalIncludesByFolder = { [folderPath: string]: ILocalIncludeEntry };
+
 export class ServerBehaviorConfiguration {
   public maxNumberOfReportedIssues: number = -1; // NOT SET
   public highlightFlexspinDirectives: boolean = false;
+  public centralLibraryPaths: string[] = [];
+  public localIncludes: LocalIncludesByFolder = {};
 }
 
 export class EditorConfiguration {
