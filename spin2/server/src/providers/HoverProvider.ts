@@ -106,16 +106,17 @@ export default class HoverProvider implements Provider {
         const breakRegEx = /<br>/gi; // we are globally replacing <br> or <BR> markers
 
         const langId = this.haveSpin1File ? 'spin' : 'spin2';
+
+        // Type annotation rendered as italic markdown above the code block
+        if (IDefinitionInfo.toolUsed) {
+          hoverTexts.push(`*${IDefinitionInfo.toolUsed}*`);
+        }
         hoverTexts.push(this.codeBlock(text, langId));
         if (IDefinitionInfo.doc != null) {
           // SIGH: Markdown renders line breaks when there are two or more of them.
           // so replace <br/> with two newLines!
           hoverTexts.push(IDefinitionInfo.doc.replace(breakRegEx, '\n\n'));
         }
-        //this._logMessage(`+ Hvr: provideHover() EXIT with hover: [${hoverTexts.join("\n")}]`);
-
-        // experiment: insert  language: 'spin2',  into contents.. didn't work!
-        // REF: https://stackoverflow.com/questions/62999411/how-to-use-vs-code-hover-provider-text-color
 
         return {
           contents: {
@@ -234,7 +235,7 @@ export default class HoverProvider implements Provider {
         file: document.uri,
         line: position.line,
         column: position.character,
-        toolUsed: '????',
+        toolUsed: '',
         declarationlines: [],
         doc: '{huh, I have no clue!}',
         name: path.basename(document.uri)
@@ -339,30 +340,31 @@ export default class HoverProvider implements Provider {
 
         // -------------------------------
         // load CODE section of hover
+        // Annotation goes in toolUsed (rendered as italic markdown above code block)
+        // Only valid Spin2 code goes in declarationlines (rendered in syntax-highlighted code block)
         //
         const isMethod: boolean = typeString.includes('method');
         if (isMethod) {
           tokenFindings.signature = this.getSignatureWithoutLocals(nonCommentDecl);
           if (tokenFindings.scope.includes('object')) {
-            if (typeString.includes('method')) {
-              defInfo.declarationlines = [`(${scopeString} ${typeString}) ${tokenFindings.signature}`];
-            } else {
-              defInfo.declarationlines = [`(${scopeString} ${typeString}) ${nameString}`];
-            }
+            defInfo.toolUsed = `${scopeString} ${typeString}`;
+            defInfo.declarationlines = [tokenFindings.signature];
           } else if (isSignatureLine) {
-            // for method declaration use declaration line
+            // for method declaration use declaration line (already valid Spin2)
             defInfo.declarationlines = [sourceLine];
           } else {
-            // for method use, replace PUB/PRI with our interp
-            const interpDecl = typeInterp + nonCommentDecl.substring(3);
-            defInfo.declarationlines = [interpDecl];
+            // for method use, show clean signature with PUB/PRI for syntax highlighting
+            defInfo.toolUsed = scopeString ? `${scopeString} ${typeString}` : typeString;
+            defInfo.declarationlines = [tokenFindings.signature];
           }
         } else if (tokenFindings.isGoodInterp) {
-          // else spew good interp details
-          defInfo.declarationlines = [typeInterpWName];
+          // good interp details: annotation separate from name
+          defInfo.toolUsed = scopeString ? `${scopeString} ${typeString}` : typeString;
+          defInfo.declarationlines = [nameString];
         } else {
-          // else spew details until we figure out more...
-          defInfo.declarationlines = [typeInterpWName, tokenFindings.tokenRawInterp];
+          // fallback: annotation separate from name + raw interp
+          defInfo.toolUsed = scopeString ? `${scopeString} ${typeString}` : typeString;
+          defInfo.declarationlines = [nameString, tokenFindings.tokenRawInterp];
         }
 
         // -------------------------------
@@ -443,49 +445,60 @@ export default class HoverProvider implements Provider {
           let titleText: string | undefined = builtInFindings.category;
           let subTitleText: string | undefined = undefined;
           if (builtInFindings.type == eBuiltInType.BIT_VARIABLE) {
-            defInfo.declarationlines = ['(variable) ' + searchWord];
+            defInfo.toolUsed = 'variable';
+            defInfo.declarationlines = [searchWord];
             // in one case, we are doubling "variable", remove one...
             if (titleText && titleText.includes('Spin Variable')) {
               titleText = 'Spin';
             }
             subTitleText = ` variable: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_SYMBOL) {
-            defInfo.declarationlines = ['(symbol) ' + searchWord];
+            defInfo.toolUsed = 'symbol';
+            defInfo.declarationlines = [searchWord];
             subTitleText = ` symbol: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_CONSTANT) {
-            defInfo.declarationlines = ['(constant 32-bit) ' + searchWord];
+            defInfo.toolUsed = 'constant 32-bit';
+            defInfo.declarationlines = [searchWord];
             subTitleText = ` constant: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_METHOD_POINTER) {
-            defInfo.declarationlines = ['(built-in method pointer) ' + builtInFindings.signature];
+            defInfo.toolUsed = 'built-in method pointer';
+            defInfo.declarationlines = [builtInFindings.signature];
             subTitleText = `: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_METHOD) {
-            defInfo.declarationlines = ['(built-in method) ' + builtInFindings.signature];
+            defInfo.toolUsed = 'built-in method';
+            defInfo.declarationlines = [builtInFindings.signature];
             subTitleText = `: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_LANG_PART) {
-            defInfo.declarationlines = [`(${langIdString} language) ` + searchWord];
+            defInfo.toolUsed = `${langIdString} language`;
+            defInfo.declarationlines = [searchWord];
             subTitleText = `: *${langIdString} built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_PASM_DIRECTIVE) {
-            defInfo.declarationlines = ['(built-in directive) ' + builtInFindings.signature];
+            defInfo.toolUsed = 'built-in directive';
+            defInfo.declarationlines = [builtInFindings.signature];
             subTitleText = `: *${langIdString} built-in*`;
           } else if (this.haveSpin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_SYMBOL) {
             this._logMessage(`+ Hvr: builtInFindings.type=[eBuiltInType.BIT_DEBUG_SYMBOL]`);
             if (bISdebugStatement) {
-              defInfo.declarationlines = ['(DEBUG method) ' + builtInFindings.signature];
+              defInfo.toolUsed = 'DEBUG method';
+              defInfo.declarationlines = [builtInFindings.signature];
               defInfo.doc = ''.concat(`${builtInFindings.category}: *${langIdString} debug built-in*<br>`, '- ' + builtInFindings.description);
               // deselect lines into mdLines mech...
               mdLines = [];
               titleText = undefined;
               subTitleText = undefined;
             } else {
-              defInfo.declarationlines = ['(DEBUG symbol) ' + searchWord];
+              defInfo.toolUsed = 'DEBUG symbol';
+              defInfo.declarationlines = [searchWord];
               subTitleText = `: *${langIdString} debug built-in*`;
             }
           } else if (this.haveSpin1File == false && builtInFindings.type == eBuiltInType.BIT_DEBUG_METHOD) {
             this._logMessage(`+ Hvr: builtInFindings.type=[eBuiltInType.BIT_DEBUG_METHOD]`);
-            defInfo.declarationlines = ['(DEBUG method) ' + builtInFindings.signature];
+            defInfo.toolUsed = 'DEBUG method';
+            defInfo.declarationlines = [builtInFindings.signature];
             subTitleText = `: *${langIdString} debug built-in*`;
           } else if (builtInFindings.type == eBuiltInType.BIT_TYPE) {
-            defInfo.declarationlines = [`(${langIdString} Storage) ` + searchWord];
+            defInfo.toolUsed = `${langIdString} Storage`;
+            defInfo.declarationlines = [searchWord];
             subTitleText = `: *${langIdString} built-in*`;
           }
           if (titleText && subTitleText) {

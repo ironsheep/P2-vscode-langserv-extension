@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "p2kb-mcp": {
+      "command": "/home/node/.local/p2kb-mcp/bin/p2kb-mcp",
+      "args": ["--mode", "stdio"]
+    }
+  }
+}

@@ -4,7 +4,7 @@
 import * as path from 'path';
 
 import * as lsp from 'vscode-languageserver';
-import { Position, Range, ParameterInformation, SignatureInformation, SignatureHelp } from 'vscode-languageserver-types';
+import { Position, Range, ParameterInformation, SignatureInformation, SignatureHelp, MarkupKind } from 'vscode-languageserver-types';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Provider } from '.';
 import { Context } from '../context';
@@ -126,24 +126,31 @@ export default class SignatureHelpProvider implements Provider {
       const breakRegEx = /<br>/gi; // we are globally replacing <br> or double-newline markers
       if (defInfo.doc?.includes('Custom Method')) {
         // use this for user(custom) methods
-        //const methodType: string = defInfo.declarationlines[0].substring(0, 3).toUpperCase();
-        //const isPrivate: boolean = methodType == 'PRI';
-        //const sigScope: string = isPrivate ? 'private' : 'public';
-        //sig = this.signatureWithOutLocals(`(object ${sigScope} method) ` + nonCommentDecl);
-        sig = defInfo.declarationlines[0];
-        const methDescr: string = this._removeCustomMethod(this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, '\n'));
-        si = SignatureInformation.create(sig, methDescr);
+        // Strip annotation prefix from label for cleaner display
+        const { annotation, code } = this.splitAnnotationFromLabel(defInfo.declarationlines[0]);
+        sig = code;
+        let methDescr: string = this._removeCustomMethod(this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, '\n\n'));
+        if (annotation) {
+          methDescr = `*${annotation}*\n\n${methDescr}`;
+        }
+        si = SignatureInformation.create(sig);
         if (si) {
+          si.documentation = { kind: MarkupKind.Markdown, value: methDescr };
           si.parameters = this.getParametersAndReturnTypeFromDoc(defInfo.doc);
         }
       } else if (defInfo.line == -1) {
         // use this for built-in methods
-        const methDescr: string = this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, '\n');
-        sig = '(Built-in) ' + defInfo.declarationlines[0];
+        const langIdString: string = this.haveSpin1File ? 'Spin' : 'Spin2';
+        let methDescr: string = this.getMethodDescriptionFromDoc(defInfo.doc).replace(breakRegEx, '\n\n');
+        methDescr = `*${langIdString} built-in*\n\n${methDescr}`;
+        sig = defInfo.declarationlines[0];
         this._logMessage(`+ Sig: sig=[${sig}], methDescr=[${methDescr}]`);
-        si = SignatureInformation.create(sig, methDescr);
-        if (si && defInfo.parameters) {
-          si.parameters = this.getParametersAndReturnTypeFromParameterStringAr(defInfo.parameters);
+        si = SignatureInformation.create(sig);
+        if (si) {
+          si.documentation = { kind: MarkupKind.Markdown, value: methDescr };
+          if (defInfo.parameters) {
+            si.parameters = this.getParametersAndReturnTypeFromParameterStringAr(defInfo.parameters);
+          }
         }
       }
       if (!si || !sig) Promise.resolve(signatureHelp);
@@ -173,6 +180,16 @@ export default class SignatureHelpProvider implements Provider {
       }
     }
     return filtLines.join('\n');
+  }
+
+  private splitAnnotationFromLabel(label: string): { annotation: string | null; code: string } {
+    // Split "(type annotation) code" into separate parts
+    // e.g., "(object public method) PUB start(pin, baud)" → { annotation: "object public method", code: "PUB start(pin, baud)" }
+    const match = label.match(/^\(([^)]+)\)\s+([\s\S]+)$/);
+    if (match) {
+      return { annotation: match[1], code: match[2] };
+    }
+    return { annotation: null, code: label };
   }
 
   private signatureWithOutLocals(signature: string): string {
