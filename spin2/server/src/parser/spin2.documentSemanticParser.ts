@@ -5758,7 +5758,8 @@ export class Spin2DocumentSemanticParser {
                   } else if (
                     this.parseUtils.isSpinBuiltinMethod(namePart) &&
                     !new RegExp(`${escapedNamePart}\\s*\\(`).test(nonStringAssignmentRHSStr) &&
-                    !this.parseUtils.isSpinNoparenMethod(namePart)
+                    !this.parseUtils.isSpinNoparenMethod(namePart) &&
+                    !sizeOverrideAlreadyColored
                   ) {
                     // FIXME: TODO: replaces name-concat with regEX search past whitespace for '('
                     this._logSPIN(`  -- rptSPIN() MISSING PARENS F2 name=[${namePart}]`);
@@ -8235,6 +8236,19 @@ export class Spin2DocumentSemanticParser {
               this._logSPIN(`  -- rptSPINIdxExpr() index is symbol=[${namePart}]`);
               this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, referenceDetails.type, referenceDetails.modifiers);
               nameOffset += namePart.length;
+            } else if (this.parseUtils.isSpinBuiltinMethod(namePart)) {
+              // handle builtin method used within index expression (e.g., COGID() in LONG[addr][COGID()])
+              this._logSPIN(`  -- rptSPINIdxExpr() index is builtin method=[${namePart}]`);
+              this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, 'function', ['support']);
+              nameOffset += namePart.length;
+            } else if (
+              this.parseUtils.isSpinReservedWord(namePart) ||
+              this.parseUtils.isCoginitReservedSymbol(namePart) ||
+              this.parseUtils.isTaskReservedSymbol(namePart)
+            ) {
+              // handle reserved words/symbols used within index expression
+              this._logSPIN(`  -- rptSPINIdxExpr() index is reserved word=[${namePart}]`);
+              nameOffset += namePart.length;
             } else {
               // handle unknown-name case -OR- invalid symbol name
               this._logSPIN(`  -- rptSPINIdxExpr() index is unknown=[${namePart}]`);
@@ -8392,7 +8406,10 @@ export class Spin2DocumentSemanticParser {
           if (structureType === undefined) {
             this._logSPIN(`  -- rptStruRef() ERROR: no structure TYPE for [${structInstanceName}]`);
           } else {
-            const topStructure: RememberedStructure | undefined = this.semanticFindings.getStructure(structureType);
+            // For external object structure types (e.g., "sd.cid_t"), look up in external object's findings
+            const topStructure: RememberedStructure | undefined = structureType.includes('.')
+              ? this._getStructureFromObjectReference(structureType)
+              : this.semanticFindings.getStructure(structureType);
             if (topStructure === undefined) {
               this._logSPIN(`  -- rptStruRef() ERROR: no structure INFO for [${structInstanceName}]`);
             } else {

@@ -25,6 +25,8 @@ export class ServerBehaviorConfiguration {
   public highlightFlexspinDirectives: boolean = false;
   public centralLibraryPaths: string[] = [];
   public localIncludes: LocalIncludesByFolder = {};
+  public excludeIncludeDirectories: string[] = [];
+  public includeDirectoryDiscoveryEnabled: boolean = false;
 }
 
 export class EditorConfiguration {

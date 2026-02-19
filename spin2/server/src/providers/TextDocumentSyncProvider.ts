@@ -42,8 +42,12 @@ export default class TextDocumentSyncProvider implements Provider {
     if (this.ctx.parserConfig.maxNumberOfReportedIssues == -1) {
       this.ctx.logger.log(`TRC: LOAD client configuration`);
       await this.getLatestClientConfig();
-      // run initial auto-discovery of include directories
-      await this.includeDiscovery.runDiscovery();
+      // run initial auto-discovery of include directories (only when toolchain advanced is enabled)
+      if (this.ctx.parserConfig.includeDirectoryDiscoveryEnabled) {
+        await this.includeDiscovery.runDiscovery();
+      } else {
+        this.ctx.logger.log(`TRC: IncludeDiscovery SKIPPED (toolchain advanced not enabled)`);
+      }
     }
 
     const document = TextDocument.create(uri, languageId, version, text);
@@ -146,19 +150,41 @@ export default class TextDocumentSyncProvider implements Provider {
         this.ctx.logger.log(`  DBG --  ctx.parserConfig.centralLibraryPaths=(${JSON.stringify(this.ctx.parserConfig.centralLibraryPaths)})`);
       }
     });
-    // fetch per-folder local include settings
-    await this.ctx.connection.workspace.getConfiguration('spin2').then((spin2Config: { localIncludes?: LocalIncludesByFolder }) => {
-      if (spin2Config != null) {
-        const newLocalIncludes: LocalIncludesByFolder = spin2Config['localIncludes'] || {};
-        const oldJson = JSON.stringify(this.ctx.parserConfig.localIncludes);
-        const newJson = JSON.stringify(newLocalIncludes);
-        if (oldJson !== newJson) {
-          this.ctx.parserConfig.localIncludes = newLocalIncludes;
+    // fetch toolchain advanced enable setting (controls include directory discovery)
+    await this.ctx.connection.workspace.getConfiguration('spinExtension.toolchain.advanced').then((advancedConfig: { enable?: boolean }) => {
+      if (advancedConfig != null) {
+        const newEnabled: boolean = advancedConfig['enable'] === true;
+        if (newEnabled !== this.ctx.parserConfig.includeDirectoryDiscoveryEnabled) {
+          this.ctx.parserConfig.includeDirectoryDiscoveryEnabled = newEnabled;
           configChanged = true;
         }
-        this.ctx.logger.log(`  DBG --  ctx.parserConfig.localIncludes=(${JSON.stringify(this.ctx.parserConfig.localIncludes)})`);
+        this.ctx.logger.log(`  DBG --  ctx.parserConfig.includeDirectoryDiscoveryEnabled=(${this.ctx.parserConfig.includeDirectoryDiscoveryEnabled})`);
       }
     });
+    // fetch per-folder local include settings
+    await this.ctx.connection.workspace
+      .getConfiguration('spin2')
+      .then((spin2Config: { localIncludes?: LocalIncludesByFolder; excludeIncludeDirectories?: string[] }) => {
+        if (spin2Config != null) {
+          const newLocalIncludes: LocalIncludesByFolder = spin2Config['localIncludes'] || {};
+          const oldJson = JSON.stringify(this.ctx.parserConfig.localIncludes);
+          const newJson = JSON.stringify(newLocalIncludes);
+          if (oldJson !== newJson) {
+            this.ctx.parserConfig.localIncludes = newLocalIncludes;
+            configChanged = true;
+          }
+          this.ctx.logger.log(`  DBG --  ctx.parserConfig.localIncludes=(${JSON.stringify(this.ctx.parserConfig.localIncludes)})`);
+
+          const newExcludes: string[] = spin2Config['excludeIncludeDirectories'] || [];
+          const oldExcludesJson = JSON.stringify(this.ctx.parserConfig.excludeIncludeDirectories);
+          const newExcludesJson = JSON.stringify(newExcludes);
+          if (oldExcludesJson !== newExcludesJson) {
+            this.ctx.parserConfig.excludeIncludeDirectories = newExcludes;
+            configChanged = true;
+          }
+          this.ctx.logger.log(`  DBG --  ctx.parserConfig.excludeIncludeDirectories=(${JSON.stringify(this.ctx.parserConfig.excludeIncludeDirectories)})`);
+        }
+      });
     return configChanged;
   }
 
@@ -170,9 +196,25 @@ export default class TextDocumentSyncProvider implements Provider {
     } else {
       // client notified us that it changed the settings... we should get an update!
       this.ctx.logger.log(`TRC: onDidChangeConfiguration() Client says settings were updated`);
+
+      // Snapshot discovery-relevant inputs BEFORE reading new config
+      const oldExcludes = JSON.stringify(this.ctx.parserConfig.excludeIncludeDirectories);
+      const oldDiscoveryEnabled = this.ctx.parserConfig.includeDirectoryDiscoveryEnabled;
+
       // do depth-first refresh
       const configChanged: boolean = await this.getLatestClientConfig();
       if (configChanged) {
+        // Only re-run discovery if discovery-INPUT settings changed
+        // (excludeIncludeDirectories or includeDirectoryDiscoveryEnabled).
+        // localIncludes is an OUTPUT of discovery and should NOT trigger re-discovery.
+        const newExcludes = JSON.stringify(this.ctx.parserConfig.excludeIncludeDirectories);
+        const discoveryInputChanged = oldExcludes !== newExcludes || oldDiscoveryEnabled !== this.ctx.parserConfig.includeDirectoryDiscoveryEnabled;
+        if (discoveryInputChanged && this.ctx.parserConfig.includeDirectoryDiscoveryEnabled) {
+          this.ctx.logger.log(`TRC: onDidChangeConfiguration() discovery-relevant config changed, re-running discovery`);
+          await this.includeDiscovery.runDiscovery();
+        } else {
+          this.ctx.logger.log(`TRC: onDidChangeConfiguration() only non-discovery config changed, skipping discovery`);
+        }
         await this.processor.reparseAllDocs();
       } else {
         this.ctx.logger.log(`TRC: --- but nothing changed, skipping`);
@@ -229,8 +271,10 @@ export default class TextDocumentSyncProvider implements Provider {
       }
     }
     if (needTopDocsUpdated) {
-      // re-run auto-discovery when files are created/deleted
-      await this.includeDiscovery.runDiscovery();
+      // re-run auto-discovery when files are created/deleted (only when toolchain advanced is enabled)
+      if (this.ctx.parserConfig.includeDirectoryDiscoveryEnabled) {
+        await this.includeDiscovery.runDiscovery();
+      }
       await this.processor.reparseTopDocs();
       const listOfTopDocFSpecs: string[] = this.processor.docFileSpecs;
       for (let index = 0; index < listOfTopDocFSpecs.length; index++) {
@@ -347,6 +391,14 @@ export default class TextDocumentSyncProvider implements Provider {
     };
   }
 
+  async handleRescanIncludes(): Promise<void> {
+    this.ctx.logger.log('TRC: spin/rescanIncludes notification received');
+    await this.getLatestClientConfig();
+    if (this.ctx.parserConfig.includeDirectoryDiscoveryEnabled) {
+      await this.includeDiscovery.runDiscovery();
+    }
+  }
+
   register(connection: lsp.Connection): lsp.ServerCapabilities {
     connection.onDidOpenTextDocument(this.handleOpenTextDocument.bind(this));
     connection.onDidChangeTextDocument(this.handleTextDocumentChanged.bind(this));
@@ -354,6 +406,7 @@ export default class TextDocumentSyncProvider implements Provider {
     connection.onDidCloseTextDocument(this.handleCloseTextDocument.bind(this));
     connection.onDidChangeConfiguration(this.handleConfigurationChanged.bind(this));
     connection.onDidChangeWatchedFiles(this.handleWatchedFilesChange.bind(this));
+    connection.onNotification('spin/rescanIncludes', this.handleRescanIncludes.bind(this));
     return {
       textDocumentSync: lsp.TextDocumentSyncKind.Incremental
     };

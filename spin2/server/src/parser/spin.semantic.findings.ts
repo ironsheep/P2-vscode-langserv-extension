@@ -1826,7 +1826,8 @@ export class DocumentFindings {
 
   public recordStructureInstance(structureType: string, instanceName: string, methodScope: string = ''): void {
     const structTypeKey: string = structureType.toLowerCase();
-    if (!this.isStructure(structTypeKey)) {
+    const isExternalObjectType: boolean = structureType.includes('.');
+    if (!this.isStructure(structTypeKey) && !isExternalObjectType) {
       this._logMessage(`  -- rcdStruInst() ERROR STRUCT [${structureType}] is unknown!!`);
     } else {
       if (methodScope.length > 0) {

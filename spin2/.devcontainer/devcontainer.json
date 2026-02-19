@@ -4,7 +4,16 @@
   "image": "node:latest",
   "context": "..",
   "appPort": ["5001:5001", "9123:8123"],
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installSudo": "true",
+      "username": "node",
+      "uid": "1000",
+      "gid": "1000"
+    }
+  },
   "postCreateCommand": "npm install && mkdir -p $HOME/.local/p2kb-mcp && tar xzf .devcontainer/p2kb-mcp-v1.3.3-linux-arm64.tar.gz -C $HOME/.local && chmod +x $HOME/.local/p2kb-mcp/bin/p2kb-mcp",
+  "remoteUser": "node",
   "runArgs": [
     "-v",
     "${env:HOME}${env:USERPROFILE}/.ssh:/tmp/.ssh" // This is added so you can push from inside the container

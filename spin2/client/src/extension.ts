@@ -94,8 +94,8 @@ function getSetupExtensionClient(context: vscode.ExtensionContext): LanguageClie
       { scheme: 'file', language: 'p2asm' } // is here so we can semantic highlight this files
     ],
     synchronize: {
-      // Notify the server about file changes to '.clientrc files contained in the workspace
-      fileEvents: vscode.workspace.createFileSystemWatcher('**/*')
+      // Notify the server about file changes to Spin/Spin2/P2asm files in the workspace
+      fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{spin,spin2,p2asm}')
     }
   };
 
@@ -182,13 +182,23 @@ function registerCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('spinExtension.insertMode.rotate', toggleCommand),
     vscode.commands.registerCommand('spinExtension.insertMode.toggle', toggleCommand2State),
-
-    vscode.commands.registerCommand('type', typeCommand),
-    vscode.commands.registerCommand('paste', pasteCommand),
-
     vscode.commands.registerCommand('spinExtension.insertMode.deleteLeft', deleteLeftCommand),
-    vscode.commands.registerCommand('spinExtension.insertMode.deleteRight', deleteRightCommand),
+    vscode.commands.registerCommand('spinExtension.insertMode.deleteRight', deleteRightCommand)
+  );
 
+  // Register 'type' and 'paste' overrides separately — these can throw if another extension
+  // (e.g. Vim) already registered them.  Isolate so a failure doesn't kill the rest of activation.
+  try {
+    context.subscriptions.push(
+      vscode.commands.registerCommand('type', typeCommand),
+      vscode.commands.registerCommand('paste', pasteCommand)
+    );
+  } catch (err) {
+    logExtensionMessage(`WARN: Could not register type/paste overrides (another extension may own them): ${err}`);
+    console.warn('Spin2 Extension: type/paste command registration failed:', err);
+  }
+
+  context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(handleActiveTextEditorChanged),
     vscode.window.onDidChangeVisibleTextEditors(handleVisibleTextEditorChanged),
 
@@ -713,13 +723,12 @@ echo $? >${outputFile}.status
   //vscode.window.registerTreeDataProvider("spinExtension.objectDependencies", objTreeProvider);
 
   // WARNING this next statement actually DOES enable the tree view!!!  don't remove it
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const objDepTreeView: vscode.TreeView<Dependency> = vscode.window.createTreeView('spinExtension.objectDependencies', {
     canSelectMany: false,
     showCollapseAll: false, // now false so we don't have disfunctioning [-] button
     treeDataProvider: objTreeProvider
   });
-  //objDepTreeView.onDidChangeSelection(objTreeProvider.onElementClick);
+  context.subscriptions.push(objDepTreeView);
 
   const objectTreeViewRefreshCommand = 'spinExtension.objectDependencies.refreshEntry';
   const objectTreeViewExpandAllCommand = 'spinExtension.objectDependencies.expandAll';
@@ -727,40 +736,93 @@ echo $? >${outputFile}.status
   const objectTreeViewActivateFileCommand = 'spinExtension.objectDependencies.activateFile';
   // post information to out-side world via our CONTEXT - we default to showing top-level only (so, collapsed is true)
 
-  vscode.commands.registerCommand(objectTreeViewRefreshCommand, async () => objTreeProvider.refresh());
-  vscode.commands.registerCommand(objectTreeViewExpandAllCommand, async () => objTreeProvider.expandAll());
-  vscode.commands.registerCommand(objectTreeViewCollapseAllCommand, async () => objTreeProvider.collapseAll());
-  vscode.commands.registerCommand(objectTreeViewActivateFileCommand, async (arg1) => objTreeProvider.onElementClick(arg1));
+  context.subscriptions.push(
+    vscode.commands.registerCommand(objectTreeViewRefreshCommand, async () => objTreeProvider.refresh()),
+    vscode.commands.registerCommand(objectTreeViewExpandAllCommand, async () => objTreeProvider.expandAll()),
+    vscode.commands.registerCommand(objectTreeViewCollapseAllCommand, async () => objTreeProvider.collapseAll()),
+    vscode.commands.registerCommand(objectTreeViewActivateFileCommand, async (arg1) => objTreeProvider.onElementClick(arg1))
+  );
 
   // ----------------------------------------------------------------------------
   //   Include Directories Tree View
   //
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  logExtensionMessage('* registerCommands() registering include directory commands...');
   const includeDirTreeView = vscode.window.createTreeView('spinExtension.includeDirectories', {
     canSelectMany: false,
     showCollapseAll: true,
     treeDataProvider: includeDirsProvider
   });
+  context.subscriptions.push(includeDirTreeView);
 
-  // Enable the include directories view when toolchain is enabled
-  vscode.commands.executeCommand('setContext', 'runtime.spin2.includeDirs.enabled', true);
+  // Enable the include directories view only when toolchain advanced is enabled
+  vscode.commands.executeCommand('setContext', 'runtime.spin2.includeDirs.enabled', toolchainConfiguration.advancedToolChainEnabled);
 
-  vscode.commands.registerCommand('spinExtension.includeDirs.rescanAll', async () => includeDirsProvider.refresh());
-  vscode.commands.registerCommand('spinExtension.includeDirs.addLocalDir', async (node) => includeDirsProvider.addLocalDir(node));
-  vscode.commands.registerCommand('spinExtension.includeDirs.resetToAuto', async (node) => includeDirsProvider.resetToAuto(node));
-  vscode.commands.registerCommand('spinExtension.includeDirs.addLibraryDir', async () => includeDirsProvider.addLibraryDir());
-  vscode.commands.registerCommand('spinExtension.includeDirs.removeEntry', async (node) => includeDirsProvider.removeEntry(node));
-  vscode.commands.registerCommand('spinExtension.includeDirs.editEntry', async (node) => includeDirsProvider.editEntry(node));
-  vscode.commands.registerCommand('spinExtension.includeDirs.moveUp', async (node) => includeDirsProvider.moveUp(node));
-  vscode.commands.registerCommand('spinExtension.includeDirs.moveDown', async (node) => includeDirsProvider.moveDown(node));
-
-  // Register the command that the server uses to push discovered local includes
-  vscode.commands.registerCommand('spinExtension.includeDirs.updateLocalIncludes', async (discoveredIncludes) => {
-    if (discoveredIncludes) {
-      await vscode.workspace.getConfiguration('spin2').update('localIncludes', discoveredIncludes, vscode.ConfigurationTarget.Workspace);
+  // NOTE: all include directory commands MUST be pushed to context.subscriptions for proper lifecycle
+  context.subscriptions.push(
+    vscode.commands.registerCommand('spinExtension.includeDirs.rescanAll', async () => {
+      logExtensionMessage('TRC: rescanAll command fired');
       includeDirsProvider.refresh();
-    }
-  });
+      // Tell the server to re-read config and re-run include discovery
+      if (client) {
+        logExtensionMessage('TRC: rescanAll sending spin/rescanIncludes to server');
+        client.sendNotification('spin/rescanIncludes');
+      }
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.addLocalDir', async (node) => {
+      logExtensionMessage(`CMD: addLocalDir fired`);
+      await includeDirsProvider.addLocalDir(node);
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.resetToAuto', async (node) => {
+      logExtensionMessage(`CMD: resetToAuto fired`);
+      await includeDirsProvider.resetToAuto(node);
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.addLibraryDir', async () => {
+      logExtensionMessage(`CMD: addLibraryDir fired`);
+      await includeDirsProvider.addLibraryDir();
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.removeEntry', async (node) => {
+      logExtensionMessage(`CMD: removeEntry fired`);
+      await includeDirsProvider.removeEntry(node);
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.editEntry', async (node) => {
+      logExtensionMessage(`CMD: editEntry fired`);
+      await includeDirsProvider.editEntry(node);
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.moveUp', async (node) => {
+      logExtensionMessage(`CMD: moveUp fired`);
+      await includeDirsProvider.moveUp(node);
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.moveDown', async (node) => {
+      logExtensionMessage(`CMD: moveDown fired`);
+      await includeDirsProvider.moveDown(node);
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.excludeFolder', async (node) => {
+      try {
+        logExtensionMessage(`CMD: excludeFolder fired, node type=${node?.constructor?.name}, contextValue=${node?.contextValue}`);
+        await includeDirsProvider.excludeFolder(node);
+        logExtensionMessage(`CMD: excludeFolder completed`);
+      } catch (e) {
+        logExtensionMessage(`CMD: excludeFolder ERROR: ${e}`);
+      }
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.addExcludeDir', async () => {
+      try {
+        logExtensionMessage(`CMD: addExcludeDir fired`);
+        await includeDirsProvider.addExcludeDir();
+      } catch (e) {
+        logExtensionMessage(`CMD: addExcludeDir ERROR: ${e}`);
+      }
+    }),
+    vscode.commands.registerCommand('spinExtension.includeDirs.removeExcludeEntry', async (node) => {
+      try {
+        logExtensionMessage(`CMD: removeExcludeEntry fired`);
+        await includeDirsProvider.removeExcludeEntry(node);
+      } catch (e) {
+        logExtensionMessage(`CMD: removeExcludeEntry ERROR: ${e}`);
+      }
+    })
+  );
+  logExtensionMessage('* registerCommands() all include directory commands registered OK');
 }
 
 function initializeProviders(): void {
@@ -811,7 +873,7 @@ async function locateAndConfigurePropPlugSelection(): Promise<void> {
   const numDeviceNodeKeys = Object.keys(deviceNodesFound).length;
   logExtensionMessage(`* ldcPLUGs deviceNodesFound=[${JSON.stringify(deviceNodesFound, null, 2)}](${numDeviceNodeKeys})`);
   const currDeviceNode = toolchainConfiguration.selectedPropPlug;
-  logExtensionMessage(`* ldcPLUGs currDeviceNode=[${currDeviceNode}](${currDeviceNode.length})`);
+  logExtensionMessage(`* ldcPLUGs currDeviceNode=[${currDeviceNode}](${currDeviceNode?.length ?? 0})`);
   let selectionStillExists: boolean = false;
   const devicesNodes: string[] = [];
   //
@@ -826,7 +888,7 @@ async function locateAndConfigurePropPlugSelection(): Promise<void> {
     if (plugValueParts.length > 0) {
       const deviceSerial: string = plugValueParts[0];
       devicesNodes.push(deviceSerial);
-      if (currDeviceNode && currDeviceNode === deviceNode) {
+      if (currDeviceNode && currDeviceNode === deviceSerial) {
         selectionStillExists = true;
       }
     }
@@ -838,16 +900,17 @@ async function locateAndConfigurePropPlugSelection(): Promise<void> {
   if (numDeviceNodeKeys == 1) {
     // if only 1 device, select it. Notify
     logExtensionMessage(`* ldcPLUGs only 1 device active`);
-    if (currDeviceNode === undefined || selectionStillExists == false) {
-      if (currDeviceNode !== undefined) {
-        // changing from prior selection, notify user
-        vscode.window.showWarningMessage(`Changing PropPlug to ${devicesNodes[0]} from ${currDeviceNode}`);
-      } else {
-        // seleting only, notify user
-        vscode.window.showWarningMessage(`Selecting only PropPlug ${devicesNodes[0]}`);
-      }
+    const onlyDeviceSerial = devicesNodes[0];
+    if (currDeviceNode === undefined) {
+      // no prior selection, select the only device
+      vscode.window.showWarningMessage(`Selecting only PropPlug ${onlyDeviceSerial}`);
+      await updateConfig('toolchain.propPlug.selected', onlyDeviceSerial, eConfigSection.CS_USER);
+    } else if (selectionStillExists == false) {
+      // prior selection disappeared, switch to the only available device
+      vscode.window.showWarningMessage(`Changing PropPlug to ${onlyDeviceSerial} from ${currDeviceNode}`);
+      await updateConfig('toolchain.propPlug.selected', onlyDeviceSerial, eConfigSection.CS_USER);
     }
-    await updateConfig('toolchain.propPlug.selected', devicesNodes[0], eConfigSection.CS_USER);
+    // else: current selection still exists and matches — do nothing
   } else if (numDeviceNodeKeys == 0) {
     // if NO devices, select NONE
     logExtensionMessage(`* ldcPLUGs no devices active`);
@@ -1179,46 +1242,96 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  // preserve our extension context
-  spin2Context = context;
+  try {
+    // preserve our extension context
+    spin2Context = context;
 
-  // Let's get the client, later we'll start it
-  client = getSetupExtensionClient(context);
+    // Let's get the client, later we'll start it
+    client = getSetupExtensionClient(context);
 
-  registerProviders(context);
-  registerCommands(context);
-  initializeProviders();
-  // NOPE! handleDidChangeConfiguration();
-  locateTools(); // load toolchain settings
-  if (toolchainConfiguration.advancedToolChainEnabled) {
-    locateAndConfigurePropPlugSelection(); // load Serial Port Settings
-    isCompilerInstalled(toolchainConfiguration.selectedCompilerID);
+    registerProviders(context);
+    registerCommands(context);
+    initializeProviders();
+    // NOPE! handleDidChangeConfiguration();
+    // NOTE: async calls must have .catch() to prevent unhandled rejections
+    // which cause VS Code to mark the extension as malfunctioning
+    locateTools().catch((err) => {
+      logExtensionMessage(`* locateTools() error (non-fatal): ${err}`);
+      console.warn('Spin2: locateTools error:', err);
+    });
+    if (toolchainConfiguration.advancedToolChainEnabled) {
+      locateAndConfigurePropPlugSelection().catch((err) => {
+        logExtensionMessage(`* locateAndConfigurePropPlugSelection() error (non-fatal): ${err}`);
+        console.warn('Spin2: locateAndConfigurePropPlugSelection error:', err);
+      });
+      isCompilerInstalled(toolchainConfiguration.selectedCompilerID);
+    }
+
+    if (firstEditorChangeEvent) {
+      firstEditorChangeEvent = false;
+      writeToolchainBuildVariables('STARTUP').catch((err) => {
+        logExtensionMessage(`* writeToolchainBuildVariables() error (non-fatal): ${err}`);
+        console.warn('Spin2: writeToolchainBuildVariables error:', err);
+      });
+    }
+
+    /*   EXAMPLE
+          vscode.workspace.onDidSaveTextDocument(e => {
+          getAsmFile(e.uri.fsPath)
+              .then(file => {
+                  const filePath: string = file[0] as string;
+
+                  asmDefinitionProvider.parseSingleFile(filePath);
+                  asmReferenceProvider.parseSingleFile(filePath);
+              });
+      }, null, context.subscriptions);
+      */
+
+    // Re-evaluate active editor state now that all listeners are registered.
+    // This catches the case where a Spin2 file was opened (triggering activation)
+    // but the onDidChangeActiveTextEditor event fired before our listener was set up.
+    objTreeProvider.checkActiveEditor();
+
+    // Start the client. This will also launch the server
+    logExtensionMessage(`* Starting extension client/server`);
+    client
+      .start()
+      .then(() => {
+        logExtensionMessage(`* Client started, connecting ObjectTreeProvider to language client`);
+        objTreeProvider.setLanguageClient(client);
+        // Listen for include directory discovery results from server
+        client.onNotification('spin/discoveredIncludesChanged', async (params: { localIncludes: Record<string, { auto: boolean; dirs: string[] }> }) => {
+          logExtensionMessage(`* spin/discoveredIncludesChanged received, has localIncludes=${!!params.localIncludes}`);
+          if (params.localIncludes) {
+            const keys = Object.keys(params.localIncludes);
+            logExtensionMessage(`* REPLACING localIncludes with ${keys.length} folder entries: [${keys.join(', ')}]`);
+            for (const key of keys) {
+              logExtensionMessage(`*   folder=[${key}] auto=${params.localIncludes[key].auto} dirs=[${params.localIncludes[key].dirs.join(', ')}]`);
+            }
+            // Suppress config-change-driven refreshes while we save programmatically
+            includeDirsProvider.suppressConfigRefresh(true);
+            try {
+              await vscode.workspace.getConfiguration('spin2').update('localIncludes', params.localIncludes, vscode.ConfigurationTarget.Workspace);
+              logExtensionMessage(`* localIncludes saved to workspace settings, refreshing tree`);
+            } finally {
+              includeDirsProvider.suppressConfigRefresh(false);
+            }
+            includeDirsProvider.refresh();
+            logExtensionMessage(`* tree refresh triggered`);
+          }
+        });
+      })
+      .catch((err) => {
+        logExtensionMessage(`* client.start() FAILED: ${err}`);
+      });
+
+    logExtensionMessage(`* activate() completed successfully`);
+  } catch (err) {
+    const msg = `Spin2 Extension activate() FAILED: ${err}`;
+    logExtensionMessage(msg);
+    // Show the error to the user so it's visible
+    vscode.window.showErrorMessage(msg);
   }
-
-  if (firstEditorChangeEvent) {
-    firstEditorChangeEvent = false;
-    // call wrtie waiting for it to complete
-    writeToolchainBuildVariables('STARTUP').then(() => {}); // wait for complete
-  }
-
-  /*   EXAMPLE
-        vscode.workspace.onDidSaveTextDocument(e => {
-        getAsmFile(e.uri.fsPath)
-            .then(file => {
-                const filePath: string = file[0] as string;
-
-                asmDefinitionProvider.parseSingleFile(filePath);
-                asmReferenceProvider.parseSingleFile(filePath);
-            });
-    }, null, context.subscriptions);
-    */
-
-  // Start the client. This will also launch the server
-  logExtensionMessage(`* Starting extension client/server`);
-  client.start().then(() => {
-    logExtensionMessage(`* Client started, connecting ObjectTreeProvider to language client`);
-    objTreeProvider.setLanguageClient(client);
-  });
 }
 
 export function deactivate(): Thenable<void> | undefined {

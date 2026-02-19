@@ -244,6 +244,7 @@ export const reloadToolchainConfiguration = () => {
 
   // post information to out-side world via our CONTEXT at config change
   vscode.commands.executeCommand('setContext', 'runtime.spin2.toolchain.enabled', toolchainConfiguration.advancedToolChainEnabled);
+  vscode.commands.executeCommand('setContext', 'runtime.spin2.includeDirs.enabled', toolchainConfiguration.advancedToolChainEnabled);
 
   return true;
 };

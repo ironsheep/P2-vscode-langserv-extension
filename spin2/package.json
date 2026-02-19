@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -35,7 +35,14 @@
   "engines": {
     "vscode": "^1.96.0"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:spin",
+    "onLanguage:spin2",
+    "onLanguage:p2asm",
+    "onView:spinExtension.objectDependencies",
+    "onView:spinExtension.includeDirectories"
+  ],
   "main": "./client/out/extension",
   "contributes": {
     "commands": [
@@ -174,6 +181,21 @@
         "command": "spinExtension.includeDirs.moveDown",
         "title": "Move Down",
         "icon": "$(arrow-down)"
+      },
+      {
+        "command": "spinExtension.includeDirs.excludeFolder",
+        "title": "Exclude Folder (and Subfolders)",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "spinExtension.includeDirs.addExcludeDir",
+        "title": "Add Excluded Directory",
+        "icon": "$(add)"
+      },
+      {
+        "command": "spinExtension.includeDirs.removeExcludeEntry",
+        "title": "Remove Exclusion",
+        "icon": "$(trash)"
       }
     ],
     "configuration": [
@@ -793,6 +815,15 @@
                 }
               }
             }
+          },
+          "spin2.excludeIncludeDirectories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "scope": "window",
+            "description": "Directories to exclude from include path discovery. Each entry is a relative path from the workspace root. The directory and all its subdirectories will be excluded from scanning."
           }
         }
       }
@@ -933,12 +964,32 @@
         {
           "command": "spinExtension.includeDirs.addLocalDir",
           "when": "view == spinExtension.includeDirectories && viewItem == folderNode",
-          "group": "inline"
+          "group": "inline@1"
+        },
+        {
+          "command": "spinExtension.includeDirs.excludeFolder",
+          "when": "view == spinExtension.includeDirectories && viewItem =~ /^folderNode/",
+          "group": "inline@2"
+        },
+        {
+          "command": "spinExtension.includeDirs.excludeFolder",
+          "when": "view == spinExtension.includeDirectories && viewItem =~ /^folderNode/",
+          "group": "2_exclude"
         },
         {
           "command": "spinExtension.includeDirs.resetToAuto",
           "when": "view == spinExtension.includeDirectories && viewItem == folderNodeCustomized",
           "group": "1_modify"
+        },
+        {
+          "command": "spinExtension.includeDirs.addExcludeDir",
+          "when": "view == spinExtension.includeDirectories && viewItem == excludedDirsNode",
+          "group": "inline"
+        },
+        {
+          "command": "spinExtension.includeDirs.removeExcludeEntry",
+          "when": "view == spinExtension.includeDirectories && viewItem == excludedDir",
+          "group": "inline@3"
         },
         {
           "command": "spinExtension.includeDirs.addLibraryDir",
@@ -1112,7 +1163,7 @@
       "explorer": [
         {
           "id": "spinExtension.objectDependencies",
-          "name": "Object Dependencies",
+          "name": "Spin2 Object Dependencies",
           "icon": "$(type-hierarchy)",
           "contextualTitle": "Propeller Spin2 Development",
           "when": "runtime.spin2.objectDeps.enabled == true"
@@ -1138,26 +1189,18 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run prebuild && npm run esbuild-base -- --minify",
-    "esbuild-base": "esbuild ./client/src/extension.ts ./server/src/server.ts  --bundle --outdir=. --entry-names=[dir]/../out/[name] --external:vscode --format=cjs --platform=node",
-    "esbuild": "npm run prebuild && npm run esbuild-base -- --sourcemap",
-    "esbuild-watch": "npm run prebuild && npm run esbuild-base -- --sourcemap --watch",
+    "vscode:prepublish": "npm run compile && npm run compile:grammar",
+    "precompile": "mkdir -p ./client/out/ext && cp -p ./client/src//ext/*.obj ./client/out/ext && npm run makeprebuild",
     "makeprebuild": "mkdir -p ./client/prebuilds && cp -pr ./client/node_modules/@serialport/bindings-cpp/prebuilds/* ./client/prebuilds/",
-    "prebuild": "npm run compile && npm run compile:grammar && npm run makeprebuild",
     "compile": "tsc -b",
     "compile:grammar": "npx js-yaml syntaxes/spin2.tmLanguage.YAML-tmLanguage > syntaxes/spin2.tmLanguage.json && npx js-yaml syntaxes/spin1.tmLanguage.YAML-tmLanguage > syntaxes/spin1.tmLanguage.json ",
     "watch": "tsc -b -w",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
     "pretest": "npm run compile && npm run lint",
-    "test-compile": "tsc -p ./",
     "test": "sh ./scripts/e2e.sh",
-    "test:grammar": "npm run compile && mocha --require ts-node/register client/src/test/grammar.*.test.ts --timeout 30000",
-    "test:grammar:spin2": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin2.test.ts --timeout 30000",
-    "test:grammar:spin1": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin1.test.ts --timeout 30000",
-    "test:all": "npm run test && npm run test:grammar",
-    "coverage:grammar": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin2.tmLanguage.json client/src/test/grammar.spin2.test.ts --output coverage-spin2.txt",
-    "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt"
+    "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
+    "posttest": "npm run clean"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

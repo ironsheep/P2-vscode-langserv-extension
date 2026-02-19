@@ -104,29 +104,41 @@ export default class SemanticTokensProvider implements Provider {
 
   private handleGetSemanticTokensFull(params: lsp.SemanticTokensParams): lsp.SemanticTokens {
     const fileSpec: string = fileSpecFromURI(params.textDocument.uri);
-    const documentFindings: DocumentFindings | undefined = this.ctx.docsByFSpec.get(fileSpec)?.parseResult;
+    const processedDoc = this.ctx.docsByFSpec.get(fileSpec);
+    const documentFindings: DocumentFindings | undefined = processedDoc?.parseResult;
     if (!documentFindings) {
       return { data: [] }; // empty case
     }
 
+    const document = processedDoc?.document;
     // retrieve tokens to highlight
     const allTokens: IParsedToken[] = documentFindings.allSemanticTokens();
     const builder = new lsp.SemanticTokensBuilder();
     let tokenIdx: number = 0;
     allTokens.forEach((token) => {
       this._logMessage(`Token ${this._tokenString(tokenIdx++, token)}`);
-      builder.push(
-        token.line,
-        token.startCharacter,
-        token.length,
-        this._encodeTokenType(token.ptTokenType),
-        this._encodeTokenModifiers(token.ptTokenModifiers)
-      );
+      // Clamp token length to line bounds to prevent
+      // "end character > model.getLineLength" errors
+      let tokenLength = token.length;
+      if (document) {
+        const lineText = document.getText(lsp.Range.create(token.line, 0, token.line + 1, 0));
+        const lineContentLength = lineText.replace(/[\r\n]+$/, '').length;
+        if (token.startCharacter + tokenLength > lineContentLength) {
+          tokenLength = Math.max(0, lineContentLength - token.startCharacter);
+        }
+      }
+      if (tokenLength > 0) {
+        builder.push(
+          token.line,
+          token.startCharacter,
+          tokenLength,
+          this._encodeTokenType(token.ptTokenType),
+          this._encodeTokenModifiers(token.ptTokenModifiers)
+        );
+      }
     });
     // return them to client
     return builder.build();
-
-    //return { data: [] };
   }
 
   private _tokenString(tokenIdx: number, aToken: IParsedToken): string {

@@ -36,8 +36,18 @@ export class IncludeDiscovery {
     }
     this.ctx.logger.log(`TRC: IncludeDiscovery.runDiscovery() workspaceRoot=[${workspaceRoot}]`);
 
+    // Build set of excluded absolute paths for fast lookup
+    const excludeAbsPaths: string[] = this.ctx.parserConfig.excludeIncludeDirectories.map((relDir) => {
+      let cleanRel = relDir.replace(/\\/g, '/');
+      if (cleanRel.endsWith('/')) {
+        cleanRel = cleanRel.slice(0, -1);
+      }
+      return path.resolve(workspaceRoot, cleanRel);
+    });
+    this.ctx.logger.log(`TRC: IncludeDiscovery excludeAbsPaths=[${excludeAbsPaths.join(', ')}]`);
+
     // Step 1: Walk directory tree to catalog all .spin2 files
-    const fileCatalog: IFileCatalogEntry[] = this._catalogSpin2Files(workspaceRoot);
+    const fileCatalog: IFileCatalogEntry[] = this._catalogSpin2Files(workspaceRoot, excludeAbsPaths);
     this.ctx.logger.log(`TRC: IncludeDiscovery found ${fileCatalog.length} .spin2 files`);
 
     // Build maps: directory -> filenames, filename -> directories
@@ -86,12 +96,19 @@ export class IncludeDiscovery {
       }
 
       // Step 3: For each referenced filename, find which directory contains it
+      // Only look externally for files that don't already exist in the current folder
+      const localFileNames = (filesByDir.get(dirPath) || []).map((f) => f.toLowerCase());
       const neededDirs: Set<string> = new Set();
       for (const refName of referencedFileNames) {
         // Ensure extension
         const refNameWithExt = refName.endsWith('.spin2') ? refName : `${refName}.spin2`;
-        const candidateDirs = dirsByFileName.get(refNameWithExt);
 
+        // If the file already exists locally, no include directory is needed for it
+        if (localFileNames.includes(refNameWithExt)) {
+          continue;
+        }
+
+        const candidateDirs = dirsByFileName.get(refNameWithExt);
         if (candidateDirs) {
           for (const candidateDir of candidateDirs) {
             // Skip the current folder itself
@@ -121,6 +138,28 @@ export class IncludeDiscovery {
       }
     }
 
+    // Step 5: Include ALL discovered directories (even those with no external include needs)
+    // so they appear in the tree view and can be excluded by the user.
+    // Without this, library-only directories like OBEX never appear in the tree.
+    for (const [dirPath] of filesByDir) {
+      const relFolderPath = this._relativePath(workspaceRoot, dirPath);
+
+      // Skip if already in discoveredIncludes (has include needs or is customized)
+      if (relFolderPath in discoveredIncludes) {
+        continue;
+      }
+
+      // Skip folders where user has customized includes (auto: false)
+      const existing = currentLocalIncludes[relFolderPath];
+      if (existing && existing.auto === false) {
+        discoveredIncludes[relFolderPath] = existing;
+        continue;
+      }
+
+      discoveredIncludes[relFolderPath] = { auto: true, dirs: [] };
+      this.ctx.logger.log(`TRC: IncludeDiscovery folder [${relFolderPath}] -> (no external includes needed)`);
+    }
+
     // Also preserve any user-customized entries that weren't found in the scan
     for (const [folderPath, entry] of Object.entries(currentLocalIncludes)) {
       if (entry.auto === false && !(folderPath in discoveredIncludes)) {
@@ -128,21 +167,24 @@ export class IncludeDiscovery {
       }
     }
 
-    // Update context with discovered includes
-    this.ctx.parserConfig.localIncludes = discoveredIncludes;
+    // Only update and notify if results actually changed
+    const oldJson = JSON.stringify(this.ctx.parserConfig.localIncludes);
+    const newJson = JSON.stringify(discoveredIncludes);
 
-    // Push discovered settings back to client via workspace config update
-    try {
-      await this.ctx.connection.sendRequest('workspace/executeCommand', {
-        command: 'spinExtension.includeDirs.updateLocalIncludes',
-        arguments: [discoveredIncludes]
-      });
-    } catch {
-      // Command may not be registered yet on client; that's OK, settings will be read from context
-      this.ctx.logger.log('TRC: IncludeDiscovery could not push settings to client (command not available)');
+    if (oldJson !== newJson) {
+      this.ctx.parserConfig.localIncludes = discoveredIncludes;
+
+      // Notify client about discovered includes so it can update the tree view
+      try {
+        this.ctx.connection.sendNotification('spin/discoveredIncludesChanged', { localIncludes: discoveredIncludes });
+      } catch {
+        // Client may not be listening yet; that's OK, settings will be read from context
+        this.ctx.logger.log('TRC: IncludeDiscovery could not notify client (not ready yet)');
+      }
+      this.ctx.logger.log(`TRC: IncludeDiscovery.runDiscovery() DONE, ${Object.keys(discoveredIncludes).length} folder entries (CHANGED)`);
+    } else {
+      this.ctx.logger.log(`TRC: IncludeDiscovery.runDiscovery() DONE, ${Object.keys(discoveredIncludes).length} folder entries (unchanged, no notification sent)`);
     }
-
-    this.ctx.logger.log(`TRC: IncludeDiscovery.runDiscovery() DONE, ${Object.keys(discoveredIncludes).length} folder entries`);
   }
 
   /**
@@ -208,13 +250,22 @@ export class IncludeDiscovery {
     return filePath;
   }
 
-  private _catalogSpin2Files(rootDir: string): IFileCatalogEntry[] {
+  private _catalogSpin2Files(rootDir: string, excludeAbsPaths: string[]): IFileCatalogEntry[] {
     const entries: IFileCatalogEntry[] = [];
-    this._walkDir(rootDir, entries);
+    this._walkDir(rootDir, entries, excludeAbsPaths);
     return entries;
   }
 
-  private _walkDir(dirPath: string, entries: IFileCatalogEntry[]): void {
+  private _isExcluded(dirPath: string, excludeAbsPaths: string[]): boolean {
+    for (const excludePath of excludeAbsPaths) {
+      if (dirPath === excludePath || dirPath.startsWith(excludePath + path.sep) || dirPath.startsWith(excludePath + '/')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private _walkDir(dirPath: string, entries: IFileCatalogEntry[], excludeAbsPaths: string[]): void {
     try {
       const items = fs.readdirSync(dirPath, { withFileTypes: true });
       for (const item of items) {
@@ -223,8 +274,14 @@ export class IncludeDiscovery {
         }
         const fullPath = path.join(dirPath, item.name);
         if (item.isDirectory()) {
-          this._walkDir(fullPath, entries);
+          if (this._isExcluded(fullPath, excludeAbsPaths)) {
+            this.ctx.logger.log(`TRC: IncludeDiscovery._walkDir() EXCLUDED subdir [${fullPath}]`);
+            continue;
+          }
+          this.ctx.logger.log(`TRC: IncludeDiscovery._walkDir() entering subdir [${fullPath}]`);
+          this._walkDir(fullPath, entries, excludeAbsPaths);
         } else if (isSpinExt(item.name)) {
+          this.ctx.logger.log(`TRC: IncludeDiscovery._walkDir() found [${item.name}] in [${dirPath}]`);
           entries.push({ fileName: item.name, dirPath });
         }
       }

@@ -224,13 +224,13 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
 
     const subDeps: Dependency[] = [];
     if (this.isEmptying) {
-      const rebuildingDep = new Dependency('...', '', ELEM_NONE, -1, 'xyzzy');
+      const rebuildingDep = new Dependency('...', '', ELEM_NONE, -1, '0');
       rebuildingDep.removeIcon();
       subDeps.push(rebuildingDep);
       this.isEmptying = false;
     } else if (!this.rootPath) {
       vscode.window.showInformationMessage('No object references in empty workspace');
-      const noDep = new Dependency('No object references in empty workspace', '', ELEM_NONE, -1, 'x');
+      const noDep = new Dependency('No object references in empty workspace', '', ELEM_NONE, -1, '0');
       noDep.removeIcon();
       subDeps.push(noDep);
     } else if (element !== undefined) {
@@ -264,7 +264,7 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
         subDeps.push(topDep);
       } else {
         const emptyMessage: string = `No object references found in ${this.topLevelFName}`;
-        const emptyDep = new Dependency(emptyMessage, '', ELEM_NONE, -1, 'y');
+        const emptyDep = new Dependency(emptyMessage, '', ELEM_NONE, -1, '0');
         emptyDep.removeIcon();
         subDeps.push(emptyDep);
       }
@@ -292,6 +292,11 @@ export class ObjectTreeProvider implements vscode.TreeDataProvider<Dependency> {
       current = current.children[childIndex];
     }
     return current;
+  }
+
+  /** Re-evaluate active editor state (call after activation to catch missed events) */
+  public checkActiveEditor(): void {
+    this.activeEditorChanged(CALLED_INTERNALLY);
   }
 
   private activeEditorChanged(internalUse: boolean = false): void {

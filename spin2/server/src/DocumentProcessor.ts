@@ -397,13 +397,21 @@ export default class DocumentProcessor {
     }
   }
 
-  private _getParseList(FSpec: string, resultList: string[]) {
+  private _getParseList(FSpec: string, resultList: string[], visited?: Set<string>) {
     // return depth-first list of included files
+    // use visited set to guard against circular dependencies
+    if (!visited) {
+      visited = new Set<string>();
+    }
+    if (visited.has(FSpec)) {
+      return; // circular dependency detected, stop recursion
+    }
+    visited.add(FSpec);
     const parsedDoc: ProcessedDocument | undefined = this.ctx.docsByFSpec.get(FSpec);
     if (parsedDoc) {
       for (let index = 0; index < parsedDoc.referencedFileSpecsCount; index++) {
         const includeFSpec = parsedDoc.referencedFileSpec(index);
-        this._getParseList(includeFSpec, resultList);
+        this._getParseList(includeFSpec, resultList, visited);
       }
     }
     // only 1 copy of each fileSpec, please!
