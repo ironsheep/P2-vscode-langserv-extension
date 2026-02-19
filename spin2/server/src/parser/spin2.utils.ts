@@ -2131,6 +2131,10 @@ export class Spin2ParseUtils {
     ]
   };
 
+  private _tableDebugControlSymbols_v52: { [Identifier: string]: string } = {
+    debug_end_session: '(27) Constant for use in DEBUG to end the debug session.'
+  };
+
   private _tableDebugControlSymbols: { [Identifier: string]: string } = {
     download_baud: '(default 2_000_000)<br>Sets the download baud rate',
     debug_cogs: '(default %1111_1111)<br>Selects which cogs have debug interrupts enabled. Bits 7..0 enable debugging interrupts in cogs 7..0',
@@ -2158,6 +2162,9 @@ export class Spin2ParseUtils {
     if (!reservedStatus && this.requestedSpinVersion(46)) {
       reservedStatus = nameKey in this._tableDebugControlSymbols_v46;
     }
+    if (!reservedStatus && this.requestedSpinVersion(52)) {
+      reservedStatus = nameKey in this._tableDebugControlSymbols_v52;
+    }
     return reservedStatus;
   }
 
@@ -2179,6 +2186,9 @@ export class Spin2ParseUtils {
       } else if (this.requestedSpinVersion(46) && nameKey in this._tableDebugControlSymbols_v46) {
         desiredDocText.category = 'Debug Symbol';
         desiredDocText.description = this._tableDebugControlSymbols_v46[nameKey];
+      } else if (this.requestedSpinVersion(52) && nameKey in this._tableDebugControlSymbols_v52) {
+        desiredDocText.category = 'Debug Symbol';
+        desiredDocText.description = this._tableDebugControlSymbols_v52[nameKey];
       }
     }
     return desiredDocText;
@@ -3057,6 +3067,11 @@ export class Spin2ParseUtils {
     taskid: ['TASKID() : taskId', 'Returns the ID of the current task.', [], ['taskId - Task = 0..31.']]
   };
 
+  private _tableSpinEnhancements_v52: { [Identifier: string]: TMethodTuple } = {
+    endianl: ['ENDIANL(LongValue) : ReversedLong', 'Return reverse-endian long value.', ['LongValue - a 32-bit long value'], ['ReversedLong - the value with bytes in reversed order']],
+    endianw: ['ENDIANW(WordValue) : ReversedWord', 'Return reverse-endian word value.', ['WordValue - a 16-bit word value'], ['ReversedWord - the value with bytes in reversed order']]
+  };
+
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
     // NOTE: this does NOT support signature help! (paramaters are not highlighted for signature help due to ':' being param separater)
     lookup: [
@@ -3177,8 +3192,12 @@ export class Spin2ParseUtils {
       reservedStatus = nameKey in this._tableSpinEnhancements_v45;
     }
     if (!reservedStatus && this.requestedSpinVersion(47)) {
-      // requested version is v45 or greater
+      // requested version is v47 or greater
       reservedStatus = nameKey in this._tableSpinEnhancements_v47;
+    }
+    if (!reservedStatus && this.requestedSpinVersion(52)) {
+      // requested version is v52 or greater
+      reservedStatus = nameKey in this._tableSpinEnhancements_v52;
     }
     this._logMessage(`sp2u:  -- iVerAM(${name}) = (${reservedStatus})`);
     return reservedStatus;
@@ -3234,17 +3253,21 @@ export class Spin2ParseUtils {
         desiredDocText.category = 'Memory Method';
         methodDescr = this._tableSpinEnhancements_v44[nameKey];
       } else if (this.exactSpinVersion(44) && nameKey in this._tableSpinEnhancements_v44_replaced) {
-        // if {Spin2_v44} or greater then also search this table
+        // if exactly {Spin2_v44} then also search this table
         desiredDocText.category = 'Structure Method';
         methodDescr = this._tableSpinEnhancements_v44_replaced[nameKey];
       } else if (this.requestedSpinVersion(45) && nameKey in this._tableSpinEnhancements_v45) {
-        // if {Spin2_v44} or greater then also search this table
+        // if {Spin2_v45} or greater then also search this table
         desiredDocText.category = 'Structure Method';
         protoWDescr = this._tableSpinEnhancements_v45[nameKey];
       } else if (this.requestedSpinVersion(47) && nameKey in this._tableSpinEnhancements_v47) {
-        // if {Spin2_v44} or greater then also search this table
+        // if {Spin2_v47} or greater then also search this table
         desiredDocText.category = 'Task Method';
         methodDescr = this._tableSpinEnhancements_v47[nameKey];
+      } else if (this.requestedSpinVersion(52) && nameKey in this._tableSpinEnhancements_v52) {
+        // if {Spin2_v52} or greater then also search this table
+        desiredDocText.category = 'Endian Method';
+        methodDescr = this._tableSpinEnhancements_v52[nameKey];
       } else if (nameKey in this._tableSpinIndexValueMethods) {
         desiredDocText.category = 'Hub Method';
         protoWDescr = this._tableSpinIndexValueMethods[nameKey];
@@ -4275,7 +4298,7 @@ export class Spin2ParseUtils {
 
   // Debug Display: TERM feed
   public isDebugTermFeedParam(name: string): boolean {
-    const debugTermFeedTypes: string[] = ['clear', 'update', 'save', 'close'];
+    const debugTermFeedTypes: string[] = ['clear', 'update', 'save', 'close', 'backcolor'];
     const bTermFeedParamStatus: boolean = debugTermFeedTypes.indexOf(name.toLowerCase()) != -1;
     return bTermFeedParamStatus;
   }

@@ -211,7 +211,7 @@ export class Spin2DocumentSemanticParser {
       const line: string = lines[i];
       const trimmedLine: string = line.trim();
       const bHaveEmptyLine: boolean = trimmedLine.length === 0;
-      const isDebugLine: boolean = !bHaveEmptyLine ? haveDebugLine(line) : false;
+      const isDebugLine: boolean = !bHaveEmptyLine && !trimmedLine.startsWith("'") ? haveDebugLine(line) : false;
 
       // New PNut/Propeller Tool directive support: {Spin2_v##}
       if (!bHaveEmptyLine && this.bHuntingForVersion && containsSpinLanguageSpec(trimmedLine, this.ctx)) {
@@ -958,7 +958,7 @@ export class Spin2DocumentSemanticParser {
       const line = lines[i];
       const trimmedLine = line.trim();
       const bHaveEmptyLine: boolean = trimmedLine.length === 0;
-      const isDebugLine: boolean = !bHaveEmptyLine ? haveDebugLine(line) : false;
+      const isDebugLine: boolean = !bHaveEmptyLine && !trimmedLine.startsWith("'") ? haveDebugLine(line) : false;
 
       let nonCommentLine: string;
       if (isDebugLine) {

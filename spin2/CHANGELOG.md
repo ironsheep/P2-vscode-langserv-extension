@@ -28,9 +28,33 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.5.1] 2025-11-23
+## [2.6.0] 2026-02-19
 
-Tab Formatting Defect Fixes
+Major feature additions, grammar improvements, and infrastructure modernization
+
+### New Features
+
+- PASM2 Hover Documentation: comprehensive hover help for 362 instructions, conditionals, effects, and streamer constants with context-aware display (AND in DAT shows PASM2 doc, AND in PUB shows Spin2 operator doc)
+- Include Directory Support: two-tier include directory system (central library paths and per-folder project includes) with auto-discovery, Tree View UI, and compiler -I flag generation
+- Object Dependencies Tree: consolidated single server-side parser for object dependencies with per-path circular reference detection, include directory support, and #include directive support in the tree view
+- Hover Syntax Coloring: fenced code blocks in hover tooltips now contain valid Spin2/Spin1 for TextMate syntax highlighting
+
+### Language Version Support
+
+- Add v52 support: ENDIANL and ENDIANW methods (reverse-endian value conversion)
+- Add v52 support: DEBUG_END_SESSION constant for use in DEBUG
+- Add BACKCOLOR as recognized TERM debug display feed/update parameter
+
+### Bug Fixes
+
+- BUGFIX: Fix false "Missing '=' part of assignment" error on comment lines containing debug() text (e.g., `'' all output via debug()`)
+- BUGFIX: Fix semantic token length clamping to prevent "end character > model.getLineLength" errors
+- BUGFIX: Fix include directory discovery and exclude directory persistence
+- BUGFIX: Fix cycle guard in object dependency resolution preventing infinite recursion on circular dependencies
+- BUGFIX: Fix consistent node IDs in object dependencies tree preventing reconciliation errors
+- BUGFIX: Allow both Spin1 and Spin2 hovers in HoverProvider
+
+### Tab Formatting Fixes
 
 - BUGFIX: Corrected malformed JSON schema for elastic tabstops configuration
 - BUGFIX: Fixed runtime crashes when invalid block names encountered in tab formatting
@@ -38,6 +62,27 @@ Tab Formatting Defect Fixes
 - BUGFIX: Fixed array mutation issue causing configuration corruption during tab operations
 - BUGFIX: Fixed Align mode not working on first line of file (line 0)
 - BUGFIX: Fixed configuration object mutation preventing proper state management
+
+### Grammar Fixes
+
+- BUGFIX: Fix Spin2 variable block capture group mismatch causing variable names to be incorrectly scoped
+- BUGFIX: Fix Spin2 public_block and float_number scope names (.spin -> .spin2)
+- BUGFIX: Fix coginit_constants regex for _NEW_PAIR variants
+- BUGFIX: Fix modcz_constants missing underscores (_CEQ_Z -> _C_EQ_Z, etc.)
+- BUGFIX: Fix unary operators (!!, !, -) unable to match due to incorrect \\b usage
+- BUGFIX: Fix Spin1 block end patterns falsely terminating on prefixed words (e.g., DATX)
+- BUGFIX: Fix Spin1 symbol operators (+, -, *) unable to match due to \\b usage
+- BUGFIX: Fix Spin1 incorrect .spin2 scope suffix in base10 constant
+- BUGFIX: Remove phantom PASM2 instructions (FVAR/FVARS, ADDAND/ADDOR/ADDXOR) and fix ADDBINTS typo
+- Add DITTO directive to Spin2 TextMate grammar
+- Remove dead experimental grammar patterns (no_debug_statements, save_this, etc.)
+
+### Internal Improvements
+
+- Add comprehensive grammar testing framework with 248 passing tests for Spin1/Spin2 syntax validation
+- Refactor semantic parser: ~540 statements removed through helper method consolidation and code quality improvements
+- Fix stale version comments in enhancement method tables
+- Update PNut-TS naming in installation documentation
 
 ## [2.5.0] 2025-11-20
 
