@@ -36,7 +36,6 @@ Major feature additions, grammar improvements, and infrastructure modernization
 
 - PASM2 Hover Documentation: comprehensive hover help for 362 instructions, conditionals, effects, and streamer constants with context-aware display (AND in DAT shows PASM2 doc, AND in PUB shows Spin2 operator doc)
 - Include Directory Support: two-tier include directory system (central library paths and per-folder project includes) with auto-discovery, Tree View UI, and compiler -I flag generation
-- Object Dependencies Tree: consolidated single server-side parser for object dependencies with per-path circular reference detection, include directory support, and #include directive support in the tree view
 - Hover Syntax Coloring: fenced code blocks in hover tooltips now contain valid Spin2/Spin1 for TextMate syntax highlighting
 
 ### Language Version Support
@@ -49,9 +48,7 @@ Major feature additions, grammar improvements, and infrastructure modernization
 
 - BUGFIX: Fix false "Missing '=' part of assignment" error on comment lines containing debug() text (e.g., `'' all output via debug()`)
 - BUGFIX: Fix semantic token length clamping to prevent "end character > model.getLineLength" errors
-- BUGFIX: Fix include directory discovery and exclude directory persistence
 - BUGFIX: Fix cycle guard in object dependency resolution preventing infinite recursion on circular dependencies
-- BUGFIX: Fix consistent node IDs in object dependencies tree preventing reconciliation errors
 - BUGFIX: Allow both Spin1 and Spin2 hovers in HoverProvider
 
 ### Tab Formatting Fixes
