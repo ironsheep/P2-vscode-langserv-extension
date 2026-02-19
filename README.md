@@ -85,6 +85,7 @@ There are additional companion documents in this Repository:
 1. [Configuring User Tasks - Windows](TASKS-User-win.md) which advises on how to automate your P2 Development when using VScode on **Windows**
 1. [Configuring User Tasks - MacOS](TASKS-User-macOS.md) which advises on how to automate your P2 Development when using VScode on **macOS**
 1. [Configuring User Tasks - RPI](TASKS-User-RPi.md) which advises on how to automate your P2 Development when using VScode on **Raspberry Pi**
+1. [Configuring Include Directories](Spin2-Include-Directories.md) which guides you in making sure you project includes are correct
 1. [VSCode Spin2 Status Bar](Spin2-Editor-StatusBar.md) introduces the new Download controls in the Spin2 Editor Status Bar
 1. [Configure VSCode for background coloring by Spin Block](PT-Color-setup.md): How to set up coloring and some additional notes
 1. [VSCode Extensions](EXTENSIONS.md) we find useful in our own P2 development
