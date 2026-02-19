@@ -74,13 +74,6 @@ Major feature additions, grammar improvements, and infrastructure modernization
 - Add DITTO directive to Spin2 TextMate grammar
 - Remove dead experimental grammar patterns (no_debug_statements, save_this, etc.)
 
-### Internal Improvements
-
-- Add comprehensive grammar testing framework with 248 passing tests for Spin1/Spin2 syntax validation
-- Refactor semantic parser: ~540 statements removed through helper method consolidation and code quality improvements
-- Fix stale version comments in enhancement method tables
-- Update PNut-TS naming in installation documentation
-
 ## [2.5.0] 2025-11-20
 
 Spin2 Add pnut-term-ts use as downloader when using pnut_ts as compiler
