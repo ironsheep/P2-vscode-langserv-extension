@@ -2429,7 +2429,7 @@ export class Spin2DocumentSemanticParser {
       // remember this method name so we can annotate a call to it
       const refModifiers: string[] = isPrivate ? ['static'] : [];
       // record ACTUAL object public/private interface
-      const nameOffset = line.indexOf(methodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+      const nameOffset = line.indexOf(methodName, startNameOffset);
       this.semanticFindings.recordDeclarationLine(line, lineNbr);
       this.semanticFindings.setGlobalToken(
         methodName,
@@ -2478,7 +2478,7 @@ export class Spin2DocumentSemanticParser {
           labelModifiers = ['pasmInline'];
         }
         this._logPASM(`  -- rptSPINPAsm() labelName=[${labelName}](${labelType}) [${labelModifiers}]`);
-        const nameOffset = line.indexOf(this.currentMethodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+        const nameOffset = line.indexOf(labelName, currentOffset);
         // LABEL-TODO add record of global, start or local extra line number
         let declType: eDefinitionType = eDefinitionType.NonLabel;
         if (!isDataDeclarationLine) {

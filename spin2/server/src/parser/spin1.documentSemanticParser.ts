@@ -1328,7 +1328,7 @@ export class Spin1DocumentSemanticParser {
       const refModifiers: string[] = isPrivate ? ['static'] : [];
       // record ACTUAL object public/private interface
       // FIXME: post non-blank line after
-      const nameOffset = line.indexOf(methodName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+      const nameOffset = line.indexOf(methodName, startNameOffset);
       this.semanticFindings.recordDeclarationLine(line, lineNbr);
       this.semanticFindings.setGlobalToken(
         methodName,

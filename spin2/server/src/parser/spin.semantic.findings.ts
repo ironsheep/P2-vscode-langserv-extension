@@ -1048,14 +1048,16 @@ export class DocumentFindings {
               line: referenceDetails.lineIndex,
               character: referenceDetails.charIndex
             };
-            const tokenRef: ILocationOfToken = {
-              uri: this.uri,
-              objectName: objectName,
-              position: tokenPosition
-            };
-            locationsSoFar.push(tokenRef);
-            findCount++;
-            this._logMessage(`  -- appLoc-Token FOUND local token=[${tokenName}]`);
+            if (tokenPosition.line != -1 && tokenPosition.character != -1) {
+              const tokenRef: ILocationOfToken = {
+                uri: this.uri,
+                objectName: objectName,
+                position: tokenPosition
+              };
+              locationsSoFar.push(tokenRef);
+              findCount++;
+              this._logMessage(`  -- appLoc-Token FOUND local token=[${tokenName}]`);
+            }
           } else {
             this._logMessage(`  -- appLoc-Token local token=[${tokenName}] has NO lineNbr info!`);
           }
