@@ -643,6 +643,10 @@ export class Spin2DocumentSemanticParser {
         }
 
         currState = sectionStatus.inProgressStatus;
+        // reset method scope for global sections (CON, VAR, OBJ, DAT)
+        if (currState !== eParseState.inPub && currState !== eParseState.inPri) {
+          this.currentMethodName = '';
+        }
         // record start of next block in code
         //  NOTE: this causes end of prior block to be recorded
         let newBlockType: eBLockType = eBLockType.Unknown;
@@ -1154,6 +1158,10 @@ export class Spin2DocumentSemanticParser {
           this._logState(`- colorize Ln#${lineNbr} POP currState=[${currState}]`);
         }
         currState = sectionStatus.inProgressStatus;
+        // reset method scope for global sections (CON, VAR, OBJ, DAT)
+        if (currState !== eParseState.inPub && currState !== eParseState.inPri) {
+          this.currentMethodName = '';
+        }
         this.conEnumInProgress = false; // tell in CON processor we are not in an enum mulit-line declaration
         this._logState(`  -- Ln#${lineNbr} currState=[${currState}]`);
         // ID the section name
@@ -8914,10 +8922,16 @@ export class Spin2DocumentSemanticParser {
     if (newToken) {
       if (newToken.line !== -1 && newToken.startCharacter !== -1) {
         tokenSet.push(newToken);
-        // record reference for code navigation when a named symbol is provided
-        if (tokenName && tokenName.length > 0) {
+        // record reference for code navigation (Find All References, Rename, Highlight)
+        // auto-extract token name from source line when not explicitly provided
+        const name =
+          tokenName ||
+          (line && this._isTrackableTokenType(newToken.ptTokenType)
+            ? line.substring(newToken.startCharacter, newToken.startCharacter + newToken.length).trim()
+            : '');
+        if (name.length > 0 && !this._isBuiltinName(name, newToken.ptTokenType)) {
           const isDecl = newToken.ptTokenModifiers.includes('declaration');
-          this.semanticFindings.recordTokenReference(tokenName, {
+          this.semanticFindings.recordTokenReference(name, {
             line: newToken.line,
             startCharacter: newToken.startCharacter,
             length: newToken.length,
@@ -8932,6 +8946,19 @@ export class Spin2DocumentSemanticParser {
         this._logMessage(`** ERROR: BAD token nextString=[${tokenInterp}]`);
       }
     }
+  }
+
+  private _isTrackableTokenType(tokenType: string): boolean {
+    // token types that represent user-defined named symbols worth tracking for code navigation
+    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType'].includes(tokenType);
+  }
+
+  private _isBuiltinName(name: string, tokenType: string): boolean {
+    // filter out built-in storage type names (BYTE, WORD, LONG, etc.) from reference tracking
+    if (tokenType === 'storageType') {
+      return this.parseUtils.isStorageType(name);
+    }
+    return false;
   }
 
   private _recordDisplayTypeForLine(displayType: string, lineIdx: number): void {

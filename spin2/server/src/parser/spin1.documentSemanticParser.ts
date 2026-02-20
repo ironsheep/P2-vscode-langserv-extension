@@ -354,6 +354,10 @@ export class Spin1DocumentSemanticParser {
         // mark end of method, if we were in a method
         this.semanticFindings.endPossibleMethod(i); // pass prior line number! essentially i+1 (-1)
         currState = sectionStatus.inProgressStatus;
+        // reset method scope for global sections (CON, VAR, OBJ, DAT)
+        if (currState !== eParseState.inPub && currState !== eParseState.inPri) {
+          this.currentMethodName = '';
+        }
 
         if (currState == eParseState.inDatPAsm) {
           this.semanticFindings.recordPasmEnd(i - 1);
@@ -649,6 +653,10 @@ export class Spin1DocumentSemanticParser {
         // don't continue there might be some text to process before the {{
       } else if (sectionStatus.isSectionStart) {
         currState = sectionStatus.inProgressStatus;
+        // reset method scope for global sections (CON, VAR, OBJ, DAT)
+        if (currState !== eParseState.inPub && currState !== eParseState.inPri) {
+          this.currentMethodName = '';
+        }
         this._logState('  -- Ln#' + lineNbr + ' currState=[' + currState + ']');
         // ID the section name
         // DON'T mark the section literal, Syntax highlighting does this well!
@@ -3443,9 +3451,16 @@ export class Spin1DocumentSemanticParser {
   private _recordToken(tokenSet: IParsedToken[], line: string, newToken: IParsedToken, tokenName?: string) {
     if (newToken.line != -1 && newToken.startCharacter != -1) {
       tokenSet.push(newToken);
-      if (tokenName && tokenName.length > 0) {
+      // record reference for code navigation (Find All References, Rename, Highlight)
+      // auto-extract token name from source line when not explicitly provided
+      const name =
+        tokenName ||
+        (line && this._isTrackableTokenType(newToken.ptTokenType)
+          ? line.substring(newToken.startCharacter, newToken.startCharacter + newToken.length).trim()
+          : '');
+      if (name.length > 0 && !this._isBuiltinName(name, newToken.ptTokenType)) {
         const isDecl = newToken.ptTokenModifiers.includes('declaration');
-        this.semanticFindings.recordTokenReference(tokenName, {
+        this.semanticFindings.recordTokenReference(name, {
           line: newToken.line,
           startCharacter: newToken.startCharacter,
           length: newToken.length,
@@ -3459,6 +3474,19 @@ export class Spin1DocumentSemanticParser {
       }])]`;
       this._logMessage(`** ERROR: BAD token nextString=[${tokenInterp}]`);
     }
+  }
+
+  private _isTrackableTokenType(tokenType: string): boolean {
+    // token types that represent user-defined named symbols worth tracking for code navigation
+    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType'].includes(tokenType);
+  }
+
+  private _isBuiltinName(name: string, tokenType: string): boolean {
+    // filter out built-in storage type names (BYTE, WORD, LONG, etc.) from reference tracking
+    if (tokenType === 'storageType') {
+      return this.parseUtils.isStorageType(name);
+    }
+    return false;
   }
 
   private _generateFakeCommentForSignature(_startingOffset: number, lineNbr: number, line: string): RememberedComment {
