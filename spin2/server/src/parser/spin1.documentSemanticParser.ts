@@ -1459,7 +1459,7 @@ export class Spin1DocumentSemanticParser {
                 length: symbolName.length,
                 ptTokenType: referenceDetails.type,
                 ptTokenModifiers: updatedModificationSet
-              });
+              }, symbolName);
             } else if (this.parseUtils.isFlexspinReservedWord(symbolName)) {
               // record a constant reference
               this._recordToken(tokenSet, line, {
@@ -1573,7 +1573,7 @@ export class Spin1DocumentSemanticParser {
               length: lhsConstantName.length,
               ptTokenType: referenceDetails.type,
               ptTokenModifiers: modifiersWDecl
-            });
+            }, lhsConstantName);
           } else {
             this._logCON('  --  CON ERROR[CODE] missed recording declaration! name=[' + lhsConstantName + ']');
             this._recordToken(tokenSet, line, {
@@ -1582,7 +1582,7 @@ export class Spin1DocumentSemanticParser {
               length: lhsConstantName.length,
               ptTokenType: 'variable',
               ptTokenModifiers: ['readonly', 'missingDeclaration']
-            });
+            }, lhsConstantName);
             this.semanticFindings.pushDiagnosticMessage(
               lineIdx,
               nameOffset,
@@ -1641,7 +1641,7 @@ export class Spin1DocumentSemanticParser {
                   length: namePart.length,
                   ptTokenType: referenceDetails.type,
                   ptTokenModifiers: referenceDetails.modifiers
-                });
+                }, namePart);
               } else {
                 if (
                   !this.parseUtils.isSpinReservedWord(namePart) &&
@@ -1657,7 +1657,7 @@ export class Spin1DocumentSemanticParser {
                     length: namePart.length,
                     ptTokenType: 'variable',
                     ptTokenModifiers: ['readonly', 'missingDeclaration']
-                  });
+                  }, namePart);
                   this.semanticFindings.pushDiagnosticMessage(
                     lineIdx,
                     nameOffset,
@@ -1700,7 +1700,7 @@ export class Spin1DocumentSemanticParser {
                   length: enumExistingName.length,
                   ptTokenType: 'enumMember',
                   ptTokenModifiers: ['readonly']
-                });
+                }, enumExistingName);
               }
             }
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
@@ -1713,7 +1713,7 @@ export class Spin1DocumentSemanticParser {
                 length: enumConstant.length,
                 ptTokenType: 'enumMember',
                 ptTokenModifiers: ['declaration', 'readonly']
-              });
+              }, enumConstant);
             }
             currentOffset = nameOffset + enumConstant.length;
           }
@@ -1762,13 +1762,18 @@ export class Spin1DocumentSemanticParser {
         if (referenceDetails !== undefined) {
           // add back in our declaration flag
           const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: newName.length,
-            ptTokenType: referenceDetails.type,
-            ptTokenModifiers: modifiersWDecl
-          });
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: newName.length,
+              ptTokenType: referenceDetails.type,
+              ptTokenModifiers: modifiersWDecl
+            },
+            newName
+          );
         } else if (
           !this.parseUtils.isP1AsmReservedSymbols(newName) &&
           !this.parseUtils.isP1AsmInstruction(newName) &&
@@ -1779,13 +1784,18 @@ export class Spin1DocumentSemanticParser {
           !newName.toUpperCase().startsWith('IF_')
         ) {
           this._logDAT('  --  DAT rDdl MISSING name=[' + newName + ']');
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: newName.length,
-            ptTokenType: 'variable',
-            ptTokenModifiers: ['missingDeclaration']
-          });
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: newName.length,
+              ptTokenType: 'variable',
+              ptTokenModifiers: ['missingDeclaration']
+            },
+            newName
+          );
           this.semanticFindings.pushDiagnosticMessage(
             lineIdx,
             currentOffset,
@@ -1901,14 +1911,20 @@ export class Spin1DocumentSemanticParser {
                 this._logDAT('  --  FOUND DAT value global name=[' + namePart + ']');
               }
             }
+            const isLocalLabel: boolean = namePart.startsWith('.') || namePart.startsWith(':');
             if (referenceDetails !== undefined) {
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: namePart.length,
-                ptTokenType: referenceDetails.type,
-                ptTokenModifiers: referenceDetails.modifiers
-              });
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: namePart.length,
+                  ptTokenType: referenceDetails.type,
+                  ptTokenModifiers: referenceDetails.modifiers
+                },
+                !isLocalLabel ? namePart : undefined
+              );
             } else {
               if (
                 !this.parseUtils.isP1AsmReservedWord(namePart) &&
@@ -1924,13 +1940,18 @@ export class Spin1DocumentSemanticParser {
                 if (showDebug) {
                   this._logDAT('  --  DAT rDvdc MISSING name=[' + namePart + ']');
                 }
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: namePart.length,
-                  ptTokenType: 'variable',
-                  ptTokenModifiers: ['missingDeclaration']
-                });
+                this._recordToken(
+                  tokenSet,
+                  line,
+                  {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: namePart.length,
+                    ptTokenType: 'variable',
+                    ptTokenModifiers: ['missingDeclaration']
+                  },
+                  !isLocalLabel ? namePart : undefined
+                );
                 this.semanticFindings.pushDiagnosticMessage(
                   lineIdx,
                   nameOffset,
@@ -1970,6 +1991,7 @@ export class Spin1DocumentSemanticParser {
         // YES Label
         // process label/variable name - starting in column 0
         const labelName: string = lineParts[0];
+        const isLocalPAsmLabel: boolean = labelName.startsWith('.') || labelName.startsWith(':');
         this._logPASM(`  -- labelName=[${labelName}]`);
         let referenceDetails: RememberedToken | undefined = undefined;
         if (this.semanticFindings.isGlobalToken(labelName)) {
@@ -1980,26 +2002,36 @@ export class Spin1DocumentSemanticParser {
           const nameOffset = line.indexOf(labelName, currentOffset);
           this._logPASM(`  --  DAT PAsm ${referenceDetails.type}=[${labelName}], ofs=(${nameOffset})`);
           const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: labelName.length,
-            ptTokenType: referenceDetails.type,
-            ptTokenModifiers: modifiersWDecl
-          });
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: labelName.length,
+              ptTokenType: referenceDetails.type,
+              ptTokenModifiers: modifiersWDecl
+            },
+            !isLocalPAsmLabel ? labelName : undefined
+          );
           haveLabel = true;
         } else {
           // NO Label
           // hrmf... no global type???? this should be a label?
           this._logPASM('  --  DAT PAsm ERROR NOT A label=[' + labelName + '](' + (0 + 1) + ')');
           const nameOffset = line.indexOf(labelName, currentOffset);
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: labelName.length,
-            ptTokenType: 'variable', // color this offender!
-            ptTokenModifiers: ['illegalUse']
-          });
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: labelName.length,
+              ptTokenType: 'variable', // color this offender!
+              ptTokenModifiers: ['illegalUse']
+            },
+            !isLocalPAsmLabel ? labelName : undefined
+          );
           this.semanticFindings.pushDiagnosticMessage(
             lineIdx,
             nameOffset,
@@ -2083,15 +2115,21 @@ export class Spin1DocumentSemanticParser {
                   referenceDetails = this.semanticFindings.getGlobalToken(namePart);
                   this._logPASM('  --  FOUND DATpasm global name=[' + namePart + ']');
                 }
+                const isLocalRef: boolean = namePart.startsWith('.') || namePart.startsWith(':');
                 if (referenceDetails !== undefined) {
                   this._logPASM('  --  DAT PAsm name=[' + namePart + '](' + (nameOffset + 1) + ')');
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namePart.length,
-                    ptTokenType: referenceDetails.type,
-                    ptTokenModifiers: referenceDetails.modifiers
-                  });
+                  this._recordToken(
+                    tokenSet,
+                    line,
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: referenceDetails.type,
+                      ptTokenModifiers: referenceDetails.modifiers
+                    },
+                    !isLocalRef ? namePart : undefined
+                  );
                 } else {
                   if (
                     !this.parseUtils.isP1AsmReservedWord(namePart) &&
@@ -2101,13 +2139,18 @@ export class Spin1DocumentSemanticParser {
                     !this.parseUtils.isBuiltinReservedWord(namePart)
                   ) {
                     this._logPASM('  --  DAT PAsm MISSING name=[' + namePart + '](' + (nameOffset + 1) + ')');
-                    this._recordToken(tokenSet, line, {
-                      line: lineIdx,
-                      startCharacter: nameOffset,
-                      length: namePart.length,
-                      ptTokenType: 'variable',
-                      ptTokenModifiers: ['readonly', 'missingDeclaration']
-                    });
+                    this._recordToken(
+                      tokenSet,
+                      line,
+                      {
+                        line: lineIdx,
+                        startCharacter: nameOffset,
+                        length: namePart.length,
+                        ptTokenType: 'variable',
+                        ptTokenModifiers: ['readonly', 'missingDeclaration']
+                      },
+                      !isLocalRef ? namePart : undefined
+                    );
                     this.semanticFindings.pushDiagnosticMessage(
                       lineIdx,
                       nameOffset,
@@ -2203,13 +2246,18 @@ export class Spin1DocumentSemanticParser {
     this.currentMethodName = methodName; // notify of latest method name so we can track inLine PASM symbols
     // record definition of method
     const declModifiers: string[] = isPrivate ? ['declaration', 'static'] : ['declaration'];
-    this._recordToken(tokenSet, line, {
-      line: lineIdx,
-      startCharacter: startNameOffset,
-      length: methodName.length,
-      ptTokenType: 'method',
-      ptTokenModifiers: declModifiers
-    });
+    this._recordToken(
+      tokenSet,
+      line,
+      {
+        line: lineIdx,
+        startCharacter: startNameOffset,
+        length: methodName.length,
+        ptTokenType: 'method',
+        ptTokenModifiers: declModifiers
+      },
+      methodName
+    );
     this._logSPIN('-reportPubPriSig: methodName=[' + methodName + '](' + startNameOffset + ')');
     // -----------------------------------
     //   Parameters
@@ -2233,13 +2281,18 @@ export class Spin1DocumentSemanticParser {
           const nameOffset = line.indexOf(paramName, currentOffset);
           this._logSPIN('  -- paramName=[' + paramName + '](' + nameOffset + ')');
           if (this._hidesGlobalVariable(paramName)) {
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: paramName.length,
-              ptTokenType: 'parameter',
-              ptTokenModifiers: ['illegalUse']
-            });
+            this._recordToken(
+              tokenSet,
+              line,
+              {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: paramName.length,
+                ptTokenType: 'parameter',
+                ptTokenModifiers: ['illegalUse']
+              },
+              paramName
+            );
             this.semanticFindings.pushDiagnosticMessage(
               lineIdx,
               nameOffset,
@@ -2248,13 +2301,18 @@ export class Spin1DocumentSemanticParser {
               `P1 Spin parameter [${paramName}] hides global variable of same name`
             );
           } else {
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: paramName.length,
-              ptTokenType: 'parameter',
-              ptTokenModifiers: ['declaration', 'readonly', 'local']
-            });
+            this._recordToken(
+              tokenSet,
+              line,
+              {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: paramName.length,
+                ptTokenType: 'parameter',
+                ptTokenModifiers: ['declaration', 'readonly', 'local']
+              },
+              paramName
+            );
           }
           // remember so we can ID references
           this.semanticFindings.setLocalTokenForMethod(
@@ -2298,13 +2356,18 @@ export class Spin1DocumentSemanticParser {
         this._logSPIN('  -- returnValueName=[' + returnValueName + '](' + nameOffset + ')');
         // check to see if return name is hiding global variable
         if (this._hidesGlobalVariable(returnValueName)) {
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: returnValueName.length,
-            ptTokenType: 'returnValue',
-            ptTokenModifiers: ['illegalUse']
-          });
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: returnValueName.length,
+              ptTokenType: 'returnValue',
+              ptTokenModifiers: ['illegalUse']
+            },
+            returnValueName
+          );
           this.semanticFindings.pushDiagnosticMessage(
             lineIdx,
             nameOffset,
@@ -2313,13 +2376,18 @@ export class Spin1DocumentSemanticParser {
             `P1 Spin return [${returnValueName}] hides global variable of same name`
           );
         } else {
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: returnValueName.length,
-            ptTokenType: 'returnValue',
-            ptTokenModifiers: ['declaration', 'local']
-          });
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: returnValueName.length,
+              ptTokenType: 'returnValue',
+              ptTokenModifiers: ['declaration', 'local']
+            },
+            returnValueName
+          );
         }
         // remember so we can ID references
         this.semanticFindings.setLocalTokenForMethod(
@@ -2383,13 +2451,18 @@ export class Spin1DocumentSemanticParser {
                 }
                 if (referenceDetails !== undefined) {
                   this._logSPIN('  --  lcl-idx variableName=[' + namedIndexPart + '](' + (nameOffset + 1) + ')');
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namedIndexPart.length,
-                    ptTokenType: referenceDetails.type,
-                    ptTokenModifiers: referenceDetails.modifiers
-                  });
+                  this._recordToken(
+                    tokenSet,
+                    line,
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namedIndexPart.length,
+                      ptTokenType: referenceDetails.type,
+                      ptTokenModifiers: referenceDetails.modifiers
+                    },
+                    namedIndexPart
+                  );
                 } else {
                   if (
                     !this.parseUtils.isSpinReservedWord(namedIndexPart) &&
@@ -2398,13 +2471,18 @@ export class Spin1DocumentSemanticParser {
                   ) {
                     // we don't have name registered so just mark it
                     this._logSPIN('  --  SPIN MISSING varname=[' + namedIndexPart + '](' + (nameOffset + 1) + ')');
-                    this._recordToken(tokenSet, line, {
-                      line: lineIdx,
-                      startCharacter: nameOffset,
-                      length: namedIndexPart.length,
-                      ptTokenType: 'variable',
-                      ptTokenModifiers: ['missingDeclaration']
-                    });
+                    this._recordToken(
+                      tokenSet,
+                      line,
+                      {
+                        line: lineIdx,
+                        startCharacter: nameOffset,
+                        length: namedIndexPart.length,
+                        ptTokenType: 'variable',
+                        ptTokenModifiers: ['missingDeclaration']
+                      },
+                      namedIndexPart
+                    );
                     if (this.parseUtils.isP2SpinMethod(namedIndexPart)) {
                       this.semanticFindings.pushDiagnosticMessage(
                         lineIdx,
@@ -2434,13 +2512,18 @@ export class Spin1DocumentSemanticParser {
             // have name
             // check to see if local name is hiding global variable
             if (this._hidesGlobalVariable(localName)) {
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: localName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['illegalUse']
-              });
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: localName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['illegalUse']
+                },
+                localName
+              );
               this.semanticFindings.pushDiagnosticMessage(
                 lineIdx,
                 nameOffset,
@@ -2449,13 +2532,18 @@ export class Spin1DocumentSemanticParser {
                 `P1 Spin local [${localName}] hides global variable of same name`
               );
             } else {
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: localName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['declaration', 'local']
-              });
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: localName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['declaration', 'local']
+                },
+                localName
+              );
             }
             // remember so we can ID references
             this.semanticFindings.setLocalTokenForMethod(
@@ -2602,13 +2690,18 @@ export class Spin1DocumentSemanticParser {
                   if (referenceDetails !== undefined) {
                     const modificationArray: string[] = referenceDetails.modifiersWith('modification');
                     this._logSPIN(`  --  SPIN variableName=[${variableNamePart}], ofs=(${nameOffset})`);
-                    this._recordToken(tokenSet, line, {
-                      line: lineIdx,
-                      startCharacter: nameOffset,
-                      length: variableNamePart.length,
-                      ptTokenType: referenceDetails.type,
-                      ptTokenModifiers: modificationArray
-                    });
+                    this._recordToken(
+                      tokenSet,
+                      line,
+                      {
+                        line: lineIdx,
+                        startCharacter: nameOffset,
+                        length: variableNamePart.length,
+                        ptTokenType: referenceDetails.type,
+                        ptTokenModifiers: modificationArray
+                      },
+                      variableNamePart
+                    );
                   } else {
                     if (
                       !this.parseUtils.isSpinReservedWord(variableNamePart) &&
@@ -2617,13 +2710,18 @@ export class Spin1DocumentSemanticParser {
                     ) {
                       // we don't have name registered so just mark it
                       this._logSPIN(`  --  SPIN MISSING varname=[${variableNamePart}], ofs=(${nameOffset})`);
-                      this._recordToken(tokenSet, line, {
-                        line: lineIdx,
-                        startCharacter: nameOffset,
-                        length: variableNamePart.length,
-                        ptTokenType: 'variable',
-                        ptTokenModifiers: ['modification', 'missingDeclaration']
-                      });
+                      this._recordToken(
+                        tokenSet,
+                        line,
+                        {
+                          line: lineIdx,
+                          startCharacter: nameOffset,
+                          length: variableNamePart.length,
+                          ptTokenType: 'variable',
+                          ptTokenModifiers: ['modification', 'missingDeclaration']
+                        },
+                        variableNamePart
+                      );
                       this.semanticFindings.pushDiagnosticMessage(
                         lineIdx,
                         nameOffset,
@@ -2667,13 +2765,18 @@ export class Spin1DocumentSemanticParser {
               if (referenceDetails !== undefined) {
                 const modificationArray: string[] = referenceDetails.modifiersWith('modification');
                 this._logSPIN(`  -- spin: simple variableName=[${cleanedVariableName}], ofs=(${nameOffset})`);
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: cleanedVariableName.length,
-                  ptTokenType: referenceDetails.type,
-                  ptTokenModifiers: modificationArray
-                });
+                this._recordToken(
+                  tokenSet,
+                  line,
+                  {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: cleanedVariableName.length,
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: modificationArray
+                  },
+                  cleanedVariableName
+                );
               } else if (cleanedVariableName == '_') {
                 this._logSPIN(`  --  built-in=[${cleanedVariableName}], ofs=(${nameOffset})`);
                 this._recordToken(tokenSet, line, {
@@ -2691,13 +2794,18 @@ export class Spin1DocumentSemanticParser {
                   !this.parseUtils.isBuiltinReservedWord(cleanedVariableName)
                 ) {
                   this._logSPIN(`  --  SPIN MISSING cln name=[${cleanedVariableName}], ofs=(${nameOffset})`);
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: cleanedVariableName.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['modification', 'missingDeclaration']
-                  });
+                  this._recordToken(
+                    tokenSet,
+                    line,
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: cleanedVariableName.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['modification', 'missingDeclaration']
+                    },
+                    cleanedVariableName
+                  );
                   if (this.parseUtils.isP2SpinMethod(cleanedVariableName)) {
                     this.semanticFindings.pushDiagnosticMessage(
                       lineIdx,
@@ -2804,13 +2912,18 @@ export class Spin1DocumentSemanticParser {
           }
           if (referenceDetails !== undefined) {
             this._logSPIN('  --  SPIN RHS name=[' + namePart + '](' + (nameOffset + 1) + ')');
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: namePart.length,
-              ptTokenType: referenceDetails.type,
-              ptTokenModifiers: referenceDetails.modifiers
-            });
+            this._recordToken(
+              tokenSet,
+              line,
+              {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: namePart.length,
+                ptTokenType: referenceDetails.type,
+                ptTokenModifiers: referenceDetails.modifiers
+              },
+              namePart
+            );
           } else {
             // have unknown name!? is storage type spec?
             if (this.parseUtils.isStorageType(namePart)) {
@@ -2838,13 +2951,18 @@ export class Spin1DocumentSemanticParser {
               !this.parseUtils.isBuiltinReservedWord(namePart)
             ) {
               this._logSPIN('  --  SPIN MISSING rhs name=[' + namePart + ']');
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: namePart.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['missingDeclaration']
-              });
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: namePart.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['missingDeclaration']
+                },
+                namePart
+              );
               if (
                 this.parseUtils.isP2SpinMethod(namePart) ||
                 (this.parseUtils.isSpin2ReservedWords(namePart) && !this.parseUtils.isSpin2ButOKReservedWords(namePart))
@@ -2874,13 +2992,18 @@ export class Spin1DocumentSemanticParser {
           nameOffset = line.indexOf(externalMethodName, currentOffset);
           nameLen = externalMethodName.length;
           this._logSPIN('  --  SPIN rhs externalMethodName=[' + externalMethodName + '](' + (nameOffset + 1) + ')');
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: externalMethodName.length,
-            ptTokenType: 'method',
-            ptTokenModifiers: []
-          });
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: externalMethodName.length,
+              ptTokenType: 'method',
+              ptTokenModifiers: []
+            },
+            externalMethodName
+          );
         }
         currentOffset = nameOffset + nameLen + 1;
       }
@@ -2908,7 +3031,24 @@ export class Spin1DocumentSemanticParser {
         length: objectName.length,
         ptTokenType: 'namespace',
         ptTokenModifiers: ['declaration']
-      });
+      }, objectName);
+      // record document link for the quoted filename (e.g., objName : "filename")
+      const quoteStartIdx: number = line.indexOf('"', currentOffset);
+      if (quoteStartIdx != -1) {
+        const quoteEndIdx: number = line.indexOf('"', quoteStartIdx + 1);
+        if (quoteEndIdx != -1) {
+          const objFilename: string = line.substring(quoteStartIdx + 1, quoteEndIdx);
+          if (objFilename.length > 0) {
+            this.semanticFindings.recordDocumentLink({
+              line: lineIdx,
+              startCharacter: quoteStartIdx + 1,
+              endCharacter: quoteEndIdx,
+              targetFilename: objFilename,
+              isInclude: false
+            });
+          }
+        }
+      }
       const objArrayOpen: number = remainingNonCommentLineStr.indexOf('[');
       if (objArrayOpen != -1) {
         // we have an array of objects, study the index value for possible named reference(s)
@@ -2940,7 +3080,7 @@ export class Spin1DocumentSemanticParser {
                     length: nameReference.length,
                     ptTokenType: referenceDetails.type,
                     ptTokenModifiers: referenceDetails.modifiers
-                  });
+                  }, nameReference);
                 }
               } else {
                 // have possible dotted reference with name in other object. if has to be a constant
@@ -2953,7 +3093,7 @@ export class Spin1DocumentSemanticParser {
                     length: nameReference.length,
                     ptTokenType: 'variable',
                     ptTokenModifiers: ['readonly']
-                  });
+                  }, nameReference);
                 }
                 // we don't have name registered so just mark it
                 else if (!this.parseUtils.isSpinReservedWord(nameReference) && !this.parseUtils.isBuiltinReservedWord(nameReference)) {
@@ -2964,7 +3104,7 @@ export class Spin1DocumentSemanticParser {
                     length: nameReference.length,
                     ptTokenType: 'variable',
                     ptTokenModifiers: ['missingDeclaration']
-                  });
+                  }, nameReference);
                   this.semanticFindings.pushDiagnosticMessage(
                     lineIdx,
                     nameOffset,
@@ -3025,7 +3165,7 @@ export class Spin1DocumentSemanticParser {
                 length: newName.length,
                 ptTokenType: 'variable',
                 ptTokenModifiers: ['declaration', 'instance']
-              });
+              }, newName);
             } else {
               this._logVAR('  --  VAR Add MISSING name=[' + newName + ']');
               this._recordToken(tokenSet, line, {
@@ -3034,7 +3174,7 @@ export class Spin1DocumentSemanticParser {
                 length: newName.length,
                 ptTokenType: 'variable',
                 ptTokenModifiers: ['missingDeclaration']
-              });
+              }, newName);
               this.semanticFindings.pushDiagnosticMessage(
                 lineIdx,
                 nameOffset,
@@ -3080,7 +3220,7 @@ export class Spin1DocumentSemanticParser {
                       length: namePart.length,
                       ptTokenType: referenceDetails.type,
                       ptTokenModifiers: referenceDetails.modifiers
-                    });
+                    }, namePart);
                   } else {
                     // we don't have name registered so just mark it
                     if (!this.parseUtils.isSpinReservedWord(namePart) && !this.parseUtils.isBuiltinReservedWord(namePart)) {
@@ -3091,7 +3231,7 @@ export class Spin1DocumentSemanticParser {
                         length: namePart.length,
                         ptTokenType: 'variable',
                         ptTokenModifiers: ['missingDeclaration']
-                      });
+                      }, namePart);
                       this.semanticFindings.pushDiagnosticMessage(
                         lineIdx,
                         nameOffset,
@@ -3120,7 +3260,7 @@ export class Spin1DocumentSemanticParser {
             length: newName.length,
             ptTokenType: 'variable',
             ptTokenModifiers: ['declaration', 'instance']
-          });
+          }, newName);
         }
       }
     }
@@ -3166,7 +3306,7 @@ export class Spin1DocumentSemanticParser {
             length: objInstanceName.length,
             ptTokenType: referenceDetails.type,
             ptTokenModifiers: referenceDetails.modifiers
-          });
+          }, objInstanceName);
           if (possibleNameSet.length > 1) {
             // we have .constant namespace suffix
             // determine if this is method has '(' or constant name
@@ -3197,7 +3337,7 @@ export class Spin1DocumentSemanticParser {
                   length: objReferencedName.length,
                   ptTokenType: tokenTypeID,
                   ptTokenModifiers: tokenModifiers
-                });
+                }, objReferencedName);
               } else {
                 this._recordToken(tokenSet, line, {
                   line: lineIdx,
@@ -3205,7 +3345,7 @@ export class Spin1DocumentSemanticParser {
                   length: objReferencedName.length,
                   ptTokenType: tokenTypeID,
                   ptTokenModifiers: ['illegalUse']
-                });
+                }, objReferencedName);
                 const expectedType: string = isMethod ? 'METHOD Name' : 'Constant Name';
                 const recievedType: string = isMethod ? 'Constant Name' : 'METHOD Name';
                 const joinString: string = isMethod ? '.' : '#';
@@ -3225,7 +3365,7 @@ export class Spin1DocumentSemanticParser {
                 length: objReferencedName.length,
                 ptTokenType: 'variable',
                 ptTokenModifiers: ['illegalUse']
-              });
+              }, objReferencedName);
               const refType: string = isMethod ? 'Method' : 'Constant';
               const adjustedName: string = isMethod ? `${objReferencedName}()` : objReferencedName;
               this.semanticFindings.pushDiagnosticMessage(
@@ -3266,7 +3406,7 @@ export class Spin1DocumentSemanticParser {
               length: objInstanceName.length,
               ptTokenType: 'variable',
               ptTokenModifiers: ['missingDeclaration']
-            });
+            }, objInstanceName);
             this.semanticFindings.pushDiagnosticMessage(
               lineIdx,
               symbolOffset,
@@ -3281,7 +3421,7 @@ export class Spin1DocumentSemanticParser {
               length: referencePart.length,
               ptTokenType: 'variable',
               ptTokenModifiers: ['illegalUse']
-            });
+            }, referencePart);
             const refType: string = isMethod ? 'Method' : 'Constant';
             const adjustedName: string = isMethod ? `${referencePart}()` : referencePart;
             this.semanticFindings.pushDiagnosticMessage(
@@ -3300,9 +3440,19 @@ export class Spin1DocumentSemanticParser {
     return bGeneratedReference;
   }
 
-  private _recordToken(tokenSet: IParsedToken[], line: string, newToken: IParsedToken) {
+  private _recordToken(tokenSet: IParsedToken[], line: string, newToken: IParsedToken, tokenName?: string) {
     if (newToken.line != -1 && newToken.startCharacter != -1) {
       tokenSet.push(newToken);
+      if (tokenName && tokenName.length > 0) {
+        const isDecl = newToken.ptTokenModifiers.includes('declaration');
+        this.semanticFindings.recordTokenReference(tokenName, {
+          line: newToken.line,
+          startCharacter: newToken.startCharacter,
+          length: newToken.length,
+          isDeclaration: isDecl,
+          scope: this.currentMethodName
+        });
+      }
     } else {
       const tokenInterp: string = `token(${newToken.line + 1},${newToken.startCharacter})=[len:${newToken.length}](${newToken.ptTokenType}[${
         newToken.ptTokenModifiers

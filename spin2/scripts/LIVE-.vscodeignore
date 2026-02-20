@@ -20,6 +20,10 @@ REF-CHK/
 EarlyTesting.md
 INSTALL.md
 CLAUDE.md
+.mcp.json
+GUIDE-*.md
+coverage-*.txt
+AUTHORS
 tree.out
 console.out
 PLAN-*.md
@@ -35,6 +39,8 @@ PUNCHLIST-*.md
 **/*.tgz
 **/tsconfig.json
 **/tsconfig.base.json
+**/tsconfig.tsbuildinfo
+**/package-lock.json
 contributing.md
 .travis.yml
 TEST_LANG_SERVER/**

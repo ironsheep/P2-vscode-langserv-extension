@@ -114,10 +114,15 @@ export default class TextDocumentSyncProvider implements Provider {
           }
           this.ctx.parserConfig.highlightFlexspinDirectives = serverConfiguration['highlightFlexspinDirectives'];
         }
+        // authorFilePrefix is read independently (no reparse needed on change)
+        const newAuthorPrefix: string = serverConfiguration['authorFilePrefix'] || '';
+        if (newAuthorPrefix !== this.ctx.parserConfig.authorFilePrefix) {
+          this.ctx.parserConfig.authorFilePrefix = newAuthorPrefix;
+        }
       }
       //this.ctx.logger.log(`TRC: process() received settings RAW=[${serverConfiguration}], JSON=[${JSON.stringify(serverConfiguration)}]`);
       this.ctx.logger.log(
-        `  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(${this.ctx.parserConfig.maxNumberOfReportedIssues}), highlightFlexspinDirectives=[${this.ctx.parserConfig.highlightFlexspinDirectives}], changes=(${configChanged})`
+        `  DBG --  ctx.parserConfig.maxNumberOfReportedIssues=(${this.ctx.parserConfig.maxNumberOfReportedIssues}), highlightFlexspinDirectives=[${this.ctx.parserConfig.highlightFlexspinDirectives}], authorFilePrefix=[${this.ctx.parserConfig.authorFilePrefix}], changes=(${configChanged})`
       );
     });
     await this.ctx.connection.workspace.getConfiguration('editor').then((editorConfiguration: EditorConfiguration) => {

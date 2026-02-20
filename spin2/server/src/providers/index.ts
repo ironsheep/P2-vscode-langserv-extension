@@ -9,18 +9,19 @@ import SemanticTokensProvider from './SemanticTokensProvider';
 // import ConfiguratonProvider from "./ConfigurationProvider";
 import DefinitionProvider from './DefinitionProvider';
 // import DocumentFormattingProvider from "./DocumentFormatttingProvider";
-// import DocumentHighlightProvider from "./DocumentHighlightProvider";
-// import DocumentLinkProvider from "./DocumentLinkProvider";
+import DocumentHighlightProvider from './DocumentHighlightProvider';
+import DocumentLinkProvider from './DocumentLinkProvider';
 import DocumentSymbolProvider from './DocumentSymbolProvider';
 // import FileOperationsProvider from "./FileOperationsProvider";
 import FoldingRangeProvider from './FoldingRangeProvider';
 import HoverProvider from './HoverProvider';
-// import ReferencesProvider from "./ReferencesProvider";
-// import RenameProvider from "./RenameProvider";
+import ReferencesProvider from './ReferencesProvider';
+import RenameProvider from './RenameProvider';
 import SignatureHelpProvider from './SignatureHelpProvider';
 import TextDocumentSyncProvider from './TextDocumentSyncProvider';
 import ObjectDependencyProvider from './ObjectDependencyProvider';
-// import WorkspaceSymbolProvider from "./WorkspaceSymbolProvider";
+import WorkspaceSymbolProvider from './WorkspaceSymbolProvider';
+import TypeDefinitionProvider from './TypeDefinitionProvider';
 
 export interface Provider {
   register(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities;
@@ -31,18 +32,19 @@ const providers = [
   //   ConfiguratonProvider,
   DefinitionProvider,
   //   DocumentFormattingProvider,
-  //   DocumentHighlightProvider,
-  //   DocumentLinkProvider,
+  DocumentHighlightProvider,
+  DocumentLinkProvider,
   DocumentSymbolProvider,
   //   FileOperationsProvider,
   FoldingRangeProvider,
   HoverProvider,
-  //   ReferencesProvider,
-  //   RenameProvider,
+  ReferencesProvider,
+  RenameProvider,
   SignatureHelpProvider,
   TextDocumentSyncProvider,
-  ObjectDependencyProvider
-  //   WorkspaceSymbolProvider,
+  ObjectDependencyProvider,
+  WorkspaceSymbolProvider,
+  TypeDefinitionProvider
 ];
 
 export default function registerProviders(

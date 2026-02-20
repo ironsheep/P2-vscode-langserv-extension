@@ -148,6 +148,25 @@ export interface IFoldSpan {
 }
 
 // ----------------------------------------------------------------------------
+//  Token Reference tracking for code navigation (Find All References, Rename, etc.)
+//
+export interface ITokenReference {
+  line: number;
+  startCharacter: number;
+  length: number;
+  isDeclaration: boolean; // true for the declaration site
+  scope: string; // method name for locals, '' for globals
+}
+
+export interface IDocumentLinkInfo {
+  line: number;
+  startCharacter: number;
+  endCharacter: number;
+  targetFilename: string;
+  isInclude: boolean; // true for #include, false for OBJ reference
+}
+
+// ----------------------------------------------------------------------------
 //  Shared Data Storage for what our current document contains
 //   CLASS DocumentFindings
 export class DocumentFindings {
@@ -210,6 +229,11 @@ export class DocumentFindings {
 
   // tracking document Spin2 version
   private documentSpin2Version: number = 0;
+
+  // token reference index for code navigation (Find All References, Rename, Highlight)
+  // Maps lowercase token name -> list of all occurrence positions in this file
+  private referencesByTokenName = new Map<string, ITokenReference[]>();
+  private documentLinks: IDocumentLinkInfo[] = [];
 
   private ctx: Context | undefined;
   private docUri: string = '--uri-not-set--';
@@ -302,6 +326,8 @@ export class DocumentFindings {
     this.outlineSymbols = [];
     this.semanticTokens = [];
     this.preProcSymbols = [];
+    this.referencesByTokenName.clear();
+    this.documentLinks = [];
     if (clearIncludesToo) {
       this.objectParseResultByObjectName.clear();
       this._logMessage(`  -- FND-clear REMOVED object includes [${this.instanceName()}]`);
@@ -333,6 +359,67 @@ export class DocumentFindings {
 
     // (1) let's ensure our list of global labels is in line number order
     this.declarationGlobalLabelListCache = this.declarationGlobalLabelListCache.sort((n1, n2) => n1 - n2);
+  }
+
+  // -------------------------------------------------------------------------------------
+  //  TOKEN REFERENCE INDEX - for code navigation (Find All References, Rename, Highlight)
+  //
+
+  public recordTokenReference(name: string, ref: ITokenReference): void {
+    // Record a reference to a named token at a specific position.
+    // Uses lowercase key for case-insensitive lookup (matching TokenSet convention).
+    const key = name.toLowerCase();
+    if (key.length === 0) {
+      return;
+    }
+    let refs = this.referencesByTokenName.get(key);
+    if (!refs) {
+      refs = [];
+      this.referencesByTokenName.set(key, refs);
+    }
+    refs.push(ref);
+  }
+
+  public getReferencesForToken(name: string, scope?: string): ITokenReference[] {
+    // Retrieve all references for a token name.
+    // If scope is provided, only return references within that scope (method name).
+    // If scope is undefined, return all references regardless of scope.
+    const key = name.toLowerCase();
+    const refs = this.referencesByTokenName.get(key);
+    if (!refs) {
+      return [];
+    }
+    if (scope !== undefined) {
+      return refs.filter((r) => r.scope.toLowerCase() === scope.toLowerCase());
+    }
+    return refs;
+  }
+
+  public hasTokenReferences(name: string): boolean {
+    // Check if any references exist for a token name.
+    const key = name.toLowerCase();
+    return this.referencesByTokenName.has(key);
+  }
+
+  public get tokenReferenceCount(): number {
+    // Return total count of tracked token names that have references.
+    return this.referencesByTokenName.size;
+  }
+
+  public get tokenReferenceNames(): string[] {
+    // Return list of all token names that have references.
+    return Array.from(this.referencesByTokenName.keys());
+  }
+
+  // -------------------------------------------------------------------------------------
+  //  TRACK Document links (OBJ filenames, #include paths)
+  //
+  public recordDocumentLink(info: IDocumentLinkInfo): void {
+    this.documentLinks.push(info);
+  }
+
+  public getDocumentLinks(): IDocumentLinkInfo[] {
+    return this.documentLinks;
   }
 
   // -------------------------------------------------------------------------------------
@@ -1987,6 +2074,10 @@ export class DocumentFindings {
     this.currMethodStartLineNbr = 0;
   }
 
+  public getMethodNameForLine(lineNbr: number): string | undefined {
+    return this._getMethodNameForLine(lineNbr);
+  }
+
   private _getMethodNameForLine(lineNbr: number): string | undefined {
     let desiredMethodName: string | undefined = undefined;
     if (this.spanInfoByMethodName.size > 0) {
@@ -2678,6 +2769,14 @@ export class RememberedStructure {
 
   get name(): string {
     return this._name;
+  }
+
+  get lineIndex(): number {
+    return this._lineIndex;
+  }
+
+  get charOffset(): number {
+    return this._charOffset;
   }
 
   public setName(newName: string) {

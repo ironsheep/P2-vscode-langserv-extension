@@ -1,0 +1,57 @@
+' Test fixture: references-basic.spin2
+' Purpose: Basic reference tracking for CON, VAR, PUB, PRI, and DAT sections
+'
+' Expected references for "MAX_SENSORS":
+'   Line 8 col 2 (declaration, CON)
+'   Line 18 col 14 (read, PUB Main)
+'   Line 31 col 14 (read, PRI Helper)
+'
+' Expected references for "sensorValue":
+'   Line 12 col 8 (declaration, VAR)
+'   Line 19 col 8 (read, PUB Main)
+'   Line 24 col 2 (write, PUB Main)
+'   Line 32 col 15 (read, PRI Helper)
+'
+' Expected references for "Main":
+'   Line 16 col 4 (declaration, PUB)
+'
+' Expected references for "Helper":
+'   Line 28 col 4 (declaration, PRI)
+'   Line 25 col 8 (read, PUB Main)
+
+CON
+
+  MAX_SENSORS = 4
+  LED_PIN = 56
+
+VAR
+
+  LONG  sensorValue
+  LONG  idx
+
+PUB Main() | localVar
+
+  localVar := MAX_SENSORS
+  localVar := sensorValue
+  repeat idx from 0 to MAX_SENSORS - 1
+    if idx > 0
+      localVar += idx
+  sensorValue := localVar
+  Helper(localVar)
+
+DAT
+
+char8_loop
+
+PRI Helper(value) : result
+
+  result := value
+  if value > MAX_SENSORS
+    result := sensorValue
+
+DAT
+
+read_args
+              org
+              nop
+              ret

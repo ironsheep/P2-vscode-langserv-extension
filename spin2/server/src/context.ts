@@ -27,6 +27,7 @@ export class ServerBehaviorConfiguration {
   public localIncludes: LocalIncludesByFolder = {};
   public excludeIncludeDirectories: string[] = [];
   public includeDirectoryDiscoveryEnabled: boolean = false;
+  public authorFilePrefix: string = '';
 }
 
 export class EditorConfiguration {
