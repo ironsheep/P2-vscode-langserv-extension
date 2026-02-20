@@ -110,6 +110,7 @@ There are additional companion documents in this Repository:
 
 **Getting around your code:**
 
+1. [Editing Features Guide](Spin2-Editing.md) — language intelligence, code generation, and editor features for Spin2 development
 1. [Code Navigation Guide](Spin2-code-navigation.md) — Find All References, Rename Symbol, Workspace Symbol Search, and more
 1. [Include Directories Guide](Spin2-Include-Directories.md) — how the extension discovers and manages include paths for multi-file projects
 
