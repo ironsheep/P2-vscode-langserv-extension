@@ -12,9 +12,7 @@ This document is being developed over time as we prove-out a working environment
 
 To date, we have installations, compilation and downloading from **Windows** (_this page_), [**MacOS**](TASKS-User-macOS.md), and [**RaspiOS**](TASKS-User-RPi.md) (the Raspberry Pi OS - a Debian derived distribution).
 
-Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**,and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
-
-In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
+Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**, and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
 ## Table of Contents
 
@@ -76,7 +74,7 @@ By choosing to adopt the Custom Tasks described in this document along with the 
 Iterate until your project works as desired:
 
 - Make changes to file(s)
-- Compile the files to see if they compile cleanly (cmd-shift-B) on which ever file you are editing
+- Compile the files to see if they compile cleanly (cmd-shift-B) on whichever file you are editing
 - Once the files compile cleanly
 - Download and test (ctrl-shift-D, F10) [if you use keybindings shown in examples on this page]
 - Alternatively, download your project to FLASH and test (ctrl-shift-F, F11) [if you use keybindings shown in examples on this page]
@@ -150,7 +148,7 @@ I have mostly macs for development but I also have a Windows machine and a numbe
 
 - **Synchronize your VSCode settings and extensions** automatically by installing and using the **Settings Sync** VScode extension. Any changes you make to one machine then will be sync'd to your other VScode machines.
 
-- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut-TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine your are running on.
+- **Be very consistent in where you install tools** for each type of OS. (e.g., for all Windows machines make sure you install FlexProp, PNut-TS, and PNut, in the same location on each Windows machine.) By being consistent your tasks will run no matter which machine you are running on.
   There is nothing worse than trying to remember where you installed a specific tool on the machine you are currently logged into. Because you install say FlexProp in the same place on all your Raspberry Pi's you will know where to find it no matter which RPi you are logged in to.
 
   - All like operating systems should have a specific tool installed in the same location on each. (e.g., all Windows machines have FlexProp installed in one location, all macOS machines have FlexProp installed in a different location that on Windows but it is the same location across all Macs, etc.)
@@ -207,11 +205,11 @@ Architecture specific PNut-TS .zip files available for Windows:
 | pnut-ts-win-arm64-{MMmmpp}.zip| Windows | Arm 64 bit | pnut_ts/
 | pnut-ts-win-x64-{MMmmpp}.zip| Windows | Intel x86-64 bit | pnut_ts/
 
-**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
+**NOTE:** *where -MMmmpp is the release version. (E.g., -014303.zip means v1.43.3.)*
 
 Get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
-We are making a new program install location in these steps. We are going to use the same root directory as FlexProp but we have a new vendor. So, Create a new program files directory called `C:\Programs\IronSheepProductions\` and unpack the .zip file into that directory. Depnding upon which command you use to do this you may have created a folder named after the .zip file. If this happens then inside that folder is the pnut\_ts folder. Just move it out of the .zip-named folder into this folder. Then remove the now empty .zip-named folder.  In the end you should have a `C:\Programs\IronSheepProductions\pnut_ts\` folder with a pnut_ts.exe file within it along with other documentation.
+We are making a new program install location in these steps. We are going to use the same root directory as FlexProp but we have a new vendor. So, Create a new program files directory called `C:\Programs\IronSheepProductions\` and unpack the .zip file into that directory. Depending upon which command you use to do this you may have created a folder named after the .zip file. If this happens then inside that folder is the pnut\_ts folder. Just move it out of the .zip-named folder into this folder. Then remove the now empty .zip-named folder.  In the end you should have a `C:\Programs\IronSheepProductions\pnut_ts\` folder with a pnut_ts.exe file within it along with other documentation.
 
 Finish up by adding `C:\Programs\IronSheepProductions\pnut_ts` to PATH as described in [add a new PATH element](#os-windows).
 
@@ -244,11 +242,11 @@ Architecture specific PNut-Term-TS .zip files available for Windows:
 | pnut-term-ts-windows-arm64-{MMmmpp}.zip| Windows | Arm 64 bit | pnut\_term\_ts/
 | pnut-term-ts-windows-x64-{MMmmpp}.zip| Windows | Intel x86-64 bit | pnut\_term\_ts/
 
-**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
+**NOTE:** *where -MMmmpp is the release version. (E.g., -014303.zip means v1.43.3.)*
 
 Get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.
 
-We are making a new program install location in these steps. We are going to use the same root directory as FlexProp but we have a new vendor. So, Create a new program files directory called `C:\Programs\IronSheepProductions\` and unpack the .zip file into that directory. Depnding upon which command you use to do this you may have created a folder named after the .zip file. If this happens then inside that folder is the pnut\_term\_ts folder. Just move it out of the .zip-named folder into this folder. Then remove the now empty .zip-named folder.  In the end you should have a `C:\Programs\IronSheepProductions\pnut\_term\_ts\` folder with a pnut-term-ts.exe file within it along with other documentation.
+We are making a new program install location in these steps. We are going to use the same root directory as FlexProp but we have a new vendor. So, Create a new program files directory called `C:\Programs\IronSheepProductions\` and unpack the .zip file into that directory. Depending upon which command you use to do this you may have created a folder named after the .zip file. If this happens then inside that folder is the pnut\_term\_ts folder. Just move it out of the .zip-named folder into this folder. Then remove the now empty .zip-named folder.  In the end you should have a `C:\Programs\IronSheepProductions\pnut\_term\_ts\` folder with a pnut-term-ts.exe file within it along with other documentation.
 
 Finish up by adding `C:\Programs\IronSheepProductions\pnut_term_ts` to PATH as described in [add a new PATH element](#os-windows).
 
@@ -295,7 +293,7 @@ I haven't found the need to keep any prior version. I simply:
 
 ### Setting paths for your P2 Compilers/Tools
 
-Once we've installed our compiler(s) we need to make sure that all users can use them from the command line. We do this by adding the path to each compiler to the System Envrironment settings PATH variable.
+Once we've installed our compiler(s) we need to make sure that all users can use them from the command line. We do this by adding the path to each compiler to the System Environment settings PATH variable.
 
 We have three compilers and new PNut-Term-TS mentioned above. If you are using the paths I use then we have:
 
@@ -309,8 +307,6 @@ We have three compilers and new PNut-Term-TS mentioned above. If you are using t
 #### OS: Windows
 
 On windows the search path for programs is maintained by the **Windows Settings App.** Open Window Settings and search for "environment" and you should see two choices: "**Edit the system environment variables**" and "**Edit environment variables for your account**". If you want the tools to work for all users on this Windows machine (Preferred) then adjust the PATH values by editing the "**system environment variables**". If, instead, you only need the tools to work for your account then edit the "environment variables for your account".
-
-If you routinely install these compilers in the same place
 
 **NOTE** _the above is referring to **Windows 10** settings names. On earlier versions of Windows the concept is the same. Locate the environment values and make the appropriate changes._
 
@@ -549,25 +545,29 @@ In order to support our notion of top-level file and to prevent us from occasion
 
 When we request a download or flash the automation will first compile the top-level project source which produces a new binary. It is this new binary that will be downloaded/flashed.
 
-We have multiple tasks that need to know the name of our top-level file. So we add a new settings file with a topLevel value to our project:
+We have multiple tasks that need to know the name of our top-level file. So we add a new settings file with a `spin2.fNameTopLevel` value to our project:
 
 **.vscode/settings.json** file contains the following contents:
 
 ```json
 {
-  "topLevel": "jm_p2-es_matrix_control_demo"
+  "spin2.fNameTopLevel": "jm_p2-es_matrix_control_demo.spin2"
 }
 ```
 
-Once we have this file in place, then our `tasks.json` file can access this value using the form: `${config:topLevel}`
+Once we have this file in place, then our `tasks.json` file can access this value using the form: `${config:spin2.fNameTopLevel}`
 
-Now our **CompileTopP2** task can create the toplevel filename using `${config:topLevel}.spin2`
+**NOTE**: The value includes the `.spin2` file extension.
 
-You need to find the line containing "jm\_p2-es\_matrix\_control_demo" and replace this name with the name of your top-level file.
-
-And our **DownloadP2** task can reference the binary file using `${config:topLevel}.binary`
+You need to find the line containing "jm\_p2-es\_matrix\_control\_demo.spin2" and replace it with the name of your top-level file (including the `.spin2` extension).
 
 
+
+## Did I miss anything?
+
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
 
 ## License
 

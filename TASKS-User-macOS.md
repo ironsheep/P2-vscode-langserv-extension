@@ -15,8 +15,6 @@ To date, we have installations, compilation, and downloading from **[Windows](TA
 
 Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**, and **PNut** (*PNut is Windows or Windows Emulator only.*) with direct USB-attached boards.
 
-In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
-
 ## Table of Contents
 
 On this Page:
@@ -86,7 +84,7 @@ To complete your setup so you can use FlexProp on your Mac under VSCode you'll n
 One time:
 
 - Install FlexProp for all users to use on your Mac
-- Add our tasks to the user tasks.json file (*works across all your P2 projects*)</br>(*NOTE: there is no longer any tool-path informaton in this file!*)
+- Add our tasks to the user tasks.json file (*works across all your P2 projects*)</br>(*NOTE: there is no longer any tool-path information in this file!*)
 - Remove any old compile/download keybindings you may have.
 - Optionally add a couple of VSCode extensions if you wish to have the features I demonstrated
     - "[Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens)" which adds the compile error messages to the associated line of code
@@ -166,7 +164,7 @@ If I'm updating to a new version I do the following:
 
 #### (Hopefully Temporary) Install of Node.js runtime
 
-The packaging o PNut-TS for macOS for some reason, doesn't run (I'm working to understand this.) So, as a workaround, we install a Node.js runtime so we can run our compiler.
+The packaging of PNut-TS for macOS for some reason, doesn't run (I'm working to understand this.) So, as a workaround, we install a Node.js runtime so we can run our compiler.
 
 To see if you have Node.js installed (or to check what version you have installed) run:
 
@@ -188,7 +186,7 @@ Once you have a node running and it's found in your PATH, then you can proceed w
 
 #### Now installing PNut-TS
 
-On MacOS  machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown and upacking the zip file to produce a .dmg install image.
+On MacOS  machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown and unpacking the zip file to produce a .dmg install image.
 
 We double-click on the .dmg file to mount it. It opens a window, then, in the window, we drag the pnut_ts/ folder into the /Applications folder. Then the close the window and eject (unmount) the installer .dmg file.
 
@@ -201,11 +199,11 @@ Architecture specific PNut-TS .zip files available for MacOS:
 | pnut-ts-macos-arm64-{MMmmpp}.zip| MacOS | Arm 64 bit | pnut_ts/
 | pnut-ts-macos-x64-{MMmmpp}.zip| MacOS | Intel x86-64 bit | pnut_ts/
 
-**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
+**NOTE:** *where -MMmmpp is the release version. (E.g., -014303.zip means v1.43.3.)*
 
 Get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
-If you have an intel-based mac then get the x64 .zip file, if you have an Apple-silicon-based make then get the arm64 .zip file.
+If you have an intel-based mac then get the x64 .zip file, if you have an Apple-silicon-based Mac then get the arm64 .zip file.
 
 - Once you have your selected .zip file then double click on it to extract the pnut_ts/ folder.
 - In a finder window, drag the new pnut_ts/ folder to the Applications folder.
@@ -279,9 +277,9 @@ See: [VSCode "Tasks" Reference Page](https://code.visualstudio.com/docs/editor/t
 
 There are a number of types of tasks and places Task definitions live. These include [Auto-detected Tasks](https://code.visualstudio.com/docs/editor/tasks#_task-autodetection), [User level tasks](https://code.visualstudio.com/docs/editor/tasks#_user-level-tasks), and [Custom Tasks](https://code.visualstudio.com/docs/editor/tasks#_custom-tasks).  Tasks when run, can be crafted to depend upon the running of other tasks  See: [Compound Tasks](https://code.visualstudio.com/docs/editor/tasks#_compound-tasks)  Some tasks can be [run in background](https://code.visualstudio.com/docs/editor/tasks#_background-watching-tasks) such as file watchers which execute when a file has been changed.
 
-When you run VScode on multiple operating systems and want to be able to run a projects tasks on whichever machine you are on then you can specify os-specific alternatives to be used withing the task. See [Operating system specific properties](https://code.visualstudio.com/docs/editor/tasks#_operating-system-specific-properties)
+When you run VScode on multiple operating systems and want to be able to run a projects tasks on whichever machine you are on then you can specify os-specific alternatives to be used within the task. See [Operating system specific properties](https://code.visualstudio.com/docs/editor/tasks#_operating-system-specific-properties)
 
-Another VSCode mechanism we are determining if it will be useful is the: [Task Provider Extension](https://code.visualstudio.com/api/extension-guides/task-provider). If we find this is useful we can add a Task Provder element to our existing extension in order to facilitate our updating task files we use for P1 and P2 development.
+Another VSCode mechanism we are determining if it will be useful is the: [Task Provider Extension](https://code.visualstudio.com/api/extension-guides/task-provider). If we find this is useful we can add a Task Provider element to our existing extension in order to facilitate our updating task files we use for P1 and P2 development.
 
 ### Invoking tasks
 
@@ -443,7 +441,7 @@ Under **Task: Run Build Task**:
 
 Under **Task: Run Test Task**:
 
-- DownloadP2 - Download the binary to RAM in our connected P2
+- DownloadP2 - Download the binary to RAM/FLASH in our connected P2
 
 As written, **downloadP2** for flexspin will always be preceded by a compileTopP2.
 
@@ -499,29 +497,31 @@ If you still want to use these keys for build shortcuts, then you should remove 
 
 ### Adding our notion of Top-level file for tasks to use
 
-In order to support our notion of top-level file and to prevent us from occassionally compiling and downloading a file other than the project top-level file we've adopted the notion of adding a CompileTopP2 build task a DownloadP2 download task, and in some cases a FlashP2 task.
+In order to support our notion of top-level file and to prevent us from occasionally compiling and downloading a file other than the project top-level file we've adopted the notion of adding a CompileTopP2 build task a DownloadP2 download task, and in some cases a FlashP2 task.
 
 When we request a download or flash the automation will first compile the top-level project source which produces a new binary. It is this new binary that will be downloaded/flashed.
 
-We have multiple tasks that need to know the name of our top-level file. So we add a new settings file with a topLevel value to our project:
+We have multiple tasks that need to know the name of our top-level file. So we add a new settings file with a `spin2.fNameTopLevel` value to our project:
 
 **.vscode/settings.json** file contains the following contents:
 
 ```json
 {
-   "topLevel": "jm_p2-es_matrix_control_demo",
+  "spin2.fNameTopLevel": "jm_p2-es_matrix_control_demo.spin2"
 }
-
 ```
 
-Once we have this file in place, then our `tasks.json` file can access this value using the form: `${config:topLevel}`
+Once we have this file in place, then our `tasks.json` file can access this value using the form: `${config:spin2.fNameTopLevel}`
 
+**NOTE**: The value includes the `.spin2` file extension.
 
-Now our **CompileTopP2** task can create the toplevel filename using  `${config:topLevel}.spin2`
+You need to find the line containing "jm\_p2-es\_matrix\_control\_demo.spin2" and replace it with the name of your top-level file (including the `.spin2` extension).
 
-You need to find the line containing "jm\_p2-es\_matrix\_control\_demo" and replace this name with the name of your top-level file.
+## Did I miss anything?
 
-And our **DownloadP2** task can reference the binary file using `${config:topLevel}.binary`
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
 
 ## License
 

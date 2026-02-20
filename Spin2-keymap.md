@@ -1,4 +1,4 @@
-# VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
+# Spin2 Extension — Keystroke Planner
 
 ![Project Maintenance][maintenance-shield]
 [![License][license-shield]](LICENSE)
@@ -68,6 +68,12 @@ The keyboard mappings are different on Windows than they are on Mac, RPi or Linu
 
 ![Keys 2 of 2](./DOCs/keysOnMacRPi.png)
 **FIGURE 5**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
+
+## Did I miss anything?
+
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
 
 ## License
 

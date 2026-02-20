@@ -1,4 +1,4 @@
-# VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
+# Spin2 Extension — ToolChain Reference
 
 ![Project Maintenance][maintenance-shield]
 [![License][license-shield]](LICENSE)
@@ -26,9 +26,11 @@ A couple of expected paths per platform and the user's environment variables are
 | `spin2.fSpecFlashBinary` | (**flexspin only**) Absolute path of the flashLoader binary for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers
 | `spin2.fSpecLoader` | (**flexspin/PNut only**) Absolute path of the selected downloader for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers
 | `spin2.serialPort` | Device Node name (or COM Port) of the selected serial port.|**Runtime discovered**, set when user selects the serial port by clicking on the **VSCode StatusBar** Icon
-| `spin2.optionsBuild` **but use:** <br>`spinExtension.getCompileArg[1-4]` which formats the argument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers
-| `spin2.optionsLoader` **but use:**<br>`spinExtension.getLoadArg[1-4]` which formats the argument values correctly| Additional command-line options passed to loader without the binary filename | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
+| `spin2.optionsBuild` **but use:** <br>`spinExtension.getCompilerArguments` which formats the argument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers
+| `spin2.optionsLoader` **but use:**<br>`spinExtension.getLoaderArguments` which formats the argument values correctly| Additional command-line options passed to loader without the binary filename | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
 | `spin2.optionsBinaryFname` | The name of the **binary file** to be downloaded. <br>-In case of **pnut** the **spin2 file** to be compiled then downloaded.<br>- In case of **flexspin** this will also contain the full directive to load the **flash programming** utility if downloading to FLASH. | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
+| `spin2.localIncludes` | Per-folder include directories for Spin2 object resolution | Configured by user via the **Include Directories** sidebar view
+| `spin2.excludeIncludeDirectories` | Directories to exclude from include-path discovery | Configured by user via the **Include Directories** sidebar view
 | | --- **VSCode built-in variables** ---
 | `fileBasename` | The file opened in the active VSCode text editor (in the active tab). | Provided by VSCode runtime
 | `workspaceFolder ` | The root folder of this workspace | Provided by VSCode runtime
@@ -52,10 +54,10 @@ This now translates into a single entry in the **user tasks** file:
       "type": "shell",
       "command": "${config:spin2.fSpecCompiler}",
       "args": [
-        "${command:spinExtension.getCompileArg1}",
-        "${command:spinExtension.getCompileArg2}",
-        "${command:spinExtension.getCompileArg3}",
-        "${command:spinExtension.getCompileArg4}",
+        {
+          "value": "${command:spinExtension.getCompilerArguments}",
+          "quoting": "weak"
+        },
         "${fileBasename}"
       ],
       "problemMatcher": {
@@ -87,18 +89,18 @@ This now translates into a single entry in the **user tasks** file:
 
 ```
 
-**NOTE**: This now supports any runtime selected compiler. The use of `${command:spinExtension.getCompilerArguments}` makes it possible since the spin2 extension knows what compiler is selected.
+**NOTE**: This supports any runtime-selected compiler. The `${command:spinExtension.getCompilerArguments}` call returns the correct compiler flags because the Spin2 extension knows which compiler is selected. The `"quoting": "weak"` setting ensures arguments containing spaces are handled correctly.
 
-**NOTE2**: Requires a modified **pnut-shell.bat** file that reorders the given parameters.
+**NOTE2**: Requires a modified **pnut_shell.bat** file that reorders the given parameters.
 
 #### Compile Project (Top-level File) for the P2
 
 | Compiler | Command |
 | --- | --- |
 | | --- **Compile top-level file to binary** ---
-| flexspin | `flexspin -2 -Wabs-paths -Wmax-errors=99 ${config:fNameTopLevel}`
-| pnut | `pnut_shell.bat ${config:fNameTopLevel} -c`
-| pnut_ts | `pnut_ts -c ${config:fNameTopLevel}`
+| flexspin | `flexspin -2 -Wabs-paths -Wmax-errors=99 ${config:spin2.fNameTopLevel}`
+| pnut | `pnut_shell.bat ${config:spin2.fNameTopLevel} -c`
+| pnut_ts | `pnut_ts -c ${config:spin2.fNameTopLevel}`
 
 This now translates into a single entry in the **user tasks** file:
 
@@ -108,10 +110,10 @@ This now translates into a single entry in the **user tasks** file:
       "type": "shell",
       "command": "${config:spin2.fSpecCompiler}",
       "args": [
-        "${command:spinExtension.getCompileArg1}",
-        "${command:spinExtension.getCompileArg2}",
-        "${command:spinExtension.getCompileArg3}",
-        "${command:spinExtension.getCompileArg4}",
+        {
+          "value": "${command:spinExtension.getCompilerArguments}",
+          "quoting": "weak"
+        },
         "${config:spin2.fNameTopLevel}"
       ],
       "problemMatcher": {
@@ -141,22 +143,21 @@ This now translates into a single entry in the **user tasks** file:
       }
     },
 
-
 ```
 
-NOTE: This now supports any runtime selected compiler. The use of `${command:spinExtension.getCompilerArguments}` makes it possible since the spin2 extension knows what compiler is selected.
+**NOTE**: This supports any runtime-selected compiler. The `${command:spinExtension.getCompilerArguments}` call returns the correct compiler flags because the Spin2 extension knows which compiler is selected.
 
 #### Download to P2 FLASH / RAM
 
 | Compiler | Command |
 | --- | --- |
 | |--- **Download top-level binary** --- |
-| flexspin to P2 RAM | `loadp2 -b115200  -t -p{port} ${config:fNameTopLevel}.binary`
-| flexspin to P2 FLASH | `loadp2 -b115200  -t -p{port} @0={installDir}/board/P2ES_flashloader.bin,@8000+${config:fNameTopLevel}.binary`  -OR-<br>`loadp2 -b115200  -t -p{port} -SPI ${config:fNameTopLevel}.binary`
-| flexspin to P1 RAM | `proploader -D baud-rate=115200 -rt -p{port} ${config:fNameTopLevel}.binary`
-| flexspin to P1 FLASH | `proploader -D baud-rate=115200 -ert -p{port} ${config:fNameTopLevel}.binary`
-| pnut to RAM | `pnut_shell.bat ${config:fNameTopLevel}.spin2 -r` <br>*NOTE: -r becomes -rd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
-| pnut to FLASH | `pnut_shell.bat ${config:fNameTopLevel}.spin2 -f` <br>*NOTE: -f becomes -fd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
+| flexspin to P2 RAM | `loadp2 -b115200  -t -p{port} ${config:spin2.fNameTopLevel}.binary`
+| flexspin to P2 FLASH | `loadp2 -b115200  -t -p{port} @0={installDir}/board/P2ES_flashloader.bin,@8000+${config:spin2.fNameTopLevel}.binary`  -OR-<br>`loadp2 -b115200  -t -p{port} -SPI ${config:spin2.fNameTopLevel}.binary`
+| flexspin to P1 RAM | `proploader -D baud-rate=115200 -rt -p{port} ${config:spin2.fNameTopLevel}.binary`
+| flexspin to P1 FLASH | `proploader -D baud-rate=115200 -ert -p{port} ${config:spin2.fNameTopLevel}.binary`
+| pnut to RAM | `pnut_shell.bat ${config:spin2.fNameTopLevel}.spin2 -r` <br>*NOTE: -r becomes -rd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
+| pnut to FLASH | `pnut_shell.bat ${config:spin2.fNameTopLevel}.spin2 -f` <br>*NOTE: -f becomes -fd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
 | pnut_ts to FLASH/RAM | *NOTE: The pnut_ts loader is built into the Spin2 Extension so is not represented in the Users Tasks file*
 
 This now translates into a single entry in the **user tasks** file:
@@ -167,10 +168,10 @@ This now translates into a single entry in the **user tasks** file:
       "type": "shell",
       "command": "${config:spin2.fSpecLoader}",
       "args": [
-        "${command:spinExtension.getLoadArg1}",
-        "${command:spinExtension.getLoadArg2}",
-        "${command:spinExtension.getLoadArg3}",
-        "${command:spinExtension.getLoadArg4}",
+        {
+          "value": "${command:spinExtension.getLoaderArguments}",
+          "quoting": "weak"
+        },
         "${config:spin2.optionsBinaryFname}"
       ],
       "problemMatcher": {
@@ -202,13 +203,13 @@ This now translates into a single entry in the **user tasks** file:
 
 ```
 
-NOTE: This now supports any runtime selected downloader as well as writing to RAM or FLASH. The use of `${command:spinExtension.getLoaderArguments}` and `${config:spin2.optionsBinaryFname}` makes it possible since the spin2 extension knows what loader is selected.
+**NOTE**: This supports any runtime-selected downloader as well as writing to RAM or FLASH. The `${command:spinExtension.getLoaderArguments}` and `${config:spin2.optionsBinaryFname}` calls make this possible because the Spin2 extension knows which loader is selected.
 
 ### Remove any Custom Keybindings
 
-The Spin2 extension now provides built-in comamnds to run the tasks in the User-Tasks file. To prevent any interference we need to remove the custom keybindings for User Tasks that you may put in place.
+The Spin2 extension now provides built-in commands to run the tasks in the User-Tasks file. To prevent any interference you need to remove the custom keybindings for User Tasks that you may have put in place.
 
-To to remove any task-related custom key bindinds edit the `keybindings.json` file.
+To remove any task-related custom keybindings, edit the `keybindings.json` file.
 
 To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**". Select it and you should now have a file open in the editor which may contain something like:
 
@@ -259,7 +260,7 @@ If you happen to have some non-P2 bindings you can leave these in this file. **W
 
 ### This build system on Windows requires an updated pnut_shell.bat
 
-This build system generates parameters with switches first then filename. PNut wants these to be filename then switch values. I've updated the `pnut_shell.bat` script which ships with PNut to always present the options to `pnut_v99.exe` in the desired order.
+This build system generates parameters with switches first then filename. PNut wants these to be filename then switch values. The `pnut_shell.bat` script below reorders the options so PNut receives them in the correct order.
 
 #### Updated pnut_shell.bat file:
 ```bat
@@ -298,7 +299,7 @@ REM echo "using: %SPINFILE% %OTHERARGS%"
 REM if we have a file to compile or download, do so
 if exist "%spinfile%" (
     REM always pass filename first, then arguments
-    pnut_v43 %SPINFILE% %OTHERARGS%
+    pnut_v52a %SPINFILE% %OTHERARGS%
     set pnuterror = %ERRORLEVEL%
     REM if error file was created, display usefull bits
     if exist %ERROR_FILE% (
@@ -313,10 +314,14 @@ if exist "%spinfile%" (
 
 ```
 
-I'll have Chip distribute this version with all pnut distributions for here on out (replacing the old one.)
+**NOTE**: The `pnut_v52a` value in this script is just an example. You MUST update it to match your exact PNut version (e.g., `pnut_v52a`, `pnut_v53`, etc.). If it doesn't match, the script will not work.
 
-**NOTE**: The `pnut_v43` value in this new file MUST match your exact PNut version! If is does not then this script will NOT work!  Please edit this file if it doesn't match.
 
+## Did I miss anything?
+
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
 
 ## License
 

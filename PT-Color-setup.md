@@ -74,6 +74,12 @@ That's all I have relative to this new background coloring feature.  I hope you 
 
 ---
 
+## Did I miss anything?
+
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
+
 ## License
 
 Copyright © 2023 Iron Sheep Productions, LLC.

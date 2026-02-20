@@ -1,4 +1,4 @@
-# Spin2 Include Directories — User Guide
+# Spin2 Extension — Include Directories
 
 ![Project Maintenance][maintenance-shield]
 

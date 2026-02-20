@@ -18,57 +18,85 @@ The **P2 Forum Thread** containing discussion of [this VSCode support](https://f
 
 The **P1 Forum Thread** containing discussion of [this VSCode support](https://forums.parallax.com/discussion/175207/visual-studio-code-supports-p1-development-on-windows-mac-linux-yes-rpi#latest)
 
-#### New ToolChain support released as of v2.30
+#### New in v2.6.0 — Code Navigation and Include Directories
 
-This new release adds runtime detection of compilers and support for switching compilers for a given project.
+This release adds powerful code navigation features — Find All References, Workspace Symbol Search, Rename Symbol, Go to Type Definition, and Document Links — that work across your entire multi-object project. A new Include Directories panel in the Explorer sidebar automatically discovers which directories your project needs and configures both the compiler and language server for you.
 
-## Features
-- Full **language server based** support for both P1 (spin/pasm) and P2 (spin2/pasm2) languages
-- **Parse detected errors** are reported for each document when referenced/opened. If the "**Error Lens**" extension is installed, these errors are shown on the offending line of code.
-- **Show Hovers** and **Signature Help** features for constants and methods within external objects now show information from the external file in which they are defined
-- Spin **Code Folding** support
-- P2 Support:
-   - **P2: Syntax and Semantic Highlighting** for both Spin2 and Pasm2 including all Streamer and Smart-pin Symbols as well as all debug() statements with parameter validation for all display types
-   - **P2: Show Hovers Feature** Hovers show information about the symbol/object that's below the mouse cursor. In our case, this applies to both user-written code and Spin2 built-ins.
-   - **P2: Signature Help Feature** As you are typing a method name, show signature help for both user-written methods and for Spin2 built-in methods.
-- P1 Support:
-   - **P1: Syntax and Semantic Highlighting** for both Spin and Pasm
-   - **P1: Show Hovers Feature** Hovers show information about the symbol/object that's below the mouse cursor. In our case, this applies to both user-written code and Spin built-ins.
-   - **P1: Signature Help Feature** As you are typing a method name, show signature help for both user-written methods and for Spin built-in methods.
-- **Object Public interface Documentation generation** via keystroke [Ctrl+Alt+d] - Ctrl+Alt+( d )ocument. <br>- Document opens on the right side of the editor
-- **Object Hierarchy Report generation** via keystroke [Ctrl+Alt+r] - Ctrl+Alt+( r )eport. <br>- Report opens on the right side of the editor
-- **Doc-Comment Generation** for PUB and PRI methods via keystroke [Ctrl+Alt+c] - Ctrl+Alt+( c )omment. <br>- Comment is inserted immediately below the PUB or PRI line.
-- Editor **Screen Coloring** support per section à la Parallax **Propeller Tool**
-- **Custom tabbing** Tab-stop support per section à la Parallax **Propeller Tool**
-- **Tab Sets** You can choose between `Propeller Tool`, `IronSheep`, and `User1` (*adjust in settings to make your favorite set*)
-- File navigation from **Outline View**
-- File navigation from **Object Hierarchy View**
-- **Edit Mode** support à la Parallax **Propeller Tool** [Insert, Overtype and Align]
-- Provides rich companion themes for use with non-color backgrounds or with colored backgrounds, as well as a Syntax-only theme (mostly used during semantic highlighting development.
-- **P1 Compile only, P2 Compile/Download Support** built-in:
-   - Auto detection of installed compilers; supports **FlexSpin**, **pnut_ts** (and **PNut** when on Windows)
-   - Auto detection of installed downloaders/debuggers; supports **loadp2** (FlexProp), **pnut_ts** (built-in loader), and **pnut-term-ts** (debug terminal with loader)
-   - Spin2 auto detection of include paths needed for compilation by **FlexSpin**, and **pnut_ts**
-   - Status Bar control for enabling/disabling debug compilation.
-   - Status Bar control of download to RAM or FLASH.
-   - Status Bar control over which PropPlug to use.
-   - Settings for selecting the default and workspace-specific compiler
-   - Settings for selecting default and workspace-specific downloader/debugger
+See the [Code Navigation Guide](Spin2-code-navigation.md) and [Include Directories Guide](Spin2-Include-Directories.md) for details.
 
-### Up next
-We are working on the next updates:
+## Quick Start
 
-- Improve Hover support (more doc details)
+1. **Install** the extension by searching for "spin2" in the VSCode Extensions panel.
+2. **Select a theme.** After installation, the extension page opens automatically. Choose one of the Spin2 color themes from there before going further — this ensures your syntax highlighting looks right from the start.
+3. **Open** a `.spin2` or `.spin` file. The language server starts automatically and gives you syntax highlighting, error checking, hovers, and signature help.
+3. **Set your top-level file.** In your workspace `.vscode/settings.json`, add `"spin2.fNameTopLevel": "your_main_file.spin2"` so the extension can discover your full object tree.
+4. **Compile** with `Ctrl+Shift+B` (Cmd+Shift+B on macOS). The extension auto-detects installed compilers (FlexSpin, PNut-TS, PNut on Windows).
+5. **Download** with `F10` (RAM) or `F11` (FLASH). Use the Status Bar controls to toggle debug mode and select your PropPlug.
 
-These are not yet definate but I'm:
+For platform-specific setup, see the guides for [Windows](TASKS-User-win.md), [macOS](TASKS-User-macOS.md), or [Raspberry Pi](TASKS-User-RPi.md).
 
-- Looking into a customizable Spin code formatter with features like format on save.
+## P2 Features
+
+Full **language server based** support for Spin2 and Pasm2 on the Parallax Propeller 2.
+
+### Language Intelligence
+
+- **Syntax and Semantic Highlighting** — rich, context-aware coloring for Spin2 and Pasm2, including Streamer and Smart-pin symbols as well as all `debug()` display types with parameter validation
+- **Error Detection** — parse errors are reported as you work. Install the **Error Lens** extension to see errors inline on the offending line.
+- **Show Hovers** — hover over any symbol to see its type, value, and documentation, including symbols defined in external object files
+- **Signature Help** — as you type a method call, see its parameters and types for both user-written and built-in methods
+- **Code Folding** — collapse and expand CON, VAR, OBJ, PUB, PRI, and DAT sections
+
+### Code Navigation
+
+- **Go to Definition** (`F12` / `Ctrl+Click`) — jump to where any symbol is declared, including across object files
+- **Find All References** (`Shift+F12`) — find every use of a symbol across your entire project
+- **Workspace Symbol Search** (`Ctrl+T`) — search for any global symbol across all files by name
+- **Rename Symbol** (`F2`) — safely rename a symbol everywhere it appears, with scope awareness and author-file protection
+- **Go to Type Definition** — navigate from a STRUCT instance to its type definition
+- **Document Links** — `Ctrl+Click` on quoted filenames in OBJ sections and `#include` directives (FlexSpin) to open the referenced file
+- **Document Highlight** — click on any symbol to see all occurrences in the current file highlighted
+- **Outline View** — browse the structure of the current file from the sidebar
+- **Object Hierarchy View** — see your project's full object tree and navigate between files
+
+### Code Generation
+
+- **Doc-Comment Generation** (`Ctrl+Alt+C`) — insert a documentation comment template below a PUB or PRI method
+- **Object Public Interface Documentation** (`Ctrl+Alt+D`) — generate a public interface document, displayed in a side panel
+- **Object Hierarchy Report** (`Ctrl+Alt+R`) — generate a project hierarchy report, displayed in a side panel
+
+### Editor Features
+
+- **Screen Coloring** — per-section background coloring à la Parallax Propeller Tool
+- **Elastic Tabstops** — custom tab-stop support per section à la Propeller Tool, with selectable tab sets (`Propeller Tool`, `IronSheep`, or `User1`)
+- **Edit Modes** — Insert, Overtype, and Align modes à la Propeller Tool
+- **Color Themes** — companion themes for use with or without colored backgrounds
+
+### Build and Download
+
+- **Compiler auto-detection** — supports **FlexSpin**, **PNut-TS**, and **PNut** (Windows only)
+- **Downloader/debugger auto-detection** — supports **loadp2** (FlexProp), **PNut-TS** (built-in loader), and **PNut-Term-TS** (debug terminal with loader)
+- **Include path auto-discovery** — the extension scans your project and configures include paths for both the compiler and language server
+- **Status Bar controls** — toggle debug compilation on/off, switch between RAM and FLASH download, and select your PropPlug
+- **Per-workspace settings** — choose the default compiler and downloader globally or override per project
+
+## P1 Support
+
+The extension also provides Spin and Pasm support for the Propeller 1. P1 users get most of the same features listed above, including:
+
+- Syntax and Semantic Highlighting for Spin and Pasm
+- Error Detection, Hovers, Signature Help, and Code Folding
+- Full Code Navigation — Go to Definition, Find All References, Workspace Symbol Search, Rename Symbol, Document Highlight, Document Links, Outline View, and Object Hierarchy View
+- All Code Generation features (Doc-Comments, Public Interface Docs, Hierarchy Reports)
+- All Editor Features (Screen Coloring, Elastic Tabstops, Edit Modes, Color Themes)
+- Compile support via **FlexSpin**
+
+**Not yet available for P1:** built-in download to hardware and Go to Type Definition (STRUCT is a Spin2 language construct).
 
 ### Future directions
 
-- Spin2/Pasm2 code formatter/beautifier - *allows us to have standard formatting for code we share! (source code could be formatted on each file save)*
-- Snippets for Spin2/Pasm2 (common code sequences which can be added easily to the file being edited (e.g., smart pin setup code for given mode/use)
-- Possible Extension Package for P2 (would include all P2-specific extensions)
+- Spin2/Pasm2 code formatter/beautifier with format-on-save support
+- Snippets for common Spin2/Pasm2 code patterns (e.g., smart pin setup for a given mode)
 
 ## Installation
 
@@ -80,17 +108,30 @@ In VSCode, search for the "spin2" extension and install it.  It's that easy!  Af
 
 There are additional companion documents in this Repository:
 
-1. [Configuring User Tasks - Windows](TASKS-User-win.md) which advises on how to automate your P2 Development when using VScode on **Windows**
-1. [Configuring User Tasks - MacOS](TASKS-User-macOS.md) which advises on how to automate your P2 Development when using VScode on **macOS**
-1. [Configuring User Tasks - RPI](TASKS-User-RPi.md) which advises on how to automate your P2 Development when using VScode on **Raspberry Pi**
-1. [Configuring Include Directories](Spin2-Include-Directories.md) which guides you in making sure you project includes are correct
-1. [VSCode Spin2 Status Bar](Spin2-Editor-StatusBar.md) introduces the new Download controls in the Spin2 Editor Status Bar
-1. [Configure VSCode for background coloring by Spin Block](PT-Color-setup.md): How to set up coloring and some additional notes
-1. [VSCode Extensions](EXTENSIONS.md) we find useful in our own P2 development
-1. [Visual Examples - Tabbing](TAB-VisualEx.md) a visual explanation of how our Tabbing feature works (*For those of us, like me, who understand more easily when we see pictures.*)
-1. [Engineering Notes - Tabbing](TAB-SPECs.md) more detailed description of how our Tabbing feature works
-1. Spin2 Extension Details: [Settings](Spin2-Settings.md) and [Keyboard Mapping](Spin2-Settings.md#our-spinspin2-vscode-key-mapping)
-1. Additional details of new compiler support [ToolChain REF](Spin2-ToolChain.md) 
+**Getting around your code:**
+
+1. [Code Navigation Guide](Spin2-code-navigation.md) — Find All References, Rename Symbol, Workspace Symbol Search, and more
+1. [Include Directories Guide](Spin2-Include-Directories.md) — how the extension discovers and manages include paths for multi-file projects
+
+**Platform setup:**
+
+3. [Setup for Windows](TASKS-User-win.md) — compiler installation and build configuration on **Windows**
+1. [Setup for macOS](TASKS-User-macOS.md) — compiler installation and build configuration on **macOS**
+1. [Setup for Raspberry Pi](TASKS-User-RPi.md) — compiler installation and build configuration on **Raspberry Pi / Linux**
+
+**Editor features:**
+
+6. [Status Bar Controls](Spin2-Editor-StatusBar.md) — download controls for debug, RAM/FLASH, and PropPlug selection
+1. [Background Coloring](PT-Color-setup.md) — Propeller Tool-style block coloring and theme setup
+1. [Edit Modes](Spin2-InsertMode.md) — Insert, Overtype, and Align modes à la Propeller Tool
+1. [Tabbing - Visual Examples](TAB-VisualEx.md) — a visual walkthrough of how Elastic Tabstops work
+1. [Tabbing - Engineering Notes](TAB-SPECs.md) — detailed specification for the Elastic Tabstops feature
+
+**Reference:**
+
+11. [Settings and Keyboard Mapping](Spin2-Settings.md) — all extension settings and key bindings
+1. [ToolChain Reference](Spin2-ToolChain.md) — compiler detection, task variables, and user-tasks setup
+1. [Useful VSCode Extensions](EXTENSIONS.md) — extensions we find helpful for P2 development
 
 Also, here are a couple of really useful VSCode sources:
 

@@ -1,4 +1,4 @@
-# Edit Modes for Spin/Spin2 VSCode Extensions
+# Spin2 Extension — Edit Modes
 
 
 ![Project Maintenance][maintenance-shield]
@@ -7,6 +7,21 @@
 
 
 Recreation of [Parallax Propeller Tool](https://www.parallax.com/package/propeller-tool-software-for-windows-spin-assembly-2/) Edit Modes: Overtype, Insert, and Align for VSCode
+
+## Table of Contents
+
+- [Features](#features)
+  - [Edit Mode Usage](#edit-mode-usage)
+  - [Edit Mode: Insert](#edit-mode-insert)
+  - [Edit Mode: Overtype](#edit-mode-overtype)
+  - [Edit Mode: Align](#edit-mode-align)
+- [Settings](#settings-global-or-per-editor)
+  - [Global or per-editor](#settings-global-or-per-editor)
+  - [Overtype Paste behavior](#settings-overtype-paste-behavior)
+  - [Enable Align Mode](#settings-enable-align-mode)
+  - [Status Bar indicators](#settings-status-bar-indicators-abbreviated-localized-or-none)
+  - [Overtype cursor style](#settings-overtype-cursor-style)
+  - [Align cursor style](#settings-align-cursor-style)
 
 ## Features
 
@@ -51,19 +66,19 @@ The **Align mode** is a special version of Edit Mode designed specifically for m
 - indention of code
 - alignment of comments to the right of code
 
-It is also common for source code to be viewed and edited using more than one editor application. Historically, programmers have used either tabs or spaces for indention and alignment porposes, both of which prove problematic. Tab characters cause alignment issues because some ediros use different sized tab setting than others. Both tab and space characters cause alignment issues because future edits cause right-side comments to shift out of alignment. 
+It is also common for source code to be viewed and edited using more than one editor application. Historically, programmers have used either tabs or spaces for indention and alignment purposes, both of which prove problematic. Tab characters cause alignment issues because some editors use different sized tab setting than others. Both tab and space characters cause alignment issues because future edits cause right-side comments to shift out of alignment. 
 
 For our spin code this alignment problem is solved first by disallowing tab characters (Tab key presses emit the proper number of space characters), and second by providing the Align Edit mode. While in Align mode characters inserted into a line affect the neighboring characters but not characters separated by more than one space. The result is that comments and other items separated by more than one space maintain their intended alignment for as long as possible.
 
 Note: This Align mode affects the behavior of the [Tab], [Shift+Tab], [Backspace], and [Delete] keys as well as pasting copied text.
 
-Since the Align mode maintains existing alignments as much as possible, much less time is wasted relaigning elements due to future edits by the programmer.  Additionally, since spaces are used instead of tab characters, the code maintains the same look and feel in any editor that displays it with a mono-spaced font.
+Since the Align mode maintains existing alignments as much as possible, much less time is wasted realigning elements due to future edits by the programmer.  Additionally, since spaces are used instead of tab characters, the code maintains the same look and feel in any editor that displays it with a mono-spaced font.
 
-The Align mode isn't perfect for all situations, however. We recommend you use Insert mode for most code writing and briefly switch to Align mode to maintain existing code where alignment is a concern. The [Insert] key (or [F11]) rotates the mode through Insert -> Overwrite -> Align and back to Insert again.  The Ctrl+Shift+I (Cmd+Shift+I on mac) key shortcut toggles onlyh between Insert and Align modes.  A little practice with the Align and Insert modes will help you write code more time-efficiently.
+The Align mode isn't perfect for all situations, however. We recommend you use Insert mode for most code writing and briefly switch to Align mode to maintain existing code where alignment is a concern. The [Insert] key (or [F11]) rotates the mode through Insert -> Overwrite -> Align and back to Insert again.  The Ctrl+Shift+I (Cmd+Shift+I on mac) key shortcut toggles only between Insert and Align modes.  A little practice with the Align and Insert modes will help you write code more time-efficiently.
 
 Note: since this Align mode is provided by our Spin2 VSCode extension, non-spin source (without the .spin or .spin2 extension) is not presented with align mode.
 
-The higher-level language (spin or spin2) for the propeller is fairly similar to python in that it has code indented to veriaous levels followed by comments:
+The higher-level language (spin or spin2) for the propeller is fairly similar to python in that it has code indented to various levels followed by comments:
 
 ##### Example spin2 code:
 
@@ -167,7 +182,7 @@ And here's the setting:
 
 ### Settings: Enable Align Mode
 
-Our third mode "Align Mode" is seperately enableable for the time being in case it gives anyone problems as we are dialing it in.
+Our third mode "Align Mode" is separately enableable for the time being in case it gives anyone problems as we are dialing it in.
 
 ```json
 "spinInsertMode.enableAlign": true
@@ -242,6 +257,12 @@ e.g.
 > Sets the align cursor style.</br>
 > Default: underline
 
+
+## Did I miss anything?
+
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
 
 ## License
 

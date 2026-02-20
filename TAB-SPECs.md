@@ -370,6 +370,12 @@ NOTE: empty lines are ignored for Shift+Tab.
 
 ---
 
+## Did I miss anything?
+
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
+
 ## License
 
 Licensed under the MIT License.

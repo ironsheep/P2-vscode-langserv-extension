@@ -23,6 +23,12 @@ The following examples show selection cases when about to press the TAB key.  Th
 
 ---
 
+## Did I miss anything?
+
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
+
 ## License
 
 Licensed under the MIT License.

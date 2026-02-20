@@ -15,8 +15,6 @@ To date, we have installations, compilation and downloading from [**Windows**](T
 
 Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**, and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
-In the future, we are also expecting to document building and download with via Wifi with the Wx boards attached to our development board, and with more compilers as they come ready for multi-platform use, etc.
-
 ## Table of Contents
 
 On this Page:
@@ -59,7 +57,7 @@ Latest Updates:
 18 Jul 2023
 - Created this file from TASKS-User.md
 20 Dec 2022
-- (PNut tasks are now merged into our task list. They just don't do anyting on non-windows platforms)
+- (PNut tasks are now merged into our task list. They just don't do anything on non-windows platforms)
 ```
 
 ## VSCode development of P2 Projects
@@ -74,7 +72,7 @@ By choosing to adopt the Custom Tasks described in this document along with the 
 Iterate until your project works as desired:
 
 - Make changes to file(s)
-- Compile the files to see if they compile cleanly (cmd-shift-B) on which ever file you are editing
+- Compile the files to see if they compile cleanly (cmd-shift-B) on whichever file you are editing
 - Once the files compile cleanly
 - Download and test (ctrl-shift-D, F10) [if you use keybindings shown in examples on this page]
 - Alternatively, download your project to FLASH and test (ctrl-shift-F, F11) [if you use keybindings shown in examples on this page]
@@ -95,7 +93,7 @@ One time:
 
 For each P2 Project:
 
-- Install a settings.json file identiyfing the project top-level file
+- Install a settings.json file identifying the project top-level file
     - Make sure the name of your top-level file is correctly placed in this settings.json file
 
 ## Enabling P2 Code Development with PNut-TS on Raspberry Pi
@@ -114,7 +112,7 @@ One time:
 
 For each P2 Project:
 
-- Install a settings.json file identiyfing the project top-level file
+- Install a settings.json file identifying the project top-level file
     - Make sure the name of your top-level file is correctly placed in this settings.json file
 
 ## Enabling P2 Code Download and Debugging with PNut-Term-TS
@@ -146,7 +144,7 @@ I have mostly macs for development but I also have a Windows machine and a numbe
 
 ### Setup and Configure for P2 development: RaspiOS
 
-#### The Rasperry Pi OS (RaspiOS)
+#### The Raspberry Pi OS (RaspiOS)
 
 On my raspberry Pi's I run **raspios** as distributed by [raspberrypi.org](https://www.raspberrypi.org/) from the [downloads page](https://www.raspberrypi.org/software/operating-systems)
 
@@ -162,7 +160,7 @@ $ sudo apt-get dist-upgrade
 
 After the new RPi can boot and automatically attach to my network I then remove the screen and keyboard.  I run most my RPi's remotely and "headless" (meaning no screen/keyboard attached.)
 
-#### Using the Parallax PropPlug on Raspbery Pi's
+#### Using the Parallax PropPlug on Raspberry Pi's
 
 The Parallax PropPlug has a custom parallax VID:PID USB pair and as such is not, by default, recognized by raspiOS when you first plug in the PropPlug.
 
@@ -184,9 +182,9 @@ After this file was saved, I rebooted the RPi.  After the RPi came back up I plu
 
 ### Installing FlexProp on RPi/Linux
 
-On the Raspberry Pi platform we'll use `git(1)` to download the FlexProp source, unlike on the MacOS and Windows machines where we instead get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and upacking the zip file to produce a `flexprop` folder containing the new version.
+On the Raspberry Pi platform we'll use `git(1)` to download the FlexProp source, unlike on the MacOS and Windows machines where we instead get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and unpacking the zip file to produce a `flexprop` folder containing the new version.
 
-**NOTE**: *The flexprop toolset does not have a standard install location. So we will likely have many locations amongst all of us P2 users.  You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system.  Alternatively, it should be safe to just follow what I do in these instructions explictly.  This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same.*
+**NOTE**: *The flexprop toolset does not have a standard install location. So we will likely have many locations amongst all of us P2 users.  You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system.  Alternatively, it should be safe to just follow what I do in these instructions explicitly.  This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same.*
 
 #### Install flexprop: RaspiOS
 
@@ -206,7 +204,7 @@ Additionally, I [added a new PATH element](#setting-paths-for-your-p2-compilerst
 
 #### Update flexprop: RaspiOS
 
-If I'm updating to a new verison I do the following:
+If I'm updating to a new version I do the following:
 
 ```bash
 # remove old prior version
@@ -234,14 +232,14 @@ Next we move this new version into place.
 
 #### Install PNut-TS: RaspiOS
 
-Architecture specific PNut-TS .zip files available for RPIi/Linux:
+Architecture specific PNut-TS .zip files available for RPi/Linux:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
 | pnut-ts-linux-arm64-{MMmmpp}.zip | Linux, RPi | Arm 64 bit | pnut_ts/
 | pnut-ts-linux-x64-{MMmmpp}.zip| Linux | Intel x86-64 bit | pnut_ts/
 
-**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
+**NOTE:** *where -MMmmpp is the release version. (E.g., -014303.zip means v1.43.3.)*
 
 Get the latest binaries by downloading a ` pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 
@@ -260,7 +258,7 @@ Additionally, I [added a new PATH element](#setting-paths-for-your-p2-compilerst
 
 #### Update PNut-TS: RaspiOS
 
-If I'm updating to a new verison I do the following after downloading the latest version from [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.:
+If I'm updating to a new version I do the following after downloading the latest version from [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.:
 
 ```bash
 # remove old prior version
@@ -290,14 +288,14 @@ Next we move this new version into place.
 
 #### Install PNut-Term-TS: RaspiOS
 
-Architecture specific PNut-Term-TS .zip files available for RPIi/Linux:
+Architecture specific PNut-Term-TS .zip files available for RPi/Linux:
 
 | Archive Name | Operating System | Architecture | Unpack Leaves
 | --- | --- | --- | --- |
 | pnut-term-ts-linux-arm64-{MMmmpp}.zip| Linux, RPi  | Arm 64 bit | pnut\_term\_ts/
 | pnut-term-ts-linux-x64-{MMmmpp}.zip| Linux | Intel x86-64 bit | pnut\_term\_ts/
 
-**NOTE:** *where -MMmmpp is the release verison. (E.g., -014303.zip means v1.43.3.)*
+**NOTE:** *where -MMmmpp is the release version. (E.g., -014303.zip means v1.43.3.)*
 
 Get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.
 
@@ -316,7 +314,7 @@ Additionally, I [added a new PATH element](#setting-paths-for-your-p2-compilerst
 
 #### Update PNut-Term-TS: RaspiOS
 
-If I'm updating to a new verison I do the following after downloading the latest version from [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.:
+If I'm updating to a new version I do the following after downloading the latest version from [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.:
 
 ```bash
 # remove old prior version
@@ -340,13 +338,13 @@ cd -                  # return to the directory you were in before you entered {
 
 #### OS: RaspiOS
 
-On my raspberry Pi's I run [**rspios**](https://www.raspberrypi.org/software/operating-systems) which is a Debain GNU Linux derived distribution. [Fun! See [The Periodic Table of Liux Distros](https://distrowatch.com/dwres.php?resource=family-tree)]
+On my raspberry Pi's I run [**raspios**](https://www.raspberrypi.org/software/operating-systems) which is a Debian GNU Linux derived distribution. [Fun! See [The Periodic Table of Linux Distros](https://distrowatch.com/dwres.php?resource=family-tree)]
 
 So, as you might have guessed, I use Bash here too.  On RPi I tend to install special tools from others, as well as those I make, under /opt.  So, in the case of flexprop I install it on all my RPis into `/opt/flexprop/`.
 
 Unlike my Macs which have .bash_profile, my RPis have, instead, a .profile file.  So here I edit the RPi ~/.profile.  I'm using the pattern for "optionally installed tools" so that I can sync this .profile between my many RPi's.
 
-**!! WARNING !!!** When I SSH into my RPi the ~/.profile is run. But when i run with keyboard/screen (or remote desktop with VNC) then the bash shell only loads ~/.bashrc  This is why i say .profile (or .bashrc) for making the PATH adjustments below. Do one or the other but not both unless you detect if it's already set (which i'm not shoing below, this is left to the reader...)
+**!! WARNING !!!** When I SSH into my RPi the ~/.profile is run. But when i run with keyboard/screen (or remote desktop with VNC) then the bash shell only loads ~/.bashrc  This is why i say .profile (or .bashrc) for making the PATH adjustments below. Do one or the other but not both unless you detect if it's already set (which i'm not showing below, this is left to the reader...)
 
 I edit my ~/.profile (or .bashrc) and add the path to flexprop.  (*I have multiple groups of lines such as this for various tools I've installed.*)
 
@@ -391,9 +389,9 @@ See: [VSCode "Tasks" Reference Page](https://code.visualstudio.com/docs/editor/t
 
 There are a number of types of tasks and places Task definitions live. These include [Auto-detected Tasks](https://code.visualstudio.com/docs/editor/tasks#_task-autodetection), [User level tasks](https://code.visualstudio.com/docs/editor/tasks#_user-level-tasks), and [Custom Tasks](https://code.visualstudio.com/docs/editor/tasks#_custom-tasks).  Tasks when run, can be crafted to depend upon the running of other tasks  See: [Compound Tasks](https://code.visualstudio.com/docs/editor/tasks#_compound-tasks)  Some tasks can be [run in background](https://code.visualstudio.com/docs/editor/tasks#_background-watching-tasks) such as file watchers which execute when a file has been changed.
 
-When you run VScode on multiple operating systems and want to be able to run a projects tasks on whichever machine you are on then you can specify os-specific alternatives to be used withing the task. See [Operating system specific properties](https://code.visualstudio.com/docs/editor/tasks#_operating-system-specific-properties)
+When you run VScode on multiple operating systems and want to be able to run a projects tasks on whichever machine you are on then you can specify os-specific alternatives to be used within the task. See [Operating system specific properties](https://code.visualstudio.com/docs/editor/tasks#_operating-system-specific-properties)
 
-Another VSCode mechanism we are determining if it will be useful is the: [Task Provider Extension](https://code.visualstudio.com/api/extension-guides/task-provider). If we find this is useful we can add a Task Provder element to our existing extension in order to facilitate our updating task files we use for P1 and P2 development.
+Another VSCode mechanism we are determining if it will be useful is the: [Task Provider Extension](https://code.visualstudio.com/api/extension-guides/task-provider). If we find this is useful we can add a Task Provider element to our existing extension in order to facilitate our updating task files we use for P1 and P2 development.
 
 ### Invoking tasks
 
@@ -555,7 +553,7 @@ Under **Task: Run Build Task**:
 
 Under **Task: Run Test Task**:
 
-- DownloadP2 - Download the binary to RAM in our connected P2
+- DownloadP2 - Download the binary to RAM/FLASH in our connected P2
 
 As written, **downloadP2** for flexspin will always be preceded by a compileTopP2.
 
@@ -610,29 +608,31 @@ If you still want to use these keys for build shortcuts, then you should remove 
 
 ### Adding our notion of Top-level file for tasks to use
 
-In order to support our notion of top-level file and to prevent us from occassionally compiling and downloading a file other than the project top-level file we've adopted the notion of adding a CompileTopP2 build task a DownloadP2 download task, and in some cases a FlashP2 task.
+In order to support our notion of top-level file and to prevent us from occasionally compiling and downloading a file other than the project top-level file we've adopted the notion of adding a CompileTopP2 build task a DownloadP2 download task, and in some cases a FlashP2 task.
 
 When we request a download or flash the automation will first compile the top-level project source which produces a new binary. It is this new binary that will be downloaded/flashed.
 
-We have multiple tasks that need to know the name of our top-level file. So we add a new settings file with a topLevel value to our project:
+We have multiple tasks that need to know the name of our top-level file. So we add a new settings file with a `spin2.fNameTopLevel` value to our project:
 
 **.vscode/settings.json** file contains the following contents:
 
 ```json
 {
-   "topLevel": "jm_p2-es_matrix_control_demo",
+  "spin2.fNameTopLevel": "jm_p2-es_matrix_control_demo.spin2"
 }
-
 ```
 
-Once we have this file in place, then our `tasks.json` file can access this value using the form: `${config:topLevel}`
+Once we have this file in place, then our `tasks.json` file can access this value using the form: `${config:spin2.fNameTopLevel}`
 
+**NOTE**: The value includes the `.spin2` file extension.
 
-Now our **CompileTopP2** task can create the toplevel filename using  `${config:topLevel}.spin2`
+You need to find the line containing "jm\_p2-es\_matrix\_control\_demo.spin2" and replace it with the name of your top-level file (including the `.spin2` extension).
 
-You need to find the line containing "jm\_p2-es\_matrix\_control\_demo" and replace this name with the name of your top-level file.
+## Did I miss anything?
 
-And our **DownloadP2** task can reference the binary file using `${config:topLevel}.binary`
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
 
 ## License
 

@@ -1,4 +1,4 @@
-# Spin2 Extension - Status Bar Notes
+# Spin2 Extension — Status Bar Controls
 
 
 ![Project Maintenance][maintenance-shield]

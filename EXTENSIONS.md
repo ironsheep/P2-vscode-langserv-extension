@@ -41,6 +41,12 @@ If you have VSCode extensions that have really helped you in your P2 development
 
 Lastly, you could PM [me in the Paralax forums](https://forums.parallax.com/profile) and tell me there. (_this link will fail if you are not logged in to the forums_)
 
+## Did I miss anything?
+
+If you have questions about something not covered here let me know and I'll add more narrative here.
+
+*-Stephen*
+
 ## License
 
 Licensed under the MIT License.
