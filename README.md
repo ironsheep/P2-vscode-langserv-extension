@@ -22,8 +22,6 @@ The **P1 Forum Thread** containing discussion of [this VSCode support](https://f
 
 This new release adds runtime detection of compilers and support for switching compilers for a given project.
 
-Step-by-step, one-time migration of your environment to v2.3.0 is covered in our [Migrate Checklist](Migrate-v230.md) page.  Please visit this page to adjust your setup for this new version.  There are also helpful reminders in [Build System Notes](BuildSystemNotes.md).
-
 ## Features
 - Full **language server based** support for both P1 (spin/pasm) and P2 (spin2/pasm2) languages
 - **Parse detected errors** are reported for each document when referenced/opened. If the "**Error Lens**" extension is installed, these errors are shown on the offending line of code.

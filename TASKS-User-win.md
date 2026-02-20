@@ -37,7 +37,6 @@ On this Page:
 Additional pages:
 
 - [TOP Level README](README.md) - Back to the top page of this repo
-- [Migrate to v2.3.0](Migrate-v230.md) - checklist to ensure you have migrated to our latest configuration which supports locating installed compilers and compiling and downloading with any of the installed compilers to your USB attached P2
 - [Setup focused on macOS only](TASKS-User-macOS.md) - All **macOS** notes
 - [Setup focused on RPi only](TASKS-User-RPi.md) - All **Raspberry Pi** notes
 - [VSCode REF: Tasks](https://code.visualstudio.com/docs/editor/tasks) - Offsite: VSCode Documentation for reference

@@ -1,3 +1,5 @@
+> **OBSOLETE** -- This migration guide is no longer maintained. The Spin2 extension now handles toolchain configuration automatically. It is kept here for historical reference only.
+
 # VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
 
 ![Project Maintenance][maintenance-shield]

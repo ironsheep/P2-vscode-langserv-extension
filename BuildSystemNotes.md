@@ -1,3 +1,5 @@
+> **OBSOLETE** -- This document is no longer maintained. The Spin2 extension now handles toolchain configuration automatically. It is kept here for historical reference only.
+
 # Using the Build System found in Spin2 Extension v2.3.0 and later
 
 
