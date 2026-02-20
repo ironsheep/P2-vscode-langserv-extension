@@ -1,6 +1,6 @@
 # Spin2/Pasm2 Syntax highlighting and Code Navigation for VSCode
 
-This page presents how we are thinking about the new Elastic Tabbing à la Propeller Tool as implemeted in our Spin2 extension for VSCode.
+This page presents how we are thinking about the new Elastic Tabbing à la Propeller Tool as implemented in our Spin2 extension for VSCode.
 
 ![Project Maintenance][maintenance-shield]
 
@@ -33,11 +33,10 @@ Follow these links for more information:
 
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
-[marketplace-version]: https://vsmarketplacebadge.apphb.com/version-short/ironsheepproductionsllc.spin2.svg
+[marketplace-version]: https://vsmarketplacebadges.dev/version-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-installs]: https://vsmarketplacebadge.apphb.com/installs-short/ironsheepproductionsllc.spin2.svg
+[marketplace-installs]: https://vsmarketplacebadges.dev/installs-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-rating]: https://vsmarketplacebadge.apphb.com/rating-short/ironsheepproductionsllc.spin2.svg
+[marketplace-rating]: https://vsmarketplacebadges.dev/rating-short/ironsheepproductionsllc.spin2.svg
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
-

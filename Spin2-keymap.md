@@ -1,16 +1,16 @@
 # VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
 
 ![Project Maintenance][maintenance-shield]
-[![License][license-shield]](LICENSE) 
+[![License][license-shield]](LICENSE)
 
 ## Our Spin/Spin2 VSCode Extension - Keystroke planner
 
-We have many functions in our VSCode Spin2 Extension that can be activated from the keyboard. This senction lays them all out so we can plan/mark-up our current values to determine better ones that don't have collisions with system defined sequences.
+We have many functions in our VSCode Spin2 Extension that can be activated from the keyboard. This section lays them all out so we can plan/mark-up our current values to determine better ones that don't have collisions with system defined sequences.
 
 
-| Desired Key | Purpose | Linux | MacOS | Windows 
-| --- | --- | --- | --- | --- 
-| | --------- **Doumentation Commands** ---------
+| Desired Key | Purpose | Linux | MacOS | Windows
+| --- | --- | --- | --- | ---
+| | --------- **Documentation Commands** ---------
 | c | Generate PUB/PRI Doc. Comment | Ctrl+Alt+c | Ctrl+Alt+c | Ctrl+Alt+c
 | d | Generate Object Public Interface Doc. | Ctrl+Alt+d | Ctrl+Alt+d | Ctrl+Alt+d
 | h | Generate Project Object Hierarchy Doc. | Ctrl+Alt+h | Ctrl+Alt+h | Ctrl+Alt+h
@@ -38,18 +38,18 @@ We have many functions in our VSCode Spin2 Extension that can be activated from 
 | Ctrl | Control Key | x | x | x
 | Shift | Shift Key | x | x | x
 | Alt | Alt Key | x | x | x
-| cmd | Command Key |   | x |  
+| cmd | Command Key |   | x |
 | win | Windows Key |   |   | x | VSCode has problems recognizing this!??
 
 ### Assignment values to use in package.json
 
 When we assign keys to commands in the `package.json` file we use the following Assignment values to denote on which platform(s) they key sequence should be used.
 
-| Assignment | Linux | MacOS | Windows 
-| --- | --- | --- | --- 
+| Assignment | Linux | MacOS | Windows
+| --- | --- | --- | ---
 | "key" | x | x | x
-| "linux" | x |   |  
-| "mac" |   | x |  
+| "linux" | x |   |
+| "mac" |   | x |
 | "windows" |   |   | x
 
 
@@ -57,7 +57,7 @@ When we assign keys to commands in the `package.json` file we use the following 
 
 In general To open the Settings editor, navigate to **[Code]** > **Settings** > **Keyboard Shortcuts**.
 
-The keyboard mappings are different on Windows than they are on Mac, RPi or Linux. This was our mapping before we added build/download support.  You can see the NEW mappings at [Our Spin/Spin2 VSCode Key Mapping](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/flasher/Spin2-Settings.md#our-spinspin2-vscode-key-mapping)
+The keyboard mappings are different on Windows than they are on Mac, RPi or Linux. This was our mapping before we added build/download support.  You can see the NEW mappings at [Our Spin/Spin2 VSCode Key Mapping](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/Spin2-Settings.md#our-spinspin2-vscode-key-mapping)
 
 ### Prior Key Mapping on Windows:
 
@@ -71,7 +71,7 @@ The keyboard mappings are different on Windows than they are on Mac, RPi or Linu
 
 ## License
 
-Licensed under the MIT License. 
+Licensed under the MIT License.
 
 Follow these links for more information:
 
@@ -79,11 +79,11 @@ Follow these links for more information:
 
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
-[marketplace-version]: https://vsmarketplacebadge.apphb.com/version-short/ironsheepproductionsllc.spin2.svg
+[marketplace-version]: https://vsmarketplacebadges.dev/version-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-installs]: https://vsmarketplacebadge.apphb.com/installs-short/ironsheepproductionsllc.spin2.svg
+[marketplace-installs]: https://vsmarketplacebadges.dev/installs-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-rating]: https://vsmarketplacebadge.apphb.com/rating-short/ironsheepproductionsllc.spin2.svg
+[marketplace-rating]: https://vsmarketplacebadges.dev/rating-short/ironsheepproductionsllc.spin2.svg
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
 

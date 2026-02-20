@@ -2,7 +2,7 @@
 
 ![Project Maintenance][maintenance-shield]
 
-[![License][license-shield]](LICENSE) 
+[![License][license-shield]](LICENSE)
 
 # Migrate from v2.2.x to v2.3.0
 
@@ -12,11 +12,11 @@ However, to use the new Spin2 advanced toolchain features you will want to enabl
 
 ## Migration overview
 
-Adjustng your configuraation to work well with Spin2 v2.3.0 is both simple and required.  The old user-tasks file just won't work and the old keyboard bindings also no-longer work. Fortunately adjusting your environment to work with the new ToolChain support is quick and easy and should be a one-time event for you.
+Adjusting your configuration to work well with Spin2 v2.3.0 is both simple and required.  The old user-tasks file just won't work and the old keyboard bindings also no-longer work. Fortunately adjusting your environment to work with the new ToolChain support is quick and easy and should be a one-time event for you.
 
-Ajusting your environment:
+Adjusting your environment:
 
-1. Enable the Propeller 2 Advanced toolchain features: by clicking `Spin Extension->Toolchain->Advanced:Enable`  
+1. Enable the Propeller 2 Advanced toolchain features: by clicking `Spin Extension->Toolchain->Advanced:Enable`
 1. Replace your user-tasks file: **Tasks: Open User Tasks**
 1. Remove your existing keyboard bindings: **Preferences: Open Keyboard Shortcuts (JSON)**
 1. Ensure your compiler(s) has/have been located correctly
@@ -29,7 +29,7 @@ You can also now toggle debug() on/off as well as toggle download to RAM / FLASH
 
 ## 2. Replace your user tasks file
 
-The tasks we use with our P2 development live in the central "User Tasks" .json file. 
+The tasks we use with our P2 development live in the central "User Tasks" .json file.
 
 To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "tasks". Lower down in the resulting filtered list you should now see "**Tasks: Open User Tasks**". If prompted for a Task Template, select Others. Select it and you should now have a file open in the editor which should contain at least:
 
@@ -169,16 +169,16 @@ If you have anything else in this file pertaining to P2 development then you wan
 
 This provides the following **Build** and **Test** tasks:
 
-Under **Task: Run Build Task**: 
+Under **Task: Run Build Task**:
 
 - CompileP2 - Compile current file (w/debug() on/off)
 - CompileTopP2 - Compile the top-file of this project (w/debug() on/off)
 
-Under **Task: Run Test Task**: 
+Under **Task: Run Test Task**:
 
 - DownloadP2 - Download the binary to RAM in our connected P2 (to RAM/FLASH)
 
-As written, **downloadP2** for flexpsin will always be preceeded by a compileTopP2.
+As written, **downloadP2** for flexpsin will always be preceded by a compileTopP2.
 
 **NOTE**: This now supports any runtime selected compiler. The use of `${command:spinExtension.getCompilerArguments}` makes it possible since the spin2 extension knows what compiler is selected.  Likewise, the use of `${command:spinExtension.getLoaderArguments}` make it possible to select a download tool from among those installed.  *Although initially we are only using the built-in downloader as we are still working out issues with the downloaders.*
 
@@ -235,15 +235,15 @@ If you happen to have some non-P2 bindings you can leave these in this file. **W
 
 ## 4. Ensure your compilers have been located correctly
 
-The Spin2 extension now has automatic toolset discovery. Once the compilers have been discovered then you choose which compiler to use for all of your P2 projects. You can then also override this setting for any project you wish to use another of your installed compilers. 
+The Spin2 extension now has automatic toolset discovery. Once the compilers have been discovered then you choose which compiler to use for all of your P2 projects. You can then also override this setting for any project you wish to use another of your installed compilers.
 
 To validate that you can build P2 code let's review the Spin2 Exension settings. There's a new page of setting where the compilers found are listed. Let's open `Settings -> Extensions -> Spin2 -> Spin/Spin2 ToolChain Configuration`. At the top of this settings page you'll see a list of **Installations Found**.  If you have flexspin installed, you should see `flexspin` in this list. If you are on Windows and you have a version of PNut (say PNut_v43 installed) then you should see `PNut` installed, and lastly, if you have pnut_ts installed is should show `pnut_ts`.
 
 If you don't see all the compilers in this list then you want to adjust the installations so that they can be found before proceeding!  For installation instructions you will need to refer to:
 
-1. [Machine Setup and Configuration Windows](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-win.md#development-machine-setup-and-configuration) 
-1. [Machine Setup and Configuration MacOS](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-macOS.md#development-machine-setup-and-configuration) 
-1. [Machine Setup and Configuration RPi/Linux](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-RPi.md#development-machine-setup-and-configuration) 
+1. [Machine Setup and Configuration Windows](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-win.md#development-machine-setup-and-configuration)
+1. [Machine Setup and Configuration MacOS](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-macOS.md#development-machine-setup-and-configuration)
+1. [Machine Setup and Configuration RPi/Linux](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/TASKS-User-RPi.md#development-machine-setup-and-configuration)
 
 If you see all of your compilers then you are ready to move on to Step 4 (or you are done if you are not on windows.)
 
@@ -303,7 +303,7 @@ if exist "%spinfile%" (
 
 ```
 
-I'll have Chip distribute this version with all pnut distributions for here on out (replacing the old one.)
+I'll have Chip distribute this version with all pnut distributions from here on out (replacing the old one.)
 
 **NOTE**: The `pnut_v43` value in this new file MUST match your exact PNut version! If is does not then this script will NOT work!  Please edit this file if it doesn't match.
 
@@ -335,7 +335,7 @@ That's it you should be ready to use all compilers on your platform to build, do
 
 ## License
 
-Licensed under the MIT License. 
+Licensed under the MIT License.
 
 Follow these links for more information:
 
@@ -343,11 +343,11 @@ Follow these links for more information:
 
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
-[marketplace-version]: https://vsmarketplacebadge.apphb.com/version-short/ironsheepproductionsllc.spin2.svg
+[marketplace-version]: https://vsmarketplacebadges.dev/version-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-installs]: https://vsmarketplacebadge.apphb.com/installs-short/ironsheepproductionsllc.spin2.svg
+[marketplace-installs]: https://vsmarketplacebadges.dev/installs-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-rating]: https://vsmarketplacebadge.apphb.com/rating-short/ironsheepproductionsllc.spin2.svg
+[marketplace-rating]: https://vsmarketplacebadges.dev/rating-short/ironsheepproductionsllc.spin2.svg
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
 

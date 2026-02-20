@@ -1,6 +1,6 @@
 # Spin2/Pasm2 Syntax highlighting and Code Navigation for VSCode
 
-This page presents how we are thinking about the new Elastic Tabbing à la Propeller Tool as implemeted in our Spin2 extension for VSCode.
+This page presents how we are thinking about the new Elastic Tabbing à la Propeller Tool as implemented in our Spin2 extension for VSCode.
 
 ![Project Maintenance][maintenance-shield]
 
@@ -24,11 +24,11 @@ Additional pages:
 
 ## Spin2 Elastic Tabs - Specification
 
-This section presents how we ultimately want `Tab` and `Shift-Tab` to behave. 
+This section presents how we ultimately want `Tab` and `Shift-Tab` to behave.
 
-In general terms, we think of choosing a location in the code that we want to affect and then the `Tab` and `Shift+Tab` tells us how to affect the code at the location we've chosen. 
+In general terms, we think of choosing a location in the code that we want to affect and then the `Tab` and `Shift+Tab` tells us how to affect the code at the location we've chosen.
 
-When we are choosing a location, we consider three forms: 
+When we are choosing a location, we consider three forms:
 
 1. Insert Point - the cursor is place at a specific location on a single line but no charaters are selected.
 1. Single line Selection - one or more characters are selected, all on the same line.
@@ -60,12 +60,12 @@ The following are specific `Tab` cases with intended outcomes. Each case is prec
 
 #### [TIP1] insert point in non-white
 
-- Tab inserts spaces left of cursor to the next tab-stop. 
+- Tab inserts spaces left of cursor to the next tab-stop.
 - The cursor and all line content to the right of the cursor move to the next right-most tab-stop. (*If the cursor was in the middle of say a word, then this action has the visual effect of splitting the text at the initial cursor position.*)
 
 #### [TIP2] insert point in white
 
-- Tab inserts spaces left of cursor moving text to right of the cursor to the next tab-stop. 
+- Tab inserts spaces left of cursor moving text to right of the cursor to the next tab-stop.
 - The cursor is left to left of text that moved.
 
 #### [Group TSE1-4] ---  1st char (left-most) of selection is whitespace  ---
@@ -79,11 +79,11 @@ For each of the selections in this group:
 
 *(Normally the selected characters would be removed and spaces to the next tab-stop would be inserted but this extension treats this differently as we are using these keys to format code!)*
 
-- The white-space characters are chased to the RIGHT from the start of the selection until the left edge of the following text is found, or until we find the right edge end of line (if there were no non-white characters).  
+- The white-space characters are chased to the RIGHT from the start of the selection until the left edge of the following text is found, or until we find the right edge end of line (if there were no non-white characters).
 
 ##### [TSE1] Selection is all white (and DOES span a tab-stop)</br>[TSE2] Selection starts in white, ends in non-white (and whitespace DOES span a tab-stop)
 
-- Spaces are then removed from the left of this cursor postion to move the text left to the prior tab stop. 
+- Spaces are then removed from the left of this cursor postion to move the text left to the prior tab stop.
 - The cursor ends up a tthe left edge of the text that was to the right of it.
 
 ##### [TSE3] Selection is all white (and DOES NOT span a tab-stop)</br>[TSE4] Selection starts in white, ends in non-white (and whitespace DOES NOT span a tab-stop)
@@ -102,7 +102,7 @@ When the selection starts with characters, not whitespace, then the selection is
 
 *(these both behave the same way)*
 
-- The non-white characters are chased to the left from the left edge of the selection until the left edge of the text is found (note this could be the beginning of the line, if it is not indented). The cursor is moved to this new position (To the left edge of the text identified by the selection). 
+- The non-white characters are chased to the left from the left edge of the selection until the left edge of the text is found (note this could be the beginning of the line, if it is not indented). The cursor is moved to this new position (To the left edge of the text identified by the selection).
 
 - Spaces are then inserted to the left of this new cusor postion to the next tab stop. The cursor ends up, still to left of the left edge of the text, but the cursor and the text to the right of it have moved to the next tab-stop.
 
@@ -115,9 +115,9 @@ When the selection starts with characters, not whitespace, then the selection is
 
 - All lines in selected region are treated as if each entire line was selected
 - The next tabstop is calculated from the left-most text for each the line independently
-- Each line is moved to the next tabstop by inserting spaces to the left of the first non-white character on the line. 
+- Each line is moved to the next tabstop by inserting spaces to the left of the first non-white character on the line.
 - If the line was empty spaces are appended to get to the next tabstop
-- The cursor will be at the start, or the end, of the selection. If the cursor was in left edge white-space it does not move. If, instead, it was after the left edge text on the line then it moved with the line but stayed in the same relative postion within the line. 
+- The cursor will be at the start, or the end, of the selection. If the cursor was in left edge white-space it does not move. If, instead, it was after the left edge text on the line then it moved with the line but stayed in the same relative postion within the line.
 - Desired behavior for cursor is that if a cursor was on a line that moved the cursor should be placed at the text left edge on that line
 
 ---
@@ -147,7 +147,7 @@ The Left edge of the text affected is located by searching RIGHT from cursor. Al
 
 - The affected text (Left-edge of which was located left of the cursor) and all text to the right is shifted LEFT by one tab stop.
 - If the text would butt into earlier text on the line the moving text will move left but leave one space between the earlier text and the moving text.
-- The cursor will stay where it was unless the moving text interferes. It will come to rest at the text left edge if the text affects the location where the cursor started 
+- The cursor will stay where it was unless the moving text interferes. It will come to rest at the text left edge if the text affects the location where the cursor started
 
 
 #### [Group USE1, USE2] ---  1st char (left-most) of selection is whitespace  ---
@@ -160,7 +160,7 @@ The Left edge of the text affected is located by searching RIGHT from left edge 
 
 - The affected text (Left-edge of which was located to the right of the cursor) and all text to the right is shifted left by one tab stop.
 - If the text would butt into earlier text on the line the moving text will move left but leave one space between the earlier text and the moving text.
-- The cursor should end up at the newly relocated text left edge 
+- The cursor should end up at the newly relocated text left edge
 
 #### [Group USE3, USE4] ---  1st char (left-most) of selection is NOT whitespace  ---
 
@@ -218,9 +218,9 @@ I studied the Propeller Tool documentation to determine what special features ar
 
 ### Effect of INSERT, OVERTYPE and ALIGN insert Modes
 
-The Propeller Tool documentation says very little about insert and overtype modes. But in the end **Insert Mode** shoves characters immediately to the right of the cursor to the right with each character typed while **Overtype Mode** simply replaces the character to the right of the cursor with the character entered. 
+The Propeller Tool documentation says very little about insert and overtype modes. But in the end **Insert Mode** shoves characters immediately to the right of the cursor to the right with each character typed while **Overtype Mode** simply replaces the character to the right of the cursor with the character entered.
 
-The interesting things happen with **Align Mode**. To quote propeller tool docs: 
+The interesting things happen with **Align Mode**. To quote propeller tool docs:
 
 "*While in Align Mode characters inserted affect characters immediately to the right of the cursor but not characters separated by more than one space. The result is that comments and other items separated by more than one space maintain their intended alignment for as long as possible.*"
 
@@ -293,7 +293,7 @@ I tested various (hopefully comprehensive) cases of selection and what happens w
     [UML4] two lines: partial first and last lines
     	- All lines in selected region are treated:
     		- if text on line is already at left edge - nothing happens
-    		- for any lines not at left edge they move left one tab stop 
+    		- for any lines not at left edge they move left one tab stop
     		- (all lines that are not already at the left edge of the line maintain their current indent relative to each other)
 
 While this will inform some of the spin2 tabbing behaviors we are adding additional behaviors on top of this.
@@ -320,7 +320,7 @@ While this will inform some of the spin2 tabbing behaviors we are adding additio
 	- [SE2] selection (starts WHITE, ends NON-WHITE)
 		- (should location left edge of NON-WHITE, within selection, set cursor there)
 	- [SE3] selection (starts NON-WHITE, ends WHITE)
-		- (should location left edge of NON-WHITE before start of selection, set cursor there) 
+		- (should location left edge of NON-WHITE before start of selection, set cursor there)
 	- [SE4] selection (All WHITE)
 		- (should place cursor at left-edge of text to right)
 			- selected text should be removed
@@ -330,7 +330,7 @@ While this will inform some of the spin2 tabbing behaviors we are adding additio
 	- [ML1] Multi-line (FAKE SINGLE LINE)
 		- (should location left edge of NON-WHITE, place cursor there)
 		- (skipping WHITE at left of line)
-	
+
 NOTE: Tab on empty lines should just cause spaces to be appended to next tab stop.
 
 ### Press SHIFT+TAB (with what selected?):
@@ -380,11 +380,10 @@ Follow these links for more information:
 
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
-[marketplace-version]: https://vsmarketplacebadge.apphb.com/version-short/ironsheepproductionsllc.spin2.svg
+[marketplace-version]: https://vsmarketplacebadges.dev/version-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-installs]: https://vsmarketplacebadge.apphb.com/installs-short/ironsheepproductionsllc.spin2.svg
+[marketplace-installs]: https://vsmarketplacebadges.dev/installs-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-rating]: https://vsmarketplacebadge.apphb.com/rating-short/ironsheepproductionsllc.spin2.svg
+[marketplace-rating]: https://vsmarketplacebadges.dev/rating-short/ironsheepproductionsllc.spin2.svg
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
-

@@ -5,11 +5,11 @@
 
 [![License][license-shield]](LICENSE)
 
-**NOTE**: This page describes creating tasks **common to all of your projects/workspaces**. If, instead, you wish to have your P2 compile and download tasks unique to each your projects then go to the [Project Tasks](TASKS.md) page.
+**NOTE**: This page describes creating tasks **common to all of your projects/workspaces**. If, instead, you wish to have your P2 compile and download tasks unique to each your projects then go to the [Project Tasks](README.md) page.
 
 ## Automating Build and Download to our P2 development boards
 
-This document is being developed over time as we prove-out a working environment for each of our target platforms. 
+This document is being developed over time as we prove-out a working environment for each of our target platforms.
 
 To date, we have installations, compilation and downloading from [**Windows**](TASKS-User-win.md), [**MacOS**](TASKS-User-macOS.md), and **RaspiOS** (_this page_) (the Raspberry Pi OS - a Debian derived distribution).
 
@@ -28,7 +28,7 @@ On this Page:
   - [Installing FlexProp](#installing-flexprop-on-rpilinux)
   - [Installing PNut-TS](#installing-pnut-ts-on-rpilinux)
   - [Installing PNut-Term-TS](#installing-pnut-term-ts-on-rpilinux)
-- [Tasks in VScode](#tasks-in-vscode) - this provides more detail about vscode tasks and lists work that is still needing to be done 
+- [Tasks in VScode](#tasks-in-vscode) - this provides more detail about vscode tasks and lists work that is still needing to be done
   - [Adding the P2 Tasks](#adding-the-p2-tasks)
   - [Adding our Custom Keybindings](#custom-keybindings)
   - [Adding our notion of Top-level file for tasks to use](#adding-our-notion-of-top-level-file-for-tasks-to-use)
@@ -37,8 +37,8 @@ Additional pages:
 
 - [TOP Level README](README.md) - Back to the top page of this repo
 - [Migrate to v2.3.0](Migrate-v230.md) - checklist to ensure you have migrated to our latest configuration which supports locating installed compilers and compiling and downloading with any of the installed compilers to your USB attached P2
-- [Setup focused on Windows only](TASKS-User-win.md) - All **Windows** notes 
-- [Setup focused on macOS only](TASKS-User-macOS.md) - All **macOS** notes 
+- [Setup focused on Windows only](TASKS-User-win.md) - All **Windows** notes
+- [Setup focused on macOS only](TASKS-User-macOS.md) - All **macOS** notes
 - [VSCode REF: Tasks](https://code.visualstudio.com/docs/editor/tasks) - Offsite: VSCode Documentation for reference
 
 **NOTE:** _The "P2 Code Development..." sections below provide step-by-step setup instructions_
@@ -128,7 +128,7 @@ One time:
 
 *The spin2 extension for VSCode will automatically see and use PNut-Term-TS when you select the PNut-TS compiler.*
 
-  
+
 ## Being consistent in your machine configuration
 
 I have mostly macs for development but I also have a Windows machine and a number of Raspberry PIs (derived from Debian Linux Distribution (distro.)) and even some larger Ubuntu Machines (also derived from Debian Linux distro.). If you, like me, intend to be able to run VSCode on many of your development machines and you want to make your life easier then there are a couple of things we know already that can help you.
@@ -178,14 +178,14 @@ and then added the content:
 
 ```bash
 # For FTDI FT232 & FT245 USB devices with Vendor ID = 0x0403, Product ID = 0x6001
-SYSFS{idProduct}==”6001”, SYSFS{idVendor}==”0403”, RUN+=”/sbin/modprobe –q ftdi- sio product=0x6001 vendor=0x0403”
+SYSFS{idProduct}=="6001", SYSFS{idVendor}=="0403", RUN+="/sbin/modprobe –q ftdi- sio product=0x6001 vendor=0x0403"
 ```
 
-After this file was saved, I rebooted the RPi.  After the RPi came back up I plugged in the PropPlug I saw /dev/ttyUSB0 appear as my PropPlug.  
+After this file was saved, I rebooted the RPi.  After the RPi came back up I plugged in the PropPlug I saw /dev/ttyUSB0 appear as my PropPlug.
 
 ### Installing FlexProp on RPi/Linux
 
-On the Raspberry Pi platform we'll use `git(1)` to download the FlexProp source, unlike on the MacOS and Windows machines where we instead get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and upacking the zip file to produce a `flexprop` folder containing the new version.  
+On the Raspberry Pi platform we'll use `git(1)` to download the FlexProp source, unlike on the MacOS and Windows machines where we instead get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and upacking the zip file to produce a `flexprop` folder containing the new version.
 
 **NOTE**: *The flexprop toolset does not have a standard install location. So we will likely have many locations amongst all of us P2 users.  You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system.  Alternatively, it should be safe to just follow what I do in these instructions explictly.  This has the benefit that more of us will be able to help each other out with tools problems as more of us will be set up the same.*
 
@@ -199,7 +199,7 @@ In my case, I used Eric's suggestion to instruct the build/install process to in
  # build flexprop then install flexprop in /opt/flexprop
  sudo make install INSTALL=/opt/flexprop
  ```
- 
+
  (**NOTE** *We use `sudo` because the normal user is not able to write in the /opt tree.*)
 
 Additionally, I [added a new PATH element](#setting-paths-for-your-p2-compilerstools) in my ~/.profile file to point to the flexprop bin directory.  Now if you are running interactively on this RPi you can reference the flexprop or loadp2 executables by name and they will run.
@@ -276,7 +276,7 @@ unzip pnut-ts-{os-arch}-{MMmmpp}.zip   # should leave a new folder pnut_ts/
 sudo mv pnut_ts /opt  # move the new folder to our /opt tree, right along side flexprop
 # remove the .zip as it's no longer needed
 rm pnut-ts-{os-arch}-{MMmmpp}.zip
-cd -                  # return to the directory you were in before you entered {downloadFolder} 
+cd -                  # return to the directory you were in before you entered {downloadFolder}
 ```
 
 **NOTE:** We use this move-aside technique for updating the PNut-TS compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
@@ -332,7 +332,7 @@ unzip pnut-term-ts-{os-arch}-{MMmmpp}.zip   # should leave a new folder pnut_ter
 sudo mv pnut_term_ts /opt  # move the new folder to our /opt tree, right along side flexprop
 # remove the .zip as it's no longer needed
 rm pnut-term-ts-{os-arch}-{MMmmpp}.zip
-cd -                  # return to the directory you were in before you entered {downloadFolder} 
+cd -                  # return to the directory you were in before you entered {downloadFolder}
 ```
 
 **NOTE:** We use this move-aside technique for updating the PNut-Term-TS debugger/downloader. When a development tool is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new development tool handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can debug the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
@@ -396,13 +396,11 @@ When you run VScode on multiple operating systems and want to be able to run a p
 
 Another VSCode mechanism we are determining if it will be useful is the: [Task Provider Extension](https://code.visualstudio.com/api/extension-guides/task-provider). If we find this is useful we can add a Task Provder element to our existing extension in order to facilitate our updating task files we use for P1 and P2 development.
 
-...More TBA...
-
 ### Invoking tasks
 
-Tasks can be invoked with the search, identify, run technique or they can have keyboard shortcuts assigned to them.  
+Tasks can be invoked with the search, identify, run technique or they can have keyboard shortcuts assigned to them.
 
-A project can have a single default build task which is, by default, invoked with command-shift-B. 
+A project can have a single default build task which is, by default, invoked with command-shift-B.
 
 We'll configure our compileP2 task to be the default.
 
@@ -410,15 +408,9 @@ We'll add a downloadP2 task and assign command-shift-D to it. It will depend upo
 
 We'll add a flashP2 task and assign command-shift-F to it. It will depend upon the compile task which makes it run first and then we download the newly compiled result and write it to FLASH.
 
-**TODO-1**: We need to ensure download or flash doesn't proceed if compile fails
-
-#### More Advanced building
-
-**TODO-2**: We'll also test using the file-watch technology to automatically compile and download our project files when they are modified.
-
 ### Adding the P2 Tasks
 
-To define the tasks we are going to use with our P2 development in most of our projects we place the task definitions in a central "User Tasks" .json file. 
+To define the tasks we are going to use with our P2 development in most of our projects we place the task definitions in a central "User Tasks" .json file.
 
 To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "tasks". Lower down in the resulting filtered list you should now see "**Tasks: Open User Tasks**". If prompted for a **Task Template**, select **Others**. Select it and you should now have a file open in the editor which should contain at least:
 
@@ -557,22 +549,22 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 
 This provides the following **Build** and **Test** tasks:
 
-Under **Task: Run Build Task**: 
+Under **Task: Run Build Task**:
 
-- CompileP2 - Compile current file 
+- CompileP2 - Compile current file
 - CompileTopP2 - Compile the top-file of this project
 
-Under **Task: Run Test Task**: 
+Under **Task: Run Test Task**:
 
 - DownloadP2 - Download the binary to RAM in our connected P2
 
-As written, **downloadP2** for flexpsin will always be preceeded by a compileTopP2.
+As written, **downloadP2** for flexspin will always be preceded by a compileTopP2.
 
 ### Custom Keybindings
 
 This new build system no longer uses custom keybindings. However, when migrating from the older build support we used you should remove any older P2 related keybindings as they can interfere with correct operation of the new build support.
 
-The custom key bindings are found in the `keybindings.json` file. 
+The custom key bindings are found in the `keybindings.json` file.
 
 To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**".  Select it and you should now have a file open in the editor which should contain something like:
 
@@ -583,7 +575,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 ```
 
 **NOTE**: If you find entries like the following, then they need to be **removed**.
- 
+
 ```json
 
   {
@@ -639,7 +631,7 @@ Once we have this file in place, then our `tasks.json` file can access this valu
 
 Now our **CompileTopP2** task can create the toplevel filename using  `${config:topLevel}.spin2`
 
-You need to find the line containing "jm\_p2-es\_matrix\_control\_demo" and replace this name with the name of your top-level file. 
+You need to find the line containing "jm\_p2-es\_matrix\_control\_demo" and replace this name with the name of your top-level file.
 
 And our **DownloadP2** task can reference the binary file using `${config:topLevel}.binary`
 
@@ -656,4 +648,3 @@ Follow these links for more information:
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
-

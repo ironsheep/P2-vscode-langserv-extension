@@ -1,7 +1,7 @@
 # VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
 
 ![Project Maintenance][maintenance-shield]
-[![License][license-shield]](LICENSE) 
+[![License][license-shield]](LICENSE)
 
 ## Our Spin/Spin2 VSCode Extension Settings
 
@@ -16,9 +16,9 @@ The Spin2 extension settings are in 5 sections.  If when you get to settings and
 
 - **Highlight FlexSpin directives** - This enables support for #if, #else, etc. FlexSpin directives
 - **Max Number of Reported Issues** - This allows you to limit how many messages are shown per file
-- **Trace Server**- boared? want to see how the client interacts with the server then select a value here other then off. (this can slow things down)
+- **Trace Server**- bored? want to see how the client interacts with the server then select a value here other then off. (this can slow things down)
 - **Color Editor Background** - check this to turn on Propeller Tool coloring (you'll also need to adjust the color theme to make this readable!)
-- **Editor Background Alpha** - if you wnat to something a bit darker then you can adjust this.
+- **Editor Background Alpha** - if you want to something a bit darker then you can adjust this.
 
 
 ## Spin2 Settings - Section 2
@@ -26,12 +26,12 @@ The Spin2 extension settings are in 5 sections.  If when you get to settings and
 Click on the 2nd section to see:
 
 ![Settings 2 of 5](./DOCs/stgs-tabstops.png)
-**FIGURE 2**: with he 2nd section selected
+**FIGURE 2**: with the 2nd section selected
 
 - Elastic Tabstops **Enable** - check this to turn ON the Elastic Tabstops feature
 - **Iron Sheep** - click on link to adjust the tab columns (default is what the Author uses)
 - **Propeller Tool**- click on link to adjust the tab columns (default is Propeller Tool defaults)
-- **User1** - click on link to adjust the tab columns (this one is meant for you to customize if you wnat your own settings)
+- **User1** - click on link to adjust the tab columns (this one is meant for you to customize if you want your own settings)
 - Elastic Tabstops **Choice** - select the set of tabstops you wish to use
 
 
@@ -82,14 +82,14 @@ The following are adjusted by clicking on status bar controls:
 
 ## Spin2 Settings - Section 5
 
-Section 5 is a bit different. Only the very first item **Flexspin loadp2 command-line option: USer Baudrate (Default: 115200)** item is meant to be adjusted by you.  The remaining items in this section are visual feedback to you to see what the **toolchain discovery mechanism** has found with respect to the tools you have instlled.
+Section 5 is a bit different. Only the very first item **Flexspin loadp2 command-line option: USer Baudrate (Default: 115200)** item is meant to be adjusted by you.  The remaining items in this section are visual feedback to you to see what the **toolchain discovery mechanism** has found with respect to the tools you have installed.
 
 In general, you want to look here after installing any compilers to see if they were discovered correctly.
 
 Click on the 5th section to see:
 
 ![Settings 5 of 5](./DOCs/stgs-toolchain2.png)
-**FIGURE 5**: with the 4th section selected (showing second group of entries)
+**FIGURE 5**: with the 5th section selected (showing second group of entries)
 
 The 'paths' entries are all runtime configured. **Please do not adjust any of these paths.**
 
@@ -103,7 +103,7 @@ The following is adjusted by clicking on status bar controls:
 
 In general To open the Settings editor, navigate to **[Code]** > **Settings** > **Keyboard Shortcuts**.
 
-The kayboard mappings are different on Windows than they are on Mac, RPi or Linux.
+The keyboard mappings are different on Windows than they are on Mac, RPi or Linux.
 
 ### The Key Mapping on Windows:
 
@@ -113,16 +113,16 @@ The kayboard mappings are different on Windows than they are on Mac, RPi or Linu
 ### The Key Mapping on RPi, Linux:
 
 ![Keys 2 of 3](./DOCs/RPi-keys.png)
-**FIGURE 7**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
+**FIGURE 7**: Keyboard Shortcuts screen on RPi and Linux.
 
 ### The Key Mapping on MacOS:
 
 ![Keys 3 of 3](./DOCs/mac-keys.png)
-**FIGURE 8**: Keyboard Shortcuts screen on Mac (same on RPi and Linux).
+**FIGURE 8**: Keyboard Shortcuts screen on macOS.
 
 ## License
 
-Licensed under the MIT License. 
+Licensed under the MIT License.
 
 Follow these links for more information:
 
@@ -130,11 +130,11 @@ Follow these links for more information:
 
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
-[marketplace-version]: https://vsmarketplacebadge.apphb.com/version-short/ironsheepproductionsllc.spin2.svg
+[marketplace-version]: https://vsmarketplacebadges.dev/version-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-installs]: https://vsmarketplacebadge.apphb.com/installs-short/ironsheepproductionsllc.spin2.svg
+[marketplace-installs]: https://vsmarketplacebadges.dev/installs-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-rating]: https://vsmarketplacebadge.apphb.com/rating-short/ironsheepproductionsllc.spin2.svg
+[marketplace-rating]: https://vsmarketplacebadges.dev/rating-short/ironsheepproductionsllc.spin2.svg
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
 

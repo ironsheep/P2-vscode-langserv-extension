@@ -1,7 +1,7 @@
 # VSCode support for the Parallax Propeller 1 & 2 Multicore MCU's
 
 ![Project Maintenance][maintenance-shield]
-[![License][license-shield]](LICENSE) 
+[![License][license-shield]](LICENSE)
 
 ## New Toolchain configuration and use
 
@@ -15,7 +15,7 @@ Currently the following compilers are runtime detected:
 
 A couple of expected paths per platform and the user's environment variables are used to find the install for each compiler.
 
-*(TBD) add list of paths per platform.*
+*Paths searched vary by platform. The extension checks common installation locations and your PATH environment variable.*
 
 ### Configuration Variables provided for User-Tasks use
 
@@ -23,10 +23,10 @@ A couple of expected paths per platform and the user's environment variables are
 | --- | --- | ---
 | `topLevel` (deprecated) -or-<br>`spin2.fNameTopLevel ` | Filename of the top-level file in your workspace<br>NOTE `topLevel` was filename (without the .spin2 file extension)<br>While `fNameTopLevel` is filename.spin2 (with the extension) | Added **by-hand** during project setup. *This allows downloads to work even when your are not editing the top-level file!*
 | `spin2.fSpecCompiler` |  Absolute path of the selected compiler for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers
-| `spin2.fSpecFlashBinary` | (**flexspin only**) Absolute path of the flashLoader binary for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
-| `spin2.fSpecLoader` | (**flexspin/PNut only**) Absolute path of the selected downloader for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers 
+| `spin2.fSpecFlashBinary` | (**flexspin only**) Absolute path of the flashLoader binary for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers
+| `spin2.fSpecLoader` | (**flexspin/PNut only**) Absolute path of the selected downloader for this workspace | Runtime discovered, set when user enters **compilerID** from list of runtime-discovered compilers
 | `spin2.serialPort` | Device Node name (or COM Port) of the selected serial port.|**Runtime discovered**, set when user selects the serial port by clicking on the **VSCode StatusBar** Icon
-| `spin2.optionsBuild` **but use:** <br>`spinExtension.getCompileArg[1-4]` which formats the argument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers 
+| `spin2.optionsBuild` **but use:** <br>`spinExtension.getCompileArg[1-4]` which formats the argument values correctly | Build options without the source filename | Set when user enters **compilerID** from list of runtime-discovered compilers
 | `spin2.optionsLoader` **but use:**<br>`spinExtension.getLoadArg[1-4]` which formats the argument values correctly| Additional command-line options passed to loader without the binary filename | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
 | `spin2.optionsBinaryFname` | The name of the **binary file** to be downloaded. <br>-In case of **pnut** the **spin2 file** to be compiled then downloaded.<br>- In case of **flexspin** this will also contain the full directive to load the **flash programming** utility if downloading to FLASH. | Determined by settings (**compiler choice**) and latest state of FLASH/RAM selection on **VSCode StatusBar**
 | | --- **VSCode built-in variables** ---
@@ -44,7 +44,7 @@ A couple of expected paths per platform and the user's environment variables are
 | pnut | `pnut_shell.bat ${fileBasename} -c`
 | pnut_ts | `pnut_ts -c ${fileBasename}`
 
-This translates now translates into a single entry in the **user tasks** file:
+This now translates into a single entry in the **user tasks** file:
 
 ```json
     {
@@ -87,7 +87,7 @@ This translates now translates into a single entry in the **user tasks** file:
 
 ```
 
-**NOTE**: This now supports any runtime selected compiler. The use of `${config:optionsBuild}` makes it possible since the spin2 extension knows what compiler is selected.
+**NOTE**: This now supports any runtime selected compiler. The use of `${command:spinExtension.getCompilerArguments}` makes it possible since the spin2 extension knows what compiler is selected.
 
 **NOTE2**: Requires a modified **pnut-shell.bat** file that reorders the given parameters.
 
@@ -100,7 +100,7 @@ This translates now translates into a single entry in the **user tasks** file:
 | pnut | `pnut_shell.bat ${config:fNameTopLevel} -c`
 | pnut_ts | `pnut_ts -c ${config:fNameTopLevel}`
 
-This translates now translates into a single entry in the **user tasks** file:
+This now translates into a single entry in the **user tasks** file:
 
 ```json
     {
@@ -144,7 +144,7 @@ This translates now translates into a single entry in the **user tasks** file:
 
 ```
 
-NOTE: This now supports any runtime selected compiler. The use of `${config:optionsBuild}` makes it possible since the spin2 extension knows what compiler is selected.
+NOTE: This now supports any runtime selected compiler. The use of `${command:spinExtension.getCompilerArguments}` makes it possible since the spin2 extension knows what compiler is selected.
 
 #### Download to P2 FLASH / RAM
 
@@ -159,7 +159,7 @@ NOTE: This now supports any runtime selected compiler. The use of `${config:opti
 | pnut to FLASH | `pnut_shell.bat ${config:fNameTopLevel}.spin2 -f` <br>*NOTE: -f becomes -fd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
 | pnut_ts to FLASH/RAM | *NOTE: The pnut_ts loader is built into the Spin2 Extension so is not represented in the Users Tasks file*
 
-This translates now translates into a single entry in the **user tasks** file:
+This now translates into a single entry in the **user tasks** file:
 
 ```json
     {
@@ -202,7 +202,7 @@ This translates now translates into a single entry in the **user tasks** file:
 
 ```
 
-NOTE: This now supports any runtime selected downloader as well as writing to RAM or FLASH. The use of `${config: optionsLoader}` and `${config:fNameTopLevelBinary}` makes it possible since the spin2 extension knows what loader is selected.
+NOTE: This now supports any runtime selected downloader as well as writing to RAM or FLASH. The use of `${command:spinExtension.getLoaderArguments}` and `${config:spin2.optionsBinaryFname}` makes it possible since the spin2 extension knows what loader is selected.
 
 ### Remove any Custom Keybindings
 
@@ -320,7 +320,7 @@ I'll have Chip distribute this version with all pnut distributions for here on o
 
 ## License
 
-Licensed under the MIT License. 
+Licensed under the MIT License.
 
 Follow these links for more information:
 
@@ -328,11 +328,11 @@ Follow these links for more information:
 
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
-[marketplace-version]: https://vsmarketplacebadge.apphb.com/version-short/ironsheepproductionsllc.spin2.svg
+[marketplace-version]: https://vsmarketplacebadges.dev/version-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-installs]: https://vsmarketplacebadge.apphb.com/installs-short/ironsheepproductionsllc.spin2.svg
+[marketplace-installs]: https://vsmarketplacebadges.dev/installs-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-rating]: https://vsmarketplacebadge.apphb.com/rating-short/ironsheepproductionsllc.spin2.svg
+[marketplace-rating]: https://vsmarketplacebadges.dev/rating-short/ironsheepproductionsllc.spin2.svg
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
 

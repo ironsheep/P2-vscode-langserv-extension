@@ -5,13 +5,13 @@
 
 [![License][license-shield]](LICENSE)
 
-**NOTE**: This page describes creating tasks **common to all of your projects/workspaces**. If, instead, you wish to have your P2 compile and download tasks unique to each your projects then go to the [Project Tasks](TASKS.md) page.
+**NOTE**: This page describes creating tasks **common to all of your projects/workspaces**. If, instead, you wish to have your P2 compile and download tasks unique to each your projects then go to the [Project Tasks](README.md) page.
 
 ## Automating Build and Download to our P2 development boards
 
-This document is being developed over time as we prove out a working macOS environment. 
+This document is being developed over time as we prove out a working macOS environment.
 
-To date, we have installations, compilation, and downloading from **[Windows](TASKS_USer.md)**, **MacOS** (this page), and **[RaspiOS](TASKS_USer.md)** (the Raspberry Pi OS - a Debian-derived distribution).
+To date, we have installations, compilation, and downloading from **[Windows](TASKS-User-win.md)**, **MacOS** (this page), and **[RaspiOS](TASKS-User-RPi.md)** (the Raspberry Pi OS - a Debian-derived distribution).
 
 Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**, and **PNut** (*PNut is Windows or Windows Emulator only.*) with direct USB-attached boards.
 
@@ -28,7 +28,7 @@ On this Page:
   - [Installing FlexProp](#installing-flexprop-on-macos)
   - [Installing PNut-TS](#installing-pnut-ts-on-macos)
   - [Installing PNut-Term-TS](#installing-pnut-term-ts-on-macos)
-- [Tasks in VScode](#tasks-in-vscode) - this provides more detail about VSCode tasks and lists work that is still needing to be done 
+- [Tasks in VScode](#tasks-in-vscode) - this provides more detail about VSCode tasks and lists work that is still needing to be done
   - [Adding the P2 Tasks](#adding-the-p2-tasks)
   - [Adding our Custom Keybindings](#custom-keybindings)
   - [Adding our notion of Top-level file for tasks to use](#adding-our-notion-of-top-level-file-for-tasks-to-use)
@@ -37,8 +37,8 @@ Additional pages:
 
 - [TOP Level README](README.md) - Back to the top page of this repo
 - [Migrate to v2.3.0](Migrate-v230.md) - checklist to ensure you have migrated to our latest configuration, which supports locating installed compilers and compiling and downloading with any of the installed compilers to your USB-attached P2
-- [Setup focused on Windows only](TASKS-User-win.md) - All **Windows** notes 
-- [Setup focused on RPi only](TASKS-User-RPi.md) - All **Raspberry Pi** notes 
+- [Setup focused on Windows only](TASKS-User-win.md) - All **Windows** notes
+- [Setup focused on RPi only](TASKS-User-RPi.md) - All **Raspberry Pi** notes
 - [VSCode REF: Tasks](https://code.visualstudio.com/docs/editor/tasks) - Offsite: VSCode Documentation for reference
 
 **NOTE:** _The "P2 Code Development..." sections below provide step-by-step setup instructions_
@@ -77,8 +77,8 @@ Iterate until your project works as desired:
 - Make changes to file(s)
 - Compile the files to see if they compile cleanly (cmd-shift-B) on whichever file you are editing
 - Once the files compile cleanly
-- Download and test (ctrl-shift-D, F10) 
-- Alternatively, download your project to FLASH and test (ctrl-shift-F, F11) 
+- Download and test (ctrl-shift-D, F10)
+- Alternatively, download your project to FLASH and test (ctrl-shift-F, F11)
 
 ## Enabling P2 Code Development with FlexProp on macOS
 
@@ -142,7 +142,7 @@ There is nothing worse than trying to remember where you installed a specific to
 
 ### Installing FlexProp on macOS
 
-On MacOS machines, we get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and unpacking the zip file to produce a `flexprop` folder containing the new version.  
+On MacOS machines, we get the latest binaries by downloading a `flexprop-{version}.zip` file from the [FlexProp Releases Page](https://github.com/totalspectrum/flexprop/releases) and unpacking the zip file to produce a `flexprop` folder containing the new version.
 
 **NOTE**: *The FlexProp toolset does not have a standard install location. So we will likely have many locations amongst all of us P2 users.  You have to take note of where you installed it and then adjust the following examples to point to where your binaries ended up on your file system.  Alternatively, it should be safe to just follow what I do in these instructions explicitly.  This has the benefit that more of us will be able to help each other out with tool problems as more of us will be set up the same.*
 
@@ -150,14 +150,14 @@ Next, we move this new version into place.
 
 #### Install FlexProp
 
-On my Mac's, I install the FlexProp into a folder which I've created at `/Applications/flexprop` and I [set the PATH](#os-macos) to point to the `/Applications/flexprop/bin` directory. I move all of the content of the `flexprop` folder (created during the unzip) to the `/Applications/flexprop` folder. 
+On my Mac's, I install the FlexProp into a folder which I've created at `/Applications/flexprop` and I [set the PATH](#os-macos) to point to the `/Applications/flexprop/bin` directory. I move all of the content of the `flexprop` folder (created during the unzip) to the `/Applications/flexprop` folder.
 
 #### Update FlexProp
 
 If I'm updating to a new version I do the following:
 
 - Remove `/Applications/flexprop-prior`
-- Rename the `/Applications/flexprop` to `/Applications/flexprop-prior` 
+- Rename the `/Applications/flexprop` to `/Applications/flexprop-prior`
 - Create a new empty `/Applications/flexprop` folder
 - Move all of the content of the `flexprop` folder (created during the unzip) to the `/Applications/flexprop` folder
 
@@ -189,7 +189,7 @@ Once you have a node running and it's found in your PATH, then you can proceed w
 
 #### Now installing PNut-TS
 
-On MacOS  machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown and upacking the zip file to produce a .dmg install image.  
+On MacOS  machines we get the latest binaries by downloading a `{os-arch}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown and upacking the zip file to produce a .dmg install image.
 
 We double-click on the .dmg file to mount it. It opens a window, then, in the window, we drag the pnut_ts/ folder into the /Applications folder. Then the close the window and eject (unmount) the installer .dmg file.
 
@@ -219,7 +219,7 @@ If I'm updating to a new version I do the following:
 - Get the latest binaries by downloading a `pnut-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 - Double-click on the .zip file to extract the pnut_ts/ folder.
 - Remove the `/Applications/pnut_ts-prior` folder (move to trash)
-- Rename the `/Applications/pnut_ts` folder to `/Applications/pnut_ts-prior` 
+- Rename the `/Applications/pnut_ts` folder to `/Applications/pnut_ts-prior`
 - In a Finder window, drag the new pnut_ts/ folder to the /Applications folder.
 - Close this finder window
 
@@ -227,8 +227,8 @@ If I'm updating to a new version I do the following:
 
 ### Installing PNut-Term-TS on macOS
 
-On MacOS machines, we get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown and unpacking the zip file to produce a .dmg install image. 
- 
+On MacOS machines, we get the latest binaries by downloading a `pnut-term-ts-{os-arch}-{MMmmpp}.zip` file from the [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown and unpacking the zip file to produce a .dmg install image.
+
 If you have an Intel-based Mac, then get the x64 .zip file; if you have an Apple Silicon-based Mac, then get the arm64 .zip file.
 
 Once you have your selected .zip file then double click on it to extract the pnut-term-ts-{os-arch}-{MMmmpp}.dmg file.
@@ -284,13 +284,11 @@ When you run VScode on multiple operating systems and want to be able to run a p
 
 Another VSCode mechanism we are determining if it will be useful is the: [Task Provider Extension](https://code.visualstudio.com/api/extension-guides/task-provider). If we find this is useful we can add a Task Provder element to our existing extension in order to facilitate our updating task files we use for P1 and P2 development.
 
-...More TBA...
-
 ### Invoking tasks
 
-Tasks can be invoked with the search, identify, run technique or they can have keyboard shortcuts assigned to them.  
+Tasks can be invoked with the search, identify, run technique or they can have keyboard shortcuts assigned to them.
 
-A project can have a single default build task which is, by default, invoked with command-shift-B. 
+A project can have a single default build task which is, by default, invoked with command-shift-B.
 
 We'll configure our compileP2 task to be the default.
 
@@ -298,15 +296,9 @@ We'll add a downloadP2 task and assign command-shift-D to it. It will depend upo
 
 We'll add a flashP2 task and assign command-shift-F to it. It will depend upon the compile task which makes it run first and then we download the newly compiled result and write it to FLASH.
 
-**TODO-1**: We need to ensure download or flash doesn't proceed if compile fails
-
-#### More Advanced building
-
-**TODO-2**: We'll also test using the file-watch technology to automatically compile and download our project files when they are modified.
-
 ### Adding the P2 Tasks
 
-To define the tasks we are going to use with our P2 development in most of our projects we place the task definitions in a central "User Tasks" .json file. 
+To define the tasks we are going to use with our P2 development in most of our projects we place the task definitions in a central "User Tasks" .json file.
 
 To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "tasks". Lower down in the resulting filtered list you should now see "**Tasks: Open User Tasks**". If prompted for a **Task Template**, select **Others**. Select it and you should now have a file open in the editor which should contain at least:
 
@@ -445,23 +437,23 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 
 This provides the following **Build** and **Test** tasks:
 
-Under **Task: Run Build Task**: 
+Under **Task: Run Build Task**:
 
-- CompileP2 - Compile current file 
+- CompileP2 - Compile current file
 - CompileTopP2 - Compile the top-file of this project
 
-Under **Task: Run Test Task**: 
+Under **Task: Run Test Task**:
 
 - DownloadP2 - Download the binary to RAM in our connected P2
 
-As written, **downloadP2** for flexpsin will always be preceeded by a compileTopP2.
+As written, **downloadP2** for flexspin will always be preceded by a compileTopP2.
 
 
 ### Custom Keybindings
 
 This new build system no longer uses custom keybindings. However, when migrating from the older build support we used you should remove any older P2 related keybindings as they can interfere with correct operation of the new build support.
 
-The custom key bindings are found in the `keybindings.json` file. 
+The custom key bindings are found in the `keybindings.json` file.
 
 To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**".  Select it and you should now have a file open in the editor which should contain something like:
 
@@ -472,7 +464,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 ```
 
 **NOTE**: If you find entries like the following, then they need to be **removed**.
- 
+
 ```json
 
   {
@@ -528,13 +520,13 @@ Once we have this file in place, then our `tasks.json` file can access this valu
 
 Now our **CompileTopP2** task can create the toplevel filename using  `${config:topLevel}.spin2`
 
-You need to find the line containing "jm\_p2-es\_matrix\_control\_demo" and replace this name with the name of your top-level file. 
+You need to find the line containing "jm\_p2-es\_matrix\_control\_demo" and replace this name with the name of your top-level file.
 
 And our **DownloadP2** task can reference the binary file using `${config:topLevel}.binary`
 
 ## License
 
-Licensed under the MIT License. 
+Licensed under the MIT License.
 
 Follow these links for more information:
 
@@ -545,4 +537,3 @@ Follow these links for more information:
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
-

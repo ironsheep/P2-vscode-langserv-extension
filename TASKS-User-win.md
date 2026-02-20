@@ -4,13 +4,13 @@
 
 [![License][license-shield]](LICENSE)
 
-**NOTE**: This page describes creating tasks **common to all of your projects/workspaces**. If, instead, you wish to have your P2 compile and download tasks unique to each your projects then go to the [Project Tasks](TASKS.md) page.
+**NOTE**: This page describes creating tasks **common to all of your projects/workspaces**. If, instead, you wish to have your P2 compile and download tasks unique to each your projects then go to the [Project Tasks](README.md) page.
 
 ## Automating Build and Download to our P2 development boards
 
 This document is being developed over time as we prove-out a working environment for Windows.
 
-To date, we have installations, compilation and downloading from **Windows** (_this page_), [**MacOS**](TASKS-User-macOS.md), and [**RaspiOS**](TASKS-User.md) (the Raspberry Pi OS - a Debian derived distribution).
+To date, we have installations, compilation and downloading from **Windows** (_this page_), [**MacOS**](TASKS-User-macOS.md), and [**RaspiOS**](TASKS-User-RPi.md) (the Raspberry Pi OS - a Debian derived distribution).
 
 Also, to date, we have building and download for **flexprop**, **PNut-TS**, **PNut-Term-TS**,and **PNut** (*PNut is windows or windows emulator only.*) with direct USB-attached boards.
 
@@ -38,8 +38,8 @@ Additional pages:
 
 - [TOP Level README](README.md) - Back to the top page of this repo
 - [Migrate to v2.3.0](Migrate-v230.md) - checklist to ensure you have migrated to our latest configuration which supports locating installed compilers and compiling and downloading with any of the installed compilers to your USB attached P2
-- [Setup focused on macOS only](TASKS-User-macOS.md) - All **macOS** notes 
-- [Setup focused on RPi only](TASKS-User-RPi.md) - All **Raspberry Pi** notes 
+- [Setup focused on macOS only](TASKS-User-macOS.md) - All **macOS** notes
+- [Setup focused on RPi only](TASKS-User-RPi.md) - All **Raspberry Pi** notes
 - [VSCode REF: Tasks](https://code.visualstudio.com/docs/editor/tasks) - Offsite: VSCode Documentation for reference
 
 **NOTE:** _The "P2 Code Development..." sections below provide step-by-step setup instructions_
@@ -117,7 +117,7 @@ For each P2 Project:
 
 - Install a settings.json file identifying the project top-level file
   - Make sure the name of your top-level file is correctly placed in this settings.json file
-  
+
 ## Enabling P2 Code Download and Debugging with PNut-Term-TS
 
 To complete your setup so you can use PNut-Term-TS on your Windows machine under VScode you'll need to:
@@ -223,7 +223,7 @@ Like we do on the other platforms here's the suggested update strategy:
 - Download and zip the latest version from [PNut-TS Releases](https://github.com/ironsheep/PNut-TS/releases) page under the [Assets] dropdown.
 - Remove any `C:\Programs\IronSheepProductions\pnut_ts-prior` (the prior version of PNut-TS)
 - Rename your existing `C:\Programs\IronSheepProductions\pnut_ts` folder to `C:\Programs\IronSheepProductions\pnut_ts-prior`
-- Create a new empty directory `C:\Programs\IronSheepProductions\pnut_ts` 
+- Create a new empty directory `C:\Programs\IronSheepProductions\pnut_ts`
 - Unpack the latest downloaded .zip into the newly re-created `C:\Programs\IronSheepProductions\pnut_ts` folder
 
 **NOTE:** We use this move-aside technique for updating the PNut-TS compiler. When a language compiler is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new compiler handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can build the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
@@ -260,7 +260,7 @@ Like we do on the other platforms here's the suggested update strategy:
 - Download and zip the latest version from [PNut-Term-TS Releases](https://github.com/ironsheep/PNut-Term-TS/releases) page under the [Assets] dropdown.
 - Remove any `C:\Programs\IronSheepProductions\pnut_term_ts-prior` (the prior version of PNut-TS)
 - Rename your existing `C:\Programs\IronSheepProductions\pnut_term_ts` folder to `C:\Programs\IronSheepProductions\pnut_term_ts-prior`
-- Create a new empty directory `C:\Programs\IronSheepProductions\pnut_term_ts` 
+- Create a new empty directory `C:\Programs\IronSheepProductions\pnut_term_ts`
 - Unpack the latest downloaded .zip into the newly re-created `C:\Programs\IronSheepProductions\pnut_term_ts` folder
 
 **NOTE:** We use this move-aside technique for updating the PNut-Term-TS debugger/downloader. When a development tool is updated more frequently it is not uncommon to one or twice a year experience a breaking change in how the new development tool handles your existing code. Assuming the version you are moving aside works well against all your projects, we move it aside and install the new version. Should you find that the new version doesn't work well against one of your projects you will still have the prior version so you can debug the project with the older version that would fail with the new version. _You can always skip this move-aside step if you don't care about this issue._
@@ -279,7 +279,7 @@ Propeller Tool installs into `C:\Program Files (x86)\Parallax Inc\Propeller Tool
 
 I right-mouse on the PNut\_{version}.exe file and select "**Pin to taskbar**".
 
-I then [add a new PATH element](#os-windows) using the windows settings app. to point to where your binaries ended up on your file system. In my case I added a path segment pointing to ``C:\Program Files (x86)\Parallax Inc\PNut``. 
+I then [add a new PATH element](#os-windows) using the windows settings app. to point to where your binaries ended up on your file system. In my case I added a path segment pointing to ``C:\Program Files (x86)\Parallax Inc\PNut``.
 
 #### Update PNut
 
@@ -331,8 +331,6 @@ When you run VScode on multiple operating systems and want to be able to run a p
 
 Another VSCode mechanism we are determining if it will be useful is the: [Task Provider Extension](https://code.visualstudio.com/api/extension-guides/task-provider). If we find this is useful we can add a Task Provider element to our existing extension in order to facilitate our updating task files we use for P1 and P2 development.
 
-...More TBA...
-
 ### Invoking tasks
 
 Tasks can be invoked with the search, identify, run technique or they can have keyboard shortcuts assigned to them.
@@ -344,12 +342,6 @@ We'll configure our compileP2 task to be the default.
 We'll add a downloadP2 task and assign command-shift-D to it. It will depend upon the compile task which makes it run first and then we download the newly compiled result.
 
 We'll add a flashP2 task and assign command-shift-F to it. It will depend upon the compile task which makes it run first and then we download the newly compiled result and write it to FLASH.
-
-**TODO-1**: We need to ensure download or flash doesn't proceed if compile fails
-
-#### More Advanced building
-
-**TODO-2**: We'll also test using the file-watch technology to automatically compile and download our project files when they are modified.
 
 ### Adding the P2 Tasks
 
@@ -493,21 +485,21 @@ This provides the following **Build** and **Test** tasks:
 
 Under **Task: Run Build Task**:
 
-- CompileP2 - Compile current file 
+- CompileP2 - Compile current file
 - CompileTopP2 - Compile the top-file of this project
 
 Under **Task: Run Test Task**:
 
 - DownloadP2 - Download the binary to RAM/FLASH in our connected P2
 
-As written, **downloadP2** for flexpsin will always be preceeded by a compileTopP2.
+As written, **downloadP2** for flexspin will always be preceded by a compileTopP2.
 
 
 ### Custom Keybindings
 
 This new build system no longer uses custom keybindings. However, when migrating from the older build support we used you should remove any older P2 related keybindings as they can interfere with correct operation of the new build support.
 
-The custom key bindings are found in the `keybindings.json` file. 
+The custom key bindings are found in the `keybindings.json` file.
 
 To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the command search dialog. Then type in "keyboard". Lower down in the resulting filtered list you should now see "**Preferences: Open Keyboard Shortcuts (JSON)**".  Select it and you should now have a file open in the editor which should contain something like:
 
@@ -518,7 +510,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 ```
 
 **NOTE**: If you find entries like the following, then they need to be **removed**.
- 
+
 ```json
 
   {
@@ -589,4 +581,3 @@ Follow these links for more information:
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
-

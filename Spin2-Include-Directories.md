@@ -2,12 +2,12 @@
 
 ![Project Maintenance][maintenance-shield]
 
-[![License][license-shield]](LICENSE) 
+[![License][license-shield]](LICENSE)
 
 
 The **Spin2 Include Directories** panel is a new addition to the Explorer sidebar. It solves a common problem: when your Spin2 project has source files organized across multiple subdirectories, the compiler and the language server need to know where to find them all.
 
-This page attenpts to explain what the new Include Directory panel controls do.
+This page attempts to explain what the new Include Directory panel controls do.
 
 ## The Spin2 Include Directory panel controls
 
@@ -15,7 +15,7 @@ The VSCode Spin2 Include Directory panel is found in the left column of the VSCo
 
 <p align="left">
   <img src="./DOCs/include-dirs-tree.png" width="800"><br>
- <p align="center">    
+ <p align="center">
  <caption><B>Figure 1 - Location of Include Directories panel in the VSCode Window</B></caption><br>
  </p>
 </p>
@@ -221,7 +221,7 @@ If you have questions about something not covered here let me know and I'll add 
 
 ## License
 
-Licensed under the MIT License. 
+Licensed under the MIT License.
 
 Follow these links for more information:
 
@@ -229,11 +229,11 @@ Follow these links for more information:
 
 [maintenance-shield]: https://img.shields.io/badge/maintainer-stephen%40ironsheep%2ebiz-blue.svg?style=for-the-badge
 
-[marketplace-version]: https://vsmarketplacebadge.apphb.com/version-short/ironsheepproductionsllc.spin2.svg
+[marketplace-version]: https://vsmarketplacebadges.dev/version-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-installs]: https://vsmarketplacebadge.apphb.com/installs-short/ironsheepproductionsllc.spin2.svg
+[marketplace-installs]: https://vsmarketplacebadges.dev/installs-short/ironsheepproductionsllc.spin2.svg
 
-[marketplace-rating]: https://vsmarketplacebadge.apphb.com/rating-short/ironsheepproductionsllc.spin2.svg
+[marketplace-rating]: https://vsmarketplacebadges.dev/rating-short/ironsheepproductionsllc.spin2.svg
 
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
 
