@@ -45,6 +45,7 @@ client/node_modules/**
 !client/node_modules/@serialport/bindings-cpp/prebuilds/**
 !client/node_modules/@serialport/bindings-cpp/package.json
 !client/node_modules/@serialport/bindings-cpp/LICENSE
+!client/node_modules/@serialport/binding-mock/**
 !client/node_modules/@serialport/bindings-interface/**
 !client/node_modules/@serialport/stream/**
 !client/node_modules/@serialport/parser-byte-length/**
