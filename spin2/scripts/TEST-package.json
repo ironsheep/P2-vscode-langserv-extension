@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -35,7 +35,14 @@
   "engines": {
     "vscode": "^1.96.0"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:spin",
+    "onLanguage:spin2",
+    "onLanguage:p2asm",
+    "onView:spinExtension.objectDependencies",
+    "onView:spinExtension.includeDirectories"
+  ],
   "main": "./client/out/extension",
   "contributes": {
     "commands": [
@@ -174,6 +181,21 @@
         "command": "spinExtension.includeDirs.moveDown",
         "title": "Move Down",
         "icon": "$(arrow-down)"
+      },
+      {
+        "command": "spinExtension.includeDirs.excludeFolder",
+        "title": "Exclude Folder (and Subfolders)",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "spinExtension.includeDirs.addExcludeDir",
+        "title": "Add Excluded Directory",
+        "icon": "$(add)"
+      },
+      {
+        "command": "spinExtension.includeDirs.removeExcludeEntry",
+        "title": "Remove Exclusion",
+        "icon": "$(trash)"
       }
     ],
     "configuration": [
@@ -198,6 +220,11 @@
             "type": "boolean",
             "default": false,
             "description": "Enable recognition/validation of FlexSpin preprocessor directives."
+          },
+          "spinExtension.ServerBehavior.authorFilePrefix": {
+            "type": "string",
+            "default": "",
+            "description": "Your author file prefix (e.g., 'isp_'). Used by Rename Symbol to identify files you own. Files with a different prefix are excluded from rename operations."
           },
           "spinExtension.ClientBehavior.colorEditorBackground": {
             "type": "boolean",
@@ -793,6 +820,15 @@
                 }
               }
             }
+          },
+          "spin2.excludeIncludeDirectories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "scope": "window",
+            "description": "Directories to exclude from include path discovery. Each entry is a relative path from the workspace root. The directory and all its subdirectories will be excluded from scanning."
           }
         }
       }
@@ -933,12 +969,32 @@
         {
           "command": "spinExtension.includeDirs.addLocalDir",
           "when": "view == spinExtension.includeDirectories && viewItem == folderNode",
-          "group": "inline"
+          "group": "inline@1"
+        },
+        {
+          "command": "spinExtension.includeDirs.excludeFolder",
+          "when": "view == spinExtension.includeDirectories && viewItem =~ /^folderNode/",
+          "group": "inline@2"
+        },
+        {
+          "command": "spinExtension.includeDirs.excludeFolder",
+          "when": "view == spinExtension.includeDirectories && viewItem =~ /^folderNode/",
+          "group": "2_exclude"
         },
         {
           "command": "spinExtension.includeDirs.resetToAuto",
           "when": "view == spinExtension.includeDirectories && viewItem == folderNodeCustomized",
           "group": "1_modify"
+        },
+        {
+          "command": "spinExtension.includeDirs.addExcludeDir",
+          "when": "view == spinExtension.includeDirectories && viewItem == excludedDirsNode",
+          "group": "inline"
+        },
+        {
+          "command": "spinExtension.includeDirs.removeExcludeEntry",
+          "when": "view == spinExtension.includeDirectories && viewItem == excludedDir",
+          "group": "inline@3"
         },
         {
           "command": "spinExtension.includeDirs.addLibraryDir",
@@ -1112,7 +1168,7 @@
       "explorer": [
         {
           "id": "spinExtension.objectDependencies",
-          "name": "Object Dependencies",
+          "name": "Spin2 Object Dependencies",
           "icon": "$(type-hierarchy)",
           "contextualTitle": "Propeller Spin2 Development",
           "when": "runtime.spin2.objectDeps.enabled == true"
@@ -1149,7 +1205,15 @@
     "pretest": "npm run compile && npm run lint",
     "test": "sh ./scripts/e2e.sh",
     "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
-    "posttest": "npm run clean"
+    "posttest": "npm run clean",
+    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 10000",
+    "test-compile": "tsc -p ./",
+    "test:grammar": "npm run compile && mocha --require ts-node/register client/src/test/grammar.*.test.ts --timeout 30000",
+    "test:grammar:spin2": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin2.test.ts --timeout 30000",
+    "test:grammar:spin1": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin1.test.ts --timeout 30000",
+    "test:all": "npm run test && npm run test:grammar",
+    "coverage:grammar": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin2.tmLanguage.json client/src/test/grammar.spin2.test.ts --output coverage-spin2.txt",
+    "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

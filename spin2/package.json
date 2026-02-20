@@ -221,6 +221,11 @@
             "default": false,
             "description": "Enable recognition/validation of FlexSpin preprocessor directives."
           },
+          "spinExtension.ServerBehavior.authorFilePrefix": {
+            "type": "string",
+            "default": "",
+            "description": "Your author file prefix (e.g., 'isp_'). Used by Rename Symbol to identify files you own. Files with a different prefix are excluded from rename operations."
+          },
           "spinExtension.ClientBehavior.colorEditorBackground": {
             "type": "boolean",
             "default": false,
@@ -1200,7 +1205,15 @@
     "pretest": "npm run compile && npm run lint",
     "test": "sh ./scripts/e2e.sh",
     "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
-    "posttest": "npm run clean"
+    "posttest": "npm run clean",
+    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 10000",
+    "test-compile": "tsc -p ./",
+    "test:grammar": "npm run compile && mocha --require ts-node/register client/src/test/grammar.*.test.ts --timeout 30000",
+    "test:grammar:spin2": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin2.test.ts --timeout 30000",
+    "test:grammar:spin1": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin1.test.ts --timeout 30000",
+    "test:all": "npm run test && npm run test:grammar",
+    "coverage:grammar": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin2.tmLanguage.json client/src/test/grammar.spin2.test.ts --output coverage-spin2.txt",
+    "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

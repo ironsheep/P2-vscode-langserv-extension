@@ -20,6 +20,11 @@ REF-CHK/
 EarlyTesting.md
 INSTALL.md
 CLAUDE.md
+tree.out
+console.out
+PLAN-*.md
+PUNCHLIST-*.md
+**/.DS_Store
 **/*NEW
 **/*ORIG
 **/*REF
@@ -33,6 +38,7 @@ CLAUDE.md
 contributing.md
 .travis.yml
 TEST_LANG_SERVER/**
+tasks/**
 DOCs/**
 !spin2.language-configuration.json
 !spin1.language-configuration.json

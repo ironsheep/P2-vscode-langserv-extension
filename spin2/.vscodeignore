@@ -5,6 +5,9 @@
 .history/**
 DOCs/**
 tree.out
+console.out
+PLAN-*.md
+PUNCHLIST-*.md
 **/.history
 .devcontainer/**
 scripts/**
@@ -23,7 +26,6 @@ CLAUDE.md
 **/*.map
 **/*.lst
 **/*.gz
-**/*.tgz
 **/tsconfig.json
 **/tsconfig.base.json
 contributing.md
