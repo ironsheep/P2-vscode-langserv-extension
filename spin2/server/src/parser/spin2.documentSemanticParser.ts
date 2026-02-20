@@ -2121,14 +2121,15 @@ export class Spin2DocumentSemanticParser {
       const haveLabel: boolean = lineParts.length >= nameIndex ? this.parseUtils.isDatOrPAsmLabel(lineParts[nameIndex]) : false;
       const typeIndex: number = haveLabel ? baseIndex + 1 : baseIndex + 0;
       let dataType: string | undefined = lineParts.length >= typeIndex ? lineParts[typeIndex] : undefined;
-      if (dataType !== undefined && !this.parseUtils.isDatNFileStorageType(dataType) && !this.isStorageType(dataType)) {
+      const isExternalObjectType: boolean = dataType !== undefined && dataType.includes('.');
+      if (dataType !== undefined && !this.parseUtils.isDatNFileStorageType(dataType) && !this.isStorageType(dataType) && !isExternalObjectType) {
         // file, res, long, byte, word
         dataType = undefined;
       }
       this._logDAT(
         `   -- GetDatDecl baseIndex=[${baseIndex}], nameIndex=[${nameIndex}], typeIndex=[${typeIndex}], haveLabel=(${haveLabel}), dataType=[${dataType}]`
       );
-      const haveStorageType: boolean = dataType ? this.isStorageType(dataType) : false;
+      const haveStorageType: boolean = dataType ? (this.isStorageType(dataType) || isExternalObjectType) : false;
       const isNamedDataDeclarationLine: boolean = haveLabel && haveStorageType ? true : false;
       const isDataDeclarationLine: boolean = haveStorageType ? true : false;
 
@@ -2185,6 +2186,9 @@ export class Spin2DocumentSemanticParser {
           this._declarationComment(),
           fileName
         );
+        if (isExternalObjectType && dataType) {
+          this.semanticFindings.recordStructureInstance(dataType, newName); // DAT
+        }
       }
     }
   }
@@ -2201,7 +2205,12 @@ export class Spin2DocumentSemanticParser {
       // handle name in 1 column
       const haveLabel: boolean = this.parseUtils.isDatOrPAsmLabel(lineParts[0]);
       const bIsFileLine: boolean = haveLabel && lineParts.length > 1 && lineParts[1].toLowerCase() === 'file';
-      const isDataDeclarationLine: boolean = lineParts.length > 1 && haveLabel && this.parseUtils.isDatStorageType(lineParts[1]) ? true : false;
+      const typeField: string = lineParts.length > 1 ? lineParts[1] : '';
+      const isExternalObjectType: boolean = typeField.includes('.');
+      const isDataDeclarationLine: boolean =
+        lineParts.length > 1 && haveLabel && (this.parseUtils.isDatStorageType(typeField) || this.isStorageType(typeField) || isExternalObjectType)
+          ? true
+          : false;
       if (haveLabel) {
         const labelName: string = lineParts[0];
         if (
@@ -2239,6 +2248,9 @@ export class Spin2DocumentSemanticParser {
               this._declarationComment(),
               fileName
             );
+            if (isExternalObjectType && typeField.length > 0) {
+              this.semanticFindings.recordStructureInstance(typeField, labelName); // DAT PAsm
+            }
           }
         }
       }
@@ -2586,8 +2598,9 @@ export class Spin2DocumentSemanticParser {
         this._logVAR(`  -- getVarDecl processing type=[${typeName}](${typeName.length}), isPtr=(${isPtr}) name=[${varName}](${varName.length})`);
 
         // if type, flag if not B/W/L align type or structure type
+        const isExternalObjectType: boolean = typeName.includes('.');
         if (typeName.length > 0) {
-          if (!this.isStorageType(typeName) && !this.parseUtils.isAlignType(typeName)) {
+          if (!this.isStorageType(typeName) && !this.parseUtils.isAlignType(typeName) && !isExternalObjectType && !this.semanticFindings.isStructure(typeName)) {
             const nameOffset = line.indexOf(typeName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
             this.semanticFindings.pushDiagnosticMessage(
               lineNbr - 1,
@@ -2598,7 +2611,7 @@ export class Spin2DocumentSemanticParser {
             );
           }
         }
-        const isStructureType: boolean = typeName.length > 0 ? this.semanticFindings.isStructure(typeName) : false;
+        const isStructureType: boolean = typeName.length > 0 ? (this.semanticFindings.isStructure(typeName) || isExternalObjectType) : false;
         if (this.parseUtils.isValidSpinSymbolName(varName)) {
           this._logVAR(`  -- getVarDecl  newName=[${varName}]`);
           const nameOffset = line.indexOf(varName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
