@@ -6,9 +6,9 @@ import { Provider } from '.';
 import { Context } from '../context';
 import { Location } from 'vscode-languageserver-types';
 import { DocumentFindings, ITokenReference } from '../parser/spin.semantic.findings';
-import { fileSpecFromURI } from '../parser/lang.utils';
+import { fileSpecFromURI, isSpin1File } from '../parser/lang.utils';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
-import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
+import { DocumentLineAt, GetWordRangeAtPosition } from '../parser/lsp.textDocument.utils';
 import { FindingsAtPostion } from './DefinitionProvider';
 
 export default class ReferencesProvider implements Provider {
@@ -90,12 +90,14 @@ export default class ReferencesProvider implements Provider {
 
   private _collectGlobalReferences(tokenName: string, includeDeclaration: boolean, results: Location[]): void {
     // Search all parsed documents for this global symbol
+    this._logMessage(`+ Refs: global: tokenName=[${tokenName}], docCount=(${this.ctx.docsByFSpec.size})`);
     for (const [_fSpec, processedDoc] of this.ctx.docsByFSpec) {
       const findings = processedDoc.parseResult;
       if (!findings) {
         continue;
       }
       const refs = findings.getReferencesForToken(tokenName);
+      this._logMessage(`+ Refs: global: refs for [${tokenName}] in [${_fSpec}] = (${refs.length})`);
       this._addReferencesToResults(processedDoc.document.uri, refs, includeDeclaration, results);
     }
   }
@@ -110,6 +112,7 @@ export default class ReferencesProvider implements Provider {
   ): void {
     // For locals, only search within the same method scope in the current file
     const refs = findings.getReferencesForToken(tokenName, methodScope);
+    this._logMessage(`+ Refs: local: tokenName=[${tokenName}], methodScope=[${methodScope}], refs=(${refs.length})`);
     this._addReferencesToResults(uri, refs, includeDeclaration, results);
   }
 
@@ -120,6 +123,7 @@ export default class ReferencesProvider implements Provider {
     results: Location[]
   ): void {
     // Find the object's document via namespace resolution
+    this._logMessage(`+ Refs: crossObj: objectRef=[${objectRef}], tokenName=[${tokenName}], docCount=(${this.ctx.docsByFSpec.size})`);
     for (const [_fSpec, processedDoc] of this.ctx.docsByFSpec) {
       const findings = processedDoc.parseResult;
       if (!findings) {
@@ -130,6 +134,7 @@ export default class ReferencesProvider implements Provider {
       if (childFindings) {
         const childRefs = childFindings.getReferencesForToken(tokenName);
         const childUri = childFindings.uri;
+        this._logMessage(`+ Refs: crossObj: childFindings for [${objectRef}], childRefs=(${childRefs.length}), childUri=[${childUri}]`);
         if (childUri) {
           this._addReferencesToResults(childUri, childRefs, includeDeclaration, results);
         }
@@ -137,8 +142,10 @@ export default class ReferencesProvider implements Provider {
 
       // Also collect references to the token itself in the parent file
       const refs = findings.getReferencesForToken(tokenName);
+      this._logMessage(`+ Refs: crossObj: ownRefs for [${tokenName}] in [${_fSpec}] = (${refs.length})`);
       this._addReferencesToResults(processedDoc.document.uri, refs, includeDeclaration, results);
     }
+    this._logMessage(`+ Refs: crossObj: total results=(${results.length})`);
   }
 
   private _addReferencesToResults(uri: string, refs: ITokenReference[], includeDeclaration: boolean, results: Location[]): void {
@@ -179,11 +186,25 @@ export default class ReferencesProvider implements Provider {
     }
     const declarationLine: string = DocumentLineAt(document, position).trimEnd();
     let objectRef = inObjDeclarationStatus ? this._objectNameFromDeclaration(declarationLine) : adjustedPos[1];
-    const wordUnderCursor: string = adjustedPos[2];
+    let wordUnderCursor: string = adjustedPos[2];
     if (objectRef === wordUnderCursor) {
       objectRef = '';
     }
     const sourcePosition: lsp.Position = adjustedPos[3];
+
+    // Check if the cursor is on a dotted name that is recorded as a full compound reference
+    // (e.g., external object types like "sd.cid_t" in VAR/DAT declarations).
+    // adjustWordPosition splits dotted names into objectRef + word, but for compound type
+    // references the full name is what's stored in the reference index.
+    const fullDottedWord = this._getFullDottedWordAtPosition(declarationLine, position, isSpin1File(document.uri));
+    if (fullDottedWord && fullDottedWord.includes('.') && !fullDottedWord.startsWith('.') && symbolsFound.hasTokenReferences(fullDottedWord)) {
+      this._logMessage(
+        `+ Refs: dotted reference found: fullWord=[${fullDottedWord}], overriding split word=[${wordUnderCursor}], objectRef=[${objectRef}]`
+      );
+      wordUnderCursor = fullDottedWord;
+      objectRef = '';
+    }
+
     this._logMessage(
       `+ Refs: wordUnderCursor=[${wordUnderCursor}], inObjDecl=(${inObjDeclarationStatus}), objectRef=(${objectRef}), pos=(${position.line},${position.character})`
     );
@@ -192,6 +213,15 @@ export default class ReferencesProvider implements Provider {
       objectReference: objectRef,
       selectedWord: wordUnderCursor
     };
+  }
+
+  private _getFullDottedWordAtPosition(lineText: string, position: lsp.Position, spin1File: boolean): string | undefined {
+    // Re-extract the full word at position (including dots) before adjustWordPosition splits it.
+    const wordRange = GetWordRangeAtPosition(lineText, position, spin1File);
+    if (!wordRange) {
+      return undefined;
+    }
+    return lineText.substring(wordRange.start.character, wordRange.end.character);
   }
 
   private _objectNameFromDeclaration(line: string): string {

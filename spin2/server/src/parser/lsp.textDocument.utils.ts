@@ -27,11 +27,18 @@ export function GetWordRangeAtPosition(lineText: string, position: lsp.Position,
 
   // go forward to end of word, mark end
   let bEndFound: boolean = false;
-  for (let index = endIndex; index < lineText.length - 1; index++) {
-    if (checkCharSet.includes(lineText.charAt(index + 1))) {
-      endIndex = index + 1;
-      bEndFound = true;
-      break;
+  // If the character at the current position is itself a delimiter,
+  // the word ends here (don't include the delimiter in the range).
+  if (checkCharSet.includes(lineText.charAt(endIndex))) {
+    bEndFound = true;
+  }
+  if (!bEndFound) {
+    for (let index = endIndex; index < lineText.length - 1; index++) {
+      if (checkCharSet.includes(lineText.charAt(index + 1))) {
+        endIndex = index + 1;
+        bEndFound = true;
+        break;
+      }
     }
   }
   if (!bEndFound) {

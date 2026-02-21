@@ -1,0 +1,23 @@
+' Test fixture: references-crossobj.spin2
+' Purpose: Cross-object reference tracking
+'
+' This file declares an OBJ instance and calls methods on it.
+' Child object file is NOT available, but references should still be recorded.
+
+CON
+
+  MAX_VALUE = 100
+
+OBJ
+
+  serial : "jm_serial"
+
+PUB Main() | localVar
+
+  localVar := MAX_VALUE
+  serial.fstr0(@"  REPAIR: FSInfo struct signature\r\n")
+  serial.start(115_200)
+
+PRI Helper(value) : result
+
+  result := value

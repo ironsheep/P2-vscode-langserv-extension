@@ -23,11 +23,13 @@ CON
 
   MAX_SENSORS = 4
   LED_PIN = 56
+  BUFFER_SIZE = 128
 
 VAR
 
   LONG  sensorValue
   LONG  idx
+  byte  buffer[BUFFER_SIZE]
 
 PUB Main() | localVar
 
@@ -37,17 +39,23 @@ PUB Main() | localVar
     if idx > 0
       localVar += idx
   sensorValue := localVar
+  buffer[0] := localVar
   Helper(localVar)
 
 DAT
 
 char8_loop
 
-PRI Helper(value) : result
+PRI Helper(value) : result | scr
 
   result := value
   if value > MAX_SENSORS
     result := sensorValue
+  result := getVersion(@scr)
+
+PRI getVersion(p_addr) : ver
+
+  ver := long[p_addr]
 
 DAT
 

@@ -257,10 +257,10 @@ describe('Integration: reference scoping and declaration flags', function () {
 
   it('should provide getMethodNameForLine', function () {
     const findings = parseFixture('references-basic.spin2');
-    // Line 33 (0-indexed) should be inside PUB Main
-    // PUB Main is on line 31 (0-indexed), so line 33 should be in Main
-    const methodName = findings.getMethodNameForLine(33);
-    assert.strictEqual(methodName, 'Main', `Expected method 'Main' at line 33, got '${methodName}'`);
+    // Line 35 (0-indexed) should be inside PUB Main
+    // PUB Main is on line 33 (0-indexed), so line 35 should be in Main
+    const methodName = findings.getMethodNameForLine(35);
+    assert.strictEqual(methodName, 'Main', `Expected method 'Main' at line 35, got '${methodName}'`);
   });
 
   it('should find Helper method references', function () {
@@ -278,5 +278,126 @@ describe('Integration: reference scoping and declaration flags', function () {
     assert.ok(ledRefs.length >= 1, `Expected at least 1 reference for LED_PIN, got ${ledRefs.length}`);
     const declRefs = ledRefs.filter((r) => r.isDeclaration);
     assert.ok(declRefs.length >= 1, 'Expected declaration for LED_PIN');
+  });
+
+  it('should track array VAR declaration (byte buffer[BUFFER_SIZE])', function () {
+    const findings = parseFixture('references-basic.spin2');
+    const bufferRefs = findings.getReferencesForToken('buffer');
+    assert.ok(bufferRefs.length >= 1, `Expected at least 1 reference for buffer, got ${bufferRefs.length}`);
+    const declRefs = bufferRefs.filter((r) => r.isDeclaration);
+    assert.ok(declRefs.length >= 1, `Expected at least 1 declaration for buffer, got ${declRefs.length}`);
+    // Should also have a usage reference from PUB Main: buffer[0] := localVar
+    const usageRefs = bufferRefs.filter((r) => !r.isDeclaration);
+    assert.ok(usageRefs.length >= 1, `Expected at least 1 usage for buffer, got ${usageRefs.length}`);
+    // Declaration should be in global scope
+    const globalDeclRefs = declRefs.filter((r) => r.scope === '');
+    assert.ok(globalDeclRefs.length >= 1, 'Expected buffer declaration to have global scope');
+  });
+
+  it('should track BUFFER_SIZE constant used in VAR array size', function () {
+    const findings = parseFixture('references-basic.spin2');
+    const bsRefs = findings.getReferencesForToken('BUFFER_SIZE');
+    assert.ok(bsRefs.length >= 1, `Expected at least 1 reference for BUFFER_SIZE, got ${bsRefs.length}`);
+  });
+
+  it('should track local variable used with @ (address-of) operator', function () {
+    const findings = parseFixture('references-basic.spin2');
+    // scr is declared as a local in PRI Helper and used as @scr in a method call
+    const scrRefs = findings.getReferencesForToken('scr');
+    assert.ok(scrRefs.length >= 1, `Expected at least 1 reference for scr, got ${scrRefs.length}`);
+    // Should have a declaration reference
+    const declRefs = scrRefs.filter((r) => r.isDeclaration);
+    assert.ok(declRefs.length >= 1, `Expected at least 1 declaration for scr, got ${declRefs.length}`);
+    // Should have a usage reference (from @scr)
+    const usageRefs = scrRefs.filter((r) => !r.isDeclaration);
+    assert.ok(usageRefs.length >= 1, `Expected at least 1 usage for scr (from @scr), got ${usageRefs.length}`);
+    // All scr refs should be scoped to Helper
+    const helperRefs = findings.getReferencesForToken('scr', 'Helper');
+    assert.ok(helperRefs.length >= 1, `Expected scr refs scoped to Helper, got ${helperRefs.length}`);
+  });
+});
+
+describe('Integration: cross-object reference recording', function () {
+  it('should record fstr0 in reference index for serial.fstr0(...) call', function () {
+    const findings = parseFixture('references-crossobj.spin2');
+    // fstr0 should be recorded as a reference even though the child object is not available
+    const fstr0Refs = findings.getReferencesForToken('fstr0');
+    assert.ok(fstr0Refs.length >= 1, `Expected at least 1 reference for fstr0, got ${fstr0Refs.length}`);
+  });
+
+  it('should record start in reference index for serial.start(...) call', function () {
+    const findings = parseFixture('references-crossobj.spin2');
+    const startRefs = findings.getReferencesForToken('start');
+    assert.ok(startRefs.length >= 1, `Expected at least 1 reference for start, got ${startRefs.length}`);
+  });
+
+  it('should record serial as a reference (namespace instance)', function () {
+    const findings = parseFixture('references-crossobj.spin2');
+    const serialRefs = findings.getReferencesForToken('serial');
+    assert.ok(serialRefs.length >= 1, `Expected at least 1 reference for serial, got ${serialRefs.length}`);
+  });
+
+  it('should dump all reference names for debugging', function () {
+    const findings = parseFixture('references-crossobj.spin2');
+    const refNames = findings.tokenReferenceNames;
+    // Log all reference names for debugging
+    const refCount = findings.tokenReferenceCount;
+    assert.ok(refCount >= 1, `Expected at least 1 token reference, got ${refCount}. Names: [${refNames.join(', ')}]`);
+  });
+
+  it('should record fstr0 with correct scope and attributes', function () {
+    const findings = parseFixture('references-crossobj.spin2');
+    const fstr0Refs = findings.getReferencesForToken('fstr0');
+    assert.ok(fstr0Refs.length >= 1, `Expected at least 1 reference for fstr0, got ${fstr0Refs.length}`);
+    // Check scope — fstr0 is called inside PUB Main, so should be scoped to Main
+    const mainRefs = findings.getReferencesForToken('fstr0', 'Main');
+    assert.ok(mainRefs.length >= 1, `Expected fstr0 scoped to Main, got ${mainRefs.length}`);
+    // Check that it is NOT a declaration (it's a usage)
+    const usageRefs = fstr0Refs.filter((r) => !r.isDeclaration);
+    assert.ok(usageRefs.length >= 1, `Expected at least 1 usage ref for fstr0, got ${usageRefs.length}`);
+    // Check global scope — fstr0 is NOT globally scoped (it's inside a method)
+    const hasGlobalScope = fstr0Refs.some((r) => r.scope === '');
+    // This is the KEY insight: fstr0 has NO global scope refs,
+    // so ReferencesProvider would route to local search, not global search
+    assert.strictEqual(hasGlobalScope, false, 'fstr0 should NOT have global scope references');
+  });
+
+  it('should NOT have serial.fstr0 as a compound reference key', function () {
+    const findings = parseFixture('references-crossobj.spin2');
+    // Verify that the dotted compound name is NOT in the reference index
+    // (it would be if auto-extraction incorrectly extracted the full dotted name)
+    const compoundRefs = findings.getReferencesForToken('serial.fstr0');
+    assert.strictEqual(compoundRefs.length, 0, `serial.fstr0 should NOT be a reference key, but got ${compoundRefs.length} refs`);
+    // Also verify hasTokenReferences for the compound name
+    assert.strictEqual(findings.hasTokenReferences('serial.fstr0'), false,
+      'hasTokenReferences(serial.fstr0) should be false');
+  });
+
+  it('should simulate ReferencesProvider cross-object flow correctly', function () {
+    // This test simulates exactly what the ReferencesProvider does
+    const findings = parseFixture('references-crossobj.spin2');
+
+    // Step 1: Simulate _symbolAtLocation returning objectRef='serial', tokenName='fstr0'
+    const objectRef = 'serial';
+    const tokenName = 'fstr0';
+    const includeDeclaration = true;
+
+    // Step 2: Since objectRef.length > 0, simulate _collectCrossObjectReferences
+    // In the live extension, this iterates ctx.docsByFSpec which contains multiple documents.
+    // Here we only have one document. Check if fstr0 references exist in it.
+    const refs = findings.getReferencesForToken(tokenName);
+    assert.ok(refs.length >= 1,
+      `_collectCrossObjectReferences should find fstr0 in current document, got ${refs.length} refs`);
+
+    // Step 3: Simulate _addReferencesToResults
+    let resultCount = 0;
+    for (const ref of refs) {
+      if (!includeDeclaration && ref.isDeclaration) {
+        continue;
+      }
+      resultCount++;
+    }
+    assert.ok(resultCount >= 1,
+      `After filtering, should have at least 1 result for fstr0, got ${resultCount}`);
   });
 });
