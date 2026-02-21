@@ -915,7 +915,7 @@ async function locateAndConfigurePropPlugSelection(): Promise<void> {
     // if NO devices, select NONE
     logExtensionMessage(`* ldcPLUGs no devices active`);
     await updateConfig('toolchain.propPlug.selected', undefined, eConfigSection.CS_USER);
-    if (currDeviceNode === undefined) {
+    if (currDeviceNode !== undefined) {
       // changing from prior selection, notify user
       vscode.window.showWarningMessage(`Removed PropPlug ${currDeviceNode} - No longer available`);
     }

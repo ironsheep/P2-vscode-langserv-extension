@@ -247,11 +247,8 @@ export class SpinControlFlowTracker {
         if (currStatement.startLineCharOffset < endLineCharOffset) {
           // indented even further, no this does not end this one
           break; // nope, abort
-        } else if (currStatement.startLineCharOffset == endLineCharOffset) {
-          // line is at same indent level we are not nesting another flow-control, yes, this ENDs it
-          endThisNesting = delayClose ? false : true;
         } else {
-          // line is indented less than control, this does END it!
+          // line is at same indent or less than control, this ENDs it!
           endThisNesting = delayClose ? false : true;
         }
         if (endThisNesting) {

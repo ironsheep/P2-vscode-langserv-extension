@@ -732,14 +732,10 @@ export class DocumentFindings {
             }
           }
         }
-        if (startChar == -1 || endChar == -1) {
-          this._logMessage(`ERROR(BAD) DIAGNOSIS SKIPPED - ${severityStr}(${lineIdx + 1})[${startChar} - ${endChar}]: [${message}]`);
-        } else {
-          const location: Range = Range.create(lineIdx, startChar, lineIdx, endChar);
-          const diagnosis: DiagnosticReport = new DiagnosticReport(message, severity, location);
-          this.diagnosticMessages.push(diagnosis);
-          this._logMessage(`Add DIAGNOSIS - ${severityStr}(${lineIdx + 1})[${startChar}-${endChar}]: [${message}]`);
-        }
+        const location: Range = Range.create(lineIdx, startChar, lineIdx, endChar);
+        const diagnosis: DiagnosticReport = new DiagnosticReport(message, severity, location);
+        this.diagnosticMessages.push(diagnosis);
+        this._logMessage(`Add DIAGNOSIS - ${severityStr}(${lineIdx + 1})[${startChar}-${endChar}]: [${message}]`);
       }
     } else {
       this._logMessage(`   --- pushDiagMsg() Error: ln#${lineIdx + 1} [${startChar} - ${endChar}]: [${message}]`);
