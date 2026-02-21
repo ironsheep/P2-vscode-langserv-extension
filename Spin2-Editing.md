@@ -47,7 +47,12 @@ Semantic highlighting can distinguish:
 - Enum members and named values
 - Debug display types and parameters
 
-[Semantic highlighting in Spin2 code]() PIC TBA
+<p align="left">
+  <img src="./DOCs/Editing-SemanticHighlight.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 1 - Semantic highlighting in Spin2 code</B></caption><br>
+ </p>
+</p>
 
 The extension ships with five color themes designed specifically for Spin2 development. To select one, open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and choose **Preferences: Color Theme**, then look for the "Spin2 Ironsheep" themes.
 
@@ -62,7 +67,12 @@ Hover over any symbol in your Spin2 code to see detailed information about it. T
 - **Built-in methods** — Full documentation for Spin2 built-in methods like `pinwrite()`, `waitms()`, `getct()`, and many more
 - **PASM instructions** — Descriptions of P2 assembly instructions
 
-[Hover showing method signature and documentation]() PIC TBA
+<p align="center">
+  <img src="./DOCs/hover-method-help.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 2 - Hover showing method signature and documentation</B></caption><br>
+ </p>
+</p>
 
 You can also show the hover information at the current cursor position with the `Ctrl+K Ctrl+I` (`Cmd+K Cmd+I` on Mac) keyboard shortcut.
 
@@ -70,7 +80,15 @@ You can also show the hover information at the current cursor position with the 
 
 As you write a method call, the extension shows you the method's signature — its parameters, their types, and what it returns. The currently active parameter is highlighted so you always know which argument you're filling in.
 
-[Signature help showing parameter info]() PIC TBA
+The following shows that we are currently entering the value for "column":
+
+<p align="center">
+  <img src="./DOCs/hover-sig-help.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 3 - Signature help showing parameter info</B></caption><br>
+ </p>
+</p>
+
 
 Signature help appears automatically when you type `(` after a method name. You can also trigger it manually with `Ctrl+Shift+Space` (`Cmd+Shift+Space` on Mac).
 
@@ -80,7 +98,12 @@ This works for your own PUB and PRI methods (including those from referenced obj
 
 Click on any symbol in your code and the extension automatically highlights every occurrence of that symbol in the current file. This gives you an instant visual map of where a variable, constant, or method is used without running a full search.
 
-[Document highlight showing all occurrences of a variable]() PIC TBA
+<p align="center">
+  <img src="./DOCs/doc-hilight.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 4 - Document highlight showing all occurrences of a variable</B></caption><br>
+ </p>
+</p>
 
 ### Code Folding
 
@@ -109,11 +132,20 @@ These features are covered in depth in the [Code Navigation Guide](Spin2-code-na
 
 ## Documentation Comments
 
-Where TypeScript has JSDoc, the Spin2 extension provides built-in documentation comment generation. Doc comments are lines beginning with `''` placed immediately above or below a PUB or PRI method declaration. The extension understands these comments and displays them in hover popups and signature help, so well-documented methods help everyone who uses your objects.
+Where TypeScript has JSDoc, the Spin2 extension provides built-in documentation comment generation. Doc comments are lines beginning with `''` placed immediately below a PUB or lines beginning with  `'` placed immediately below a PRI method declaration. The extension understands these comments and displays them in hover popups and signature help, so well-documented methods help everyone who uses your objects.
 
 ### Generating a Doc Comment
 
-Place your cursor on a `PUB` or `PRI` method signature line and press `Ctrl+Alt+C` (`Ctrl+Alt+Cmd+C` on Mac). The extension generates a documentation comment template with placeholders for each parameter:
+Place your cursor on a `PUB` or `PRI` method signature line and press `Ctrl+Alt+C` (`Ctrl+Alt+Cmd+C` on Mac). The extension generates a documentation comment template with placeholders for each parameter, return variables and then in non-doc `'` comment placeholders for local variables:
+
+<p align="left">
+  <img src="./DOCs/add-doc-comment.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 5 - Generated doc comment for a PUB method</B></caption><br>
+ </p>
+</p>
+
+Once you fill in the descriptions, they appear in hover popups and signature help whenever anyone calls your method — including from other object files in the project.
 
 ```spin2
 PUB startMotor(nPower, eDirection) | bResult
@@ -122,10 +154,6 @@ PUB startMotor(nPower, eDirection) | bResult
 '' @param eDirection - direction (CW or CCW)
 '' @returns bResult - TRUE if motor started successfully
 ```
-
-[Generated doc comment for a method]() PIC TBA
-
-Once you fill in the descriptions, they appear in hover popups and signature help whenever anyone calls your method — including from other object files in the project.
 
 ### Generating an Object Interface Document
 
@@ -186,7 +214,12 @@ For full details on elastic tabstops and their configuration, see the [TabStop S
 
 The extension can color the background of each code section differently, similar to the Parallax Propeller Tool. When enabled, your CON, VAR, OBJ, PUB, PRI, and DAT sections each get a distinct background tint, making it easy to see at a glance which section you're working in.
 
-[Screen coloring showing distinct section backgrounds]() PIC TBA
+<p align="left">
+  <img src="./DOCs/vscode-light-bgColoring.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 6 - Screen coloring showing distinct section backgrounds</B></caption><br>
+ </p>
+</p>
 
 To enable this feature:
 

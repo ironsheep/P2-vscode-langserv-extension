@@ -51,6 +51,13 @@ The **Spin2 Include Directories** panel will appear in your Explorer sidebar.
 
 ## What You'll See in the panel
 
+<p align="center">
+  <img src="./DOCs/incDirsTreePanel.png" width="400"><br>
+ <p align="center">
+ <caption><B>Figure 2 - Spin2 Include Directories panel</B></caption><br>
+ </p>
+</p>
+
 The panel has up to three sections:
 
 **Per-Folder Includes** — Each subfolder in your workspace that contains `.spin2` files gets its own entry. Expand it to see the directories the scanner discovered for that folder. Each entry is labeled **auto** (the scanner is managing it) or **customized** (you've made manual changes and the scanner won't overwrite them).
