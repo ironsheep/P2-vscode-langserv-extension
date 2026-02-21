@@ -5058,7 +5058,9 @@ export class Spin2DocumentSemanticParser {
                   multiLineSet.line,
                   tokenSet
                 );
-                currSingleLineOffset += indexExpression.expression.length;
+                // advance past expression content AND closing ']' bracket
+                const idxExprOffset_A = multiLineSet.offsetIntoLineForPosition(indexExpressionPosn);
+                currSingleLineOffset = idxExprOffset_A + indexExpression.expression.length + 1; // +1 for ']'
               }
               indexExpressions = []; // reset so we don't report again
             }
@@ -5272,7 +5274,9 @@ export class Spin2DocumentSemanticParser {
                 multiLineSet.line,
                 tokenSet
               );
-              currSingleLineOffset += indexExpression.expression.length;
+              // advance past expression content AND closing ']' bracket
+              const idxExprOffset_B = multiLineSet.offsetIntoLineForPosition(indexExpressionPosn);
+              currSingleLineOffset = idxExprOffset_B + indexExpression.expression.length + 1; // +1 for ']'
             }
             indexExpressions = []; // reset so we don't report again
           }
@@ -5951,7 +5955,9 @@ export class Spin2DocumentSemanticParser {
                 multiLineSet.line,
                 tokenSet
               );
-              currSingleLineOffset += indexExpression.expression.length;
+              // advance past expression content AND closing ']' bracket
+              const idxExprOffset_X = multiLineSet.offsetIntoLineForPosition(indexExpressionPosn);
+              currSingleLineOffset = idxExprOffset_X + indexExpression.expression.length + 1; // +1 for ']'
             }
             indexExpressions = []; // reset so we don't report again
 
@@ -8251,7 +8257,7 @@ export class Spin2DocumentSemanticParser {
           // colorize index value if non-constant, or constant
           const paramIsNumber: boolean = this.parseUtils.isValidSpinNumericConstant(namePart);
           if (paramIsNumber) {
-            this._logSPIN(`  -- rptSPINIdxExpr() index is Number=[${namePart}]`);
+            this._logSPIN(`  -- rptSPINIdxExpr() index is Number=[${namePart}], ofs=(${nameOffset}), line=[${line}](${line.length})`);
             this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, 'number', []);
             nameOffset += namePart.length;
             continue;
