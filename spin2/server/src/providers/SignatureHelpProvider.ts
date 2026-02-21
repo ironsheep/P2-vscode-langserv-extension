@@ -268,6 +268,11 @@ export default class SignatureHelpProvider implements Provider {
           isObjectReference = true;
           symbolsSet = tmpSymbolsSet;
           symbolsSet.enableLogging(this.ctx, this.isDebugLogEnabled);
+          this._logMessage(
+            `+ Sig: child findings for [${objRef}]: instance=[${symbolsSet.instanceName()}], blockComments=(${symbolsSet.blockCommentCount}), fakeComments=(${symbolsSet.fakeCommentCount})`
+          );
+        } else {
+          this._logMessage(`+ Sig: NO child findings for [${objRef}]`);
         }
       }
     }

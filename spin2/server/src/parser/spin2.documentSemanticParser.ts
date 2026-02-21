@@ -272,7 +272,7 @@ export class Spin2DocumentSemanticParser {
       // NOTE: comment mid-line set a pending state so next line uses the new state
       // special blocks of doc-comment and non-doc comment lines handling
       // if we have comment in progress but not another comment line, close comment being built!
-      if (bBuildingSingleLineDocCmtBlock && !trimmedNonStringLine.startsWith("''")) {
+      if (bBuildingSingleLineDocCmtBlock && !trimmedLine.startsWith("''")) {
         // process single line doc-comment
         bBuildingSingleLineDocCmtBlock = false;
         // add record single line comment block if > 1 line and clear
@@ -283,7 +283,7 @@ export class Spin2DocumentSemanticParser {
           this.semanticFindings.recordComment(currSingleLineBlockComment);
           currSingleLineBlockComment = undefined;
         }
-      } else if (bBuildingSingleLineCmtBlock && !trimmedNonStringLine.startsWith("'")) {
+      } else if (bBuildingSingleLineCmtBlock && !trimmedLine.startsWith("'")) {
         // process single line non-doc comment
         bBuildingSingleLineCmtBlock = false;
         // add record single line comment block if > 1 line and clear
@@ -470,12 +470,7 @@ export class Spin2DocumentSemanticParser {
           currBlockComment?.appendLine(line);
           continue; // nothing more to do with this line, skip to next
         }
-      } else if (nonCommentLine.length === 0) {
-        // a blank line clears pending single line comments
-        this.priorSingleLineComment = undefined;
-        //this._logMessage(`* SKIP blank line pre-scan Ln#${lineNbr} nonCommentLine=[${nonCommentLine}]`);
-        continue;
-      } else if (trimmedNonStringLine.startsWith("''")) {
+      } else if (trimmedLine.startsWith("''")) {
         if (bBuildingSingleLineDocCmtBlock) {
           // process single line doc comment which follows one of same
           // we no longer have a prior single line comment
@@ -508,6 +503,11 @@ export class Spin2DocumentSemanticParser {
           bBuildingSingleLineCmtBlock = true;
           currSingleLineBlockComment = new RememberedComment(eCommentType.singleLineComment, i, line);
         }
+        continue;
+      } else if (nonCommentLine.length === 0) {
+        // a blank line clears pending single line comments
+        this.priorSingleLineComment = undefined;
+        //this._logMessage(`* SKIP blank line pre-scan Ln#${lineNbr} nonCommentLine=[${nonCommentLine}]`);
         continue;
       } else if (trimmedNonStringLine.startsWith('{{')) {
         // TODO: the second if clause confuses me... why did I do this?

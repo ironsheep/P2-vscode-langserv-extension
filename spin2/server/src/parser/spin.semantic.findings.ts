@@ -1320,6 +1320,14 @@ export class DocumentFindings {
     this.blockComments.push(comment);
   }
 
+  public get blockCommentCount(): number {
+    return this.blockComments.length;
+  }
+
+  public get fakeCommentCount(): number {
+    return this.fakeComments.length;
+  }
+
   public recordFakeComment(comment: RememberedComment) {
     this.fakeComments.push(comment);
   }

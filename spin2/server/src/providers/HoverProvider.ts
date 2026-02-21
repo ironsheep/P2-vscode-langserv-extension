@@ -166,7 +166,10 @@ export default class HoverProvider implements Provider {
     }
     const sourcePosition: Position = adjustedPos[3];
     const fileBasename = path.basename(document.uri);
-    const methodFollowString: string = declarationLine.substring(wordStart.character + hoverSource.length);
+    // Account for objectRef prefix (e.g., "display." in "display.setColoredTextAtLnCol")
+    // wordStart points to beginning of full dotted word, but hoverSource is only the part after the dot
+    const objRefPrefixLen: number = objectRef.length > 0 ? objectRef.length + 1 : 0; // +1 for the dot
+    const methodFollowString: string = declarationLine.substring(wordStart.character + objRefPrefixLen + hoverSource.length);
     const bMethodCall: boolean = isMethodCall(methodFollowString, this.ctx);
     const bMaskedMethodCall: boolean = isMaskedDebugMethodCall(methodFollowString, this.ctx);
     this._logMessage(`+ Hvr: methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
@@ -252,6 +255,11 @@ export default class HoverProvider implements Provider {
             isObjectReference = true;
             symbolsSet = tmpSymbolsSet;
             symbolsSet.enableLogging(this.ctx, this.isDebugLogEnabled);
+            this._logMessage(
+              `+ Hvr: child findings for [${objRef}]: instance=[${symbolsSet.instanceName()}], blockComments=(${symbolsSet.blockCommentCount}), fakeComments=(${symbolsSet.fakeCommentCount})`
+            );
+          } else {
+            this._logMessage(`+ Hvr: NO child findings for [${objRef}]`);
           }
         }
       }
