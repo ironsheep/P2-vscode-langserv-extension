@@ -1693,7 +1693,7 @@ export class DocumentFindings {
             `  -- FND-xxxTOK lnIdx:${findings.declarationLineIdx} findings.signature=[${findings.signature}], findings.declarationComment=[${findings.declarationComment}], declInfo.comment=[${findings.relatedFilename}]`
           );
           // if no block doc comment then we can substitute a preceeding or trailing doc comment for method
-          const canUseAlternateComment: boolean = bIsPublic == false || (bIsPublic == true && declInfo.isDocComment) ? true : false;
+          const canUseAlternateComment: boolean = !bIsPublic || (bIsPublic && declInfo.isDocComment) ? true : false;
           if (!findings.declarationComment && canUseAlternateComment && declInfo.comment && declInfo.comment.length > 0) {
             // if we have single line doc comment and can use it, then do so!
             findings.declarationComment = declInfo.comment;
@@ -2861,7 +2861,7 @@ export class RememberedStructure {
   }
 
   private validType(type: string): eMemberType {
-    let memberType: eMemberType = eMemberType.MT_Unknown;
+    let memberType!: eMemberType;
     switch (type.toLowerCase()) {
       case 'byte':
         memberType = eMemberType.MT_Byte;

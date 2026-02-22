@@ -2264,7 +2264,6 @@ function getShowInsertModeInStatusBar(): boolean {
 
 function typeCommand(args: { text: string }) {
   const editor = vscode.window.activeTextEditor;
-  let editMode: eEditMode = eEditMode.INSERT;
   if (editor === undefined) {
     //logExtensionMessage("* VSCode type (early)");
     vscode.commands.executeCommand('default:type', args);
@@ -2278,7 +2277,7 @@ function typeCommand(args: { text: string }) {
       logExtensionMessage('* type [' + args.text + '](' + args.text.length + ')');
     }
   }
-  editMode = getMode(editor);
+  const editMode = getMode(editor);
   if (tabFormatter.isEnabled() && editMode == eEditMode.OVERTYPE) {
     logExtensionMessage('CMD: OVERTYPE type');
     overtypeBeforeType(editor, args.text, false);

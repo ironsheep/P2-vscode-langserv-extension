@@ -331,7 +331,6 @@ export class Spin2DocumentSemanticParser {
         // starting fake line continuation
         //  - replace '{' with '...'
         trimmedNonCommentLine = trimmedNonCommentLine.substring(0, trimmedNonCommentLine.length - 1) + ' ...';
-        trimmedNonStringLine = trimmedNonStringLine.substring(0, trimmedNonStringLine.length - 1) + ' ...';
         nonStringLine = nonStringLine.substring(0, nonStringLine.length - 1) + ' ...';
         nonStringLineUpCase = nonStringLineUpCase.substring(0, nonStringLineUpCase.length - 1) + ' ...';
         nonCommentLine = nonCommentLine.substring(0, nonCommentLine.length - 1) + ' ...';
@@ -1024,7 +1023,6 @@ export class Spin2DocumentSemanticParser {
         // starting fake line continuation
         //  - replace '{' with '...'
         trimmedNonCommentLine = trimmedNonCommentLine.substring(0, trimmedNonCommentLine.length - 1) + ' ...';
-        trimmedNonStringLine = trimmedNonStringLine.substring(0, trimmedNonStringLine.length - 1) + ' ...';
         nonStringLine = nonStringLine.substring(0, nonStringLine.length - 1) + ' ...';
         nonStringLineUpCase = nonStringLineUpCase.substring(0, nonStringLineUpCase.length - 1) + ' ...';
         nonCommentLine = nonCommentLine.substring(0, nonCommentLine.length - 1) + ' ...';
@@ -4651,7 +4649,7 @@ export class Spin2DocumentSemanticParser {
           this._logSPIN(
             `  -- rptPubPriSig() localVar alignType=[${alignType}](${alignType.length}), storageType=[${storageType}](${storageType.length}), isPtr=(${isPtr}), lclNm=[${localVarName}](${localVarName.length}), indexExpr=[${indexExpression}](${indexExpression.length})  : lclVar[${index + 1} of ${localVarNames.length}]`
           );
-          let symbolPosition: Position = Position.create(-1, -1);
+          let symbolPosition!: Position;
 
           // ---------------------------
           // handle align value
@@ -5487,7 +5485,7 @@ export class Spin2DocumentSemanticParser {
                 }
               }
             }
-            if (!bFoundObjRef && !bFoundStructureRef) {
+            if (!bFoundStructureRef) {
               // still have '.' in namePart, so handle it
               //   have a 'byte' of hub-address.byte
               //   have a 'word' of hub-address.word
@@ -6218,11 +6216,6 @@ export class Spin2DocumentSemanticParser {
         }
       } else {
         // process data declaration
-        if (this.parseUtils.isDatStorageType(lineParts[0])) {
-          currentOffset = line.indexOf(lineParts[0], currentOffset);
-        } else {
-          currentOffset = line.indexOf(lineParts[1], currentOffset);
-        }
         const allowLocalVarStatus: boolean = true;
         const NOT_DAT_PASM: boolean = false;
         const partialTokenSet: IParsedToken[] = this._reportDAT_ValueDeclarationCode(
@@ -7009,7 +7002,7 @@ export class Spin2DocumentSemanticParser {
                     continue;
                   }
                 }
-                if (!bFoundObjRef && this._isPossibleStructureReference(newParameter, symbolPosition.line)) {
+                if (this._isPossibleStructureReference(newParameter, symbolPosition.line)) {
                   const [bHaveStructReference, refString] = this._reportStructureReference(
                     newParameter,
                     symbolPosition.line,
@@ -7248,7 +7241,6 @@ export class Spin2DocumentSemanticParser {
           const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(newParameter, inPasm);
           if (paramIsNumber) {
             symbolPosition = multiLineSet.locateSymbol(newParameter, currSingleLineOffset);
-            nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             this._logDEBUG(`  -- rDbgStM() Number=[${newParameter}]`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
@@ -7522,7 +7514,7 @@ export class Spin2DocumentSemanticParser {
               continue;
             }
           }
-          if (!bHaveStructReference && this.semanticFindings.isStructure(newParameter)) {
+          if (this.semanticFindings.isStructure(newParameter)) {
             bHaveStruct = true;
             this._logMessage(`  --  structTypeName=[${newParameter}], ofs=(${symbolPosition.character})`);
             // this is a structure type use!
@@ -8041,14 +8033,11 @@ export class Spin2DocumentSemanticParser {
               if (line.substr(referenceOffset + referencePart.length, 1) === '(') {
                 isMethod = true;
               }
-              let nameParts: string[];
               if (objInstanceName.includes('[')) {
-                nameParts = objInstanceName.split(/[[\]]/).filter(Boolean);
+                const nameParts = objInstanceName.split(/[[\]]/).filter(Boolean);
                 objInstanceName = nameParts[0];
 
                 // FIXME: handle nameParts[1] is likely a local file variable
-              } else {
-                nameParts = [objInstanceName];
               }
               this._logMessage(`  --  rObjRef MISSING instance declaration=[${objInstanceName}]`);
               this._recordTokenWithDiagnostic(
