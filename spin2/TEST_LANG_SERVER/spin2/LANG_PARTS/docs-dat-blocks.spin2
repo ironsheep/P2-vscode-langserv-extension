@@ -28,7 +28,7 @@ symbol6 LONG                            ' symbol6 is a long symbol that points t
 
         BYTE 10, WORD 500, LONG $FC000  ' BYTE/WORD/LONG overrides allowed for single values
 
-        BYTE FVAR 99, FVARS -99         ' FVAR/FVARS overrides allowed, can be read via RFVAR/RFVARS
+        BYTE FVAR 99, FVARS -99         ' FVAR/FVARS overrides allowed, can be read via RFVAR/RFVARS FIXME: color ERROR
 
 FileDat     FILE  "Filename.dat"            ' include binary file, FileDat is a byte symbol that points to file
             ALIGNW                      ' word-align to hub by emitting a zero byte, if necessary

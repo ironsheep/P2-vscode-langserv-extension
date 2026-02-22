@@ -2259,7 +2259,8 @@ export class Spin2ParseUtils {
     sqrt: 'Square root of unsigned value',
     fsqrt: 'Floating-point square root',
     qlog: "Unsigned value to logarithm {5'whole, 27'fraction}",
-    qexp: 'Logarithm to unsigned value'
+    qexp: 'Logarithm to unsigned value',
+    field: 'Access bitfield of preceding value'
   };
 
   private _tableSpinUnaryOperators_v51: { [Identifier: string]: string } = {

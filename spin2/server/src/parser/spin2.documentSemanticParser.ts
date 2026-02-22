@@ -5231,6 +5231,15 @@ export class Spin2DocumentSemanticParser {
                     eSeverity.Error,
                     `P2 Spin missing parens after [${namePart}]`
                   );
+                } else if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
+                  this._logSPIN(`  -- rptSPIN() LHS operator=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: namePart.length,
+                    ptTokenType: 'operator',
+                    ptTokenModifiers: ['builtin']
+                  });
                 }
                 // we use bIsDebugLine in next line so we don't flag debug() arguments!
                 else if (
@@ -5842,6 +5851,15 @@ export class Spin2DocumentSemanticParser {
                       eSeverity.Error,
                       'P2 Spin missing parens'
                     );
+                  } else if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
+                    this._logSPIN(`  -- rptSPIN() RHS operator=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: namePart.length,
+                      ptTokenType: 'operator',
+                      ptTokenModifiers: ['builtin']
+                    });
                   }
                   // we use bIsDebugLine in next line so we don't flag debug() arguments!
                   else if (
@@ -6167,7 +6185,10 @@ export class Spin2DocumentSemanticParser {
                     // we don't have name registered so just mark it
                     if (namePart !== '.') {
                       // odd special case!
-                      if (
+                      if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
+                        this._logPASM(`  -- rptSPINPAsm() operator=[${namePart}]`);
+                        this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, 'operator', ['builtin']);
+                      } else if (
                         !this.parseUtils.isSpinReservedWord(namePart) &&
                         !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                         !this.parseUtils.isDebugMethod(namePart) &&
@@ -6322,6 +6343,17 @@ export class Spin2DocumentSemanticParser {
                       nameReference
                     );
                   }
+                } else if (this.parseUtils.isUnaryOperator(nameReference) || this.parseUtils.isBinaryOperator(nameReference)) {
+                  this._logOBJ(`  --  OBJ operator=[${nameReference}]`);
+                  this._createAndRecordToken(
+                    tokenSet,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    symbolPosition.line,
+                    symbolPosition.character,
+                    nameReference.length,
+                    'operator',
+                    ['builtin']
+                  );
                 } else if (
                   !this.parseUtils.isSpinReservedWord(nameReference) &&
                   !this.parseUtils.isBuiltinStreamerReservedWord(nameReference) &&
@@ -8280,6 +8312,8 @@ export class Spin2DocumentSemanticParser {
             this.parseUtils.isFloatConversion(namePart)
           ) {
             // handle case when 'addbits' and its ilk are used in index expression
+            this._logSPIN(`  -- rptSPINIdxExpr() index is operator=[${namePart}]`);
+            this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, 'operator', ['builtin']);
             nameOffset += namePart.length;
             continue;
           } else {
@@ -8942,7 +8976,7 @@ export class Spin2DocumentSemanticParser {
 
   private _recordToken(tokenSet: IParsedToken[], line: string | null, newToken: IParsedToken | undefined, tokenName?: string) {
     if (newToken) {
-      if (newToken.line !== -1 && newToken.startCharacter !== -1) {
+      if (newToken.line >= 0 && newToken.startCharacter >= 0) {
         tokenSet.push(newToken);
         // record reference for code navigation (Find All References, Rename, Highlight)
         // auto-extract token name from source line when not explicitly provided
@@ -8971,8 +9005,8 @@ export class Spin2DocumentSemanticParser {
   }
 
   private _isTrackableTokenType(tokenType: string): boolean {
-    // token types that represent user-defined named symbols worth tracking for code navigation
-    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType'].includes(tokenType);
+    // token types worth tracking for code navigation (includes built-in operators/functions for Find All References)
+    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType', 'function', 'operator'].includes(tokenType);
   }
 
   private _isBuiltinName(name: string, tokenType: string): boolean {

@@ -506,7 +506,8 @@ export class ContinuedLines {
       }
     }
 
-    let desiredLocation: Position = Position.create(this.rawLineIdxs[rawIdx], -1);
+    const safeLineIdx: number = rawIdx < this.rawLineIdxs.length ? this.rawLineIdxs[rawIdx] : -1;
+    let desiredLocation: Position = Position.create(safeLineIdx, -1);
     if (rawIdx > this.rawLines.length - 1) {
       this._logMessage(`    --- ContLn: ERROR locateSymbol([${symbolName}], ofs=(${offset})) - math when off of end of lineSet`);
     } else {

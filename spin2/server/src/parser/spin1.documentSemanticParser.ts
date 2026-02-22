@@ -3449,7 +3449,7 @@ export class Spin1DocumentSemanticParser {
   }
 
   private _recordToken(tokenSet: IParsedToken[], line: string, newToken: IParsedToken, tokenName?: string) {
-    if (newToken.line != -1 && newToken.startCharacter != -1) {
+    if (newToken.line >= 0 && newToken.startCharacter >= 0) {
       tokenSet.push(newToken);
       // record reference for code navigation (Find All References, Rename, Highlight)
       // auto-extract token name from source line when not explicitly provided
@@ -3477,8 +3477,8 @@ export class Spin1DocumentSemanticParser {
   }
 
   private _isTrackableTokenType(tokenType: string): boolean {
-    // token types that represent user-defined named symbols worth tracking for code navigation
-    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType'].includes(tokenType);
+    // token types worth tracking for code navigation (includes built-in operators/functions for Find All References)
+    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType', 'function', 'operator'].includes(tokenType);
   }
 
   private _isBuiltinName(name: string, tokenType: string): boolean {
