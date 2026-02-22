@@ -226,7 +226,6 @@ export class RegionColorizer {
     this.logMessage('---> Pre SCAN');
     let currState: eParseState = eParseState.inCon; // compiler defaults to CON at start
     let priorState: eParseState = currState;
-    let prePAsmState: eParseState = currState;
     blockSpanInformation.clear(); // start anew!
     blockSpanInformation.recordBlockStart(eBLockType.isCon, 0); // spin file defaults to CON at 1st line
     for (let i = 0; i < lines.length; i++) {
@@ -346,7 +345,7 @@ export class RegionColorizer {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.spinCodeUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
             if (nonStringLine.toUpperCase().includes('ORG')) {
-              prePAsmState = currState;
+
               currState = eParseState.inDatPAsm;
               continue;
             }
@@ -367,7 +366,7 @@ export class RegionColorizer {
               // ORG, ORGF, ORGH
               const nonStringLine: string = this.spinCodeUtils.removeDoubleQuotedStrings(trimmedLine);
               if (nonStringLine.toUpperCase().includes('ORG')) {
-                prePAsmState = currState;
+  
                 currState = eParseState.inDatPAsm;
                 continue;
               }

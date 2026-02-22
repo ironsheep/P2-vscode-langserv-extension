@@ -4824,7 +4824,7 @@ export class Spin2DocumentSemanticParser {
           // report index value statement
           if (indexExpression.length > 0) {
             this._logMessage(`  -- rptPubPriSig() indexExpression=[${indexExpression}](${indexExpression.length}), ofs=(${nameOffset})`);
-            nameOffset = this._reportSPIN_IndexExpression(
+            /* nameOffset = */ this._reportSPIN_IndexExpression(
               indexExpression,
               symbolPosition.line,
               nameOffset + localVarName.length,
@@ -5044,7 +5044,7 @@ export class Spin2DocumentSemanticParser {
             if (indexExpressions.length > 0) {
               // XYZZY
               // Iterate over all indexExpressions
-              let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+              let indexExpressionPosn!: Position;
               for (let index = 0; index < indexExpressions.length; index++) {
                 const indexExpression: IIndexedExpression = indexExpressions[index];
                 indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
@@ -5168,7 +5168,7 @@ export class Spin2DocumentSemanticParser {
                 if (indexExpressions.length > 0) {
                   // XYZZY
                   // Iterate over all indexExpressions
-                  let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+                  let indexExpressionPosn!: Position;
                   for (let index = 0; index < indexExpressions.length; index++) {
                     const indexExpression: IIndexedExpression = indexExpressions[index];
                     indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
@@ -5260,7 +5260,7 @@ export class Spin2DocumentSemanticParser {
           if (indexExpressions.length > 0) {
             // XYZZY
             // Iterate over all indexExpressions
-            let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+            let indexExpressionPosn!: Position;
             for (let index = 0; index < indexExpressions.length; index++) {
               const indexExpression: IIndexedExpression = indexExpressions[index];
               indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
@@ -5941,7 +5941,7 @@ export class Spin2DocumentSemanticParser {
               `  -- rptSPIN() FINISH HANDLE Ln#${multiLineSet.lineStartIdx + 1} indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length})`
             );
             //*
-            let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+            let indexExpressionPosn!: Position;
             for (let index = 0; index < indexExpressions.length; index++) {
               const indexExpression: IIndexedExpression = indexExpressions[index];
               indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
@@ -6685,7 +6685,7 @@ export class Spin2DocumentSemanticParser {
             referenceDetails = this.semanticFindings.getGlobalToken(bitfieldIndexValue);
             this._logDEBUG(`  --  FOUND global name=[${bitfieldIndexValue}], referenceDetails=(${JSON.stringify(referenceDetails, null, 2)})`);
           }
-          if (referenceDetails !== undefined && paramIsSymbolName) {
+          if (referenceDetails !== undefined) {
             this._logDEBUG(`  --  SPIN/PAsm add name=[${bitfieldIndexValue}]`);
             this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
               line: symbolPosition.line,
@@ -6948,7 +6948,7 @@ export class Spin2DocumentSemanticParser {
               eDisplayType = this._getDisplayTypeForLine(currLineNbr);
             }
             let newParameter: string = '';
-            let symbolPosition: Position = Position.create(-1, -1);
+            let symbolPosition!: Position;
             let nameOffset: number = 0;
             //let isBackTicMode: boolean = false;
             const parameterParts: string = lineParts.slice(firstParamIdx).join(', ');
@@ -7231,7 +7231,7 @@ export class Spin2DocumentSemanticParser {
         }
         const firstParamIdx: number = adjLineParts.length > 1 && adjLineParts[0].toLowerCase().includes('debug') ? 1 : 0; // no prefix to skip
         let newParameter: string = '';
-        let symbolPosition: Position = Position.create(-1, -1);
+        let symbolPosition!: Position;
         let nameOffset: number = 0;
         for (let idx = firstParamIdx; idx < adjLineParts.length; idx++) {
           newParameter = adjLineParts[idx];
@@ -7325,7 +7325,7 @@ export class Spin2DocumentSemanticParser {
                 }
               }
             }
-            if (!bFoundObjRef && !bFoundStructureRef) {
+            if (!bFoundStructureRef) {
               // still have '.' in namePart, so handle it
               //   have a 'byte' of hub-address.byte
               //   have a 'word' of hub-address.word
@@ -7435,14 +7435,14 @@ export class Spin2DocumentSemanticParser {
                 `  -- rDbgStM() A indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length}), ofs=(${nameOffset})`
               );
               // Iterate over all indexExpressions
-              let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+              let indexExpressionPosn!: Position;
               for (let index = 0; index < indexExpressions.length; index++) {
                 const indexExpression: IIndexedExpression = indexExpressions[index];
                 indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
                 this._logMessage(
                   `  -- rDbgStM() indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
                 );
-                nameOffset = this._reportSPIN_IndexExpression(
+                /* nameOffset = */ this._reportSPIN_IndexExpression(
                   indexExpression.expression,
                   indexExpressionPosn.line,
                   indexExpressionPosn.character,
@@ -7585,14 +7585,14 @@ export class Spin2DocumentSemanticParser {
                   `  -- rDbgStM() A indexExpressions=[${JSON.stringify(indexExpressions, null, 2)}](${indexExpressions.length}), ofs=(${currSingleLineOffset})`
                 );
                 // Iterate over all indexExpressions
-                let indexExpressionPosn: Position = { line: -1, character: -1 }; // dummy, used later
+                let indexExpressionPosn!: Position;
                 for (let index = 0; index < indexExpressions.length; index++) {
                   const indexExpression: IIndexedExpression = indexExpressions[index];
                   indexExpressionPosn = multiLineSet.locateSymbol(indexExpression.expression, currSingleLineOffset);
                   this._logMessage(
                     `  -- rDbgStM() indexExpression=[${indexExpression.expression}](${indexExpression.expression.length}), srtPosn=[Ln#${indexExpressionPosn.line}:(${indexExpressionPosn.character}))`
                   );
-                  nameOffset = this._reportSPIN_IndexExpression(
+                  /* nameOffset = */ this._reportSPIN_IndexExpression(
                     indexExpression.expression,
                     indexExpressionPosn.line,
                     indexExpressionPosn.character,
@@ -8041,12 +8041,14 @@ export class Spin2DocumentSemanticParser {
               if (line.substr(referenceOffset + referencePart.length, 1) === '(') {
                 isMethod = true;
               }
-              let nameParts: string[] = [objInstanceName];
+              let nameParts: string[];
               if (objInstanceName.includes('[')) {
                 nameParts = objInstanceName.split(/[[\]]/).filter(Boolean);
                 objInstanceName = nameParts[0];
 
                 // FIXME: handle nameParts[1] is likely a local file variable
+              } else {
+                nameParts = [objInstanceName];
               }
               this._logMessage(`  --  rObjRef MISSING instance declaration=[${objInstanceName}]`);
               this._recordTokenWithDiagnostic(

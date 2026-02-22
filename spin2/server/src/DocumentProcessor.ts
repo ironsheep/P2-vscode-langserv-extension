@@ -193,7 +193,7 @@ export default class DocumentProcessor {
     const currDocumentFindings: DocumentFindings = tmpFindingsForDocument;
     const processedDoc = this.ctx.docsByFSpec.get(docFSpec);
     if (processedDoc) {
-      await this._parseDocument(processedDoc, 'Update-Parse', currDocumentFindings);
+      this._parseDocument(processedDoc, 'Update-Parse', currDocumentFindings);
     }
   }
 

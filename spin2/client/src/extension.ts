@@ -2278,13 +2278,11 @@ function typeCommand(args: { text: string }) {
       logExtensionMessage('* type [' + args.text + '](' + args.text.length + ')');
     }
   }
-  if (editor !== undefined) {
-    editMode = getMode(editor);
-  }
-  if (editor !== undefined && tabFormatter.isEnabled() && editMode == eEditMode.OVERTYPE) {
+  editMode = getMode(editor);
+  if (tabFormatter.isEnabled() && editMode == eEditMode.OVERTYPE) {
     logExtensionMessage('CMD: OVERTYPE type');
     overtypeBeforeType(editor, args.text, false);
-  } else if (editor !== undefined && tabFormatter.isEnabled() && editMode == eEditMode.ALIGN) {
+  } else if (tabFormatter.isEnabled() && editMode == eEditMode.ALIGN) {
     tabFormatter.alignBeforeType(editor, args.text, false);
   } else {
     //logExtensionMessage("* VSCode type");

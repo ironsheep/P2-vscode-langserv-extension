@@ -102,12 +102,12 @@ export const resetModes = (mode: eEditMode | null, perEditor: boolean) => {
     // tracking: https://github.com/Microsoft/vscode/issues/15178
 
     state.global = defaultMode;
-    state.perEditor = state.perEditor = new WeakMap<vscode.TextEditor, eEditMode>();
+    state.perEditor = new WeakMap<vscode.TextEditor, eEditMode>();
   } else {
     // when switching from per-editor to global, set the global mode to the
     // provided mode and reset all per-editor modes
 
     state.global = mode;
-    state.perEditor = state.perEditor = new WeakMap<vscode.TextEditor, eEditMode>();
+    state.perEditor = new WeakMap<vscode.TextEditor, eEditMode>();
   }
 };

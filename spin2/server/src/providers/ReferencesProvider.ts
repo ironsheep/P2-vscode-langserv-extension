@@ -218,9 +218,6 @@ export default class ReferencesProvider implements Provider {
   private _getFullDottedWordAtPosition(lineText: string, position: lsp.Position, spin1File: boolean): string | undefined {
     // Re-extract the full word at position (including dots) before adjustWordPosition splits it.
     const wordRange = GetWordRangeAtPosition(lineText, position, spin1File);
-    if (!wordRange) {
-      return undefined;
-    }
     return lineText.substring(wordRange.start.character, wordRange.end.character);
   }
 

@@ -2090,7 +2090,7 @@ export class Spin2ParseUtils {
             desiredDocText.description = protoWDescr[1];
           }
         }
-      } else if (bIsUnderscoreSuffix && !bSupportsSuffix) {
+      } else {
         desiredDocText.signature = protoWDescr[0];
         desiredDocText.description = protoWDescr[1] + '<br>**(WARNING Underscore Suffix is NOT allowed)**'; // bold
       }

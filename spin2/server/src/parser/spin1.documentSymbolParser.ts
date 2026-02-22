@@ -176,8 +176,6 @@ export class Spin1DocumentSymbolParser {
             blockSymbolKind = lsp.SymbolKind.EnumMember;
           } else if (linePrefix == 'OBJ') {
             blockSymbolKind = lsp.SymbolKind.Class;
-          } else if (linePrefix == 'VAR') {
-            blockSymbolKind = lsp.SymbolKind.Variable;
           }
           const blockSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + sectionComment, '', blockSymbolKind, lineRange);
           this.setContainerSymbol(blockSymbol);
