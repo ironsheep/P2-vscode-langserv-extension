@@ -3662,6 +3662,18 @@ export class Spin2DocumentSemanticParser {
           if (possibleNameLength < 1) {
             continue;
           }
+          if (/^#+$/.test(possibleName)) {
+            // this is a replaced double-quoted string, advance past it in original line
+            const quoteStart = line.indexOf('"', currentOffset);
+            if (quoteStart !== -1) {
+              const quoteEnd = line.indexOf('"', quoteStart + 1);
+              if (quoteEnd !== -1) {
+                this._logDAT(`  -- rDvdc() skipping past string currentOffset=(${currentOffset}) -> (${quoteEnd + 1})`);
+                currentOffset = quoteEnd + 1;
+              }
+            }
+            continue;
+          }
           if (!haveStorageType && this.parseUtils.isDatStorageType(possibleName)) {
             haveStorageType = true; // only skip 1st storage type, more is error
             this._logDAT(`  -- rDvdc() skipping past storage type currentOffset=(${currentOffset}) -> (${currentOffset + possibleNameLength})`);
