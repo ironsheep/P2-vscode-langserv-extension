@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.5.3",
+  "version": "2.6.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -1194,27 +1194,30 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && npm run compile:grammar",
-    "precompile": "mkdir -p ./client/out/ext && cp -p ./client/src//ext/*.obj ./client/out/ext && npm run makeprebuild",
+    "vscode:prepublish": "npm run prebuild && npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./client/src/extension.ts ./server/src/server.ts  --bundle --outdir=. --entry-names=[dir]/../out/[name] --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run prebuild && npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run prebuild && npm run esbuild-base -- --sourcemap --watch",
     "makeprebuild": "mkdir -p ./client/prebuilds && cp -pr ./client/node_modules/@serialport/bindings-cpp/prebuilds/* ./client/prebuilds/",
+    "prebuild": "npm run compile && npm run compile:grammar && npm run makeprebuild",
     "compile": "tsc -b",
     "compile:grammar": "npx js-yaml syntaxes/spin2.tmLanguage.YAML-tmLanguage > syntaxes/spin2.tmLanguage.json && npx js-yaml syntaxes/spin1.tmLanguage.YAML-tmLanguage > syntaxes/spin1.tmLanguage.json ",
     "watch": "tsc -b -w",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
     "pretest": "npm run compile && npm run lint",
-    "test": "sh ./scripts/e2e.sh",
-    "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
-    "posttest": "npm run clean",
-    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 10000",
     "test-compile": "tsc -p ./",
+    "test": "sh ./scripts/e2e.sh",
     "test:grammar": "npm run compile && mocha --require ts-node/register client/src/test/grammar.*.test.ts --timeout 30000",
     "test:grammar:spin2": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin2.test.ts --timeout 30000",
-    "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000",
     "test:grammar:spin1": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin1.test.ts --timeout 30000",
     "test:all": "npm run test && npm run test:grammar",
     "coverage:grammar": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin2.tmLanguage.json client/src/test/grammar.spin2.test.ts --output coverage-spin2.txt",
-    "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt"
+    "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt",
+    "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
+    "posttest": "npm run clean",
+    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 10000",
+    "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

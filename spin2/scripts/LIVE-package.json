@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.5.3",
+  "version": "2.6.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -1216,7 +1216,8 @@
     "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt",
     "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
     "posttest": "npm run clean",
-    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 10000"
+    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 10000",
+    "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

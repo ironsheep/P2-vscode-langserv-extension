@@ -17,8 +17,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
 - v51 If sizeof(): Validate variable is a structure instance
-- v45 Hover of structure name should show structure def'n
-  - (and point to source where declared?)
 
 ### More distant next Additions
 
@@ -28,15 +26,22 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.6.0] 2026-02-19
+## [2.6.0] 2026-02-23
 
-Major feature additions, grammar improvements, and infrastructure modernization
+Major feature additions, code navigation improvements, grammar fixes, and many diagnostic/highlighting corrections
 
 ### New Features
 
 - PASM2 Hover Documentation: comprehensive hover help for 362 instructions, conditionals, effects, and streamer constants with context-aware display (AND in DAT shows PASM2 doc, AND in PUB shows Spin2 operator doc)
 - Include Directory Support: two-tier include directory system (central library paths and per-folder project includes) with auto-discovery, Tree View UI, and compiler -I flag generation
-- Hover Syntax Coloring: fenced code blocks in hover tooltips now contain valid Spin2/Spin1 for TextMate syntax highlighting
+- Struct-aware Go to Definition: navigate to struct field declarations through multi-level chains (e.g., `pline.a.x`)
+- Hover Type Annotations: all variables, parameters, and return values now show their type (BYTE, WORD, LONG, or struct type) in hover tooltips
+- New Code Navigation features:
+  - Document Links: Click to Open Object Files
+  - Go to Type Definition: Navigate to STRUCT Definitions
+  - Workspace Symbol Search: Find Any Symbol, Anywhere
+  - (First release, use with care) Rename Symbol: Safe, Project-Wide Renaming, see Doc's before use [Rename Symbol](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/Spin2-code-navigation.md#rename-symbol-safe-project-wide-renaming)
+  - New `authorFilePrefix` setting to identify your files during Rename Symbol operations
 
 ### Language Version Support
 
@@ -44,10 +49,25 @@ Major feature additions, grammar improvements, and infrastructure modernization
 - Add v52 support: DEBUG_END_SESSION constant for use in DEBUG
 - Add BACKCOLOR as recognized TERM debug display feed/update parameter
 
-### Bug Fixes
+### Semantic Highlighting Fixes
 
-- BUGFIX: Fix false "Missing '=' part of assignment" error on comment lines containing debug() text (e.g., `'' all output via debug()`)
+- BUGFIX: Fix false "missing declaration" for PRI return values when method names contain "debug" (e.g., `setPageShowingDebug`)
+- BUGFIX: Fix false "Missing '=' part of assignment [}]" for multi-line block comment closing braces in CON sections
+- BUGFIX: Fix false "missing declaration" for PASM conditional prefixes (IF\_\*, \_RET\_) and effects in DAT sections
+- BUGFIX: Fix PASM highlighting lost across consecutive DAT sections (now maintains DatPAsm mode after ORG)
+- BUGFIX: Fix false "BAD Storage/Align Type" for external object struct types in VAR and DAT (e.g., `sd.cid_t`)
+- BUGFIX: Fix wrong coloring for values after strings in DAT sections (string content skewing offsets)
+- BUGFIX: Fix wrong coloring for names ending in digits before index expressions (e.g., `screenTable0[0]`)
 - BUGFIX: Fix semantic token length clamping to prevent "end character > model.getLineLength" errors
+- BUGFIX: Fix false "Missing '=' part of assignment" error on comment lines containing debug() text (e.g., `'' all output via debug()`)
+
+### Hover and Go to Definition Fixes
+
+- BUGFIX: Fix DITTO directive hover showing no documentation
+- BUGFIX: Fix method hover always showing comment template instead of actual doc-comments
+- BUGFIX: Fix hover for external object method calls (e.g., `serial.start()`)
+- BUGFIX: Fix Go to Definition for methods, inline PASM labels, and local tokens
+- BUGFIX: Fix unclosed PASM span at end-of-file affecting local label recognition and code navigation
 - BUGFIX: Fix cycle guard in object dependency resolution preventing infinite recursion on circular dependencies
 - BUGFIX: Allow both Spin1 and Spin2 hovers in HoverProvider
 
@@ -59,6 +79,10 @@ Major feature additions, grammar improvements, and infrastructure modernization
 - BUGFIX: Fixed array mutation issue causing configuration corruption during tab operations
 - BUGFIX: Fixed Align mode not working on first line of file (line 0)
 - BUGFIX: Fixed configuration object mutation preventing proper state management
+
+### Other Fixes
+
+- BUGFIX: Fix inverted PropPlug removal notification (showed "undefined" instead of device name)
 
 ### Grammar Fixes
 
