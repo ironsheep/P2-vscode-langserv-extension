@@ -7,27 +7,37 @@
 
 In general To open the Settings editor, navigate to **[Code]** > **Settings** > **Settings**.
 
-The Spin2 extension settings are in 5 sections.  If when you get to settings and type in "**SpinExt**" as a filter and you'll see the 5 sections of our new Spin2 Extension settings:
+The Spin2 extension settings are in 6 sections.  If when you get to settings and type in "**SpinExt**" as a filter and you'll see the 6 sections of our new Spin2 Extension settings:
 
-## Spin2 Settings - Section 1
+## Spin2 Settings - Section 1 - Extension Behaviors
 
-![Settings 1 of 5](./DOCs/stgs-extn.png)
-**FIGURE 1**: Our three sections, with the first section selected
 
-- **Highlight FlexSpin directives** - This enables support for #if, #else, etc. FlexSpin directives
-- **Author File Prefix** - Your personal file-name prefix (for example, `isp_`). When set, Rename Symbol will skip files that belong to a different author, protecting objects written by other people. Leave this blank to rename across all files. See [File Ownership and Safety](Spin2-code-navigation.md#file-ownership-and-safety) for details.
-- **Max Number of Reported Issues** - This allows you to limit how many messages are shown per file
-- **Trace Server**- bored? want to see how the client interacts with the server then select a value here other then off. (this can slow things down)
+<p align="center">
+  <img alt="Spin/Spin2 Language Extension Behaviors" src="./DOCs/stgs-extn.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 1 - Settings Section: Spin/Spin2 Language Extension Behaviors</B></caption><br>
+ </p>
+</p>
+
+
 - **Color Editor Background** - check this to turn on Propeller Tool coloring (you'll also need to adjust the color theme to make this readable!)
 - **Editor Background Alpha** - if you want to something a bit darker then you can adjust this.
+- **Author File Prefix** - Your personal file-name prefix (for example, `isp_`). When set, Rename Symbol will skip files that belong to a different author, protecting objects written by other people. Generally, you don't want to leave this blank if you are using a filenaming conventions for your files. Exception: Leave this blank to rename across all files (but be very careful). See [File Ownership and Safety](Spin2-code-navigation.md#file-ownership-and-safety) for details.
+- **Highlight FlexSpin directives** - This enables support for #if, #else, etc. FlexSpin directives
+- **Max Number of Reported Issues** - This allows you to limit how many messages are shown per file
+- **Trace Server**- bored? want to see how the client interacts with the server then select a value here other then off. (this can slow things down)
 
 
-## Spin2 Settings - Section 2
+## Spin2 Settings - Section 2 - Editor Tabstops
 
 Click on the 2nd section to see:
 
-![Settings 2 of 5](./DOCs/stgs-tabstops.png)
-**FIGURE 2**: with the 2nd section selected
+<p align="center">
+  <img alt="Spin/Spin2 Editor Tabstops" src="./DOCs/stgs-tabstops.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 2 - Settings Section: Spin/Spin2 Editor Tabstops</B></caption><br>
+ </p>
+</p>
 
 - Elastic Tabstops **Enable** - check this to turn ON the Elastic Tabstops feature
 - **Iron Sheep** - click on link to adjust the tab columns (default is what the Author uses)
@@ -36,31 +46,58 @@ Click on the 2nd section to see:
 - Elastic Tabstops **Choice** - select the set of tabstops you wish to use
 
 
-## Spin2 Settings - Section 3
+## Spin2 Settings - Section 3 - Insert Mode
 
 Click on the 3rd section to see:
 
-![Settings 3 of 5](./DOCs/stgs-insertMode.png)
-**FIGURE 3**: with the 3rd section selected
+<p align="center">
+  <img alt="Spin/Spin2 Tabstop Insert Mode Configuration" src="./DOCs/stgs-insertMode.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 3 - Settings Section: Spin/Spin2 Tabstop Insert Mode Configuration</B></caption><br>
+ </p>
+</p>
+
 
 Insert Mode Adjustments:
 
 - **Enable Align** - Adds Align mode to modes: Insert and Overtype
-- **Label Align Mode**- Change the default label text
-- **Label Insert Mode**- Change the default label text
-- **Label Overtype Mode**- Change the default label text
-- **Overtype Paste** - Alters paste behavior when in Overtype mode
-- **Per Editor** - Let's each editor have it's own current mode setting (Default off)
-- **Secondary Cursor Style** - Adjusts the Overtype cursor
-- **Ternary Cursor Style** - Adjusts the Align cursor
+- **Label Align Mode**- Change the default label text (default: **Align**)
+- **Label Insert Mode**- Change the default label text (default: **Insert**)
+- **Label Overtype Mode**- Change the default label text (default: **Overtype**)
+- **Overtype Paste** - Alters paste behavior when in Overtype mode (default: overtype)
+- **Per Editor** - Let's each editor have it's own current mode setting (Default: off)
+- **Secondary Cursor Style** - Adjusts the Overtype cursor (Default: block)
+- **Ternary Cursor Style** - Adjusts the Align cursor (Default: underline)
 
 
-## Spin2 Settings - Section 4
+## Spin2 Settings - Section 4 - ToolChain Configuration
 
 Click on the 4th section to see:
 
-![Settings 4 of 5](./DOCs/stgs-toolchain1.png)
-**FIGURE 4**: with the 4th section selected (showing first group of entries)
+<p align="center">
+  <img alt="Spin/Spin2 ToolChain Configuration 1of3" src="./DOCs/stgs-toolchain1.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 4a - Settings Section: Spin/Spin2 ToolChain Configuration (showing first group of entries)</B></caption><br>
+ </p>
+</p>
+
+and scroll down to:
+
+<p align="center">
+  <img alt="Spin/Spin2 ToolChain Configuration 2of3" src="./DOCs/stgs-toolchain2.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 4b - Settings Section: Spin/Spin2 ToolChain Configuration (showing first group of entries)</B></caption><br>
+ </p>
+</p>
+
+and scroll down further to:
+
+<p align="center">
+  <img alt="Spin/Spin2 ToolChain Configuration 3of3" src="./DOCs/stgs-toolchain3.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 4c - Settings Section: Spin/Spin2 ToolChain Configuration (showing first group of entries)</B></caption><br>
+ </p>
+</p>
 
 ToolChain Adjustments:
 
@@ -69,11 +106,17 @@ You will be modifying only a couple of the values in this section. The remainder
 - **Enable Advanced Toolchain support** - This enables all of the toolchain behaviors (off by default)
 - **Installations Found** - Lists which compilers were found to be installed on this machine
 - **Selected Compiler** - Choose the compiler you wish to use (set for User/Workspace)
-- **Enable listing output**- Enable/disable .lst file output
+- **Enable listing output**- Enable/disable .lst file output (default: enabled)
 - **Flexspin Debug**- Select between -gbrk and -g
 - **Enable Compatibility PST**- selects which terminal behavior will be used
 - **Enter Terminal After**- select one of [ never, when debug() enabled, or always ]
+- **User Pnut Term TS** - enable to use pnut-term-ts with all compilers (default: disabled, use only with pnut-ts)
 - **User Baudrate**- Enter the comms rate for you application serial debug output
+
+The following affect visiblity and control of non-Parallax PropPlugs:
+
+- **Match Vendor Only** - opens up filter to allow non-parallax Serial Devices
+- **Serial Control** - specifies which control form to use for non-parallax Serial devices
 
 The following are adjusted by clicking on status bar controls:
 
@@ -81,16 +124,10 @@ The following are adjusted by clicking on status bar controls:
 - **Enable Flash**- Click on "Dnld:[RAM/FLASH]" StatusBar control
 
 
-## Spin2 Settings - Section 5
-
-Section 5 is a bit different. Only the very first item **Flexspin loadp2 command-line option: USer Baudrate (Default: 115200)** item is meant to be adjusted by you.  The remaining items in this section are visual feedback to you to see what the **toolchain discovery mechanism** has found with respect to the tools you have installed.
+ The remaining items in this section are visual feedback to you to see what the **toolchain discovery mechanism** has found with respect to the tools you have installed.
 
 In general, you want to look here after installing any compilers to see if they were discovered correctly.
 
-Click on the 5th section to see:
-
-![Settings 5 of 5](./DOCs/stgs-toolchain2.png)
-**FIGURE 5**: with the 5th section selected (showing second group of entries)
 
 The 'paths' entries are all runtime configured. **Please do not adjust any of these paths.**
 
@@ -99,6 +136,30 @@ The 'paths' entries are all runtime configured. **Please do not adjust any of th
 The following is adjusted by clicking on status bar controls:
 
 - **Prop Plug: Selected**- Shows which prop plug you are downloading to. Click on "plug:[name, N/A]" StatusBar control to change this.
+
+## Spin2 Settings - Section 5 - Workspace Build Environment
+
+<p align="center">
+  <img alt="Spin2 Workspace Build Environment" src="./DOCs/stgs-buildEnv.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 5 - Settings Section: Spin2 Workspace Build Environment</B></caption><br>
+ </p>
+</p>
+
+**WARNING** there are no user configurable options here. This page was automatically genrated when we added the persistance of our user and workspace tool selections.  You can click on User and Workspace tabs for this section to review the current settings. **But do not change anything here as any changes you make will be overwritten.**
+
+
+## Spin2 Settings - Section 6 - Include Directories
+
+<p align="center">
+  <img alt="Spin2 Include Directories" src="./DOCs/stgs-includeDirs.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 6 - Settings Section: Spin2 Include Directories</B></caption><br>
+ </p>
+</p>
+
+Once again this section is pretty much for reference only. You will generally manipulate these values by interacting with the Spin2 Include Directories panel in the left column of your VSCode window. See [Spin2 Extension — Include Directories](./Spin2-Include-Directories.md) for how to use that control.
+
 
 ## Our Spin/Spin2 VSCode Key Mapping
 
