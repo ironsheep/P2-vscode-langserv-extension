@@ -15,6 +15,7 @@ The Spin2 extension settings are in 5 sections.  If when you get to settings and
 **FIGURE 1**: Our three sections, with the first section selected
 
 - **Highlight FlexSpin directives** - This enables support for #if, #else, etc. FlexSpin directives
+- **Author File Prefix** - Your personal file-name prefix (for example, `isp_`). When set, Rename Symbol will skip files that belong to a different author, protecting objects written by other people. Leave this blank to rename across all files. See [File Ownership and Safety](Spin2-code-navigation.md#file-ownership-and-safety) for details.
 - **Max Number of Reported Issues** - This allows you to limit how many messages are shown per file
 - **Trace Server**- bored? want to see how the client interacts with the server then select a value here other then off. (this can slow things down)
 - **Color Editor Background** - check this to turn on Propeller Tool coloring (you'll also need to adjust the color theme to make this readable!)

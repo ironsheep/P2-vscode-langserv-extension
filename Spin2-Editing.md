@@ -248,10 +248,12 @@ You can safely rename any user-defined symbol across your entire project by pres
 
 Rename works for constants, variables, PUB/PRI methods, local variables, DAT labels, object instances, and enum values.
 
-The extension includes safety features to protect you:
+The extension includes safety features to protect files you do not own:
 
-- **Central library files** in your include directories are automatically excluded from renames, so you won't accidentally modify shared code
-- **Author-file filtering** lets you set a file prefix (in settings) to exclude files authored by others from rename operations
+- **Central library files** are automatically excluded from rename operations. If a symbol is used in a shared library, those usages will not be changed.
+- **Author file prefix filtering:** If you set the `spinExtension.ServerBehavior.authorFilePrefix` setting to your personal prefix (for example, `isp_`), the rename operation will skip files that belong to a different author. This is helpful when your project includes objects written by other people.
+
+To configure your author prefix, open VS Code Settings and search for `authorFilePrefix`. For the full details on rename safety, see the [Code Navigation Guide](Spin2-code-navigation.md#file-ownership-and-safety).
 
 **NOTE**: PASM local labels (`.label` in Spin2, `:label` in Spin1) and language keywords cannot be renamed.
 
