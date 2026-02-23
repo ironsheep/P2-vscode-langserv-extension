@@ -940,6 +940,10 @@ export class Spin2DocumentSemanticParser {
       }
     }
     this.semanticFindings.endPossibleMethod(lines.length); // report end if last line of file(+1 since method wants line number!)
+    // close any open PASM span (e.g., DAT section at end of file)
+    if (this.semanticFindings.isInPasmFold()) {
+      this.semanticFindings.recordPasmEnd(lines.length - 1);
+    }
     this.semanticFindings.finishFinalBlock(lines.length - 1); // mark end of final block in file
     this.semanticFindings.finalize();
 

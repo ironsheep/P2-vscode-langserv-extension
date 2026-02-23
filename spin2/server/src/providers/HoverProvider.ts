@@ -160,9 +160,13 @@ export default class HoverProvider implements Provider {
     const declarationLine: string = DocumentLineAt(document, position).trimEnd();
     let objectRef = inObjDeclarationStatus ? this._objectNameFromDeclaration(declarationLine) : adjustedPos[1];
 
-    const hoverSource: string = adjustedPos[2];
+    let hoverSource: string = adjustedPos[2];
     if (objectRef === hoverSource) {
       objectRef = '';
+    }
+    // Detect compound PASM directives: "ditto end" — redirect "end" to show "ditto" hover
+    if (hoverSource.toLowerCase() === 'end' && /\bditto\s+end\b/i.test(declarationLine)) {
+      hoverSource = 'ditto';
     }
     const sourcePosition: Position = adjustedPos[3];
     const fileBasename = path.basename(document.uri);
@@ -413,7 +417,10 @@ export default class HoverProvider implements Provider {
         if (tokenFindings.relatedObjectName) {
           mdLines.push('Found in object: ' + tokenFindings.relatedObjectName + '<br>');
         }
-        if (tokenFindings.declarationComment) {
+        // Method-local tokens (locals, params, returns) inherit the method's doc-comment
+        // in _fillInFindings — suppress it here since the comment describes the method, not the variable
+        const isMethodLocalToken = typeString === 'local variable' || typeString === 'parameter' || typeString === 'return value';
+        if (tokenFindings.declarationComment && !isMethodLocalToken) {
           // have object comment
           if (isMethod) {
             mdLines.push('- ' + tokenFindings.declarationComment);

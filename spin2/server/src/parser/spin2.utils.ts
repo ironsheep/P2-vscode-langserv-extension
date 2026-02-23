@@ -1264,7 +1264,8 @@ export class Spin2ParseUtils {
   private _tableSpinPAsmLangParts_v50: { [Identifier: string]: string[] } = {
     // DAT/InLine PASM
     ditto: [
-      "DITTO [[value]|END]', 'DITTO count' is used to start a generative block (count=0 generates no code).<br>'DITTO END' terminates a generative block."
+      'DITTO [[count]|END]',
+      "Code/data replication directive. 'DITTO count' starts a generative block that repeats count times ($$ provides iteration index 0 to count-1, count=0 generates no code).<br>'DITTO END' terminates the block."
     ]
   };
 
