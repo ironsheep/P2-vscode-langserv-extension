@@ -70,6 +70,7 @@ const logExtensionMessage = (message: string): void => {
 };
 
 let runtimeSettingChangeInProgress: boolean = false;
+let typeOverrideAvailable: boolean = true;
 
 function getSetupExtensionClient(context: vscode.ExtensionContext): LanguageClient {
   // The server is implemented in node
@@ -194,6 +195,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
       vscode.commands.registerCommand('paste', pasteCommand)
     );
   } catch (err) {
+    typeOverrideAvailable = false;
     logExtensionMessage(`WARN: Could not register type/paste overrides (another extension may own them): ${err}`);
     console.warn('Spin2 Extension: type/paste command registration failed:', err);
   }
@@ -2229,6 +2231,11 @@ function toggleCommand() {
   if (textEditor === undefined) {
     return;
   }
+  // If type override registration failed, only INSERT mode is functional
+  if (!typeOverrideAvailable) {
+    logExtensionMessage('CMD: toggle skipped — type command override not available');
+    return;
+  }
 
   toggleMode(textEditor);
   const currMode: eEditMode = getMode(textEditor);
@@ -2240,6 +2247,11 @@ function toggleCommand2State() {
   const textEditor = vscode.window.activeTextEditor;
   logExtensionMessage('CMD: toggle2State');
   if (textEditor === undefined) {
+    return;
+  }
+  // If type override registration failed, only INSERT mode is functional
+  if (!typeOverrideAvailable) {
+    logExtensionMessage('CMD: toggle2State skipped — type command override not available');
     return;
   }
 
@@ -2278,7 +2290,7 @@ function typeCommand(args: { text: string }) {
     }
   }
   const editMode = getMode(editor);
-  if (tabFormatter.isEnabled() && editMode == eEditMode.OVERTYPE) {
+  if (editMode == eEditMode.OVERTYPE) {
     logExtensionMessage('CMD: OVERTYPE type');
     overtypeBeforeType(editor, args.text, false);
   } else if (tabFormatter.isEnabled() && editMode == eEditMode.ALIGN) {

@@ -45,6 +45,7 @@ export function overtypeBeforeType(editor: vscode.TextEditor, text: string, undo
             return new vscode.Selection(replaceSelection.end, replaceSelection.end);
           } else {
             edit.insert(cursorPosition, text);
+            // VSCode adjusts cursor position forward by the insert length automatically
             return selection;
           }
         } else {

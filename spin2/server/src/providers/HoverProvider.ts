@@ -10,7 +10,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Provider } from '.';
 import { Context } from '../context';
 
-import { DocumentFindings, ITokenDescription } from '../parser/spin.semantic.findings';
+import { DocumentFindings, ITokenDescription, RememberedStructure, RememberedStructureMember } from '../parser/spin.semantic.findings';
 import { IDefinitionInfo, ExtensionUtils } from '../parser/spin.extension.utils';
 import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
 import { Spin2ParseUtils, eSearchFilterType } from '../parser/spin2.utils';
@@ -262,6 +262,13 @@ export default class HoverProvider implements Provider {
             this._logMessage(`+ Hvr: NO child findings for [${objRef}]`);
           }
         }
+        // If objRef is not a namespace, check if it's a struct instance — show struct member hover
+        if (!isObjectReference) {
+          const structHover = this._resolveStructMemberHover(document, objRef, searchWord, position, defInfo);
+          if (structHover) {
+            return resolve(structHover);
+          }
+        }
       }
 
       let sourceLineRaw = DocumentLineAt(document, position);
@@ -428,6 +435,33 @@ export default class HoverProvider implements Provider {
           defInfo.doc = mdLines.join(' ');
         } else {
           defInfo.doc = undefined;
+        }
+
+        // Augment hover with type info for variables/parameters/return values
+        if (!isMethod && !isObjectReference) {
+          const varType = this._extractTypeFromDeclLine(nonCommentDecl, searchWord);
+          const structTypeInfo = this._getStructTypeForToken(searchWord, position, symbolsSet);
+
+          if (structTypeInfo) {
+            // Struct instance — show type (with ^ if pointer) and struct definition
+            const displayType = varType && varType.startsWith('^') ? `^${structTypeInfo.typeName}` : structTypeInfo.typeName;
+            if (defInfo.declarationlines.length > 0 && defInfo.declarationlines[0] === nameString) {
+              defInfo.declarationlines = [`${displayType} ${nameString}`];
+            }
+            const structDeclText = this._formatStructForHover(structTypeInfo.structDefn);
+            if (defInfo.doc) {
+              defInfo.doc += '<br>' + structDeclText;
+            } else {
+              defInfo.doc = structDeclText;
+            }
+          } else {
+            // Non-struct: show explicit type, or LONG for untyped locals/params/returns
+            const isDefaultLongType = typeString === 'local variable' || typeString === 'parameter' || typeString === 'return value';
+            const displayType = varType ? varType : isDefaultLongType ? 'LONG' : undefined;
+            if (displayType && defInfo.declarationlines.length > 0 && defInfo.declarationlines[0] === nameString) {
+              defInfo.declarationlines = [`${displayType} ${nameString}`];
+            }
+          }
         }
       } else {
         // -------------------------------
@@ -605,5 +639,211 @@ export default class HoverProvider implements Provider {
         return reject(null); // we have no answer!
       }
     });
+  }
+
+  private _resolveStructMemberHover(
+    document: TextDocument,
+    objRef: string,
+    searchWord: string,
+    position: Position,
+    defInfo: IDefinitionInfo
+  ): IDefinitionInfo | undefined {
+    const symbolsFound = this.symbolsFound;
+
+    let targetStructDefn: RememberedStructure | undefined;
+    let targetMember: RememberedStructureMember | undefined;
+
+    // Try direct single-level: objRef is a struct instance variable, searchWord is its member
+    let structTypeName = symbolsFound.getTypeForLocalStructureInstance(objRef, position.line);
+    if (!structTypeName) {
+      structTypeName = symbolsFound.getTypeForStructureInstance(objRef);
+    }
+
+    if (structTypeName) {
+      const structDefn = this._getStructDefn(structTypeName, symbolsFound);
+      if (structDefn) {
+        const member = structDefn.memberNamed(searchWord);
+        if (member) {
+          targetStructDefn = structDefn;
+          targetMember = member;
+        }
+      }
+    }
+
+    // If direct didn't work, objRef may be a struct member not a variable — walk the chain
+    if (!targetStructDefn || !targetMember) {
+      const lineText = DocumentLineAt(document, position).trimEnd();
+      const dottedPath = this._extractDottedPath(lineText, position.character);
+      if (!dottedPath || dottedPath.length < 2) {
+        return undefined;
+      }
+
+      this._logMessage(`+ Hvr: _resolveStructMemberHover() walking chain: [${dottedPath.join('.')}], target=[${searchWord}]`);
+
+      const rootName = dottedPath[0];
+      let rootType = symbolsFound.getTypeForLocalStructureInstance(rootName, position.line);
+      if (!rootType) {
+        rootType = symbolsFound.getTypeForStructureInstance(rootName);
+      }
+      if (!rootType) {
+        return undefined;
+      }
+
+      let currentStructDefn = this._getStructDefn(rootType, symbolsFound);
+      if (!currentStructDefn) {
+        return undefined;
+      }
+
+      for (let i = 1; i < dottedPath.length; i++) {
+        const segmentName = dottedPath[i];
+        const member = currentStructDefn.memberNamed(segmentName);
+        if (!member) {
+          return undefined;
+        }
+
+        if (segmentName.toLowerCase() === searchWord.toLowerCase()) {
+          targetStructDefn = currentStructDefn;
+          targetMember = member;
+          break;
+        }
+
+        if (!member.isStructure) {
+          return undefined;
+        }
+
+        currentStructDefn = this._getStructDefn(member.structName, symbolsFound);
+        if (!currentStructDefn) {
+          return undefined;
+        }
+      }
+    }
+
+    if (!targetStructDefn || !targetMember) {
+      return undefined;
+    }
+
+    // Build hover info
+    defInfo.toolUsed = 'struct member';
+    defInfo.declarationlines = [this._formatStructForHover(targetStructDefn)];
+
+    // Build member description
+    let typeDesc: string;
+    if (targetMember.isStructure) {
+      typeDesc = `struct ${targetMember.structName}`;
+    } else {
+      const typeMap: Record<string, string> = { MT_Byte: 'BYTE', MT_Word: 'WORD', MT_Long: 'LONG', MT_Unknown: 'unknown' };
+      typeDesc = typeMap[targetMember.typeString] || targetMember.typeString;
+    }
+
+    let memberDesc = `Member \`${targetMember.name}\` of struct \`${targetStructDefn.name}\` — type: ${typeDesc}`;
+    if (targetMember.instanceCount > 1) {
+      memberDesc += `[${targetMember.instanceCount}]`;
+    }
+    defInfo.doc = memberDesc;
+
+    this._logMessage(`+ Hvr: _resolveStructMemberHover() found member [${targetMember.name}] in struct [${targetStructDefn.name}]`);
+    return defInfo;
+  }
+
+  private _extractTypeFromDeclLine(declLine: string, varName: string): string | undefined {
+    // Search the declaration line for a type annotation preceding the variable name.
+    // Matches: ^structName varName, structName varName, ^BYTE varName, BYTE varName, etc.
+    // Does NOT match when varName appears without a type prefix (default LONG).
+    const escapedName = varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const typePattern = new RegExp(`(\\^?[a-zA-Z_]\\w*(?:\\.[a-zA-Z_]\\w*)?)\\s+${escapedName}(?=[\\s,\\[\\])|]|$)`, 'i');
+    const match = declLine.match(typePattern);
+    if (match) {
+      const typeName = match[1];
+      // Filter out keywords that aren't types (PUB, PRI, etc.)
+      const nonTypeKeywords = ['pub', 'pri', 'con', 'var', 'dat', 'obj', 'alignw', 'alignl'];
+      if (nonTypeKeywords.includes(typeName.toLowerCase())) {
+        return undefined;
+      }
+      this._logMessage(`+ Hvr: _extractTypeFromDeclLine() found type=[${typeName}] for var=[${varName}]`);
+      return typeName;
+    }
+    return undefined;
+  }
+
+  private _getStructTypeForToken(
+    tokenName: string,
+    position: Position,
+    symbolsSet: DocumentFindings
+  ): { typeName: string; structDefn: RememberedStructure } | undefined {
+    // Check if this token is a struct instance (local first, then global)
+    let structTypeName = symbolsSet.getTypeForLocalStructureInstance(tokenName, position.line);
+    if (!structTypeName) {
+      structTypeName = symbolsSet.getTypeForStructureInstance(tokenName);
+    }
+    if (!structTypeName) {
+      return undefined;
+    }
+
+    const structDefn = this._getStructDefn(structTypeName, symbolsSet);
+    if (!structDefn) {
+      return undefined;
+    }
+
+    this._logMessage(`+ Hvr: _getStructTypeForToken() [${tokenName}] is struct type [${structTypeName}]`);
+    return { typeName: structTypeName, structDefn };
+  }
+
+  private _formatStructForHover(structDefn: RememberedStructure): string {
+    // toString() returns debug format like "STRUCT point (MT_Long x, MT_Long y)"
+    // Clean up to Spin2 syntax like "STRUCT point(x, y)"
+    let result = structDefn.toString();
+    result = result.replace(/MT_Long /g, '');
+    result = result.replace(/MT_Byte /g, 'BYTE ');
+    result = result.replace(/MT_Word /g, 'WORD ');
+    result = result.replace(/MT_Structure\((\w+)\) /g, '$1 ');
+    result = result.replace(' (', '(');
+    return result;
+  }
+
+  private _getStructDefn(structTypeName: string, symbolsFound: DocumentFindings): RememberedStructure | undefined {
+    let structDefn = symbolsFound.getStructure(structTypeName);
+    if (!structDefn && structTypeName.includes('.')) {
+      const dotIdx = structTypeName.indexOf('.');
+      const objName = structTypeName.substring(0, dotIdx);
+      const typeName = structTypeName.substring(dotIdx + 1);
+      const childFindings = symbolsFound.getFindingsForNamespace(objName);
+      if (childFindings) {
+        structDefn = childFindings.getStructure(typeName);
+      }
+    }
+    return structDefn;
+  }
+
+  private _extractDottedPath(lineText: string, cursorChar: number): string[] | undefined {
+    const wordChars = /[a-zA-Z0-9_]/;
+
+    let start = cursorChar;
+    while (start > 0) {
+      const ch = lineText.charAt(start - 1);
+      if (wordChars.test(ch) || ch === '.') {
+        start--;
+      } else {
+        break;
+      }
+    }
+
+    let end = cursorChar;
+    while (end < lineText.length) {
+      const ch = lineText.charAt(end);
+      if (wordChars.test(ch) || ch === '.') {
+        end++;
+      } else {
+        break;
+      }
+    }
+
+    const fullExpr = lineText.substring(start, end);
+    if (!fullExpr.includes('.')) {
+      return undefined;
+    }
+
+    const parts = fullExpr.split('.').filter((p) => p.length > 0);
+    this._logMessage(`+ Hvr: _extractDottedPath() expr=[${fullExpr}], parts=[${parts.join(', ')}]`);
+    return parts.length >= 2 ? parts : undefined;
   }
 }

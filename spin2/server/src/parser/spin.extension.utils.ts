@@ -193,18 +193,25 @@ export class ExtensionUtils {
           const secondWordOffset: number = wordRange.start.character + lineParts[0].length + 2;
           word = cursorPosition.character >= secondWordOffset ? lineParts[1] : lineParts[0];
         } else {
-          // one dot or more ... we take only last two items, unless user wants just first word
-          word = lineParts[lineParts.length - 1];
-          objectRef = lineParts[lineParts.length - 2];
-          this._logMessage(
-            `+ sp2Utils: adjustWordPosition() cursor=(${cursorPosition.character}), start=(${wordRange.start.character}), obj=[${objectRef}](${objectRef.length}), word=[${word}]`
-          );
-          // if our cursor is in the object name part then return object name as our word
-          if (cursorPosition.character < wordRange.start.character + objectRef.length + 1) {
-            word = objectRef;
-            objectRef = '';
+          // Use cursor position to identify which dot-separated segment we're on.
+          // For "pline.a.x" with cursor on 'a': objectRef='pline', word='a'
+          // For "pline.a.x" with cursor on 'x': objectRef='a', word='x'
+          // For "pline.a.x" with cursor on 'pline': objectRef='', word='pline'
+          let charOffset = wordRange.start.character;
+          let cursorSegmentIdx = 0;
+          for (let i = 0; i < lineParts.length; i++) {
+            const segEnd = charOffset + lineParts[i].length;
+            if (cursorPosition.character < segEnd || i === lineParts.length - 1) {
+              cursorSegmentIdx = i;
+              break;
+            }
+            charOffset = segEnd + 1; // +1 for the dot
           }
-          this._logMessage(`+ sp2Utils: adjustWordPosition() obj=[${objectRef}], word=[${word}]`);
+          word = lineParts[cursorSegmentIdx];
+          objectRef = cursorSegmentIdx > 0 ? lineParts[cursorSegmentIdx - 1] : '';
+          this._logMessage(
+            `+ sp2Utils: adjustWordPosition() cursor=(${cursorPosition.character}), start=(${wordRange.start.character}), segIdx=(${cursorSegmentIdx}), obj=[${objectRef}](${objectRef.length}), word=[${word}]`
+          );
         }
         break;
     }

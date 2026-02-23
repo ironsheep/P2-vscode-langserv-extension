@@ -98,7 +98,7 @@ export default class DefinitionProvider implements Provider {
     }
 
     const definitionResults: Location[] = [];
-    const filteredLocations: ILocationOfToken[] = this.getDefinitions(symbolIdent, symbolsFound, position);
+    const filteredLocations: ILocationOfToken[] = this.getDefinitions(symbolIdent, symbolsFound, position, processed.document);
     this._logMessage(`+ Defn: filteredLocations=[${JSON.stringify(filteredLocations)}]`);
     // for each location translate object ref to URI then build a Definition and add it to return list
     for (let index = 0; index < filteredLocations.length; index++) {
@@ -122,7 +122,12 @@ export default class DefinitionProvider implements Provider {
     };
   }
 
-  private getDefinitions(symbolAtCursor: FindingsAtPostion, symbolsFound: DocumentFindings, position: Position): ILocationOfToken[] {
+  private getDefinitions(
+    symbolAtCursor: FindingsAtPostion,
+    symbolsFound: DocumentFindings,
+    position: Position,
+    document: TextDocument
+  ): ILocationOfToken[] {
     // given symbol at position: for all symbolSets look for name as globle token or local token, return all found
     // NOTE: position is cursor position in doc at location of request
 
@@ -142,9 +147,195 @@ export default class DefinitionProvider implements Provider {
       //  - then generate Definition
       filteredLocations.push(tokenLocation);
     }
+
+    // If we have an object reference but no results, check if it's a struct instance
+    // (e.g., "myVar.fieldName" where myVar is a struct instance, or "myVar.a.x" for nested structs)
+    if (filteredLocations.length === 0 && symbolAtCursor.objectReference.length > 0) {
+      const structLocation = this._resolveStructFieldDefinition(symbolAtCursor, symbolsFound, position, document);
+      if (structLocation) {
+        filteredLocations.push(structLocation);
+      }
+    }
+
     this._logMessage(`+ Defn: getDefinitions() returning ${filteredLocations.length} locations`);
 
     return filteredLocations;
+  }
+
+  private _resolveStructFieldDefinition(
+    symbolAtCursor: FindingsAtPostion,
+    symbolsFound: DocumentFindings,
+    position: Position,
+    document: TextDocument
+  ): ILocationOfToken | undefined {
+    const instanceName = symbolAtCursor.objectReference;
+    const fieldName = symbolAtCursor.selectedWord;
+
+    // First try a direct single-level lookup: instanceName is a struct variable, fieldName is its member
+    const directResult = this._resolveStructField(instanceName, fieldName, symbolsFound, position);
+    if (directResult) {
+      return directResult;
+    }
+
+    // Direct lookup failed — the objectRef may be a struct member, not a variable.
+    // Extract the full dotted expression from the line text and walk the chain.
+    // e.g., for "pline.a.x" with cursor on 'x': objectRef='a', word='x'
+    //   but 'a' is a member of 'line', not a variable. We need the full path: pline -> a -> x
+    const lineText = DocumentLineAt(document, position).trimEnd();
+    const dottedPath = this._extractDottedPath(lineText, position.character);
+    if (!dottedPath || dottedPath.length < 2) {
+      this._logMessage(`+ Defn: _resolveStructField() no dotted path found at cursor`);
+      return undefined;
+    }
+
+    this._logMessage(`+ Defn: _resolveStructField() walking chain: [${dottedPath.join('.')}], target=[${fieldName}]`);
+
+    // Walk the chain: first segment must be a struct instance variable
+    const rootName = dottedPath[0];
+    let structTypeName = symbolsFound.getTypeForLocalStructureInstance(rootName, position.line);
+    if (!structTypeName) {
+      structTypeName = symbolsFound.getTypeForStructureInstance(rootName);
+    }
+    if (!structTypeName) {
+      this._logMessage(`+ Defn: _resolveStructField() root [${rootName}] is not a struct instance`);
+      return undefined;
+    }
+
+    // Walk intermediate segments to resolve the struct type chain
+    let currentStructDefn = this._getStructDefn(structTypeName, symbolsFound);
+    if (!currentStructDefn) {
+      this._logMessage(`+ Defn: _resolveStructField() struct type [${structTypeName}] not found`);
+      return undefined;
+    }
+
+    // Walk from segment 1 to the target segment (which is the one the cursor is on)
+    for (let i = 1; i < dottedPath.length; i++) {
+      const segmentName = dottedPath[i];
+      const member = currentStructDefn.memberNamed(segmentName);
+      if (!member) {
+        this._logMessage(`+ Defn: _resolveStructField() member [${segmentName}] not found in struct [${currentStructDefn.name}]`);
+        return undefined;
+      }
+
+      // If this is the target segment (the one the cursor is on), return the struct declaration
+      if (segmentName.toLowerCase() === fieldName.toLowerCase()) {
+        this._logMessage(
+          `+ Defn: _resolveStructField() resolved [${dottedPath.slice(0, i + 1).join('.')}] -> struct [${currentStructDefn.name}] at Ln#${currentStructDefn.lineIndex}`
+        );
+        return {
+          uri: symbolsFound.uri,
+          objectName: 'top',
+          position: { line: currentStructDefn.lineIndex, character: currentStructDefn.charOffset }
+        };
+      }
+
+      // Not the target — this member must be a struct type to continue the chain
+      if (!member.isStructure) {
+        this._logMessage(`+ Defn: _resolveStructField() member [${segmentName}] is not a struct type, cannot continue chain`);
+        return undefined;
+      }
+
+      // Resolve the member's struct type for the next iteration
+      currentStructDefn = this._getStructDefn(member.structName, symbolsFound);
+      if (!currentStructDefn) {
+        this._logMessage(`+ Defn: _resolveStructField() struct type [${member.structName}] for member [${segmentName}] not found`);
+        return undefined;
+      }
+    }
+
+    return undefined;
+  }
+
+  private _resolveStructField(
+    instanceName: string,
+    fieldName: string,
+    symbolsFound: DocumentFindings,
+    position: Position
+  ): ILocationOfToken | undefined {
+    // Try local struct instance first (method-scoped), then global (VAR/DAT-scoped)
+    let structTypeName = symbolsFound.getTypeForLocalStructureInstance(instanceName, position.line);
+    if (!structTypeName) {
+      structTypeName = symbolsFound.getTypeForStructureInstance(instanceName);
+    }
+    if (!structTypeName) {
+      return undefined;
+    }
+
+    this._logMessage(`+ Defn: _resolveStructField() [${instanceName}] is struct type [${structTypeName}]`);
+
+    const structDefn = this._getStructDefn(structTypeName, symbolsFound);
+    if (!structDefn) {
+      this._logMessage(`+ Defn: _resolveStructField() struct type [${structTypeName}] not found`);
+      return undefined;
+    }
+
+    if (!structDefn.hasMemberNamed(fieldName)) {
+      this._logMessage(`+ Defn: _resolveStructField() field [${fieldName}] not found in struct [${structTypeName}]`);
+      return undefined;
+    }
+
+    this._logMessage(
+      `+ Defn: _resolveStructField() found field [${fieldName}] in struct [${structTypeName}] at Ln#${structDefn.lineIndex}, Ch#${structDefn.charOffset}`
+    );
+
+    return {
+      uri: symbolsFound.uri,
+      objectName: 'top',
+      position: { line: structDefn.lineIndex, character: structDefn.charOffset }
+    };
+  }
+
+  private _getStructDefn(structTypeName: string, symbolsFound: DocumentFindings) {
+    let structDefn = symbolsFound.getStructure(structTypeName);
+    if (!structDefn && structTypeName.includes('.')) {
+      // External object struct type — resolve via child object's findings
+      const dotIdx = structTypeName.indexOf('.');
+      const objName = structTypeName.substring(0, dotIdx);
+      const typeName = structTypeName.substring(dotIdx + 1);
+      const childFindings = symbolsFound.getFindingsForNamespace(objName);
+      if (childFindings) {
+        structDefn = childFindings.getStructure(typeName);
+      }
+    }
+    return structDefn;
+  }
+
+  private _extractDottedPath(lineText: string, cursorChar: number): string[] | undefined {
+    // From the cursor position, scan left and right to find the full dotted expression
+    // (e.g., "pline.a.x" when cursor is anywhere within it)
+    const wordChars = /[a-zA-Z0-9_]/;
+
+    // Find the start of the dotted expression
+    let start = cursorChar;
+    while (start > 0) {
+      const ch = lineText.charAt(start - 1);
+      if (wordChars.test(ch) || ch === '.') {
+        start--;
+      } else {
+        break;
+      }
+    }
+
+    // Find the end of the dotted expression
+    let end = cursorChar;
+    while (end < lineText.length) {
+      const ch = lineText.charAt(end);
+      if (wordChars.test(ch) || ch === '.') {
+        end++;
+      } else {
+        break;
+      }
+    }
+
+    const fullExpr = lineText.substring(start, end);
+    if (!fullExpr.includes('.')) {
+      return undefined;
+    }
+
+    // Split and filter out empty segments (from leading/trailing dots)
+    const parts = fullExpr.split('.').filter((p) => p.length > 0);
+    this._logMessage(`+ Defn: _extractDottedPath() expr=[${fullExpr}], parts=[${parts.join(', ')}]`);
+    return parts.length >= 2 ? parts : undefined;
   }
 
   private symbolAtLocation(document: TextDocument, position: Position, symbolsFound: DocumentFindings): FindingsAtPostion | undefined {

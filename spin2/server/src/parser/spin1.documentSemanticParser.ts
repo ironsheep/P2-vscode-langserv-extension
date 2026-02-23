@@ -3478,7 +3478,7 @@ export class Spin1DocumentSemanticParser {
 
   private _isTrackableTokenType(tokenType: string): boolean {
     // token types worth tracking for code navigation (includes built-in operators/functions for Find All References)
-    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType', 'function', 'operator'].includes(tokenType);
+    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType', 'function', 'operator', 'label'].includes(tokenType);
   }
 
   private _isBuiltinName(name: string, tokenType: string): boolean {
@@ -3487,6 +3487,24 @@ export class Spin1DocumentSemanticParser {
       return this.parseUtils.isStorageType(name);
     }
     return false;
+  }
+
+  private _classifyBuiltinName(name: string): { tokenType: string; modifiers: string[] } | undefined {
+    // Centralized builtin classifier — called as fallback AFTER user-defined symbol lookups fail.
+    // Returns token classification for built-in operators, functions, and variables.
+    if (this.parseUtils.isSpinBuiltinMethod(name)) {
+      return { tokenType: 'function', modifiers: ['builtin'] };
+    }
+    if (this.parseUtils.isUnaryOperator(name) || this.parseUtils.isBinaryOperator(name)) {
+      return { tokenType: 'operator', modifiers: ['builtin'] };
+    }
+    if (this.parseUtils.isFloatConversion(name)) {
+      return { tokenType: 'function', modifiers: ['builtin'] };
+    }
+    if (this.parseUtils.isSpinBuiltInVariable(name)) {
+      return { tokenType: 'variable', modifiers: ['builtin', 'readonly'] };
+    }
+    return undefined;
   }
 
   private _generateFakeCommentForSignature(_startingOffset: number, lineNbr: number, line: string): RememberedComment {

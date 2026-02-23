@@ -5231,27 +5231,29 @@ export class Spin2DocumentSemanticParser {
                     eSeverity.Error,
                     `P2 Spin missing parens after [${namePart}]`
                   );
-                } else if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
-                  this._logSPIN(`  -- rptSPIN() LHS operator=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: symbolPosition.character,
-                    length: namePart.length,
-                    ptTokenType: 'operator',
-                    ptTokenModifiers: ['builtin']
-                  });
-                }
-                // we use bIsDebugLine in next line so we don't flag debug() arguments!
-                else if (
-                  !this.parseUtils.isSpinReservedWord(namePart) &&
-                  !this.parseUtils.isSpinBuiltinMethod(namePart) &&
-                  !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
-                  !this.parseUtils.isCoginitReservedSymbol(namePart) &&
-                  !this.parseUtils.isTaskReservedSymbol(namePart) &&
-                  !this.parseUtils.isDebugMethod(namePart) &&
-                  !this.parseUtils.isDebugControlSymbol(namePart) &&
-                  !this.parseUtils.isDebugInvocation(namePart)
-                ) {
+                } else {
+                  const builtinInfo = this._classifyBuiltinName(namePart);
+                  if (builtinInfo) {
+                    this._logSPIN(`  -- rptSPIN() LHS builtin=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: namePart.length,
+                      ptTokenType: builtinInfo.tokenType,
+                      ptTokenModifiers: builtinInfo.modifiers
+                    });
+                  }
+                  // we use bIsDebugLine in next line so we don't flag debug() arguments!
+                  else if (
+                    !this.parseUtils.isSpinReservedWord(namePart) &&
+                    !this.parseUtils.isSpinBuiltinMethod(namePart) &&
+                    !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
+                    !this.parseUtils.isCoginitReservedSymbol(namePart) &&
+                    !this.parseUtils.isTaskReservedSymbol(namePart) &&
+                    !this.parseUtils.isDebugMethod(namePart) &&
+                    !this.parseUtils.isDebugControlSymbol(namePart) &&
+                    !this.parseUtils.isDebugInvocation(namePart)
+                  ) {
                   // NO DEBUG FOR ELSE, most of spin control elements come through here!
                   //else {
                   //    this._logSPIN('  -- UNKNOWN?? name=[' + namePart + '] - name-get-breakage??');
@@ -5271,6 +5273,7 @@ export class Spin2DocumentSemanticParser {
                     eSeverity.Error,
                     `P2 Spin mC missing declaration [${namePart}]`
                   );
+                  }
                 }
                 currSingleLineOffset = nameOffset + namePart.length;
               }
@@ -5851,30 +5854,32 @@ export class Spin2DocumentSemanticParser {
                       eSeverity.Error,
                       'P2 Spin missing parens'
                     );
-                  } else if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
-                    this._logSPIN(`  -- rptSPIN() RHS operator=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
-                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                      line: symbolPosition.line,
-                      startCharacter: symbolPosition.character,
-                      length: namePart.length,
-                      ptTokenType: 'operator',
-                      ptTokenModifiers: ['builtin']
-                    });
-                  }
-                  // we use bIsDebugLine in next line so we don't flag debug() arguments!
-                  else if (
-                    !this.parseUtils.isSpinReservedWord(namePart) &&
-                    !this.parseUtils.isSpinBuiltinMethod(namePart) &&
-                    !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
-                    !this.parseUtils.isSpinSpecialMethod(namePart) &&
-                    !this.parseUtils.isCoginitReservedSymbol(namePart) &&
-                    !this.parseUtils.isTaskReservedSymbol(namePart) &&
-                    !this.parseUtils.isDebugMethod(namePart) &&
-                    !this.parseUtils.isStorageType(namePart) && // prevent false id of missing 'byte'
-                    !this.parseUtils.isDebugControlSymbol(namePart) &&
-                    !bIsDebugLine &&
-                    !this.parseUtils.isDebugInvocation(namePart)
-                  ) {
+                  } else {
+                    const builtinInfo = this._classifyBuiltinName(namePart);
+                    if (builtinInfo) {
+                      this._logSPIN(`  -- rptSPIN() RHS builtin=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
+                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namePart.length,
+                        ptTokenType: builtinInfo.tokenType,
+                        ptTokenModifiers: builtinInfo.modifiers
+                      });
+                    }
+                    // we use bIsDebugLine in next line so we don't flag debug() arguments!
+                    else if (
+                      !this.parseUtils.isSpinReservedWord(namePart) &&
+                      !this.parseUtils.isSpinBuiltinMethod(namePart) &&
+                      !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
+                      !this.parseUtils.isSpinSpecialMethod(namePart) &&
+                      !this.parseUtils.isCoginitReservedSymbol(namePart) &&
+                      !this.parseUtils.isTaskReservedSymbol(namePart) &&
+                      !this.parseUtils.isDebugMethod(namePart) &&
+                      !this.parseUtils.isStorageType(namePart) && // prevent false id of missing 'byte'
+                      !this.parseUtils.isDebugControlSymbol(namePart) &&
+                      !bIsDebugLine &&
+                      !this.parseUtils.isDebugInvocation(namePart)
+                    ) {
                     // NO DEBUG FOR ELSE, most of spin control elements come through here!
                     //else {
                     //    this._logSPIN('  -- UNKNOWN?? name=[' + namePart + '] - name-get-breakage??');
@@ -5920,6 +5925,7 @@ export class Spin2DocumentSemanticParser {
                         eSeverity.Error,
                         `P2 Spin mE missing declaration [${namePart}]`
                       );
+                    }
                     }
                   }
                 }
@@ -6185,9 +6191,10 @@ export class Spin2DocumentSemanticParser {
                     // we don't have name registered so just mark it
                     if (namePart !== '.') {
                       // odd special case!
-                      if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
-                        this._logPASM(`  -- rptSPINPAsm() operator=[${namePart}]`);
-                        this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, 'operator', ['builtin']);
+                      const builtinInfo = this._classifyBuiltinName(namePart);
+                      if (builtinInfo) {
+                        this._logPASM(`  -- rptSPINPAsm() builtin=[${namePart}]`);
+                        this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, builtinInfo.tokenType, builtinInfo.modifiers);
                       } else if (
                         !this.parseUtils.isSpinReservedWord(namePart) &&
                         !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
@@ -6343,22 +6350,24 @@ export class Spin2DocumentSemanticParser {
                       nameReference
                     );
                   }
-                } else if (this.parseUtils.isUnaryOperator(nameReference) || this.parseUtils.isBinaryOperator(nameReference)) {
-                  this._logOBJ(`  --  OBJ operator=[${nameReference}]`);
-                  this._createAndRecordToken(
-                    tokenSet,
-                    multiLineSet.lineAt(symbolPosition.line),
-                    symbolPosition.line,
-                    symbolPosition.character,
-                    nameReference.length,
-                    'operator',
-                    ['builtin']
-                  );
-                } else if (
-                  !this.parseUtils.isSpinReservedWord(nameReference) &&
-                  !this.parseUtils.isBuiltinStreamerReservedWord(nameReference) &&
-                  !this.parseUtils.isDebugMethod(nameReference)
-                ) {
+                } else {
+                  const builtinInfo = this._classifyBuiltinName(nameReference);
+                  if (builtinInfo) {
+                    this._logOBJ(`  --  OBJ builtin=[${nameReference}]`);
+                    this._createAndRecordToken(
+                      tokenSet,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      symbolPosition.line,
+                      symbolPosition.character,
+                      nameReference.length,
+                      builtinInfo.tokenType,
+                      builtinInfo.modifiers
+                    );
+                  } else if (
+                    !this.parseUtils.isSpinReservedWord(nameReference) &&
+                    !this.parseUtils.isBuiltinStreamerReservedWord(nameReference) &&
+                    !this.parseUtils.isDebugMethod(nameReference)
+                  ) {
                   // we don't have name registered so just mark it
                   this._logOBJ('  --  OBJ MISSING name=[' + nameReference + ']');
                   this._recordTokenWithDiagnostic(
@@ -6371,6 +6380,7 @@ export class Spin2DocumentSemanticParser {
                     ['missingDeclaration'],
                     `P2 Spin OBJ mA  issing declaration [${nameReference}]`
                   );
+                  }
                 }
               }
             }
@@ -8335,20 +8345,21 @@ export class Spin2DocumentSemanticParser {
               this._logSPIN(`  -- rptSPINIdxExpr() index is symbol=[${namePart}]`);
               this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, referenceDetails.type, referenceDetails.modifiers, namePart);
               nameOffset += namePart.length;
-            } else if (this.parseUtils.isSpinBuiltinMethod(namePart)) {
-              // handle builtin method used within index expression (e.g., COGID() in LONG[addr][COGID()])
-              this._logSPIN(`  -- rptSPINIdxExpr() index is builtin method=[${namePart}]`);
-              this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, 'function', ['support']);
-              nameOffset += namePart.length;
-            } else if (
-              this.parseUtils.isSpinReservedWord(namePart) ||
-              this.parseUtils.isCoginitReservedSymbol(namePart) ||
-              this.parseUtils.isTaskReservedSymbol(namePart)
-            ) {
-              // handle reserved words/symbols used within index expression
-              this._logSPIN(`  -- rptSPINIdxExpr() index is reserved word=[${namePart}]`);
-              nameOffset += namePart.length;
             } else {
+              const builtinInfo = this._classifyBuiltinName(namePart);
+              if (builtinInfo) {
+                this._logSPIN(`  -- rptSPINIdxExpr() index is builtin=[${namePart}]`);
+                this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, builtinInfo.tokenType, builtinInfo.modifiers);
+                nameOffset += namePart.length;
+              } else if (
+                this.parseUtils.isSpinReservedWord(namePart) ||
+                this.parseUtils.isCoginitReservedSymbol(namePart) ||
+                this.parseUtils.isTaskReservedSymbol(namePart)
+              ) {
+                // handle reserved words/symbols used within index expression
+                this._logSPIN(`  -- rptSPINIdxExpr() index is reserved word=[${namePart}]`);
+                nameOffset += namePart.length;
+              } else {
               // handle unknown-name case -OR- invalid symbol name
               this._logSPIN(`  -- rptSPINIdxExpr() index is unknown=[${namePart}]`);
               this._recordTokenWithDiagnostic(
@@ -8362,6 +8373,7 @@ export class Spin2DocumentSemanticParser {
                 `P2 Spin struct index unknown name [${namePart}]`
               );
               nameOffset += namePart.length;
+              }
             }
           }
         }
@@ -9006,7 +9018,7 @@ export class Spin2DocumentSemanticParser {
 
   private _isTrackableTokenType(tokenType: string): boolean {
     // token types worth tracking for code navigation (includes built-in operators/functions for Find All References)
-    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType', 'function', 'operator'].includes(tokenType);
+    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType', 'function', 'operator', 'label'].includes(tokenType);
   }
 
   private _isBuiltinName(name: string, tokenType: string): boolean {
@@ -9015,6 +9027,24 @@ export class Spin2DocumentSemanticParser {
       return this.parseUtils.isStorageType(name);
     }
     return false;
+  }
+
+  private _classifyBuiltinName(name: string): { tokenType: string; modifiers: string[] } | undefined {
+    // Centralized builtin classifier — called as fallback AFTER user-defined symbol lookups fail.
+    // Returns token classification for built-in operators, functions, and variables.
+    if (this.parseUtils.isSpinBuiltinMethod(name)) {
+      return { tokenType: 'function', modifiers: ['builtin'] };
+    }
+    if (this.parseUtils.isUnaryOperator(name) || this.parseUtils.isBinaryOperator(name)) {
+      return { tokenType: 'operator', modifiers: ['builtin'] };
+    }
+    if (this.parseUtils.isFloatConversion(name)) {
+      return { tokenType: 'function', modifiers: ['builtin'] };
+    }
+    if (this.parseUtils.isSpinBuiltInVariable(name)) {
+      return { tokenType: 'variable', modifiers: ['builtin', 'readonly'] };
+    }
+    return undefined;
   }
 
   private _recordDisplayTypeForLine(displayType: string, lineIdx: number): void {

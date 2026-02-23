@@ -8,6 +8,16 @@ import { EndOfLine } from 'vscode';
 
 import { getMode, eEditMode, modeName } from './spin.editMode.mode';
 import { tabConfiguration, reloadTabConfiguration } from './spin.tabFormatter.configuration';
+import {
+  isCharWhite,
+  isTextAllWhite as isTextAllWhiteUtil,
+  countDeletableLeftWhiteSpace,
+  countWhiteCharsFrom,
+  findDoubleWhiteLeftEdge,
+  findLeftTextEdge,
+  findNextTabStop,
+  findPreviousTabStop
+} from './spin.tabFormatter.utils';
 
 // ----------------------------------------------------------------------------
 //  this file contains routines for tabbing the code: ==> or <==
@@ -159,76 +169,10 @@ export class Formatter {
       this.logMessage(`+ (WARN) getPreviousTabStop: Block '${blockName}' not found, using 'con' defaults`);
       return this.getPreviousTabStop('con', character);
     }
-
     const stops = block.tabStops ?? [this.tabSize];
-    const tabStops =
-      stops.length > 1
-        ? [...stops].sort((a, b) => {
-            return a - b;
-          })
-        : stops;
-
-    let index: number;
-    while ((index = tabStops.findIndex((element) => element > character)) === -1) {
-      const lastTabStop = tabStops[tabStops.length - 1];
-      if (tabStops.length < 2) {
-        // Only one or no stops defined, use default increment
-        tabStops.push(lastTabStop + this.tabSize);
-      } else {
-        const lastTabStop2 = tabStops[tabStops.length - 2];
-        const lengthTabStop = lastTabStop - lastTabStop2;
-        tabStops.push(lastTabStop + lengthTabStop);
-      }
-    }
-    //this.logMessage(`+ (DBG) tabStops-[${tabStops}]`);
-    let prevTabStop: number = tabStops[index - 1] ?? 0;
-    if (prevTabStop == character) {
-      prevTabStop = tabStops[index - 2] ?? 0;
-    }
+    const prevTabStop = findPreviousTabStop(stops, this.tabSize, character);
     this.logMessage(`+ (DBG) getPreviousTabStop(${blockName}) startFm-(${character}) -> TabStop-(${prevTabStop})`);
     return prevTabStop;
-  }
-
-  /**
-   * get the current tab stop
-   * @param blockName
-   * @param character
-   * @returns
-   */
-  getCurrentTabStop(blockName: string, character: number): number {
-    if (!blockName) {
-      blockName = 'con';
-    }
-    const block = this.blocks[blockName.toLowerCase()];
-    if (!block) {
-      this.logMessage(`+ (WARN) getCurrentTabStop: Block '${blockName}' not found, using 'con' defaults`);
-      return this.getCurrentTabStop('con', character);
-    }
-
-    const stops = block.tabStops ?? [this.tabSize];
-    const tabStops =
-      stops.length > 1
-        ? [...stops].sort((a, b) => {
-            return a - b;
-          })
-        : stops;
-
-    let index: number;
-    while ((index = tabStops.findIndex((element) => element > character)) === -1) {
-      const lastTabStop = tabStops[tabStops.length - 1];
-      if (tabStops.length < 2) {
-        // Only one or no stops defined, use default increment
-        tabStops.push(lastTabStop + this.tabSize);
-      } else {
-        const lastTabStop2 = tabStops[tabStops.length - 2];
-        const lengthTabStop = lastTabStop - lastTabStop2;
-        tabStops.push(lastTabStop + lengthTabStop);
-      }
-    }
-    //this.logMessage(`+ (DBG) tabStops-[${tabStops}]`);
-    const currTabStop: number = tabStops[index - 1] ?? 0;
-    this.logMessage(`+ (DBG) getCurrentTabStop(${blockName}) startFm-(${character}) -> TabStop-(${currTabStop})`);
-    return currTabStop;
   }
 
   /**
@@ -246,31 +190,8 @@ export class Formatter {
       this.logMessage(`+ (WARN) getNextTabStop: Block '${blockName}' not found, using 'con' defaults`);
       return this.getNextTabStop('con', character);
     }
-
     const stops = block.tabStops ?? [this.tabSize];
-    const tabStops =
-      stops.length > 1
-        ? [...stops].sort((a, b) => {
-            return a - b;
-          })
-        : stops;
-
-    let index: number;
-    while ((index = tabStops.findIndex((element) => element > character)) === -1) {
-      const lastTabStop = tabStops[tabStops.length - 1];
-      if (tabStops.length < 2) {
-        // Only one or no stops defined, use default increment
-        tabStops.push(lastTabStop + this.tabSize);
-      } else {
-        const lastTabStop2 = tabStops[tabStops.length - 2];
-        const lengthTabStop = lastTabStop - lastTabStop2;
-        tabStops.push(lastTabStop + lengthTabStop);
-      }
-    }
-    //this.logMessage(`+ (DBG) tabStops-[${tabStops}]`);
-
-    const nextRtTabStop = tabStops[index];
-    //this.logMessage(`+ (DBG) getNextTabStop(${blockName}) startFm-(${character}) -> TabStop-(${nextRtTabStop})`);
+    const nextRtTabStop = findNextTabStop(stops, this.tabSize, character);
     return nextRtTabStop;
   }
 
@@ -358,88 +279,32 @@ export class Formatter {
     return blockName;
   }
 
-  countWhiteSpace(textString: string, offset: number): number {
-    let nbrWhiteSpaceChars: number = 0;
-    if (offset < 0) {
-      offset = 0;
-    }
-    for (let idx: number = offset; idx < textString.length; idx++) {
-      if (this.isCharWhiteAt(textString, idx)) {
-        break;
-      }
-      nbrWhiteSpaceChars++;
-    }
-    return nbrWhiteSpaceChars;
-  }
-
-  countLeftWhiteSpace(textString: string, offset: number): number {
-    let nbrWhiteSpaceChars: number = 0;
-    if (offset < 0) {
-      offset = 0;
-    }
-    if (offset > 1) {
-      for (let idx: number = offset - 1; idx >= 0; idx--) {
-        if (!this.isCharWhiteAt(textString, idx)) {
-          if (nbrWhiteSpaceChars > 0) {
-            nbrWhiteSpaceChars--;
-          }
-          break;
-        }
-        nbrWhiteSpaceChars++;
-      }
-    }
-    return nbrWhiteSpaceChars;
+  // Returns the number of whitespace characters to the left of offset that
+  // can be safely deleted while preserving at least 1 separator space before
+  // any preceding non-white text. (i.e., total left whitespace minus 1.)
+  countDeletableLeftWhiteSpace(textString: string, offset: number): number {
+    return countDeletableLeftWhiteSpace(textString, offset);
   }
 
   isCharWhiteAt(text: string, index: number): boolean {
-    let isCharWhiteAtStatus: boolean = false;
-    if (text.charAt(index) == ' ' || text.charAt(index) == '\t') {
-      isCharWhiteAtStatus = true;
-    }
-    //this.logMessage(` - isCharWhiteAt() char-[${text.charAt(index)}](${index}) is white?: [${isCharWhiteAtStatus}]`);
-    return isCharWhiteAtStatus;
+    return isCharWhite(text, index);
   }
 
   isTextAllWhite(text: string): { bNotAllWhite: boolean; nonWhiteIndex: number } {
-    let bNotAllWhite: boolean = false;
-    let nonWhiteIndex: number = 0;
-    for (nonWhiteIndex = 0; nonWhiteIndex < text.length; nonWhiteIndex++) {
-      const bThisIsWhite: boolean = this.isCharWhiteAt(text, nonWhiteIndex);
-      if (bThisIsWhite == false) {
-        bNotAllWhite = true;
-        break; // have our answer, abort
-      }
-    }
-    return { bNotAllWhite, nonWhiteIndex };
+    return isTextAllWhiteUtil(text);
   }
 
-  locateDoubleWhiteLeftEdge(currLineText: string, cursorPos: vscode.Position): vscode.Position {
-    // for Align Mode we need to manipulate the extra space at right edge of text being moved
-    // this extra space is defined as two or more spaces. So find the location of two spaces to
-    // right of the given position
-    let leftMostDoubleWhitePos: vscode.Position = cursorPos.with(0, 0);
-    for (let idx: number = cursorPos.character; idx < currLineText.length - 1; idx++) {
-      if (this.isCharWhiteAt(currLineText, idx) == true && this.isCharWhiteAt(currLineText, idx + 1) == true) {
-        leftMostDoubleWhitePos = cursorPos.with(cursorPos.line, idx);
-        break;
-      }
-    }
+  locateDoubleWhiteLeftEdge(currLineText: string, cursorPos: vscode.Position): vscode.Position | undefined {
+    const charIdx = findDoubleWhiteLeftEdge(currLineText, cursorPos.character);
     this.logMessage(
-      ` - (DBG) locateDoubleWhiteLeftEdge() txt-[${currLineText}](${currLineText.length}) cursor-[${cursorPos.line}:${cursorPos.character}] => dblWhtPos=[${leftMostDoubleWhitePos.line}:${leftMostDoubleWhitePos.character}]`
+      ` - (DBG) locateDoubleWhiteLeftEdge() txt-[${currLineText}](${currLineText.length}) cursor-[${cursorPos.line}:${cursorPos.character}] => ${charIdx !== undefined ? `dblWhtPos=[${cursorPos.line}:${charIdx}]` : 'NOT FOUND'}`
     );
-    return leftMostDoubleWhitePos;
+    if (charIdx === undefined) return undefined;
+    return cursorPos.with(cursorPos.line, charIdx);
   }
 
   countOfWhiteChars(currLineText: string, cursorPos: vscode.Position): number {
-    // for Align Mode we are going to add or remove spaces in the extra space
-    //  area right of the cursor postion, let's count how many spaces we have there
-    let nbrWhiteChars: number = 0;
-    for (let idx: number = cursorPos.character; idx < currLineText.length; idx++) {
-      if (this.isCharWhiteAt(currLineText, idx) == false) {
-        break;
-      }
-      nbrWhiteChars++;
-    }
+    const nbrWhiteChars = countWhiteCharsFrom(currLineText, cursorPos.character);
     this.logMessage(
       ` - (DBG) countOfWhiteChars() txt-[${currLineText}](${currLineText.length}) cursor-[${cursorPos.line}:${cursorPos.character}] => whiteLength is (${nbrWhiteChars}) spaces`
     );
@@ -447,60 +312,22 @@ export class Formatter {
   }
 
   locateLeftTextEdge(currLineText: string, cursorPos: vscode.Position): vscode.Position {
-    // now adjust cursor: if at white, skip to next rightmost non-white, if at non-white, skip to left edge of non-white
-    //  or put another way skip to left most char of text (if in text find left edge, if not in text find first text to right)
-    //this.logMessage(` - locateLeftTextEdge() txt-[${currLineText}](${currLineText.length}) cursor-[${cursorPos.line}:${cursorPos.character}])`);
-    //const searchArea: string = currLineText.substring(cursorPos.character);
-    //this.logMessage(`   -- searching-[${searchArea}](${searchArea.length}) [0-${searchArea.length - 1}])`);
-    let leftMostNonWhitePos: vscode.Position = cursorPos;
-    if (this.isCharWhiteAt(currLineText, cursorPos.character)) {
-      // at whitespace, look right to next non-whitespace...
-      let bFoundNonWhite = false;
-      for (let idx: number = cursorPos.character + 1; idx < currLineText.length; idx++) {
-        if (this.isCharWhiteAt(currLineText, idx) == false) {
-          leftMostNonWhitePos = cursorPos.with(cursorPos.line, idx);
-          bFoundNonWhite = true;
-          break;
-        }
-      }
-      //this.logMessage(`---- endSrchRt-[${leftMostNonWhitePos.line}:${leftMostNonWhitePos.character}], bFoundNonWhite=(${bFoundNonWhite})`);
-      // if we didnt find any NON-white in this search, just return location of char after selection
-      if (!bFoundNonWhite) {
-        leftMostNonWhitePos = cursorPos.with(cursorPos.line, currLineText.length);
-      }
-    } else {
-      // at non-whitespace, look left to next whitespace then back one...
-      let bFoundWhite = false;
-      for (let idx: number = cursorPos.character - 1; idx >= 0; idx--) {
-        if (this.isCharWhiteAt(currLineText, idx)) {
-          leftMostNonWhitePos = cursorPos.with(cursorPos.line, idx + 1);
-          bFoundWhite = true;
-          break;
-        }
-      }
-      //this.logMessage(`---- endSrchLt-[${leftMostNonWhitePos.line}:${leftMostNonWhitePos.character}], bFoundWhite=(${bFoundWhite})`);
-      // if we didnt find any NON-white in this search, just return location start of line
-      if (!bFoundWhite) {
-        leftMostNonWhitePos = cursorPos.with(cursorPos.line, 0);
-      }
-    }
+    const charIdx = findLeftTextEdge(currLineText, cursorPos.character);
+    const leftMostNonWhitePos = cursorPos.with(cursorPos.line, charIdx);
     this.logMessage(`---- ltEdge-[${leftMostNonWhitePos.line}:${leftMostNonWhitePos.character}])`);
     return leftMostNonWhitePos;
   }
 
   getNonwiteFromSelectedText(selectedText: string): string {
-    // there is non-white text in (selectedText}, return it and everything else to the right of it
-    let nonWhiteRightEdge: string = '';
-    if (!this.isCharWhiteAt(selectedText, 0)) {
-      const startPos: vscode.Position = new vscode.Position(0, 0);
-      const nonWhiteCharPos = this.locateLeftTextEdge(selectedText, startPos);
-      if (nonWhiteCharPos.character < selectedText.length) {
-        nonWhiteRightEdge = selectedText.substring(nonWhiteCharPos.character);
+    if (!isCharWhite(selectedText, 0)) {
+      const nonWhiteCharIdx = findLeftTextEdge(selectedText, 0);
+      if (nonWhiteCharIdx < selectedText.length) {
+        return selectedText.substring(nonWhiteCharIdx);
       }
+      return '';
     } else {
-      nonWhiteRightEdge = selectedText;
+      return selectedText;
     }
-    return nonWhiteRightEdge;
   }
 
   lineNumbersFromSelection(document: vscode.TextDocument, selection: vscode.Selection): { firstLine: number; lastLine: number; lineCount: number } {
@@ -834,8 +661,8 @@ export class Formatter {
               // if we are in align mode, let's count this change
               if (getMode(editor) == eEditMode.ALIGN) {
                 // see if we have double-white-space to manipulate...
-                const doubleWhitePos: vscode.Position = this.locateDoubleWhiteLeftEdge(currLineText, textLeftEdgePos);
-                if (doubleWhitePos.character > 0 && doubleWhitePos.character < currLineText.length) {
+                const doubleWhitePos = this.locateDoubleWhiteLeftEdge(currLineText, textLeftEdgePos);
+                if (doubleWhitePos !== undefined && doubleWhitePos.character < currLineText.length) {
                   // yes we do!
                   // insert length of spaces we removed but at this doubleWhite location
                   const charactersToInsert: string = ' '.repeat(deleteRange.end.character - deleteRange.start.character);
@@ -856,8 +683,8 @@ export class Formatter {
               // if we are in align mode, let's count this change
               if (getMode(editor) == eEditMode.ALIGN) {
                 // see if we have double-white-space to manipulate...
-                const doubleWhitePos: vscode.Position = this.locateDoubleWhiteLeftEdge(currLineText, textLeftEdgePos);
-                if (doubleWhitePos.character > 0 && doubleWhitePos.character < currLineText.length) {
+                const doubleWhitePos = this.locateDoubleWhiteLeftEdge(currLineText, textLeftEdgePos);
+                if (doubleWhitePos !== undefined && doubleWhitePos.character < currLineText.length) {
                   // yes we do!
                   // delete length of spaces we inserted but from this doubleWhite location
                   const doubleWhiteLength: number = this.countOfWhiteChars(currLineText, doubleWhitePos) - 1;
@@ -996,7 +823,7 @@ export class Formatter {
 
             // we'd like to outdent to prev tab-stop but let's only go as far a to leave 1 space before prior text
             const nextTabStopToLeft: number = this.getPreviousTabStop(block, cursorPos.character);
-            const whiteSpaceToLeftCt: number = this.countLeftWhiteSpace(currLineText, cursorPos.character);
+            const whiteSpaceToLeftCt: number = this.countDeletableLeftWhiteSpace(currLineText, cursorPos.character);
             let nbrCharsToDelete: number = cursorPos.character - nextTabStopToLeft;
             this.logMessage(
               ` - line#${currLine} tabStop=(${nextTabStopToLeft}), spacesToLeft=(${whiteSpaceToLeftCt}), nbrCharsToDelete=(${nbrCharsToDelete})`
@@ -1023,8 +850,8 @@ export class Formatter {
 
             if (currMode == eEditMode.ALIGN) {
               // see if we have double-white-space to manipulate...
-              const doubleWhitePos: vscode.Position = this.locateDoubleWhiteLeftEdge(currLineText, deleteEnd);
-              if (doubleWhitePos.line != 0 && doubleWhitePos.character != 0) {
+              const doubleWhitePos = this.locateDoubleWhiteLeftEdge(currLineText, deleteEnd);
+              if (doubleWhitePos !== undefined) {
                 // yes we do!
                 // insert length of spaces we removed but at this doubleWhite location
                 const charactersToInsert: string = ' '.repeat(range.end.character - range.start.character);
@@ -1111,12 +938,13 @@ export class Formatter {
             } else {
               edit.replace(typeSel, text);
             }
+            // VSCode adjusts this selection by the edit deltas after the callback returns,
+            // so using the pre-edit position is correct here.
             return new vscode.Selection(typeSel.end, typeSel.end);
           });
         },
         { undoStopAfter: undoStop, undoStopBefore: false }
-      )
-      .then(() => {});
+      );
   }
 
   /**
@@ -1198,17 +1026,20 @@ export class Formatter {
         edit.delete(range);
 
         if (!bNoInsert) {
-          // grab the text of the current selected line
+          // NOTE: Inside editor.edit(), all edits are applied atomically against the
+          // original document state. Reading editor.document here returns the pre-edit
+          // text, and the insert position is relative to that same pre-edit baseline.
+          // This is correct — both the delete and insert will be applied together.
           const currLineText: string = editor.document.lineAt(lastLine).text;
           // now use selection to skip whitespace to right of cursor
           const cursorPos: vscode.Position = selection.end;
           const replaceLen: number = rngLen;
 
           const textLeftEdge: vscode.Position = this.locateLeftTextEdge(currLineText, cursorPos);
-          const doubleWhitePos: vscode.Position = this.locateDoubleWhiteLeftEdge(currLineText, textLeftEdge);
+          const doubleWhitePos = this.locateDoubleWhiteLeftEdge(currLineText, textLeftEdge);
           this.logMessage(`  -- postDEL=[${currLineText}](${currLineText.length})`);
 
-          if (doubleWhitePos.line != 0 && doubleWhitePos.character != 0) {
+          if (doubleWhitePos !== undefined) {
             this.logMessage(`*  INSERT  ' '(${replaceLen}) at=[${doubleWhitePos.line}:${doubleWhitePos.character}]`);
             edit.insert(doubleWhitePos, ' '.repeat(replaceLen));
           }

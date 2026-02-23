@@ -1210,6 +1210,7 @@
     "test-compile": "tsc -p ./",
     "test:grammar": "npm run compile && mocha --require ts-node/register client/src/test/grammar.*.test.ts --timeout 30000",
     "test:grammar:spin2": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin2.test.ts --timeout 30000",
+    "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000",
     "test:grammar:spin1": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin1.test.ts --timeout 30000",
     "test:all": "npm run test && npm run test:grammar",
     "coverage:grammar": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin2.tmLanguage.json client/src/test/grammar.spin2.test.ts --output coverage-spin2.txt",

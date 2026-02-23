@@ -63,17 +63,17 @@ export default class ReferencesProvider implements Provider {
       // Cross-object reference: object.method or object#constant
       this._collectCrossObjectReferences(objectRef, tokenName, includeDeclaration, results);
     } else {
-      // Check if this is a local-scope symbol by examining the current file first
+      // Determine scope by checking the specific reference under the cursor
       const currentFileRefs = documentFindings.getReferencesForToken(tokenName);
-      const hasGlobalScope = currentFileRefs.some((r) => r.scope === '');
+      const cursorRef = this._findReferenceAtPosition(currentFileRefs, params.position);
 
-      if (hasGlobalScope) {
-        // Global symbol — search all parsed files
-        this._collectGlobalReferences(tokenName, includeDeclaration, results);
+      if (cursorRef && cursorRef.scope !== '') {
+        // Cursor is on a local-scoped symbol (parameter, local var, return value)
+        // Collect ALL references with this name across ALL methods in this file
+        this._collectAllLocalReferences(processed.document.uri, documentFindings, tokenName, includeDeclaration, results);
       } else {
-        // Local symbol — search only within current method scope in current file
-        const currentMethod = this._getCurrentMethodScope(documentFindings, params.position.line);
-        this._collectLocalReferences(processed.document.uri, documentFindings, tokenName, currentMethod, includeDeclaration, results);
+        // Cursor is on a global-scoped reference OR no specific ref found — search globally across all files
+        this._collectGlobalReferences(tokenName, includeDeclaration, results);
       }
     }
 
@@ -102,18 +102,26 @@ export default class ReferencesProvider implements Provider {
     }
   }
 
-  private _collectLocalReferences(
+  private _collectAllLocalReferences(
     uri: string,
     findings: DocumentFindings,
     tokenName: string,
-    methodScope: string,
     includeDeclaration: boolean,
     results: Location[]
   ): void {
-    // For locals, only search within the same method scope in the current file
-    const refs = findings.getReferencesForToken(tokenName, methodScope);
-    this._logMessage(`+ Refs: local: tokenName=[${tokenName}], methodScope=[${methodScope}], refs=(${refs.length})`);
-    this._addReferencesToResults(uri, refs, includeDeclaration, results);
+    // For local symbols, collect ALL references with this name across ALL methods in this file
+    // This finds all same-named parameters, local vars, and return values across all methods
+    const refs = findings.getReferencesForToken(tokenName);
+    // Filter to only local-scoped refs (exclude any global refs with same name)
+    const localRefs = refs.filter((r) => r.scope !== '');
+    this._logMessage(`+ Refs: allLocal: tokenName=[${tokenName}], totalRefs=(${refs.length}), localRefs=(${localRefs.length})`);
+    this._addReferencesToResults(uri, localRefs, includeDeclaration, results);
+  }
+
+  private _findReferenceAtPosition(refs: ITokenReference[], position: lsp.Position): ITokenReference | undefined {
+    return refs.find(
+      (r) => r.line === position.line && position.character >= r.startCharacter && position.character < r.startCharacter + r.length
+    );
   }
 
   private _collectCrossObjectReferences(
@@ -161,13 +169,6 @@ export default class ReferencesProvider implements Provider {
         }
       });
     }
-  }
-
-  private _getCurrentMethodScope(findings: DocumentFindings, line: number): string {
-    // Determine which method the cursor is in by checking method ranges
-    // Use the outline symbols to find the enclosing method
-    const methodName = findings.getMethodNameForLine(line);
-    return methodName || '';
   }
 
   private _symbolAtLocation(
