@@ -87,8 +87,8 @@ export interface IBuiltinDescription {
 }
 
 export function haveDebugLine(line: string, startsWith: boolean = false, ctx: Context | undefined = undefined): boolean {
-  const debugStatementOpenRegEx = /debug\s*(\[[a-zA-Z0-9_]+\])?\(/i; // case-insensative debug() but allowing whitespace before '('
-  const debugStatementOpenStartRegEx = /^\s*debug\s*(\[[a-zA-Z0-9_]+\])?\(/i; // case-insensative debug() at start of line but allowing whitespace before '('
+  const debugStatementOpenRegEx = /(?<![a-zA-Z0-9_])debug\s*(\[[a-zA-Z0-9_]+\])?\(/i; // case-insensitive debug() but allowing whitespace before '('
+  const debugStatementOpenStartRegEx = /^\s*debug\s*(\[[a-zA-Z0-9_]+\])?\(/i; // case-insensitive debug() at start of line but allowing whitespace before '('
   const startStatus: boolean = startsWith ? debugStatementOpenStartRegEx.test(line) : debugStatementOpenRegEx.test(line);
   _logMessage(`spCom: haveDebugLine([${line}]) -> (${startStatus})`, ctx);
   return startStatus;

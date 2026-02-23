@@ -1,0 +1,12 @@
+'' Test fixture: PRI method return values
+CON
+    TIMEOUT = 1000
+
+PUB Main() | localVar
+    localVar := doWork(TIMEOUT)
+
+PRI doWork(timeout) : bDidSucceed
+    bDidSucceed := helperCall(timeout)
+
+PRI helperCall(value) : result
+    result := value + 1

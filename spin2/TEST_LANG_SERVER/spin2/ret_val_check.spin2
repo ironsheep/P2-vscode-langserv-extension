@@ -1,0 +1,1875 @@
+'' =================================================================================================
+''
+''   File....... isp_timi_mates.spin2
+''   Purpose.... the spin2 Mates Serial controller object
+''
+''   An object used for communicating with BBM Devices, over serial port.
+''
+''   This object contains various methods for sending and retrieving data
+''   relating to display widgets, their states and parameters and
+''   the health of the controller
+''
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2023 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... May 2023
+''   Updated.... 12 May 2023
+''
+'' =================================================================================================
+''
+CON ' --- Mates Commands ---
+{
+    Represent possible commands to send to devices over a serial port.
+
+    Attributes
+    ----------
+    MATES_CMD_SET_PAGE        - commmand sent by controller to set current page.
+
+    MATES_CMD_GET_PAGE        - commmand sent by controller to get index of current page.
+
+    MATES_CMD_SET_WIDGET_VALUE        - commmand sent by controller to set value of a widget.
+
+    MATES_CMD_GET_WIDGET_VALUE        - commmand sent by controller to get the value of a widget.
+
+    MATES_CMD_SET_WIDGET_PARAM        - commmand sent by controller to set the value of a parameter associated with a widget.
+
+    MATES_CMD_GET_WIDGET_PARAM        - commmand sent by controller to get the value of a parameter associated with a widget.
+
+    MATES_CMD_SET_BACKLIGHT        - commmand sent by controller to set the intensity of device backlight.
+
+    MATES_CMD_CLR_PRINT_AREA        - commmand sent by controller to clear Print Area widgets.
+
+    MATES_CMD_SET_PRINT_COLR        - commmand sent by controller to set the colour of Print Area widgets.
+
+    MATES_CMD_SYSTEM_RESET        - commmand sent by controller to request a soft system reset.
+
+    MATES_CMD_PIN_MODE        - commmand sent by controller to designate available pins as input or output.
+
+    MATES_CMD_DIGITAL_WRITE        - commmand sent by controller to control an IO pin set as output.
+
+    MATES_CMD_DIGITAL_READ        - commmand sent by controller to read a specified pin set as input.
+
+    MATES_CMD_BTN_EVENT_COUNT        - commmand sent by controller to query the number of button events recorded.
+
+    MATES_CMD_NEXT_BTN_EVENT        - commmand sent by controller to query the next button recorded.
+
+    MATES_CMD_SWP_EVENT_COUNT        - commmand sent by controller to query the number of swipe events recorded.
+
+    MATES_CMD_NEXT_SWP_EVENT        - commmand sent by controller to query the next swipe recorded.
+
+    MATES_CMD_UPDATE_TEXT_AREA        - commmand sent by controller to update the contents of a Text Area widget.
+
+    MATES_CMD_APPEND_PRINT_AREA        - commmand sent by controller to append data to a Print Area widget.
+
+    MATES_CMD_SCREENSHOT        - commmand sent by controller to request RAW 16-bit pixel information.
+
+    MATES_CMD_SET_WIDGET_32VAL        - commmand sent by controller to change the 32 bit value of compatible widgets.
+
+    MATES_CMD_APPEND_SCOPE_DATA        - commmand sent by controller to append data to a Scope widget.
+
+    MATES_CMD_UPDATE_DOT_MATRIX        - commmand sent by controller to update data displayed by a Dot Matrix widget.
+}
+
+    MATES_CMD_SET_PAGE = $0000
+    MATES_CMD_GET_PAGE = $0001
+    MATES_CMD_SET_WIDGET_VALUE = $0002
+    MATES_CMD_GET_WIDGET_VALUE = $0003
+    MATES_CMD_SET_WIDGET_PARAM = $0004
+    MATES_CMD_GET_WIDGET_PARAM = $0005
+    MATES_CMD_SET_BACKLIGHT = $0006
+    MATES_CMD_CLR_PRINT_AREA = $0007
+    MATES_CMD_SET_PRINT_COLR = $0008
+    MATES_CMD_SYSTEM_RESET = $0009
+    MATES_CMD_PIN_MODE = $000A
+    MATES_CMD_DIGITAL_WRITE = $000B
+    MATES_CMD_DIGITAL_READ = $000C
+    MATES_CMD_BTN_EVENT_COUNT = $000D
+    MATES_CMD_NEXT_BTN_EVENT = $000E
+    MATES_CMD_SWP_EVENT_COUNT = $000F
+    MATES_CMD_NEXT_SWP_EVENT = $0010
+    MATES_CMD_UPDATE_TEXT_AREA = $FFFF
+    MATES_CMD_APPEND_PRINT_AREA = $FFFE
+    MATES_CMD_SCREENSHOT = $FFFD
+    MATES_CMD_SET_WIDGET_32VAL = $FFFC
+    MATES_CMD_APPEND_SCOPE_DATA = $FFFB
+    MATES_CMD_UPDATE_DOT_MATRIX = $FFFA
+
+    NOT_SET = -1
+    None = INT_32_MAX
+OBJ
+
+    serIO       : "isp_serial"                          ' timi serial input/output
+    nstr        : "jm_nstrings"                         ' number-to-string
+
+CON ' --- PUBLIC Interface ---
+
+DAT
+    pin_tx      LONG     NOT_SET
+    pin_rx      LONG     NOT_SET
+    pin_rst     LONG     NOT_SET
+    ioBaudRate  LONG     NOT_SET
+
+    matesError  LONG    MATES_ERROR_NONE
+
+    ' --- Mates Library Versions at time of port to spin2 ---
+    matesStudioCompatVer BYTE   "1.0.16",0
+    matesControllerLibVer BYTE   "1.0.8", 0
+
+pub null()
+''  {This is not a top-level object}
+
+PUB start(pinTx, pinRx, pinReset, baudRate) : bDidSucceed | pullupVal
+'' Start simple serial comms on given pins at baudrate
+    pin_tx := pinTx
+    pin_rx := pinRx
+    pin_rst := pinReset
+    ioBaudRate := baudRate
+
+    serIO.startx(pin_rx, pin_tx, ioBaudRate, serIO.PU_NONE)
+    debug("Initializing Serial port @ ", udec_(ioBaudRate), " baud")
+
+    pullupVal := pullUpValueForEnum(serIO.PU_3K3)
+
+    pinclear(pin_rst)                                               ' clear pin of smart mode
+    pinfloat(pin_rst)                                               ' reset
+    wrpin(pin_rst, pullupVal)                                          ' configure pull-up
+    pinhigh(pin_rst)
+
+    bDidSucceed := hardReset()
+    if bDidSucceed
+        bDidSucceed := sync(TRUE, 5000)
+
+PRI pullUpValueForEnum(pullupRqst) : pullup
+  case pullupRqst
+    serIO.PU_NONE : pullup := P_HIGH_FLOAT                            ' use external pull-up
+    serIO.PU_1K5  : pullup := P_HIGH_1K5                              ' 1.5k
+    serIO.PU_3K3  : pullup := P_HIGH_1MA                              ' acts like ~3.3k
+    other   : pullup := P_HIGH_15K                              ' 15K
+
+PUB stop()
+'' Stop underlying serial device and release pins
+    serIO.stop()
+
+PUB error(): latestError
+'' Return latest Mates Error Code
+    latestError := matesError
+
+CON ' --- Mates Library at time of port to spin2 ---
+
+PUB hardReset() : bDidSucceed | startTimeMSec, timeDeltaMSec
+'' Uses hardware driven signal to hard reset Timi device
+'' Returns the boolean response from the reset
+    if pin_rst == NOT_SET
+        softReset()
+    else
+        debug("Hard Resetting module ...")
+
+        matesHwReset()
+
+        startTimeMSec := getms()
+
+        bDidSucceed := waitForAck(MATES_BOOT_TIMEOUT)
+        timeDeltaMSec := (getms() - startTimeMSec)
+
+        if bDidSucceed == TRUE
+            debug("SUCCESS after ", udec_(timeDeltaMSec), " ms")
+        else
+            debug("Timed out after ", udec_(timeDeltaMSec), " ms")
+
+PUB softReset() : bDidSucceed | startTimeMSec, timeDeltaMSec
+'' Sends a serial command to the connected Timi device to trigger a reset
+'' Returns the boolean response from the reset
+    debug("Resetting module using command ...")
+
+    write_command(MATES_CMD_SYSTEM_RESET)
+
+    startTimeMSec := getms()
+
+    bDidSucceed := waitForAck(MATES_BOOT_TIMEOUT)
+    timeDeltaMSec := (getms() - startTimeMSec)
+    if bDidSucceed
+        debug("Done after ", udec_(timeDeltaMSec), " ms")
+    else
+        debug("Timed out after ", udec_(timeDeltaMSec), " ms")
+
+PRI sync(bResetToPage0, timeout) : bDidSucceed | page, startTimeMSec
+' Attempts to synchronize with the display module by sending simple read page commands
+'  at certain interval until a proper response is received
+    debug("TIMI: Synchronizing with the module...")
+    bDidSucceed :=  TRUE
+    page := -1
+    startTimeMSec := getms()
+
+    repeat
+        if (timeout > 0) and (getms() - startTimeMSec >= timeout)
+            ' Set Error
+            debug("Timeout Error")
+            bDidSucceed :=  FALSE
+            quit
+        if bDidSucceed
+            page := getPage()
+
+    while page == -1
+
+    if bDidSucceed
+        delayMS(100)
+
+        serIO.rxflush()
+
+        debug("TIMI: Sync get curr page...")
+        page := getPage()
+        if page == -1
+            debug("Sync Error")
+            bDidSucceed :=  FALSE
+        else
+            if bResetToPage0 and page <> 0
+                debug("TIMI: Reset To Page 0...")
+                setPage(0, MATES_RESPONSE_TIMEOUT)
+
+PUB setBacklight(backlightValue) : bDidSucceed
+'' Sets the intensity of the backlight of connected device: where {backlightValue} is [0-255]
+'' Returns the boolean response from the backlight command
+    debug("Setting backlight to ", sdec_(backlightValue), " ...")
+
+    check_argument_value(@"backlightValue", backlightValue, RTE_UINT8)
+    write_command(MATES_CMD_SET_BACKLIGHT)
+    write_int16(backlightValue)
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_TIMEOUT)
+
+PUB setPage(pageIndex, timeout) : bDidSucceed
+'' Sets the page to be displayed on the connected device
+''  {pageIndex} index of page to set as current. Value must be within the uint16 datatype range
+''  {timeout} overrides the default timeout, in case Page needs more time to draw
+'' Returns T/F where T indicates success
+
+    debug("setPage(", udec_(pageIndex), ")...")
+    bDidSucceed := setPageShowingDebug(pageIndex, timeout, FALSE)
+
+PRI setPageShowingDebug(pageIndex, pageDrawTimeout, bShowDebug) : bDidSucceed
+' Sets the page to be displayed on the connected device
+'  {pageIndex} index of page to set as current. Value must be within the uint16 datatype range
+'  {timeout} overrides the default timeout, in case Page needs more time to draw
+'  {bShowDebug} whether to log messages or skip (typically when syncing)
+' Returns T/F where T indicates success
+    if (bShowDebug)
+        debug("Navigating to page ", sdec_(pageIndex), " ...")
+
+    check_argument_value(@"pageIndex", pageIndex, RTE_UINT16)
+    write_command(MATES_CMD_SET_PAGE)
+    write_int16(pageIndex)
+
+    bDidSucceed := waitForAck(pageDrawTimeout)
+
+
+PUB getPage() : pageIdx
+'' Returns {pageIdx} the index of the current page displayed by the connected device
+
+    pageIdx := getPageShowingDebug(FALSE)
+
+PRI getPageShowingDebug(bShowDebug) : pageIdx
+' get the index of the current page displayed by the connected device
+'  {bShowDebug} whether to log messages or skip (typically when syncing)
+' Return the current page index
+    if (bShowDebug)
+        debug("Querying active page ....")
+
+    write_command(MATES_CMD_GET_PAGE)
+
+    pageIdx := read_response()
+
+    if (bShowDebug)
+        debug("  -- At page ", sdec_(pageIdx), " ...")
+
+PUB setWidgetValueById(widgetId, widgetValue) : bDidSucceed
+'' Sets the value of a specific widget based on the provided identifier
+''  {widgetId} the unique id of the desired widget. Value must be within the int16 datatype range
+''  {widgetValue} the value the corresponding widget will be set to. Value must exist within the int16 datatype range
+'' Returns T/F where T indicates success
+
+    check_argument_value(@"widgetId", widgetId, RTE_INT16)
+    check_argument_value(@"value", widgetValue, RTE_INT16)
+
+    debug("Setting widget (", uhex_(widgetId), ") value to {", sdec_(widgetValue), "} ...")
+
+    write_command(MATES_CMD_SET_WIDGET_VALUE)
+    write_int16(widgetId)
+    write_int16(widgetValue)
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_TIMEOUT)
+
+PUB getWidgetValueById(widgetId) : widgetValue
+'' Gets the value of a widget based on the {widgetId}
+''  {widgetId} the unique id of the target widget. Value must be within the uint16 datatype range.
+'' Returns {widgetValue} an integer corresponding to widget value.
+
+    check_argument_value(@"widgetId", widgetId, RTE_INT16)
+
+    debug("Query widget (", uhex_(widgetId), ") value ...")
+
+    write_command(MATES_CMD_GET_WIDGET_VALUE)
+    write_int16(widgetId)
+
+    widgetValue := read_response()
+
+PUB setWidgetValueByIndex(widgetType, widgetIndex, widgetValue) : bDidSucceed | widgetId
+'' Sets the value of a specific widget based on the index within a widget type
+''  {widgetType} the unique type of widget to be changed
+''  {widgetIndex} the index of the widget, of a specific type. Value must be within the uint8 datatype range.
+''  {widgetValue} the value the corresponding widget will be set to. Value must be within the int16 datatype range.
+'' Returns T/F where T indicates success
+    widgetId := getWidgetId(widgetType, widgetIndex)
+    bDidSucceed := setWidgetValueById(widgetId, widgetValue)
+
+PUB getWidgetValueByIndex(widgetType, widgetIndex) : widgetValue | widgetId
+'' Gets the value of a specific widget based on the index within a widget type
+''  {widgetType} the unique type of widget to be queried
+''  {widgetIndex} the index of the widget, of a specific type. Value must be within the uint8 datatype range.
+'' Returns {widgetValue} an integer corresponding to widget value.
+
+    widgetId := getWidgetId(widgetType, widgetIndex)
+    widgetValue := getWidgetValueById(widgetId)
+
+PUB setLedDigitsShortValue(widgetIndex, widgetValue) : bDidSucceed
+'' Sets the value of specifically int16 LED Digits widgets based on the widget index
+''  {widgetIndex} the index of the LED Digits widget. Value must be within uint8 datatype range.
+''  {widgetValue} the value the corresponding widget will be set to. Values must be within the int16 datatype range.
+'' Returns T/F where T indicates success
+
+    bDidSucceed := setWidgetValueByIndex(MATES_LED_DIGITS, widgetIndex, widgetValue)
+
+PUB setLedDigitsLongValue(widgetIndex, widgetValue) : bDidSucceed | widgetId
+'' Sets the value of specifically int32 LED Digits widgets based on the widget index
+''  {widgetIndex} the index of the LED Digits widget. Value must be within uint8 datatype range.
+''  {widgetValue} the value the corresponding widget will be set to. Values must be within the int32 datatype range.
+'' Returns T/F where T indicates success
+
+    check_argument_value(@"value", widgetValue, RTE_INT32)
+
+    widgetId := getWidgetId(MATES_LED_DIGITS, widgetIndex)
+    bDidSucceed := set_widget_value_32bit(widgetId, widgetValue, RTE_INT32)
+
+PUB setLedDigitsFloatValue(widgetIndex, floatWidgetValue) : bDidSucceed | widgetId
+'' Sets the value of specifically float32 LED Digits widgets based on the widget index
+''  {widgetIndex} the index of the LED Digits widget. Value must be within uint8 datatype range.
+''  {floatWidgetValue} the value the corresponding widget will be set to. Values must be within the float32 datatype range.
+'' Returns T/F where T indicates success
+
+    check_argument_value(@"value", floatWidgetValue, RTE_FLOAT32)
+
+    widgetId := getWidgetId(MATES_LED_DIGITS, widgetIndex)
+    bDidSucceed := set_widget_value_32bit(widgetId, floatWidgetValue, RTE_FLOAT32)
+
+PUB setSpectrumValue(spectrumId, gaugeIndex, widgetValue) : bDidSucceed
+'' Sets the value of specifically Spectrum widgets based the spectrum id and gauge index
+''  {spectrumId} the id of the relevant Spectrum widget. Value must be within the int16 datatype range.
+''  {gaugeIndex} the gauge index within the target Spectrum widget. Value must be within the uint8 datatype range.
+''  {widgetValue} the value the corresponding widget will be set to. Value must be within the uint8 datatype range.
+'' Returns T/F where T indicates success
+
+    check_argument_value(@"spectrumId", spectrumId, RTE_INT16)
+    check_argument_value(@"gaugeIndex", gaugeIndex, RTE_UINT8)
+    check_argument_value(@"value", widgetValue, RTE_UINT8)
+    bDidSucceed := setWidgetValueById(spectrumId, (gaugeIndex << 8) | widgetValue)
+
+PUB setLedSpectrumValue(ledSpectrumIndex, gaugeIndex, widgetValue) : bDidSucceed | widgetId
+'' Sets the value of specific LED Spectrum widgets based on the gauge index
+''  {ledSpectrumIndex} the index of the desired LED Spectrum widget. Value must be within the uint8 datatype range.
+''  {gaugeIndex} the gauge index within the target LED Spectrum widget. Value must be within the uint8 datatype range.
+''  {widgetValue} the value the corresponding widget will be set to. Value must be within the uint8 datatype range.
+'' Returns T/F where T indicates success
+    check_argument_value(@"gaugeIndex", gaugeIndex, RTE_UINT8)
+    check_argument_value(@"value", widgetValue, RTE_UINT8)
+
+    widgetId := getWidgetId(MATES_LED_SPECTRUM, ledSpectrumIndex)
+    bDidSucceed := setWidgetValueById(widgetId, (gaugeIndex << 8) | widgetValue)
+
+PUB setMediaSpectrumValue(mediaIndex, gaugeIndex, widgetValue) : bDidSucceed | widgetId
+'' Sets the value of specific Media Spectrum widgets based on the Media Spectrum index and the gauge index.
+''  {mediaIndex} the index of the Media Spectrum widget. Value must be within the uint8 datatype range.
+''  {gaugeIndex}  the index of the desired gauge. Value must be within the uint8 datatype range.
+''  {widgetValue}  the value the corresponding widget will be set to. Value must be within the uint8 datatype range.
+'' Returns T/F where T indicates success
+    check_argument_value(@"gaugeIndex", gaugeIndex, RTE_UINT8)
+    check_argument_value(@"value", widgetValue, RTE_UINT8)
+
+    widgetId := getWidgetId(MATES_MED_SPECTRUM, mediaIndex)
+    bDidSucceed := setWidgetValueById(widgetId, (gaugeIndex << 8) | widgetValue)
+
+PUB setWidgetParamById(widgetId, param, widgetValue) : bDidSucceed
+'' Sets the value of a widget parameter based on widget id and parameter id.
+''  {widgetId} the unique id of the target widget. Value must be within the int16 datatype range.
+''  {param} the unique id of the target parameter. Value must be within the int16 datatype range.
+''  {widgetValue} the value the corresponding parameter will be set to. Value must be within the int16 datatype range.
+'' Returns T/F where T indicates success
+    check_argument_value(@"widgetId", widgetId, RTE_INT16)
+    check_argument_value(@"param", param, RTE_INT16)
+    check_argument_value(@"value", widgetValue, RTE_INT16)
+
+    debug("Set widget (", uhex_(widgetId), ") parameter (", uhex_(param), ") to {", udec_(widgetValue), "} ...")
+
+    write_command(MATES_CMD_SET_WIDGET_PARAM)
+    write_int16(widgetId)
+    write_int16(param)
+    write_int16(widgetValue)
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_TIMEOUT)
+
+PUB getWidgetParamById(widgetId, param) : targetParamValue
+'' Gets the value of a widget parameter based on widget id and parameter id.
+''  {widgetId} the unique id of the target widget. Value must be within the int16 datatype range.
+''  {param} the unique id of the target parameter. Value must be within the int16 datatype range.
+'' Returns and integer containing the target parameter value.
+    check_argument_value(@"widgetId", widgetId, RTE_INT16)
+    check_argument_value(@"param", param, RTE_INT16)
+
+    debug("Query widget (", uhex_(widgetId), ") parameter (", uhex_(param), ") ...")
+
+    write_command(MATES_CMD_GET_WIDGET_PARAM)
+    write_int16(widgetId)
+    write_int16(param)
+
+    targetParamValue := read_response()
+
+PUB setWidgetParamByIndex(widgetType, widgetIndex, param, widgetValue) : bDidSucceed | widgetId
+'' Sets the value of a widget parameter based on widget index and parameter id.
+''  {widgetType} the type of the target widget.
+''  {widgetIndex} the index of the target widget. Value must be within the uint8 datatype range.
+''  {param} the unique id of the target parameter. Value must be within the int16 datatype range.
+''  {widgetValue} the value the corresponding parameter will be set to. Value must be within the int16 datatype range.
+'' Returns T/F where T indicates success
+    check_argument_value(@"widgetIndex", widgetIndex, RTE_UINT8)
+    check_argument_value(@"param", param, RTE_INT16)
+    check_argument_value(@"value", widgetValue, RTE_INT16)
+
+    widgetId := getWidgetId(widgetType, widgetIndex)
+    bDidSucceed := setWidgetParamById(widgetId, param, widgetValue)
+
+PUB getWidgetParamByIndex(widgetType, widgetIndex, param) : widgetValue | widgetId
+'' Gets the value of a widget parameter based on widget index and parameter id.
+''  {widgetType} the type of the target widget.
+''  {widgetIndex} the index of the target widget. Value must be within the uint8 datatype range.
+''  {param} the unique id of the target parameter. Value must be within the int16 datatype range.
+'' Returns {widgetValue} the target parameter value
+    check_argument_value(@"widgetIndex", widgetIndex, RTE_UINT8)
+    check_argument_value(@"param", param, RTE_INT16)
+
+    widgetId := getWidgetId(widgetType, widgetIndex)
+    widgetValue := getWidgetParamById(widgetId, param)
+
+PUB setBufferSize(size)
+'' setBufferSize(size): Currently NOT SUPPORTED
+        {
+        Currently unused (also undocumented).
+        Sets Buffer Size. Provided for future development.
+        Args
+            size
+            - new size of buffer
+        Returns
+            void.
+        }
+{
+        if not 0 < size <= MATES_STRING_MAX_BUFFER_SIZE
+            debug("Buffer size of (", udec_(size), ") outside the range of min:1 to max:", udec_(MATES_STRING_MAX_BUFFER_SIZE))
+
+        mates_buffer_size := size
+'}
+
+PUB clearTextArea(textAreaIndex) : bDidSucceed
+'' Clears a targeted Text Area
+''  {textAreaIndex} the index of the target Text Area widget. Value must be within the uint16 datatype range.
+'' Returns T/F where T indicates success
+    check_argument_value(@"textAreaIndex", textAreaIndex, RTE_UINT16)
+
+    debug("Clear TextArea ", udec_word_(textAreaIndex), " ...")
+
+    write_command(MATES_CMD_UPDATE_TEXT_AREA)
+    write_int16(textAreaIndex)
+    write_int8(0)
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_TIMEOUT)
+
+PUB updateTextArea(textAreaIndex, pString) : bDidSucceed
+'' Updates the text displayed within Text Area widget
+''  {textAreaIndex} the index of the target Text Area widget. Value must be within the uint16 datatype range.
+''  {pString} the string to be displayed. Must be a zero terminated string.
+'' Returns T/F where T indicates success
+    check_argument_value(@"textAreaIndex", textAreaIndex, RTE_UINT16)
+
+    debug("Update TextArea ", udec_word_(textAreaIndex), " ...")
+
+    write_command(MATES_CMD_UPDATE_TEXT_AREA)
+    write_int16(textAreaIndex)
+    write_string(pString)   ' no zero term byte!
+    write_int8(0)           ' add zero term byte!
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_LTIMEOUT)
+
+PUB clearPrintArea(printAreaIndex) : bDidSucceed
+'' Clears a targeted Print Area
+''  {printAreaIndex} the index of the target Print Area widget. Value must be within the uint16 datatype range.
+'' Returns T/F where T indicates success
+    check_argument_value(@"printAreaIndex", printAreaIndex, RTE_UINT16)
+
+    debug("Clear PrintArea ", udec_word_(printAreaIndex), " ...")
+
+    write_command(MATES_CMD_CLR_PRINT_AREA)
+    write_int16(printAreaIndex)
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_TIMEOUT)
+
+PUB setPrintAreaColor565(printAreaIndex, rgb565Value) : bDidSucceed
+'' Sets the color of a PrintArea Widget based on an rgb565 value
+''  {printAreaIndex} the index of the target Print Area widget. Value must be within the uint16 datatype range
+''  {rgb565Value} the color to set widget to. Value must be within the uint16 datatype range.
+'' Returns T/F where T indicates success
+    check_argument_value(@"printAreaIndex", printAreaIndex, RTE_UINT16)
+    check_argument_value(@"rgb565", rgb565Value, RTE_UINT16)
+
+    write_command(MATES_CMD_SET_PRINT_COLR)
+    write_int16(printAreaIndex)
+    write_uint16(rgb565Value)
+
+    debug("Set PrintArea (", udec_(printAreaIndex), ") color to {", uhex_(rgb565Value), "} ...")
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_TIMEOUT)
+
+PUB setPrintAreaColorRGB(printAreaIndex, redValue, greenValue, blueValue) : bDidSucceed | rgb565Value
+'' Sets the color of a PrintArea Widget
+''  {printAreaIndex} the index of the target Print Area widget. Value must be within the uint16 datatype range
+''  {redValue} the red concentration of the color to set widget to. Value must be within the uint8 datatype range
+''  {greenValue} the green concentration of the color to set widget to. Value must be within the uint8 datatype range
+''  {blueValue} the blue concentration of the color to set widget to. Value must be within the uint8 datatype range
+'' Returns T/F where T indicates success
+    check_argument_value(@"printAreaIndex", printAreaIndex, RTE_UINT16)
+    check_argument_value(@"red", redValue, RTE_UINT8)
+    check_argument_value(@"green", greenValue, RTE_UINT8)
+    check_argument_value(@"blue", blueValue, RTE_UINT8)
+
+    rgb565Value := construct_rgb565_value(redValue, greenValue, blueValue)
+
+    bDidSucceed := setPrintAreaColor565(printAreaIndex, rgb565Value)
+
+PUB appendArrayToPrintArea(printAreaIndex, pBytes, byteCount) : bDidSucceed | char, byteIdx
+'' Appends {pBytes} a list of integers to the {printAreaIndex} Print Area widget
+''  {printAreaIndex} index of the target Scope widget
+''  {pBytes} pointer to list of uint8 values to be appended to Print Area widget
+''  {byteCount} the number of uint8 values to be appended
+'' Returns T/F where T indicates success
+    check_argument_value(@"printAreaIndex", printAreaIndex, RTE_UINT16)
+
+    debug("Append byte array to PrintArea ", udec_word_(printAreaIndex), " ...")
+
+    write_command(MATES_CMD_APPEND_PRINT_AREA)
+    write_int16(printAreaIndex)
+    write_int16(byteCount)
+    repeat byteIdx from 0 to byteCount - 1
+        char := BYTE[pBytes][byteIdx]
+        check_argument_value(@"print area array item", char, RTE_UINT8)
+        write_uint8(char)
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_LTIMEOUT)
+
+PUB appendStringToPrintArea(printAreaIndex, pString) : bDidSucceed
+'' Appends {pString} to the {printAreaIndex} Print Area widget
+''  {printAreaIndex} index of the target Print Area widget
+''  {pString} the string to be appended to the Print Area
+'' Returns T/F where T indicates success
+    check_argument_value(@"printAreaIndex", printAreaIndex, RTE_UINT16)
+
+    debug("Append string [", zstr_(pString), "] to PrintArea ", udec_word_(printAreaIndex), " ...")
+
+    write_command(MATES_CMD_APPEND_PRINT_AREA)
+    write_int16(printAreaIndex)
+
+    write_int16(strsize(pString))
+    write_string(pString)   ' no zero term byte!
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_LTIMEOUT)
+
+PUB appendToScopeWidget(scopeIndex, pWordBuffer, countWords) : bDidSucceed
+'' Appends {pWordBuffer} a list of integers to the {scopeIndex} Scope widget
+''  {scopeIndex} index of the target Scope widget
+''  {pWordBuffer} pointer to list of uint16 values to be appended to scope widget
+''  {countWords} the number of uint16 values to be appended
+'' Returns T/F where T indicates success
+    check_argument_value(@"scopeIndex", scopeIndex, RTE_UINT16)
+
+    debug("Appending values to Scope ", udec_word(scopeIndex), " ...")
+
+    write_command(MATES_CMD_APPEND_SCOPE_DATA)
+    write_int16(scopeIndex)
+    write_int16(countWords)
+    write_int16_buffer(pWordBuffer, countWords)
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_LTIMEOUT)
+
+PUB updateDotMatrixWidget(matrixIndex, pString) : bDidSucceed | string_to_write
+'' Writes {pString} to the {matrixIndex} Dot Matrix widget
+''  {matrixIndex} index of the target widget
+''  {pString} pointer to zero terminated string to be displayed
+'' Returns T/F where T indicates success
+    check_argument_value(@"matrix_index", matrixIndex, RTE_UINT16)
+
+    'debug("Updating DotMatrix ", udec_word_(matrixIndex), " ...")
+
+    write_command(MATES_CMD_UPDATE_DOT_MATRIX)
+    write_int16(matrixIndex)
+    write_int16(strsize(pString))
+    write_string(pString)   ' no zero term byte!
+
+    bDidSucceed := waitForAck(MATES_RESPONSE_LTIMEOUT)
+
+PUB getButtonEventCount() : countButtonEvents
+'' Gets the number of events recorded from applicable button widgets
+'' Returns {countButtonEvents} the number of events recorded
+    debug("Query number of button events...")
+
+    write_command(MATES_CMD_BTN_EVENT_COUNT)
+
+    countButtonEvents := read_response()
+
+PUB getNextButtonEvent() : widgetId
+'' Gets the next event source logged from applicable buttons
+'' Returns {widgetId} an integer corresponding to the button widget ID
+    debug("Query the next recorded button event...")
+
+    write_command(MATES_CMD_NEXT_BTN_EVENT)
+
+    widgetId := read_response()
+
+PUB getSwipeEventCount(): eventCount
+'' Gets the number of events recorded from swipe gestures
+'' Returns {eventCount} an integer corresponding to the number of events
+    debug("Query number of swipe events...")
+
+    write_command(MATES_CMD_SWP_EVENT_COUNT)
+
+    eventCount := read_response()
+
+PUB getNextSwipeEvent() : swipeEvent
+'' Gets the next swipe event value
+'' Returns {swipeEvent} an integer corresponding to the swipe event
+    debug("Query the next recorded swipe event...")
+
+    write_command(MATES_CMD_NEXT_SWP_EVENT)
+
+    swipeEvent := read_response()
+
+PUB getVersion() : pVerString
+'' Helper function to obtain the version of the Python Mates Controller library
+'' Returns {pVerString} string response of library version
+    pVerString := @matesControllerLibVer
+
+PUB getCompatibility() : pVerString
+'' Helper function to obtain the version of the Mates Studio compatible with this library version
+'' Returns {pVerString} string response of Mates Studio version compatible with this library
+    pVerString := @matesStudioCompatVer
+
+PUB printVersion()
+'' Debugging function to print the version of the Mates Studio compatible along with this specific library version.
+    debug("Mates Studio - Compatible Version : ", zstr_(getCompatibility()))
+    debug("Mates Controller - Library Version: ", zstr_(getVersion()))
+
+PUB getError() : latestError
+'' Helper function to obtain the current error state of the Mates Controller
+'' REturns {latestError} MatesError response of current error
+    latestError := matesError
+
+
+PUB takeScreenshot() : bDidSucceed, pImage | w, h
+'' takeScreenshot() NOT supported!!
+        {
+        Sends a serial command to the connected device to request pixel information.
+        Args
+            void.
+        Returns
+            boolean response indicating command success or failure.
+            Image instance created using the pixel data
+
+        }
+{
+        debug("Requesting screenshot from module ...")
+
+        write_command(MATES_CMD_SCREENSHOT)
+
+        bDidSucceed := waitForAck(MATES_RESPONSE_TIMEOUT)
+
+        if not bDidSucceed
+            return FALSE, None
+
+        w := read_int16()
+        h := read_int16()
+        chk := w ^ h
+
+        debug("Expecting a {}x{} image ({} bytes) ...".format(w, h, 2 * w * h))
+
+        image := Image.new("RGB", (w, h))
+
+        pixel_map := image.load()
+
+        for y in range(h)
+            for x in range(w)
+                pixel := read_int16()
+                r := (pixel & 0xF800) >> 8
+                g := (pixel & 0x07E0) >> 3
+                b := (pixel & 0x001F) << 3
+                ' pixel_map[x, y] := r << 16 | g << 8 | b
+                pixel_map[x, y] := b << 16 | g << 8 | r
+                chk ^= pixel
+
+        return (chk == read_response()), image
+'}
+
+PUB saveScreenshot(pFilenameStr) : bDidSave
+'' saveScreenshot() NOT supported!!
+        {
+        Takes a screenshot and saves it to a file.
+        Args
+            filename (str)
+            - the filename (file path) to use when saving the image file
+        Returns
+            boolean response indicating command success or failure.
+
+        }
+{
+        res, image := takeScreenshot()
+        if not res
+            bDidSave := FALSE
+
+        image.save(filename)
+        bDidSave := TRUE
+'}
+
+CON ' ---- private functions below ----
+
+PRI matesHwReset()
+' assert hardware reset pin
+    if pin_rst <> NOT_SET
+        pinlow(pin_rst)
+        waitus(150)         ' Windows UI does ~150 uS
+        pinhigh(pin_rst)
+        waitus(150)
+
+PRI write_command(matesCommand) | BYTE cmdBffr[3]
+    cmdBffr.BYTE[0] := MATES_COMMAND_START_BYTE
+    cmdBffr.BYTE[1] := (matesCommand & $ff00) >> 8
+    cmdBffr.BYTE[2] := matesCommand & $ff
+    'debug("write_command(): cmd: ", uhex_byte_array_(@cmdBffr, 3))
+    write_bytes(@cmdBffr, 3)
+
+PRI write_int8(int8Value)
+    serIO.tx(int8Value)
+
+PRI write_uint8(uint8Value)
+    serIO.tx(uint8Value)
+
+PRI write_int16(int16Value) | BYTE valBffr[2]
+    valBffr.BYTE[0] := (int16Value & $ff00) >> 8
+    valBffr.BYTE[1] := int16Value & $ff
+    write_bytes(@valBffr, 2)
+
+PRI write_uint16(uint16Value) | BYTE valBffr[2]
+    valBffr.BYTE[0] := (uint16Value & $ff00) >> 8
+    valBffr.BYTE[1] := uint16Value & $ff
+    write_bytes(@valBffr, 2)
+
+PRI write_int32(int32Value) | valBffr
+    valBffr.BYTE[0] := int32Value & $ff000000 >> 24
+    valBffr.BYTE[1] := int32Value & $ff0000 >> 16
+    valBffr.BYTE[2] := int32Value & $ff00 >> 8
+    valBffr.BYTE[3] := int32Value & $ff
+    write_bytes(@valBffr, 4)
+
+PRI write_float(floatValue) | valBffr
+    valBffr.BYTE[0] := floatValue & $ff000000 >> 24
+    valBffr.BYTE[1] := floatValue & $ff0000 >> 16
+    valBffr.BYTE[2] := floatValue & $ff00 >> 8
+    valBffr.BYTE[3] := floatValue & $ff
+    write_bytes(@valBffr, 4)
+
+PRI write_string(pString)
+    serIO.str(pString)  ' write string with no zero term byte!
+
+PRI write_int16_buffer(pInt16Ar, countOfInt16s) | wordIdx
+    repeat wordIdx from 0 to countOfInt16s - 1
+        write_int16(WORD[pInt16Ar][wordIdx])
+
+PRI write_bytes(pBytes, byteCount) | byteIdx
+    repeat byteIdx from 0 to byteCount - 1
+        serIO.tx(BYTE[pBytes][byteIdx])
+
+PRI waitForAck(timeoutMSec) : bDidSucceed | ack, charByte
+    charByte := serIO.rxtime(timeoutMSec)
+    ' check timeout based upon returned byte
+    if charByte == -1
+        matesError := MATES_ERROR_COMMAND_TIMEOUT
+        debug("EEE: waitForAck() timedout")
+        bDidSucceed := FALSE
+
+    bDidSucceed := charByte == MATES_SAFE_ACK ? TRUE : FALSE
+    if bDidSucceed == FALSE
+        matesError := MATES_ERROR_COMMAND_FAILED
+        debug("EEE: waitForAck() unexpected Value")
+
+    matesError := MATES_ERROR_NONE
+
+
+PRI read_int16(charTimeoutMSec) : int16Value | bTimedOut, WORD rdBytes
+    rdBytes := 0
+    rdBytes.byte[1] := serIO.rxtime(charTimeoutMSec)
+    bTimedOut := rdBytes.byte[1]  == -1
+    rdBytes.byte[0] := serIO.rxtime(charTimeoutMSec)
+    bTimedOut |= rdBytes.byte[0]  == -1
+
+    ' check timeout based upon returned byte length
+    if bTimedOut
+        debug("Response timeout")
+        matesError := MATES_ERROR_RESPONSE_TIMEOUT
+        int16Value  := None
+    else
+        int16Value := rdBytes
+
+PRI read_response() : int16Value | tmpValue
+    if not waitForAck(MATES_RESPONSE_TIMEOUT)
+        int16Value :=  -1
+    else
+        tmpValue := read_int16(MATES_RESPONSE_TIMEOUT)
+        if matesError == MATES_ERROR_RESPONSE_TIMEOUT
+            int16Value := None
+        else
+            debug("  -- response: ", sdec_(tmpValue))
+            int16Value :=  tmpValue
+
+PRI set_widget_value_32bit(widgetId, widgetValue32Bit, eRangeType) : bDidSucceed | bShoudWrite
+    debug("Set widget (", uhex_(widgetId), ") value to {", sdec_(widgetValue32Bit), "} ...")
+    bDidSucceed := bShoudWrite := FALSE
+
+    if eRangeType == RTE_INT32 or eRangeType == RTE_UINT32
+        bShoudWrite := TRUE
+    elseif eRangeType == RTE_FLOAT32
+        bShoudWrite := TRUE
+    else
+        debug("set_widget_value_32bit() type not 32bits, Abort")
+
+    if bShoudWrite
+        write_command(MATES_CMD_SET_WIDGET_32VAL)
+        write_int16(widgetId)
+
+        if eRangeType <> RTE_FLOAT32
+            check_argument_value(@"ivalue", widgetValue32Bit, RTE_INT32)
+            write_int32(widgetValue32Bit)
+        else
+            check_argument_value(@"fvalue", widgetValue32Bit, RTE_FLOAT32)
+            write_float(widgetValue32Bit)
+
+        bDidSucceed := waitForAck(MATES_RESPONSE_TIMEOUT)
+
+PRI construct_rgb565_value(redValue, greenValue, blueValue) : rgb565Value
+    {
+    Constructs a 16 bit rgb565 value.
+
+    Args
+        redValue            - Unsigned 8 bit integer value of red concentration.
+
+        greenValue            - Unsigned 8 bit integer value of green concentration.
+
+        blueValue            - Unsigned 8 bit integer value of blue concentration.
+    Returns
+        16 bit rgb565 value.
+    }
+    check_argument_value(@"red", redValue, RTE_UINT8)
+    check_argument_value(@"green", greenValue, RTE_UINT8)
+    check_argument_value(@"blue", blueValue, RTE_UINT8)
+
+    rgb565Value := 0
+    rgb565Value |= ((redValue & $F8) << 8)
+    rgb565Value |= ((greenValue & $FC) << 3)
+    rgb565Value |= ((blueValue & $F8) >> 3)
+
+PRI check_argument_value(pArgName, argValue, eRangeType) | arg_min, arg_max
+    arg_min, arg_max := getRangeForType(eRangeType)
+    if not arg_min <= argValue <= arg_max
+        case eRangeType
+            RTE_FLOAT32:
+                ' float value
+                debug("Value ERROR: [", zstr_(pArgName), "] of {", udec_(argValue), "} outside the {", zstr_(stringForRangeType(eRangeType)), "} range of {", sdec_(arg_min), "} to {", sdec_(arg_max), "}")
+            RTE_UINT8:
+            RTE_UINT16:
+            RTE_UINT32:
+                ' unsigned value
+                debug("Value ERROR: [", zstr_(pArgName), "] of {", udec_(argValue), "} outside the {", zstr_(stringForRangeType(eRangeType)), "} range of {", sdec_(arg_min), "} to {", sdec_(arg_max), "}")
+
+            other:
+                ' signed value
+                debug("Value ERROR: [", zstr_(pArgName), "] of {", sdec_(argValue), "} outside the {", zstr_(stringForRangeType(eRangeType)), "} range of {", sdec_(arg_min), "} to {", sdec_(arg_max), "}")
+
+PRI getWidgetId(widget_type, widget_index) : widgetId | widgetIdValue
+    {
+    Helper function to obtain the ID of a widget based on its index and type.
+    Args
+        widget_type: MatesWidget
+            the type of the target widget.
+
+        widget_index            the index of the target widget.
+    Returns
+        boolean response indicating command success or failure.
+    }
+    check_argument_value(@"widget_index", widget_index, RTE_INT8)
+    widgetIdValue := (widget_type << 8) | widget_index
+    widgetId := widgetIdValue <= 32767  ? widgetIdValue : widgetIdValue - 65536
+
+CON ' --- PRIVATE (Utility) Methods/Constants ---
+
+CON ' --- data and datatype limits required by the BBM controller ---
+
+    MATES_COMMAND_START_BYTE = "$"
+
+    MATES_BOOT_TIMEOUT = 5000   ' ms, 5 sec
+    MATES_STRING_BUFFER_SIZE = 250
+    MATES_STRING_MAX_BUFFER_SIZE = 32000 ' max allowable is 32767 but usually not required anyway
+    MATES_SAFE_ACK = $06
+    MATES_RESPONSE_TIMEOUT = 1000 ' ms, 1 sec
+    MATES_RESPONSE_LTIMEOUT = 2000 ' ms, 2 sec
+
+
+    MATES_MIN_BACKLIGHT = 0
+    MATES_MAX_BACKLIGHT = 15
+
+    CHAR_BYTE_LENGTH = 1
+    WORD_BYTE_LENGTH = 2
+    INT_BYTE_LENGTH  = 4
+
+    UINT_8_MIN = 0
+    UINT_8_MAX = 255            ' 2**8 - 1
+
+    INT_8_MIN = -128            ' -(2**8)/2
+    INT_8_MAX = 127             ' (2**8)/2 - 1
+
+    UINT_16_MIN = 0
+    UINT_16_MAX = 65535         ' 2**16 - 1
+
+    INT_16_MIN = -32768         ' -(2**16)/2
+    INT_16_MAX = 32767          ' (2**16)/2 - 1
+
+    UINT_32_MIN = 0
+    UINT_32_MAX = 4294967295    ' 2**32 - 1
+
+    INT_32_MIN = -2147483648    ' -(2**32)/2
+    INT_32_MAX = 2147483647     ' (2**32)/2 - 1
+
+    FLOAT_32_MIN = $ff7fffff    ' -2**128
+    FLOAT_32_MAX = $7f7fffff    ' 2**128
+    ' NOTE: https://www.h-schmidt.net/FloatConverter/IEEE754.html
+    ' found using the above and playing with 2e128 and -2e128
+
+    ' types enum
+    #0, RTE_UINT8, RTE_INT8, RTE_UINT16, RTE_INT16, RTE_UINT32, RTE_INT32, RTE_FLOAT32, RTE_MAX
+    TYPE_RANGE_ENTRY_LONG_CT = 2
+    TYPE_RANGE_MAX_IDX = RTE_MAX
+
+DAT
+
+    datatype_ranges LONG 0[TYPE_RANGE_MAX_IDX * TYPE_RANGE_ENTRY_LONG_CT]
+
+
+PRI range_init()
+' initialize our range for type table
+    initRange(RTE_INT8, INT_8_MIN, INT_8_MAX)
+    initRange(RTE_UINT16, UINT_16_MIN, UINT_16_MAX)
+    initRange(RTE_INT16, INT_16_MIN, INT_16_MAX)
+    initRange(RTE_UINT32, UINT_32_MIN, UINT_32_MAX)
+    initRange(RTE_INT32, INT_32_MIN, INT_32_MAX)
+    initRange(RTE_FLOAT32, FLOAT_32_MIN, FLOAT_32_MAX)
+
+PRI initRange(nType, nRngMin, nRngMax) | offset
+' init a single entry in our table
+    offset := nType * TYPE_RANGE_ENTRY_LONG_CT
+    datatype_ranges[offset + 0] := nRngMin
+    datatype_ranges[offset+ 1] := nRngMax
+
+PRI getRangeForType(eRangeType) : nRangeMin, nRangeMax
+' return the current range for a given type
+    if eRangeType >= 0 and eRangeType < RTE_MAX
+        nRangeMin := datatype_ranges[eRangeType * TYPE_RANGE_ENTRY_LONG_CT + 0]
+        nRangeMax := datatype_ranges[eRangeType * TYPE_RANGE_ENTRY_LONG_CT + 1]
+    else
+        nRangeMin := 0
+        nRangeMax := 0
+
+PRI stringForRangeType(eRangeType) : pTypeString
+' return the name as string for a given type
+    case eRangeType
+        RTE_UINT8: pTypeString := @"UINT8"
+        RTE_INT8: pTypeString := @"INT8"
+        RTE_UINT16: pTypeString := @"UINT16"
+        RTE_INT16: pTypeString := @"INT16"
+        RTE_UINT32: pTypeString := @"UINT32"
+        RTE_INT32: pTypeString := @"INT32"
+        RTE_FLOAT32: pTypeString := @"FLOAT32"
+        other: pTypeString := @"TYPE:UNKNOWN"
+
+PRI delayMS(millisec)
+    waitus(millisec * 1000.0)
+
+PRI delayUS(microsec)
+    waitus(microsec)
+
+CON ' --- Mates internal Constants ---
+
+'  ----  MatesWidget() ----
+    {
+    All possible widget types within the BBM ecosystem
+
+    Attributes
+    ----------
+    MATES_LED - int
+        - corresponds to LED widget
+
+    MATES_RULER_GAUGE - int
+        - corresponds to Ruler Gauge widget
+
+    MATES_ANGL_METER - int
+        - corresponds to Angular Meter widget
+
+    MATES_GAGE_A - int
+        - corresponds to Gauge A widget
+
+    MATES_GAGE_B - int
+        - corresponds to Gauge B widget
+
+    MATES_LED_DIGITS - int
+        - corresponds to LED Digits widget
+
+    MATES_LABELS - int
+        - corresponds to Label widget
+
+    MATES_BTN_A - int
+        - corresponds to Button A widget
+
+    MATES_SW_A - int
+        - corresponds to Switch A widget
+
+    MATES_SLDR_B - int
+        - corresponds to Slider B widget
+
+    MATES_KNOB - int
+        - corresponds to Knob widget
+
+    MATES_MED_LED - int
+        - corresponds to Media LED widget
+
+    MATES_MED_COLR_LED - int
+        - corresponds to Color LED widget
+
+    MATES_GAGE_C - int
+        - corresponds to Gauge C widget
+
+    MATES_GAGE_D - int
+        - corresponds to Gauge D widget
+
+    MATES_GAGE_E - int
+        - corresponds to Gauge E widget
+
+    MATES_GAGE_F - int
+        - corresponds to Gauge F widget
+
+    MATES_MED_GAGE_A - int
+        - corresponds to Media Gauge A widget
+
+    MATES_MED_GAGE_B - int
+        - corresponds to Media Gauge B widget
+
+    MATES_MED_GAGE_C - int
+        - corresponds to Media Gauge C widget
+
+    MATES_MED_GAGE_D - int
+        - corresponds to Media Gauge D widget
+
+    MATES_MED_THERMOMETER - int
+        - corresponds to Media Thermometer widget
+
+    MATES_LED_SPECTRUM - int
+        - corresponds to LED Spectrum widget
+
+    MATES_MED_SPECTRUM - int
+        - corresponds to Media Spectrum widget
+
+    MATES_SCOPE - int
+        - corresponds to Scope widget
+
+    MATES_SYMBOLS - int
+        - corresponds to Symbols widget
+
+    MATES_ROTARY_GAUGE - int
+        - corresponds to Rotary Gauge widget
+
+    MATES_BTN_B - int
+        - corresponds to Button B widget
+
+    MATES_SW_B - int
+        - corresponds to Switch B widget
+
+    MATES_MED_BUTTON - int
+        - corresponds to Media Button widget
+
+    MATES_SLDR_A - int
+        - corresponds to Slider A widget
+
+    MATES_SLDR_C - int
+        - corresponds to Slider C widget
+
+    MATES_SLDR_D - int
+        - corresponds to Slider D widget
+
+    MATES_SLDR_E - int
+        - corresponds to Slider E widget
+
+    MATES_SLDR_F - int
+        - corresponds to Slider F widget
+
+    MATES_MED_SLIDER - int
+        - corresponds to Media Slider widget
+
+    MATES_MED_ROTARY - int
+        - corresponds to Media Rotary widget
+
+    MATES_SLIDE_SHOW - int
+        - corresponds to Slideshow widget
+
+    MATES_ANIMATION - int
+        - corresponds to Animation widget
+
+    MATES_FANCY_LED_A - int
+        - corresponds to Fancy LED A widget
+
+    MATES_FANCY_LED_B - int
+        - corresponds to Fancy LED B widget
+
+    MATES_FANCY_BTN_A - int
+        - corresponds to Fancy Button A widget
+
+    MATES_FANCY_BTN_B - int
+        - corresponds to Fancy Button B widget
+
+    }
+    MATES_LED = 0
+    MATES_RULER_GAUGE = 1
+    MATES_ANGL_METER = 2
+    MATES_GAGE_A = 3
+    MATES_GAGE_B = 4
+    MATES_LED_DIGITS = 5
+    MATES_LABELS = 6
+    MATES_BTN_A = 32
+    MATES_SW_A = 33
+    MATES_SLDR_B = 34
+    MATES_KNOB = 35
+    MATES_MED_LED = 64
+    MATES_MED_COLR_LED = 65
+    MATES_GAGE_C = 66
+    MATES_GAGE_D = 67
+    MATES_GAGE_E = 68
+    MATES_GAGE_F = 69
+    MATES_MED_GAGE_A = 70
+    MATES_MED_GAGE_B = 71
+    MATES_MED_GAGE_C = 72
+    MATES_MED_GAGE_D = 73
+    MATES_MED_THERMOMETER = 74
+    MATES_LED_SPECTRUM = 75
+    MATES_MED_SPECTRUM = 76
+    MATES_SCOPE = 77
+    MATES_SYMBOLS = 78
+    MATES_ROTARY_GAUGE = 79
+    MATES_BTN_B = 96
+    MATES_SW_B = 97
+    MATES_MED_BUTTON = 98
+    MATES_SLDR_A = 99
+    MATES_SLDR_C = 100
+    MATES_SLDR_D = 101
+    MATES_SLDR_E = 102
+    MATES_SLDR_F = 103
+    MATES_MED_SLIDER = 104
+    MATES_MED_ROTARY = 105
+    MATES_SLIDE_SHOW = 128
+    MATES_ANIMATION = 129
+    MATES_FANCY_LED_A = 130
+    MATES_FANCY_LED_B = 131
+    MATES_FANCY_BTN_A = 160
+    MATES_FANCY_BTN_B = 161
+
+'  ----  MatesError() ----
+    {
+    An enumerated '   representing all possible error states of the
+    Python Mates Serial controller.
+
+    Attributes
+    ----------
+    MATES_ERROR_NONE        - indicates no error state.
+
+    MATES_ERROR_COMMAND_FAILED        - indicates requested command failed.
+
+    MATES_ERROR_COMMAND_TIMEOUT        - indicates requested command timed out without a response.
+
+    MATES_ERROR_RESPONSE_TIMEOUT        - indicates response requested from controller timed out.
+    }
+    MATES_ERROR_NONE = 0
+    MATES_ERROR_COMMAND_FAILED = 1
+    MATES_ERROR_COMMAND_TIMEOUT = 2
+    MATES_ERROR_RESPONSE_TIMEOUT = 3
+
+'  ----  MatesResetMode() ----
+    {
+    An enumerated '   representing hardware reset configurations
+    for the device upon which the Python Mates Serial Controller
+    is deployed.
+
+    Attributes
+    ----------
+    RESET_LOW: str
+        - indicates a pin should be driven to logic level low to
+        hard reset the controller.
+
+    RESET_HIGH: str
+        - indicates a pin should be driven to logic level high to
+        hard reset the controller.
+
+    }
+    'RESET_LOW = "LOW"
+    'RESET_HIGH = "HIGH"
+
+'  ----  MatesSwipeConsts() ----
+    {
+    An enumerated '   representing the possible swipe event checks
+
+    Attributes
+    ----------
+    MATES_SWIPE_NORTH        - A flag that can be used to check if a swipe is
+        from bottom to top
+
+    MATES_SWIPE_SOUTH        - A flag that can be used to check if a swipe is
+        from top to bottom
+
+    MATES_SWIPE_EAST        - A flag that can be used to check if a swipe is
+        from left to right
+
+    MATES_SWIPE_WEST        - A flag that can be used to check if a swipe is
+        from right to left
+
+    MATES_SWIPE_VERT        - A flag that can be used to check if a swipe is
+        only done vertically
+
+    MATES_SWIPE_HORZ        - A flag that can be used to check if a swipe is
+        only done horizontally
+
+    MATES_SWIPE_TLBR        - A flag that can be used to check if a swipe is
+        from top left to bottom right
+
+    MATES_SWIPE_TRBL        - A flag that can be used to check if a swipe is
+        from top right to bottom left
+
+    MATES_SWIPE_BLTR        - A flag that can be used to check if a swipe is
+        from bottom left to top right
+
+    MATES_SWIPE_BRTL        - A flag that can be used to check if a swipe is
+        from bottom right to top left
+
+    }
+    MATES_SWIPE_NORTH = %0001
+    MATES_SWIPE_SOUTH = %0010
+    MATES_SWIPE_EAST = %0100
+    MATES_SWIPE_WEST = %1000
+    MATES_SWIPE_VERT = %0011
+    MATES_SWIPE_HORZ = %1100
+    MATES_SWIPE_TLBR = %0110
+    MATES_SWIPE_TRBL = %1010
+    MATES_SWIPE_BLTR = %0101
+    MATES_SWIPE_BRTL = %1001
+
+'  ----  MatesColorConsts() ----
+    ALICEBLUE = $F7DF
+    ANTIQUEWHITE = $FF5A
+    AQUA = $07FF
+    AQUAMARINE = $7FFA
+    AZURE = $F7FF
+    BEIGE = $F7BB
+    BISQUE = $FF38
+    BLACK = $0000
+    BLANCHEDALMOND = $FF59
+    BLUE = $001F
+    BLUEVIOLET = $895C
+    BROWN = $A145
+    BURLYWOOD = $DDD0
+    CADETBLUE = $5CF4
+    CHARTREUSE = $7FE0
+    CHOCOLATE = $D343
+    CORAL = $FBEA
+    CORNFLOWERBLUE = $64BD
+    CORNSILK = $FFDB
+    CRIMSON = $D8A7
+    CYAN = $07FF
+    DARKBLUE = $0011
+    DARKCYAN = $0451
+    DARKGOLDENROD = $BC21
+    DARKGRAY = $AD55
+    DARKGREEN = $0320
+    DARKKHAKI = $BDAD
+    DARKMAGENTA = $8811
+    DARKOLIVEGREEN = $5345
+    DARKORANGE = $FC60
+    DARKORCHID = $9999
+    DARKRED = $8800
+    DARKSALMON = $ECAF
+    DARKSEAGREEN = $8DF1
+    DARKSLATEBLUE = $49F1
+    DARKSLATEGRAY = $2A69
+    DARKTURQUOISE = $067A
+    DARKVIOLET = $901A
+    DEEPPINK = $F8B2
+    DEEPSKYBLUE = $05FF
+    DIMGRAY = $6B4D
+    DODGERBLUE = $1C9F
+    FIREBRICK = $B104
+    FLORALWHITE = $FFDE
+    FORESTGREEN = $2444
+    FUCHSIA = $F81F
+    GAINSBORO = $DEFB
+    GHOSTWHITE = $FFDF
+    GOLD = $FEA0
+    GOLDENROD = $DD24
+    GRAY = $8410
+    GREEN = $0400
+    GREENYELLOW = $AFE5
+    HONEYDEW = $F7FE
+    HOTPINK = $FB56
+    INDIANRED = $CAEB
+    INDIGO = $4810
+    IVORY = $FFFE
+    KHAKI = $F731
+    LAVENDER = $E73F
+    LAVENDERBLUSH = $FF9E
+    LAWNGREEN = $7FE0
+    LEMONCHIFFON = $FFD9
+    LIGHTBLUE = $AEDC
+    LIGHTCORAL = $F410
+    LIGHTCYAN = $E7FF
+    LIGHTGOLD = $FFDA
+    LIGHTGREEN = $9772
+    LIGHTGREY = $D69A
+    LIGHTPINK = $FDB8
+    LIGHTSALMON = $FD0F
+    LIGHTSEAGREEN = $2595
+    LIGHTSKYBLUE = $867F
+    LIGHTSLATEGRAY = $7453
+    LIGHTSTEELBLUE = $B63B
+    LIGHTYELLOW = $FFFC
+    LIME = $07E0
+    LIMEGREEN = $3666
+    LINEN = $FF9C
+    MAGENTA = $F81F
+    MAROON = $8000
+    MEDIUMAQUAMARINE = $6675
+    MEDIUMBLUE = $0019
+    MEDIUMORCHID = $BABA
+    MEDIUMPURPLE = $939B
+    MEDIUMSEAGREEN = $3D8E
+    MEDIUMSLATEBLUE = $7B5D
+    MEDIUMSPRINGGREEN = $07D3
+    MEDIUMTURQUOISE = $4E99
+    MEDIUMVIOLETRED = $C0B0
+    MIDNIGHTBLUE = $18CE
+    MINTCREAM = $F7FF
+    MISTYROSE = $FF3C
+    MOCCASIN = $FF36
+    NAVAJOWHITE = $FEF5
+    NAVY = $0010
+    OLDLACE = $FFBC
+    OLIVE = $8400
+    OLIVEDRAB = $6C64
+    ORANGE = $FD20
+    ORANGERED = $FA20
+    ORCHID = $DB9A
+    PALEGOLDENROD = $EF55
+    PALEGREEN = $9FD3
+    PALETURQUOISE = $AF7D
+    PALEVIOLETRED = $DB92
+    PAPAYAWHIP = $FF7A
+    PEACHPUFF = $FED7
+    PERU = $CC27
+    PINK = $FE19
+    PLUM = $DD1B
+    POWDERBLUE = $B71C
+    PURPLE = $8010
+    RED = $F800
+    ROSYBROWN = $BC71
+    ROYALBLUE = $435C
+    SADDLEBROWN = $8A22
+    SALMON = $FC0E
+    SANDYBROWN = $F52C
+    SEAGREEN = $2C4A
+    SEASHELL = $FFBD
+    SIENNA = $A285
+    SILVER = $C618
+    SKYBLUE = $867D
+    SLATEBLUE = $6AD9
+    SLATEGRAY = $7412
+    SNOW = $FFDF
+    SPRINGGREEN = $07EF
+    STEELBLUE = $4416
+    TAN = $D5B1
+    TEAL = $0410
+    THISTLE = $DDFB
+    TOMATO = $FB08
+    TURQUOISE = $471A
+    VIOLET = $EC1D
+    WHEAT = $F6F6
+    WHITE = $FFFF
+    WHITESMOKE = $F7BE
+    YELLOW = $FFE0
+    YELLOWGREEN = $9E66
+
+'  ----  MatesParamsLed() ----
+    MATES_LED_BZL_COLR_A = 4
+    MATES_LED_BZL_COLR_B = 5
+    MATES_LED_LED_COLR_ON = 7
+    MATES_LED_LED_COLR_OFF = 8
+    MATES_LED_SHINE_COLR = 6
+
+'  ----  MatesParamRulerGauge() ----
+    MATES_RULER_GAGE_BKGND_COLR = 11
+    MATES_RULER_GAGE_PART1_COLR = 12
+    MATES_RULER_GAGE_PART2_COLR = 13
+    MATES_RULER_GAGE_PART3_COLR = 14
+    MATES_RULER_GAGE_TCK_COLR = 15
+
+'  ----  MatesParamAngularMeter() ----
+    '23456789-123456789-123456789-
+    MATES_ANGLMTR_BKGND_COLR = 11
+    MATES_ANGLMTR_SCAL_SECT1_COLR = 12
+    MATES_ANGLMTR_SCAL_SECT2_COLR = 13
+    MATES_ANGLMTR_SCAL_SECT3_COLR = 14
+    MATES_ANGLMTR_TCK_COLR = 9
+    MATES_ANGLMTR_LABEL_COLR = 18
+    MATES_ANGLMTR_NEDL_COLR = 43
+    MATES_ANGLMTR_NEDL_PINCOLR = 45
+    MATES_ANGLMTR_NEDL_PINDOT_COLR = 47
+    MATES_ANGLMTR_CAPTN_COLR = 23
+
+'  ----  MatesParamGaugeA() ----
+    MATES_GAGE_A_BASE_COLR = 9
+    '23456789-123456789-123456789-
+    MATES_GAGE_A_PART1_INA_COLR = 10
+    MATES_GAGE_A_PART1_ACT_COLR = 11
+    MATES_GAGE_A_PART2_INA_COLR = 12
+    MATES_GAGE_A_PART2_ACT_COLR = 13
+    MATES_GAGE_A_PART3_INA_COLR = 14
+    MATES_GAGE_A_PART3_ACT_COLR = 15
+
+'  ----  MatesParamGaugeB() ----
+    '23456789-123456789-123456789-
+    MATES_GAGE_B_BKGND_COLR = 7
+    MATES_GAGE_B_TRK_FIL_COLR_A = 9
+    MATES_GAGE_B_TRK_FIL_COLR_B = 8
+    MATES_GAGE_B_MAJOR_TCK_COLR = 15
+    MATES_GAGE_B_MINOR_TCK_COLR = 15
+    MATES_GAGE_B_FONT_COLR = 17
+
+'  ----  MatesParamLedDigits() ----
+    '23456789-123456789-123456789-
+    MATES_LED_DGTS_SEG_COLR_ON = 8
+    MATES_LED_DGTS_SEG_COLR_OFF = 9
+
+'  ----  MatesParamLabels() ----
+    MATES_LABELS_FOREGROUND_COLR = 5
+    MATES_LABELS_BKGND_COLR = 6
+
+'  ----  MatesParamButtonA() ----
+    '23456789-123456789-123456789-
+    MATES_BTN_A_BASE_COLR_A = 3
+    MATES_BTN_A_BASE_COLR_B = 4
+    MATES_BTN_A_RING_COLR_OFF = 6
+    MATES_BTN_A_RING_COLR_ON = 7
+    MATES_BTN_A_BTN_COLR_A = 8
+    MATES_BTN_A_BTN_COLR_B = 9
+    MATES_BTN_A_FACE_COLR = 12
+    MATES_BTN_A_CAPTN_COLR_OFF = 14
+    MATES_BTN_A_CAPTN_COLR_ON = 15
+    MATES_BTN_A_DOT_COLR_A = 14
+    MATES_BTN_A_DOT_COLR_B = 15
+
+'  ----  MatesParamSwitchA() ----
+    MATES_SW_A_BVL_MAIN_COLR = 5
+    MATES_SW_A_BVL_SHADOW_COLR = 6
+    MATES_SW_A_TRACK_COLR_ON = 9
+    MATES_SW_A_TRACK_COLR_OFF = 10
+    MATES_SW_A_LABEL_COLR_ON = 15
+    MATES_SW_A_LABEL_COLR_OFF = 16
+
+'  ----  MatesParamSliderB() ----
+    '23456789-123456789-123456789-
+    MATES_SLDR_B_BKGND_COLR = 7
+    MATES_SLDR_B_TRK_FIL_COLR_A = 9
+    MATES_SLDR_B_TRK_FIL_COLR_B = 8
+    MATES_SLDR_B_MAJOR_TCK_COLR = 15
+    MATES_SLDR_B_MINOR_TCK_COLR = 17
+    MATES_SLDR_B_FONT_COLR = 19
+    MATES_SLDR_B_KNOB_OTLN_COLR_A = 20
+    MATES_SLDR_B_KNOB_OTLN_COLR_B = 21
+    MATES_SLDR_B_KNOB_FACE_COLR_A = 23
+    MATES_SLDR_B_KNOB_FACE_COLR_B = 24
+
+'  ----  MatesParamKnob() ----
+    MATES_KNOB_BKGND_COLR = 11
+    MATES_KNOB_KNOB_COLR = 12
+    MATES_KNOB_BVL_COLR_LEFT = 15
+    MATES_KNOB_BVL_COLR_RIGHT = 14
+    MATES_KNOB_PART1_INA_COLR = 18
+    MATES_KNOB_PART1_ACT_COLR = 21
+    MATES_KNOB_PART2_INA_COLR = 19
+    MATES_KNOB_PART2_ACT_COLR = 22
+    MATES_KNOB_PART3_INA_COLR = 20
+    MATES_KNOB_PART3_ACT_COLR = 23
+    MATES_KNOB_LABEL_COLR = 30
+    MATES_KNOB_CAPTN_COLR = 36
+    MATES_KNOB_POINTER_COLR = 27
+
+'  ----  MatesParamMediaLed() ----
+    MATES_MED_LED_BKGND_COLR = 8
+    MATES_MED_LED_BVL_COLR = 6
+    MATES_MED_LED_FACE_COLR = 7
+    MATES_MED_LED_LED_COLR_ON = 10
+    MATES_MED_LED_LED_COLR_OFF = 9
+    MATES_MED_LED_SYMBOL_COLR = 12
+
+'  ----  MatesParamMediaColorLed() ----
+    MATES_MED_COLR_LED_OUT_COLR = 4
+    MATES_MED_COLR_LED_IN_COLR = 5
+
+'  ----  MatesParamGaugeC() ----
+    MATES_GAGE_C_BKGND_COLR = 7
+    MATES_GAGE_C_TRK_FIL_COLR_A = 10
+    MATES_GAGE_C_TRK_FIL_COLR_B = 9
+    MATES_GAGE_C_TCK_COLR = 11
+    MATES_GAGE_C_FONT_COLR = 13
+
+'  ----  MatesParamGaugeD() ----
+    MATES_GAGE_D_BKGND_COLR = 7
+    MATES_GAGE_D_TRK_FIL_COLR_A = 10
+    MATES_GAGE_D_TRK_FIL_COLR_B = 9
+    MATES_GAGE_D_TCK_COLR = 11
+    MATES_GAGE_D_FONT_COLR = 13
+
+'  ----  MatesParamGaugeE() ----
+    MATES_GAGE_E_BVL_COLR = 7
+    MATES_GAGE_E_TRK_FIL_COLR_A = 6
+    MATES_GAGE_E_TRK_FIL_COLR_B = 8
+
+'  ----  MatesParamGaugeF() ----
+    MATES_GAGE_F_OUT_BVL_COLR_A = 6
+    MATES_GAGE_F_OUT_BVL_COLR_B = 7
+    MATES_GAGE_F_IN_BVL_COLR_A = 9
+    MATES_GAGE_F_IN_BVL_COLR_B = 10
+    MATES_GAGE_F_TRK_FIL_COLR_A = 13
+    MATES_GAGE_F_TRK_FIL_COLR_B = 12
+
+'  ----  MatesParamMediaGaugeA() ----
+    '23456789-123456789-123456789-
+    MATES_MED_GAGE_A_BKGND_COLR = 10
+    MATES_MED_GAGE_A_SCAL_BVL_COLR = 9
+'    MATES_MED_GAGE_A_SCAL_BOT_LT_FIL_COLR = 7
+'    MATES_MED_GAGE_A_SCAL_TOP_RT_FIL_COLR = 8
+
+'  ----  MatesParamMediaGaugeB() ----
+    '23456789-123456789-123456789-
+    MATES_MED_GAGE_B_NEDL_COLR = 12
+    MATES_MED_GAGE_B_OUT_BZL_COLR = 4
+    MATES_MED_GAGE_B_IN_BZL_COLR = 5
+    MATES_MED_GAGE_B_DIAL_COLR = 6
+    MATES_MED_GAGE_B_SCAL_LOW_COLR = 13
+    MATES_MED_GAGE_B_SCAL_MED_COLR = 14
+    MATES_MED_GAGE_B_SCAL_HI_COLR = 15
+    MATES_MED_GAGE_B_TCK_COLR = 7
+    MATES_MED_GAGE_B_FONT_COLR = 8
+
+'  ----  MatesParamMediaGaugeC() ----
+    MATES_MED_GAGE_C_ON_COLR = 4
+    MATES_MED_GAGE_C_OFF_COLR = 5
+
+'  ----  MatesParamMediaGaugeD() ----
+    MATES_MED_GAGE_D_ACT_SRT_COLR = 4
+    MATES_MED_GAGE_D_ACT_END_COLR = 5
+    MATES_MED_GAGE_D_INA_COLR = 6
+
+'  ----  MatesParamMediaThermometer() ----
+    MATES_MED_THERMO_BASE_COLR = 6
+    MATES_MED_THERMO_BULB_COLR = 7
+    MATES_MED_THERMO_FONT_COLR = 9
+    MATES_MED_THERMO_SCAL_TCK_COLR = 8
+
+'  ----  MatesParamLedSpectrum() ----
+    MATES_LED_SPECT_BASE_COLR = 11
+    MATES_LED_SPECT_PART1_INA_COLR = 12
+    MATES_LED_SPECT_PART1_ACT_COLR = 13
+    MATES_LED_SPECT_PART2_INA_COLR = 14
+    MATES_LED_SPECT_PART2_ACT_COLR = 15
+    MATES_LED_SPECT_PART3_INA_COLR = 16
+    MATES_LED_SPECT_PART3_ACT_COLR = 17
+
+'  ----  MatesParamMediaSpectrum() ----
+    MATES_MED_SPECT_ACT_SRT_COLR = 6
+    MATES_MED_SPECT_ACT_END_COLR = 7
+    MATES_MED_SPECT_INA_COLR = 8
+
+'  ----  MatesParamButtonB() ----
+    MATES_BTN_B_BVL_COLR_A = 5
+    MATES_BTN_B_BVL_COLR_B = 6
+    MATES_BTN_B_FACE_ON_COLR = 9
+    MATES_BTN_B_FACE_OFF_COLR_A = 10
+    MATES_BTN_B_FACE_OFF_COLR_B = 11
+    MATES_BTN_B_TEXT_ON_COLR = 17
+    MATES_BTN_B_TEXT_OFF_COLR = 18
+    MATES_BTN_B_SHINE_COLR = 13
+
+'  ----  MatesParamSwitchB() ----
+    MATES_SW_B_BVL_MAIN_COLR = 5
+    MATES_SW_B_BVL_SHADOW_COLR = 10
+    MATES_SW_B_LABEL_COLR_ON = 15
+    MATES_SW_B_LABEL_COLR_OFF = 16
+
+'  ----  MatesParamMediaButton() ----
+    MATES_MED_BTN_BKGND_COLR = 8
+    MATES_MED_BTN_BVL_COLR = 6
+    MATES_MED_BTN_FACE_COLR = 7
+    MATES_MED_BTN_LED_COLR_ON = 10
+    MATES_MED_BTN_LED_COLR_OFF = 9
+    MATES_MED_BTN_SYMBOL_COLR = 12
+
+'  ----  MatesParamSliderA() ----
+    MATES_SLDR_A_BKGND_COLR = 7
+    MATES_SLDR_A_BORDER_COLR = 8
+    MATES_SLDR_A_LED_OTLN_COLR_A = 15
+    MATES_SLDR_A_LED_OTLN_COLR_B = 16
+    MATES_SLDR_A_LED_ACT_COLR = 21
+    MATES_SLDR_A_LED_INA_COLR_A = 17
+    MATES_SLDR_A_LED_INA_COLR_B = 18
+    MATES_SLDR_A_TRACK_OTLN_COLR_A = 9
+    MATES_SLDR_A_TRACK_OTLN_COLR_B = 10
+    MATES_SLDR_A_TRK_FIL_COLR_A = 11
+    MATES_SLDR_A_TRK_FIL_COLR_B = 12
+    MATES_SLDR_A_KNOB_COLR_A = 22
+    MATES_SLDR_A_KNOB_COLR_B = 23
+    MATES_SLDR_A_FONT_COLR = 26
+
+'  ----  MatesParamSliderC() ----
+    MATES_SLDR_C_BKGND_COLR = 7
+    MATES_SLDR_C_KNOB_COLR = 8
+    MATES_SLDR_C_TRK_FIL_COLR_A = 10
+    MATES_SLDR_C_TRK_FIL_COLR_B = 9
+    MATES_SLDR_C_TCK_COLR = 11
+    MATES_SLDR_C_FONT_COLR = 13
+
+'  ----  MatesParamSliderD() ----
+    MATES_SLDR_D_BKGND_COLR = 7
+    MATES_SLDR_D_KNOB_COLR = 8
+    MATES_SLDR_D_TRK_FIL_COLR_A = 10
+    MATES_SLDR_D_TRK_FIL_COLR_B = 9
+    MATES_SLDR_D_TCK_COLR = 11
+    MATES_SLDR_D_FONT_COLR = 13
+
+'  ----  MatesParamSliderE() ----
+    MATES_SLDR_E_BVL_COLR = 7
+    MATES_SLDR_E_TRK_FIL_COLR_A = 6
+    MATES_SLDR_E_TRK_FIL_COLR_B = 8
+    MATES_SLDR_E_KNOB_COLR = 9
+
+'  ----  MatesParamSliderF() ----
+    MATES_SLDR_F_OUT_BVL_COLR_A = 6
+    MATES_SLDR_F_OUT_BVL_COLR_B = 7
+    MATES_SLDR_F_IN_BVL_COLR_A = 9
+    MATES_SLDR_F_IN_BVL_COLR_B = 10
+    MATES_SLDR_F_TRK_FIL_COLR_A = 13
+    MATES_SLDR_F_TRK_FIL_COLR_B = 12
+    MATES_SLDR_F_KNOB_OTLN_COLR_A = 14
+    MATES_SLDR_F_KNOB_OTLN_COLR_B = 15
+    MATES_SLDR_F_KNOB_FACE_COLR_A = 17
+    MATES_SLDR_F_KNOB_FACE_COLR_B = 18
+    MATES_SLDR_F_KNOB_DOT_COLR = 20
+
+'  ----  MatesParamMediaSlider() ----
+    MATES_MED_SLDR_BKGND_COLR = 10
+    MATES_MED_SLDR_SCAL_BVL_COLR = 9
+'    MATES_MED_SLDR_SCAL_BOT_LT_FIL_COLR = 7
+'    MATES_MED_SLDR_SCAL_TOP_RT_FIL_COLR = 8
+    MATES_MED_SLDR_KNOB_BVL_COLR = 6
+    MATES_MED_SLDR_KNOB_CNTR_COLR = 5
+
+'  ----  MatesParamMediaRotary() ----
+    MATES_MED_ROT_OUT_EDGE_COLR = 5
+    MATES_MED_ROT_OUT_RADIUS_COLR = 6
+    MATES_MED_ROT_IN_EDGE_COLR = 7
+    MATES_MED_ROT_IN_RADIUS_COLR = 8
+    MATES_MED_ROT_IND_OUT_COLR = 9
+    MATES_MED_ROT_IND_IN_COLR = 10
+
+CON ' --- predefined IDs for widgets ---
+
+'  ----  MatesWidgetId() ----
+    ' Led List LED0-LED255
+    Led_BASE = $0000
+
+    ' RulerGauge List - BASE $0100 0-255
+    RulerGauge_BASE = $0100
+
+    ' AngularMeter List - BASE $0200 0-255
+    AngularMeter_BASE = $0200
+
+    ' GaugeA List - BASE $0300 0-255
+    GaugeA_BASE = $0300
+
+    ' GaugeB List - BASE $0400 0-255
+    GaugeB_BASE = $0400
+
+    ' LedDigits List - BASE $0500 0-255
+    LedDigits_BASE = $0500
+
+    ' Labels List - BASE $0600 0-255
+    Labels_BASE = $0600
+
+    ' ButtonA List - BASE $2000 0-255
+    ButtonA_BASE = $2000
+
+    ' SwitchA List - BASE $2100 0-255
+    SwitchA_BASE = $2100
+
+    ' SliderB List - BASE $2200 0-255
+    SliderB_BASE = $2200
+
+    ' Knob List - BASE $2300 0-255
+    Knob_BASE = $2300
+
+    ' MediaLed List - BASE $4000 0-255
+    MediaLed_BASE = $4000
+
+    ' MediaColorLed List - BASE $4100 0-255
+    MediaColorLed_BASE = $4100
+
+    ' GaugeC List - BASE $4200 0-255
+    GaugeC_BASE = $4200
+
+    ' GaugeD List - BASE $4300 0-255
+    GaugeD_BASE = $4300
+
+    ' GaugeE List - BASE $4400 0-255
+    GaugeE_BASE = $4400
+
+    ' GaugeF List - BASE $4500 0-255
+    GaugeF_BASE = $4500
+
+    ' MediaGaugeA List - BASE $4600 0-255
+    MediaGaugeA_BASE = $4600
+
+    ' MediaGaugeB List - BASE $4700 0-255
+    MediaGaugeB_BASE = $4700
+
+    ' MediaGaugeC List - BASE $4800 0-255
+    MediaGaugeC_BASE = $4800
+
+    ' MediaGaugeD List - BASE $4900 0-255
+    MediaGaugeD_BASE = $4900
+
+    ' MediaThermometer List - BASE $4A00 0-255
+    MediaThermometer_BASE = $4A00
+
+    ' LedSpectrum List - BASE $4B00 0-255
+    LedSpectrum_BASE = $4B00
+
+    ' MediaSpectrum List - BASE $4C00 0-255
+    MediaSpectrum_BASE = $4C00
+
+    ' Scope List - BASE $4D00 0-255
+    Scope_BASE = $4D00
+
+    ' Symbols List - BASE $4E00 0-255
+    Symbols_BASE = $4E00
+
+    ' ButtonB List - BASE $6000 0-255
+    ButtonB_BASE = $6000
+
+    ' SwitchB List - BASE $6100 0-255
+    SwitchB_BASE = $6100
+
+    ' MediaButton List - BASE $6200 0-255
+    MediaButton_BASE = $6200
+
+    ' SliderA List - BASE $6300 0-255
+    SliderA_BASE = $6300
+
+    ' SliderC List - BASE $6400 0-255
+    SliderC_BASE = $6400
+
+    ' SliderD List - BASE $6500 0-255
+    SliderD_BASE = $6500
+
+    ' SliderE List - BASE $6600 0-255
+    SliderE_BASE = $6600
+
+    ' MediaSlider List - BASE $6800 0-255
+    MediaSlider_BASE = $6800
+
+    ' MediaRotary List - BASE $6900 0-255
+    MediaRotary_BASE = $6900
+
+    ' SlideShow List - BASE $8000 0-255
+    SlideShow_BASE = $8000
+
+    ' Animation List - BASE $8100 0-255
+    Animation_BASE = $8100
+
+    ' FancyLedA List - BASE $8200 0-255
+    FancyLedA_BASE = $8200
+
+    ' FancyLedB List - BASE $8300 0-255
+    FancyLedB_BASE = $8300
+
+    ' FancyButtonA List - BASE $A000 0-255
+    FancyButtonA_BASE = $A000
+
+    ' FancyButtonB List - BASE $A100 0-255
+    FancyButtonB_BASE = $A100
+
+PRI getWidgetIdForBase(idBase, offset) : desiredID | legalOffset
+    legalOffset := 0 #> offset <# 255
+    if offset <> legalOffset
+        debug("getWidgetIdForBase() ERROR invalid widget offset [", udec_(offset), "] not [0-255], Abort")
+        abort
+    desiredID := idBase + offset
+
+CON { license }
+
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2023 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+
+}}

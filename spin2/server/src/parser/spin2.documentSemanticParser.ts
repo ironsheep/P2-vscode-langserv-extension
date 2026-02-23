@@ -624,7 +624,9 @@ export class Spin2DocumentSemanticParser {
         // mark end of method, if we were in a method
         this.semanticFindings.endPossibleMethod(i); // pass prior line number! essentially i+1 (-1)
 
+        let wasInDatPAsm = false;
         if (currState === eParseState.inDatPAsm) {
+          wasInDatPAsm = true;
           this.semanticFindings.recordPasmEnd(i - 1);
           currState = prePAsmState;
           this._logState(`- pre-scan Ln#${lineNbr} POP currState=[${eParseState[currState]}]`);
@@ -642,6 +644,14 @@ export class Spin2DocumentSemanticParser {
         }
 
         currState = sectionStatus.inProgressStatus;
+        // Consecutive DAT section after PASM — re-enter PASM context
+        // In P2, DAT is just a section divider; ORG establishes PASM mode for all subsequent DAT sections
+        if (currState === eParseState.inDat && wasInDatPAsm) {
+          this.semanticFindings.recordPasmStart(i, false);
+          prePAsmState = currState;
+          currState = eParseState.inDatPAsm;
+          this._logState(`- pre-scan Ln#${lineNbr} DAT->DatPAsm (continuation after prior ORG)`);
+        }
         // reset method scope for global sections (CON, VAR, OBJ, DAT)
         if (currState !== eParseState.inPub && currState !== eParseState.inPri) {
           this.currentMethodName = '';
@@ -1130,7 +1140,9 @@ export class Spin2DocumentSemanticParser {
             `* colorize Ln#${lineNbr} foundMuli end-} exit MultiLineComment, nonStringLine=[${nonStringLine}](${nonStringLine.length})`
           );
           // if NO more code on line after close then skip line
-          const tempLine: string = nonCommentLine.substring(closingOffset + 1).trim();
+          // NOTE: find '}' in nonCommentLine (untrimmed) since closingOffset is from nonStringLine (trimmed)
+          const closingOffsetInLine: number = nonCommentLine.indexOf('}');
+          const tempLine: string = nonCommentLine.substring(closingOffsetInLine + 1).trim();
           if (tempLine.length === 0) {
             this._logMessage(`* colorize SKIP MultiLineComment Ln#${i + 1} nonCommentLine=[${nonCommentLine}]`);
             continue;
@@ -1153,13 +1165,22 @@ export class Spin2DocumentSemanticParser {
       this._logMessage(`  -- colorize Ln#${lineNbr} proceed with line, nonCommentLine=[${nonCommentLine}](${nonCommentLine.length})`);
 
       if (sectionStatus.isSectionStart) {
+        let wasInDatPAsm = false;
         if (currState === eParseState.inDatPAsm) {
           // BEFORE STATE CHANGE:
           //    end datPasm at next section start
+          wasInDatPAsm = true;
           currState = prePAsmState;
           this._logState(`- colorize Ln#${lineNbr} POP currState=[${currState}]`);
         }
         currState = sectionStatus.inProgressStatus;
+        // Consecutive DAT section after PASM — re-enter PASM context
+        // In P2, DAT is just a section divider; ORG establishes PASM mode for all subsequent DAT sections
+        if (currState === eParseState.inDat && wasInDatPAsm) {
+          prePAsmState = currState;
+          currState = eParseState.inDatPAsm;
+          this._logState(`- colorize Ln#${lineNbr} DAT->DatPAsm (continuation after prior ORG)`);
+        }
         // reset method scope for global sections (CON, VAR, OBJ, DAT)
         if (currState !== eParseState.inPub && currState !== eParseState.inPri) {
           this.currentMethodName = '';
@@ -3552,7 +3573,12 @@ export class Spin2DocumentSemanticParser {
               this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, lineParts[1].length, 'variable', ['illegalUse']);
             }
           }
-        } else if (!this.parseUtils.isP2AsmReservedSymbols(newName) && !this.parseUtils.isP2AsmInstruction(newName)) {
+        } else if (
+          !this.parseUtils.isP2AsmReservedSymbols(newName) &&
+          !this.parseUtils.isP2AsmInstruction(newName) &&
+          !newName.toUpperCase().startsWith('IF_') &&
+          !newName.toUpperCase().startsWith('_RET_')
+        ) {
           this._logDAT('  --  DAT rDdl MISSING name=[' + newName + ']');
           this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, newName.length, 'variable', ['missingDeclaration'], newName);
           this.semanticFindings.pushDiagnosticMessage(
@@ -3684,6 +3710,11 @@ export class Spin2DocumentSemanticParser {
             currentOffset += possibleNameLength;
             continue;
           }
+          // skip PASM conditional prefixes (e.g., if_c, if_nz, _ret_)
+          if (possibleName.toUpperCase().startsWith('IF_') || possibleName.toUpperCase().startsWith('_RET_')) {
+            currentOffset = line.indexOf(possibleName, currentOffset) + possibleNameLength;
+            continue;
+          }
           const [paramIsNumber, paramIsSymbolName] = this.parseUtils.isValidSpinConstantOrSpinSymbol(possibleName);
           this._logDAT(`  -- rDvdc() name=[${possibleName}], paramIsNumber=(${paramIsNumber})`);
           if (paramIsNumber) {
@@ -3770,7 +3801,8 @@ export class Spin2DocumentSemanticParser {
                 !this.parseUtils.isBinaryOperator(namePart) &&
                 !this.parseUtils.isUnaryOperator(namePart) &&
                 !this.parseUtils.isSpinPAsmLangDirective(namePart) &&
-                !this.parseUtils.isBuiltinStreamerReservedWord(namePart)
+                !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
+                !this.parseUtils.isP2AsmEffect(namePart)
               ) {
                 if (showDebug) {
                   this._logMessage('  --  rDvdc() MISSING name=[' + namePart + ']');

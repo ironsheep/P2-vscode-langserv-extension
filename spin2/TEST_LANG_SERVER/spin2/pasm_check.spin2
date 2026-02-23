@@ -1,0 +1,638 @@
+CON
+
+  maxr                  = 32
+
+  #0, y1_lut1, y2_lut1, x1_lut2, y1_lut2, x2_lut2, y2_lut2, array_words
+
+
+                        '               --------------0++++++++++++++
+  frac_array_size       = array_words * ((1 + maxr) + 1 + (maxr + 1))
+  frac_array_mid        = array_words * ((1 + maxr) + 0             ) * 2{bytes}
+
+CON 'enumerated graphics commands
+  #1,smooth_pixel_,Smooth_Line_,Set_MapBase_,Set_PixelPtr_
+
+
+
+DAT   ''GraphicsEntry    Assembly Graphics Driver Entry
+orgh
+              org
+GraphicsEntry
+                'calculate PSRAM interface address for this cog
+                rdlong  garg0,ptra
+                wrlong  #0,ptra
+                cogid   pa                      'get this cog's psram command pointer
+                mul     pa,#12
+                add     pa, garg0
+                mov     plot_pPsram, pa
+
+                'save command pointer
+                mov     pcmd, ptra
+
+
+GELoop        'Command Loop
+              SetQ      #11-1   'Read in command interface and then set command to zero to signify receipt
+              rdlong    garg0,pcmd
+              cmp       garg0,#0 wcz
+        if_z  jmp       #GELoop
+              wrlong    #0,pcmd   'Acknowledge the command by setting to zero 'NOTE:  Do this only after making sure non-zero!
+
+
+
+              'Process command
+              jmprel    garg0
+              jmp       #GEDone                         '0
+              jmp       #_smooth_pixel                  '1
+              jmp       #_smooth_line                   '2
+              jmp       #_set_mapbase                   '3
+              jmp       #_set_pixelptr                  '4
+
+GEDone      'should not actually get here
+              jmp       #GELoop
+
+pcmd          long      0       'Command Address
+garg0         long      0       'Command Arguments
+garg1         long      0
+garg2         long      0
+garg3         long      0
+garg4         long      0
+garg5         long      0
+garg6         long      0
+garg7         long      0
+garg8         long      0
+garg9         long      0
+garg10        long      0
+
+
+DAT '_smooth_pixel
+_smooth_pixel
+              mov       plot_x, garg1    'replace with setq?
+              mov       plot_y, garg2
+              mov       plot_color, garg3
+              mov       plot_alpha, garg4
+              call      #smooth_pixel
+              jmp       #GELoop
+
+DAT '_smooth_line
+_smooth_line
+
+              mov       x1, garg1    'replace with setq?
+              mov       y1, garg2
+              mov       x2, garg3
+              mov       y2, garg4
+              mov       diameter, garg5
+              mov       color, garg6
+              call      #smooth_line
+              jmp       #GELoop
+
+DAT '_set_mapbase
+_set_mapbase
+              mov       plot_mapbase, garg1
+              jmp       #GELoop
+
+DAT '_set_pixelptr
+_set_pixelptr
+              'mov       smooth_pixel_ptr, garg1
+              cmp       garg1,#1 wcz
+        if_e  mov       smooth_pixel_ptr, #smooth_pixel
+              cmp       garg1,#2 wcz
+        if_e  mov       smooth_pixel_ptr, #smooth_pixel8x8
+              jmp       #GELoop
+
+'
+'
+DAT ' Smooth line - initial calcs
+'
+smooth_line     mov     pa,##$10080             'bias and center 8-bit-fractional coordinates within pixels
+                add     x1,pa
+                add     y1,pa
+                add     x2,pa
+                add     y2,pa
+
+                mov     radius,diameter         'convert diameter to radius
+                sar     radius,#1
+
+                fges    radius,#$80             'bound radius
+                fle     radius,##maxr << 8
+
+                getbyte span,radius,#1          'get span in pixels
+                add     span,#1
+
+                mov     pa,x2                   'if abs(x2 - x1) < abs(y2 - y1)
+                sub     pa,x1
+                abs     pa
+                mov     pb,y2
+                sub     pb,y1
+                abs     pb
+                cmp     pa,pb           wc
+                wrc     swapxy
+
+        if_c    mov     pa,x1                   '..then swap x's with y's to get x-dominance
+        if_c    mov     pb,x2
+        if_c    mov     x1,y1
+        if_c    mov     x2,y2
+        if_c    mov     y1,pa
+        if_c    mov     y2,pb
+
+                cmp     x2,x1           wc      'if x2 < x1
+
+        if_c    mov     pa,x1                   '..then swap x's and y's to get x1 on the left
+        if_c    mov     pb,y1
+        if_c    mov     x1,x2
+        if_c    mov     y1,y2
+        if_c    mov     x2,pa
+        if_c    mov     y2,pb
+
+                getbyte x1f,x1,#0               'get coordinate fractions
+                sub     x1f,#$80
+
+                getbyte y1f,y1,#0
+                sub     y1f,#$80
+
+                getbyte x2f,x2,#0
+                sub     x2f,#$80
+
+                getbyte y2f,y2,#0
+                sub     y2f,#$80
+'
+'
+' Make arrays for 1D body-line opacity and 2D semicircle-endpoint opacity
+'
+                neg     xp,span                 'make 6 lookup values within each frac_array record
+
+.table          mov     pb,#pr0 + y1_lut1       'point to first record element
+
+                mov     dx,xp                   'get xp << 8
+                shl     dx,#8
+
+                mov     dy,radius               'get power(radius, 2) for 1D-slice lookups
+                mul     dy,dy
+
+                callpa  x1f,#.array_val         'y1_lut1 = power(radius, 2) - power(abs(xp << 8 + x1f) <# radius, 2)
+                callpa  x2f,#.array_val         'y2_lut1 = power(radius, 2) - power(abs(xp << 8 + x2f) <# radius, 2)
+
+                mov     dy,radius               'get power(radius+$80, 2) for 2D-slice lookups
+                add     dy,#$80
+                mul     dy,dy
+
+                callpa  y1f,#.array_val         'x1_lut2 = power(radius+$80, 2) - power(abs(xp << 8 + y1f) <# radius, 2)
+                callpa  x1f,#.array_val         'y1_lut2 = power(radius+$80, 2) - power(abs(xp << 8 + x1f) <# radius, 2)
+                callpa  y2f,#.array_val         'x2_lut2 = power(radius+$80, 2) - power(abs(xp << 8 + y2f) <# radius, 2)
+                callpa  x2f,#.array_val         'y2_lut2 = power(radius+$80, 2) - power(abs(xp << 8 + x2f) <# radius, 2)
+
+                rep     @.s,#1                  'use REP to stall interrupts to protect cordic operations
+
+                qsqrt   pr0 + y1_lut1,#0        'compute square roots to get sqrt(r_squared - x_or_y_squared)
+                qsqrt   pr0 + y2_lut1,#0
+                qsqrt   pr0 + x1_lut2,#0
+                qsqrt   pr0 + y1_lut2,#0
+                qsqrt   pr0 + x2_lut2,#0
+                qsqrt   pr0 + y2_lut2,#0
+
+                getqx   pr0                     'pack values as words to halve frac_array size
+                getqx   pa
+                setword pr0,pa,#1
+                getqx   pr1
+                getqx   pa
+                setword pr1,pa,#1
+                getqx   pr2
+                getqx   pa
+.s              setword pr2,pa,#1
+
+                mov     pa,xp                   'save word values into frac_array
+                muls    pa,#array_words*2
+                add     pa,array_mid_ptr
+                setq    #array_words/2-1
+                wrlong  pr0,pa
+
+                incmod  xp,span         wc      'iterate from -span to span
+        if_nc   jmp     #.table
+'
+'
+' Final calcs
+'
+                mov     xleft,x1                'register xleft and xright to pixel centers
+                sub     xleft,radius
+                setbyte xleft,#$80,#0
+
+                mov     xright,x2
+                add     xright,radius
+                setbyte xright,#$80,#0
+
+                mov     dx,x2                   'get dx and dy, 0 <= dx >= abs(dy)
+                sub     dx,x1
+                mov     dy,y2
+                sub     dy,y1
+
+
+                rep     @.s2,#1                 'use REP to stall interrupts to protect cordic operations
+
+                qvector dx,dy                   'compute hypotenuse and 32-bit angle
+
+                abs     dy              wc      'get absolute dy for slope computation, remember sign of slope
+                shl     dy,#8                   'shift up dy and dx to minimize effect of adding 1 to dx
+                shl     dx,#8                   'shift leaves 16 whole-pixel and 16 fractional-pixel bits
+                mov     pa,dx                   'save dx << 8 for slice computation
+                add     dx,#1                   'add 1 to dx to prevent overflow, ensures dx > dy
+                qfrac   dy,dx                   'compute 32-bit slope (dy << 40) / (dx << 8 + 1)
+
+                getqx   hy                      'get hypotenuse
+                getqy   th                      'get 32-bit angle
+
+                getqx   dy                      'get unsigned 32-bit fractional slope
+.s2
+
+                testb   dy,#15          wz      'save bit for later rounding
+                shr     dy,#16                  'reduce to 16-bit fractional slope, 0 <= slope <= $FFFF
+
+                mov     dx,x1                   'dx = x1 - xleft, 0 <= dx <= $7FFF
+                sub     dx,xleft
+                mul     dx,dy                   'dx = dx * slope, 0 <= dx <= $7FFF_FFFF
+                negnc   dx                      'if slope positive, dx = -dx, -$7FFF_FFFF <= dx <= $7FFF_FFFF
+                sar     dx,#8                   'dx = dx sar 8, -$7F_FFFF <= dx <= $7F_FFFF
+                mov     ym,y1
+                shl     ym,#8                   'ym = -dy * (x1 - xleft) div $100 + y1 * $100
+                add     ym,dx                   'ym has 16 whole-pixel bits and 16 fractional-pixel bits
+
+        if_z    add     dy,#1                   'round slope, 0 <= dy <= $1_0000
+                negc    dy                      'sign-correct slope, -$1_0000 <= dy <= $1_0000
+
+
+                rep     @.s3,#1                 'use REP to stall interrupts to protect cordic operations
+
+                qfrac   hy,pa                   'compute (hy << 32) / (dx << 8), same as $100_0000 / cos(th)
+
+                qrotate radius,th               'compute sin(th) * radius
+
+                getqx   slice                   'get $100_0000 / cos(th), 0 <= slice <= $16A09E6
+
+                getqx   dx                      'must do getqx to make next getqy from qrotate, not qfrac
+                getqy   dx                      'get sin(th) * radius
+.s3
+
+                shr     slice,#9                'slice = slice >> 9, 0 <= slice <= $B504
+                mul     slice,radius            'slice = slice * radius, 0 <= slice < $B5040000
+                shr     slice,#15               'slice = slice >> 15, slice now has 8 fractional-pixel bits
+
+                mov     lt,x1                   'get endpoint-circles' departure/arrival points
+                add     lt,dx
+
+                mov     lb,x1
+                sub     lb,dx
+
+                mov     rt,x2
+                add     rt,dx
+
+                mov     rb,x2
+                sub     rb,dx
+'
+'
+' Draw complete line with left-endpoint and right-endpoint semicircles
+'
+                mov     x,xleft                 'iterate from xleft to xright
+                skip    #%11                    '(skip two instructions)
+
+.nextx          add     x,#$100                 'update x
+                add     ym,dy                   'update ym
+
+                cmp     x,xright        wcz     'done?
+        if_a    ret
+
+                mov     pa,x                    'get x >> 8
+                shr     pa,#8
+
+                mov     xp1,x1                  'xp1 = x1 >> 8 - x >> 8
+                shr     xp1,#8
+                sub     xp1,pa
+
+                mov     xp2,x2                  'xp2 = x2 >> 8 - x >> 8
+                shr     xp2,#8
+                sub     xp2,pa
+
+                mov     skip1,#%0100010         'set left skip patterns in case left semicircle
+                mov     skip2,##%10010000010010010000
+
+                cmp     x,lt            wcz     'if in left semicircle before line departure, draw 2D slice
+        if_be   cmp     x,lb            wcz
+        if_be   jmp     #.semicircle
+
+                shr     skip1,#1                'set right skip patterns in case right semicircle
+                shr     skip2,#1
+
+                cmp     x,rt            wcz     'if in right semicircle after line arrival, draw 2D slice
+        if_ae   cmp     x,rb            wcz
+        if_ae   jmp     #.semicircle
+'
+'
+' Plot line slice
+'
+                mov     y,ym                    'between semicircles, draw 1D slice of line
+                shr     y,#8
+
+                mov     ptrb,xp1                'lookup y1_lut1 value from frac_array
+                muls    ptrb,#array_words*2
+                add     ptrb,array_mid_ptr
+                rdword  yl,ptrb[y1_lut1]
+
+                mov     ptrb,xp2                'lookup y2_lut1 value from frac_array
+                muls    ptrb,#array_words*2
+                add     ptrb,array_mid_ptr
+                rdword  yr,ptrb[y2_lut1]
+
+                mov     yb,y                    'determine bottom
+                sub     yb,slice
+                cmp     x,lt            wcz
+        if_be   mov     yb,y1
+        if_be   sub     yb,yl
+                cmp     x,rt            wcz
+        if_ae   mov     yb,y2
+        if_ae   sub     yb,yr
+
+                mov     yt,y                    'determine top
+                add     yt,slice
+                cmp     x,lb            wcz
+        if_be   mov     yt,y1
+        if_be   add     yt,yl
+                cmp     x,rb            wcz
+        if_ae   mov     yt,y2
+        if_ae   add     yt,yr
+
+.slice1D        cmp     yb,yt           wc      'do 1D slice of middle-line pixels
+        if_nc   jmp     #.nextx
+
+                mov     yn,yb                   'get next y pixel boundary
+                or      yn,#$FF
+                add     yn,#1
+
+                cmp     yt,yn           wc      'get 1D opacity
+        if_c    mov     yo,yt
+        if_c    sub     yo,yb
+        if_nc   not     yo,yb
+        if_nc   and     yo,#$FF         wz
+
+                mov     py,yb                   'get pixel y
+                shr     py,#8
+
+        if_nz   call    #.smooth_pixel          'plot alpha-blended pixel
+
+                mov     yb,yn                   'iterate
+                jmp     #.slice1D
+'
+'
+' Plot semicircle endpoint slice
+'
+.semicircle     skip    skip1                           'left or right semicircle endpoint, draw 2D slice
+
+                mov     ptrb,xp1                'l-     'lookup y1_lut2 or y2_lut2 value from frac_array
+                mov     ptrb,xp2                '-r
+                muls    ptrb,#array_words*2     'lr
+                add     ptrb,array_mid_ptr      'lr
+                rdword  ylut,ptrb[y1_lut2]      'l-
+                rdword  ylut,ptrb[y2_lut2]      '-r
+
+                neg     yp,span                 'lr     'do slice of 2D-calculated semicircle pixels
+
+.slice2D        skip    skip2
+
+                mov     ptrb,yp                 'lr     'lookup x1_lut2 or x2_lut2 value from frac_array
+                muls    ptrb,#array_words*2     'lr
+                add     ptrb,array_mid_ptr      'lr
+                rdword  xlut,ptrb[x1_lut2]      'l-
+                rdword  xlut,ptrb[x2_lut2]      '-r
+
+                mov     xo,xlut                 'lr     'get x opacity
+                mov     pa,xp1          wcz     'l-
+                mov     pa,xp2          wcz     '-r
+                shl     pa,#8                   'lr
+                add     pa,x1f                  'l-
+                add     pa,x2f                  '-r
+        if_nz   sumnc   xo,pa                   'lr
+
+                mov     yo,ylut                 'lr     'get y opacity
+                mov     pa,yp           wcz     'lr
+                shl     pa,#8                   'lr
+                add     pa,y1f                  'l-
+                add     pa,y2f                  '-r
+        if_nz   sumnc   yo,pa                   'lr
+
+                mov     py,y1                   'l-     'get pixel y
+                mov     py,y2                   '-r
+                shr     py,#8
+                sub     py,yp
+
+                fges    xo,#$00                         'limit opacities
+                fle     xo,#$FF
+                fges    yo,#$00
+                fle     yo,#$FF
+
+                mul     yo,xo                           'multiply for 2D opacity
+                add     yo,#$FF
+                shr     yo,#8           wz
+
+        if_nz   call    #.smooth_pixel                  'plot alpha-blended pixel
+
+                incmod  yp,span         wc              'iterate from -span to span
+        if_nc   jmp     #.slice2D
+
+                jmp     #.nextx
+'
+'
+' Subroutine to compute array value
+'
+.array_val      add     pa,dx                   'get power(radius, 2) - power(abs(xp << 8 + ??f) <# radius, 2)
+                abs     pa
+                fle     pa,radius
+                mul     pa,pa
+                subr    pa,dy
+                altd    pb
+                mov     0-0,pa
+        _ret_   add     pb,#1
+'
+'
+' Subroutine to call smooth_pixel
+'
+.smooth_pixel   mov     plot_x,x                'get x
+                shr     plot_x,#8
+
+                mov     plot_y,py               'get y
+
+                sub     plot_x,#$100            'unbias x,y
+                sub     plot_y,#$100
+
+                testb   swapxy,#0       wc      'swap x,y?
+        if_c    mov     pa,plot_x
+        if_c    mov     plot_x,plot_y
+        if_c    mov     plot_y,pa
+
+                mov     plot_color,color        'get color $RRGGBBAA
+                mov     plot_alpha,yo           'get alpha-blend $AA
+                jmp     smooth_pixel_ptr        'plot smooth pixel
+
+
+
+'
+'
+DAT ' Smooth pixel plot
+'
+
+smooth_pixel    cmp     plot_x,plot_mapx wc     'if pixel off map, done
+        if_c    cmp     plot_y,plot_mapy wc
+        if_nc   ret
+
+                getbyte pa,plot_color,#0        'if final alpha blend zero, done
+                mul     pa,plot_alpha   wz
+        if_z    ret
+
+                add     pa,#$FF                 'finish computing alpha blend
+                shr     pa,#8
+                setbyte plot_color,pa,#0
+
+                mov     pa,plot_y               'get pixel address in psram
+                mul     pa,plot_mapx
+                add     pa,plot_x
+                add     pa,plot_mapbase
+
+                mov     ptrb,plot_pPsram        'get addresses of psram command
+
+.wt             rdlong  pb,ptrb[2]              'wait for any prior command to complete
+                tjnz    pb,#.wt
+
+                wrlong  plot_pPixel,ptrb[0]     'write pixel address
+                wrlong  pa,ptrb[1]              'write psram address
+
+                getbyte pa,plot_color,#0        'if pixel opaque, no need to read background pixel
+                cmp     pa,#$FF
+
+        if_ne   wrlong  #1,ptrb[2]              'psram read command
+
+.wt2    if_ne   rdlong  pa,ptrb[2]              'wait for read to complete
+        if_ne   tjnz    pa,#.wt2
+
+        if_ne   rdlong  pa,plot_pPixel          'get background pixel
+
+                setpiv  plot_color              'blend background pixel with new pixel
+                blnpix  pa,plot_color
+
+                wrlong  pa,plot_pPixel          'write blended pixel
+
+                neg     pa,#1                   'psram write command
+        _ret_   wrlong  pa,ptrb[2]
+'
+'
+DAT ' smooth_pixel8x8 - Smooth pixel plot - 8x8 pixels
+'
+
+
+smooth_pixel8x8 shl     plot_x,#3
+                shl     plot_y,#3
+
+                cmp     plot_x,plot_mapx wc     'if pixel off map, done
+        if_c    cmp     plot_y,plot_mapy wc
+        if_nc   ret
+
+                getbyte pa,plot_color,#0        'if final alpha blend zero, done
+                mul     plot_alpha,pa   wz
+        if_z    ret
+
+                add     plot_alpha,#$FF
+                shr     plot_alpha,#8
+
+
+                mov     pr7,#8
+.yloop
+                mov     pa,plot_y               'get pixel address in psram
+                mul     pa,plot_mapx
+                add     pa,plot_x
+                add     pa,plot_mapbase
+
+                mov     ptrb,plot_pPsram        'get addresses of psram command
+
+.wt             rdlong  pb,ptrb[2]              'wait for any prior command to complete
+                tjnz    pb,#.wt
+
+                wrlong  plot_pPixel,ptrb[0]     'write pixel address
+                wrlong  pa,ptrb[1]              'write psram address
+
+                mov     pa,#0
+                setpiv  plot_alpha              'blend background pixel with new pixel
+                blnpix  pa,plot_color
+
+                mov     ptra,plot_pPixel
+                wrlong  pa,ptra++
+                wrlong  pa,ptra++
+                wrlong  pa,ptra++
+                wrlong  pa,ptra++
+                wrlong  pa,ptra++
+                wrlong  pa,ptra++
+                wrlong  pa,ptra++
+                wrlong  pa,ptra++
+
+                neg     pa,#8                   'psram write command
+                wrlong  pa,ptrb[2]
+
+                add     plot_y,#1
+        _ret_   djnz    pr7,#.yloop
+
+DAT  'smooth_line registers
+
+x1              long 0
+y1              long 0
+x2              long 0
+y2              long 0
+diameter        long 0
+color           long 0
+
+radius          long 0
+span            long 0
+swapxy          long 0
+dx              long 0
+dy              long 0
+x1f             long 0
+y1f             long 0
+x2f             long 0
+y2f             long 0
+xleft           long 0
+xright          long 0
+hy              long 0
+th              long 0
+ym              long 0
+slice           long 0
+lt              long 0
+lb              long 0
+rt              long 0
+rb              long 0
+x               long 0
+y               long 0
+xp              long 0
+yp              long 0
+yl              long 0
+yr              long 0
+yt              long 0
+yb              long 0
+yn              long 0
+xp1             long 0
+xp2             long 0
+xlut            long 0
+ylut            long 0
+xo              long 0
+yo              long 0
+skip1           long 0
+skip2           long 0
+px              long 0
+py              long 0
+
+array_mid_ptr           long 0
+smooth_pixel_ptr        long 0
+
+
+plot_x          long 0                       'smooth_plot registers
+plot_y          long 0
+plot_color      long 0
+plot_alpha      long 0
+plot_pPsram     long 0
+plot_pPixel     long 0
+plot_mapbase    long 0
+plot_mapx       long 0
+plot_mapy       long 0
+
+fit $1F0
