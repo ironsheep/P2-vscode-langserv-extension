@@ -164,6 +164,16 @@ export default class HoverProvider implements Provider {
     if (objectRef === hoverSource) {
       objectRef = '';
     }
+    // Handle array-indexed struct access like FG1[i].B where [i] breaks the dotted name detection.
+    // GetWordRangeAtPosition includes '.' in the word (not a word boundary), so hoverSource becomes '.B'
+    // and wordStart points to the dot. Strip the leading dot and extract the struct instance name.
+    if (objectRef.length === 0 && hoverSource.startsWith('.')) {
+      const extractedRef = this._extractInstanceBeforeDot(declarationLine, wordStart.character);
+      if (extractedRef) {
+        objectRef = extractedRef;
+        hoverSource = hoverSource.substring(1);
+      }
+    }
     // Detect compound PASM directives: "ditto end" — redirect "end" to show "ditto" hover
     if (hoverSource.toLowerCase() === 'end' && /\bditto\s+end\b/i.test(declarationLine)) {
       hoverSource = 'ditto';
@@ -821,7 +831,46 @@ export default class HoverProvider implements Provider {
     return structDefn;
   }
 
+  private _extractInstanceBeforeDot(lineText: string, wordStartChar: number): string | undefined {
+    // Look for '.' at or immediately before the word start position
+    // Handle patterns like: FG1[i].B  or  arr[x][y].field
+    // Note: GetWordRangeAtPosition includes '.' in the word, so wordStartChar often points to the dot itself
+    let pos: number;
+    if (lineText.charAt(wordStartChar) === '.') {
+      // Dot is at wordStart (included in word by GetWordRangeAtPosition)
+      pos = wordStartChar - 1;
+    } else if (wordStartChar > 0 && lineText.charAt(wordStartChar - 1) === '.') {
+      // Dot is immediately before wordStart
+      pos = wordStartChar - 2;
+    } else {
+      return undefined;
+    }
+
+    // Skip past any closing bracket expressions: ]...[
+    while (pos >= 0 && lineText.charAt(pos) === ']') {
+      let depth = 1;
+      pos--;
+      while (pos >= 0 && depth > 0) {
+        if (lineText.charAt(pos) === ']') depth++;
+        else if (lineText.charAt(pos) === '[') depth--;
+        pos--;
+      }
+    }
+
+    // Now extract the identifier before the brackets/dot
+    const wordChars = /[a-zA-Z0-9_]/;
+    const end = pos + 1;
+    while (pos >= 0 && wordChars.test(lineText.charAt(pos))) {
+      pos--;
+    }
+    const instanceName = lineText.substring(pos + 1, end);
+    this._logMessage(`+ Hvr: _extractInstanceBeforeDot() line=[${lineText}], wordStart=${wordStartChar} -> instance=[${instanceName}]`);
+    return instanceName.length > 0 ? instanceName : undefined;
+  }
+
   private _extractDottedPath(lineText: string, cursorChar: number): string[] | undefined {
+    // Extract the full dotted expression from the line, skipping over bracket expressions
+    // e.g., "FG1[i].B[1]" → ['FG1', 'B'], "root[i].mid[j].field" → ['root', 'mid', 'field']
     const wordChars = /[a-zA-Z0-9_]/;
 
     let start = cursorChar;
@@ -829,6 +878,15 @@ export default class HoverProvider implements Provider {
       const ch = lineText.charAt(start - 1);
       if (wordChars.test(ch) || ch === '.') {
         start--;
+      } else if (ch === ']') {
+        // Skip over bracket expression: ]...[
+        start--;
+        let depth = 1;
+        while (start > 0 && depth > 0) {
+          start--;
+          if (lineText.charAt(start) === ']') depth++;
+          else if (lineText.charAt(start) === '[') depth--;
+        }
       } else {
         break;
       }
@@ -839,6 +897,15 @@ export default class HoverProvider implements Provider {
       const ch = lineText.charAt(end);
       if (wordChars.test(ch) || ch === '.') {
         end++;
+      } else if (ch === '[') {
+        // Skip over bracket expression: [...]
+        end++;
+        let depth = 1;
+        while (end < lineText.length && depth > 0) {
+          if (lineText.charAt(end) === '[') depth++;
+          else if (lineText.charAt(end) === ']') depth--;
+          end++;
+        }
       } else {
         break;
       }
@@ -849,7 +916,9 @@ export default class HoverProvider implements Provider {
       return undefined;
     }
 
-    const parts = fullExpr.split('.').filter((p) => p.length > 0);
+    // Strip bracket expressions before splitting on dots
+    const stripped = fullExpr.replace(/\[[^\]]*\]/g, '');
+    const parts = stripped.split('.').filter((p) => p.length > 0);
     this._logMessage(`+ Hvr: _extractDottedPath() expr=[${fullExpr}], parts=[${parts.join(', ')}]`);
     return parts.length >= 2 ? parts : undefined;
   }

@@ -300,9 +300,46 @@ export default class DefinitionProvider implements Provider {
     return structDefn;
   }
 
+  private _extractInstanceBeforeDot(lineText: string, wordStartChar: number): string | undefined {
+    // Look for '.' at or immediately before the word start position
+    // Handle patterns like: FG1[i].B  or  arr[x][y].field
+    // Note: GetWordRangeAtPosition includes '.' in the word, so wordStartChar often points to the dot itself
+    let pos: number;
+    if (lineText.charAt(wordStartChar) === '.') {
+      // Dot is at wordStart (included in word by GetWordRangeAtPosition)
+      pos = wordStartChar - 1;
+    } else if (wordStartChar > 0 && lineText.charAt(wordStartChar - 1) === '.') {
+      // Dot is immediately before wordStart
+      pos = wordStartChar - 2;
+    } else {
+      return undefined;
+    }
+
+    // Skip past any closing bracket expressions: ]...[
+    while (pos >= 0 && lineText.charAt(pos) === ']') {
+      let depth = 1;
+      pos--;
+      while (pos >= 0 && depth > 0) {
+        if (lineText.charAt(pos) === ']') depth++;
+        else if (lineText.charAt(pos) === '[') depth--;
+        pos--;
+      }
+    }
+
+    // Now extract the identifier before the brackets/dot
+    const wordChars = /[a-zA-Z0-9_]/;
+    const end = pos + 1;
+    while (pos >= 0 && wordChars.test(lineText.charAt(pos))) {
+      pos--;
+    }
+    const instanceName = lineText.substring(pos + 1, end);
+    this._logMessage(`+ Defn: _extractInstanceBeforeDot() line=[${lineText}], wordStart=${wordStartChar} -> instance=[${instanceName}]`);
+    return instanceName.length > 0 ? instanceName : undefined;
+  }
+
   private _extractDottedPath(lineText: string, cursorChar: number): string[] | undefined {
     // From the cursor position, scan left and right to find the full dotted expression
-    // (e.g., "pline.a.x" when cursor is anywhere within it)
+    // Handles bracket expressions: "FG1[i].B[1]" → ['FG1', 'B']
     const wordChars = /[a-zA-Z0-9_]/;
 
     // Find the start of the dotted expression
@@ -311,6 +348,15 @@ export default class DefinitionProvider implements Provider {
       const ch = lineText.charAt(start - 1);
       if (wordChars.test(ch) || ch === '.') {
         start--;
+      } else if (ch === ']') {
+        // Skip over bracket expression: ]...[
+        start--;
+        let depth = 1;
+        while (start > 0 && depth > 0) {
+          start--;
+          if (lineText.charAt(start) === ']') depth++;
+          else if (lineText.charAt(start) === '[') depth--;
+        }
       } else {
         break;
       }
@@ -322,6 +368,15 @@ export default class DefinitionProvider implements Provider {
       const ch = lineText.charAt(end);
       if (wordChars.test(ch) || ch === '.') {
         end++;
+      } else if (ch === '[') {
+        // Skip over bracket expression: [...]
+        end++;
+        let depth = 1;
+        while (end < lineText.length && depth > 0) {
+          if (lineText.charAt(end) === '[') depth++;
+          else if (lineText.charAt(end) === ']') depth--;
+          end++;
+        }
       } else {
         break;
       }
@@ -332,8 +387,9 @@ export default class DefinitionProvider implements Provider {
       return undefined;
     }
 
-    // Split and filter out empty segments (from leading/trailing dots)
-    const parts = fullExpr.split('.').filter((p) => p.length > 0);
+    // Strip bracket expressions before splitting on dots
+    const stripped = fullExpr.replace(/\[[^\]]*\]/g, '');
+    const parts = stripped.split('.').filter((p) => p.length > 0);
     this._logMessage(`+ Defn: _extractDottedPath() expr=[${fullExpr}], parts=[${parts.join(', ')}]`);
     return parts.length >= 2 ? parts : undefined;
   }
@@ -352,9 +408,20 @@ export default class DefinitionProvider implements Provider {
     const declarationLine: string = DocumentLineAt(document, position).trimEnd();
     let objectRef = inObjDeclarationStatus ? this._objectNameFromDeclaration(declarationLine) : adjustedPos[1];
 
-    const wordUnderCursor: string = adjustedPos[2];
+    let wordUnderCursor: string = adjustedPos[2];
     if (objectRef === wordUnderCursor) {
       objectRef = '';
+    }
+    // Handle array-indexed struct access like FG1[i].B where [i] breaks the dotted name detection.
+    // GetWordRangeAtPosition includes '.' in the word (not a word boundary), so wordUnderCursor becomes '.B'
+    // and wordStart points to the dot. Strip the leading dot and extract the struct instance name.
+    if (objectRef.length === 0 && wordUnderCursor.startsWith('.')) {
+      const wordStart: Position = adjustedPos[4];
+      const extractedRef = this._extractInstanceBeforeDot(declarationLine, wordStart.character);
+      if (extractedRef) {
+        objectRef = extractedRef;
+        wordUnderCursor = wordUnderCursor.substring(1);
+      }
     }
     const sourcePosition: Position = adjustedPos[3];
     const fileBasename = path.basename(document.uri);
