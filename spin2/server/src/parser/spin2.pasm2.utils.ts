@@ -400,7 +400,7 @@ export class Pasm2DocUtils {
     push: ['Miscellaneous', 'PUSH {#}D', 'Push D onto internal stack', '', '', '2'],
     setq: ['Miscellaneous', 'SETQ {#}D', 'Set Q register for next instruction', '', '', '2'],
     setq2: ['Miscellaneous', 'SETQ2 {#}D', 'Set Q register for block transfer', '', '', '2'],
-    waitx: ['Miscellaneous', 'WAITX {#}D {WC,WZ,WCZ}', 'Wait D+1 clock cycles', '', '', 'D+1']
+    waitx: ['Miscellaneous', 'WAITX {#}D {WC,WZ,WCZ}', 'Wait 2+D clock cycles, or 2+(D AND RND) with WC/WZ/WCZ', 'Set to 0', 'Set to 0', '2+D']
   };
 
   // ---- CONDITIONAL EXECUTION TABLE ----
