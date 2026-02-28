@@ -106,13 +106,15 @@ export default class TextDocumentSyncProvider implements Provider {
       } else {
         configChanged =
           serverConfiguration['maxNumberOfReportedIssues'] != this.ctx.parserConfig.maxNumberOfReportedIssues ||
-          serverConfiguration['highlightFlexspinDirectives'] != this.ctx.parserConfig.highlightFlexspinDirectives;
+          serverConfiguration['highlightFlexspinDirectives'] != this.ctx.parserConfig.highlightFlexspinDirectives ||
+          serverConfiguration['reportUnusedVariables'] != this.ctx.parserConfig.reportUnusedVariables;
         if (configChanged) {
           this.ctx.parserConfig.maxNumberOfReportedIssues = serverConfiguration['maxNumberOfReportedIssues'];
           if (this.ctx.parserConfig.maxNumberOfReportedIssues < 0) {
             this.ctx.parserConfig.maxNumberOfReportedIssues = 0; // don't confuse our initial startup!
           }
           this.ctx.parserConfig.highlightFlexspinDirectives = serverConfiguration['highlightFlexspinDirectives'];
+          this.ctx.parserConfig.reportUnusedVariables = serverConfiguration['reportUnusedVariables'] !== false;
         }
         // authorFilePrefix is read independently (no reparse needed on change)
         const newAuthorPrefix: string = serverConfiguration['authorFilePrefix'] || '';

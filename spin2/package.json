@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -225,6 +225,11 @@
             "type": "string",
             "default": "",
             "description": "Your author file prefix (e.g., 'isp_'). Used by Rename Symbol to identify files you own. Files with a different prefix are excluded from rename operations."
+          },
+          "spinExtension.ServerBehavior.reportUnusedVariables": {
+            "type": "boolean",
+            "default": true,
+            "description": "Report warnings for unused parameters, return values, and local variables in PUB/PRI methods."
           },
           "spinExtension.ClientBehavior.colorEditorBackground": {
             "type": "boolean",

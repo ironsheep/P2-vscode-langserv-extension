@@ -168,7 +168,10 @@ export class Spin1DocumentSymbolParser {
       if (sectionStatus.isSectionStart) {
         if (linePrefix == 'CON' || linePrefix == 'DAT' || linePrefix == 'VAR' || linePrefix == 'OBJ') {
           // start CON/VAR/OBJ/DAT
-          const sectionComment = lineHasComment ? line.substr(commentOffset, commentLength) : '';
+          // only use comment if the content after the keyword starts with a comment character
+          const contentAfterKeyword = line.substring(3).trim();
+          const blockLineStartsWithComment = contentAfterKeyword.startsWith("'") || contentAfterKeyword.startsWith('{');
+          const sectionComment = lineHasComment && blockLineStartsWithComment ? line.substr(commentOffset, commentLength) : '';
           let blockSymbolKind: lsp.SymbolKind = lsp.SymbolKind.Variable;
           if (linePrefix == 'CON') {
             blockSymbolKind = lsp.SymbolKind.Method;

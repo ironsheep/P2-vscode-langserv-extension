@@ -11,7 +11,7 @@
       "gid": "1000"
     }
   },
-  "postCreateCommand": "npm install || true",
+  "postCreateCommand": "sudo npm install -g @vscode/vsce && npm install || true",
   "postStartCommand": "mkdir -p $HOME/.local/p2kb-mcp && tar xzf .devcontainer/p2kb-mcp-v1.3.3-linux-arm64.tar.gz -C $HOME/.local && chmod +x $HOME/.local/p2kb-mcp/bin/p2kb-mcp || true",
   "remoteUser": "node",
   "mounts": [

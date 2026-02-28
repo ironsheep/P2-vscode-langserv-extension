@@ -12,11 +12,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 ### Follow-on work to appear in Upcoming releases
 
-- Report in PUB/PRI warning for unused param, return, and local vars
-- v43 Outline: if code on block (CON,VAR,PUB, etc.) line the don't use comment on line for this block
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
-- v51 If sizeof(): Validate variable is a structure instance
+- Add spin2 code formatter
 
 ### More distant next Additions
 
@@ -25,6 +23,21 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
+
+## [2.6.1] 2026-02-28
+
+Unused variable warnings, sizeof() validation, outline improvements, and diagnostic severity fix
+
+### New Features
+
+- Report warnings for unused parameters, return values, and local variables in PUB/PRI methods
+- New setting `spinExtension.ServerBehavior.reportUnusedVariables` to enable/disable unused variable warnings (default: enabled)
+- Validate `SIZEOF()` argument is a structure type or structure instance; report error for non-structure arguments
+- Outline: only use comment text for block sections (CON, VAR, OBJ, DAT) when the content after the keyword starts with a comment (`'` or `{`), not when there is code on the line
+
+### Fixes
+
+- BUGFIX: Fix Warning severity mapping: warnings now render as yellow/orange squiggles instead of red errors
 
 ## [2.6.0] 2026-02-23
 

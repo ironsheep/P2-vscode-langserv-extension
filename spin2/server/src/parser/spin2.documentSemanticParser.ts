@@ -17,7 +17,8 @@ import {
   ePreprocessState,
   IStructMember,
   RememberedStructure,
-  IDocumentLinkInfo
+  IDocumentLinkInfo,
+  TokenSet
 } from './spin.semantic.findings';
 import { Spin2ParseUtils } from './spin2.utils';
 import { isSpin1File } from './lang.utils';
@@ -152,11 +153,80 @@ export class Spin2DocumentSemanticParser {
     allTokens.forEach((token) => {
       this.semanticFindings.pushSemanticToken(token);
     });
+    if (this.configuration.reportUnusedVariables) {
+      this._reportUnusedLocalVariables();
+    }
   }
 
   // track comment preceding declaration line
   private priorSingleLineComment: string | undefined = undefined;
   private rightEdgeComment: string | undefined = undefined;
+
+  private _validateSizeofArgument(methodFollowString: string, lineIndex: number, sizeofCharOffset: number, sizeofLength: number): void {
+    // extract the argument from within the parentheses following sizeof
+    const openParenIdx = methodFollowString.indexOf('(');
+    const closeParenIdx = methodFollowString.indexOf(')', openParenIdx + 1);
+    if (openParenIdx === -1 || closeParenIdx === -1) {
+      return; // malformed call, let other validation handle it
+    }
+    const argName = methodFollowString.substring(openParenIdx + 1, closeParenIdx).trim();
+    if (argName.length === 0) {
+      return; // empty parens, let other validation handle it
+    }
+    // check if argument is a structure type name
+    if (this.semanticFindings.isStructure(argName)) {
+      return; // valid: sizeof(structureTypeName)
+    }
+    // check if argument is a global structure instance
+    if (this.semanticFindings.isStructureInstance(argName)) {
+      return; // valid: sizeof(globalStructInstance)
+    }
+    // check if argument is a local structure instance
+    const localStructType = this.semanticFindings.getTypeForLocalStructureInstance(argName, lineIndex + 1);
+    if (localStructType !== undefined) {
+      return; // valid: sizeof(localStructInstance)
+    }
+    // not a structure type or instance - emit error
+    const diagCharOffset = sizeofCharOffset;
+    const diagEndChar = sizeofCharOffset + sizeofLength + closeParenIdx + 1;
+    this.semanticFindings.pushDiagnosticMessage(lineIndex, diagCharOffset, diagEndChar, eSeverity.Error, `Invalid use of SIZEOF: '${argName}' is not a structure type or structure instance`);
+  }
+
+  private _reportUnusedLocalVariables(): void {
+    const methodEntries: [string, TokenSet][] = this.semanticFindings.methodLocalTokenEntries();
+    for (const [methodKey, tokenSet] of methodEntries) {
+      const tokenEntries: [string, RememberedToken][] = tokenSet.entries();
+      for (const [tokenName, token] of tokenEntries) {
+        const tokenType: string = token.type;
+        if (tokenType !== 'parameter' && tokenType !== 'returnValue' && tokenType !== 'variable') {
+          continue;
+        }
+        const refs = this.semanticFindings.getReferencesForToken(tokenName, methodKey);
+        const usageRefs = refs.filter((r) => !r.isDeclaration);
+        if (usageRefs.length === 0) {
+          let label: string;
+          switch (tokenType) {
+            case 'parameter':
+              label = 'Parameter';
+              break;
+            case 'returnValue':
+              label = 'Return value';
+              break;
+            default:
+              label = 'Local variable';
+              break;
+          }
+          this.semanticFindings.pushDiagnosticMessage(
+            token.lineIndex,
+            token.charIndex,
+            token.charIndex + tokenName.length,
+            eSeverity.Warning,
+            `${label} '${tokenName}' is declared but never used`
+          );
+        }
+      }
+    }
+  }
 
   private _declarationComment(): string | undefined {
     // return the most appropriate comment for declaration
@@ -5837,6 +5907,10 @@ export class Spin2DocumentSemanticParser {
                       ptTokenType: 'function', // method is blue?!, function is yellow?!, operator is violet?!
                       ptTokenModifiers: ['support']
                     });
+                    // validate sizeof() argument is a structure type or structure instance
+                    if (namePart.toLowerCase() === 'sizeof') {
+                      this._validateSizeofArgument(methodFollowString, symbolPosition.line, symbolPosition.character, namePart.length);
+                    }
                   } else if (
                     this.parseUtils.isFloatConversion(namePart) &&
                     !new RegExp(`${escapedNamePart}\\s*\\(`).test(nonStringAssignmentRHSStr) &&

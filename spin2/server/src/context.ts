@@ -28,6 +28,7 @@ export class ServerBehaviorConfiguration {
   public excludeIncludeDirectories: string[] = [];
   public includeDirectoryDiscoveryEnabled: boolean = false;
   public authorFilePrefix: string = '';
+  public reportUnusedVariables: boolean = true;
 }
 
 export class EditorConfiguration {

@@ -2008,6 +2008,10 @@ export class DocumentFindings {
     return foundStatus;
   }
 
+  public methodLocalTokenEntries(): [string, TokenSet][] {
+    return this.methodLocalTokens.entries();
+  }
+
   public setLocalTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
     if (!this.isLocalTokenForMethod(methodName, tokenName)) {
       this._logMessage(
@@ -3359,7 +3363,7 @@ export class DiagnosticReport {
         break;
       }
       case eSeverity.Warning: {
-        this.symbolKind = DiagnosticSeverity.Error;
+        this.symbolKind = DiagnosticSeverity.Warning;
         break;
       }
       case eSeverity.Hint: {

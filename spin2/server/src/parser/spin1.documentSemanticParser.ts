@@ -4,7 +4,7 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Context, ServerBehaviorConfiguration, EditorConfiguration } from '../context';
 
-import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, eSeverity, eDefinitionType } from './spin.semantic.findings';
+import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, eSeverity, eDefinitionType, TokenSet } from './spin.semantic.findings';
 import { Spin1ParseUtils } from './spin1.utils';
 import { isSpin1File } from './lang.utils';
 import { eParseState, SpinControlFlowTracker, ICurrControlSpan } from './spin.common';
@@ -103,6 +103,45 @@ export class Spin1DocumentSemanticParser {
       // prevent crash in server and emit debug so we can find problem
       this.semanticFindings.pushSemanticToken(token);
     });
+    if (this.configuration.reportUnusedVariables) {
+      this._reportUnusedLocalVariables();
+    }
+  }
+
+  private _reportUnusedLocalVariables(): void {
+    const methodEntries: [string, TokenSet][] = this.semanticFindings.methodLocalTokenEntries();
+    for (const [methodKey, tokenSet] of methodEntries) {
+      const tokenEntries: [string, RememberedToken][] = tokenSet.entries();
+      for (const [tokenName, token] of tokenEntries) {
+        const tokenType: string = token.type;
+        if (tokenType !== 'parameter' && tokenType !== 'returnValue' && tokenType !== 'variable') {
+          continue;
+        }
+        const refs = this.semanticFindings.getReferencesForToken(tokenName, methodKey);
+        const usageRefs = refs.filter((r) => !r.isDeclaration);
+        if (usageRefs.length === 0) {
+          let label: string;
+          switch (tokenType) {
+            case 'parameter':
+              label = 'Parameter';
+              break;
+            case 'returnValue':
+              label = 'Return value';
+              break;
+            default:
+              label = 'Local variable';
+              break;
+          }
+          this.semanticFindings.pushDiagnosticMessage(
+            token.lineIndex,
+            token.charIndex,
+            token.charIndex + tokenName.length,
+            eSeverity.Warning,
+            `${label} '${tokenName}' is declared but never used`
+          );
+        }
+      }
+    }
   }
 
   // track comment preceding declaration line
