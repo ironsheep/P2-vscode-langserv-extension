@@ -235,3 +235,5 @@ spin2/TEST_LANG_SERVER/spin2/.vscode/settings.json
 spin2/CLAUDE.md
 /spin2/tasks
 *.tsbuildinfo
+spin2/.vscode/settings.json
+spin2/package-lock.json
