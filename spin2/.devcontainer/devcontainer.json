@@ -1,9 +1,8 @@
 // See https://aka.ms/vscode-remote/devcontainer.json for format details.
 {
-  "name": "Spin2 Langauge Server Development",
+  "name": "Spin2 Language Server Development",
   "image": "node:latest",
-  "context": "..",
-  "appPort": ["5001:5001", "9123:8123"],
+  "forwardPorts": [5001, 9123],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installSudo": "true",
@@ -12,30 +11,34 @@
       "gid": "1000"
     }
   },
-  "postCreateCommand": "npm install && mkdir -p $HOME/.local/p2kb-mcp && tar xzf .devcontainer/p2kb-mcp-v1.3.3-linux-arm64.tar.gz -C $HOME/.local && chmod +x $HOME/.local/p2kb-mcp/bin/p2kb-mcp",
+  "postCreateCommand": "npm install || true",
+  "postStartCommand": "mkdir -p $HOME/.local/p2kb-mcp && tar xzf .devcontainer/p2kb-mcp-v1.3.3-linux-arm64.tar.gz -C $HOME/.local && chmod +x $HOME/.local/p2kb-mcp/bin/p2kb-mcp || true",
   "remoteUser": "node",
-  "runArgs": [
-    "-v",
-    "${env:HOME}${env:USERPROFILE}/.ssh:/tmp/.ssh" // This is added so you can push from inside the container
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/tmp/.ssh,type=bind,consistency=cached"
   ],
-  "extensions": [
-    "github.vscode-pull-request-github",
-    "eamodio.gitlens",
-    "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
-    "bierner.lit-html",
-    "runem.lit-plugin",
-    "auchenberg.vscode-browser-preview",
-    "davidanson.vscode-markdownlint",
-    "redhat.vscode-yaml"
-  ],
-  "settings": {
-    "files.eol": "\n",
-    "editor.tabSize": 4,
-    "terminal.integrated.shell.linux": "/bin/bash",
-    "editor.formatOnPaste": false,
-    "editor.formatOnSave": true,
-    "editor.formatOnType": true,
-    "files.trimTrailingWhitespace": true
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bierner.lit-html",
+        "runem.lit-plugin",
+        "auchenberg.vscode-browser-preview",
+        "davidanson.vscode-markdownlint",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "files.eol": "\n",
+        "editor.tabSize": 4,
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnPaste": false,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "files.trimTrailingWhitespace": true
+      }
+    }
   }
 }
