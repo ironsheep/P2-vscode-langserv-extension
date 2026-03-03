@@ -24,6 +24,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.6.2] 2026-03-03
+
+Detune "declared but never used" warnings for statement patterns like varargs use or copying a list of pins
+
 ## [2.6.1] 2026-02-28
 
 Unused variable warnings, sizeof() validation, outline improvements, and diagnostic severity fix

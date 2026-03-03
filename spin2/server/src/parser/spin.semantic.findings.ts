@@ -155,6 +155,7 @@ export interface ITokenReference {
   startCharacter: number;
   length: number;
   isDeclaration: boolean; // true for the declaration site
+  isAddressOf?: boolean; // true when referenced via @ operator
   scope: string; // method name for locals, '' for globals
 }
 

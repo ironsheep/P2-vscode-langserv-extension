@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.6.1",
+  "version": "2.6.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -1213,9 +1213,9 @@
     "pretest": "npm run compile && npm run lint",
     "test-compile": "tsc -p ./",
     "test": "sh ./scripts/e2e.sh",
-    "test:grammar": "npm run compile && mocha --require ts-node/register client/src/test/grammar.*.test.ts --timeout 30000",
-    "test:grammar:spin2": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin2.test.ts --timeout 30000",
-    "test:grammar:spin1": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin1.test.ts --timeout 30000",
+    "test:grammar": "npm run compile && mocha client/out/test/grammar.*.test.js --timeout 30000",
+    "test:grammar:spin2": "npm run compile && mocha client/out/test/grammar.spin2.test.js --timeout 30000",
+    "test:grammar:spin1": "npm run compile && mocha client/out/test/grammar.spin1.test.js --timeout 30000",
     "test:all": "npm run test && npm run test:grammar",
     "coverage:grammar": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin2.tmLanguage.json client/src/test/grammar.spin2.test.ts --output coverage-spin2.txt",
     "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt",

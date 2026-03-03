@@ -1,0 +1,593 @@
+'' =================================================================================================
+''
+''   File....... isp_mem_strings.spin2
+''   Purpose.... provide sprintf() c-like functions for Spin2 developers
+''   Authors.... Stephen M. Moraco
+''                (Highly leveraged from jm_serial.spin2 by Jon McPhalen)
+''                (Number-to-string code adapted from jm_nstr.spin2 by Jon McPhalen)
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... Feb 2022
+''   Updated.... 20 Feb 2026
+''
+'' =================================================================================================
+
+CON { suppress debug protocol output - this file is used via OBJ alongside serial on pin 62 }
+
+  DEBUG_DISABLE = 1
+
+CON { number-to-string buffer sizes }
+
+  NBUF_SIZE =  48
+  PBUF_SIZE = 128
+
+CON { format radix codes (non-obvious aliases) }
+
+  FMT_UNSIGNED_DEC = 11         ' unsigned decimal format code
+  FMT_FIXED_POINT  = 12         ' fixed-point decimal format code
+  FMT_FLOAT        = 99         ' floating-point format code
+
+CON { max digits per 32-bit long by radix }
+
+  MAX_DIGITS_BIN   = 32         ' binary: 32 bits
+  MAX_DIGITS_QUAT  = 16         ' quaternary (base-4): 16 digits
+  MAX_DIGITS_OCT   = 11         ' octal: 11 digits
+  MAX_DIGITS_DEC   = 10         ' decimal: 10 digits
+  MAX_DIGITS_HEX   =  8         ' hexadecimal: 8 digits
+
+CON { ASCII codes }
+
+  ASCII_QUOTE      = 34         ' double-quote character
+  MAX_BYTE_VALUE   = 255        ' maximum single-byte value
+  DPDEC_SCRATCH_SZ = 12         ' scratch buffer for decimal-point insertion
+
+DAT { number-to-string buffers (shared singleton) }
+
+  nbuf    byte  0[NBUF_SIZE]
+  pbuf    byte  0[PBUF_SIZE]
+
+PUB null()
+'' This is not a top level object
+
+CON { pst formatting }
+
+  HOME     =  1
+  CRSR_XY  =  2
+  CRSR_LF  =  3
+  CRSR_RT  =  4
+  CRSR_UP  =  5
+  CRSR_DN  =  6
+  BELL     =  7
+  BKSP     =  8
+  TAB      =  9
+  LF       = 10
+  CLR_EOL  = 11
+  CLR_DN   = 12
+  CR       = 13
+  CRSR_X   = 14
+  CRSR_Y   = 15
+  CLS      = 16
+
+CON { formatted strings }
+
+{{
+
+ -------------------------------------------------------------------------------------------------
+    Escaped characters
+
+      \\          backslash char
+      \%          percent char
+      \q          double quote
+      \b          backspace
+      \t          tab (horizontal)
+      \n          new line (vertical tab)
+      \r          carriage return
+      \nnn        arbitrary ASCII value (nnn is decimal)
+
+    Formatted arguments
+
+      %w.pf       print argument as decimal width decimal point
+      %[w[.p]]d   print argument as decimal
+      %[w[.p]]x   print argument as hex
+      %[w[.p]]o   print argument as octal
+      %[w[.p]]q   print argument as quarternary
+      %[w[.p]]b   print argument as binary
+      %[w]s       print argument as string
+      %[w]c       print argument as character (
+
+                  -- w is field width
+                     * positive w causes right alignment in field
+                     * negative w causes left alignment in field
+                  -- %ws aligns s in field (may truncate)
+                  -- %wc prints w copies of c
+                  -- p is precision characters
+                     * number of characters to use, aligned in field
+                       -- prepends 0 if needed to match p
+                       -- for %w.pf, p is number of digits after decimal point
+ -------------------------------------------------------------------------------------------------
+
+}}
+
+PUB sFormatStr0(pUserBuff, maxLen, p_str) : nPlaced
+'' Format string without args into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, 0)
+
+
+PUB sFormatStr1(pUserBuff, maxLen, p_str, arg1) : nPlaced
+'' Format string and 1-arg into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param arg1 - first argument value
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, @arg1)
+
+PUB sFormatStr2(pUserBuff, maxLen, p_str, arg1, arg2) : nPlaced
+'' Format string and 2-args into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param arg1 - first argument value
+'' @param arg2 - second argument value
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, @arg1)
+
+PUB sFormatStr3(pUserBuff, maxLen, p_str, arg1, arg2, arg3) : nPlaced
+'' Format string and 3-args into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param arg1 - first argument value
+'' @param arg2 - second argument value
+'' @param arg3 - third argument value
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, @arg1)
+
+PUB sFormatStr4(pUserBuff, maxLen, p_str, arg1, arg2, arg3, arg4) : nPlaced
+'' Format string and 4-args into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param arg1 - first argument value
+'' @param arg2 - second argument value
+'' @param arg3 - third argument value
+'' @param arg4 - fourth argument value
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, @arg1)
+
+PUB sFormatStr5(pUserBuff, maxLen, p_str, arg1, arg2, arg3, arg4, arg5) : nPlaced
+'' Format string and 5-args into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param arg1 - first argument value
+'' @param arg2 - second argument value
+'' @param arg3 - third argument value
+'' @param arg4 - fourth argument value
+'' @param arg5 - fifth argument value
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, @arg1)
+
+PUB sFormatStr6(pUserBuff, maxLen, p_str, arg1, arg2, arg3, arg4, arg5, arg6) : nPlaced
+'' Format string and 6-args into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param arg1 - first argument value
+'' @param arg2 - second argument value
+'' @param arg3 - third argument value
+'' @param arg4 - fourth argument value
+'' @param arg5 - fifth argument value
+'' @param arg6 - sixth argument value
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, @arg1)
+
+PUB sFormatStr7(pUserBuff, maxLen, p_str, arg1, arg2, arg3, arg4, arg5, arg6, arg7) : nPlaced
+'' Format string and 7-args into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param arg1 - first argument value
+'' @param arg2 - second argument value
+'' @param arg3 - third argument value
+'' @param arg4 - fourth argument value
+'' @param arg5 - fifth argument value
+'' @param arg6 - sixth argument value
+'' @param arg7 - seventh argument value
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, @arg1)
+
+PUB sFormatStr8(pUserBuff, maxLen, p_str, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) : nPlaced
+'' Format string and 8-args into {pUserBuff} with formatting characters, zero terminated
+''
+'' @param pUserBuff - buffer to receive formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param arg1 - first argument value
+'' @param arg2 - second argument value
+'' @param arg3 - third argument value
+'' @param arg4 - fourth argument value
+'' @param arg5 - fifth argument value
+'' @param arg6 - sixth argument value
+'' @param arg7 - seventh argument value
+'' @param arg8 - eighth argument value
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+
+    nPlaced := sFormat(pUserBuff, maxLen, p_str, @arg1)
+
+
+PUB sFormat(pUserBuff, maxLen, p_str, p_args) : nPlaced | idx, ch, asc, fld, digits, pBffr, pBffrEnd
+'' Format string with escape sequences and embedded values to {pOutBuf}
+''
+'' @param pUserBuff - pointer to the users buffer to receive the formatted string
+'' @param maxLen - size of buffer in bytes (including null terminator)
+'' @param p_str - pointer to the format control string
+'' @param p_args - pointer to array of longs that hold field values (numbers, characters, or pointers to strings)
+'' @returns nPlaced - count of characters placed into the users buffer (excl zero term.)
+'' @local idx - value index
+'' @local ch - current character
+'' @local asc - ASCII value for escaped characters
+'' @local fld - field width
+'' @local digits - precision digits
+'' @local pBffr - working buffer pointer
+'' @local pBffrEnd - boundary pointer (one past last writable position)
+
+  nPlaced := 0                                                 ' default: nothing placed
+  if maxLen >= 1
+    idx := 0                                                   ' value index
+    pBffr := pUserBuff
+    pBffrEnd := pUserBuff + maxLen - 1                         ' reserve 1 byte for null terminator
+    repeat
+      ch := byte[p_str++]
+      if (ch == 0)
+        quit
+
+      elseif (ch == "\")
+        ch := byte[p_str++]
+        if (ch == "\")
+          sTx("\", pBffr++, pBffrEnd)
+        elseif (ch == "%")
+          sTx("%", pBffr++, pBffrEnd)
+        elseif (ch == "q")
+          sTx(ASCII_QUOTE, pBffr++, pBffrEnd)
+        elseif (ch == "b")
+          sTx(BKSP, pBffr++, pBffrEnd)
+        elseif (ch == "t")
+          sTx(TAB, pBffr++, pBffrEnd)
+        elseif (ch == "n")
+          sTx(LF, pBffr++, pBffrEnd)
+        elseif (ch == "r")
+          sTx(CR, pBffr++, pBffrEnd)
+        elseif ((ch >= "0") and (ch <= "9"))
+          --p_str
+          p_str, asc, _ := get_nargs(p_str)
+          if ((asc >= 0) and (asc <= MAX_BYTE_VALUE))
+            sTx(asc, pBffr++, pBffrEnd)
+
+      elseif (ch == "%")
+        p_str, fld, digits := get_nargs(p_str)
+        ch := byte[p_str++]
+        if (ch == "f")
+          pBffr := sStr(fmt_number(long[p_args][idx++], FMT_FLOAT, digits, fld, " "), pBffr, pBffrEnd)
+        elseif (ch == "d")
+          pBffr := sStr(fmt_number(long[p_args][idx++], 10, digits, fld, " "), pBffr, pBffrEnd)
+        elseif (ch == "x")
+          pBffr := sStr(fmt_number(long[p_args][idx++], 16, digits, fld, " "), pBffr, pBffrEnd)
+        elseif (ch == "o")
+          pBffr := sStr(fmt_number(long[p_args][idx++], 08, digits, fld, " "), pBffr, pBffrEnd)
+        elseif (ch == "q")
+          pBffr := sStr(fmt_number(long[p_args][idx++], 04, digits, fld, " "), pBffr, pBffrEnd)
+        elseif (ch == "b")
+          pBffr := sStr(fmt_number(long[p_args][idx++], 02, digits, fld, " "), pBffr, pBffrEnd)
+        elseif (ch == "s")
+          pBffr := sStr(padstr(long[p_args][idx++], fld, " "), pBffr, pBffrEnd)
+        elseif (ch == "c")
+          pBffr := sTxn(long[p_args][idx++], (abs fld) #> 1, pBffr, pBffrEnd)
+
+      else
+        sTx(ch, pBffr++, pBffrEnd)
+
+    pBffr := pBffr <# pBffrEnd                                ' clamp to buffer boundary
+    byte[pBffr] := 0                                           ' place terminator
+    nPlaced := pBffr - pUserBuff
+
+CON { --- Internal Methods --- }
+
+PRI sTx(nChr, pOutBuf, pBffrEnd)
+' Write a single character to the output buffer (bounds-checked)
+'
+' @param nChr - character to write
+' @param pOutBuf - pointer to output buffer position
+' @param pBffrEnd - boundary pointer (one past last writable position)
+
+    if pOutBuf < pBffrEnd
+        byte[pOutBuf] := nChr
+
+PRI sTxn(nChr, nCount, pOutBuf, pBffrEnd) : pBufNext
+' Emit a character n times to the output buffer (bounds-checked)
+'
+' @param nChr - character to emit
+' @param nCount - number of times to emit the character
+' @param pOutBuf - pointer to output buffer position
+' @param pBffrEnd - boundary pointer (one past last writable position)
+' @returns pBufNext - pointer to next position in buffer after emitted characters
+
+    repeat nCount
+        sTx(nChr, pOutBuf++, pBffrEnd)
+
+    pBufNext := pOutBuf
+
+PRI sStr(pStr, pOutBuf, pBffrEnd) : pBufNext
+' Write a string to the output buffer (bounds-checked)
+'
+' @param pStr - pointer to source string
+' @param pOutBuf - pointer to output buffer position
+' @param pBffrEnd - boundary pointer (one past last writable position)
+' @returns pBufNext - pointer to next position in buffer after written string
+
+    repeat (strsize(pStr))
+        sTx(byte[pStr++], pOutBuf++, pBffrEnd)
+
+    pBufNext := pOutBuf
+
+PRI get_nargs(p_str) : p_str1, val1, val2 | ch, sign
+' Parse one or two numbers from string in n, -n, n.n, or -n.n format
+'
+' @param p_str - pointer to string containing number(s)
+' @returns p_str1 - pointer to first char after value(s)
+' @returns val1 - first parsed value (may be negative)
+' @returns val2 - second parsed value (after decimal point, if present)
+' @local ch - current character
+' @local sign - sign flag for first value
+
+  val1 := 0
+  val2 := 0
+  ch := byte[p_str]                                             ' check for negative on first value
+  if (ch == "-")
+    sign := -1
+    ++p_str
+  else
+    sign := 0
+
+  repeat                                                        ' get first value
+    ch := byte[p_str++]
+    if ((ch >= "0") and (ch <= "9"))
+      val1 := (val1 * 10) + (ch - "0")
+    else
+      if (sign)
+        val1 := -val1
+      quit
+
+  if (ch == ".")                                                ' if dpoint
+    repeat                                                      '  get second value
+      ch := byte[p_str++]
+      if ((ch >= "0") and (ch <= "9"))
+        val2 := (val2 * 10) + (ch - "0")
+      else
+        quit
+
+  p_str1 := p_str - 1                                           ' back up to non-digit
+
+
+CON { --- Number-to-String Methods (inlined from jm_nstr by Jon McPhalen) --- }
+
+PUB fmt_number(value, radix, digits, width, pad) : p_str
+'' Return pointer to string of value converted to number in padded field
+'' -- value is converted using radix
+'' -- digits is max number of digits to use
+'' -- width is width of final field (max)
+'' -- pad is character used to pad final field (if needed)
+
+  case radix
+    "d", "D", 10 : p_str := padstr(dec(value, digits),      width, pad)
+    "u", "U", FMT_UNSIGNED_DEC : p_str := padstr(usdec(value, digits),    width, pad)
+    "f", "F", FMT_FIXED_POINT, FMT_FLOAT : p_str := padstr(dpdec(value, digits),    width, pad)
+    "b", "B", 02 : p_str := padstr(itoa(value,  2, digits), width, pad)
+    "q", "Q", 04 : p_str := padstr(itoa(value,  4, digits), width, pad)
+    "o", "O", 08 : p_str := padstr(itoa(value,  8, digits), width, pad)
+    "x", "X", 16 : p_str := padstr(itoa(value, 16, digits), width, pad)
+    other        : p_str := string("?")
+
+
+PUB itoa(value, radix, digits) : p_str | sign, len, digit, validRadix
+'' Convert signed integer to string
+'' -- supports radix 10, 2, 4, 8, and 16
+'' -- digits is 0 (auto size) to limit for long using radix
+
+  p_str := @nbuf                                                ' point to buffer
+  validRadix := true
+
+  case radix                                                    ' limit printable digits
+    02    : digits := 0 #> digits <# MAX_DIGITS_BIN
+    04    : digits := 0 #> digits <# MAX_DIGITS_QUAT
+    08    : digits := 0 #> digits <# MAX_DIGITS_OCT
+    10    : digits := 0 #> digits <# MAX_DIGITS_DEC
+    16    : digits := 0 #> digits <# MAX_DIGITS_HEX
+    other :
+      validRadix := false
+
+  if validRadix
+    if ((radix == 10) && (value < 0))                           ' deal with negative decimals
+      if (value == negx)
+        sign := 2
+        value := posx
+      else
+        sign := 1
+        value := -value
+    else
+      sign := 0
+
+    len := 0
+
+    repeat
+      digit := value +// radix                                  ' get digit (1s column)
+      byte[p_str++] := (digit < 10) ? digit + "0" : digit - 10 + "A"  ' convert to ASCII
+      value +/= radix                                           ' remove digit
+      if (digits)                                               ' length limited?
+        if (++len == digits)                                    '  check size
+          quit
+      else
+        if (value == 0)                                         ' done?
+          quit
+
+    if (sign)
+      byte[p_str++] := "-"                                      ' add sign if needed
+      if (sign == 2)
+        nbuf[0] := "8"                                          ' fix negx if needed
+
+    byte[p_str] := 0                                            ' terminate string
+    p_str := revstr(@nbuf)                                      ' fix order (reverse)
+
+
+PUB dpdec(value, dp) : p_str | len, byte scratch[12]
+'' Convert value to string with decimal point
+'' -- dp is digits after decimal point
+'' -- returns pointer to converted string
+
+  p_str := itoa(value, 10, 0)
+
+  if (dp > 0)                                                   ' only add decimal point if needed
+    len := strsize(p_str)                                       ' digits
+    bytefill(@scratch, 0, DPDEC_SCRATCH_SZ)                      ' clear scratch buffer
+
+    if (value < 0)                                              ' ignore "-" if present
+      ++p_str
+      --len
+
+    if (len < (dp+1))                                           ' insert 0s?
+      bytemove(@scratch, p_str, len)                            ' move digits to scratch buffer
+      bytefill(p_str, "0", dp+2-len)                            ' pad string with 0s
+      bytemove(p_str+dp+2-len, @scratch, len+1)                 ' move digits back
+      byte[p_str+1] := "."                                      ' insert dpoint
+    else
+      bytemove(@scratch, p_str+len-dp, dp)                      ' move decimal part to buffer
+      byte[p_str+len-dp] := "."                                 ' insert dpoint
+      bytemove(p_str+len-dp+1, @scratch, dp+1)                  ' move decimal part back
+
+    if (value < 0)                                              ' fix pointer for negative #s
+      --p_str
+
+
+PUB padstr(p_str, width, padchar) : p_pad | len
+'' Pad string with padchar character
+'' -- positive width uses left pad, negative field width uses right pad
+'' -- truncate if string len > width
+'' -- input string is not modified
+'' -- returns pointer to padded string
+
+  len := strsize(p_str)                                         ' get length of input
+  width := -PBUF_SIZE+1 #> width <# PBUF_SIZE-1                 ' constrain to buffer size
+
+  if (width > 0)                                                ' right-justify in padded field
+    if (width > len)
+      bytefill(@pbuf, padchar, width-len)
+      bytemove(@pbuf+width-len, p_str, len)
+      byte[@pbuf+width] := 0                                    ' null-terminate
+      p_pad := @pbuf
+    else
+      bytemove(@pbuf, p_str+len-width, width)                   ' truncate to right-most characters
+      byte[@pbuf+width] := 0                                    ' null-terminate
+      p_pad := @pbuf
+
+  elseif (width < 0)                                            ' left-justify in padded field
+    width := -width
+    if (width > len)
+      bytemove(@pbuf, p_str, len)
+      bytefill(@pbuf+len, padchar, width-len)
+      byte[@pbuf+width] := 0                                    ' null-terminate
+      p_pad := @pbuf
+    else
+      bytemove(@pbuf, p_str, width)                             ' truncate to leftmost characters
+      byte[@pbuf+width] := 0                                    ' null-terminate
+      p_pad := @pbuf
+
+  else
+    p_pad := p_str
+
+
+PRI dec(value, digits) : p_str
+' Convert decimal value to string
+' -- digits is 0 (auto size) to 10
+
+  p_str := itoa(value, 10, digits)
+
+
+PRI usdec(value, digits) : p_str | len
+' Convert unsigned decimal value to string
+' -- digits is 0 (auto size) to 10
+
+  digits := 0 #> digits <# MAX_DIGITS_DEC                       ' limit printable digits
+
+  byte[@nbuf + MAX_DIGITS_DEC] := 0                             ' null-terminate past max unsigned dec digits
+  p_str := @nbuf + MAX_DIGITS_DEC - 1                           ' point to end of udec string
+
+  len := 0
+
+  repeat
+    byte[--p_str] := (value +// 10) + "0"                       ' extract digit, convert to ASCII
+    value +/= 10                                                ' remove digit from value
+    if (digits)                                                 ' length limited?
+      if (++len == digits)                                      '  check size
+        quit
+    else
+      if (value == 0)                                           ' done?
+        quit
+
+
+PRI revstr(p_str) : result | first, len, last
+' Reverse the order of characters in a string.
+
+  result := first := p_str                                      ' start
+  len := strsize(p_str)                                         ' length
+  last := first + len - 1                                       ' end
+
+  repeat (len >> 1)                                             ' reverse them
+    byte[first++], byte[last--] := byte[last], byte[first]
+
+
+CON { license }
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2022 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+}}

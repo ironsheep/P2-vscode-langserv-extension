@@ -196,9 +196,45 @@ export class Spin2DocumentSemanticParser {
     const methodEntries: [string, TokenSet][] = this.semanticFindings.methodLocalTokenEntries();
     for (const [methodKey, tokenSet] of methodEntries) {
       const tokenEntries: [string, RememberedToken][] = tokenSet.entries();
+
+      // Build set of parameters to suppress for @param variadic patterns:
+      // When @paramN is used, parameters at index N and beyond are accessed
+      // via pointer arithmetic and should not be flagged as unused.
+      // Suppression is limited to a contiguous run of unreferenced parameters
+      // starting at the @target — a named reference breaks the chain.
+      // See docs/REF-address-of-warning-suppression.md for full rationale.
+      const paramNames: string[] = [];
+      for (const [name, tok] of tokenEntries) {
+        if (tok.type === 'parameter') {
+          paramNames.push(name);
+        }
+      }
+      const suppressedParams = new Set<string>();
+      if (paramNames.length > 0) {
+        let earliestAddrOfIdx = paramNames.length; // sentinel: none found
+        for (let i = 0; i < paramNames.length; i++) {
+          const refs = this.semanticFindings.getReferencesForToken(paramNames[i], methodKey);
+          if (refs.some((r) => r.isAddressOf)) {
+            earliestAddrOfIdx = i;
+            break;
+          }
+        }
+        for (let i = earliestAddrOfIdx; i < paramNames.length; i++) {
+          const refs = this.semanticFindings.getReferencesForToken(paramNames[i], methodKey);
+          const namedUsageRefs = refs.filter((r) => !r.isDeclaration && !r.isAddressOf);
+          if (namedUsageRefs.length > 0) {
+            break; // named reference breaks the contiguous variadic chain
+          }
+          suppressedParams.add(paramNames[i]);
+        }
+      }
+
       for (const [tokenName, token] of tokenEntries) {
         const tokenType: string = token.type;
         if (tokenType !== 'parameter' && tokenType !== 'returnValue' && tokenType !== 'variable') {
+          continue;
+        }
+        if (suppressedParams.has(tokenName)) {
           continue;
         }
         const refs = this.semanticFindings.getReferencesForToken(tokenName, methodKey);
@@ -9109,11 +9145,13 @@ export class Spin2DocumentSemanticParser {
             : '');
         if (name.length > 0 && !this._isBuiltinName(name, newToken.ptTokenType)) {
           const isDecl = newToken.ptTokenModifiers.includes('declaration');
+          const isAddrOf = line !== null && newToken.startCharacter > 0 && line.charAt(newToken.startCharacter - 1) === '@';
           this.semanticFindings.recordTokenReference(name, {
             line: newToken.line,
             startCharacter: newToken.startCharacter,
             length: newToken.length,
             isDeclaration: isDecl,
+            isAddressOf: isAddrOf || undefined,
             scope: this.currentMethodName
           });
         }
