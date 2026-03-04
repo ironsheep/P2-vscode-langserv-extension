@@ -348,8 +348,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(getCompileArgsCommand, () => {
       const optionsBuild = vscode.workspace.getConfiguration('spin2').get('optionsBuild');
       const optionsBuildAr: string[] = Array.isArray(optionsBuild) ? optionsBuild : [optionsBuild];
-      const quotedOptionsBuildAr = optionsBuildAr.map((option) => (option.includes(' ') ? `"${option}"` : option));
-      const buildArgString: string = quotedOptionsBuildAr.join(' ');
+      const buildArgString: string = optionsBuildAr.join(' ');
       logExtensionMessage(`CMD: getCompilerArguments -> [${buildArgString}]`);
       return buildArgString;
     })
@@ -363,8 +362,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(getLoaderArgsCommand, () => {
       const optionsLoader = vscode.workspace.getConfiguration('spin2').get('optionsLoader');
       const optionsLoaderAr: string[] = Array.isArray(optionsLoader) ? optionsLoader : [optionsLoader];
-      const quotedOptionsLoaderAr = optionsLoaderAr.map((option) => (option.includes(' ') ? `"${option}"` : option));
-      const loaderArgString: string = quotedOptionsLoaderAr.join(' ');
+      const loaderArgString: string = optionsLoaderAr.join(' ');
       logExtensionMessage(`CMD: getLoaderArguments -> [${loaderArgString}]`);
       return loaderArgString;
     })
@@ -2123,7 +2121,9 @@ async function buildLoaderSwitches(haveP2: boolean, writeToFlash: boolean, seria
     } else {
       // Load P2 using: proploader{.mac|.exe}
       loaderOptions.push('-2');
-      loaderOptions.push(loaderSglLtrOptions);
+      if (loaderSglLtrOptions.length > 0) {
+        loaderOptions.push(loaderSglLtrOptions);
+      }
       loaderOptions.push('-r'); // run after downloading
       //loaderOptions.push('-k'); // wait for user input before exit
       //loaderOptions.push('-n'); // no reset; skip any hardware reset
@@ -2140,7 +2140,9 @@ async function buildLoaderSwitches(haveP2: boolean, writeToFlash: boolean, seria
     // Load P1 using: proploader{.mac|.exe}
     // NOTE: proploader doesn't support merging single letter options!
     // setup proploader arguments for P1 download
-    loaderOptions.push(loaderSglLtrOptions);
+    if (loaderSglLtrOptions.length > 0) {
+      loaderOptions.push(loaderSglLtrOptions);
+    }
     loaderOptions.push(`-r`); // run after download
     if (writeToFlash) {
       loaderOptions.push(`-e`); // write to eeprom
@@ -2174,7 +2176,7 @@ async function buildPnutTermTsSwitches(writeToFlash: boolean, serialPort: string
   // NOTE: -r/-f requires <fileSpec> immediately after. The filename is added by tasks.json
   //       as a separate argument. By placing -r/-f as the LAST option in the array,
   //       tasks.json naturally creates: pnut-term-ts --ide -p P9cektn7 -b 2000000 -r filename.bin
-  //       tasks.json uses "quoting": "weak" to properly split space-separated arguments
+  //       tasks.json uses "quoting": "escape" to allow the shell to split space-separated arguments
   //
   const loaderOptions: string[] = [];
   const DEFAULT_DEBUG_BAUD = 2000000;

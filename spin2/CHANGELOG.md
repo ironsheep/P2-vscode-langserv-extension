@@ -24,6 +24,17 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.6.3] 2026-03-04
+
+Debug highlighting and task argument fixes
+
+### Fixes
+
+- BUGFIX: Highlight `DEBUG_END_SESSION` and other debug control symbols correctly inside `debug()` statements (v52+)
+- BUGFIX: Preserve struct field references (e.g., `name[0].namefield`) inside non-display `debug()` statements -- index expression rebuild was truncating the dotted member access
+- BUGFIX: Fix `getCompilerArguments` / `getLoaderArguments` -- remove per-element quoting that prevented shell argument splitting; user tasks should use the `command` field (not `args`) for proper multi-argument expansion
+- BUGFIX: Prevent empty string arguments from being pushed into proploader option arrays (P1 and P2 paths)
+
 ## [2.6.2] 2026-03-03
 
 Detune "declared but never used" warnings for statement patterns like varargs use or copying a list of pins

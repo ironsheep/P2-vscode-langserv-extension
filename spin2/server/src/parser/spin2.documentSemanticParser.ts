@@ -7380,8 +7380,15 @@ export class Spin2DocumentSemanticParser {
         if (hasIndexExpression) {
           for (let index = 0; index < lineParts.length; index++) {
             const linePart = lineParts[index];
-            if (linePart.includes('[')) {
-              // lets rebuild linePart from line where this starts to ending ']'
+            if (linePart.includes('[') && linePart.includes(']')) {
+              // bracket expression is already complete (e.g., name[0].namefield) - keep as-is
+              newIndexedExpr = linePart;
+              this._logDEBUG(
+                `  -- rDbgStM() --- COMPLETE linePart=[${linePart}](${linePart.length})`
+              );
+              tmpLineParts.push(linePart);
+            } else if (linePart.includes('[')) {
+              // partial bracket expression (e.g., name[i split across parts) - rebuild from line
               const symbolPosition: Position = multiLineSet.locateSymbol(linePart, currSingleLineOffset);
               const desiredLine: string = multiLineSet.lineAt(symbolPosition.line);
               const indexEspressionStart: number = desiredLine.indexOf(linePart);
@@ -7574,6 +7581,19 @@ export class Spin2DocumentSemanticParser {
               length: newParameter.length,
               ptTokenType: 'debug',
               ptTokenModifiers: ['function']
+            });
+            currSingleLineOffset = nameOffset + newParameter.length;
+            continue;
+          }
+          // if debug control symbol (e.g., DEBUG_END_SESSION) then highlight as constant
+          if (this.parseUtils.isDebugControlSymbol(newParameter)) {
+            this._logDEBUG(`  -- rDbgStM() debug control symbol=[${newParameter}](${newParameter.length}), ofs=(${nameOffset})`);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: symbolPosition.character,
+              length: newParameter.length,
+              ptTokenType: 'enumMember',
+              ptTokenModifiers: ['readonly']
             });
             currSingleLineOffset = nameOffset + newParameter.length;
             continue;

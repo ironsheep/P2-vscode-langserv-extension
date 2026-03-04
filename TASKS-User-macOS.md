@@ -313,123 +313,106 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
 
 ```json
 {
-        // See https://go.microsoft.com/fwlink/?LinkId=733558
-        // for the documentation about the tasks.json format
-        "version": "2.0.0",
-        "tasks": [
-          {
-            "label": "compileP2",
-            "type": "shell",
-            "command": "${config:spin2.fSpecCompiler}",
-            "args": [
-              {
-                "value": "${command:spinExtension.getCompilerArguments}",
-                "quoting": "weak"
-              },
-              "${fileBasename}"
-            ],
-            "problemMatcher": {
-              "owner": "Spin2",
-              "fileLocation": ["autoDetect", "${workspaceFolder}"],
-              "pattern": {
-                "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-                "file": 1,
-                "line": 2,
-                "severity": 3,
-                "message": 4
-              }
-            },
-            "presentation": {
-              "panel": "dedicated",
-              "focus": false,
-              "showReuseMessage": false,
-              "echo": true,
-              "clear": true,
-              "close": false,
-              "reveal": "always",
-              "revealProblems": "onProblem"
-            },
-            "group": {
-              "kind": "build",
-              "isDefault": true
-            }
-          },
-          {
-            "label": "compileTopP2",
-            "type": "shell",
-            "command": "${config:spin2.fSpecCompiler}",
-            "args": [
-              {
-                "value": "${command:spinExtension.getCompilerArguments}",
-                "quoting": "weak"
-              },
-              "${config:spin2.fNameTopLevel}"
-            ],
-            "problemMatcher": {
-              "owner": "Spin2",
-              "fileLocation": ["autoDetect", "${workspaceFolder}"],
-              "pattern": {
-                "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-                "file": 1,
-                "line": 2,
-                "severity": 3,
-                "message": 4
-              }
-            },
-            "presentation": {
-              "panel": "dedicated",
-              "focus": false,
-              "showReuseMessage": false,
-              "echo": true,
-              "clear": true,
-              "close": false,
-              "reveal": "always",
-              "revealProblems": "onProblem"
-            },
-            "group": {
-              "kind": "build",
-              "isDefault": true
-            }
-          },
-          {
-            "label": "downloadP2",
-            "type": "shell",
-            "command": "${config:spin2.fSpecLoader}",
-            "args": [
-              {
-                "value": "${command:spinExtension.getLoaderArguments}",
-                "quoting": "weak"
-              },
-              "${config:spin2.optionsBinaryFname}"
-            ],
-            "problemMatcher": {
-              "owner": "Spin2",
-              "fileLocation": ["autoDetect", "${workspaceFolder}"],
-              "pattern": {
-                "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
-                "file": 1,
-                "line": 2,
-                "severity": 3,
-                "message": 4
-              }
-            },
-            "presentation": {
-              "panel": "dedicated",
-              "focus": false,
-              "showReuseMessage": false,
-              "echo": true,
-              "clear": true,
-              "close": false,
-              "reveal": "always",
-              "revealProblems": "onProblem"
-            },
-            "group": {
-              "kind": "test",
-              "isDefault": true
-            }
-          }
-        ]
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compileP2",
+      "type": "shell",
+      "command": "${config:spin2.fSpecCompiler} ${command:spinExtension.getCompilerArguments} ${fileBasename}",
+      "args": [],
+      "problemMatcher": {
+        "owner": "Spin2",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "focus": false,
+        "showReuseMessage": false,
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
       }
+    },
+    {
+      "label": "compileTopP2",
+      "type": "shell",
+      "command": "${config:spin2.fSpecCompiler} ${command:spinExtension.getCompilerArguments} ${config:spin2.fNameTopLevel}",
+      "args": [],
+      "problemMatcher": {
+        "owner": "Spin2",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "focus": false,
+        "showReuseMessage": false,
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "downloadP2",
+      "type": "shell",
+      "command": "${config:spin2.fSpecLoader} ${command:spinExtension.getLoaderArguments} ${config:spin2.optionsBinaryFname}",
+      "args": [],
+      "problemMatcher": {
+        "owner": "Spin2",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "focus": false,
+        "showReuseMessage": false,
+        "echo": true,
+        "clear": true,
+        "close": false,
+        "reveal": "always",
+        "revealProblems": "onProblem"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ]
+}
+
 ```
 
 This provides the following **Build** and **Test** tasks:

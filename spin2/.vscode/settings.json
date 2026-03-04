@@ -24,5 +24,112 @@
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": true
-  }
+},
+"spin2.serialPort": "Parw7ukt",
+"spin2.localIncludes": {
+	"TEST_LANG_SERVER/spin2/FIXES": {
+		"auto": true,
+		"dirs": [
+			"../"
+		]
+	},
+	"TEST_LANG_SERVER/spin2": {
+		"auto": true,
+		"dirs": [
+			"../BLDC_TEST/",
+			"param-validation/"
+		]
+	},
+	"TEST_LANG_SERVER/spin2/FmWummi-email": {
+		"auto": true,
+		"dirs": [
+			"../FmWummi-emailFULL/SA8-Prototyp/",
+			"../FmWummi-emailFULL/SA8-PrototypeOLD/"
+		]
+	},
+	"TEST_LANG_SERVER/BLDC_TEST": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/SPIN1_asSpin2": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/FmADA-IssueForum1": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/FmADA-issue8": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/FmADA-issueForum0": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/FmWummi-emailFULL/SA8-Prototyp": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/FmWummi-emailFULL/SA8-PrototypeOLD": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/LANG-PREPROC": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/LANG_PARTS": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/LANG_VER": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/LoaderTesting": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/fmChip": {
+		"auto": true,
+		"dirs": []
+	},
+	"TEST_LANG_SERVER/spin2/param-validation": {
+		"auto": true,
+		"dirs": []
+	},
+	"client/src/ext": {
+		"auto": true,
+		"dirs": []
+	},
+	"client/src/test/fixtures": {
+		"auto": true,
+		"dirs": []
+	},
+	"client/testFixture": {
+		"auto": true,
+		"dirs": []
+	},
+	"server/src/test/fixtures": {
+		"auto": true,
+		"dirs": []
+	}
+},
+"spin2.optionsBinaryFname": "test-file-001.bin",
+"spin2.fSpecCompiler": "/Applications/pnut_ts/pnut_ts",
+"spin2.optionsBuild": [
+	"-l",
+	"-I",
+	"/Users/stephen/Projects/Projects-ExtGit/IronSheepProductionsLLC/Propeller2/VSCode Extensions/P2-vscode-langserv-extension/spin2/TEST_LANG_SERVER/BLDC_TEST"
+],
+"spin2.fSpecLoader": "/Applications/PNut-Term-TS.app/Contents/Resources/bin/pnut-term-ts",
+"spin2.optionsLoader": [
+	"--ide",
+	"-r"
+]
 }

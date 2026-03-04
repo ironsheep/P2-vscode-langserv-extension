@@ -1,0 +1,29 @@
+{Spin2_v52}
+CON ' Constants
+
+  _CLKFREQ = 160_000_000
+
+  STRUCT nametype(BYTE namefield[32], BYTE unusedextrabyte)
+
+VAR ' Variables
+   nametype name[24]
+   byte testing
+OBJ ' Objects
+
+PUB main()
+    STRCOPY(@name[0].namefield,@"namefield 1",12)
+    STRCOPY(@name[1].namefield,@"namefield 2",12)
+    STRCOPY(@name[2].namefield,@"namefield 3",12)
+    STRCOPY(@name[3].namefield,@"namefield 4",12)
+
+    debug(zstr(@name[0].namefield), uhex(@name[0].namefield))
+    debug(zstr(@name[1].namefield), uhex(@name[1].namefield))
+    debug(zstr(@name[2].namefield), uhex(@name[2].namefield))
+    debug(zstr(@name[3].namefield), uhex(@name[3].namefield))
+
+    debug("'nametype' structure is a 32 byte array named 'namefield' + 1 byte named 'unusedextrabyte'.")
+    debug("Total bytes for this sctructure: 33")
+    debug("24 structures of nametype, named 'name' were instantiated")
+    debug("Expected bytes: 792 (33*24)")
+
+    debug("Measured total size of instantiated 'name' structures: ",udec_(@testing-@name), " bytes")
