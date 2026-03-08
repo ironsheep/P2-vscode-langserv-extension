@@ -681,7 +681,11 @@ export class DocumentFindings {
       const reducedReports = this._deDupeReports(sortedReports, messageCountMax); //sortedReports; //
       for (let index = 0; index < reducedReports.length; index++) {
         const report = reducedReports[index];
-        const lspDiag: Diagnostic = Diagnostic.create(report.location(), report.message(), report.severity());
+        const lspDiag: Diagnostic = Diagnostic.create(report.location(), report.message(), report.severity(), report.code());
+        if (report.data() !== undefined) {
+          lspDiag.data = report.data();
+        }
+        lspDiag.source = 'spin2';
         formattedMessages.push(lspDiag);
       }
     }
@@ -706,7 +710,7 @@ export class DocumentFindings {
     return reducedSet;
   }
 
-  public pushDiagnosticMessage(lineIdx: number, startChar: number, endChar: number, severity: eSeverity, message: string): void {
+  public pushDiagnosticMessage(lineIdx: number, startChar: number, endChar: number, severity: eSeverity, message: string, code?: string, data?: unknown): void {
     // record a new diagnostic message
     // NEW if is for disabled line, ignore it!
     const lineNbr: number = lineIdx + 1;
@@ -734,7 +738,7 @@ export class DocumentFindings {
           }
         }
         const location: Range = Range.create(lineIdx, startChar, lineIdx, endChar);
-        const diagnosis: DiagnosticReport = new DiagnosticReport(message, severity, location);
+        const diagnosis: DiagnosticReport = new DiagnosticReport(message, severity, location, code, data);
         this.diagnosticMessages.push(diagnosis);
         this._logMessage(`Add DIAGNOSIS - ${severityStr}(${lineIdx + 1})[${startChar}-${endChar}]: [${message}]`);
       }
@@ -3354,10 +3358,14 @@ export class DiagnosticReport {
   private messageText: string;
   private symbolKind: DiagnosticSeverity;
   private symbolLocation: Range;
+  private diagnosticCode: string | undefined;
+  private diagnosticData: unknown;
 
-  constructor(message: string, kind: eSeverity, location: Range) {
+  constructor(message: string, kind: eSeverity, location: Range, code?: string, data?: unknown) {
     this.messageText = message;
     this.symbolLocation = location;
+    this.diagnosticCode = code;
+    this.diagnosticData = data;
     switch (kind) {
       case eSeverity.Error: {
         this.symbolKind = DiagnosticSeverity.Error;
@@ -3387,5 +3395,13 @@ export class DiagnosticReport {
 
   public severity(): DiagnosticSeverity {
     return this.symbolKind;
+  }
+
+  public code(): string | undefined {
+    return this.diagnosticCode;
+  }
+
+  public data(): unknown {
+    return this.diagnosticData;
   }
 }

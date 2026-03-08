@@ -96,6 +96,7 @@ export class Spin2DocumentSemanticParser {
 
   private bRecordTrailingComments: boolean = false; // initially, we don't generate tokens for trailing comments on lines
   private bHuntingForVersion: boolean = true; // initially we re hunting for a {Spin2_v##} spec in file-top comments
+  // versionHintsEmitted tracking removed — code actions now handle version hints per-line
 
   public constructor(protected readonly ctx: Context) {
     this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
@@ -302,6 +303,7 @@ export class Spin2DocumentSemanticParser {
     const startingLangVersion: number = this.parseUtils.selectedSpinVersion();
     this.parseUtils.setSpinVersion(0); // PRESET no override language version until we find one!
     this.bHuntingForVersion = true; // PRESET we start hunting from top of file
+    // versionHintsEmitted tracking removed — code actions now handle version hints per-line
     let bBuildingSingleLineCmtBlock: boolean = false;
     let bBuildingSingleLineDocCmtBlock: boolean = false;
     this.spinControlFlowTracker.reset();
@@ -868,6 +870,12 @@ export class Spin2DocumentSemanticParser {
             }
             this._getDAT_Declaration(0, lineNumber, lineToProcess); // SECTION start - get label from line / or ORG in DAT BLOCK
             if (bHaveOrg) {
+              // apply any pending state change from mid-line comment detection before continue
+              if (pendingState !== eParseState.Unknown) {
+                this._logState(`- pre-scan Ln#${lineNbr} DELAYED currState [${eParseState[currState]}] -> [${eParseState[pendingState]}]`);
+                currState = pendingState;
+                pendingState = eParseState.Unknown;
+              }
               continue;
             }
           }
@@ -888,6 +896,12 @@ export class Spin2DocumentSemanticParser {
         }
         // we processed the block declaration line, now wipe out prior comment
         this.priorSingleLineComment = undefined; // clear it out...
+        // apply any pending state change from mid-line comment detection before continue
+        if (pendingState !== eParseState.Unknown) {
+          this._logState(`- pre-scan Ln#${lineNbr} DELAYED currState [${eParseState[currState]}] -> [${eParseState[pendingState]}]`);
+          currState = pendingState;
+          pendingState = eParseState.Unknown;
+        }
         continue;
       }
 
@@ -1465,6 +1479,12 @@ export class Spin2DocumentSemanticParser {
 
                 prePAsmState = currState;
                 currState = eParseState.inDatPAsm;
+                // apply any pending state change from mid-line comment detection before continue
+                if (pendingState !== eParseState.Unknown) {
+                  this._logState(`- colorize Ln#${lineNbr} DELAYED currState [${eParseState[currState]}] -> [${eParseState[pendingState]}]`);
+                  currState = pendingState;
+                  pendingState = eParseState.Unknown;
+                }
                 // and ignore rest of this line
                 continue;
               }
@@ -1491,6 +1511,12 @@ export class Spin2DocumentSemanticParser {
             const partialTokenSet: IParsedToken[] = this._reportVAR_DeclarationLine(i, 3, line);
             this._reportNonDupeTokens(partialTokenSet, '=> VAR: ', line, tokenSet);
           }
+        }
+        // apply any pending state change from mid-line comment detection before continue
+        if (pendingState !== eParseState.Unknown) {
+          this._logState(`- colorize Ln#${lineNbr} DELAYED currState [${eParseState[currState]}] -> [${eParseState[pendingState]}]`);
+          currState = pendingState;
+          pendingState = eParseState.Unknown;
         }
         continue;
       }
@@ -2014,7 +2040,14 @@ export class Spin2DocumentSemanticParser {
             this._logCON(`  -- GetCDLMulti() conDeclarationLine=[${conDeclarationLine}][${index}]`);
             currSingleLineOffset = multiLineSet.line.indexOf(conDeclarationLine, 0);
             const isAssignment: boolean = conDeclarationLine.indexOf('=') !== -1;
-            const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && nonCommentConstantLine.toUpperCase().indexOf('STRUCT') !== -1;
+            const hasStructKeyword: boolean = nonCommentConstantLine.toUpperCase().indexOf('STRUCT') !== -1;
+            const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && hasStructKeyword;
+            // detect STRUCT keyword without version directive — skip the line to prevent false enum registration
+            if (hasStructKeyword && !isStructDecl) {
+              const structOffset: number = nonCommentConstantLine.toUpperCase().indexOf('STRUCT');
+              this._emitVersionHintDiagnostic(multiLineSet.lineStartIdx, structOffset, structOffset + 6, 45, `STRUCT declaration`);
+              continue; // skip processing this STRUCT line
+            }
             if (isAssignment && !isStructDecl) {
               // recognize constant name getting initialized via assignment
               // get line parts - we only care about first one
@@ -2969,7 +3002,14 @@ export class Spin2DocumentSemanticParser {
           //currSingleLineOffset = line.indexOf(conDeclarationLine, currSingleLineOffset);
           // locate key indicators of line style
           const isAssignment: boolean = conDeclarationLine.indexOf('=') !== -1;
-          const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && conDeclarationLine.toUpperCase().indexOf('STRUCT') !== -1;
+          const hasStructKeyword: boolean = conDeclarationLine.toUpperCase().indexOf('STRUCT') !== -1;
+          const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && hasStructKeyword;
+          // detect STRUCT keyword without version directive — skip to prevent false errors
+          if (hasStructKeyword && !isStructDecl) {
+            const structOffset: number = conDeclarationLine.toUpperCase().indexOf('STRUCT');
+            this._emitVersionHintDiagnostic(multiLineSet.lineStartIdx, structOffset, structOffset + 6, 45, `STRUCT declaration`);
+            continue; // skip processing this STRUCT line
+          }
           if (!isAssignment && !isStructDecl) {
             const symbolPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, currSingleLineOffset);
             if (!this.parseUtils.isDebugInvocation(conDeclarationLine)) {
@@ -3694,6 +3734,11 @@ export class Spin2DocumentSemanticParser {
             eSeverity.Error,
             `P2 Spin DAT missing declaration [${newName}]`
           );
+          // check if this is a version-gated keyword
+          const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(newName);
+          if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
+            this._emitVersionHintDiagnostic(lineIdx, nameOffset, nameOffset + newName.length, requiredVersion, `built-in keyword [${newName}]`);
+          }
         }
 
         // process remainder of line
@@ -3923,6 +3968,11 @@ export class Spin2DocumentSemanticParser {
                   ['missingDeclaration'],
                   `P2 Spin rDvdc() missing declaration [${namePart}]`
                 );
+                // check if this is a version-gated keyword
+                const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
+                if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
+                  this._emitVersionHintDiagnostic(lineIdx, nameOffset, nameOffset + namePartLength, requiredVersion, `built-in keyword [${namePart}]`);
+                }
               }
             }
             this._logMessage(`  -- rDvdc() loop-bottom currentOffset=(${currentOffset}) -> (${nameOffset + namePartLength})`);
@@ -4012,6 +4062,7 @@ export class Spin2DocumentSemanticParser {
               ['illegalUse'],
               `Illegal P2 DAT PAsm directive [${labelName}] for version < 50`
             );
+            this._emitVersionHintDiagnostic(lineIdx, nameOffset, nameOffset + labelName.length, 50, `DITTO directive`);
             if (lineParts.length > 1) {
               // mrk our END as bad, too
               const argument: string = lineParts[1];
@@ -4108,6 +4159,7 @@ export class Spin2DocumentSemanticParser {
                   ['illegalUse'],
                   `Illegal P2 DAT PAsm directive [${likelyInstructionName}] for version < 50`
                 );
+                this._emitVersionHintDiagnostic(lineIdx, nameOffset, nameOffset + likelyInstructionName.length, 50, `DITTO directive`);
               }
             }
             currentOffset = nameOffset + likelyInstructionName.length; // move past the instruction
@@ -4503,6 +4555,17 @@ export class Spin2DocumentSemanticParser {
                     eSeverity.Error,
                     errorMsg
                   );
+                  // emit version hint for structure/pointer types that need a version directive
+                  if (typeName.includes('.') && !this.parseUtils.requestedSpinVersion(49)) {
+                    // external object structure type (e.g., dfs.vbr_t) needs v49
+                    this._emitVersionHintDiagnostic(symbolPosition.line, adjNameOffset, adjNameOffset + adjNameLength, 49, `external object structure parameter type [${typeName}]`);
+                  } else if (this.semanticFindings.isStructure(typeName) && !this.parseUtils.requestedSpinVersion(45)) {
+                    // local structure type needs v45
+                    this._emitVersionHintDiagnostic(symbolPosition.line, adjNameOffset, adjNameOffset + adjNameLength, 45, `structure parameter type [${typeName}]`);
+                  } else if (isPtr && !this.parseUtils.requestedSpinVersion(45)) {
+                    // pointer type needs v45
+                    this._emitVersionHintDiagnostic(symbolPosition.line, adjNameOffset, adjNameOffset + adjNameLength, 45, `pointer parameter type [${typeName}]`);
+                  }
                 }
               }
             }
@@ -4547,9 +4610,12 @@ export class Spin2DocumentSemanticParser {
           ); // TOKEN SET in _rpt()
           // if variable is a structure instance, say so
           if (structureType.length > 0) {
-            // FIXME: should this be method scoped structure instance?
+            // only strip object prefix if the stripped name is a known local structure
             if (structureType.includes('.')) {
-              structureType = structureType.substring(structureType.indexOf('.') + 1);
+              const possStructureType: string = structureType.substring(structureType.indexOf('.') + 1);
+              if (this.semanticFindings.isStructure(possStructureType)) {
+                structureType = possStructureType;
+              }
             }
             this.semanticFindings.recordStructureInstance(structureType, paramName, methodName); // PUB/PRI
           }
@@ -4673,6 +4739,12 @@ export class Spin2DocumentSemanticParser {
                   eSeverity.Error,
                   errorMsg
                 );
+                // check if this is a structure type that just needs a version directive
+                if (typeName.includes('.') && !this.parseUtils.requestedSpinVersion(49)) {
+                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + typeName.length, 49, `external object structure type [${typeName}] as return value`);
+                } else if (this.semanticFindings.isStructure(typeName) && !this.parseUtils.requestedSpinVersion(45)) {
+                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + typeName.length, 45, `structure type [${typeName}] as return value`);
+                }
               }
             }
           }
@@ -4911,6 +4983,12 @@ export class Spin2DocumentSemanticParser {
                   eSeverity.Error,
                   errorMsg
                 );
+                // check if this is a structure type that just needs a version directive
+                if (storageType.includes('.') && !this.parseUtils.requestedSpinVersion(49)) {
+                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + storageType.length, 49, `external object structure type [${storageType}] as local variable type`);
+                } else if (this.semanticFindings.isStructure(storageType) && !this.parseUtils.requestedSpinVersion(45)) {
+                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + storageType.length, 45, `structure type [${storageType}] as local variable type`);
+                }
               }
             }
           }
@@ -4996,6 +5074,13 @@ export class Spin2DocumentSemanticParser {
     //const referenceDetails: RememberedToken | undefined = undefined;
     if (this.semanticFindings.isGlobalToken(variableName)) {
       hideStatus = true;
+      // DEBUG: log what token we matched so we can diagnose false positives
+      const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(variableName);
+      if (referenceDetails) {
+        this._logMessage(
+          `  -- _hidesGlobal([${variableName}]) MATCH type=${referenceDetails.type}, mods=[${referenceDetails.modifiers}], ln#${referenceDetails.lineIndex + 1}`
+        );
+      }
     }
     return hideStatus;
   }
@@ -5415,6 +5500,20 @@ export class Spin2DocumentSemanticParser {
                     eSeverity.Error,
                     `P2 Spin mC missing declaration [${namePart}]`
                   );
+                  // check if this is a version-gated keyword
+                  const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
+                  if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
+                    this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, requiredVersion, `built-in keyword [${namePart}]`);
+                  }
+                  // check if this is a potential structure reference (dotted name without version directive)
+                  if (namePart.includes('.')) {
+                    if (!this.parseUtils.requestedSpinVersion(44)) {
+                      this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, 44, `potential structure reference [${namePart}]`);
+                    } else if (!this.parseUtils.requestedSpinVersion(49)) {
+                      // v44+ active but dotted name still unresolved — likely needs v49 for external object structure types
+                      this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, 49, `potential external object structure reference [${namePart}]`);
+                    }
+                  }
                   }
                 }
                 currSingleLineOffset = nameOffset + namePart.length;
@@ -6071,6 +6170,20 @@ export class Spin2DocumentSemanticParser {
                         eSeverity.Error,
                         `P2 Spin mE missing declaration [${namePart}]`
                       );
+                      // check if this is a version-gated keyword
+                      const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
+                      if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
+                        this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, requiredVersion, `built-in keyword [${namePart}]`);
+                      }
+                      // check if this is a potential structure reference (dotted name without version directive)
+                      if (namePart.includes('.')) {
+                        if (!this.parseUtils.requestedSpinVersion(44)) {
+                          this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, 44, `potential structure reference [${namePart}]`);
+                        } else if (!this.parseUtils.requestedSpinVersion(49)) {
+                          // v44+ active but dotted name still unresolved — likely needs v49 for external object structure types
+                          this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, 49, `potential external object structure reference [${namePart}]`);
+                        }
+                      }
                     }
                     }
                   }
@@ -6252,6 +6365,7 @@ export class Spin2DocumentSemanticParser {
                 ['illegalUse'],
                 `Illegal P2 Spin inline-pasm directive [${possibleDirective}]`
               );
+              this._emitVersionHintDiagnostic(lineIdx, nameOffset, nameOffset + possibleDirective.length, 50, `DITTO directive`);
               if (lineParts[1].toUpperCase() === 'END') {
                 // color our 'ditto end' token
                 nameOffset = line.indexOf(lineParts[1], nameOffset + possibleDirective.length);
@@ -6358,6 +6472,11 @@ export class Spin2DocumentSemanticParser {
                           ['missingDeclaration'],
                           `P2 Spin pasm missing declaration [${namePart}]`
                         );
+                        // check if this is a version-gated keyword
+                        const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
+                        if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
+                          this._emitVersionHintDiagnostic(lineIdx, nameOffset, nameOffset + namePart.length, requiredVersion, `built-in keyword [${namePart}]`);
+                        }
                       } else if (this.parseUtils.isIllegalInlinePAsmDirective(namePart)) {
                         this._logPASM('  -- rptSPINPAsm() ERROR[CODE] illegal name=[' + namePart + ']');
                         this._recordTokenWithDiagnostic(
@@ -6644,6 +6763,11 @@ export class Spin2DocumentSemanticParser {
                   eSeverity.Error,
                   `P2 Spin OBJ mC missing declaration [${overideValue}]`
                 );
+                // check if this is a version-gated keyword
+                const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(overideValue);
+                if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
+                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + overideValue.length, requiredVersion, `built-in keyword [${overideValue}]`);
+                }
               }
             }
             currSingleLineOffset = nameOffset + overideValue.length;
@@ -7875,6 +7999,20 @@ export class Spin2DocumentSemanticParser {
     return this.parseUtils.isStorageType(possibleType) || this.semanticFindings.isStructure(possibleType);
   }
 
+  private _emitVersionHintDiagnostic(lineIdx: number, startChar: number, endChar: number, requiredVersion: number, featureDescription: string): void {
+    // emit version hint with code action data so quick fix can insert/update version directive
+    this._logMessage(`  -- _emitVersionHint() Ln#${lineIdx + 1} v${requiredVersion} [${featureDescription}] chars(${startChar}-${endChar})`);
+    this.semanticFindings.pushDiagnosticMessage(
+      lineIdx,
+      startChar,
+      endChar,
+      eSeverity.Information,
+      `P2 Spin ${featureDescription} requires {Spin2_v${requiredVersion}} or later directive in this file`,
+      'spin2-needs-version',
+      { requiredVersion }
+    );
+  }
+
   private _isPossibleStructureReference(possibleRef: string, lineIdx: number = -1): boolean {
     let refFoundStatus: boolean = false;
     const lineNbr: number = lineIdx !== -1 ? lineIdx + 1 : 0;
@@ -7908,6 +8046,30 @@ export class Spin2DocumentSemanticParser {
       }
       refFoundStatus = isStructureRef && !possibleRef.startsWith('.') && (hasSymbolDotIndexedSymbol || hasSymbolDotSymbol);
       this._logMessage(`  --  isStruRef() hasSymbolDotSymbol=(${hasSymbolDotSymbol}), hasSymbolDotIndexedSymbol=(${hasSymbolDotIndexedSymbol})`);
+    } else if (!possibleRef.startsWith('.') && possibleRef.includes('.') && lineIdx !== -1) {
+      // version directive is missing — check if this looks like a structure reference
+      // and emit a helpful diagnostic recommending {Spin2_v44} or later
+      const dottedSymbolRegex = /[a-zA-Z0-9_]\.[a-zA-Z_]/; // sym.sym
+      const dottedIndexedSymbolRegex = /\]\.[a-zA-Z_]/; // indexExpre].sym
+      if (dottedSymbolRegex.test(possibleRef) || dottedIndexedSymbolRegex.test(possibleRef)) {
+        const nameParts: string[] = possibleRef.split(/[.[\]]/).filter(Boolean);
+        const instanceName = nameParts.length > 0 ? nameParts[0] : '';
+        let isStructureRef: boolean = instanceName.length > 0 && this.semanticFindings.isStructureInstance(instanceName);
+        if (isStructureRef === false && instanceName.length > 0) {
+          const referenceDetails: RememberedToken | undefined = this.semanticFindings.getLocalTokenForLine(instanceName, lineIdx + 1);
+          if (referenceDetails !== undefined) {
+            const tmpStructureType: string | undefined = this.semanticFindings.getTypeForLocalStructureInstance(instanceName, lineIdx + 1);
+            if (tmpStructureType !== undefined) {
+              isStructureRef = true;
+            }
+          }
+        }
+        if (isStructureRef) {
+          this._logMessage(`  -- isStruRef() Ln#${lineNbr} STRUCT REF [${possibleRef}] needs version directive`);
+          // leave refFoundStatus = false so caller still generates "missing declaration" alongside hint
+          // (caller emits its own version hint with proper range)
+        }
+      }
     }
     this._logMessage(`  --  isStruRef() structRef=[${possibleRef}] -> (${refFoundStatus})`);
     return refFoundStatus;
@@ -8163,8 +8325,15 @@ export class Spin2DocumentSemanticParser {
                   this._logMessage(`  --  rObjRef OVERRIDE isMethod (object lookup says it is!)`);
                 }
               }
-              const isStructure: boolean =
+              let isStructure: boolean =
                 nameSpaceFindings !== undefined && this.parseUtils.requestedSpinVersion(45) ? nameSpaceFindings.isStructure(refPart) : false;
+              // check if structure recognition is blocked only by missing version directive
+              const isStructureWithoutVersion: boolean =
+                !isStructure && nameSpaceFindings !== undefined && !this.parseUtils.requestedSpinVersion(45) && nameSpaceFindings.isStructure(refPart);
+              if (isStructureWithoutVersion) {
+                this._emitVersionHintDiagnostic(lineIdx, referenceOffset, referenceOffset + refPart.length, 45, `object structure reference [${objInstanceName}.${refPart}]`);
+                isStructure = true; // treat as structure to prevent false error
+              }
               this._logMessage(
                 `  --  rObjRef isMethod=(${isMethod}), isStructure=(${isStructure}), isP1ObjectConstRef=(${isP1ObjectConstantRef}), objectRefHasIndex=(${objectRefContainsIndex})`
               );

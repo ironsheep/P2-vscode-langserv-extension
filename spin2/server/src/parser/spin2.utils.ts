@@ -660,7 +660,9 @@ export class Spin2ParseUtils {
     //this._logMessage(`sp2u:  -- gRWorlTCmt() removeTic [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
     lineWithoutTrailingCommentStr = this.getRemainderWOutTrailingBraceComment(0, lineWithoutTrailingCommentStr);
     //this._logMessage(`sp2u:  -- gRWorlTCmt() RemoveBrace [${lineWithoutTrailingCommentStr}](${lineWithoutTrailingCommentStr.length})`);
-    const continuePosn: number = lineWithoutTrailingCommentStr.search(/\s\.\.\.\s/);
+    // check for continuation '...' but not inside quoted strings
+    const lineForContinuationCheck: string = this.removeDoubleQuotedStrings(lineWithoutTrailingCommentStr);
+    const continuePosn: number = lineForContinuationCheck.search(/\s\.\.\.\s/);
     if (continuePosn != -1) {
       // remove the comment part of the line (all text after the '...' )
       lineWithoutTrailingCommentStr = lineWithoutTrailingCommentStr.substring(0, continuePosn + 3 + 1).trimEnd();
@@ -3203,6 +3205,38 @@ export class Spin2ParseUtils {
     }
     this._logMessage(`sp2u:  -- iVerAM(${name}) = (${reservedStatus})`);
     return reservedStatus;
+  }
+
+  public versionRequiredForKeyword(name: string): number {
+    // check all version-gated tables regardless of current version, return minimum version needed
+    // returns 0 if the name is not a version-gated keyword
+    const nameKey: string = name.toLowerCase();
+    // spin enhancements (methods/builtins)
+    if (nameKey in this._tableSpinEnhancements_v42 || nameKey in this._tableSpinEnhancements_v42_replaced) return 42;
+    if (nameKey in this._tableSpinEnhancements_v43) return 43;
+    if (nameKey in this._tableSpinEnhancements_v44 || nameKey in this._tableSpinEnhancements_v44_replaced) return 44;
+    if (nameKey in this._tableSpinEnhancements_v45) return 45;
+    if (nameKey in this._tableSpinEnhancements_v47) return 47;
+    if (nameKey in this._tableSpinEnhancements_v52) return 52;
+    // storage types
+    if (nameKey in this._tableSpinStorageTypes_v45) return 45;
+    // operators
+    if (nameKey in this._tableSpinBinaryOperators_v51) return 51;
+    if (nameKey in this._tableSpinUnaryOperators_v51) return 51;
+    // pasm directives
+    if (nameKey in this._tableSpinPAsmLangParts_v50) return 50;
+    // registers and clock symbols
+    if (nameKey in this._tableClockControlSymbols_v46) return 46;
+    if (nameKey in this._tableSpinTaskRegisters_v47) return 47;
+    // task symbols
+    if (nameKey in this._tableSpinTaskSymbols_v47) return 47;
+    // debug-related
+    if (nameKey in this._tableDebugMethodsBool_v44) return 44;
+    if (nameKey in this._tableDebugMethodsBool_v46) return 46;
+    if (nameKey in this._tableDebugMaskInvoke_v46) return 46;
+    if (nameKey in this._tableDebugControlSymbols_v46) return 46;
+    if (nameKey in this._tableDebugControlSymbols_v52) return 52;
+    return 0;
   }
 
   private _docTextForSpinBuiltInMethod(name: string, typeFilter: eSearchFilterType = eSearchFilterType.FT_NO_PREFERENCE): IBuiltinDescription {

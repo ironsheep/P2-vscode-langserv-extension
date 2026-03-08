@@ -24,6 +24,24 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.7.0] 2026-03-08
+
+Quick Fix code actions and version directive management
+
+### New Features
+
+- Quick Fix: offer to add or update `{Spin2_v##}` version directive when version-gated language features are used (structure references, external object types, version-added keywords)
+- Quick Fix: offer to remove unused return values from PUB/PRI method signatures
+- Quick Fix: offer to remove unused local variables from PUB/PRI method signatures
+- Improved version hints for external object structure types (e.g., `^dfs.vbr_t`) -- correctly suggests v49 instead of v44
+
+### Fixes
+
+- BUGFIX: Version hint diagnostics now emit correctly when a lower version directive is already present (e.g., file has `{Spin2_v45}` but needs v49 for external object structure references)
+- BUGFIX: Fix parameter structure instance registration for external object types -- no longer strips object prefix when the stripped name is not a known local structure
+- BUGFIX: Fix parser state tracking -- pending state changes from mid-line comment detection are now applied before section `continue` processing
+- BUGFIX: Fix line continuation (`...`) detection -- no longer falsely triggered by `...` appearing inside quoted strings
+
 ## [2.6.3] 2026-03-04
 
 Debug highlighting and task argument fixes

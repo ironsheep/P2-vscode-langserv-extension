@@ -2628,6 +2628,13 @@ export class Spin1DocumentSemanticParser {
     //const referenceDetails: RememberedToken | undefined = undefined;
     if (this.semanticFindings.isGlobalToken(variableName)) {
       hideStatus = true;
+      // DEBUG: log what token we matched so we can diagnose false positives
+      const referenceDetails: RememberedToken | undefined = this.semanticFindings.getGlobalToken(variableName);
+      if (referenceDetails) {
+        this._logMessage(
+          `  -- _hidesGlobal([${variableName}]) MATCH type=${referenceDetails.type}, mods=[${referenceDetails.modifiers}], ln#${referenceDetails.lineIndex + 1}`
+        );
+      }
     }
     return hideStatus;
   }

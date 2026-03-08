@@ -22,6 +22,7 @@ import TextDocumentSyncProvider from './TextDocumentSyncProvider';
 import ObjectDependencyProvider from './ObjectDependencyProvider';
 import WorkspaceSymbolProvider from './WorkspaceSymbolProvider';
 import TypeDefinitionProvider from './TypeDefinitionProvider';
+import CodeActionProvider from './CodeActionProvider';
 
 export interface Provider {
   register(connection: Connection, clientCapabilities: ClientCapabilities): ServerCapabilities;
@@ -44,7 +45,8 @@ const providers = [
   TextDocumentSyncProvider,
   ObjectDependencyProvider,
   WorkspaceSymbolProvider,
-  TypeDefinitionProvider
+  TypeDefinitionProvider,
+  CodeActionProvider
 ];
 
 export default function registerProviders(
