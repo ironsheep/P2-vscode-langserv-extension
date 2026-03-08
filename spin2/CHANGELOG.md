@@ -6,12 +6,11 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 ## [Unreleased]
 
-### Up Next
-
-- Work on fixes to any reported issues
-
 ### Follow-on work to appear in Upcoming releases
 
+- Work on fixes to any reported issues
+- Detect and report unused VAR block variables and DAT block variables (not code labels) with Quick Fix removal actions
+- Support `#PRAGMA EXPORTDEF` -- propagate exported defines to child OBJ files so conditionally-compiled code is properly recognized
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
 - Add spin2 code formatter

@@ -10,7 +10,7 @@ This Extension is continually in development. Things may, occasionally, not work
 
 This extension provides support for P1 (spin and pasm) along with P2 (Spin2 and Pasm2), the primary languages for programming P1 [Parallax Propeller 1 or P8X32A](https://www.parallax.com/propeller-1/) and the P2 [Parallax Propeller2 or P2X8C4M64P](https://propeller.parallax.com/p2.html)
 
-We've moved to a **Language Server based extension** so that we can awaken **multi-file behaviors** such as show help from included file in top-level file when hovering or showing signature help. This also applies to upoming features such as go to definition.
+We've moved to a **Language Server based extension** so that we can awaken **multi-file behaviors** such as show help from included file in top-level file when hovering, showing signature help, and navigating to definitions across files.
 
 All features provided by this extension support both the Parallax Propeller 1 and Propeller 2 languages: Spin and Pasm.
 
@@ -63,12 +63,23 @@ The background coloring is now capable of looking like our familiar Propeller To
 - The internal `name` or `name[quantity]` is shown for each object
 - If the reference file doesn't exist `FILE MISSING` will be shown as well
 
+## Feature: Include Directory Support
+
+A two-tier include directory system for resolving object and file references:
+
+- **Central library paths** — shared libraries available to all projects
+- **Per-folder project includes** — project-specific include directories with auto-discovery
+- Tree View UI shows discovered include directories
+- Generates compiler `-I` flags for toolchain integration
+
 ## Feature: Show Hovers
 
 Hovers show information about the symbol/object that's below the mouse cursor. This is usually the type of the symbol and a description.
 
 - Hover over **User** variables, constants, methods, pasm labels and objects to display pop-up information about the item including comments within the code for the item.
 - Hover for **Built-in Spin/Spin2** method names, variables, constants and smart-pin constants to display pop-up documentation about the built-in item.
+- Hover for **PASM2 instructions** — comprehensive documentation for 362 instructions, conditionals, effects, and streamer constants with context-aware display
+- Variables, parameters, and return values show their type (BYTE, WORD, LONG, or struct type) in hover tooltips
 - Hover text for methods and constants from included objects are brought in from the external included object.
 
 ## Feature: Help With Method Signatures
@@ -84,7 +95,12 @@ Help With Method Signatures displays information about the method that is being 
 Peek at or go to the definition of variables/methods from where the variables/methods are being used.
 
 - Enables right-mouse commands "Go to Definition" and "Peek -> Peek Definition"
-- In spin this works for method names, global variables, parameters, return values, method local variables and pasm global labels.
+- Works for method names, global variables, parameters, return values, method local variables and pasm global labels
+- Struct-aware navigation through multi-level field chains (e.g., `pline.a.x`)
+- Go to Type Definition navigates to STRUCT definitions
+- Document Links let you click on object filenames in OBJ blocks to open them
+- Workspace Symbol Search finds any symbol across your project
+- Rename Symbol provides safe, project-wide renaming — see [Rename Symbol](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/Spin2-code-navigation.md#rename-symbol-safe-project-wide-renaming) for details
 
 ## Feature: Code Folding
 
@@ -93,6 +109,13 @@ Provides Spin specific code folding support
 - Fold Block comments, code blocks (CON, VAR, PUB, etc.), and continued lines
 - This is controlled by editor settings: Editor: **Folding**, Editor: **Folding Strategy** and Editor: **Show Folding Controls**
 - Up Next: fold indented flow control within Spin code
+
+## Feature: Quick Fix Code Actions
+
+The extension offers Quick Fix lightbulb actions for common issues:
+
+- **Version directives** — When version-gated language features are used (structures, external object types, etc.), a Quick Fix will offer to add or update the `{Spin2_v##}` directive in your file
+- **Unused symbols** — Unused return values and local variables in PUB/PRI method signatures are flagged with warnings and a Quick Fix to remove them
 
 ## Feature: Generate "Object public interface" documentation
 
