@@ -20,7 +20,7 @@ type IncludeTreeItem = FolderNode | IncludeDirEntry | CentralLibsNode | LibraryD
 export class IncludeDirectoriesProvider implements vscode.TreeDataProvider<IncludeTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<IncludeTreeItem | undefined> = new vscode.EventEmitter<IncludeTreeItem | undefined>();
   readonly onDidChangeTreeData: vscode.Event<IncludeTreeItem | undefined> = this._onDidChangeTreeData.event;
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
   private _suppressConfigRefresh: boolean = false;
 

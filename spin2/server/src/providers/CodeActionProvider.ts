@@ -7,7 +7,7 @@ import { Context } from '../context';
 import { fileSpecFromURI } from '../parser/lang.utils';
 
 export default class CodeActionProvider implements Provider {
-  private isDebugLogEnabled: boolean = true; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
+  private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
 
   constructor(protected readonly ctx: Context) {}
 
