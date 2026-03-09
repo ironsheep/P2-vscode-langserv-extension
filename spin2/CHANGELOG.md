@@ -24,13 +24,18 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 ## [2.7.2] 2026-03-09
 
-STRUCT continuation and multi-line method signature fixes
+STRUCT continuation, built-in symbol highlighting, and multi-line method signature fixes
+
+### New Features
+
+- Emit warning diagnostic when a line continuation `...` is followed by a blank line, indicating the `...` is likely unnecessary
 
 ### Fixes
 
 - BUGFIX: Fix STRUCT type not recognized in VAR declarations when prior STRUCT ends with trailing `...` followed by a blank line -- blank lines during pre-scan now correctly trigger `forceComplete()` on in-progress continuation sets
 - BUGFIX: Fix index expressions (e.g., `[SRV_COUNT]`) not highlighted in continued PUB/PRI method signatures -- token coordinates now use raw line position instead of concatenated line offset
-- NEW: Emit warning diagnostic when a line continuation `...` is followed by a blank line, indicating the `...` is likely unnecessary
+- BUGFIX: Fix `clkfreq_` and `clkmode_` compiler-generated symbols not highlighted -- added `_tableClockSpinSymbols` to built-in variable recognition and added built-in variable check to CON RHS expression processing
+- BUGFIX: Fix STRUCT member array sizes not recognized when whitespace separates the member name from the brackets (e.g., `led_rgb [LED_COUNT]`) -- member parsing regex now allows optional whitespace before `[`
 
 ## [2.7.1] 2026-03-09
 

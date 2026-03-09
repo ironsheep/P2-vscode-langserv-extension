@@ -3397,6 +3397,16 @@ export class Spin2DocumentSemanticParser {
                   }, namePart);
                   continue;
                 }
+                if (this.parseUtils.isSpinBuiltInVariable(namePart)) {
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: namePart.length,
+                    ptTokenType: 'variable',
+                    ptTokenModifiers: ['builtin', 'readonly']
+                  }, namePart);
+                  continue;
+                }
                 if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
                   this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
                     line: symbolPosition.line,
@@ -3668,7 +3678,7 @@ export class Spin2DocumentSemanticParser {
 
       // Split members and parse each one
       members = membersRaw.split(',').map((member) => {
-        const memberParts = member.trim().match(/(?:(\w+)\s+)?(\w+)(?:\[(\w+)\])?/); // Matches {type} name [arraySize]
+        const memberParts = member.trim().match(/(?:(\w+)\s+)?(\w+)(?:\s*\[(\w+)\])?/); // Matches {type} name [arraySize]
         if (!memberParts || memberParts.length < 3) {
           this._logMessage(`Invalid member declaration: ${member}`);
           return { name: '', type: '', arraySize: 0 }; // Invalid member, return EMPTY

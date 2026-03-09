@@ -1239,6 +1239,9 @@ export class Spin2ParseUtils {
     if (!reservedStatus && this.requestedSpinVersion(47)) {
       reservedStatus = nameKey in this._tableSpinTaskRegisters_v47;
     }
+    if (!reservedStatus) {
+      reservedStatus = nameKey in this._tableClockSpinSymbols;
+    }
     return reservedStatus;
   }
 
