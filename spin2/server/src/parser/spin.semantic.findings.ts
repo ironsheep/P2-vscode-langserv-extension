@@ -194,6 +194,7 @@ export class DocumentFindings {
   private disabledLines: Range[] = [];
   private preProcSymbols: string[] = [];
   private includePreProcSymbols: string[] = [];
+  private exportedDefines: string[] = [];
   private inPreProcIfStatement: boolean = false;
   // [isLineEnabled] tracks current state
   //  when this changes from false to true we record a range of disabled lines into [disabledLines]
@@ -327,6 +328,7 @@ export class DocumentFindings {
     this.outlineSymbols = [];
     this.semanticTokens = [];
     this.preProcSymbols = [];
+    this.exportedDefines = [];
     this.referencesByTokenName.clear();
     this.documentLinks = [];
     if (clearIncludesToo) {
@@ -620,7 +622,7 @@ export class DocumentFindings {
     return foundSymbolStatus;
   }
 
-  private defineIncludePreProcSymbol(symbolName: string) {
+  public defineIncludePreProcSymbol(symbolName: string) {
     const symbolKey: string = symbolName.toUpperCase();
     const currSymbolCount: number = this.includePreProcSymbols.length;
     if (symbolKey.length > 0) {
@@ -643,6 +645,18 @@ export class DocumentFindings {
       }
     }
     return foundSymbolStatus;
+  }
+
+  public recordExportedDefine(symbolName: string): void {
+    const symbolKey: string = symbolName.toUpperCase();
+    if (symbolKey.length > 0 && !this.exportedDefines.includes(symbolKey)) {
+      this.exportedDefines.push(symbolKey);
+      this._logMessage(`* [PreProc] EXPORTDEF symbol=[${symbolName}]`);
+    }
+  }
+
+  public getExportedDefines(): string[] {
+    return this.exportedDefines;
   }
 
   private allPreprocessorSymbols(): string[] {

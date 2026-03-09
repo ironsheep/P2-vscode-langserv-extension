@@ -1924,7 +1924,19 @@ export class Spin2DocumentSemanticParser {
       const lineParts: string[] = nonCommentConstantLine.split(/[ \t=]/).filter(Boolean);
       const directive: string = lineParts[0].toLowerCase();
       const symbolName: string | undefined = lineParts.length > 1 ? lineParts[1] : undefined;
-      if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
+      if (directive === '#pragma') {
+        // handle #pragma directives (e.g., #PRAGMA EXPORTDEF symbolName)
+        if (symbolName !== undefined && symbolName.toLowerCase() === 'exportdef') {
+          const exportedSymbol: string | undefined = lineParts.length > 2 ? lineParts[2] : undefined;
+          if (exportedSymbol !== undefined) {
+            this._logPreProc('  -- PRAGMA EXPORTDEF Symbol=[' + exportedSymbol + ']');
+            this.semanticFindings.preProcRecordConditionalSymbol(exportedSymbol, line, lineNbr);
+            this.semanticFindings.recordExportedDefine(exportedSymbol);
+            this.semanticFindings.recordDeclarationLine(line, lineNbr);
+            this.semanticFindings.setGlobalToken(exportedSymbol, new RememberedToken('variable', lineNbr - 1, 0, ['readonly']), this._declarationComment());
+          }
+        }
+      } else if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
         // check a valid preprocessor line for a declaration
         if (symbolName !== undefined && directive === '#define') {
           this._logPreProc('  -- new PreProc Symbol=[' + symbolName + ']');
@@ -2040,11 +2052,12 @@ export class Spin2DocumentSemanticParser {
             this._logCON(`  -- GetCDLMulti() conDeclarationLine=[${conDeclarationLine}][${index}]`);
             currSingleLineOffset = multiLineSet.line.indexOf(conDeclarationLine, 0);
             const isAssignment: boolean = conDeclarationLine.indexOf('=') !== -1;
-            const hasStructKeyword: boolean = nonCommentConstantLine.toUpperCase().indexOf('STRUCT') !== -1;
+            const structMatch: RegExpMatchArray | null = nonCommentConstantLine.toUpperCase().match(/\bSTRUCT\b/);
+            const hasStructKeyword: boolean = structMatch !== null;
             const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && hasStructKeyword;
             // detect STRUCT keyword without version directive — skip the line to prevent false enum registration
             if (hasStructKeyword && !isStructDecl) {
-              const structOffset: number = nonCommentConstantLine.toUpperCase().indexOf('STRUCT');
+              const structOffset: number = structMatch!.index!;
               this._emitVersionHintDiagnostic(multiLineSet.lineStartIdx, structOffset, structOffset + 6, 45, `STRUCT declaration`);
               continue; // skip processing this STRUCT line
             }
@@ -2929,6 +2942,17 @@ export class Spin2DocumentSemanticParser {
           }
         }
 
+        // handle #pragma exportdef: color 'exportdef' as keyword and the exported symbol name
+        if (directive.toLowerCase() === '#pragma' && symbolName !== undefined && symbolName.toLowerCase() === 'exportdef') {
+          const exportdefOffset = line.toLowerCase().indexOf('exportdef', currentOffset);
+          this._createAndRecordToken(tokenSet, line, lineIdx, exportdefOffset, symbolName.length, 'keyword', ['control', 'directive']);
+          const exportedSymbol: string | undefined = lineParts.length > 2 ? lineParts[2] : undefined;
+          if (exportedSymbol !== undefined) {
+            const symbolOffset = line.indexOf(exportedSymbol, exportdefOffset + symbolName.length);
+            this._createAndRecordToken(tokenSet, line, lineIdx, symbolOffset, exportedSymbol.length, 'variable', ['readonly']);
+          }
+        }
+
         // FlexSpin-specific: Handle #include filenames
         if (!isPNut) {
           const lineHasFilename: boolean = directive.toLowerCase() === '#include';
@@ -3002,11 +3026,12 @@ export class Spin2DocumentSemanticParser {
           //currSingleLineOffset = line.indexOf(conDeclarationLine, currSingleLineOffset);
           // locate key indicators of line style
           const isAssignment: boolean = conDeclarationLine.indexOf('=') !== -1;
-          const hasStructKeyword: boolean = conDeclarationLine.toUpperCase().indexOf('STRUCT') !== -1;
+          const structMatch: RegExpMatchArray | null = conDeclarationLine.toUpperCase().match(/\bSTRUCT\b/);
+          const hasStructKeyword: boolean = structMatch !== null;
           const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && hasStructKeyword;
           // detect STRUCT keyword without version directive — skip to prevent false errors
           if (hasStructKeyword && !isStructDecl) {
-            const structOffset: number = conDeclarationLine.toUpperCase().indexOf('STRUCT');
+            const structOffset: number = structMatch!.index!;
             this._emitVersionHintDiagnostic(multiLineSet.lineStartIdx, structOffset, structOffset + 6, 45, `STRUCT declaration`);
             continue; // skip processing this STRUCT line
           }

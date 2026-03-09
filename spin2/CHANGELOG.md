@@ -10,7 +10,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 - Work on fixes to any reported issues
 - Detect and report unused VAR block variables and DAT block variables (not code labels) with Quick Fix removal actions
-- Support `#PRAGMA EXPORTDEF` -- propagate exported defines to child OBJ files so conditionally-compiled code is properly recognized
+- Additional `#PRAGMA EXPORTDEF` testing and refinement
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
 - Add spin2 code formatter
@@ -22,6 +22,21 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
+
+## [2.7.1] 2026-03-09
+
+`#PRAGMA EXPORTDEF` support and CON constant name parsing fix
+
+### New Features
+
+- Support `#PRAGMA EXPORTDEF` directive -- exported defines are propagated to child OBJ files so `#ifdef`-guarded code (PUB methods, constants) is properly recognized
+- `#PRAGMA EXPORTDEF` semantic highlighting -- `exportdef` keyword and symbol name are now colored
+- Transitive export propagation -- exported defines pass through the full object dependency tree (parent to child to grandchild)
+- Union of exports from multiple open top-level files -- child objects see all exported defines from all parents
+
+### Fixes
+
+- BUGFIX: Fix false STRUCT keyword detection in CON constant names -- names containing "STRUCT" as a substring (e.g., `IDX_CSD_STRUCTURE`) were incorrectly flagged as struct declarations, preventing constant registration and causing "unknown name" errors at use sites. Now uses word-boundary matching.
 
 ## [2.7.0] 2026-03-08
 

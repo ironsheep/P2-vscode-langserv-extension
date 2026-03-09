@@ -197,7 +197,12 @@ export default class DocumentProcessor {
     }
   }
 
-  async process(document: TextDocument, isInclude: boolean = false, skipIncludeScan: boolean = false): Promise<ProcessedDocument> {
+  async process(
+    document: TextDocument,
+    isInclude: boolean = false,
+    skipIncludeScan: boolean = false,
+    inheritedDefines: string[] = []
+  ): Promise<ProcessedDocument> {
     this.ctx.logger.log(`TRC: DP.process(${document.uri}`);
     const docFSpec: string = fileSpecFromURI(document.uri);
     const fileName: string = path.basename(docFSpec);
@@ -216,6 +221,14 @@ export default class DocumentProcessor {
     }
     const currDocumentFindings: DocumentFindings = tmpFindingsForDocument;
 
+    // inject inherited exported defines from parent(s) before any parsing
+    if (inheritedDefines.length > 0) {
+      this.ctx.logger.log(`TRC: DP.process() injecting ${inheritedDefines.length} inherited defines: [${inheritedDefines}]`);
+      for (const symbolName of inheritedDefines) {
+        currDocumentFindings.defineIncludePreProcSymbol(symbolName);
+      }
+    }
+
     // we keep a single ProcessedDocument for each document.uri
     //
     let tmpProcessed = this.ctx.docsByFSpec.get(docFSpec);
@@ -228,6 +241,22 @@ export default class DocumentProcessor {
       this.ctx.logger.log(`TRC: reUSE ProcessedDocument: ${tmpProcessed.document.uri}`);
     }
     const currDocumentInProcess: ProcessedDocument = tmpProcessed;
+
+    // pre-scan for #PRAGMA EXPORTDEF before loading children (Spin2 only)
+    let exportedDefines: string[] = [];
+    if (!isSpin1File(docFSpec) && skipIncludeScan == false) {
+      exportedDefines = this._preScanForExportedDefines(document);
+      if (exportedDefines.length > 0) {
+        this.ctx.logger.log(`TRC: DP.process() pre-scan found ${exportedDefines.length} exported defines: [${exportedDefines}]`);
+      }
+    }
+    // combine inherited defines with this file's own exports for passing to children
+    const definesForChildren: string[] = [...inheritedDefines];
+    for (const def of exportedDefines) {
+      if (!definesForChildren.includes(def)) {
+        definesForChildren.push(def);
+      }
+    }
 
     if (skipIncludeScan == false) {
       // do first pass parse to fill in DocumentFindings with list of object references (includes)
@@ -267,7 +296,7 @@ export default class DocumentProcessor {
           const doc = await readDocumentFromUri(`file://${fSpec}`, this.ctx);
           if (doc) {
             const IS_INCLUDE: boolean = true; // parameter def'n
-            await this.process(doc, IS_INCLUDE);
+            await this.process(doc, IS_INCLUDE, false, definesForChildren);
             this.ctx.logger.log(`TRC: include [${fSpec}] loaded!`);
           } else {
             this.ctx.logger.log(`TRC: FAILED to load doc from [${fSpec}]!`);
@@ -436,5 +465,88 @@ export default class DocumentProcessor {
       this.spin2symbolParser.reportDocumentSymbols(document, parserFindings); // for outline
       this.spin2semanticParser.reportDocumentSemanticTokens(document, parserFindings, processedDoc.folder, includeDirs); // for highlight
     }
+  }
+
+  /**
+   * Lightweight pre-scan of a document for #PRAGMA EXPORTDEF directives.
+   * Respects #ifdef/#else/#endif conditional blocks to determine which
+   * EXPORTDEF directives are in active branches.
+   * Does NOT define __SPINTOOLS__ or __FLEXSPIN__ (PNut/PNut-TS path).
+   */
+  private _preScanForExportedDefines(document: TextDocument): string[] {
+    const text = document.getText();
+    const lines = text.split(/\r?\n/);
+    const exportedDefines: string[] = [];
+    const definedSymbols: string[] = [];
+
+    // simplified preprocessor state machine
+    let nestDepth: number = 0;
+    const isEnabled: boolean[] = [true];
+    // track whether a branch at each depth has already been taken
+    const branchTaken: boolean[] = [false];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.length === 0) continue;
+      // skip full-line comments
+      if (trimmed.startsWith("'")) continue;
+      if (trimmed.startsWith('{') && !trimmed.startsWith('{{')) continue;
+
+      const parts: string[] = trimmed.split(/\s+/);
+      if (parts.length === 0) continue;
+      const directive: string = parts[0].toLowerCase();
+
+      // only process preprocessor directives
+      if (!directive.startsWith('#')) continue;
+
+      if (directive === '#define' && parts.length > 1) {
+        if (isEnabled[nestDepth]) {
+          definedSymbols.push(parts[1].toUpperCase());
+        }
+      } else if (directive === '#ifdef' && parts.length > 1) {
+        nestDepth++;
+        const parentEnabled: boolean = nestDepth > 0 ? isEnabled[nestDepth - 1] : true;
+        const symbolDefined: boolean = definedSymbols.includes(parts[1].toUpperCase());
+        isEnabled[nestDepth] = parentEnabled && symbolDefined;
+        branchTaken[nestDepth] = isEnabled[nestDepth];
+      } else if (directive === '#ifndef' && parts.length > 1) {
+        nestDepth++;
+        const parentEnabled: boolean = nestDepth > 0 ? isEnabled[nestDepth - 1] : true;
+        const symbolDefined: boolean = definedSymbols.includes(parts[1].toUpperCase());
+        isEnabled[nestDepth] = parentEnabled && !symbolDefined;
+        branchTaken[nestDepth] = isEnabled[nestDepth];
+      } else if (directive === '#else') {
+        if (nestDepth > 0) {
+          const parentEnabled: boolean = isEnabled[nestDepth - 1];
+          isEnabled[nestDepth] = parentEnabled && !branchTaken[nestDepth];
+          if (isEnabled[nestDepth]) {
+            branchTaken[nestDepth] = true;
+          }
+        }
+      } else if (directive === '#elseifdef' && parts.length > 1) {
+        if (nestDepth > 0) {
+          const parentEnabled: boolean = isEnabled[nestDepth - 1];
+          const symbolDefined: boolean = definedSymbols.includes(parts[1].toUpperCase());
+          isEnabled[nestDepth] = parentEnabled && !branchTaken[nestDepth] && symbolDefined;
+          if (isEnabled[nestDepth]) {
+            branchTaken[nestDepth] = true;
+          }
+        }
+      } else if (directive === '#endif') {
+        if (nestDepth > 0) {
+          nestDepth--;
+        }
+      } else if (directive === '#pragma' && parts.length > 2 && parts[1].toLowerCase() === 'exportdef') {
+        if (isEnabled[nestDepth]) {
+          const symbolKey: string = parts[2].toUpperCase();
+          if (!exportedDefines.includes(symbolKey)) {
+            exportedDefines.push(symbolKey);
+            this.ctx.logger.log(`TRC: DP._preScanForExportedDefines() found EXPORTDEF: [${parts[2]}]`);
+          }
+        }
+      }
+    }
+
+    return exportedDefines;
   }
 }

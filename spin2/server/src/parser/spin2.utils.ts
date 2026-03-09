@@ -3342,7 +3342,7 @@ export class Spin2ParseUtils {
 
   public isPNutPreprocessorDirective(name: string): boolean {
     const nameKey: string = name.toLowerCase();
-    const pnutDirectiveOfNote: string[] = ['#define', '#ifdef', '#ifndef', '#else', '#elseifdef', '#elseifndef', '#endif', '#undef'];
+    const pnutDirectiveOfNote: string[] = ['#define', '#ifdef', '#ifndef', '#else', '#elseifdef', '#elseifndef', '#endif', '#undef', '#pragma'];
     const reservedStatus: boolean = pnutDirectiveOfNote.indexOf(nameKey) != -1;
     return reservedStatus;
   }
