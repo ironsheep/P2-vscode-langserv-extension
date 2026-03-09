@@ -614,8 +614,12 @@ export class Spin2DocumentSemanticParser {
       } else if (nonCommentLine.length === 0) {
         // a blank line clears pending single line comments
         this.priorSingleLineComment = undefined;
-        //this._logMessage(`* SKIP blank line pre-scan Ln#${lineNbr} nonCommentLine=[${nonCommentLine}]`);
-        continue;
+        // if we have a continuation set still loading, let the blank line fall through
+        // so the forceComplete + processing logic at the continuation set handler runs
+        if (!continuedLineSet.isLoading) {
+          //this._logMessage(`* SKIP blank line pre-scan Ln#${lineNbr} nonCommentLine=[${nonCommentLine}]`);
+          continue;
+        }
       } else if (trimmedNonStringLine.startsWith('{{')) {
         // TODO: the second if clause confuses me... why did I do this?
         // process multi-line doc comment
@@ -809,6 +813,10 @@ export class Spin2DocumentSemanticParser {
         isSectionStart: false,
         inProgressStatus: eParseState.Unknown
       };
+      // clear completed continuation set from previous iteration to prevent stale data
+      if (!continuedLineSet.isEmpty && !continuedLineSet.isLoading) {
+        continuedLineSet.clear();
+      }
       if (isLineContinued || (continuedLineSet.isLoading && isCodePresent)) {
         //const lineOffset: number = line.indexOf(trimmedNonCommentLine);
         this._logMessage(`- pre-scan Ln#${lineNbr} [${eParseState[currState]}] stuffing ncl=[${nonCommentLine}](${nonCommentLine.length})`);
@@ -818,6 +826,26 @@ export class Spin2DocumentSemanticParser {
         }
         // now determine if this continued line set is a section start
         continuedSectionStatus = this.extensionUtils.isSectionStartLine(continuedLineSet.line);
+      }
+
+      // force-complete if continuation set is still loading but we hit a non-code/non-continued line
+      if (continuedLineSet.isLoading) {
+        // warn about trailing '...' followed by blank/non-code line
+        const lastLineIdx: number = continuedLineSet.lineEndIdx;
+        if (lastLineIdx !== -1) {
+          const lastRawLine: string = lines[lastLineIdx];
+          const dotsOffset: number = lastRawLine.lastIndexOf('...');
+          if (dotsOffset !== -1) {
+            this.semanticFindings.pushDiagnosticMessage(
+              lastLineIdx,
+              dotsOffset,
+              dotsOffset + 3,
+              eSeverity.Warning,
+              `P2 Spin line continuation '...' is followed by a blank line — the '...' is likely not needed`
+            );
+          }
+        }
+        continuedLineSet.forceComplete();
       }
 
       // NOTE: we are only here if continuedLineSet has all lines
@@ -1321,6 +1349,10 @@ export class Spin2DocumentSemanticParser {
         isSectionStart: false,
         inProgressStatus: eParseState.Unknown
       };
+      // clear completed continuation set from previous iteration to prevent stale data
+      if (!continuedLineSet.isEmpty && !continuedLineSet.isLoading) {
+        continuedLineSet.clear();
+      }
       if (isLineContinued || (continuedLineSet.isLoading && isCodePresent)) {
         //const lineOffset: number = line.indexOf(trimmedNonCommentLine);
         //this._logMessage(`- colorize Ln#${lineNbr} [${eParseState[currState]}] stuffing ncl=[]${nonCommentLine}](${nonCommentLine.length})`);
@@ -1336,6 +1368,19 @@ export class Spin2DocumentSemanticParser {
           continuedLineSet.lineStartIdx + continuedLineSet.numberLines - 1
         );
       }
+
+      // force-complete if continuation set is still loading but we hit a non-code/non-continued line
+      if (continuedLineSet.isLoading) {
+        continuedLineSet.forceComplete();
+        // record the continued line block now that it's complete
+        if (continuedLineSet.hasAllLines) {
+          this.semanticFindings.recordContinuedLineBlock(
+            continuedLineSet.lineStartIdx,
+            continuedLineSet.lineStartIdx + continuedLineSet.numberLines - 1
+          );
+        }
+      }
+
       // NOTE: we are only here if continuedLineSet has all lines
       const bHaveLineSetToProcess: boolean = !continuedLineSet.isEmpty;
 
@@ -2035,8 +2080,8 @@ export class Spin2DocumentSemanticParser {
         this._logCON(`  -- GetCDLMulti() nonCommentConstantLine=[${nonCommentConstantLine}](${nonCommentConstantLine.length})`);
         const haveEnumDeclaration: boolean = this._isEnumDeclarationMultiLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
         const isAssignment: boolean = nonCommentConstantLine.indexOf('=') !== -1;
-        //const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && nonCommentConstantLine.toUpperCase().indexOf('STRUCT') !== -1;
-        if (!haveEnumDeclaration && isAssignment) {
+        const hasStructKeyword: boolean = this.parseUtils.requestedSpinVersion(45) && nonCommentConstantLine.toUpperCase().includes('STRUCT');
+        if (!haveEnumDeclaration && (isAssignment || hasStructKeyword)) {
           this.conEnumInProgress = false;
         } else {
           this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
@@ -3005,8 +3050,8 @@ export class Spin2DocumentSemanticParser {
     if (nonCommentConstantLine.length > 0) {
       const haveEnumDeclaration: boolean = this._isEnumDeclarationMultiLine(multiLineSet.lineStartIdx, 0, nonCommentConstantLine);
       const isAssignment: boolean = nonCommentConstantLine.indexOf('=') !== -1;
-      //const isStructDecl: boolean = this.parseUtils.requestedSpinVersion(45) && nonCommentConstantLine.toUpperCase().indexOf('STRUCT') !== -1;
-      if (!haveEnumDeclaration && isAssignment) {
+      const hasStructKeyword: boolean = this.parseUtils.requestedSpinVersion(45) && nonCommentConstantLine.toUpperCase().includes('STRUCT');
+      if (!haveEnumDeclaration && (isAssignment || hasStructKeyword)) {
         this.conEnumInProgress = false;
       } else {
         this.conEnumInProgress = this.conEnumInProgress || haveEnumDeclaration;
@@ -5082,8 +5127,8 @@ export class Spin2DocumentSemanticParser {
             /* nameOffset = */ this._reportSPIN_IndexExpression(
               indexExpression,
               symbolPosition.line,
-              nameOffset + localVarName.length,
-              multiLineSet.line,
+              symbolPosition.character + localVarName.length,
+              multiLineSet.lineAt(symbolPosition.line),
               tokenSet
             );
           }

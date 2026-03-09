@@ -1,0 +1,66 @@
+{spin2_v51}
+
+OBJ
+
+  q : "math_128"
+
+
+CON
+
+  _clkfreq		= 256_000_000
+
+  debug_log_size	= 1_000_000
+  debug_mask		= decod 0
+
+  IterLimit		= 10                            'limit of convergence iterations
+
+  PeriodExp		= 18                            'main clock divider exponent
+  Period		= decod PeriodExp
+
+  Shift			= 64 - 16			'16.16 inputs for jerk, acel, velo
+
+  BasePin		= 0				'object parameter, start of STEP/DIR pin sets
+  MotorCount		= 1				'object parameter, number of motors
+  CmdQueue		= 16				'object parameter, size of command queue, becomes a power-of-2
+
+  CmdQueueSize		= DECOD ENCOD CmdQueue		'make size of command queue a power-of-2
+  CmdQueueLimit		= CmdQueueSize - 1		'command queue limit, used for checking capacity
+  CmdQueueMSB		= ENCOD CmdQueueSize - 1	'MSB of command queue pointer, used for iterating
+
+  STRUCT BIG(		n[4])				'128-bit value
+
+  STRUCT MotorMisc(	asyn,		...		'asynchronous command - master writes, slave clears
+			head,		...		'command buffer head pointer - master writes, slave reads
+			tail)				'command buffer tail pointer - slave writes, master reads
+
+  STRUCT MotorCommand(	cycl,	 	...		'cycle count for command (T1, T1a, Tc, T2, T2a)
+			BIG jerk)			'jerk to apply for cycle count (J1, J2, 0)
+
+  STRUCT MotorCommands(	MotorCommand cmd[CmdQueueSize])	'command buffer for one motor
+
+  STRUCT MotorStatus(	cycl,		...		'current cycle
+			BIG jerk, 	...		'current jerk
+			BIG acel,	...		'current acceleration
+			BIG velo,	...		'current velocity
+			ncof,		...		'NCO fractional value
+			ncov)				'NCO adder value
+
+  STRUCT MotorStruct(	MotorMisc     misc[MotorCount],	...	'async commands, head/tail pointers, and offsets
+			MotorCommands cmds[MotorCount],	...	'command queues - master writes, slave reads
+			MotorStatus   stat[MotorCount]) 	'motor statuses - slave writes, master reads
+
+VAR
+
+  MotorStruct m
+  
+  IterCounts[IterLimit+1]
+
+  DriverCog
+  DriverStack[100]
+
+
+'==================
+'  Public Methods  
+'==================
+
+PUB Start()

@@ -22,6 +22,16 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.7.2] 2026-03-09
+
+STRUCT continuation and multi-line method signature fixes
+
+### Fixes
+
+- BUGFIX: Fix STRUCT type not recognized in VAR declarations when prior STRUCT ends with trailing `...` followed by a blank line -- blank lines during pre-scan now correctly trigger `forceComplete()` on in-progress continuation sets
+- BUGFIX: Fix index expressions (e.g., `[SRV_COUNT]`) not highlighted in continued PUB/PRI method signatures -- token coordinates now use raw line position instead of concatenated line offset
+- NEW: Emit warning diagnostic when a line continuation `...` is followed by a blank line, indicating the `...` is likely unnecessary
+
 ## [2.7.1] 2026-03-09
 
 `#PRAGMA EXPORTDEF` support and CON constant name parsing fix

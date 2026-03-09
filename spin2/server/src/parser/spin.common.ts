@@ -371,6 +371,16 @@ export class ContinuedLines {
     return loadingStatus;
   }
 
+  public forceComplete() {
+    // force-complete the line set when we encounter a blank/non-code line while still gathering continuation lines
+    // (e.g., when the last line of a STRUCT ends with '...' but the next line is blank)
+    if (this.isActive && !this.haveAllLines && this.rawLines.length > 0) {
+      this._logMessage(`    --- ContLn: forceComplete() - forcing completion of ${this.rawLines.length} line(s)`);
+      this.haveAllLines = true;
+      this._finishLine();
+    }
+  }
+
   public get isEmpty(): boolean {
     // return T/F where T means we don't yet have the first line
     const emptyStatus: boolean = this.rawLines.length == 0;
@@ -391,6 +401,11 @@ export class ContinuedLines {
   public get lineStartIdx(): number {
     // return index of first line in multi-line set
     return this.rawLineIdxs.length > 0 ? this.rawLineIdxs[0] : -1;
+  }
+
+  public get lineEndIdx(): number {
+    // return index of last line in multi-line set
+    return this.rawLineIdxs.length > 0 ? this.rawLineIdxs[this.rawLineIdxs.length - 1] : -1;
   }
 
   public get line(): string {

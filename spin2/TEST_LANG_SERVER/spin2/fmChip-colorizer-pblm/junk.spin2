@@ -1,0 +1,177 @@
+{spin2_v52}
+
+CON
+
+  _xtlfreq		= 25_000_000
+  _clkfreq		= 200_000_000
+
+  SRV_COUNT		= 3
+
+
+  STRUCT SERVO_CFG(	PLimitBrakeJerk,	...	'Jerk for braking after PLimit hit
+			PLimitBrakeAccelLimit,	...	'Acceleration limit for braking after PLimit hit
+			NLimitBrakeJerk,	...	'Jerk for braking after NLimit hit
+			NLimitBrakeAccelLimit,	...	'Acceleration limit for braking after NLimit hit
+			PLimitDIO,		...	'DIO pin for PLimit sensing
+			NLimitDIO,		...	'DIO pin for NLimit sensing
+			HomeDIO)		...	'DIO pin for Home sensing
+
+  STRUCT DATA_CFG(	SERVO_CFG Servo[12])		'12 servo instances
+
+
+  STRUCT SERVO_IN(	InitialJerk,		...	'Initial jerk
+			InitialAccelLimit,	...	'Initial acceleration limit
+			TerminalJerk,		...	'Terminal jerk
+			TerminalAccelLimit,	...	'Terminal acceleration limit
+			VelocityLimit,		...	'Velocity limit
+			TargetPosition,		...	'Target position
+			ControlBits)			'Control bits, details follow
+
+
+			CoreXYMode		= 13	'Selects core-XY mode, coordinates servo pairs	-ControlBits details
+
+			ServoEnable		= 12	'Servo ENA signal, enables commands
+
+			PLimitEnable		= 11	'Enables PLimit sensing and braking
+			PLimitPolarity		= 10	'Selects PLimit DIO active state
+			NLimitEnable		= 9	'Enables NLimit sensing and braking
+			NLimitPolarity		= 8	'Selects NLimit DIO active state
+			HomeEnable		= 7	'Enables Home sensing and StartHoming command
+			HomePolarity		= 6	'Selects Home DIO active state
+
+			PLimitHitAck		= 5	'Positive edge clears PLimitHit sticky bit
+			NLimitHitAck		= 4	'Positive edge clears NLimitHit sticky bit
+
+			CommandMSB		= 3	'Command in bits 3..0
+			CommandLSB		= 0
+
+			#0
+			Ack			'<0>  Completes command handshake
+			StopAcceleration	'<1>  Clears queue, begins driving acceleration to 0	Asynchronous commands
+			StopMovement		'<2>  Clears queue, begins driving velocity to 0
+			ChangeVelocity		'<3>  Clears queue, begins driving velocity to non-0 value
+			StartHoming		'<4>  Clears queue, begins homing
+			EnterMoveRel		'<5>  Queues relative movement command			Synchronous commands
+			EnterMoveAbs		'<6>  Queues absolute movement command
+						'...
+			NLimitBrake		'<14> Clears queue, begins driving velocity to 0 per NLimit settings, internal async command
+			PLimitBrake		'<15> Clears queue, begins driving velocity to 0 per PLimit settings, internal async command
+
+
+  STRUCT DATA_IN(	DriveStateBits,		...	'32 drive-state bits for DIO's
+			DriveEnableBits,	...	'32 drive-enable bits for DIO's
+			ClearOverCurrentBits,	...	'32 clear-overcurrent bits for DIO's (clear on rising edge)
+			ClearUnderLoadBits,	...	'32 clear-underload bits for DIO's (clear on rising edge)
+			ClearFaultBits,		...	'32 clear-fault bits (any-of-8 bits for every 8 DIO's, clear on rising edge)
+						...
+			VOUT[4],		...	'4 output voltages in mV (0..10_000)
+						...
+			ShuntEnableBits,	...	'bits 0..3 enable 250-ohm shunts on VIN[0..3]
+						...
+			SERVO_IN Servo[12])		'12 servo instances
+
+
+  STRUCT SERVO_OUT(	CurrentJerk,		...	'Current jerk
+			CurrentAccel,		...	'Current acceleration
+			CurrentVelocity,	...	'Current velocity
+			CurrentPosition,	...	'Current position
+			FlagBits)			'Flag bits, details follow
+
+
+			ServoEnabled		= 13	'Servo is enabled and HLFB is high		-FlagBits details
+			ServoFaulted		= 12	'Servo is enabled and HLFB is low
+
+			InPLimit		= 11	'PLimit is enabled and in active state
+			InNLimit		= 10	'NLimit is enabled and in active state
+			InHome			= 9	'Home is enabled and in active state
+
+			MoveInProgress		= 8	'Servo is moving with determinate P goal
+			JogInProgress		= 7	'Servo is moving with indeterminate P goal
+
+			CommandQueueIsFull	= 6	'Command queue is full
+			CommandIsActive		= 5	'Command is in progress
+			AccelerationIsStopping	= 4	'Acceleration is stopping (first step of any asynchronous command)
+			ServoIsMoving		= 3	'Servo is moving
+
+			PLimitHit		= 2	'PLimit-Hit sticky bit, must be acknowledged to clear
+			NLimitHit		= 1	'NLimit-Hit sticky bit, must be acknowledged to clear
+
+			CommandAck		= 0	'Bit goes high on command, then PLC must clear command and wait for bit low
+
+
+  STRUCT DATA_OUT(	SenseStateBits,		...	'32 current digital-level-sense bits for DIO's
+			DriveEnabledBits,	...	'32 current drive-enabled-and-active bits for DIO's (HBSTx = %11)
+			OverCurrentDetectBits,	...	'32 overcurrent-detected bits for DIO's (HBSTx = %01, sticky until cleared)
+			UnderLoadDetectBits,	...	'32 underload-detected bits for DIO's (HBSTx = %10, sticky until cleared)
+			FaultDetectedBits,	...	'16 fault bits (8 bits for every 8 DIO's: 0, 0, 0, 0, TW, TSD, ULD, OCS)
+						...
+			VIN[4],			...	'4 input voltages in mV (~0..~10_000)
+						...
+			SERVO_OUT Servo[12], empty[14])		'12 servo instances TESTT GET RID OF ", empty[14]"!!!!!
+
+
+  #0, mtBrake, mtJog, mtMove				'Movement types
+
+OBJ
+
+  io	: "junk_IO_Driver"
+  srv	: "junk_motordrive"		| BasePin = 0, MotorCount = SRV_COUNT
+
+
+VAR
+
+  DATA_CFG cfg
+  DATA_IN  in
+  DATA_OUT out
+
+  CoordinateStack[300]
+
+  ^io.DIO_DATA dio
+  ^io.AIO_DATA aio
+
+
+PUB Start() : ptrCFG, ptrIN, ptrOUT
+
+  [dio], [aio] := io.Start()
+  srv.Start()
+  cogspin(NEWCOG, Coordinate(), @CoordinateStack)
+
+  longmove(@dio.led_rgb, @rgb_data, io.LED_COUNT)
+
+  return @cfg, @in, @out
+
+
+PRI Coordinate() | i, j, k, ControlBits, Command, FlagBits, OldFlagBits, ...
+                   OldControlBits[SRV_COUNT], ActiveCommand[SRV_COUNT], MovementType[SRV_COUNT]
+
+  repeat	'loop coordinates all signalling interaction
+
+    out.SenseStateBits.[7..0] := dio.xio_in[1].[16+io.DIN7..16+io.DIN0]	'update SenseStateBits (DATA_OUT) from sense signals on XIO
+
+    dio.xio_out[0].[7..0] := in.DriveStateBits.[7..0]			'update DIO-bias signals on XIO from DriveStateBits (DATA_IN)
+
+    dio.xio_out[0].[io.SHUNT_ENA1..io.SHUNT_ENA0] := in.ShuntEnableBits	'update AIO shunt-enable signals on XIO from ShuntEnableBits (DATA_IN)
+
+    longmove(@aio.dac_target, @in.VOUT, io.AIO_COUNT - 2)		'update dac targets from VOUT (DATA_IN)
+
+    longmove(@out.VIN, @aio.adc_sample, io.AIO_COUNT - 2)		'update VIN (DATA_OUT) from adc samples
+
+
+   
+
+DAT
+
+rgb_data	long	{$010101[16],}$FF0000, $00FF00, $0000FF, $FFFFFF, $FFFF00, $00FFFF,$FF00FF,$040404[8]
+
+
+{
+Command Handshake Process
+-------------------------
+
+0	wait for non-0 Command
+		CommandAck high, implement command
+
+1	wait for 0 Command
+		CommandAck low
+
+}
