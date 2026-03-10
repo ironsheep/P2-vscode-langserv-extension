@@ -320,7 +320,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
     {
       "label": "compileP2",
       "type": "shell",
-      "command": "${config:spin2.fSpecCompiler} ${command:spinExtension.getCompilerArguments} ${fileBasename}",
+      "command": "\"${config:spin2.fSpecCompiler}\" ${command:spinExtension.getCompilerArguments} \"${fileBasename}\"",
       "args": [],
       "problemMatcher": {
         "owner": "Spin2",
@@ -351,7 +351,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
     {
       "label": "compileTopP2",
       "type": "shell",
-      "command": "${config:spin2.fSpecCompiler} ${command:spinExtension.getCompilerArguments} ${config:spin2.fNameTopLevel}",
+      "command": "\"${config:spin2.fSpecCompiler}\" ${command:spinExtension.getCompilerArguments} \"${config:spin2.fNameTopLevel}\"",
       "args": [],
       "problemMatcher": {
         "owner": "Spin2",
@@ -382,7 +382,7 @@ To get to this file type in **Ctrl+Shift+P** (Cmd+Shift+P on mac) to get to the 
     {
       "label": "downloadP2",
       "type": "shell",
-      "command": "${config:spin2.fSpecLoader} ${command:spinExtension.getLoaderArguments} ${config:spin2.optionsBinaryFname}",
+      "command": "\"${config:spin2.fSpecLoader}\" ${command:spinExtension.getLoaderArguments} \"${config:spin2.optionsBinaryFname}\"",
       "args": [],
       "problemMatcher": {
         "owner": "Spin2",

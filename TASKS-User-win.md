@@ -364,7 +364,7 @@ In between the [] you can place your new task definitions. You should end up wit
     {
       "label": "compileP2",
       "type": "shell",
-      "command": "${config:spin2.fSpecCompiler} ${command:spinExtension.getCompilerArguments} ${fileBasename}",
+      "command": "\"${config:spin2.fSpecCompiler}\" ${command:spinExtension.getCompilerArguments} \"${fileBasename}\"",
       "args": [],
       "problemMatcher": {
         "owner": "Spin2",
@@ -395,7 +395,7 @@ In between the [] you can place your new task definitions. You should end up wit
     {
       "label": "compileTopP2",
       "type": "shell",
-      "command": "${config:spin2.fSpecCompiler} ${command:spinExtension.getCompilerArguments} ${config:spin2.fNameTopLevel}",
+      "command": "\"${config:spin2.fSpecCompiler}\" ${command:spinExtension.getCompilerArguments} \"${config:spin2.fNameTopLevel}\"",
       "args": [],
       "problemMatcher": {
         "owner": "Spin2",
@@ -426,7 +426,7 @@ In between the [] you can place your new task definitions. You should end up wit
     {
       "label": "downloadP2",
       "type": "shell",
-      "command": "${config:spin2.fSpecLoader} ${command:spinExtension.getLoaderArguments} ${config:spin2.optionsBinaryFname}",
+      "command": "\"${config:spin2.fSpecLoader}\" ${command:spinExtension.getLoaderArguments} \"${config:spin2.optionsBinaryFname}\"",
       "args": [],
       "problemMatcher": {
         "owner": "Spin2",
