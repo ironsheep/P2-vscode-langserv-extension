@@ -1169,6 +1169,16 @@ export class DocumentFindings {
     return this.codeBlockSpans;
   }
 
+  public blockTypeForLine(lineIdx: number): eBLockType {
+    for (let index = 0; index < this.codeBlockSpans.length; index++) {
+      const span: IBlockSpan = this.codeBlockSpans[index];
+      if (lineIdx >= span.startLineIdx && lineIdx <= span.endLineIdx) {
+        return span.blockType;
+      }
+    }
+    return eBLockType.Unknown;
+  }
+
   public isLineObjDeclaration(lineNumber: number): boolean {
     // return T/F where T means the line is within a span of pasm coce
     const lineIdx: number = lineNumber - 1;
@@ -1576,7 +1586,7 @@ export class DocumentFindings {
     return findings;
   }
 
-  private globalTokenDeclarationInfo(tokenName: string): RememberedTokenDeclarationInfo | undefined {
+  public globalTokenDeclarationInfo(tokenName: string): RememberedTokenDeclarationInfo | undefined {
     const desiredTokenKey = tokenName.toLowerCase();
     const declInfo: RememberedTokenDeclarationInfo | undefined = this.declarationInfoByGlobalTokenName.get(desiredTokenKey);
     return declInfo;
@@ -1758,6 +1768,13 @@ export class DocumentFindings {
 
   private globalTokenSet(): [string, RememberedToken][] {
     return this.globalTokens.entries();
+  }
+
+  public allGlobalTokenEntries(): [string, RememberedToken][] {
+    // return all global tokens (local + included) for completion
+    const entries: [string, RememberedToken][] = this.globalTokens.entries();
+    const includeEntries: [string, RememberedToken][] = this.includeGlobalTokens.entries();
+    return entries.concat(includeEntries);
   }
 
   private _getBestLocalLabelPostionForPosition(position: Position, labelTokenName: string): Position {
@@ -2029,6 +2046,14 @@ export class DocumentFindings {
 
   public methodLocalTokenEntries(): [string, TokenSet][] {
     return this.methodLocalTokens.entries();
+  }
+
+  public localTokenEntriesForMethod(methodName: string): [string, RememberedToken][] {
+    return this.methodLocalTokens.getTokenEntriesForMethod(methodName);
+  }
+
+  public localPasmTokenEntriesForMethod(methodName: string): [string, RememberedToken][] {
+    return this.methodLocalPasmTokens.getTokenEntriesForMethod(methodName);
   }
 
   public setLocalTokenForMethod(methodName: string, tokenName: string, token: RememberedToken, declarationComment: string | undefined): void {
@@ -2681,6 +2706,15 @@ export class NameScopedTokenSet {
     return desiredMethodName;
   }
 
+  public getTokenEntriesForMethod(methodName: string): [string, RememberedToken][] {
+    const desiredMethodKey: string = methodName.toLowerCase();
+    const methodTokenSet = this._getMapForMethod(desiredMethodKey);
+    if (methodTokenSet) {
+      return methodTokenSet.entries();
+    }
+    return [];
+  }
+
   public getTokenForMethod(methodName: string, tokenName: string): RememberedToken | undefined {
     let desiredToken: RememberedToken | undefined = undefined;
     const desiredMethodKey: string = methodName.toLowerCase();
@@ -2806,6 +2840,10 @@ export class RememberedStructure {
 
   get charOffset(): number {
     return this._charOffset;
+  }
+
+  get members(): RememberedStructureMember[] {
+    return this._members;
   }
 
   public setName(newName: string) {

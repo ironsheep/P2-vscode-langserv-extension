@@ -8937,6 +8937,8 @@ export class Spin2DocumentSemanticParser {
             const topStructure: RememberedStructure | undefined = structureType.includes('.')
               ? this._getStructureFromObjectReference(structureType)
               : this.semanticFindings.getStructure(structureType);
+            // Track external object namespace for nested struct member lookups
+            const objectNamespace: string = structureType.includes('.') ? structureType.split('.')[0] : '';
             if (topStructure === undefined) {
               this._logSPIN(`  -- rptStruRef() ERROR: no structure INFO for [${structInstanceName}]`);
             } else {
@@ -9007,7 +9009,11 @@ export class Spin2DocumentSemanticParser {
                       `  -- rptStruRef() descend into memberName=[${memberName}] currMemberInfo=[${JSON.stringify(currMemberInfo, null, 2)}]`
                     );
                     const mbrStructName: string = currMemberInfo.structName;
-                    const tmpStructure = this.semanticFindings.getStructure(mbrStructName);
+                    let tmpStructure = this.semanticFindings.getStructure(mbrStructName);
+                    if (tmpStructure === undefined && objectNamespace.length > 0) {
+                      // nested struct type is defined in the same external object namespace
+                      tmpStructure = this._getStructureFromObjectReference(`${objectNamespace}.${mbrStructName}`);
+                    }
                     if (tmpStructure !== undefined) {
                       currStructure = tmpStructure;
                     } else {

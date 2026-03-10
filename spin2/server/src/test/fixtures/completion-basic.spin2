@@ -1,0 +1,41 @@
+{spin2_v52}
+' Test fixture: completion-basic.spin2
+' Purpose: Completion provider testing for globals, locals, structs, built-ins
+
+CON
+
+  MAX_COUNT     = 10
+  LED_PIN       = 56
+  BUFFER_SIZE   = 128
+
+  STRUCT MY_POINT(  x, y, z)
+
+  STRUCT MY_LINE(   MY_POINT start_pt,  ...
+                    MY_POINT end_pt)
+
+VAR
+
+  LONG  sensorValue
+  LONG  idx
+  byte  buffer[BUFFER_SIZE]
+
+  MY_LINE  myLine
+
+OBJ
+
+  ' no external objects in this fixture (single-file test)
+
+PUB Main() | localVar, i
+
+  localVar := MAX_COUNT
+  sensorValue := localVar
+  repeat i from 0 to MAX_COUNT - 1
+    localVar += i
+
+  myLine.start_pt.x := 100
+  myLine.start_pt.y := 200
+  myLine.end_pt.z := 300
+
+PRI Helper(value) : result
+
+  result := value + MAX_COUNT

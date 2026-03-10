@@ -1,0 +1,20 @@
+{spin2_v52}
+' Test fixture for e2e completion testing
+
+CON
+
+  MAX_COUNT     = 10
+  LED_PIN       = 56
+
+  STRUCT MY_POINT(  x, y, z)
+
+VAR
+
+  LONG  sensorValue
+  MY_POINT  myPt
+
+PUB Main() | localVar
+
+  localVar := MAX_COUNT
+  sensorValue := localVar
+  myPt.x := 100

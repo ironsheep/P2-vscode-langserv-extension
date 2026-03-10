@@ -116,11 +116,12 @@ OBJ
 
   io	: "junk_IO_Driver"
   srv	: "junk_motordrive"		| BasePin = 0, MotorCount = SRV_COUNT
+  myCfg	: "junk_externalSrvo"
 
 
 VAR
 
-  DATA_CFG cfg
+  myCfg.DATA_CFGx cfg
   DATA_IN  in
   DATA_OUT out
 
@@ -140,6 +141,11 @@ PUB Start() : ptrCFG, ptrIN, ptrOUT
 
   return @cfg, @in, @out
 
+PUB cfg_test() : ptrCFG, ptrIN, ptrOUT
+  cfg.Servo[0].PLimitBrakeJerk := 100
+  cfg.Servo[0].PLimitBrakeAccelLimit := 100_000
+  cfg.Servo[0].PLimitDIO := 100
+
 
 PRI Coordinate() | i, j, k, ControlBits, Command, FlagBits, OldFlagBits, ...
                    OldControlBits[SRV_COUNT], ActiveCommand[SRV_COUNT], MovementType[SRV_COUNT]
@@ -157,7 +163,7 @@ PRI Coordinate() | i, j, k, ControlBits, Command, FlagBits, OldFlagBits, ...
     longmove(@out.VIN, @aio.adc_sample, io.AIO_COUNT - 2)		'update VIN (DATA_OUT) from adc samples
 
 
-   
+
 
 DAT
 

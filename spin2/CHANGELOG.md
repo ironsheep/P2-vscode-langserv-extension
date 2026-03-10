@@ -22,6 +22,24 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.7.3] 2026-03-10
+
+Autocomplete/IntelliSense support and external struct field colorizing fix
+
+### New Features
+
+- Add CompletionProvider with dot-triggered and general completion support for Spin2 and Spin1 files
+  - Dot completion after object instance names offers public methods and constants from that object
+  - Dot completion after struct instances offers struct field members
+  - Dot completion after nested struct chains (e.g., `cfg.Servo[0].`) descends through struct hierarchy, including external object structs
+  - General completion (Ctrl+Space) offers local variables/parameters scoped to current method, global symbols (CON, VAR, PUB/PRI, DAT), object instance names, and built-in Spin2/Spin1 methods, variables, registers, and keywords
+  - Completion resolve provides full documentation (signatures, parameters, returns) when an item is highlighted
+- Add server-side unit tests for completion data model accessors (26 new tests)
+
+### Fixes
+
+- BUGFIX: Fix nested struct fields from external objects colored red as errors -- when descending into a nested struct member (e.g., `cfg.Servo[0].PLimitBrakeJerk` where `cfg` is typed as `myCfg.DATA_CFGx`), the parser now correctly looks up the nested struct type in the external object's namespace instead of only searching locally
+
 ## [2.7.2] 2026-03-09
 
 STRUCT continuation, built-in symbol highlighting, and multi-line method signature fixes
