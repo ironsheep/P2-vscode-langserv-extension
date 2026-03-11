@@ -21,6 +21,44 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.8.0] 2026-03-11
+
+PNut v52a/v53 language support and colorizing fixes
+
+### New Features
+
+- Add `OFFSETOF(struct.member)` support for PNut v53 -- returns the compile-time byte offset of a member within a structure definition
+- Semantic highlighting for `OFFSETOF()` as a built-in function (same coloring as `SIZEOF()`)
+- Hover documentation for `OFFSETOF()` showing syntax and description
+- Validate `OFFSETOF()` argument is a structure type; report error for non-structure arguments
+- Version directive gating: `OFFSETOF()` requires `{Spin2_v53}` directive
+- Quick Fix code action to add or update `{Spin2_v53}` directive when `OFFSETOF()` is used
+- Add `MOVBYTS(value, order)` as a Spin2 built-in function with hover documentation (byte reordering via base-4 pattern)
+- Add semantic highlighting for `DEBUG_END_SESSION` constant in PUB/PRI and CON blocks
+
+### Fixes
+
+- Fix `OFFSETOF(struct_type.member)` and `SIZEOF(struct_type.member)` coloring -- struct type names (not just instances) are now recognized as valid struct references
+- Fix `SIZEOF(obj.structType)` and `OFFSETOF(obj.structType...)` validation -- external object struct types no longer flagged as invalid arguments
+- Fix `DEBUG_END_SESSION` not receiving any semantic coloring when used outside of `DEBUG()` calls
+
+## [2.7.5] 2026-03-11
+
+Toolchain discovery improvements and compiler selection UI
+
+### New Features
+
+- Add "Spin2: Select Compiler" command -- QuickPick showing discovered compilers instead of manual text entry in settings
+- Add "Spin2: Add Compiler" command -- native file picker dialog to browse for and add a compiler executable, with auto-identification of compiler type from filename
+- Improved tool discovery: search well-known install directories first, then fall back to PATH environment variable segments
+- When multiple installations of a tool are found and no prior selection exists, prompt the user to choose via QuickPick instead of showing an error
+- PNut (Windows): if `pnut_shell.bat` is not found but `Pnut.exe` or `Pnut_v*.exe` is detected, warn that the bat file is required
+
+### Changes
+
+- Rename PNut TS executable from `pnut_ts` to `pnut-ts` to match the new official distribution name
+- Add `.exe` suffix handling for `pnut-term-ts` on Windows (was previously missing)
+
 ## [2.7.4] 2026-03-10
 
 Unused VAR/DAT variable detection with Quick Fix removal and whitespace-in-path fix

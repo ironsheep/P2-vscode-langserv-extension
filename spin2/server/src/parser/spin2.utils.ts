@@ -2902,6 +2902,12 @@ export class Spin2ParseUtils {
       'LONGFILL(Destination, Value, Count)',
       'Fill Count longs starting at Destination with Value',
       ['Destination - address of LONG array to receive values', 'Value - 32-bit value', 'Count - the number of LONGs to be filled']
+    ],
+    movbyts: [
+      'MOVBYTS(Value, Order) : Result',
+      'Reorder the four bytes within a 32-bit long value according to a base-4 pattern. Each digit in the pattern selects which source byte occupies that position in the result.',
+      ['Value - 32-bit value whose bytes will be reordered', 'Order - base-4 pattern (%%DDDD) specifying byte placement'],
+      ['Result - the value with bytes rearranged per the order pattern']
     ]
   };
 
@@ -3079,6 +3085,11 @@ export class Spin2ParseUtils {
     endianw: ['ENDIANW(WordValue) : ReversedWord', 'Return reverse-endian word value.', ['WordValue - a 16-bit word value'], ['ReversedWord - the value with bytes in reversed order']]
   };
 
+  private _tableSpinEnhancements_v53: { [Identifier: string]: string[] } = {
+    // used in DAT, VAR, PUB, and PRI blocks
+    offsetof: ['OFFSETOF(struct_name{[index]}{.member{[index]}...})', 'returns the byte offset of a member within a structure definition. Evaluated at compile time.']
+  };
+
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
     // NOTE: this does NOT support signature help! (paramaters are not highlighted for signature help due to ':' being param separater)
     lookup: [
@@ -3206,6 +3217,10 @@ export class Spin2ParseUtils {
       // requested version is v52 or greater
       reservedStatus = nameKey in this._tableSpinEnhancements_v52;
     }
+    if (!reservedStatus && this.requestedSpinVersion(53)) {
+      // requested version is v53 or greater
+      reservedStatus = nameKey in this._tableSpinEnhancements_v53;
+    }
     this._logMessage(`sp2u:  -- iVerAM(${name}) = (${reservedStatus})`);
     return reservedStatus;
   }
@@ -3221,6 +3236,7 @@ export class Spin2ParseUtils {
     if (nameKey in this._tableSpinEnhancements_v45) return 45;
     if (nameKey in this._tableSpinEnhancements_v47) return 47;
     if (nameKey in this._tableSpinEnhancements_v52) return 52;
+    if (nameKey in this._tableSpinEnhancements_v53) return 53;
     // storage types
     if (nameKey in this._tableSpinStorageTypes_v45) return 45;
     // operators
@@ -3307,6 +3323,10 @@ export class Spin2ParseUtils {
         // if {Spin2_v52} or greater then also search this table
         desiredDocText.category = 'Endian Method';
         methodDescr = this._tableSpinEnhancements_v52[nameKey];
+      } else if (this.requestedSpinVersion(53) && nameKey in this._tableSpinEnhancements_v53) {
+        // if {Spin2_v53} or greater then also search this table
+        desiredDocText.category = 'Structure Method';
+        protoWDescr = this._tableSpinEnhancements_v53[nameKey];
       } else if (nameKey in this._tableSpinIndexValueMethods) {
         desiredDocText.category = 'Hub Method';
         protoWDescr = this._tableSpinIndexValueMethods[nameKey];

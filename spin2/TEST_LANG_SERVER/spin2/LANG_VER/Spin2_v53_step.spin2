@@ -1,0 +1,39 @@
+{Spin2_v53}
+
+CON
+
+  _clkfreq = 200_000_000
+
+STRUCT point(LONG x, LONG y)
+STRUCT line(point start, point finish)
+STRUCT triangle(line sides[3])
+
+VAR
+
+  point myPoint
+  line  myLine
+
+PUB go() | ofs
+
+  ' OFFSETOF with simple member offsets
+  ofs := OFFSETOF(point)                ' 0
+  ofs := OFFSETOF(point.x)              ' 0
+  ofs := OFFSETOF(point.y)              ' 4
+
+  ' OFFSETOF with nested structure members
+  ofs := OFFSETOF(line.start)           ' 0
+  ofs := OFFSETOF(line.finish)          ' 8
+  ofs := OFFSETOF(line.finish.x)        ' 8
+  ofs := OFFSETOF(line.finish.y)        ' 12
+
+  ' OFFSETOF with array-indexed access
+  ofs := OFFSETOF(triangle.sides[0])    ' 0
+  ofs := OFFSETOF(triangle.sides[1])    ' 16
+  ofs := OFFSETOF(triangle.sides[2])    ' 32
+  ofs := OFFSETOF(triangle.sides[2].finish.y)  ' 44
+
+  ' SIZEOF still works alongside OFFSETOF
+  ofs := SIZEOF(point)                  ' 8
+  ofs := SIZEOF(line)                   ' 16
+
+  debug(sdec(ofs))

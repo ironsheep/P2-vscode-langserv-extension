@@ -188,10 +188,65 @@ export class Spin2DocumentSemanticParser {
     if (localStructType !== undefined) {
       return; // valid: sizeof(localStructInstance)
     }
+    // check if argument is an external object struct type (e.g., cfg.DATA_CFGx)
+    if (argName.includes('.')) {
+      const dotParts = argName.split('.');
+      if (dotParts.length === 2) {
+        const objName = dotParts[0];
+        const structName = dotParts[1];
+        if (this.semanticFindings.isNameSpace(objName)) {
+          const nameSpaceFindings = this.semanticFindings.getFindingsForNamespace(objName);
+          if (nameSpaceFindings !== undefined && nameSpaceFindings.isStructure(structName)) {
+            return; // valid: sizeof(obj.structType)
+          }
+        }
+      }
+    }
     // not a structure type or instance - emit error
     const diagCharOffset = sizeofCharOffset;
     const diagEndChar = sizeofCharOffset + sizeofLength + closeParenIdx + 1;
     this.semanticFindings.pushDiagnosticMessage(lineIndex, diagCharOffset, diagEndChar, eSeverity.Error, `Invalid use of SIZEOF: '${argName}' is not a structure type or structure instance`);
+  }
+
+  private _validateOffsetofArgument(methodFollowString: string, lineIndex: number, offsetofCharOffset: number, offsetofLength: number): void {
+    // extract the argument from within the parentheses following offsetof
+    const openParenIdx = methodFollowString.indexOf('(');
+    const closeParenIdx = methodFollowString.indexOf(')', openParenIdx + 1);
+    if (openParenIdx === -1 || closeParenIdx === -1) {
+      return; // malformed call, let other validation handle it
+    }
+    const fullArg = methodFollowString.substring(openParenIdx + 1, closeParenIdx).trim();
+    if (fullArg.length === 0) {
+      return; // empty parens, let other validation handle it
+    }
+    // extract the base struct name (part before any '.' or '[')
+    const baseName = fullArg.split(/[.\[]/)[0].trim();
+    if (baseName.length === 0) {
+      return;
+    }
+    // OFFSETOF requires a structure type name (not an instance)
+    if (this.semanticFindings.isStructure(baseName)) {
+      return; // valid: offsetof(structureTypeName...)
+    }
+    // check if base name is an external object struct type (e.g., cfg.DATA_CFGx.member)
+    if (baseName.includes('.') || (fullArg.includes('.') && this.semanticFindings.isNameSpace(baseName))) {
+      // could be obj.structType.member — check the second part
+      const dotParts = fullArg.split(/[.\[]/);
+      if (dotParts.length >= 2) {
+        const objName = dotParts[0].trim();
+        const structName = dotParts[1].trim();
+        if (this.semanticFindings.isNameSpace(objName)) {
+          const nameSpaceFindings = this.semanticFindings.getFindingsForNamespace(objName);
+          if (nameSpaceFindings !== undefined && nameSpaceFindings.isStructure(structName)) {
+            return; // valid: offsetof(obj.structType.member...)
+          }
+        }
+      }
+    }
+    // not a structure type - emit error
+    const diagCharOffset = offsetofCharOffset;
+    const diagEndChar = offsetofCharOffset + offsetofLength + closeParenIdx + 1;
+    this.semanticFindings.pushDiagnosticMessage(lineIndex, diagCharOffset, diagEndChar, eSeverity.Error, `Invalid use of OFFSETOF: '${baseName}' is not a structure type`);
   }
 
   private _reportUnusedLocalVariables(): void {
@@ -3493,11 +3548,19 @@ export class Spin2DocumentSemanticParser {
                       eSeverity.Error,
                       `P2 Spin CON function w/empty parens [${namePart}]`
                     );
+                  } else if (this.parseUtils.isDebugControlSymbol(namePart)) {
+                    this._logCON(`  --  CON debug control symbol=[${namePart}](${namePart.length}), ofs=(${symbolPosition.character})`);
+                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: namePart.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['declaration', 'readonly']
+                    });
                   } else if (
                     !this.parseUtils.isSpinReservedWord(namePart) &&
                     !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
                     !this.parseUtils.isDebugMethod(namePart) &&
-                    !this.parseUtils.isDebugControlSymbol(namePart) &&
                     !this.parseUtils.isUnaryOperator(namePart)
                   ) {
                     this._logCON('  --  CON MISSING name=[' + namePart + ']');
@@ -6154,6 +6217,10 @@ export class Spin2DocumentSemanticParser {
                     if (namePart.toLowerCase() === 'sizeof') {
                       this._validateSizeofArgument(methodFollowString, symbolPosition.line, symbolPosition.character, namePart.length);
                     }
+                    // validate offsetof() argument is a structure type with member path
+                    if (namePart.toLowerCase() === 'offsetof') {
+                      this._validateOffsetofArgument(methodFollowString, symbolPosition.line, symbolPosition.character, namePart.length);
+                    }
                   } else if (
                     this.parseUtils.isFloatConversion(namePart) &&
                     !new RegExp(`${escapedNamePart}\\s*\\(`).test(nonStringAssignmentRHSStr) &&
@@ -8135,7 +8202,7 @@ export class Spin2DocumentSemanticParser {
         `  -- isStruRef() hasDot=(${hasSymbolDotSymbol}), hasIndex=(${hasSymbolDotIndexedSymbol}), nameParts=[${nameParts}](${nameParts.length})`
       );
       const instanceName = nameParts.length > 0 ? nameParts[0] : '';
-      let isStructureRef: boolean = instanceName.length > 0 && this.semanticFindings.isStructureInstance(instanceName);
+      let isStructureRef: boolean = instanceName.length > 0 && (this.semanticFindings.isStructureInstance(instanceName) || this.semanticFindings.isStructure(instanceName));
       // if lineIdx !== -1 then we need to check for instance part being a structure type local variable
       if (isStructureRef === false && lineIdx !== -1 && instanceName.length > 0) {
         // see if instance name is a local variable.
@@ -8162,7 +8229,7 @@ export class Spin2DocumentSemanticParser {
       if (dottedSymbolRegex.test(possibleRef) || dottedIndexedSymbolRegex.test(possibleRef)) {
         const nameParts: string[] = possibleRef.split(/[.[\]]/).filter(Boolean);
         const instanceName = nameParts.length > 0 ? nameParts[0] : '';
-        let isStructureRef: boolean = instanceName.length > 0 && this.semanticFindings.isStructureInstance(instanceName);
+        let isStructureRef: boolean = instanceName.length > 0 && (this.semanticFindings.isStructureInstance(instanceName) || this.semanticFindings.isStructure(instanceName));
         if (isStructureRef === false && instanceName.length > 0) {
           const referenceDetails: RememberedToken | undefined = this.semanticFindings.getLocalTokenForLine(instanceName, lineIdx + 1);
           if (referenceDetails !== undefined) {
@@ -8881,7 +8948,7 @@ export class Spin2DocumentSemanticParser {
             `  --  rptStruRef() ERROR structInstanceName=[{undefined}], dotRef=[${dotRef}], structRefParts=[${structRefParts}](${structRefParts.length})`
           );
         }
-        let isStructureRef: boolean = structInstanceName !== undefined ? this.semanticFindings.isStructureInstance(structInstanceName) : false;
+        let isStructureRef: boolean = structInstanceName !== undefined ? (this.semanticFindings.isStructureInstance(structInstanceName) || this.semanticFindings.isStructure(structInstanceName)) : false;
         // not yet known as ref then we need to check for instance part being a structure type local variable
         if (isStructureRef === false && structInstanceName.length > 0) {
           // see if instance name is a local variable.
@@ -8956,8 +9023,12 @@ export class Spin2DocumentSemanticParser {
             `  -- rptStruRef() Descent [${structInstanceName}] mbr=[${structureMember}], ofs=(${nameOffset}) at depth=[${index + 1} of ${memberNameSet.length + 1}]`
           );
           // now report descent into structure members
-          const structureType: string | undefined =
+          let structureType: string | undefined =
             localStructureType !== undefined ? localStructureType : this.semanticFindings.getTypeForStructureInstance(structInstanceName);
+          // if base name is a struct type itself (e.g., OFFSETOF(point_t.x)), use it directly
+          if (structureType === undefined && this.semanticFindings.isStructure(structInstanceName)) {
+            structureType = structInstanceName;
+          }
           if (structureType === undefined) {
             this._logSPIN(`  -- rptStruRef() ERROR: no structure TYPE for [${structInstanceName}]`);
           } else {
@@ -9494,6 +9565,9 @@ export class Spin2DocumentSemanticParser {
     }
     if (this.parseUtils.isSpinBuiltInVariable(name)) {
       return { tokenType: 'variable', modifiers: ['builtin', 'readonly'] };
+    }
+    if (this.parseUtils.isDebugControlSymbol(name)) {
+      return { tokenType: 'variable', modifiers: ['declaration', 'readonly'] };
     }
     return undefined;
   }

@@ -162,6 +162,7 @@ export default class CodeActionProvider implements Provider {
     const v50Keywords = ['ditto', 'asmclk', 'setclk', 'getclk'];
     const v51Keywords = ['zerox', 'signx', 'sca', 'scas', 'frac'];
     const v52Keywords = ['regload', 'regexec'];
+    const v53Keywords = ['offsetof'];
 
     if (v44Keywords.includes(nameLC)) return 44;
     if (v45Keywords.includes(nameLC)) return 45;
@@ -169,6 +170,7 @@ export default class CodeActionProvider implements Provider {
     if (v50Keywords.includes(nameLC)) return 50;
     if (v51Keywords.includes(nameLC)) return 51;
     if (v52Keywords.includes(nameLC)) return 52;
+    if (v53Keywords.includes(nameLC)) return 53;
     return 0;
   }
 

@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.7.4",
+  "version": "2.8.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -77,6 +77,14 @@
       {
         "command": "spinExtension.select.propplug",
         "title": "Spin2: Select PropPlug Serial Device for use"
+      },
+      {
+        "command": "spinExtension.selectCompiler",
+        "title": "Spin2: Select Compiler"
+      },
+      {
+        "command": "spinExtension.addCompiler",
+        "title": "Spin2: Add Compiler"
       },
       {
         "command": "spinExtension.toggle.debug",
@@ -699,7 +707,7 @@
           "spinExtension.toolchain.optionsDownload.usePnutTermTS": {
             "type": "boolean",
             "default": false,
-            "description": "Use PNut Term TS for all compilers (default is to use only with PNut_TS compiler)."
+            "description": "Use PNut Term TS for all compilers (default is to use only with pnut-ts compiler)."
           },
           "spinExtension.toolchain.optionsSerial.matchVendorOnly": {
             "type": "boolean",
@@ -715,12 +723,12 @@
           "spinExtension.toolchain.paths.PNutTs": {
             "type": "string",
             "default": "",
-            "description": "Absolute path of the pnut_ts executable"
+            "description": "Absolute path of the pnut-ts executable"
           },
           "spinExtension.toolchain.paths.PNutTermTs": {
             "type": "string",
             "default": "",
-            "description": "Absolute path of the pnut_term_ts executable"
+            "description": "Absolute path of the pnut-term-ts executable"
           },
           "spinExtension.toolchain.paths.flexspin": {
             "type": "string",
