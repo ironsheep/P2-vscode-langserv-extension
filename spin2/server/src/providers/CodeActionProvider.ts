@@ -35,8 +35,8 @@ export default class CodeActionProvider implements Provider {
       return actions;
     }
 
-    // only process .spin2 files
-    if (!uri.endsWith('.spin2')) {
+    // only process .spin2 and .spin files
+    if (!uri.endsWith('.spin2') && !uri.endsWith('.spin')) {
       return actions;
     }
 
@@ -81,6 +81,12 @@ export default class CodeActionProvider implements Provider {
       if (unusedMatch) {
         this._createRemoveUnusedAction(actions, uri, diag, unusedMatch[1], unusedMatch[2], lines);
         continue; // unused diagnostics don't need version actions
+      }
+
+      const unusedGlobalMatch = /^(VAR variable|DAT variable) '([^']+)' is declared but never used$/.exec(diag.message);
+      if (unusedGlobalMatch) {
+        this._createRemoveUnusedGlobalAction(actions, uri, diag, unusedGlobalMatch[1], unusedGlobalMatch[2], lines);
+        continue;
       }
 
       // === Version directive actions ===
@@ -301,6 +307,136 @@ export default class CodeActionProvider implements Provider {
     this._logMessage(`CodeAction: offering removal of unused ${kindLabel} '${symbolName}'`);
     actions.push({
       title: `Remove unused ${kindLabel} '${symbolName}'`,
+      kind: lsp.CodeActionKind.QuickFix,
+      diagnostics: [diag],
+      isPreferred: true,
+      edit: {
+        changes: {
+          [uri]: [lsp.TextEdit.replace(
+            lsp.Range.create(lineIdx, 0, lineIdx, line.length),
+            newLine
+          )]
+        }
+      }
+    });
+  }
+
+  private _createRemoveUnusedGlobalAction(
+    actions: lsp.CodeAction[],
+    uri: string,
+    diag: lsp.Diagnostic,
+    symbolKind: string,
+    symbolName: string,
+    lines: string[]
+  ): void {
+    const lineIdx = diag.range.start.line;
+    const line = lines[lineIdx];
+    const isDatVariable = symbolKind === 'DAT variable';
+
+    if (isDatVariable) {
+      // DAT variables are one-per-line: delete entire line
+      this._logMessage(`CodeAction: offering removal of unused DAT variable '${symbolName}'`);
+      actions.push({
+        title: `Remove unused DAT variable '${symbolName}'`,
+        kind: lsp.CodeActionKind.QuickFix,
+        diagnostics: [diag],
+        isPreferred: true,
+        edit: {
+          changes: {
+            [uri]: [lsp.TextEdit.replace(
+              lsp.Range.create(lineIdx, 0, lineIdx + 1, 0),
+              ''
+            )]
+          }
+        }
+      });
+      return;
+    }
+
+    // VAR variable removal
+    // Split line into code and end-of-line comment parts
+    const commentIdx = line.indexOf("'");
+    const codePart = (commentIdx >= 0 ? line.substring(0, commentIdx) : line).trimEnd();
+    const commentPart = commentIdx >= 0 ? line.substring(commentIdx) : '';
+
+    // Parse comma-separated declarations on the line
+    // Format: {INDENT}{TYPE} name1, name2, TYPE2 name3, ...
+    // The leading indentation before the first type/name is preserved
+    const codeTrimmed = codePart.trimStart();
+    const indent = codePart.substring(0, codePart.length - codeTrimmed.length);
+
+    // Split by commas into segments, preserving position info
+    const segments = codeTrimmed.split(/\s*,\s*/);
+
+    // Parse each segment into {type, name} where type may be empty (inherited)
+    interface VarSegment {
+      type: string;
+      name: string;
+      raw: string;
+    }
+    const parsed: VarSegment[] = [];
+    for (const seg of segments) {
+      const trimmed = seg.trim();
+      if (trimmed.length === 0) continue;
+      // Check if segment has a type prefix (whitespace between type and name)
+      const parts = trimmed.split(/\s+/);
+      if (parts.length >= 2) {
+        // has type + name (possibly with [array])
+        parsed.push({ type: parts[0], name: parts.slice(1).join(' '), raw: trimmed });
+      } else {
+        // name only (inherits type from previous)
+        parsed.push({ type: '', name: parts[0], raw: trimmed });
+      }
+    }
+
+    // Find the target variable (strip array brackets for matching)
+    const targetIdx = parsed.findIndex(p => {
+      const baseName = p.name.replace(/\[.*\]$/, '');
+      return baseName.toLowerCase() === symbolName.toLowerCase();
+    });
+    if (targetIdx < 0) {
+      this._logMessage(`CodeAction: couldn't find VAR '${symbolName}' in segments [${parsed.map(p => p.raw).join(', ')}]`);
+      return;
+    }
+
+    if (parsed.length === 1) {
+      // Only variable on the line — delete entire line
+      this._logMessage(`CodeAction: offering removal of unused VAR variable '${symbolName}' (delete line)`);
+      actions.push({
+        title: `Remove unused VAR variable '${symbolName}'`,
+        kind: lsp.CodeActionKind.QuickFix,
+        diagnostics: [diag],
+        isPreferred: true,
+        edit: {
+          changes: {
+            [uri]: [lsp.TextEdit.replace(
+              lsp.Range.create(lineIdx, 0, lineIdx + 1, 0),
+              ''
+            )]
+          }
+        }
+      });
+      return;
+    }
+
+    // Multiple variables — remove target from comma list
+    // If target has a type prefix and next segment has no type, transfer the type
+    const target = parsed[targetIdx];
+    if (target.type.length > 0 && targetIdx + 1 < parsed.length && parsed[targetIdx + 1].type.length === 0) {
+      parsed[targetIdx + 1].type = target.type;
+    }
+    parsed.splice(targetIdx, 1);
+
+    // Rebuild the line
+    const rebuiltSegments = parsed.map(p => p.type.length > 0 ? `${p.type}  ${p.name}` : p.name);
+    let newLine = indent + rebuiltSegments.join(', ');
+    if (commentPart.length > 0) {
+      newLine = newLine.trimEnd() + '  ' + commentPart.trimStart();
+    }
+
+    this._logMessage(`CodeAction: offering removal of unused VAR variable '${symbolName}'`);
+    actions.push({
+      title: `Remove unused VAR variable '${symbolName}'`,
       kind: lsp.CodeActionKind.QuickFix,
       diagnostics: [diag],
       isPreferred: true,

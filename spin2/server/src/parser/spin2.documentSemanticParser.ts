@@ -156,6 +156,7 @@ export class Spin2DocumentSemanticParser {
     });
     if (this.configuration.reportUnusedVariables) {
       this._reportUnusedLocalVariables();
+      this._reportUnusedGlobalVariables();
     }
   }
 
@@ -261,6 +262,33 @@ export class Spin2DocumentSemanticParser {
             `${label} '${tokenName}' is declared but never used`
           );
         }
+      }
+    }
+  }
+
+  private _reportUnusedGlobalVariables(): void {
+    const globalEntries: [string, RememberedToken][] = this.semanticFindings.globalTokenEntries();
+    for (const [tokenName, token] of globalEntries) {
+      // only check variables — skip labels, methods, CON constants
+      if (token.type !== 'variable') continue;
+      if (token.modifiers.includes('readonly')) continue;
+
+      const refs = this.semanticFindings.getReferencesForToken(tokenName);
+      // filter out declaration refs AND spurious duplicate refs at the declaration site
+      // (the semantic parser may re-record the same position without the declaration flag)
+      const declLine = token.lineIndex;
+      const declChar = token.charIndex;
+      const usageRefs = refs.filter((r) => !r.isDeclaration && !(r.line === declLine && r.startCharacter === declChar));
+      if (usageRefs.length === 0) {
+        const isVarBlock = token.modifiers.includes('instance');
+        const label = isVarBlock ? 'VAR variable' : 'DAT variable';
+        this.semanticFindings.pushDiagnosticMessage(
+          token.lineIndex,
+          token.charIndex,
+          token.charIndex + tokenName.length,
+          eSeverity.Warning,
+          `${label} '${tokenName}' is declared but never used`
+        );
       }
     }
   }

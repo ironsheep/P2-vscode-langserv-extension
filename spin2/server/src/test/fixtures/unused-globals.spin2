@@ -1,0 +1,29 @@
+{spin2_v52}
+' Test fixture: unused-globals.spin2
+' Purpose: Unused VAR/DAT variable detection testing
+
+CON
+
+  MAX_COUNT     = 10
+
+VAR
+
+  LONG  usedVar
+  LONG  unusedVar
+  BYTE  unusedArray[10]
+  BYTE  a, unusedB, c
+
+DAT
+
+datUsed       LONG  0
+datUnused     LONG  0
+datLabel
+              nop
+
+PUB Main() | localVar
+
+  localVar := MAX_COUNT
+  usedVar := localVar
+  a := 1
+  c := 2
+  datUsed := 42

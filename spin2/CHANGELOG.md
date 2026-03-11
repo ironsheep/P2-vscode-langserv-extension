@@ -9,7 +9,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 ### Follow-on work to appear in Upcoming releases
 
 - Work on fixes to any reported issues
-- Detect and report unused VAR block variables and DAT block variables (not code labels) with Quick Fix removal actions
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
 - Add spin2 code formatter
@@ -21,6 +20,23 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
+
+## [2.7.4] 2026-03-10
+
+Unused VAR/DAT variable detection with Quick Fix removal and whitespace-in-path fix
+
+### New Features
+
+- Detect and report unused VAR block variables with warning diagnostics and Quick Fix code actions to remove them
+- Detect and report unused DAT block data variables (not code labels) with warning diagnostics and Quick Fix code actions to remove them
+- VAR Quick Fix handles single-variable lines (deletes line), multi-variable comma lists (removes name, transfers type prefix to next variable if needed)
+- DAT Quick Fix deletes the entire declaration line
+- Detection respects existing `reportUnusedVariables` setting (same toggle as local unused detection)
+- Code actions now supported for both `.spin2` and `.spin` files
+
+### Fixes
+
+- Fix tasks.json template to quote compiler/loader paths, preventing errors when tools are installed in directories with spaces
 
 ## [2.7.3] 2026-03-10
 

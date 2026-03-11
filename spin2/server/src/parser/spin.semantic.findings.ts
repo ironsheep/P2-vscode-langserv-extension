@@ -1770,6 +1770,11 @@ export class DocumentFindings {
     return this.globalTokens.entries();
   }
 
+  public globalTokenEntries(): [string, RememberedToken][] {
+    // return only this file's global tokens (for unused detection)
+    return this.globalTokens.entries();
+  }
+
   public allGlobalTokenEntries(): [string, RememberedToken][] {
     // return all global tokens (local + included) for completion
     const entries: [string, RememberedToken][] = this.globalTokens.entries();
