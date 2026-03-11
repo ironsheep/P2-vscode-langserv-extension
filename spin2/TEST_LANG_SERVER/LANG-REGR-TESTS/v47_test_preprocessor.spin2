@@ -1,0 +1,139 @@
+{Spin2_v47}
+''
+'' v47 Regression Test: Preprocessor Directives
+''
+'' Tests #DEFINE, #UNDEF, #IFDEF, #IFNDEF, #ELSEIFDEF, #ELSEIFNDEF, #ELSE, #ENDIF
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+#DEFINE FEATURE_A
+#DEFINE FEATURE_B
+
+VAR
+
+    long    results[30]
+    long    result_idx
+
+PUB main()
+
+    result_idx := 0
+
+    test_basic_ifdef()
+    test_basic_ifndef()
+    test_elseifdef()
+    test_nested()
+    test_undef()
+
+    repeat
+
+
+PRI test_basic_ifdef()
+    ''
+    '' Test: Basic #IFDEF
+    ''
+    results[result_idx++] := 0      ' default value
+
+#IFDEF FEATURE_A
+    results[result_idx-1] := 1      ' expect 1 (FEATURE_A is defined)
+#ENDIF
+
+    results[result_idx++] := 0      ' default value
+
+#IFDEF UNDEFINED_FEATURE
+    results[result_idx-1] := 99     ' should NOT execute
+#ENDIF
+    ' expect 0 (UNDEFINED_FEATURE is not defined)
+
+
+PRI test_basic_ifndef()
+    ''
+    '' Test: Basic #IFNDEF
+    ''
+    results[result_idx++] := 0      ' default value
+
+#IFNDEF UNDEFINED_FEATURE
+    results[result_idx-1] := 2      ' expect 2 (UNDEFINED_FEATURE is not defined)
+#ENDIF
+
+    results[result_idx++] := 0      ' default value
+
+#IFNDEF FEATURE_A
+    results[result_idx-1] := 99     ' should NOT execute
+#ENDIF
+    ' expect 0 (FEATURE_A is defined, so #IFNDEF block skipped)
+
+
+PRI test_elseifdef()
+    ''
+    '' Test: #IFDEF with #ELSEIFDEF and #ELSE
+    ''
+    results[result_idx++] := 0      ' default value
+
+#IFDEF UNDEFINED_X
+    results[result_idx-1] := 10
+#ELSEIFDEF FEATURE_A
+    results[result_idx-1] := 20     ' expect 20 (FEATURE_A is defined)
+#ELSE
+    results[result_idx-1] := 30
+#ENDIF
+
+    results[result_idx++] := 0      ' default value
+
+#IFDEF UNDEFINED_X
+    results[result_idx-1] := 10
+#ELSEIFDEF UNDEFINED_Y
+    results[result_idx-1] := 20
+#ELSE
+    results[result_idx-1] := 30     ' expect 30 (both undefined)
+#ENDIF
+
+
+PRI test_nested()
+    ''
+    '' Test: Nested #IFDEF blocks
+    ''
+    results[result_idx++] := 0      ' default value
+
+#IFDEF FEATURE_A
+    results[result_idx-1] := 1
+
+    #IFDEF FEATURE_B
+        results[result_idx-1] := 2  ' expect 2 (both defined)
+    #ENDIF
+#ENDIF
+
+    results[result_idx++] := 0      ' default value
+
+#IFDEF FEATURE_A
+    #IFNDEF FEATURE_B
+        results[result_idx-1] := 99 ' should NOT execute
+    #ELSE
+        results[result_idx-1] := 3  ' expect 3 (FEATURE_B IS defined)
+    #ENDIF
+#ENDIF
+
+
+PRI test_undef()
+    ''
+    '' Test: #UNDEF directive
+    ''
+    ' Note: #UNDEF cannot undefine external symbols, but internal ones work
+
+#DEFINE TEMP_FEATURE
+    results[result_idx++] := 0      ' default value
+
+#IFDEF TEMP_FEATURE
+    results[result_idx-1] := 4      ' expect 4 (TEMP_FEATURE is defined)
+#ENDIF
+
+#UNDEF TEMP_FEATURE
+    results[result_idx++] := 0      ' default value
+
+#IFDEF TEMP_FEATURE
+    results[result_idx-1] := 99     ' should NOT execute
+#ENDIF
+    ' expect 0 (TEMP_FEATURE was undefined)
+

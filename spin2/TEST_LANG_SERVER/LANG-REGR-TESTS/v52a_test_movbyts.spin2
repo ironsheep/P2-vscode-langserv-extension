@@ -1,0 +1,129 @@
+{Spin2_v52}
+''
+'' v52a Regression Test: MOVBYTS() Function
+''
+'' Tests the new MOVBYTS(value, order) Spin2 function
+'' which rearranges bytes according to the order pattern.
+''
+'' Order pattern uses quaternary (base-4) notation:
+''   %%3210 = reverse all bytes
+''   %%0123 = keep original order
+''   %%0000 = replicate byte 0 to all positions
+''   etc.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+VAR
+
+    long  results[20]
+
+PUB main() | v, r, i
+
+    ' Test 1: Identity - %%0123 keeps original order
+    v := $12_34_56_78
+    r := MOVBYTS(v, %%0123)
+    results[0] := r                     ' expect $12_34_56_78
+
+    ' Test 2: Full reverse - %%3210
+    v := $12_34_56_78
+    r := MOVBYTS(v, %%3210)
+    results[1] := r                     ' expect $78_56_34_12
+
+    ' Test 3: Swap pairs - %%1032
+    v := $12_34_56_78
+    r := MOVBYTS(v, %%1032)
+    results[2] := r                     ' expect $34_12_78_56
+
+    ' Test 4: Broadcast byte 0 - %%0000
+    v := $12_34_56_78
+    r := MOVBYTS(v, %%0000)
+    results[3] := r                     ' expect $78_78_78_78
+
+    ' Test 5: Broadcast byte 3 - %%3333
+    v := $12_34_56_78
+    r := MOVBYTS(v, %%3333)
+    results[4] := r                     ' expect $12_12_12_12
+
+    ' Test 6: Rotate right by 1 byte - %%0321
+    v := $12_34_56_78
+    r := MOVBYTS(v, %%0321)
+    results[5] := r                     ' expect $78_12_34_56
+
+    ' Test 7: Rotate left by 1 byte - %%2103
+    v := $12_34_56_78
+    r := MOVBYTS(v, %%2103)
+    results[6] := r                     ' expect $34_56_78_12
+
+    ' Test 8: All zeros input
+    v := $00_00_00_00
+    r := MOVBYTS(v, %%3210)
+    results[7] := r                     ' expect $00_00_00_00
+
+    ' Test 9: All ones input
+    v := $FF_FF_FF_FF
+    r := MOVBYTS(v, %%3210)
+    results[8] := r                     ' expect $FF_FF_FF_FF
+
+    ' Test 10: Single byte set
+    v := $00_00_00_AA
+    r := MOVBYTS(v, %%3210)
+    results[9] := r                     ' expect $AA_00_00_00
+
+    ' Test 11: Chained operations
+    v := $12_34_56_78
+    r := MOVBYTS(v, %%3210)             ' reverse
+    r := MOVBYTS(r, %%3210)             ' reverse again
+    results[10] := r                    ' expect $12_34_56_78 (original)
+
+    ' Test 12: Variable order pattern
+    i := %%2301
+    v := $12_34_56_78
+    r := MOVBYTS(v, i)
+    results[11] := r                    ' expect $56_78_12_34
+
+    ' Test 13: Expression as value
+    r := MOVBYTS($AA_BB_CC_DD, %%1032)
+    results[12] := r                    ' expect $BB_AA_DD_CC
+
+    ' Test 14: MOVBYTS in expression
+    r := MOVBYTS($12_34_56_78, %%3210) + 1
+    results[13] := r                    ' expect $78_56_34_13
+
+    ' Test 15: Nested MOVBYTS
+    r := MOVBYTS(MOVBYTS($12_34_56_78, %%3210), %%1032)
+    results[14] := r                    ' expect $56_78_12_34
+
+    ' ========================================
+    ' PASM2 Context Tests
+    ' ========================================
+    ' MOVBYTS was reclassified from type_asm_inst to type_i_flex in v52a.
+    ' These tests verify it still works correctly as a PASM2 instruction
+    ' in inline assembly (ORG...END) context.
+
+    ' Test 16: MOVBYTS in inline ORG (cog-exec)
+    v := $12_34_56_78
+    i := %%0123
+    ORG
+        movbyts v, i
+    END
+    results[15] := v                    ' byte-reversed via PASM
+
+    ' Test 17: MOVBYTS with immediate in inline ORG
+    v := $AA_BB_CC_DD
+    ORG
+        movbyts v, #%%3210
+    END
+    results[16] := v                    ' identity via PASM immediate
+
+    ' Test 18: MOVBYTS in ORGH inline (hub-exec)
+    v := $11_22_33_44
+    i := %%0123
+    ORGH
+        movbyts v, i
+    END
+    results[17] := v                    ' byte-reversed via PASM hub-exec
+
+    repeat

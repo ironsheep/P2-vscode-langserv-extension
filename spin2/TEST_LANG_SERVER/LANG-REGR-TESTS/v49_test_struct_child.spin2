@@ -1,0 +1,90 @@
+{Spin2_v49}
+''
+'' v49 Regression Test: Structure Export - Child Object
+''
+'' This object defines structures and public methods that return structures.
+'' It is used by v49_test_struct_export.spin2 (parent) to test the v49
+'' structure export/import feature.
+''
+'' Structures defined here are automatically exported in the object file.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+    ' Simple structure: 3D point (3 longs = 12 bytes)
+    STRUCT point_t(LONG x, LONG y, LONG z)
+
+    ' Structure with mixed types
+    STRUCT sensor_t(LONG timestamp, LONG value, BYTE status)
+
+    ' Structure with word-sized fields
+    STRUCT rect_t(WORD left, WORD top, WORD right, WORD bottom)
+
+    ' Nested structure using point_t
+    STRUCT bounds_t(point_t origin, point_t extent)
+
+    ' Exported integer constants
+    MAX_SENSORS = 8
+    SENSOR_ACTIVE = $01
+    SENSOR_ERROR  = $80
+
+    ' Exported float constant
+    PI_APPROX = 3.14159
+
+VAR
+
+    point_t     current_pos
+    sensor_t    readings[4]
+    long        initialized
+
+PUB init()
+    current_pos.x := 0
+    current_pos.y := 0
+    current_pos.z := 0
+    initialized := -1
+
+PUB get_origin() : point_t result
+    result.x := 0
+    result.y := 0
+    result.z := 0
+
+PUB get_point(px, py, pz) : point_t result
+    result.x := px
+    result.y := py
+    result.z := pz
+
+PUB get_sensor_reading(ts, val, stat) : sensor_t result
+    result.timestamp := ts
+    result.value := val
+    result.status := stat
+
+PUB get_rect(l, t, r, b) : rect_t result
+    result.left := l
+    result.top := t
+    result.right := r
+    result.bottom := b
+
+PUB get_bounds() : bounds_t result
+    result.origin.x := 0
+    result.origin.y := 0
+    result.origin.z := 0
+    result.extent.x := 640
+    result.extent.y := 480
+    result.extent.z := 1
+
+PUB set_position(point_t pos)
+    current_pos := pos
+
+PUB get_position() : point_t result
+    result := current_pos
+
+PUB get_max_sensors() : v
+    v := MAX_SENSORS
+
+PUB point_size() : v
+    v := SIZEOF(point_t)
+
+PUB sensor_size() : v
+    v := SIZEOF(sensor_t)

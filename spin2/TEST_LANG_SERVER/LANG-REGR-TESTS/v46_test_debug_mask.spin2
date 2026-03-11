@@ -1,0 +1,81 @@
+{Spin2_v46}
+''
+'' v46 Regression Test: DEBUG_MASK and DEBUG[N] Channels
+''
+'' Tests the new DEBUG_MASK constant and channel-specific DEBUG[N] syntax.
+'' When DEBUG_MASK is defined, DEBUG[N] statements are conditionally compiled
+'' based on whether bit N is set in the mask.
+''
+'' NOTE: This test requires debug-mode compilation.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+    ' Enable debug channels 0, 1, and 2 only
+    DEBUG_MASK = %00000000_00000000_00000000_00000111
+
+VAR
+
+    long  results[20]
+    long  counter
+
+PUB main() | x, y
+
+    x := 42
+    y := 100
+    counter := 0
+
+    ' ========================================
+    ' Channel-specific DEBUG statements
+    ' ========================================
+
+    ' These channels ARE enabled (bits 0, 1, 2 set)
+    DEBUG[0]("Ch0: ", UDEC(x))
+    counter++
+
+    DEBUG[1]("Ch1: ", UHEX(x))
+    counter++
+
+    DEBUG[2]("Ch2: x=", SDEC(x), " y=", SDEC(y))
+    counter++
+
+    ' These channels are NOT enabled (bits 3, 4, 5 clear)
+    ' The compiler should exclude these entirely - no bytecodes generated
+    DEBUG[3]("Ch3: should not compile")
+    DEBUG[4]("Ch4: should not compile")
+    DEBUG[5]("Ch5: should not compile")
+
+    ' ========================================
+    ' Regular DEBUG (always compiled)
+    ' ========================================
+
+    DEBUG("Regular debug - always compiled")
+    counter++
+
+    ' ========================================
+    ' DEBUG[N] with expressions
+    ' ========================================
+
+    ' Channel 0 with multiple format types
+    DEBUG[0]("Multi: ", UDEC(x), " ", UHEX(y), " ", SBIN(x))
+
+    ' Channel 1 with computed values
+    DEBUG[1]("Sum: ", UDEC(x + y))
+
+    ' Channel 2 with array data
+    results[0] := $DEADBEEF
+    results[1] := $CAFEBABE
+    DEBUG[2]("R0=", UHEX_LONG(results[0]), " R1=", UHEX_LONG(results[1]))
+
+    ' ========================================
+    ' Store results for bytecode verification
+    ' ========================================
+
+    results[0] := counter
+    results[1] := DEBUG_MASK
+    results[2] := x
+    results[3] := y
+
+    repeat

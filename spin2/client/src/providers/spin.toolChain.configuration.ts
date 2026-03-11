@@ -5,7 +5,7 @@ export const PATH_FLEXSPIN: string = 'flexspin';
 export const PATH_LOADP2: string = 'loadp2';
 export const PATH_PROPLOADER: string = 'proploader';
 export const PATH_PNUT: string = 'pnut';
-export const PATH_PNUT_TS: string = 'pnut_ts';
+export const PATH_PNUT_TS: string = 'pnut-ts';
 export const PATH_PNUT_TERM_TS: string = 'pnut-term-ts';
 export const PATH_LOADER_BIN: string = 'flashloader';
 

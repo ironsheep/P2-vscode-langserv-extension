@@ -1,0 +1,235 @@
+{Spin2_v52}
+''
+'' v52a Comprehensive Regression Test
+''
+'' This file exercises ALL v52a language features in a single compilation unit.
+'' Use this for full bytecode comparison between PNut and PNut-ts.
+''
+'' v52a Features Tested:
+''   1. MOVBYTS(value, order) - Spin2 function
+''   2. ENDIANL(value) - 32-bit byte swap
+''   3. ENDIANW(value) - 16-bit byte swap
+''   4. NEXT level - Multi-level loop continue (1-15)
+''   5. QUIT level - Multi-level loop exit (1-15)
+''   6. DEBUG_END_SESSION - Constant (27)
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+    ' v52a constant
+    MY_END_SESSION = DEBUG_END_SESSION
+
+VAR
+
+    long  results[100]
+    long  idx
+
+PUB main()
+
+    idx := 0
+
+    ' ==========================================
+    ' Section 1: MOVBYTS Tests
+    ' ==========================================
+
+    results[idx++] := MOVBYTS($12345678, %%0123)    ' $78563412 (reverse)
+    results[idx++] := MOVBYTS($12345678, %%3210)    ' $12345678 (identity? check)
+    results[idx++] := MOVBYTS($AABBCCDD, %%0000)    ' $DDDDDDDD (broadcast byte 0)
+    results[idx++] := MOVBYTS($AABBCCDD, %%3333)    ' $AAAAAAAA (broadcast byte 3)
+    results[idx++] := MOVBYTS($AABBCCDD, %%1032)    ' $BBAADDCC (swap pairs)
+
+    ' ==========================================
+    ' Section 2: ENDIANL Tests
+    ' ==========================================
+
+    results[idx++] := ENDIANL($12345678)            ' $78563412
+    results[idx++] := ENDIANL($00000001)            ' $01000000
+    results[idx++] := ENDIANL($80000000)            ' $00000080
+    results[idx++] := ENDIANL(ENDIANL($ABCDEF01))   ' $ABCDEF01 (double = identity)
+
+    ' ==========================================
+    ' Section 3: ENDIANW Tests
+    ' ==========================================
+
+    results[idx++] := ENDIANW($00001234)            ' $00003412
+    results[idx++] := ENDIANW($00000001)            ' $00000100
+    results[idx++] := ENDIANW($0000FF00)            ' $000000FF
+    results[idx++] := ENDIANW($AABB1234)            ' $00003412 (upper bits cleared)
+
+    ' ==========================================
+    ' Section 4: Combined MOVBYTS/ENDIAN
+    ' ==========================================
+
+    results[idx++] := ENDIANL($12345678) == MOVBYTS($12345678, %%0123)  ' true (-1)
+    results[idx++] := MOVBYTS(ENDIANL($12345678), %%3210)   ' back to $12345678
+
+    ' ==========================================
+    ' Section 5: NEXT level Tests
+    ' ==========================================
+
+    test_next_levels()
+
+    ' ==========================================
+    ' Section 6: QUIT level Tests
+    ' ==========================================
+
+    test_quit_levels()
+
+    ' ==========================================
+    ' Section 7: DEBUG_END_SESSION Constant
+    ' ==========================================
+
+    results[idx++] := DEBUG_END_SESSION             ' 27
+    results[idx++] := MY_END_SESSION                ' 27
+    results[idx++] := DEBUG_END_SESSION == 27       ' true (-1)
+
+    ' ==========================================
+    ' Section 8: Edge Cases and Combinations
+    ' ==========================================
+
+    test_edge_cases()
+
+    ' ==========================================
+    ' Section 9: MOVBYTS in PASM2 Context
+    ' ==========================================
+
+    test_movbyts_pasm()
+
+    repeat
+
+
+PRI test_next_levels() | a, b, c, d, count
+
+    ' NEXT 1 (skip past 1 inner REPEAT, continue outer - needs 2 REPEATs)
+    count := 0
+    repeat a from 1 to 3
+        repeat b from 1 to 5
+            count++
+            if b == 2
+                next 1
+    results[idx++] := count                         ' 6 (3 x 2)
+    results[idx++] := a                             ' 4
+
+    ' NEXT 2 (skip past 2 inner REPEATs, continue outermost - needs 3 REPEATs)
+    count := 0
+    repeat a from 1 to 3
+        repeat b from 1 to 4
+            repeat c from 1 to 5
+                count++
+                if c == 2
+                    next 2
+    results[idx++] := count                         ' 6 (3 x 2)
+    results[idx++] := a                             ' 4
+
+    ' NEXT 3 (skip past 3 inner REPEATs - needs 4 REPEATs)
+    count := 0
+    repeat a from 1 to 2
+        repeat b from 1 to 3
+            repeat c from 1 to 3
+                repeat d from 1 to 5
+                    count++
+                    if d == 2
+                        next 3
+    results[idx++] := count                         ' 4 (2 x 2)
+
+
+PRI test_quit_levels() | a, b, c, d, count
+
+    ' QUIT 1 (skip past 1 inner REPEAT, exit outer - needs 2 REPEATs)
+    count := 0
+    repeat a from 1 to 5
+        repeat b from 1 to 5
+            count++
+            if a == 2 AND b == 3
+                quit 1
+    results[idx++] := count                         ' 8 (5 + 3)
+    results[idx++] := a                             ' 2
+    results[idx++] := b                             ' 3
+
+    ' QUIT 2 (skip past 2 inner REPEATs, exit outermost - needs 3 REPEATs)
+    count := 0
+    repeat a from 1 to 3
+        repeat b from 1 to 3
+            repeat c from 1 to 3
+                count++
+                if a == 2 AND b == 2 AND c == 2
+                    quit 2
+    results[idx++] := count                         ' 14
+    results[idx++] := a                             ' 2
+
+    ' QUIT 3 (skip past 3 inner REPEATs - needs 4 REPEATs)
+    count := 0
+    repeat a from 1 to 2
+        repeat b from 1 to 2
+            repeat c from 1 to 2
+                repeat d from 1 to 3
+                    count++
+                    if count == 10
+                        quit 3
+    results[idx++] := count                         ' 10
+
+
+PRI test_edge_cases() | v, a, b
+
+    ' MOVBYTS with zero
+    results[idx++] := MOVBYTS(0, %%3210)            ' 0
+
+    ' ENDIANL with max values
+    results[idx++] := ENDIANL($FFFFFFFF)            ' $FFFFFFFF
+
+    ' ENDIANW with max word
+    results[idx++] := ENDIANW($0000FFFF)            ' $0000FFFF
+
+    ' NEXT 1 immediately at loop start (needs 2 REPEATs)
+    v := 0
+    repeat a from 1 to 3
+        repeat b from 1 to 5
+            if b == 1
+                v++
+                next 1          ' immediately continue outer
+    results[idx++] := v                             ' 3
+
+    ' QUIT 1 at first iteration (needs 2 REPEATs)
+    v := 0
+    repeat a from 1 to 10
+        repeat b from 1 to 10
+            v++
+            quit 1              ' exit outer immediately
+    results[idx++] := v                             ' 1
+
+    ' Chained function calls
+    v := $12345678
+    v := ENDIANL(ENDIANW(MOVBYTS(v, %%1032)))
+    results[idx++] := v                             ' complex transformation
+
+
+PRI test_movbyts_pasm() | v, pattern
+    ''
+    '' Test: MOVBYTS in inline PASM2 context
+    '' Verifies the type_i_flex reclassification still allows PASM2 usage
+    ''
+
+    ' MOVBYTS with register operand in ORG inline
+    v := $12_34_56_78
+    pattern := %%0123
+    ORG
+        movbyts v, pattern
+    END
+    results[idx++] := v
+
+    ' MOVBYTS with immediate operand in ORG inline
+    v := $AA_BB_CC_DD
+    ORG
+        movbyts v, #%%3210
+    END
+    results[idx++] := v
+
+    ' MOVBYTS in ORGH inline (hub-exec)
+    v := $11_22_33_44
+    pattern := %%0123
+    ORGH
+        movbyts v, pattern
+    END
+    results[idx++] := v

@@ -1,0 +1,117 @@
+{Spin2_v50}
+''
+'' v50 Regression Test: Escape Character Strings
+''
+'' Tests the new @\"...\" string syntax with escape sequences.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+VAR
+
+    long  results[30]
+    byte  buffer[256]
+
+PUB main() | p, len
+
+    ' ========================================
+    ' Basic Escape Sequences
+    ' ========================================
+
+    ' Test 1: Newline \n
+    p := @\"Hello\nWorld"
+    results[0] := byte[p][5]            ' expect 10 (newline)
+
+    ' Test 2: Tab \t
+    p := @\"Col1\tCol2"
+    results[1] := byte[p][4]            ' expect 9 (tab)
+
+    ' Test 3: Carriage return \r
+    p := @\"Line\rNext"
+    results[2] := byte[p][4]            ' expect 13 (CR)
+
+    ' Test 4: Backslash \\
+    p := @\"Path\\File"
+    results[3] := byte[p][4]            ' expect 92 (\)
+
+    ' Test 5: Quote via \x22
+    p := @\"Say \x22Hi\x22"
+    results[4] := byte[p][4]            ' expect 34 (")
+
+    ' Test 6: Bell \a
+    p := @\"Bell\a!"
+    results[5] := byte[p][4]            ' expect 7 (BEL)
+
+    ' Test 7: Backspace \b
+    p := @\"Back\bspace"
+    results[6] := byte[p][4]            ' expect 8 (BS)
+
+    ' Test 8: Form feed \f
+    p := @\"Page\fBreak"
+    results[7] := byte[p][4]            ' expect 12 (FF)
+
+    ' ========================================
+    ' Hex Escape Sequences
+    ' ========================================
+
+    ' Test 9: Hex \x41 = 'A'
+    p := @\"\x41BC"
+    results[8] := byte[p][0]            ' expect 65 ('A')
+
+    ' Test 10: Hex \xFF
+    p := @\"X\xFFY"
+    results[9] := byte[p][1]            ' expect 255
+
+    ' Test 11: Hex \x01 (minimum non-zero)
+    p := @\"\x01"
+    results[10] := byte[p][0]           ' expect 1
+
+    ' Test 12: Multiple hex escapes
+    p := @\"\x48\x49"                   ' "HI"
+    results[11] := byte[p][0]           ' expect 72 ('H')
+    results[12] := byte[p][1]           ' expect 73 ('I')
+
+    ' ========================================
+    ' Combined Escapes
+    ' ========================================
+
+    ' Test 13: Multiple different escapes
+    p := @\"A\tB\nC"
+    results[13] := byte[p][0]           ' expect 65 ('A')
+    results[14] := byte[p][1]           ' expect 9 (tab)
+    results[15] := byte[p][2]           ' expect 66 ('B')
+    results[16] := byte[p][3]           ' expect 10 (newline)
+    results[17] := byte[p][4]           ' expect 67 ('C')
+
+    ' ========================================
+    ' Comparison with Regular Strings
+    ' ========================================
+
+    ' Test 14: Regular string (no escapes processed)
+    p := @"Hello\nWorld"                ' \n is literal backslash-n
+    results[18] := byte[p][5]           ' expect 92 (\)
+    results[19] := byte[p][6]           ' expect 110 ('n')
+
+    ' Test 15: Escape string (escapes processed)
+    p := @\"Hello\nWorld"               ' \n is newline
+    results[20] := byte[p][5]           ' expect 10 (newline)
+    results[21] := byte[p][6]           ' expect 87 ('W')
+
+    ' ========================================
+    ' String Length Tests
+    ' ========================================
+
+    ' Test 16: Escape string length
+    ' @\"AB\nCD" = 'A','B',10,'C','D',0 = 6 bytes including null
+    p := @\"AB\nCD"
+    len := strsize(p)
+    results[22] := len                  ' expect 5 (not counting null)
+
+    ' Test 17: Hex escape doesn't add length
+    p := @\"A\x42C"                     ' "ABC"
+    len := strsize(p)
+    results[23] := len                  ' expect 3
+
+    repeat

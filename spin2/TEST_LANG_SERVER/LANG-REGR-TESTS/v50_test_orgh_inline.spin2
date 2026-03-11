@@ -1,0 +1,165 @@
+{Spin2_v50}
+''
+'' v50 Regression Test: ORGH Inline Assembly and Register Constants in CON
+''
+'' Tests ORGH inline assembly blocks within Spin2 methods.
+'' ORGH executes code from hub memory (hub-exec mode).
+'' Also tests register names used as constants in CON blocks (new in v50).
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+    ' v50 feature: register names as CON constants
+    ' These resolve to the register addresses
+    MY_INA   = INA
+    MY_INB   = INB
+    MY_OUTA  = OUTA
+    MY_OUTB  = OUTB
+    MY_DIRA  = DIRA
+    MY_DIRB  = DIRB
+
+VAR
+
+    long  results[20]
+
+PUB main() | x, y, z
+
+    ' ========================================
+    ' Test 1: Simple ORGH inline
+    ' ========================================
+
+    x := 0
+    ORGH
+        mov     x, #42
+    END
+    results[0] := x                     ' expect 42
+
+    ' ========================================
+    ' Test 2: ORGH with arithmetic
+    ' ========================================
+
+    x := 10
+    y := 20
+    ORGH
+        add     x, y
+    END
+    results[1] := x                     ' expect 30
+
+    ' ========================================
+    ' Test 3: ORGH with multiple instructions
+    ' ========================================
+
+    x := 5
+    y := 3
+    z := 0
+    ORGH
+        mov     z, x
+        add     z, y
+        shl     z, #1
+    END
+    results[2] := z                     ' expect 16 ((5+3)*2)
+
+    ' ========================================
+    ' Test 4: ORGH preserves local variables
+    ' ========================================
+
+    x := 100
+    y := 200
+    ORGH
+        mov     z, #1
+    END
+    results[3] := x                     ' expect 100 (preserved)
+    results[4] := y                     ' expect 200 (preserved)
+    results[5] := z                     ' expect 1
+
+    ' ========================================
+    ' Test 5: Multiple ORGH blocks
+    ' ========================================
+
+    x := 0
+    ORGH
+        mov     x, #10
+    END
+
+    y := 0
+    ORGH
+        mov     y, #20
+    END
+
+    z := 0
+    ORGH
+        add     z, x
+        add     z, y
+    END
+    results[6] := z                     ' expect 30
+
+    ' ========================================
+    ' Test 6: ORGH with conditionals
+    ' ========================================
+
+    x := 5
+    y := 5
+    z := 0
+    ORGH
+        cmp     x, y            wz
+  if_z  mov     z, #1
+  if_nz mov     z, #2
+    END
+    results[7] := z                     ' expect 1 (x == y)
+
+    x := 5
+    y := 10
+    z := 0
+    ORGH
+        cmp     x, y            wz
+  if_z  mov     z, #1
+  if_nz mov     z, #2
+    END
+    results[8] := z                     ' expect 2 (x != y)
+
+    ' ========================================
+    ' Test 7: ORGH with loop (REP)
+    ' ========================================
+
+    x := 0
+    ORGH
+        rep     @.end, #5
+        add     x, #1
+.end
+    END
+    results[9] := x                     ' expect 5
+
+    ' ========================================
+    ' Test 8: Comparison ORG vs ORGH
+    ' ========================================
+
+    ' Both should produce same result
+    x := 0
+    ORG
+        mov     x, #99
+    END
+    results[10] := x                    ' expect 99
+
+    y := 0
+    ORGH
+        mov     y, #99
+    END
+    results[11] := y                    ' expect 99
+
+    ' ========================================
+    ' Test 9: Register constants in CON
+    ' ========================================
+
+    ' Verify register address constants compiled correctly
+    results[12] := MY_INA               ' register address for INA
+    results[13] := MY_DIRA              ' register address for DIRA
+    results[14] := MY_OUTA              ' register address for OUTA
+    results[15] := MY_INB               ' register address for INB
+
+    ' Use in expression
+    results[16] := MY_INA + 1           ' INA address + 1
+    results[17] := MY_DIRA == DIRA      ' should be true (-1)
+
+    repeat

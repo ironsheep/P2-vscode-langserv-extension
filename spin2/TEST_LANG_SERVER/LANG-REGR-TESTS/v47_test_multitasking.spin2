@@ -1,0 +1,85 @@
+{Spin2_v47}
+''
+'' v47 Regression Test: Multitasking Functions
+''
+'' Tests TASKSPIN, TASKSTOP, TASKHALT, TASKCONT, TASKCHK, TASKID, TASKNEXT
+''
+'' NOTE: This is a compile-only test. Runtime verification requires
+'' actual P2 hardware with multiple tasks executing.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+VAR
+
+    long    results[20]
+    long    result_idx
+    long    task1_stack[50]
+    long    task2_stack[50]
+    long    shared_counter
+
+PUB main() | my_id
+
+    result_idx := 0
+    shared_counter := 0
+
+    ' Test TASKID - main task should be task 0 or 31 depending on init
+    my_id := TASKID()
+    results[result_idx++] := my_id          ' expect task ID (typically 31 for main)
+
+    ' Test TASKSPIN - start task 1
+    TASKSPIN(1, worker1(), @task1_stack)
+
+    ' Test TASKCHK - verify task started
+    results[result_idx++] := TASKCHK(1)     ' expect non-zero (task running)
+
+    ' Let task run a bit
+    repeat 10
+        TASKNEXT()
+
+    ' Test TASKHALT - pause task 1
+    TASKHALT(1)
+
+    ' Record counter value after halt
+    results[result_idx++] := shared_counter
+
+    ' Test TASKCONT - resume task 1
+    TASKCONT(1)
+
+    ' Let task run more
+    repeat 10
+        TASKNEXT()
+
+    ' Verify counter increased
+    results[result_idx++] := shared_counter
+
+    ' Test TASKSTOP - stop task 1
+    TASKSTOP(1)
+
+    ' Verify task stopped
+    results[result_idx++] := TASKCHK(1)     ' expect 0 (task stopped)
+
+    repeat
+
+
+PRI worker1()
+    ''
+    '' Worker task - increments shared counter
+    ''
+    repeat
+        shared_counter++
+        TASKNEXT()
+
+
+PRI worker2() | my_id
+    ''
+    '' Second worker task for testing multiple tasks
+    ''
+    my_id := TASKID()
+
+    repeat
+        shared_counter += 10
+        TASKNEXT()
+

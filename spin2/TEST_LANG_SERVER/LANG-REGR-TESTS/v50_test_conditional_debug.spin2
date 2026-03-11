@@ -1,0 +1,122 @@
+{Spin2_v50}
+''
+'' v50 Regression Test: Conditional PASM DEBUG
+''
+'' Tests the new IF_C/IF_NC/IF_Z/IF_NZ (etc.) before PASM DEBUG instructions.
+'' Previously using a condition before DEBUG was a compile error.
+'' In v50, the compiler generates IF_<opposite> SKIP #1 before the BRK instruction.
+''
+'' NOTE: This test requires debug-mode compilation.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+VAR
+
+    long  results[20]
+
+PUB main() | x, y, z
+
+    ' ========================================
+    ' Test 1: Conditional DEBUG in inline ORG
+    ' ========================================
+
+    x := 5
+    y := 10
+    z := 0
+    ORG
+        cmp     x, y            wc
+        if_c    DEBUG("x < y (carry set)")
+        if_nc   DEBUG("x >= y (carry clear)")
+    END
+    results[0] := x
+
+    ' ========================================
+    ' Test 2: IF_Z / IF_NZ conditional DEBUG
+    ' ========================================
+
+    x := 5
+    y := 5
+    ORG
+        cmp     x, y            wz
+        if_z    DEBUG("x == y (zero set)")
+        if_nz   DEBUG("x != y (zero clear)")
+    END
+    results[1] := x
+
+    ' ========================================
+    ' Test 3: Multiple conditions in sequence
+    ' ========================================
+
+    x := 100
+    y := 50
+    ORG
+        cmp     x, y            wcz
+        if_c    DEBUG("C: x < y")
+        if_nc   DEBUG("NC: x >= y")
+        if_z    DEBUG("Z: x == y")
+        if_nz   DEBUG("NZ: x != y")
+    END
+    results[2] := x
+
+    ' ========================================
+    ' Test 4: Conditional DEBUG in ORGH inline
+    ' ========================================
+
+    x := 0
+    y := 0
+    ORGH
+        cmp     x, y            wz
+        if_z    DEBUG("ORGH: x == y")
+        if_nz   DEBUG("ORGH: x != y")
+    END
+    results[3] := x
+
+    ' ========================================
+    ' Test 5: Conditional DEBUG with IF_C_AND_Z etc.
+    ' ========================================
+
+    x := 10
+    y := 10
+    ORG
+        cmp     x, y            wcz
+        if_z    DEBUG("Equal")
+        if_c_or_z  DEBUG("C or Z set")
+    END
+    results[4] := x
+
+    ' ========================================
+    ' Test 6: Mix of conditional and unconditional
+    ' ========================================
+
+    x := 7
+    ORG
+        DEBUG("Always: before compare")
+        cmp     x, #5           wc
+        if_c    DEBUG("Conditional: x < 5")
+        if_nc   DEBUG("Conditional: x >= 5")
+        DEBUG("Always: after compare")
+    END
+    results[5] := x
+
+    repeat
+
+
+DAT
+'' ========================================
+'' Test 7: Conditional DEBUG in standalone DAT/PASM2
+'' ========================================
+
+        ORG
+
+dat_entry
+        mov     pa, #100
+        mov     pb, #200
+        cmp     pa, pb          wcz
+        if_c    DEBUG("DAT: pa < pb")
+        if_nc   DEBUG("DAT: pa >= pb")
+        if_z    DEBUG("DAT: pa == pb")
+
+        FIT     $1F0

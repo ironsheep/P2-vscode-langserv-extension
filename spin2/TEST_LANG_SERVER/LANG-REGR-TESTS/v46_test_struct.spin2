@@ -1,0 +1,202 @@
+{Spin2_v46}
+''
+'' v46 Regression Test: STRUCT Data Structures and Pointer Types
+''
+'' Tests the new STRUCT keyword, SIZEOF operator, structure operations,
+'' and typed pointer declarations (^BYTE, ^WORD, ^LONG, ^struct).
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+    ' Define test structures
+    STRUCT point_t(LONG x, LONG y, LONG z)
+    STRUCT rect_t(WORD left, WORD top, WORD right, WORD bottom)
+    STRUCT nested_t(point_t origin, point_t size)
+    STRUCT mixed_t(BYTE flags, WORD count, LONG value, BYTE status)
+
+VAR
+
+    long    results[60]
+    long    result_idx
+
+    ' Structure variables in VAR block
+    point_t     var_point
+    rect_t      var_rect
+    nested_t    var_nested
+    mixed_t     var_mixed[3]
+
+    ' Data for pointer tests
+    byte    byte_data[8]
+    word    word_data[4]
+    long    long_data[4]
+
+PUB main()
+
+    result_idx := 0
+
+    test_sizeof()
+    test_var_structs()
+    test_local_structs()
+    test_member_access()
+    test_struct_copy()
+    test_nested_struct()
+    test_struct_array()
+    test_pointer_types()
+    'test_struct_pointer()               ' DISABLED: ^struct_t locals not yet in pnut-ts
+    'test_pointer_params(@var_point)      ' DISABLED: ^struct_t params not yet in pnut-ts
+
+    repeat
+
+
+PRI test_sizeof()
+    ''
+    '' Test: SIZEOF operator
+    ''
+    results[result_idx++] := SIZEOF(point_t)     ' expect 12 (3 longs)
+    results[result_idx++] := SIZEOF(rect_t)      ' expect 8 (4 words)
+    results[result_idx++] := SIZEOF(nested_t)    ' expect 24 (2 point_t)
+    results[result_idx++] := SIZEOF(mixed_t)     ' expect 8 (1+2+4+1, aligned)
+
+
+PRI test_var_structs()
+    ''
+    '' Test: Structure variables in VAR block
+    ''
+    var_point.x := 100
+    var_point.y := 200
+    var_point.z := 300
+
+    results[result_idx++] := var_point.x        ' expect 100
+    results[result_idx++] := var_point.y        ' expect 200
+    results[result_idx++] := var_point.z        ' expect 300
+
+
+PRI test_local_structs() | point_t local_pt
+    ''
+    '' Test: Structure variables as locals
+    ''
+    local_pt.x := 10
+    local_pt.y := 20
+    local_pt.z := 30
+
+    results[result_idx++] := local_pt.x         ' expect 10
+    results[result_idx++] := local_pt.y         ' expect 20
+    results[result_idx++] := local_pt.z         ' expect 30
+
+
+PRI test_member_access()
+    ''
+    '' Test: Structure member access
+    ''
+    var_rect.left := 50
+    var_rect.top := 60
+    var_rect.right := 150
+    var_rect.bottom := 160
+
+    results[result_idx++] := var_rect.left      ' expect 50
+    results[result_idx++] := var_rect.top       ' expect 60
+    results[result_idx++] := var_rect.right     ' expect 150
+    results[result_idx++] := var_rect.bottom    ' expect 160
+
+
+PRI test_struct_copy() | point_t src, point_t dst
+    ''
+    '' Test: Structure copy
+    ''
+    src.x := 1000
+    src.y := 2000
+    src.z := 3000
+
+    dst := src      ' structure copy
+
+    results[result_idx++] := dst.x              ' expect 1000
+    results[result_idx++] := dst.y              ' expect 2000
+    results[result_idx++] := dst.z              ' expect 3000
+
+    ' Modify source and verify dest unchanged
+    src.x := 9999
+    results[result_idx++] := dst.x              ' expect 1000 (unchanged)
+
+
+PRI test_nested_struct()
+    ''
+    '' Test: Nested structures
+    ''
+    var_nested.origin.x := 0
+    var_nested.origin.y := 0
+    var_nested.origin.z := 0
+    var_nested.size.x := 640
+    var_nested.size.y := 480
+    var_nested.size.z := 1
+
+    results[result_idx++] := var_nested.origin.x    ' expect 0
+    results[result_idx++] := var_nested.size.x      ' expect 640
+    results[result_idx++] := var_nested.size.y      ' expect 480
+
+
+PRI test_struct_array() | i
+    ''
+    '' Test: Array of structures
+    ''
+    repeat i from 0 to 2
+        var_mixed[i].flags := i
+        var_mixed[i].count := i * 10
+        var_mixed[i].value := i * 100
+        var_mixed[i].status := i + $A0
+
+    results[result_idx++] := var_mixed[0].flags     ' expect 0
+    results[result_idx++] := var_mixed[1].count     ' expect 10
+    results[result_idx++] := var_mixed[2].value     ' expect 200
+    results[result_idx++] := var_mixed[2].status    ' expect $A2
+
+
+PRI test_pointer_types() | ^BYTE bp, ^WORD wp, ^LONG lp
+    ''
+    '' Test: Typed pointer declarations in locals
+    '' Exercises ^BYTE, ^WORD, ^LONG pointer type compilation
+    ''
+    ' Initialize data
+    byte_data[0] := $AB
+    byte_data[1] := $CD
+    word_data[0] := $1234
+    word_data[1] := $5678
+    long_data[0] := $DEADBEEF
+    long_data[1] := $CAFEBABE
+
+    ' Pointer assignment
+    bp := @byte_data
+    wp := @word_data
+    lp := @long_data
+
+    ' Dereference via pointer
+    results[result_idx++] := BYTE[bp]              ' expect $AB
+    results[result_idx++] := BYTE[bp][1]           ' expect $CD
+    results[result_idx++] := WORD[wp]              ' expect $1234
+    results[result_idx++] := WORD[wp][1]           ' expect $5678
+    results[result_idx++] := LONG[lp]              ' expect $DEADBEEF
+    results[result_idx++] := LONG[lp][1]           ' expect $CAFEBABE
+
+    ' Pointer arithmetic
+    bp += 1
+    results[result_idx++] := BYTE[bp]              ' expect $CD (advanced by 1 byte)
+
+
+' DISABLED: ^struct_t as local/param not yet supported in pnut-ts v1.51.7
+' Uncomment when support is added.
+'PRI test_struct_pointer() | ^point_t pp
+'    var_point.x := 500
+'    var_point.y := 600
+'    var_point.z := 700
+'    pp := @var_point
+'    results[result_idx++] := pp.x
+'    results[result_idx++] := pp.y
+'    results[result_idx++] := pp.z
+'    pp.x := 999
+'    results[result_idx++] := var_point.x
+'
+'PRI test_pointer_params(^point_t pt_ptr) | result
+'    result := pt_ptr.x
+'    results[result_idx++] := result
+

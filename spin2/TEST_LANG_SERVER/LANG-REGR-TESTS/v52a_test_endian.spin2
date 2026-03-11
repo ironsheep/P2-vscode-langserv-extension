@@ -1,0 +1,156 @@
+{Spin2_v52}
+''
+'' v52a Regression Test: ENDIANL() and ENDIANW() Functions
+''
+'' ENDIANL(value) - Reverses byte order of a 32-bit long
+'' ENDIANW(value) - Reverses byte order of a 16-bit word (lower 16 bits)
+''
+'' These are implemented using the MOVBYTS instruction internally:
+''   ENDIANL uses: movbyts x, #%%0123
+''   ENDIANW uses: shl x, #16 then movbyts x, #%%0123
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+VAR
+
+    long  results[30]
+
+PUB main() | v, r
+
+    ' ========================================
+    ' ENDIANL Tests (32-bit byte swap)
+    ' ========================================
+
+    ' Test 1: Basic ENDIANL
+    v := $12_34_56_78
+    r := ENDIANL(v)
+    results[0] := r                     ' expect $78_56_34_12
+
+    ' Test 2: ENDIANL twice = original
+    v := $12_34_56_78
+    r := ENDIANL(ENDIANL(v))
+    results[1] := r                     ' expect $12_34_56_78
+
+    ' Test 3: ENDIANL of zero
+    r := ENDIANL($00_00_00_00)
+    results[2] := r                     ' expect $00_00_00_00
+
+    ' Test 4: ENDIANL of all ones
+    r := ENDIANL($FF_FF_FF_FF)
+    results[3] := r                     ' expect $FF_FF_FF_FF
+
+    ' Test 5: ENDIANL with only high byte set
+    r := ENDIANL($AA_00_00_00)
+    results[4] := r                     ' expect $00_00_00_AA
+
+    ' Test 6: ENDIANL with only low byte set
+    r := ENDIANL($00_00_00_BB)
+    results[5] := r                     ' expect $BB_00_00_00
+
+    ' Test 7: ENDIANL symmetric value
+    r := ENDIANL($12_34_34_12)
+    results[6] := r                     ' expect $12_34_34_12
+
+    ' Test 8: ENDIANL alternating bytes
+    r := ENDIANL($AA_55_AA_55)
+    results[7] := r                     ' expect $55_AA_55_AA
+
+    ' Test 9: ENDIANL in expression
+    r := ENDIANL($00_00_00_10) + 1
+    results[8] := r                     ' expect $10_00_00_01
+
+    ' Test 10: ENDIANL max positive signed
+    r := ENDIANL($7F_FF_FF_FF)
+    results[9] := r                     ' expect $FF_FF_FF_7F
+
+    ' ========================================
+    ' ENDIANW Tests (16-bit byte swap)
+    ' ========================================
+
+    ' Test 11: Basic ENDIANW
+    v := $00_00_12_34
+    r := ENDIANW(v)
+    results[10] := r                    ' expect $00_00_34_12
+
+    ' Test 12: ENDIANW twice = original (for lower 16 bits)
+    v := $00_00_AB_CD
+    r := ENDIANW(ENDIANW(v))
+    results[11] := r                    ' expect $00_00_AB_CD
+
+    ' Test 13: ENDIANW of zero
+    r := ENDIANW($00_00_00_00)
+    results[12] := r                    ' expect $00_00_00_00
+
+    ' Test 14: ENDIANW of $FFFF
+    r := ENDIANW($00_00_FF_FF)
+    results[13] := r                    ' expect $00_00_FF_FF
+
+    ' Test 15: ENDIANW with upper bits set (should be cleared/ignored)
+    v := $AA_BB_12_34
+    r := ENDIANW(v)
+    results[14] := r                    ' expect $00_00_34_12 (upper bytes cleared)
+
+    ' Test 16: ENDIANW only low byte set
+    r := ENDIANW($00_00_00_FF)
+    results[15] := r                    ' expect $00_00_FF_00
+
+    ' Test 17: ENDIANW only high byte of word set
+    r := ENDIANW($00_00_FF_00)
+    results[16] := r                    ' expect $00_00_00_FF
+
+    ' Test 18: ENDIANW symmetric word
+    r := ENDIANW($00_00_AA_AA)
+    results[17] := r                    ' expect $00_00_AA_AA
+
+    ' Test 19: ENDIANW alternating bits
+    r := ENDIANW($00_00_55_AA)
+    results[18] := r                    ' expect $00_00_AA_55
+
+    ' Test 20: ENDIANW in expression
+    r := ENDIANW($00_00_00_10) + 1
+    results[19] := r                    ' expect $00_00_10_01
+
+    ' ========================================
+    ' Combined ENDIANL/ENDIANW Tests
+    ' ========================================
+
+    ' Test 21: ENDIANW then ENDIANL
+    v := $00_00_12_34
+    r := ENDIANW(v)                     ' $00_00_34_12
+    r := ENDIANL(r)                     ' $12_34_00_00
+    results[20] := r                    ' expect $12_34_00_00
+
+    ' Test 22: ENDIANL then ENDIANW
+    v := $12_34_56_78
+    r := ENDIANL(v)                     ' $78_56_34_12
+    r := ENDIANW(r)                     ' $00_00_12_34 (only lower 16 bits)
+    results[21] := r                    ' expect $00_00_12_34
+
+    ' Test 23: Compare ENDIANL with MOVBYTS equivalent
+    v := $12_34_56_78
+    results[22] := ENDIANL(v)           ' expect $78_56_34_12
+    results[23] := MOVBYTS(v, %%0123)   ' expect $78_56_34_12 (same result)
+
+    ' ========================================
+    ' PASM2 Equivalence Tests
+    ' ========================================
+
+    ' Test 24: ENDIANL equivalent via inline PASM MOVBYTS
+    v := $12_34_56_78
+    ORG
+        movbyts v, #%%0123
+    END
+    results[24] := v                    ' same as ENDIANL
+
+    ' Test 25: ENDIANW equivalent via inline PASM
+    v := $00_00_12_34
+    ORG
+        shl     v, #16
+        movbyts v, #%%0123
+    END
+    results[25] := v                    ' same as ENDIANW
+
+    repeat

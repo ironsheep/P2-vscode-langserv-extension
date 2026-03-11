@@ -1,0 +1,234 @@
+{Spin2_v49}
+''
+'' v49 Regression Test: Structure Export/Import - Parent Object
+''
+'' Tests the v49 feature: importing structures from child objects.
+'' This file requires v49_test_struct_child.spin2 in the same directory.
+''
+'' Bytecode coverage targets:
+''   - objx_con_struct ($60) export type in object file
+''   - objx_con_int ($20) and objx_con_float ($40) constant exports
+''   - type_obj_con_struct symbol resolution
+''   - object.struct_t syntax in VAR, locals, params, return types
+''   - SIZEOF on imported structures
+''   - Structure copy across object boundaries
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+OBJ
+
+    child : "v49_test_struct_child"
+
+VAR
+
+    long  results[60]
+    long  idx
+
+    ' Imported structure types used in VAR block
+    child.point_t       var_point
+    child.sensor_t      var_sensor
+    child.rect_t        var_rect
+    child.bounds_t      var_bounds
+
+    ' Array of imported structures
+    child.point_t       point_array[4]
+
+PUB main()
+
+    idx := 0
+
+    child.init()
+
+    test_imported_sizeof()
+    test_var_imported_struct()
+    test_local_imported_struct()
+    test_method_return_struct()
+    test_method_param_struct()
+    test_nested_imported_struct()
+    test_imported_struct_array()
+    test_imported_constants()
+    test_struct_copy_cross_object()
+
+    repeat
+
+
+PRI test_imported_sizeof()
+    ''
+    '' Test: SIZEOF on imported structure types
+    '' Exercises type_obj_con_struct symbol resolution for SIZEOF
+    ''
+    results[idx++] := SIZEOF(child.point_t)      ' expect 12 (3 longs)
+    results[idx++] := SIZEOF(child.sensor_t)     ' expect 12 (long+long+byte, aligned)
+    results[idx++] := SIZEOF(child.rect_t)       ' expect 8 (4 words)
+    results[idx++] := SIZEOF(child.bounds_t)     ' expect 24 (2 point_t)
+
+
+PRI test_var_imported_struct()
+    ''
+    '' Test: Imported structure types in VAR block declarations
+    '' Exercises object.struct_t syntax for VAR type resolution
+    ''
+    var_point.x := 100
+    var_point.y := 200
+    var_point.z := 300
+
+    results[idx++] := var_point.x               ' expect 100
+    results[idx++] := var_point.y               ' expect 200
+    results[idx++] := var_point.z               ' expect 300
+
+    var_sensor.timestamp := $12345678
+    var_sensor.value := 1024
+    var_sensor.status := $A5
+
+    results[idx++] := var_sensor.timestamp      ' expect $12345678
+    results[idx++] := var_sensor.value          ' expect 1024
+    results[idx++] := var_sensor.status         ' expect $A5
+
+
+PRI test_local_imported_struct() | child.point_t lp, child.sensor_t ls
+    ''
+    '' Test: Imported structure types as local variables
+    '' Exercises object.struct_t syntax in local declarations
+    ''
+    lp.x := 10
+    lp.y := 20
+    lp.z := 30
+
+    results[idx++] := lp.x                     ' expect 10
+    results[idx++] := lp.y                     ' expect 20
+    results[idx++] := lp.z                     ' expect 30
+
+    ls.timestamp := 99999
+    ls.value := 42
+    ls.status := 1
+
+    results[idx++] := ls.timestamp              ' expect 99999
+    results[idx++] := ls.value                  ' expect 42
+    results[idx++] := ls.status                 ' expect 1
+
+
+PRI test_method_return_struct() | child.point_t pt, child.sensor_t sn, child.rect_t rc
+    ''
+    '' Test: Receiving structures returned from child object methods
+    '' Exercises structure copy from method return across object boundary
+    ''
+    ' get_origin returns point_t{0, 0, 0}
+    pt := child.get_origin()
+    results[idx++] := pt.x                     ' expect 0
+    results[idx++] := pt.y                     ' expect 0
+    results[idx++] := pt.z                     ' expect 0
+
+    ' get_point returns point_t{px, py, pz}
+    pt := child.get_point(500, 600, 700)
+    results[idx++] := pt.x                     ' expect 500
+    results[idx++] := pt.y                     ' expect 600
+    results[idx++] := pt.z                     ' expect 700
+
+    ' get_sensor_reading returns sensor_t{ts, val, stat}
+    sn := child.get_sensor_reading($AABB0000, 2048, $FF)
+    results[idx++] := sn.timestamp              ' expect $AABB0000
+    results[idx++] := sn.value                  ' expect 2048
+    results[idx++] := sn.status                 ' expect $FF
+
+    ' get_rect returns rect_t{l, t, r, b}
+    rc := child.get_rect(10, 20, 310, 220)
+    results[idx++] := rc.left                   ' expect 10
+    results[idx++] := rc.top                    ' expect 20
+    results[idx++] := rc.right                  ' expect 310
+    results[idx++] := rc.bottom                 ' expect 220
+
+
+PRI test_method_param_struct() | child.point_t pt
+    ''
+    '' Test: Passing structures to child object methods
+    '' Exercises structure copy to method parameter across object boundary
+    ''
+    pt.x := 111
+    pt.y := 222
+    pt.z := 333
+
+    child.set_position(pt)
+
+    ' Read back via child method
+    pt := child.get_position()
+    results[idx++] := pt.x                     ' expect 111
+    results[idx++] := pt.y                     ' expect 222
+    results[idx++] := pt.z                     ' expect 333
+
+
+PRI test_nested_imported_struct() | child.bounds_t bn
+    ''
+    '' Test: Nested imported structures
+    '' Exercises nested member access on imported structure types
+    ''
+    bn := child.get_bounds()
+
+    results[idx++] := bn.origin.x              ' expect 0
+    results[idx++] := bn.origin.y              ' expect 0
+    results[idx++] := bn.origin.z              ' expect 0
+    results[idx++] := bn.extent.x              ' expect 640
+    results[idx++] := bn.extent.y              ' expect 480
+    results[idx++] := bn.extent.z              ' expect 1
+
+
+PRI test_imported_struct_array() | i
+    ''
+    '' Test: Array of imported structure types in VAR block
+    '' Exercises indexed access to imported struct arrays
+    ''
+    repeat i from 0 to 3
+        point_array[i].x := i * 10
+        point_array[i].y := i * 20
+        point_array[i].z := i * 30
+
+    results[idx++] := point_array[0].x         ' expect 0
+    results[idx++] := point_array[0].y         ' expect 0
+    results[idx++] := point_array[1].x         ' expect 10
+    results[idx++] := point_array[2].y         ' expect 40
+    results[idx++] := point_array[3].z         ' expect 90
+
+
+PRI test_imported_constants()
+    ''
+    '' Test: Accessing exported constants from child object
+    '' Exercises objx_con_int and objx_con_float export types
+    ''
+    results[idx++] := child.MAX_SENSORS         ' expect 8
+    results[idx++] := child.SENSOR_ACTIVE       ' expect $01
+    results[idx++] := child.SENSOR_ERROR        ' expect $80
+
+    ' Exported float constant
+    results[idx++] := child.PI_APPROX           ' expect float 3.14159
+
+    ' Use child constants in expressions
+    results[idx++] := child.MAX_SENSORS * 2     ' expect 16
+
+    ' Constants returned via method
+    results[idx++] := child.get_max_sensors()   ' expect 8
+
+
+PRI test_struct_copy_cross_object() | child.point_t a, child.point_t b
+    ''
+    '' Test: Structure copy between locals of imported types
+    '' Exercises structure assignment bytecodes with imported struct size
+    ''
+    a.x := 1000
+    a.y := 2000
+    a.z := 3000
+
+    b := a              ' structure copy
+
+    results[idx++] := b.x                      ' expect 1000
+    results[idx++] := b.y                      ' expect 2000
+    results[idx++] := b.z                      ' expect 3000
+
+    ' Verify independent copy
+    a.x := 9999
+    results[idx++] := b.x                      ' expect 1000 (unchanged)
+
+    ' SIZEOF via child method
+    results[idx++] := child.point_size()        ' expect 12
+    results[idx++] := child.sensor_size()       ' expect 12

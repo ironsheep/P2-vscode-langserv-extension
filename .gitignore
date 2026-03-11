@@ -238,3 +238,9 @@ spin2/CLAUDE.md
 spin2/.vscode/settings.json
 spin2/package-lock.json
 /spin2/TEST_LANG_SERVER/spin2/DUAL-DRIVER
+/spin2/TEST_LANG_SERVER/spin2/fmChip-colorizer-pblm
+/spin2/TEST_LANG_SERVER/spin2/fmChip-Industr-bug
+/spin2/TEST_LANG_SERVER/spin2/fmChip-colorizer-pblm
+/spin2/TEST_LANG_SERVER/spin2/fmChip-colorizer-pblm
+*.obj
+spin2/.vscode/settings.json

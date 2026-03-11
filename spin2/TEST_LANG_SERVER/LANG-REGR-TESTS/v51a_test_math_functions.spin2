@@ -1,0 +1,139 @@
+{Spin2_v51}
+''
+'' v51a Regression Test: Floating-Point Math Functions
+''
+'' Tests the new LOG2, LOG10, LOG, EXP2, EXP10, EXP functions
+'' and the POW binary operator.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+VAR
+
+    long  results[50]
+
+PUB main() | x, y, r
+
+    ' ========================================
+    ' LOG2 Tests
+    ' ========================================
+
+    ' LOG2 of powers of 2
+    results[0] := LOG2(1.0)             ' expect 0.0
+    results[1] := LOG2(2.0)             ' expect 1.0
+    results[2] := LOG2(4.0)             ' expect 2.0
+    results[3] := LOG2(8.0)             ' expect 3.0
+    results[4] := LOG2(0.5)             ' expect -1.0
+    results[5] := LOG2(0.25)            ' expect -2.0
+
+    ' ========================================
+    ' LOG10 Tests
+    ' ========================================
+
+    ' LOG10 of powers of 10
+    results[6] := LOG10(1.0)            ' expect 0.0
+    results[7] := LOG10(10.0)           ' expect 1.0
+    results[8] := LOG10(100.0)          ' expect 2.0
+    results[9] := LOG10(1000.0)         ' expect 3.0
+    results[10] := LOG10(0.1)           ' expect -1.0
+    results[11] := LOG10(0.01)          ' expect -2.0
+
+    ' ========================================
+    ' LOG (Natural Log) Tests
+    ' ========================================
+
+    results[12] := LOG(1.0)             ' expect 0.0
+    results[13] := LOG(2.718281828)     ' expect ~1.0 (e)
+
+    ' ========================================
+    ' EXP2 Tests
+    ' ========================================
+
+    results[14] := EXP2(0.0)            ' expect 1.0
+    results[15] := EXP2(1.0)            ' expect 2.0
+    results[16] := EXP2(2.0)            ' expect 4.0
+    results[17] := EXP2(3.0)            ' expect 8.0
+    results[18] := EXP2(-1.0)           ' expect 0.5
+    results[19] := EXP2(0.5)            ' expect ~1.414 (sqrt 2)
+
+    ' ========================================
+    ' EXP10 Tests
+    ' ========================================
+
+    results[20] := EXP10(0.0)           ' expect 1.0
+    results[21] := EXP10(1.0)           ' expect 10.0
+    results[22] := EXP10(2.0)           ' expect 100.0
+    results[23] := EXP10(-1.0)          ' expect 0.1
+    results[24] := EXP10(0.5)           ' expect ~3.162 (sqrt 10)
+
+    ' ========================================
+    ' EXP (e^x) Tests
+    ' ========================================
+
+    results[25] := EXP(0.0)             ' expect 1.0
+    results[26] := EXP(1.0)             ' expect ~2.718 (e)
+    results[27] := EXP(-1.0)            ' expect ~0.368 (1/e)
+
+    ' ========================================
+    ' POW Operator Tests
+    ' ========================================
+
+    results[28] := 2.0 POW 3.0          ' expect 8.0
+    results[29] := 2.0 POW 0.0          ' expect 1.0
+    results[30] := 10.0 POW 2.0         ' expect 100.0
+    results[31] := 2.0 POW 0.5          ' expect ~1.414 (sqrt 2)
+    results[32] := 2.0 POW -1.0         ' expect 0.5
+    results[33] := 3.0 POW 4.0          ' expect 81.0
+
+    ' ========================================
+    ' Identity Tests (inverse operations)
+    ' ========================================
+
+    ' LOG2 and EXP2 are inverses
+    x := 5.0
+    r := EXP2(LOG2(x))
+    results[34] := r                    ' expect 5.0
+
+    ' LOG10 and EXP10 are inverses
+    x := 7.0
+    r := EXP10(LOG10(x))
+    results[35] := r                    ' expect 7.0
+
+    ' LOG and EXP are inverses
+    x := 3.0
+    r := EXP(LOG(x))
+    results[36] := r                    ' expect 3.0
+
+    ' ========================================
+    ' Chained Operations
+    ' ========================================
+
+    ' 2^(log2(8) + log2(4)) = 2^(3+2) = 2^5 = 32
+    r := EXP2(LOG2(8.0) + LOG2(4.0))
+    results[37] := r                    ' expect 32.0
+
+    ' POW equivalence: x POW y = EXP2(y * LOG2(x))
+    x := 3.0
+    y := 4.0
+    results[38] := x POW y              ' expect 81.0
+    results[39] := EXP2(y * LOG2(x))    ' expect 81.0 (same)
+
+    ' ========================================
+    ' Expression Context Tests
+    ' ========================================
+
+    ' POW in larger expression
+    r := (2.0 POW 3.0) + 1.0
+    results[40] := r                    ' expect 9.0
+
+    ' Multiple POW (left associative)
+    r := 2.0 POW 2.0 POW 2.0            ' ((2^2)^2) = 4^2 = 16
+    results[41] := r                    ' expect 16.0
+
+    ' Mixed operations
+    r := LOG10(10.0 POW 3.0)
+    results[42] := r                    ' expect 3.0
+
+    repeat

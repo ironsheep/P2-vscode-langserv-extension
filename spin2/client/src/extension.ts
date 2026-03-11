@@ -6,7 +6,7 @@
 // src/extensions.ts
 /* eslint-disable no-console */ // allow console writes from this file
 import * as path from 'path';
-//import * as fs from 'fs';
+import * as fs from 'fs';
 import * as vscode from 'vscode';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
@@ -23,7 +23,7 @@ import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName 
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
 import { activeSpin1or2Filespec, findDebugBaud, isSpin2Document, isSpin2File, isSpin1or2File, isSpinOrPasmDocument } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
-import { isMac, isWindows, locateExe, locateNonExe, platform } from './fileUtils';
+import { isMac, isWindows, locateExe, locateFileByPattern, locateNonExe, platform } from './fileUtils';
 import { IUsbSerialDevice, UsbSerial } from './usb.serial';
 import { createStatusBarFlashDownloadItem, updateStatusBarFlashDownloadItem } from './providers/spin.downloadFlashMode.statusBarItem';
 import { createStatusBarCompileDebugItem, updateStatusBarCompileDebugItem } from './providers/spin.compileDebugMode.statusBarItem';
@@ -339,6 +339,106 @@ function registerCommands(context: vscode.ExtensionContext): void {
     }
     return selectedPort;
   }
+
+  // ----------------------------------------------------------------------------
+  //   Hook SELECT Compiler from discovered tools
+  //
+  const selectCompilerCommand: string = 'spinExtension.selectCompiler';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(selectCompilerCommand, async function () {
+      logExtensionMessage('CMD: selectCompiler');
+      runtimeSettingChangeInProgress = true;
+
+      const compilersFound = toolchainConfiguration.compilersFound;
+      const compilerChoices: vscode.QuickPickItem[] = [];
+
+      for (const [installPath, compilerId] of Object.entries(compilersFound)) {
+        compilerChoices.push({
+          label: compilerId as string,
+          description: installPath
+        });
+      }
+
+      if (compilerChoices.length === 0) {
+        vscode.window.showWarningMessage('No compilers have been discovered. Use "Spin2: Add Compiler" to add one manually.');
+      } else if (compilerChoices.length === 1) {
+        const onlyCompiler = compilerChoices[0];
+        await updateConfig('toolchain.compiler.selected', onlyCompiler.label, eConfigSection.CS_USER);
+        vscode.window.showInformationMessage(`Compiler ${onlyCompiler.label} selected automatically (only one available).`);
+      } else {
+        const selected = await vscode.window.showQuickPick(compilerChoices, {
+          placeHolder: 'Select a compiler',
+          title: 'Available Compilers'
+        });
+        if (selected !== undefined) {
+          await updateConfig('toolchain.compiler.selected', selected.label, eConfigSection.CS_USER);
+        }
+      }
+
+      runtimeSettingChangeInProgress = false;
+    })
+  );
+
+  // ----------------------------------------------------------------------------
+  //   Hook ADD Compiler via file picker
+  //
+  const addCompilerCommand: string = 'spinExtension.addCompiler';
+  context.subscriptions.push(
+    vscode.commands.registerCommand(addCompilerCommand, async function () {
+      logExtensionMessage('CMD: addCompiler');
+      runtimeSettingChangeInProgress = true;
+
+      const result = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: false,
+        openLabel: 'Select Compiler Executable',
+        filters: isWindows() ? { Executables: ['exe', 'bat'] } : { 'All Files': ['*'] }
+      });
+
+      if (result && result.length > 0) {
+        const selectedPath = result[0].fsPath;
+        const fileName = path.basename(selectedPath).toLowerCase();
+
+        // auto-identify compiler type from filename
+        let compilerID: string | undefined = undefined;
+        let configPathKey: string | undefined = undefined;
+        if (fileName.includes('pnut-term-ts') || fileName.includes('pnut_term_ts')) {
+          compilerID = PATH_PNUT_TERM_TS;
+          configPathKey = 'toolchain.paths.PNutTermTs';
+        } else if (fileName.includes('pnut-ts') || fileName.includes('pnut_ts')) {
+          compilerID = PATH_PNUT_TS;
+          configPathKey = 'toolchain.paths.PNutTs';
+        } else if (fileName.includes('flexspin')) {
+          compilerID = PATH_FLEXSPIN;
+          configPathKey = 'toolchain.paths.flexspin';
+        } else if (fileName.includes('pnut_shell') || fileName.startsWith('pnut')) {
+          compilerID = PATH_PNUT;
+          configPathKey = 'toolchain.paths.PNut';
+        }
+
+        if (compilerID === undefined) {
+          vscode.window.showWarningMessage(
+            `Could not identify compiler type from filename [${path.basename(selectedPath)}]. ` +
+              `Expected: pnut-ts, pnut-term-ts, flexspin, or pnut_shell.bat`
+          );
+        } else {
+          // add to installationsFound
+          const compilersFound = { ...toolchainConfiguration.compilersFound };
+          const installPath = path.dirname(selectedPath);
+          compilersFound[installPath] = compilerID;
+          await updateConfig('toolchain.compiler.installationsFound', compilersFound, eConfigSection.CS_USER);
+
+          // update the specific tool path
+          await updateConfig(configPathKey, selectedPath, eConfigSection.CS_USER);
+
+          vscode.window.showInformationMessage(`Added ${compilerID} compiler from ${installPath}`);
+        }
+      }
+
+      runtimeSettingChangeInProgress = false;
+    })
+  );
 
   // ----------------------------------------------------------------------------
   //   Hook to Return all compile arguments and filename for use in UserTasks
@@ -978,82 +1078,86 @@ async function scanForAndRecordPropPlugs(): Promise<void> {
 //   Hook Startup scan for Toolchain parts
 //
 async function locateTools(): Promise<void> {
-  // factor in use of ENV{'path'} to locate tools
+  // Build search paths: well-known install directories first, then PATH fallback
   const envPath = process.env.PATH;
-  //  ~/bin
-  //  /usr/local/bin
-  //  /opt/local/bin
   const userBin = path.join('~', 'bin');
   const userLocalBin = path.join(`${path.sep}usr`, 'local', 'bin');
   const optLocalBin = path.join(`${path.sep}opt`, 'local', 'bin');
-  let platformPaths: string[] = [];
+  let wellKnownDirs: string[] = [];
+  let envPathDirs: string[] = [];
   if (isWindows()) {
-    const envDirs = envPath.split(';').filter(Boolean); // Windows is ';' separated
-    // C:\Program Files (x86)\Parallax Inc\PNut
-    // C:\Programs\IronSheepProductions\pnut_ts
-    // C:\Programs\TotalSpectrum\flexprop
+    envPathDirs = envPath.split(';').filter(Boolean);
+    // well-known install locations for Windows
     const appFlexProp = path.join(`C:${path.sep}Programs`, 'TotalSpectrum', 'flexprop', 'bin');
     const appPNutTS = path.join(`C:${path.sep}Programs`, 'IronSheepProductions', 'pnut_ts');
     const appPNutTermTS = path.join(`C:${path.sep}Programs`, 'IronSheepProductions', 'pnut_term_ts');
     const appParallax = path.join(`C:${path.sep}Program Files (x86)`, 'Parallax Inc');
     const appPNut = path.join(`${appParallax}`, 'PNut');
-    platformPaths = [...envDirs, appParallax, appPNut, appPNutTS, appPNutTermTS, appFlexProp];
+    wellKnownDirs = [appParallax, appPNut, appPNutTS, appPNutTermTS, appFlexProp];
   } else if (isMac()) {
-    const envDirs = envPath.split(':').filter(Boolean); // macOS is ':' separated
-    // /Applications/flexprop/bin
-    // /Applications
-    // ~/Applications
-    // /Applications/pnut_ts
+    envPathDirs = envPath.split(':').filter(Boolean);
+    // well-known install locations for macOS
     const applicationsFlex = path.join(`${path.sep}Applications`, 'flexprop', 'bin');
     const applicationsUser = path.join('~', 'Applications');
     const applicationsPNutTS = path.join(`${path.sep}Applications`, 'pnut_ts');
     const applicationsPNutTermTS = path.join(`${path.sep}Applications`, 'PNut-Term-TS.app', 'Contents', 'Resources', 'bin');
-    platformPaths = [...envDirs, applicationsFlex, applicationsUser, applicationsPNutTS, applicationsPNutTermTS, userBin, userLocalBin, optLocalBin];
+    wellKnownDirs = [applicationsFlex, applicationsUser, applicationsPNutTS, applicationsPNutTermTS, userBin, userLocalBin, optLocalBin];
   } else {
     // assume linux, RPi
-    //  /opt/flexprop
-    //  /opt/pnut_ts
-    const envDirs = envPath.split(':').filter(Boolean); // linux is ':' separated
+    envPathDirs = envPath.split(':').filter(Boolean);
     const optPNutTS = path.join(`${path.sep}opt`, 'pnut_ts');
     const optPNutTermTS = path.join(`${path.sep}opt`, 'pnut_term_ts', 'bin');
     const optFlexpropBin = path.join(`${path.sep}opt`, 'flexprop', 'bin');
-    platformPaths = [...envDirs, userBin, userLocalBin, optFlexpropBin, optPNutTS, optPNutTermTS];
+    wellKnownDirs = [userBin, userLocalBin, optFlexpropBin, optPNutTS, optPNutTermTS];
   }
-  // and ensure there is only one occurance of each path in list
-  //platformPaths = platformPaths.sort().filter((item, index, self) => index === self.indexOf(item));
-  //platformPaths = platformPaths
-  //    .map((item) => item.toLowerCase()) // Convert all items to lowercase
-  //    .sort()
-  //    .filter((item, index, self) => index === self.indexOf(item)); // Remove duplicates
-  //
-  // Create a map of lowercase paths to original paths
+  // well-known dirs first, then PATH segments as fallback
+  let platformPaths: string[] = [...wellKnownDirs, ...envPathDirs];
+
+  // deduplicate (case-insensitive)
   const lowerCaseMap = new Map<string, string>();
   platformPaths.forEach((item) => {
     lowerCaseMap.set(item.toLowerCase(), item);
   });
-
-  // Filter the original paths based on the uniqueness of their lowercase counterparts
   platformPaths = Array.from(lowerCaseMap.values());
-  // now see if we find any tools
+
+  // read saved tool paths so we can skip prompts for already-configured tools
+  const savedToolchain = vscode.workspace.getConfiguration('spinExtension.toolchain');
+  const savedPaths: Record<string, string | undefined> = {
+    'pnut_shell.bat': savedToolchain.get<string>('paths.PNut') || undefined,
+    'pnut-ts': savedToolchain.get<string>('paths.PNutTs') || undefined,
+    'pnut-term-ts': savedToolchain.get<string>('paths.PNutTermTs') || undefined,
+    flexspin: savedToolchain.get<string>('paths.flexspin') || undefined
+  };
+
   let toolsFound: boolean = false;
 
   // ---------------
-  //  PNut tools
-  const pnutFSpec: string | undefined = await getSingleLocation('pnut_shell.bat', platformPaths);
+  //  PNut tools (Windows only)
+  const pnutFSpec: string | undefined = await getSingleLocation('pnut_shell.bat', platformPaths, savedPaths['pnut_shell.bat']);
   if (pnutFSpec !== undefined) {
     toolsFound = true;
+  } else if (isWindows()) {
+    // pnut_shell.bat not found — check if PNut exe exists without the required bat file
+    const pnutExeFound = locateFileByPattern(/^Pnut(_v.*)?\.exe$/i, platformPaths);
+    if (pnutExeFound !== undefined) {
+      logExtensionMessage(`* TOOL: Found PNut exe [${pnutExeFound}] but pnut_shell.bat is missing`);
+      await vscode.window.showWarningMessage(
+        `Found PNut executable [${path.basename(pnutExeFound)}] but pnut_shell.bat is required for the extension to function. ` +
+        `Please ensure pnut_shell.bat is in the same directory as your PNut executable.`
+      );
+    }
   }
   await updateConfig('toolchain.paths.PNut', pnutFSpec, eConfigSection.CS_USER);
 
   // ---------------
-  //  PNut_ts tools
-  const pnutTsFSpec: string | undefined = await getSingleLocation('pnut_ts', platformPaths);
+  //  PNut-TS tools
+  const pnutTsFSpec: string | undefined = await getSingleLocation('pnut-ts', platformPaths, savedPaths['pnut-ts']);
   if (pnutTsFSpec !== undefined) {
     toolsFound = true;
   }
   await updateConfig('toolchain.paths.PNutTs', pnutTsFSpec, eConfigSection.CS_USER);
 
-  const pnutTermTsFSpec: string | undefined = await getSingleLocation('pnut-term-ts', platformPaths);
+  const pnutTermTsFSpec: string | undefined = await getSingleLocation('pnut-term-ts', platformPaths, savedPaths['pnut-term-ts']);
   if (pnutTermTsFSpec !== undefined) {
     toolsFound = true;
   }
@@ -1061,12 +1165,11 @@ async function locateTools(): Promise<void> {
 
   // ---------------
   //  FlexProp tools
-  const flexSpinFSpec = await getSingleLocation('flexspin', platformPaths);
+  const flexSpinFSpec = await getSingleLocation('flexspin', platformPaths, savedPaths['flexspin']);
   let loadP2FSpec: string | undefined = undefined;
   let proploaderFSpec: string | undefined = undefined;
   let flexFlasherBinFSpec: string | undefined = undefined;
   if (flexSpinFSpec !== undefined) {
-    // Update the configuration with the path of the executable.
     toolsFound = true;
     //
     // now look for other FlexProp related parts
@@ -1076,19 +1179,16 @@ async function locateTools(): Promise<void> {
 
     loadP2FSpec = await getSingleLocation('loadp2', [flexPropBin]);
     if (loadP2FSpec !== undefined) {
-      // Update the configuration with the path of the executable.
       toolsFound = true;
     }
 
     proploaderFSpec = await getSingleLocation('proploader', [flexPropBin]);
     if (proploaderFSpec !== undefined) {
-      // Update the configuration with the path of the executable.
       toolsFound = true;
     }
 
     flexFlasherBinFSpec = locateNonExe('P2ES_flashloader.bin', [flexPropBoard]);
     if (flexFlasherBinFSpec !== undefined) {
-      // Update the configuration with the path of the executable.
       toolsFound = true;
     }
   }
@@ -1122,25 +1222,33 @@ async function locateTools(): Promise<void> {
   logExtensionMessage(`* TOOL: platformPaths=[${platformPaths}]`);
 }
 
-async function getSingleLocation(exeName: string, platformPaths: string[]): Promise<string | undefined> {
+async function getSingleLocation(exeName: string, platformPaths: string[], savedToolPath?: string): Promise<string | undefined> {
   let exeFSpec: string | undefined = undefined;
   let allFSpecs: string[] = [];
   [exeFSpec, allFSpecs] = await locateExe(exeName, platformPaths);
   if (allFSpecs.length > 1) {
-    const errorMessage: string = `ERROR TOOL: ${exeName} found in multiple locations [${allFSpecs}]`;
-    logExtensionMessage(`* ${errorMessage}`);
-    await vscode.window.showErrorMessage(errorMessage);
+    if (savedToolPath !== undefined && allFSpecs.includes(savedToolPath)) {
+      // tool already configured in settings — use saved path silently
+      exeFSpec = savedToolPath;
+      logExtensionMessage(`* TOOL: ${exeName} using saved path: ${savedToolPath}`);
+    } else {
+      // first discovery with multiple options — let user choose
+      logExtensionMessage(`* TOOL: ${exeName} found in multiple locations [${allFSpecs}]`);
+      const selected = await vscode.window.showQuickPick(allFSpecs, {
+        placeHolder: `Select which ${exeName} installation to use`,
+        title: `Multiple ${exeName} installations found`
+      });
+      if (selected !== undefined) {
+        exeFSpec = selected;
+      }
+      // if user cancelled, exeFSpec remains as first-found
+    }
   } else if (exeFSpec !== undefined) {
-    // Update the configuration with the path of the executable.
     logExtensionMessage(`* TOOL: ${exeFSpec}`);
   } else {
-    // Update the configuration with the path of the executable.
     logExtensionMessage(`* WARNING, failed to locate [${exeName}] in [${platformPaths}](${platformPaths.length})`);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return new Promise((resolve, reject) => {
-    resolve(exeFSpec);
-  });
+  return exeFSpec;
 }
 
 async function updateConfig(path: string, value: string | string[] | boolean | object, section: eConfigSection): Promise<void> {
@@ -1391,7 +1499,7 @@ async function updateStatusBarItems(callerId: string): Promise<void> {
   let argumentInterp: string = 'undefined';
   let haveSpin1or2Document: boolean = false;
   let haveSpin2Document: boolean = false;
-  let haveCompilerAndDocument: boolean = false; // haveSpin2Document && pnut or pnut_ts || haveSpin1or2Document && flexspin;
+  let haveCompilerAndDocument: boolean = false; // haveSpin2Document && pnut or pnut-ts || haveSpin1or2Document && flexspin;
   const showInsertModeIndicator: boolean = tabConfiguration.enable == true;
   let docVersion: number = -1;
   const textEditor: vscode.TextEditor | undefined = vscode.window.activeTextEditor;
@@ -1463,7 +1571,7 @@ async function updateStatusBarItems(callerId: string): Promise<void> {
 function showHideLoaderSBControls(textDocument: vscode.TextDocument) {
   const haveSpin1or2Document: boolean = isSpinOrPasmDocument(textDocument);
   const haveSpin2Document: boolean = isSpin2Document(textDocument);
-  let haveCompilerAndDocument: boolean = false; // haveSpin2Document && pnut or pnut_ts || haveSpin1or2Document && flexspin;
+  let haveCompilerAndDocument: boolean = false; // haveSpin2Document && pnut or pnut-ts || haveSpin1or2Document && flexspin;
   const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
   // we show debug/download/propplug controls only if we can compile and/or download
   if (cachedIsCompilerInstalled && selectedCompilerId == PATH_FLEXSPIN && haveSpin1or2Document) {
@@ -1664,7 +1772,7 @@ async function ensureIsGoodCompilerSelection(): Promise<boolean> {
   if (goodCompilerSelectionStatus == false) {
     logExtensionMessage(`* ensureIsGoodCompilerSelection() - ERROR compiler [${selectedCompilerId}] ${errorMessage}`);
     await vscode.window.showErrorMessage(
-      `Selected compiler [${selectedCompilerId}] ${errorMessage} [Please update the setting](command:workbench.action.openSettings?%22spinExtension.toolchain.compiler.selected%22)`
+      `Selected compiler [${selectedCompilerId}] ${errorMessage} [Select Compiler](command:spinExtension.selectCompiler)`
     );
     // just leave user to fix it
   } else {
@@ -1679,7 +1787,7 @@ async function ensureIsGoodCompilerSelection(): Promise<boolean> {
         errorMsg = `File [${spin1or2Filename}] ERROR: not a P1 or P2 source file!`;
       } else if (selectedCompilerId != PATH_FLEXSPIN) {
         // if we have no source file then we have a .spin file vs. a .spin2 file
-        //   this is not legal for pnut or pnut_ts!
+        //   this is not legal for pnut or pnut-ts!
         if (spin1or2Filename.endsWith('.spin')) {
           errorMsg = `File [${spin1or2Filename}] ERROR: [${selectedCompilerId}] only supports .spin2 files`;
         }
@@ -1791,7 +1899,7 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
             const loaderBinFSpec: string = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
             flexBinaryFile = `@0=${loaderBinFSpec},$8000+${flexBinaryFile}`;
           }
-          // for pnut_ts we use the source name with a .binary suffix
+          // for pnut-ts we use the source name with a .binary suffix
           await updateRuntimeConfig('spin2.optionsBinaryFname', flexBinaryFile);
         } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT && haveP2) {
           // -----------------------------------------------------------
@@ -1801,9 +1909,9 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
           await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName);
         } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS && haveP2) {
           // -----------------------------------------------------------
-          // pnut_ts only has the compiler (loader is built-into PNut-Term-TS)
+          // pnut-ts only has the compiler (loader is built-into PNut-Term-TS)
           //
-          // for pnut_ts we use the source name with a .bin suffix
+          // for pnut-ts we use the source name with a .bin suffix
           await updateRuntimeConfig('spin2.optionsBinaryFname', fileBaseName.replace('.spin2', '.bin'));
         } else {
           // no selected spin2 file, just clear the value
@@ -1958,7 +2066,7 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
       //
     } else if (cachedIsCompilerInstalled && selectedCompilerId === PATH_PNUT_TS && haveP2) {
       // -----------------------------------------------------------
-      // pnut_ts Compiler with PNut-Term-TS loader (or loadp2 if forced)
+      // pnut-ts Compiler with PNut-Term-TS loader (or loadp2 if forced)
       //
       const compilerFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TS];
       await updateRuntimeConfig('spin2.fSpecCompiler', compilerFSpec);
@@ -1981,7 +2089,7 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
 
       if (useLoadP2ForP2) {
         // -----------------------------------------------------------
-        // pnut_ts Compiler, use flexProp toolset loadP2, and flashBinary (user override)
+        // pnut-ts Compiler, use flexProp toolset loadP2, and flashBinary (user override)
         //
         const loaderBinFSpec: string | undefined = toolchainConfiguration.toolPaths[PATH_LOADER_BIN];
         await updateRuntimeConfig('spin2.fSpecFlashBinary', loaderBinFSpec);
@@ -1994,7 +2102,7 @@ async function writeToolchainBuildVariables(callerID: string, forceUpdate?: bool
         await updateRuntimeConfig('spin2.optionsLoader', loaderOptions);
       } else {
         // -----------------------------------------------------------
-        // pnut_ts Compiler, use PNut-Term-TS as loader (default)
+        // pnut-ts Compiler, use PNut-Term-TS as loader (default)
         //
         const loaderFSpec: string = toolchainConfiguration.toolPaths[PATH_PNUT_TERM_TS];
         await updateRuntimeConfig('spin2.fSpecLoader', loaderFSpec);

@@ -1,0 +1,60 @@
+{Spin2_v52}
+''
+'' v52a Regression Test: DEBUG_END_SESSION Constant
+''
+'' Tests the new DEBUG_END_SESSION constant (value 27)
+'' which can be sent via DEBUG() to cleanly close the debug session.
+''
+'' When DEBUG(27) is received by the debug display:
+''   - DebugActive is set to False
+''   - Debug window closes
+''   - Session ends cleanly
+''
+'' NOTE: This test is primarily for bytecode verification.
+''       The actual debug session termination is a runtime behavior.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+    ' Verify the constant value
+    TEST_DEBUG_END_SESSION = DEBUG_END_SESSION
+
+VAR
+
+    long  results[10]
+
+PUB main() | v
+
+    ' Test 1: Verify constant value
+    v := DEBUG_END_SESSION
+    results[0] := v                     ' expect 27
+
+    ' Test 2: Verify constant equals 27
+    results[1] := (DEBUG_END_SESSION == 27) ' expect -1 (true)
+
+    ' Test 3: Use in expression
+    v := DEBUG_END_SESSION + 1
+    results[2] := v                     ' expect 28
+
+    ' Test 4: Use in comparison
+    if DEBUG_END_SESSION < 30
+        results[3] := 1                 ' expect 1
+    else
+        results[3] := 0
+
+    ' Test 5: Local constant matches
+    results[4] := TEST_DEBUG_END_SESSION ' expect 27
+
+    ' NOTE: We don't actually call DEBUG(DEBUG_END_SESSION) here
+    ' as that would terminate the debug session during testing.
+    ' The bytecode generation for that call is verified separately.
+
+    ' Test 6: Verify it can be used where DEBUG expects it
+    ' (This generates the bytecode but we won't execute in production test)
+    ' Uncomment for manual testing:
+    ' DEBUG("About to end session")
+    ' DEBUG(DEBUG_END_SESSION)
+
+    repeat

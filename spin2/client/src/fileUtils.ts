@@ -48,7 +48,12 @@ export function platformExeName(exeName: string): string {
         searchExeName = `${exeName}.exe`;
       }
       break;
-    case 'pnut_ts':
+    case 'pnut-ts':
+      if (isWindows()) {
+        searchExeName = `${exeName}.exe`;
+      }
+      break;
+    case 'pnut-term-ts':
       if (isWindows()) {
         searchExeName = `${exeName}.exe`;
       }
@@ -104,6 +109,23 @@ export async function locateExe(exeName: string, possibleLocations: string[]): P
   return new Promise((resolve, reject) => {
     resolve([exeFSpec, allFSpecs]);
   });
+}
+
+export function locateFileByPattern(pattern: RegExp, possibleLocations: string[]): string | undefined {
+  for (const searchDir of possibleLocations) {
+    if (fs.existsSync(searchDir)) {
+      try {
+        const files = fs.readdirSync(searchDir);
+        const match = files.find((f) => pattern.test(f));
+        if (match) {
+          return path.join(searchDir, match);
+        }
+      } catch {
+        // skip directories we can't read
+      }
+    }
+  }
+  return undefined;
 }
 
 /**

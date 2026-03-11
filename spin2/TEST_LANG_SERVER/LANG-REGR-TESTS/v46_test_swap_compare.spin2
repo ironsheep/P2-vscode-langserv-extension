@@ -1,0 +1,173 @@
+{Spin2_v46}
+''
+'' v46 Regression Test: Swap Operator and Memory Functions
+''
+'' Tests the new :=: swap operator and BYTESWAP/BYTECOMP,
+'' WORDSWAP/WORDCOMP, LONGSWAP/LONGCOMP functions.
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+VAR
+
+    long    results[50]
+    long    result_idx
+
+    byte    byte_arr1[16]
+    byte    byte_arr2[16]
+    word    word_arr1[8]
+    word    word_arr2[8]
+    long    long_arr1[4]
+    long    long_arr2[4]
+
+PUB main()
+
+    result_idx := 0
+
+    'test_swap_operator()                ' DISABLED: :=: swap operator not yet in pnut-ts
+    test_byteswap()
+    test_bytecomp()
+    test_wordswap()
+    test_wordcomp()
+    test_longswap()
+    test_longcomp()
+
+    repeat
+
+
+' DISABLED: :=: swap operator not yet supported in pnut-ts v1.51.7
+' Uncomment when support is added.
+'PRI test_swap_operator() | a, b
+'    a := 100
+'    b := 200
+'    a :=: b
+'    results[result_idx++] := a
+'    results[result_idx++] := b
+'    a := -50
+'    b := 75
+'    a :=: b
+'    results[result_idx++] := a
+'    results[result_idx++] := b
+
+
+PRI test_byteswap() | i
+    ''
+    '' Test: BYTESWAP function
+    ''
+    repeat i from 0 to 15
+        byte_arr1[i] := $AA
+        byte_arr2[i] := $55
+
+    BYTESWAP(@byte_arr1, @byte_arr2, 16)
+
+    results[result_idx++] := byte_arr1[0]       ' expect $55
+    results[result_idx++] := byte_arr1[15]      ' expect $55
+    results[result_idx++] := byte_arr2[0]       ' expect $AA
+    results[result_idx++] := byte_arr2[15]      ' expect $AA
+
+
+PRI test_bytecomp() | i, cmpval
+    ''
+    '' Test: BYTECOMP function
+    ''
+    ' Test equal arrays
+    repeat i from 0 to 15
+        byte_arr1[i] := $12
+        byte_arr2[i] := $12
+
+    cmpval := BYTECOMP(@byte_arr1, @byte_arr2, 16)
+    results[result_idx++] := cmpval             ' expect 0
+
+    ' Test arr1 < arr2
+    byte_arr1[8] := $10
+    byte_arr2[8] := $20
+    cmpval := BYTECOMP(@byte_arr1, @byte_arr2, 16)
+    results[result_idx++] := cmpval             ' expect -1
+
+    ' Test arr1 > arr2
+    byte_arr1[8] := $30
+    cmpval := BYTECOMP(@byte_arr1, @byte_arr2, 16)
+    results[result_idx++] := cmpval             ' expect 1
+
+
+PRI test_wordswap() | i
+    ''
+    '' Test: WORDSWAP function
+    ''
+    repeat i from 0 to 7
+        word_arr1[i] := $AAAA
+        word_arr2[i] := $5555
+
+    WORDSWAP(@word_arr1, @word_arr2, 8)
+
+    results[result_idx++] := word_arr1[0]       ' expect $5555
+    results[result_idx++] := word_arr1[7]       ' expect $5555
+    results[result_idx++] := word_arr2[0]       ' expect $AAAA
+    results[result_idx++] := word_arr2[7]       ' expect $AAAA
+
+
+PRI test_wordcomp() | i, cmpval
+    ''
+    '' Test: WORDCOMP function
+    ''
+    ' Test equal arrays
+    repeat i from 0 to 7
+        word_arr1[i] := $1234
+        word_arr2[i] := $1234
+
+    cmpval := WORDCOMP(@word_arr1, @word_arr2, 8)
+    results[result_idx++] := cmpval             ' expect 0
+
+    ' Test arr1 < arr2
+    word_arr1[4] := $1000
+    word_arr2[4] := $2000
+    cmpval := WORDCOMP(@word_arr1, @word_arr2, 8)
+    results[result_idx++] := cmpval             ' expect -1
+
+    ' Test arr1 > arr2
+    word_arr1[4] := $3000
+    cmpval := WORDCOMP(@word_arr1, @word_arr2, 8)
+    results[result_idx++] := cmpval             ' expect 1
+
+
+PRI test_longswap() | i
+    ''
+    '' Test: LONGSWAP function
+    ''
+    repeat i from 0 to 3
+        long_arr1[i] := $AAAAAAAA
+        long_arr2[i] := $55555555
+
+    LONGSWAP(@long_arr1, @long_arr2, 4)
+
+    results[result_idx++] := long_arr1[0]       ' expect $55555555
+    results[result_idx++] := long_arr1[3]       ' expect $55555555
+    results[result_idx++] := long_arr2[0]       ' expect $AAAAAAAA
+    results[result_idx++] := long_arr2[3]       ' expect $AAAAAAAA
+
+
+PRI test_longcomp() | i, cmpval
+    ''
+    '' Test: LONGCOMP function
+    ''
+    ' Test equal arrays
+    repeat i from 0 to 3
+        long_arr1[i] := $12345678
+        long_arr2[i] := $12345678
+
+    cmpval := LONGCOMP(@long_arr1, @long_arr2, 4)
+    results[result_idx++] := cmpval             ' expect 0
+
+    ' Test arr1 < arr2
+    long_arr1[2] := $10000000
+    long_arr2[2] := $20000000
+    cmpval := LONGCOMP(@long_arr1, @long_arr2, 4)
+    results[result_idx++] := cmpval             ' expect -1
+
+    ' Test arr1 > arr2
+    long_arr1[2] := $30000000
+    cmpval := LONGCOMP(@long_arr1, @long_arr2, 4)
+    results[result_idx++] := cmpval             ' expect 1
+

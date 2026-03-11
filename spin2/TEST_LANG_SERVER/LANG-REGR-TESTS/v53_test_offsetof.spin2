@@ -1,0 +1,290 @@
+{Spin2_v53}
+''
+'' v53 Regression Test: OFFSETOF() Function
+''
+'' Tests the new OFFSETOF(struct.member) compile-time function that returns
+'' the byte offset of a member within a structure definition.
+''
+'' v53 Features Tested:
+''   1. OFFSETOF() with simple struct members (BYTE, WORD, LONG)
+''   2. OFFSETOF() with nested structs
+''   3. OFFSETOF() with array-indexed structs
+''   4. OFFSETOF() with deeply nested member paths
+''   5. OFFSETOF() without member (returns 0)
+''   6. OFFSETOF() vs SIZEOF() relationship
+''   7. OFFSETOF() in DAT block context
+''   8. OFFSETOF() in VAR block context
+''
+'' Bug Fixes Also Covered (indirectly):
+''   - NEXT/QUIT default branch fix (je → jmp)
+''   - CASE colon parsing fix (get_element → get_colon)
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+    ' Simple struct: all LONGs
+    STRUCT point_t(LONG x, LONG y, LONG z)
+
+    ' Mixed-size members
+    STRUCT mixed_t(BYTE flags, WORD count, LONG value, BYTE status)
+
+    ' Nested struct
+    STRUCT line_t(point_t start, point_t finish)
+
+    ' Struct with array member
+    STRUCT triangle_t(line_t sides[3])
+
+    ' Deeply nested
+    STRUCT box_t(point_t min, point_t max)
+    STRUCT scene_t(box_t bounds, LONG id)
+
+VAR
+
+    long    results[60]
+    long    result_idx
+
+    ' VAR block struct declarations (tests OFFSETOF allowed in VAR context)
+    point_t     var_pt
+    line_t      var_line
+
+PUB main()
+
+    result_idx := 0
+
+    test_simple_offsets()
+    test_mixed_offsets()
+    test_nested_offsets()
+    test_array_indexed_offsets()
+    test_deep_nested_offsets()
+    test_struct_without_member()
+    test_offsetof_vs_sizeof()
+    test_offsetof_in_expressions()
+    test_next_quit_default_fix()
+    test_case_colon_fix()
+
+    repeat
+
+
+PRI test_simple_offsets()
+    ''
+    '' Test: OFFSETOF with simple LONG members
+    '' point_t(LONG x, LONG y, LONG z) — each LONG is 4 bytes
+    ''
+    results[result_idx++] := OFFSETOF(point_t.x)       ' expect 0
+    results[result_idx++] := OFFSETOF(point_t.y)       ' expect 4
+    results[result_idx++] := OFFSETOF(point_t.z)       ' expect 8
+
+
+PRI test_mixed_offsets()
+    ''
+    '' Test: OFFSETOF with mixed BYTE/WORD/LONG members
+    '' mixed_t(BYTE flags, WORD count, LONG value, BYTE status)
+    '' Layout: flags@0(1), count@1(2), value@3(4), status@7(1) = 8 bytes total
+    ''
+    results[result_idx++] := OFFSETOF(mixed_t.flags)    ' expect 0
+    results[result_idx++] := OFFSETOF(mixed_t.count)    ' expect 1
+    results[result_idx++] := OFFSETOF(mixed_t.value)    ' expect 3
+    results[result_idx++] := OFFSETOF(mixed_t.status)   ' expect 7
+
+
+PRI test_nested_offsets()
+    ''
+    '' Test: OFFSETOF with nested structures
+    '' line_t(point_t start, point_t finish)
+    '' start is at offset 0 (size 12), finish is at offset 12
+    ''
+    results[result_idx++] := OFFSETOF(line_t.start)         ' expect 0
+    results[result_idx++] := OFFSETOF(line_t.finish)        ' expect 12
+    results[result_idx++] := OFFSETOF(line_t.start.x)       ' expect 0
+    results[result_idx++] := OFFSETOF(line_t.start.y)       ' expect 4
+    results[result_idx++] := OFFSETOF(line_t.start.z)       ' expect 8
+    results[result_idx++] := OFFSETOF(line_t.finish.x)      ' expect 12
+    results[result_idx++] := OFFSETOF(line_t.finish.y)      ' expect 16
+    results[result_idx++] := OFFSETOF(line_t.finish.z)      ' expect 20
+
+
+PRI test_array_indexed_offsets()
+    ''
+    '' Test: OFFSETOF with constant array indexing
+    '' triangle_t(line_t sides[3])
+    '' Each line_t is 24 bytes (2 x point_t @ 12 bytes)
+    ''
+    results[result_idx++] := OFFSETOF(triangle_t.sides[0])            ' expect 0
+    results[result_idx++] := OFFSETOF(triangle_t.sides[1])            ' expect 24
+    results[result_idx++] := OFFSETOF(triangle_t.sides[2])            ' expect 48
+
+    ' Array index with nested member access
+    results[result_idx++] := OFFSETOF(triangle_t.sides[0].start.x)   ' expect 0
+    results[result_idx++] := OFFSETOF(triangle_t.sides[0].finish.x)  ' expect 12
+    results[result_idx++] := OFFSETOF(triangle_t.sides[1].start.x)   ' expect 24
+    results[result_idx++] := OFFSETOF(triangle_t.sides[1].finish.y)  ' expect 40
+    results[result_idx++] := OFFSETOF(triangle_t.sides[2].finish.z)  ' expect 68
+
+
+PRI test_deep_nested_offsets()
+    ''
+    '' Test: OFFSETOF with deeply nested struct paths
+    '' scene_t(box_t bounds, LONG id)
+    '' box_t(point_t min, point_t max) — each point_t is 12 bytes
+    ''
+    results[result_idx++] := OFFSETOF(scene_t.bounds)           ' expect 0
+    results[result_idx++] := OFFSETOF(scene_t.id)               ' expect 24
+    results[result_idx++] := OFFSETOF(scene_t.bounds.min)       ' expect 0
+    results[result_idx++] := OFFSETOF(scene_t.bounds.max)       ' expect 12
+    results[result_idx++] := OFFSETOF(scene_t.bounds.min.x)    ' expect 0
+    results[result_idx++] := OFFSETOF(scene_t.bounds.min.z)    ' expect 8
+    results[result_idx++] := OFFSETOF(scene_t.bounds.max.x)    ' expect 12
+    results[result_idx++] := OFFSETOF(scene_t.bounds.max.z)    ' expect 20
+
+
+PRI test_struct_without_member()
+    ''
+    '' Test: OFFSETOF(struct_name) without member — should return 0
+    ''
+    results[result_idx++] := OFFSETOF(point_t)          ' expect 0
+    results[result_idx++] := OFFSETOF(mixed_t)          ' expect 0
+    results[result_idx++] := OFFSETOF(line_t)           ' expect 0
+    results[result_idx++] := OFFSETOF(scene_t)          ' expect 0
+
+
+PRI test_offsetof_vs_sizeof()
+    ''
+    '' Test: Verify relationship between OFFSETOF and SIZEOF
+    '' For a struct with N members, OFFSETOF(last_member) + size_of_last = SIZEOF(struct)
+    ''
+    ' point_t: OFFSETOF(.z) + 4 == SIZEOF(point_t)
+    results[result_idx++] := OFFSETOF(point_t.z) + 4            ' expect 12
+    results[result_idx++] := SIZEOF(point_t)                    ' expect 12
+    results[result_idx++] := (OFFSETOF(point_t.z) + 4) == SIZEOF(point_t)  ' expect -1 (true)
+
+    ' mixed_t: OFFSETOF(.status) + 1 == SIZEOF(mixed_t)
+    results[result_idx++] := OFFSETOF(mixed_t.status) + 1       ' expect 8
+    results[result_idx++] := SIZEOF(mixed_t)                    ' expect 8
+    results[result_idx++] := (OFFSETOF(mixed_t.status) + 1) == SIZEOF(mixed_t)  ' expect -1
+
+    ' line_t: OFFSETOF(.finish) + SIZEOF(point_t) == SIZEOF(line_t)
+    results[result_idx++] := OFFSETOF(line_t.finish) + SIZEOF(point_t)  ' expect 24
+    results[result_idx++] := SIZEOF(line_t)                     ' expect 24
+
+
+PRI test_offsetof_in_expressions() | ofs, base_addr
+    ''
+    '' Test: OFFSETOF used in runtime expressions (compiled as constant)
+    ''
+    ' Use OFFSETOF in arithmetic
+    ofs := OFFSETOF(line_t.finish.y) - OFFSETOF(line_t.finish.x)
+    results[result_idx++] := ofs                        ' expect 4 (16 - 12)
+
+    ' Use OFFSETOF for manual member access via BYTE/LONG
+    var_pt.x := $DEAD
+    var_pt.y := $BEEF
+    var_pt.z := $CAFE
+    base_addr := @var_pt
+    results[result_idx++] := LONG[base_addr][OFFSETOF(point_t.x) >> 2]  ' expect $DEAD
+    results[result_idx++] := LONG[base_addr][OFFSETOF(point_t.y) >> 2]  ' expect $BEEF
+    results[result_idx++] := LONG[base_addr][OFFSETOF(point_t.z) >> 2]  ' expect $CAFE
+
+    ' OFFSETOF as case-compatible constant
+    ofs := 4
+    case ofs
+        OFFSETOF(point_t.x):
+            results[result_idx++] := 0                  ' not taken
+        OFFSETOF(point_t.y):
+            results[result_idx++] := 1                  ' expect 1 (offset 4 matches .y)
+        other:
+            results[result_idx++] := 99                 ' not taken
+
+
+PRI test_next_quit_default_fix() | a, b, count
+    ''
+    '' Test: NEXT/QUIT without level parameter (bug fix verification)
+    '' v53 changed je to jmp for the default level-0 branch in ci_next_quit.
+    '' This ensures NEXT and QUIT without a level always work correctly.
+    ''
+
+    ' NEXT without level — continue innermost
+    count := 0
+    repeat a from 1 to 5
+        count++
+        if a == 3
+            next                    ' default level-0: continue this loop
+        count += 10
+
+    ' a=1: 1+10=11, a=2: 1+10=21, a=3: 1=22(next), a=4: 1+10=33, a=5: 1+10=44
+    results[result_idx++] := count      ' expect 44
+
+    ' QUIT without level — exit innermost
+    count := 0
+    repeat a from 1 to 10
+        repeat b from 1 to 10
+            count++
+            if b == 3
+                quit                ' default level-0: exit inner loop only
+    ' Each outer iteration: b runs 1,2,3 then quit → 3 per outer × 10 outer = 30
+    results[result_idx++] := count      ' expect 30
+
+
+PRI test_case_colon_fix() | x, result
+    ''
+    '' Test: CASE colon parsing fix (get_element → get_colon)
+    '' This ensures CASE blocks with proper colon syntax compile correctly.
+    '' The fix makes colon validation stricter — valid code should still work.
+    ''
+
+    ' Basic CASE with multiple branches
+    result := 0
+    x := 2
+    case x
+        1:
+            result := 10
+        2:
+            result := 20
+        3:
+            result := 30
+        other:
+            result := 99
+    results[result_idx++] := result         ' expect 20
+
+    ' CASE with range values
+    result := 0
+    x := 5
+    case x
+        1..3:
+            result := 100
+        4..6:
+            result := 200
+        7..9:
+            result := 300
+        other:
+            result := 999
+    results[result_idx++] := result         ' expect 200
+
+    ' CASE with OTHER only path
+    result := 0
+    x := 42
+    case x
+        1:
+            result := 1
+        other:
+            result := 42
+    results[result_idx++] := result         ' expect 42
+
+    ' Nested CASE blocks
+    result := 0
+    x := 2
+    case x
+        1:
+            result := 10
+        2:
+            case x * 10
+                10:
+                    result := 100
+                20:
+                    result := 200
+                other:
+                    result := 999
+        other:
+            result := 0
+    results[result_idx++] := result         ' expect 200

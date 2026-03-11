@@ -1,0 +1,222 @@
+{Spin2_v52}
+''
+'' v52a Regression Test: NEXT/QUIT Level Feature
+''
+'' Tests the new NEXT {level} and QUIT {level} syntax
+'' where level specifies how many inner REPEAT blocks to skip past.
+''
+'' Semantics (from p2com.asm ci_next_quit):
+''   NEXT (no param) = continue innermost REPEAT (needs 1 REPEAT)
+''   NEXT 1 = skip past 1 inner REPEAT, continue next outer (needs 2 REPEATs)
+''   NEXT 2 = skip past 2 inner REPEATs, continue next outer (needs 3 REPEATs)
+''   NEXT N = skip past N inner REPEATs (needs N+1 REPEATs)
+''
+''   QUIT follows the same pattern:
+''   QUIT (no param) = exit innermost REPEAT (needs 1 REPEAT)
+''   QUIT 1 = skip past 1 inner REPEAT, exit next outer (needs 2 REPEATs)
+''   QUIT N = skip past N inner REPEATs (needs N+1 REPEATs)
+''
+'' Valid level range: 1 to 15
+''
+
+CON
+
+    _CLKFREQ = 160_000_000
+
+VAR
+
+    long  results[50]
+    long  result_idx
+
+PUB main()
+
+    result_idx := 0
+
+    test_next_1()
+    test_next_2()
+    test_next_3()
+    test_quit_1()
+    test_quit_2()
+    test_quit_3()
+    test_mixed_next_quit()
+    test_next_through_case()
+
+    repeat
+
+
+PRI test_next_1() | a, b, count
+    ''
+    '' Test: NEXT 1 - skip past innermost REPEAT, continue outer
+    '' Requires 2 nested REPEATs
+    ''
+    count := 0
+
+    repeat a from 1 to 3
+        repeat b from 1 to 5
+            count++
+            if b == 2
+                next 1          ' continue outer (a) loop
+
+    ' For each outer iteration: b=1 (count++), b=2 (count++, next 1)
+    ' 2 increments per outer x 3 outer = 6
+    results[result_idx++] := count      ' expect 6
+    results[result_idx++] := a          ' expect 4 (loop finished)
+
+
+PRI test_next_2() | a, b, c, count
+    ''
+    '' Test: NEXT 2 - skip past 2 inner REPEATs, continue outermost
+    '' Requires 3 nested REPEATs
+    ''
+    count := 0
+
+    repeat a from 1 to 3
+        repeat b from 1 to 4
+            repeat c from 1 to 5
+                count++
+                if c == 2
+                    next 2      ' continue outermost (a) loop
+
+    ' For each a: b=1, c=1 (count++), c=2 (count++, next 2)
+    ' 2 increments per a x 3 a = 6
+    results[result_idx++] := count      ' expect 6
+    results[result_idx++] := a          ' expect 4
+
+
+PRI test_next_3() | a, b, c, d, count
+    ''
+    '' Test: NEXT 3 - skip past 3 inner REPEATs, continue outermost
+    '' Requires 4 nested REPEATs
+    ''
+    count := 0
+
+    repeat a from 1 to 2
+        repeat b from 1 to 3
+            repeat c from 1 to 3
+                repeat d from 1 to 5
+                    count++
+                    if d == 2
+                        next 3  ' continue outermost (a) loop
+
+    ' For each a: b=1, c=1, d=1 (count++), d=2 (count++, next 3)
+    ' 2 increments per a x 2 a = 4
+    results[result_idx++] := count      ' expect 4
+    results[result_idx++] := a          ' expect 3
+
+
+PRI test_quit_1() | a, b, count
+    ''
+    '' Test: QUIT 1 - skip past innermost REPEAT, exit outer
+    '' Requires 2 nested REPEATs
+    ''
+    count := 0
+
+    repeat a from 1 to 5
+        repeat b from 1 to 5
+            count++
+            if a == 2 AND b == 3
+                quit 1          ' exit outer (a) loop
+
+    ' a=1: b=1..5, count += 5
+    ' a=2: b=1 (count++), b=2 (count++), b=3 (count++, quit 1)
+    ' Total = 5 + 3 = 8
+    results[result_idx++] := count      ' expect 8
+    results[result_idx++] := a          ' expect 2
+    results[result_idx++] := b          ' expect 3
+
+
+PRI test_quit_2() | a, b, c, count
+    ''
+    '' Test: QUIT 2 - skip past 2 inner REPEATs, exit outermost
+    '' Requires 3 nested REPEATs
+    ''
+    count := 0
+
+    repeat a from 1 to 3
+        repeat b from 1 to 3
+            repeat c from 1 to 3
+                count++
+                if a == 2 AND b == 2 AND c == 2
+                    quit 2      ' exit outermost (a) loop
+
+    ' a=1: 3*3 = 9 iterations
+    ' a=2: b=1: c=1,2,3 (3), b=2: c=1 (1), c=2 (quit 2)
+    ' Total = 9 + 3 + 2 = 14
+    results[result_idx++] := count      ' expect 14
+    results[result_idx++] := a          ' expect 2
+    results[result_idx++] := b          ' expect 2
+    results[result_idx++] := c          ' expect 2
+
+
+PRI test_quit_3() | a, b, c, d, count
+    ''
+    '' Test: QUIT 3 - skip past 3 inner REPEATs, exit outermost
+    '' Requires 4 nested REPEATs
+    ''
+    count := 0
+
+    repeat a from 1 to 2
+        repeat b from 1 to 2
+            repeat c from 1 to 2
+                repeat d from 1 to 3
+                    count++
+                    if count == 10
+                        quit 3  ' exit outermost (a) loop
+
+    ' Iterates until count reaches 10:
+    ' a=1,b=1,c=1: d=1,2,3 (3)
+    ' a=1,b=1,c=2: d=1,2,3 (6)
+    ' a=1,b=2,c=1: d=1,2,3 (9)
+    ' a=1,b=2,c=2: d=1 (10, quit 3)
+    results[result_idx++] := count      ' expect 10
+
+
+PRI test_mixed_next_quit() | a, b, c, next_count, quit_hit
+    ''
+    '' Test: Mix of NEXT 1 and QUIT 1 in same structure
+    '' Both require 2 nested REPEATs
+    ''
+    next_count := 0
+    quit_hit := 0
+
+    repeat a from 1 to 5
+        repeat b from 1 to 5
+            if b == 2
+                next_count++
+                next 1          ' continue outer (a)
+            if a == 4 AND b == 1
+                quit_hit := 1
+                quit 1          ' exit outer (a)
+
+    ' a=1: b=1 (ok), b=2 (next_count=1, next 1)
+    ' a=2: b=1 (ok), b=2 (next_count=2, next 1)
+    ' a=3: b=1 (ok), b=2 (next_count=3, next 1)
+    ' a=4: b=1 (quit_hit=1, quit 1 exits both)
+    results[result_idx++] := next_count     ' expect 3
+    results[result_idx++] := quit_hit       ' expect 1
+    results[result_idx++] := a              ' expect 4
+
+
+PRI test_next_through_case() | a, b, x, count
+    ''
+    '' Test: NEXT 1 through a CASE block
+    '' CASE pushes 2 longs, so stack handling must account for this
+    '' Requires 2 nested REPEATs
+    ''
+    count := 0
+    x := 1
+
+    repeat a from 1 to 3
+        repeat b from 1 to 4
+            case x
+                1:
+                    count++
+                    if b == 2
+                        next 1      ' must pop CASE stack AND inner loop stack
+                other:
+                    count += 100
+
+    ' For each a: b=1 (count++), b=2 (count++, next 1)
+    ' 2 increments per outer x 3 outer = 6
+    results[result_idx++] := count          ' expect 6
+    results[result_idx++] := a              ' expect 4
