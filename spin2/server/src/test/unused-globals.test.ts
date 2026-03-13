@@ -166,17 +166,17 @@ describe('DocumentFindings: globalTokenEntries()', function () {
     const entries: [string, RememberedToken][] = findings.globalTokenEntries();
     assert.ok(entries.length > 0, `Expected global tokens, got ${entries.length}`);
     const names = entries.map(([name]) => name);
-    assert.ok(names.includes('usedvar'), 'Should include usedvar');
-    assert.ok(names.includes('unusedvar'), 'Should include unusedvar');
+    assert.ok(names.includes('usedVar'), 'Should include usedVar');
+    assert.ok(names.includes('unusedVar'), 'Should include unusedVar');
   });
 
   it('should include DAT variables and labels', function () {
     const findings = parseFixture('unused-globals.spin2');
     const entries: [string, RememberedToken][] = findings.globalTokenEntries();
     const names = entries.map(([name]) => name);
-    assert.ok(names.includes('datused'), 'Should include datUsed');
-    assert.ok(names.includes('datunused'), 'Should include datUnused');
-    assert.ok(names.includes('datlabel'), 'Should include datLabel');
+    assert.ok(names.includes('datUsed'), 'Should include datUsed');
+    assert.ok(names.includes('datUnused'), 'Should include datUnused');
+    assert.ok(names.includes('datLabel'), 'Should include datLabel');
   });
 
   it('should distinguish VAR from DAT tokens by modifiers', function () {
@@ -184,17 +184,17 @@ describe('DocumentFindings: globalTokenEntries()', function () {
     const entries: [string, RememberedToken][] = findings.globalTokenEntries();
     const entryMap = new Map(entries);
 
-    const usedVar = entryMap.get('usedvar');
-    assert.ok(usedVar, 'usedvar should exist');
+    const usedVar = entryMap.get('usedVar');
+    assert.ok(usedVar, 'usedVar should exist');
     assert.ok(usedVar.modifiers.includes('instance'), 'VAR variable should have instance modifier');
 
-    const datUsed = entryMap.get('datused');
-    assert.ok(datUsed, 'datused should exist');
+    const datUsed = entryMap.get('datUsed');
+    assert.ok(datUsed, 'datUsed should exist');
     assert.ok(datUsed.modifiers.includes('declaration'), 'DAT variable should have declaration modifier');
     assert.strictEqual(datUsed.type, 'variable', 'DAT variable should have type variable');
 
-    const datLabel = entryMap.get('datlabel');
-    assert.ok(datLabel, 'datlabel should exist');
+    const datLabel = entryMap.get('datLabel');
+    assert.ok(datLabel, 'datLabel should exist');
     assert.strictEqual(datLabel.type, 'label', 'DAT label should have type label');
   });
 });

@@ -21,6 +21,17 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.8.1] 2026-03-13
+
+Preserve original case for symbol names in completion, workspace symbols, and diagnostics
+
+### Fixes
+
+- Fix completion provider (typeahead) lowercasing all symbol names -- global tokens, local tokens, and object instance names now display with their original case as written in source
+- Fix workspace symbol search returning lowercased symbol names
+- Fix unused variable diagnostics showing lowercased names in warning messages
+- Fix object dependency tree showing lowercased object instance names
+
 ## [2.8.0] 2026-03-11
 
 PNut v52a/v53 language support and colorizing fixes

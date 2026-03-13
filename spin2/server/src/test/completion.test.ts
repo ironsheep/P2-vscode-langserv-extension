@@ -57,17 +57,17 @@ describe('DocumentFindings: allGlobalTokenEntries()', function () {
     assert.ok(entries.length > 0, `Expected global tokens, got ${entries.length}`);
     // Should include CON constants, VAR variables, and PUB/PRI methods
     const names: string[] = entries.map(([name]) => name);
-    assert.ok(names.includes('max_count'), `Expected 'max_count' in global tokens, got: [${names.join(', ')}]`);
-    assert.ok(names.includes('led_pin'), `Expected 'led_pin' in global tokens`);
-    assert.ok(names.includes('sensorvalue'), `Expected 'sensorvalue' in global tokens`);
+    assert.ok(names.includes('MAX_COUNT'), `Expected 'MAX_COUNT' in global tokens, got: [${names.join(', ')}]`);
+    assert.ok(names.includes('LED_PIN'), `Expected 'LED_PIN' in global tokens`);
+    assert.ok(names.includes('sensorValue'), `Expected 'sensorValue' in global tokens`);
   });
 
   it('should include method names as global tokens', function () {
     const findings = parseFixture('completion-basic.spin2');
     const entries: [string, RememberedToken][] = findings.allGlobalTokenEntries();
     const names: string[] = entries.map(([name]) => name);
-    assert.ok(names.includes('main'), `Expected 'main' method in global tokens`);
-    assert.ok(names.includes('helper'), `Expected 'helper' method in global tokens`);
+    assert.ok(names.includes('Main'), `Expected 'Main' method in global tokens`);
+    assert.ok(names.includes('Helper'), `Expected 'Helper' method in global tokens`);
   });
 
   it('should return tokens with correct types', function () {
@@ -75,15 +75,15 @@ describe('DocumentFindings: allGlobalTokenEntries()', function () {
     const entries: [string, RememberedToken][] = findings.allGlobalTokenEntries();
     const entryMap = new Map(entries);
 
-    const maxCount = entryMap.get('max_count');
-    assert.ok(maxCount, 'max_count should exist');
+    const maxCount = entryMap.get('MAX_COUNT');
+    assert.ok(maxCount, 'MAX_COUNT should exist');
     // CON constants are 'variable' with 'readonly' modifier
-    assert.strictEqual(maxCount.type, 'variable', 'max_count should be type variable');
-    assert.ok(maxCount.modifiers.includes('readonly'), 'max_count should have readonly modifier');
+    assert.strictEqual(maxCount.type, 'variable', 'MAX_COUNT should be type variable');
+    assert.ok(maxCount.modifiers.includes('readonly'), 'MAX_COUNT should have readonly modifier');
 
-    const mainMethod = entryMap.get('main');
-    assert.ok(mainMethod, 'main should exist');
-    assert.strictEqual(mainMethod.type, 'method', 'main should be type method');
+    const mainMethod = entryMap.get('Main');
+    assert.ok(mainMethod, 'Main should exist');
+    assert.strictEqual(mainMethod.type, 'method', 'Main should be type method');
   });
 });
 
@@ -142,7 +142,7 @@ describe('DocumentFindings: localTokenEntriesForMethod()', function () {
     const localEntries: [string, RememberedToken][] = findings.localTokenEntriesForMethod('Main');
     assert.ok(localEntries.length > 0, `Expected local tokens for Main, got ${localEntries.length}`);
     const names: string[] = localEntries.map(([name]) => name);
-    assert.ok(names.includes('localvar'), `Expected 'localvar' in Main locals, got: [${names.join(', ')}]`);
+    assert.ok(names.includes('localVar'), `Expected 'localVar' in Main locals, got: [${names.join(', ')}]`);
     assert.ok(names.includes('i'), `Expected 'i' in Main locals`);
   });
 

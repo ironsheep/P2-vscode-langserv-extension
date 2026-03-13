@@ -223,6 +223,7 @@ export class DocumentFindings {
 
   // tracking includes (both OBJ (object use) and #include use)
   private objectFilenameByInstanceName = new Map<string, string>();
+  private originalObjectNameByKey = new Map<string, string>();
   // here we track which file #include's what file(s)
   private includedFilenameByIncluderFilename = new Map<string, string[]>();
 
@@ -235,6 +236,7 @@ export class DocumentFindings {
   // token reference index for code navigation (Find All References, Rename, Highlight)
   // Maps lowercase token name -> list of all occurrence positions in this file
   private referencesByTokenName = new Map<string, ITokenReference[]>();
+  private originalRefNameByKey = new Map<string, string>();
   private documentLinks: IDocumentLinkInfo[] = [];
 
   private ctx: Context | undefined;
@@ -307,6 +309,7 @@ export class DocumentFindings {
     this.methodLocalTokens.clear();
     this.methodLocalPasmTokens.clear();
     this.objectFilenameByInstanceName.clear();
+    this.originalObjectNameByKey.clear();
     this.declarationLineCache.clear();
     this.declarationLocalLabelLineCache.clear();
     this.declarationGlobalLabelListCache = [];
@@ -330,6 +333,7 @@ export class DocumentFindings {
     this.preProcSymbols = [];
     this.exportedDefines = [];
     this.referencesByTokenName.clear();
+    this.originalRefNameByKey.clear();
     this.documentLinks = [];
     if (clearIncludesToo) {
       this.objectParseResultByObjectName.clear();
@@ -380,6 +384,10 @@ export class DocumentFindings {
       refs = [];
       this.referencesByTokenName.set(key, refs);
     }
+    // preserve the original-case name (first occurrence wins, which is the declaration)
+    if (!this.originalRefNameByKey.has(key)) {
+      this.originalRefNameByKey.set(key, name);
+    }
     refs.push(ref);
   }
 
@@ -410,8 +418,12 @@ export class DocumentFindings {
   }
 
   public get tokenReferenceNames(): string[] {
-    // Return list of all token names that have references.
-    return Array.from(this.referencesByTokenName.keys());
+    // Return list of all token names that have references (with original case).
+    const names: string[] = [];
+    for (const key of this.referencesByTokenName.keys()) {
+      names.push(this.originalRefNameByKey.get(key) ?? key);
+    }
+    return names;
   }
 
   // -------------------------------------------------------------------------------------
@@ -927,6 +939,10 @@ export class DocumentFindings {
     const namespaceKey: string = namespace.toLowerCase();
     if (!this.objectParseResultByObjectName.has(namespaceKey)) {
       this.objectParseResultByObjectName.set(namespaceKey, symbolsInNamespace);
+      // preserve original-case name (first occurrence wins, from OBJ declaration)
+      if (!this.originalObjectNameByKey.has(namespaceKey)) {
+        this.originalObjectNameByKey.set(namespaceKey, namespace);
+      }
       this._logMessage(
         `* setFindingsForNamespace(${this.instanceName()}) ADD findings for [${namespace}] which is [${symbolsInNamespace.instanceName()}]`
       );
@@ -970,8 +986,11 @@ export class DocumentFindings {
   }
 
   public getNamespaces(): string[] {
-    // return list of object namespaces found in toplevel
-    const nameSpaceSet: string[] = Array.from(this.objectParseResultByObjectName.keys());
+    // return list of object namespaces found in toplevel (with original case)
+    const nameSpaceSet: string[] = [];
+    for (const key of this.objectParseResultByObjectName.keys()) {
+      nameSpaceSet.push(this.originalObjectNameByKey.get(key) ?? key);
+    }
     return nameSpaceSet;
   }
 
@@ -1259,6 +1278,7 @@ export class DocumentFindings {
     const objectNameKey: string = name.toLowerCase();
     if (!this.objectFilenameByInstanceName.has(objectNameKey)) {
       this.objectFilenameByInstanceName.set(objectNameKey, filename);
+      this.originalObjectNameByKey.set(objectNameKey, name);
       this._logMessage(`  -- ADD-OBJ  instance=[${name}], filename=[${filename}]`);
     } else {
       this._logMessage(`  -- DUPE-OBJ  SKIPPED  instance=[${name}], filename=[${filename}]`);
@@ -1302,13 +1322,19 @@ export class DocumentFindings {
   }
 
   public includedObjectNamesByFilename(): Map<string, string> {
-    // return the full object set: instance names with assoc. file names
-    return this.objectFilenameByInstanceName;
+    // return the full object set: instance names (original case) with assoc. file names
+    const result = new Map<string, string>();
+    for (const [key, filename] of this.objectFilenameByInstanceName) {
+      const originalName = this.originalObjectNameByKey.get(key) ?? key;
+      result.set(originalName, filename);
+    }
+    return result;
   }
 
   public objectReferences(): { instanceName: string; fileName: string }[] {
     const references: { instanceName: string; fileName: string }[] = [];
-    for (const [instanceName, fileName] of this.objectFilenameByInstanceName) {
+    for (const [key, fileName] of this.objectFilenameByInstanceName) {
+      const instanceName = this.originalObjectNameByKey.get(key) ?? key;
       references.push({ instanceName, fileName });
     }
     return references;
@@ -2437,6 +2463,7 @@ export class TokenSet {
 
   private id: string = '';
   private rememberedTokenByName = new Map<string, RememberedToken>();
+  private originalNameByKey = new Map<string, string>();
   private ctx: Context | undefined = undefined;
   private bLogEnabled: boolean = false;
 
@@ -2455,15 +2482,24 @@ export class TokenSet {
   }
 
   *[Symbol.iterator]() {
-    yield* this.rememberedTokenByName;
+    for (const [key, token] of this.rememberedTokenByName) {
+      const originalName = this.originalNameByKey.get(key) ?? key;
+      yield [originalName, token] as [string, RememberedToken];
+    }
   }
 
   public entries(): [string, RememberedToken][] {
-    return Array.from(this.rememberedTokenByName.entries());
+    const result: [string, RememberedToken][] = [];
+    for (const [key, token] of this.rememberedTokenByName) {
+      const originalName = this.originalNameByKey.get(key) ?? key;
+      result.push([originalName, token]);
+    }
+    return result;
   }
 
   public clear(): void {
     this.rememberedTokenByName.clear();
+    this.originalNameByKey.clear();
     this._logMessage(`* ${this.id} clear() now ` + this.length() + ' tokens');
   }
 
@@ -2497,6 +2533,7 @@ export class TokenSet {
     if (tokenName.length > 0) {
       if (!this.hasToken(tokenName)) {
         this.rememberedTokenByName.set(desiredTokenKey, token);
+        this.originalNameByKey.set(desiredTokenKey, tokenName);
         const currCt: number = this.length();
         this._logMessage(`* ${this.id} #${currCt}: ${this.rememberdTokenString(tokenName, token)}`);
       } else {
@@ -2679,7 +2716,7 @@ export class NameScopedTokenSet {
     } else {
       if (methodTokenSet) {
         this._logMessage(`  -- NEW-lpTOK [${desiredTokenKey}]=[${token.type}[${token.modifiers}]]`);
-        methodTokenSet.setToken(desiredTokenKey, token);
+        methodTokenSet.setToken(tokenName, token);
       }
     }
   }

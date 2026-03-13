@@ -43,20 +43,19 @@ export default class WorkspaceSymbolProvider implements Provider {
           continue; // skip non-global or non-declaration tokens
         }
 
-        // Get the original-case name from the reference (tokenNameKey is lowercase)
         // Use the global token to get the semantic type for SymbolKind mapping
         const globalToken = findings.getGlobalToken(tokenNameKey);
         const tokenType = globalToken ? globalToken.type : 'variable';
 
         // Filter by query string (case-insensitive substring match)
-        if (query.length > 0 && !tokenNameKey.includes(query)) {
+        if (query.length > 0 && !tokenNameKey.toLowerCase().includes(query)) {
           continue;
         }
 
         const symbolKind = this._mapTokenTypeToSymbolKind(tokenType);
 
         results.push({
-          name: tokenNameKey, // lowercase key from reference index
+          name: tokenNameKey, // original-case name from reference index
           kind: symbolKind,
           location: {
             uri: docUri,
