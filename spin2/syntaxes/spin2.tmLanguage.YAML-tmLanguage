@@ -130,6 +130,20 @@ repository:
         match: "\"[^\"]*\""
         captures:
           "0": { name: meta.skip.highlight.debug-string.spin2 }
+      - include: "#debug_nested_parens"
+  debug_nested_parens:
+    begin: "\\("
+    end: "\\)"
+    patterns:
+      - name: meta.debug.content.sgl.spin2
+        match: "'.*?'"
+        captures:
+          "0": { name: meta.skip.highlight.debug-string.spin2 }
+      - name: meta.debug.content.dbl.spin2
+        match: "\"[^\"]*\""
+        captures:
+          "0": { name: meta.skip.highlight.debug-string.spin2 }
+      - include: "#debug_nested_parens"
   decimal_number:
     name: constant.numeric.decimal.spin2
     patterns:

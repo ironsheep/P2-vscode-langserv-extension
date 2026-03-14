@@ -1,0 +1,19 @@
+{
+        "spin2.optionsBinaryFname": "64013_RTC_Example.bin",
+        "spin2.serialPort": "Parw7ukt",
+        "spin2.fSpecCompiler": "/Applications/pnut_ts/pnut-ts",
+        "spin2.localIncludes": {
+                ".": {
+                        "auto": true,
+                        "dirs": []
+                }
+        },
+        "spin2.optionsBuild": [
+                "-l"
+        ],
+        "spin2.fSpecLoader": "/Applications/PNut-Term-TS.app/Contents/Resources/bin/pnut-term-ts",
+        "spin2.optionsLoader": [
+                "--ide",
+                "-r"
+        ]
+}

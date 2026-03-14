@@ -1,0 +1,149 @@
+'' =================================================================================================
+''
+''   File....... 64013_RTC Example.spin2
+''   Purpose....
+''   Author..... Michael Mulholland
+''               -- based on code shared by Jon "JonnyMac" McPhalen
+''
+''   E-mail..... support@parallax.com
+''   Started....
+''   Updated.... 30 NOV 2022
+''
+''   IDE........ Compiled with PropellerTool (version 2.7.0)
+''               - Load to propeller with DEBUG output enabled (Click Run menu, then Enable DEBUG for P2)
+''
+''   {$P2}
+''
+'' =================================================================================================
+
+
+con { timing }
+
+  _clkfreq = 180_000_000
+  _xinfreq =  20_000_000    ' Optional, set the exact clock source frequency for your P2 board.
+                            ' Parallax P2 Boards often have 20_000_000 oscillators; third party boards may vary.
+                            ' Tip: _xinfreq will default to 20_000_000 if not set in user code.
+
+                            ' NOTE: Setting _xinfreq is highly recommended when
+                            '       using the P2 to calibrate your RTC oscillator!
+
+
+con { base pin }
+
+  RTCBASE  = 16
+
+
+''' ------------------------------------------------------------------------------------------------------
+obj
+
+  rtc  : "64013_RTC_Driver"
+  term : "jm_fullduplexserial"  ' serial driver, used to set current time from host
+
+''' ------------------------------------------------------------------------------------------------------
+pub main() | lastsc, sc, mn, hr, lastwd, wd, dt, mo, yr, tc, x, daysinyear
+
+
+  '' Start RTC Driver, or else quit.
+  '' -- 2nd parameter forces calibration if true.
+  '' If calibrating, ENSURE the _xinfreq setting is correct for your board, in the con {timing} section above!
+  if !rtc.start(RTCBASE, true)
+    debug("Failed to start RTC")
+    halt()
+
+
+  '' Optional - Reset the RTC settings to default
+  'rtc.sw_reset()
+
+
+  '' Optional - Check battery
+  if rtc.battery_low()
+    halt()
+
+
+  '' Optional - Set battery mode
+  '' -- Tip! Might be good to enable battery in-case it was previously disabled for shipping or storage
+  rtc.set_battery_mode(rtc.BATT_ENABLE)                                         ' BATT_ENABLE, BATT_DISABLE
+
+
+  '' Calibration - call anytime if ambient temperature changes significantly
+  '' - calling here for example only- change paramater to true to save the calibration result.
+  rtc.calibrate(false)                                                          ' true to store calibration, false to read (but not store).
+
+
+  '' Manually set RTC registers to current time and date
+  '' - When calling set_calendar, the weekday number (0-6) will automatically be calculated and saved.
+  '' ! Uncomment the following lines to set the RTC date/time!
+  'rtc.set_time(30, 48, 12)                                                      ' 12:48:30 pm
+  'rtc.set_calendar(5, 12, 2012)                                                 ' 5 DEC 2012
+
+
+
+  '' Demo display section follows
+  ''
+
+  waitms(1000)                                                                  ' Allow debug terminal to update before streaming calendar data
+
+
+  '' Configure display windows
+  debug(`term c title 'Date & Time' pos 25 300 size 30 1 textsize 20)
+  debug(`term d title 'Day'         pos 25 200 size 30 1 textsize 20)
+
+  '' Pre-load some variables
+  sc, mn, hr := rtc.get_time()                                                  ' sc = seconds, mn = minutes, hr = hours
+  dt, mo, yr := rtc.get_calendar()                                              ' dt = day (0..31), mo = month (1..12), yr = year (2001..2099)
+  wd         := rtc.get_weekday()                                               ' wd = weekday digit 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  lastsc     := lastwd := -1                                                    ' helper variables for previous-seconds and previous-weekday values
+
+  '' Repeat loop, update calendar display based on RTC values
+  repeat
+    sc, mn, hr := rtc.get_time()
+    if (sc <> lastsc)
+      debug(`c 0 ' `zstr_(rtc.calendar(dt, mo, yr))  `zstr_(rtc.time_12(hr, mn, sc))')
+      lastsc := sc
+
+    wd := rtc.get_weekday()
+    if (wd <> lastwd)
+      dt, mo, yr := rtc.get_calendar()
+      daysinyear := rtc.leap_year(yr) ? 366 : 365
+      debug(`d 0 ' `zstr_(rtc.day_name_long(wd)), Day # `udec_(rtc.day_number(dt, mo, yr)) of `udec_(daysinyear) ')
+      lastwd := wd
+
+
+
+''' ------------------------------------------------------------------------------------------------------
+pri halt()
+
+  '' Call this during debugging to halt the code, and allow values/data to be read from the debug window.
+
+  debug(13, "!!! halt !!!")
+  repeat
+    waitct(0)
+
+
+
+
+''' ------------------------------------------------------------------------------------------------------
+con { license }
+
+{{
+
+  Terms of Use: MIT License
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this
+  software and associated documentation files (the "Software"), to deal in the Software
+  without restriction, including without limitation the rights to use, copy, modify,
+  merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to the following
+  conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies
+  or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+  PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+  CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+  OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+}}

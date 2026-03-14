@@ -153,6 +153,23 @@ function registerCommands(context: vscode.ExtensionContext): void {
   );
 
   // ----------------------------------------------------------------------------
+  //   Hook GENERATE Project Archive (ZIP)
+  //
+  const generateProjectArchiveCommand: string = 'spinExtension.generate.project.archive';
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(generateProjectArchiveCommand, async () => {
+      docGenerator.logMessage('CMD: generateProjectArchiveCommand');
+      try {
+        docGenerator.generateProjectArchive();
+      } catch (error) {
+        await vscode.window.showErrorMessage(`Project Archive Problem\n${error.stack}`);
+        logExtensionMessage(`Exception: Project Archive Problem\n${error.stack}`);
+      }
+    })
+  );
+
+  // ----------------------------------------------------------------------------
   //   Hook GENERATE USB TEST Document
   //
   const generateUSBDocumentFileCommand: string = 'spinExtension.generate.usb.documentation.file';

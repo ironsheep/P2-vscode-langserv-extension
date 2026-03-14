@@ -250,6 +250,7 @@ export class Spin2ParseUtils {
     //  Ex #7:   debug(`testTerm 1 'Pulse Width = ', '`(position)', ' microseconds  ')
     //  Ex #8:   debug(`term3 'FwdEnc=`(encVal), dty=`(duty), dxy=`(duty)' 10)    ' more than 1 `() within a single 'xxxx' string
     // NOTE: allowed `() specs: Decimal: `(var), Hex: `$(var), Binary: `%(var), Characters: `#(var)
+    //  Also debug format specifier escapes: `zstr_(expr), `udec_(expr), `lstr_(expr), `sdec_(expr), etc.
     //this._logMessage(`- RQS line [${line}]`);
     let trimmedLine: string = line;
     const chrSingleQuote: string = "'";
@@ -305,7 +306,8 @@ export class Spin2ParseUtils {
         trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
         //this._logMessage(`sp2u:  -- RdsQS B trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
-        let closeParenOffset: number = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
+        const openParenOffsetA: number = trimmedLine.indexOf('(', nextTicEscape);
+        let closeParenOffset: number = openParenOffsetA !== -1 ? this._findBalancedCloseParen(trimmedLine, openParenOffsetA) : -1;
         if (closeParenOffset == -1) {
           this._logMessage(`sp2u:  -- RdsQS FAILED A to locate close paren of \`() clause`);
           break;
@@ -319,7 +321,8 @@ export class Spin2ParseUtils {
           trimmedLine = trimmedLine.replace(badElement, '#'.repeat(badElement.length));
           //this._logMessage(`sp2u:  -- RdsQS C trimmedLine=[${trimmedLine}](${trimmedLine.length})`);
 
-          closeParenOffset = trimmedLine.indexOf(chrCloseParen, nextTicEscape);
+          const openParenOffsetB: number = trimmedLine.indexOf('(', nextTicEscape);
+          closeParenOffset = openParenOffsetB !== -1 ? this._findBalancedCloseParen(trimmedLine, openParenOffsetB) : -1;
           if (closeParenOffset == -1) {
             this._logMessage(`sp2u:  -- RdsQS FAILED B to locate close paren of \`() clause`);
             break;
@@ -349,30 +352,30 @@ export class Spin2ParseUtils {
   }
 
   private _nextTicEscape(line: string, startingOffset: number): number {
-    let nextLocation: number = -1; // start with NOT found
-    const nextDecimal: number = line.indexOf('`(', startingOffset);
-    const nextHex: number = line.indexOf('`$(', startingOffset);
-    const nextBinary: number = line.indexOf('`%(', startingOffset);
-    const nextCharacter: number = line.indexOf('`#(', startingOffset);
-    if (nextDecimal != -1) {
-      nextLocation = nextDecimal;
-    }
-    if (nextHex != -1) {
-      if ((nextLocation != -1 && nextHex < nextLocation) || nextLocation == -1) {
-        nextLocation = nextHex;
+    // Find any backtick escape sequence starting from startingOffset
+    // Handles simple escapes: `(var), `$(var), `%(var), `#(var)
+    // AND debug format specifier escapes: `zstr_(expr), `udec_(expr), `lstr_(expr), etc.
+    const searchLine: string = line.substring(startingOffset);
+    const ticEscapeRegex: RegExp = /`(?:[a-zA-Z_]\w*)?[#$%]?\(/;
+    const match: RegExpExecArray | null = ticEscapeRegex.exec(searchLine);
+    return match !== null ? startingOffset + match.index : -1;
+  }
+
+  private _findBalancedCloseParen(line: string, openParenOffset: number): number {
+    // Find the matching close paren for the open paren at openParenOffset,
+    // handling nested parentheses within the expression
+    let depth: number = 1;
+    for (let i = openParenOffset + 1; i < line.length; i++) {
+      if (line[i] === '(') {
+        depth++;
+      } else if (line[i] === ')') {
+        depth--;
+        if (depth === 0) {
+          return i;
+        }
       }
     }
-    if (nextBinary != -1) {
-      if ((nextLocation != -1 && nextBinary < nextLocation) || nextLocation == -1) {
-        nextLocation = nextBinary;
-      }
-    }
-    if (nextCharacter != -1) {
-      if ((nextLocation != -1 && nextCharacter < nextLocation) || nextLocation == -1) {
-        nextLocation = nextCharacter;
-      }
-    }
-    return nextLocation;
+    return -1; // not found
   }
 
   public getNonInlineCommentLine(line: string): string {

@@ -8000,6 +8000,19 @@ export class Spin2DocumentSemanticParser {
             currSingleLineOffset = nameOffset + newParameter.length;
             continue;
           }
+          // is spin builtin variable? (e.g., clkfreq)
+          if (this.parseUtils.isSpinBuiltInVariable(newParameter)) {
+            this._logDEBUG(`  -- rDbgStM() register=[${newParameter}], ofs=(${nameOffset})`);
+            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+              line: symbolPosition.line,
+              startCharacter: symbolPosition.character,
+              length: newParameter.length,
+              ptTokenType: 'variable',
+              ptTokenModifiers: ['readonly']
+            });
+            currSingleLineOffset = nameOffset + newParameter.length;
+            continue;
+          }
           // does name contain a namespace reference?
           let bHaveObjReference: boolean = false;
           let bHaveStructReference: boolean = false;

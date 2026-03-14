@@ -6,6 +6,7 @@ import { EndOfLine } from 'vscode';
 
 import * as fs from 'fs';
 import * as path from 'path';
+import AdmZip = require('adm-zip');
 
 import { isSpin1Document, isSpin2File, isSpin1File } from '../spin.vscode.utils';
 import { SpinCodeUtils, eParseState } from '../spin.code.utils';
@@ -604,6 +605,186 @@ export class DocGenerator {
       }
     } else {
       this.logMessage(`+ (DBG) generateHierarchyDocument() NO active editor.`);
+    }
+  }
+
+  // ----------------------------------------------------------------------------
+  //   Hook GENERATE Project Archive (ZIP)
+  //
+  public generateProjectArchive(): void {
+    const textEditor = vscode.window.activeTextEditor;
+    if (textEditor) {
+      this.endOfLineStr = '\r\n'; // archives use CRLF for readme
+
+      const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
+      const currentlyOpenTabfolderName = path.dirname(currentlyOpenTabfilePath);
+      const currentlyOpenTabfileName = path.basename(currentlyOpenTabfilePath);
+      this.logMessage(`+ (DBG) generateProjectArchive() fsPath-(${currentlyOpenTabfilePath})`);
+      this.logMessage(`+ (DBG) generateProjectArchive() folder-(${currentlyOpenTabfolderName})`);
+      this.logMessage(`+ (DBG) generateProjectArchive() filename-(${currentlyOpenTabfileName})`);
+      let isSpinFile: boolean = isSpin2File(currentlyOpenTabfileName);
+      let isSpin1: boolean = false;
+      let fileType: string = '.spin2';
+      if (!isSpinFile) {
+        isSpinFile = isSpin1File(currentlyOpenTabfileName);
+        if (isSpinFile) {
+          isSpin1 = true;
+          fileType = '.spin';
+        }
+      }
+      if (isSpinFile) {
+        const objectName: string = currentlyOpenTabfileName.replace(fileType, '');
+
+        // build archive filename with date/time stamp
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}`;
+        const zipFilename = `${objectName}-Archive-Date-${dateStr}-Time-${timeStr}.zip`;
+        const zipFSpec = path.join(currentlyOpenTabfolderName, zipFilename);
+        this.logMessage(`+ (DBG) generateProjectArchive() zipFSpec-(${zipFSpec})`);
+
+        // generate _readme.txt content
+        const readmeContent = this._generateArchiveReadme(objectName);
+
+        // collect all source files from the dependency tree (flat, no duplicates)
+        const sourceFiles: Map<string, string> = new Map(); // basename -> full path
+        sourceFiles.set(currentlyOpenTabfileName, currentlyOpenTabfilePath);
+        const [topFilename, rootNode] = this.objTreeProvider.getObjectHierarchy();
+        if (rootNode) {
+          this._collectSourceFiles(rootNode, sourceFiles);
+        }
+
+        // create ZIP archive
+        const zip = new AdmZip();
+        zip.addFile('_readme.txt', Buffer.from(readmeContent, 'utf-8'));
+        for (const [basename, fullPath] of sourceFiles) {
+          if (fs.existsSync(fullPath)) {
+            zip.addLocalFile(fullPath, '', basename);
+            this.logMessage(`+ (DBG) generateProjectArchive() added file: ${basename}`);
+          } else {
+            this.logMessage(`+ (DBG) generateProjectArchive() MISSING file: ${fullPath}`);
+          }
+        }
+        zip.writeZip(zipFSpec);
+        this.logMessage(`+ (DBG) generateProjectArchive() wrote ZIP: ${zipFSpec}`);
+
+        vscode.window.showInformationMessage(`Project archive created: ${zipFilename}`);
+      } else {
+        this.logMessage(`+ (DBG) generateProjectArchive() NOT a spin file! can't generate archive.`);
+      }
+    } else {
+      this.logMessage(`+ (DBG) generateProjectArchive() NO active editor.`);
+    }
+  }
+
+  private _generateArchiveReadme(objectName: string): string {
+    const eol = this.endOfLineStr;
+    const rptHoriz: string = '─';
+    const rptTitle: string = 'Parallax Propeller Chip Project Archive';
+    const lines: string[] = [];
+
+    lines.push(`${rptHoriz.repeat(rptTitle.length)}`);
+    lines.push(`${rptTitle}`);
+    lines.push(`${rptHoriz.repeat(rptTitle.length)}`);
+    lines.push('');
+    lines.push(` Project :  "${objectName}"`);
+    lines.push('');
+    lines.push(`Archived :  ${this.reportDateString()}`);
+    lines.push('');
+    const versionStr: string = this.extensionVersionString();
+    lines.push(`    Tool :  VSCode Spin2 Extension ${versionStr}`);
+    lines.push('');
+    lines.push('');
+
+    // get hierarchy and render tree
+    const [topFilename, rootNode] = this.objTreeProvider.getObjectHierarchy();
+    this.hierarchyFilenameTotal = this.countFiles(rootNode);
+    this.hierarchyFilenameCount = 0;
+    if (topFilename.length == 0 || !rootNode) {
+      lines.push('NO Dependencies found!');
+    } else {
+      const treeLines: string[] = [];
+      const lastParent: boolean = this.isOnlyParent(rootNode);
+      this._reportDepsToLines(0, [], rootNode, treeLines, lastParent, false);
+      lines.push(...treeLines);
+    }
+    lines.push('');
+    lines.push('');
+    lines.push(`${rptHoriz.repeat(20)}`);
+    lines.push('Iron Sheep Productions, LLC');
+    lines.push('');
+
+    return lines.join(eol) + eol;
+  }
+
+  private _reportDepsToLines(
+    depth: number,
+    nestList: boolean[],
+    node: IObjectDependencyNode,
+    lines: string[],
+    isLastParent: boolean,
+    isLastChild: boolean
+  ) {
+    const baseIndent: number = 12;
+    const rptHoriz: string = '─';
+    const rptVert: string = '│';
+    const rptTeeRight: string = '├';
+    const rptElbow: string = '└';
+    const haveChildren: boolean = node.children.length > 0 && !node.isCircular && !node.isFileMissing;
+    const NoEndBlank: boolean = true;
+    // file line prefix
+    const fileEndChar: string = isLastChild ? rptElbow : rptTeeRight;
+    const prefixFillTee: string = this.fillWithVerts(nestList, fileEndChar, NoEndBlank);
+    let linePrefixFile: string = ' '.repeat(baseIndent - 2);
+    if (depth == 0) {
+      linePrefixFile = `${linePrefixFile}  `;
+    } else {
+      linePrefixFile = `${linePrefixFile}${prefixFillTee}${rptHoriz}${rptHoriz}`;
+    }
+    // blank line prefix
+    if (nestList.length > 1) {
+      nestList[depth - 1] = isLastChild ? false : true;
+    }
+    const vertNestList: boolean[] = haveChildren ? [...nestList, true] : nestList;
+    const specialEndBlanking: boolean = isLastChild && !haveChildren ? false : NoEndBlank;
+    const prefixFillVert: string = this.fillWithVerts(vertNestList, rptVert, specialEndBlanking);
+    let linePrefixSpacer: string = ' '.repeat(baseIndent - 2);
+    if (depth == 0) {
+      linePrefixSpacer = ' '.repeat(baseIndent - 2) + this.fillWithVerts([true], rptVert, NoEndBlank);
+    } else {
+      linePrefixSpacer = `${linePrefixSpacer}${prefixFillVert}`;
+    }
+    // write one or both lines
+    lines.push(`${linePrefixFile}${node.fileName}`);
+    this.hierarchyFilenameCount++;
+    const showLastBlankLine: boolean = this.hierarchyFilenameCount < this.hierarchyFilenameTotal;
+    if (showLastBlankLine) {
+      lines.push(`${linePrefixSpacer}`);
+    }
+    // process children of this object
+    if (haveChildren) {
+      for (let index = 0; index < node.children.length; index++) {
+        const childNode = node.children[index];
+        const isLastChild: boolean = index == node.children.length - 1;
+        const nextIsLastParent = depth == 0 && isLastChild ? true : isLastParent;
+        nestList.push(nextIsLastParent ? false : true);
+        this._reportDepsToLines(depth + 1, nestList, childNode, lines, nextIsLastParent, isLastChild);
+      }
+    }
+    if (nestList.length > 0) {
+      nestList.pop();
+    }
+  }
+
+  private _collectSourceFiles(node: IObjectDependencyNode, sourceFiles: Map<string, string>): void {
+    for (const child of node.children) {
+      if (!child.isCircular && !child.isFileMissing && child.fileSpec.length > 0) {
+        const basename = path.basename(child.fileSpec);
+        if (!sourceFiles.has(basename)) {
+          sourceFiles.set(basename, child.fileSpec);
+        }
+        this._collectSourceFiles(child, sourceFiles);
+      }
     }
   }
 

@@ -21,6 +21,21 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
+## [2.8.2] 2026-03-14
+
+Spin2 debug() statement colorizing fixes and project archive feature
+
+### New Features
+
+- Add "Spin2: Archive Project" command -- generates a ZIP archive of the top-level source file and all OBJ-referenced dependencies as a flat file set, with a `_readme.txt` showing the project name, timestamp, tool version, and object hierarchy tree
+
+### Fixes
+
+- Fix Spin2 TextMate grammar ending debug() scope prematurely when format specifiers with parentheses are used (e.g., `debug("text", ubin(mode))`) -- nested parentheses are now consumed correctly so the full statement is scoped
+- Fix debug display feed single-quoted strings containing format specifier escapes like `` `zstr_(expr) ``, `` `udec_(expr) ``, `` `lstr_(expr) `` not being recognized as tic escapes -- these were stripped as plain string text, preventing colorization of the format specifiers, object method references, and variables within
+- Fix close-paren matching for tic escapes with nested parentheses (e.g., `` `zstr_(rtc.calendar(dt, mo, yr)) ``) -- now uses balanced paren matching instead of finding the first `)` which matched the inner call
+- Fix built-in variables (e.g., `clkfreq`) not highlighted inside non-display debug() statements with format specifiers -- the `isSpinBuiltInVariable()` check was missing from this code path
+
 ## [2.8.1] 2026-03-13
 
 Preserve original case for symbol names in completion, workspace symbols, and diagnostics
