@@ -27,7 +27,7 @@ Spin2 debug() statement colorizing fixes and project archive feature
 
 ### New Features
 
-- Add "Spin2: Archive Project" command -- generates a ZIP archive of the top-level source file and all OBJ-referenced dependencies as a flat file set, with a `_readme.txt` showing the project name, timestamp, tool version, and object hierarchy tree
+- Add "Spin2: Archive Project" command -- generates a ZIP archive of the top-level source file and all OBJ-referenced dependencies as a flat file set, with a `_README_.txt` showing the project name, timestamp, tool version, and object hierarchy tree
 
 ### Fixes
 

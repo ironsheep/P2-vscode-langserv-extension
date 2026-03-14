@@ -643,7 +643,7 @@ export class DocGenerator {
         const zipFSpec = path.join(currentlyOpenTabfolderName, zipFilename);
         this.logMessage(`+ (DBG) generateProjectArchive() zipFSpec-(${zipFSpec})`);
 
-        // generate _readme.txt content
+        // generate _README_.txt content
         const readmeContent = this._generateArchiveReadme(objectName);
 
         // collect all source files from the dependency tree (flat, no duplicates)
@@ -656,7 +656,7 @@ export class DocGenerator {
 
         // create ZIP archive
         const zip = new AdmZip();
-        zip.addFile('_readme.txt', Buffer.from(readmeContent, 'utf-8'));
+        zip.addFile('_README_.txt', Buffer.from(readmeContent, 'utf-8'));
         for (const [basename, fullPath] of sourceFiles) {
           if (fs.existsSync(fullPath)) {
             zip.addLocalFile(fullPath, '', basename);
