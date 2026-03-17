@@ -1,0 +1,24 @@
+' wrap-long-lines.spin2 — Test: code lines exceeding maxLineLength without ... continuation
+' Spin2 symbol limit is 30 chars, so names are kept under that
+
+CON
+  _clkfreq = 10_000_000
+  LONG_CONST_NAME_TEST = 42
+  ANOTHER_LONG_CONST = 99
+  YET_ANOTHER_LONG_NM = 128
+
+VAR
+  LONG  resultBuffer[16]
+  LONG  statusRegister
+  LONG  configValue
+
+PUB main() | index, tempValue, accumulator, errorCount, retryCounter
+  accumulator := LONG_CONST_NAME_TEST + ANOTHER_LONG_CONST + YET_ANOTHER_LONG_NM + LONG_CONST_NAME_TEST + ANOTHER_LONG_CONST
+  repeat index from 0 to 15
+    resultBuffer[index] := accumulator + index * LONG_CONST_NAME_TEST + ANOTHER_LONG_CONST + YET_ANOTHER_LONG_NM
+    if resultBuffer[index] > LONG_CONST_NAME_TEST * ANOTHER_LONG_CONST + YET_ANOTHER_LONG_NM + accumulator + statusRegister
+      resultBuffer[index] := LONG_CONST_NAME_TEST
+
+PUB calculate(inputValue, scaleFactor, offsetValue, maxClamp, minClamp) : outputValue | intermediate
+  intermediate := inputValue * scaleFactor + offsetValue
+  outputValue := intermediate

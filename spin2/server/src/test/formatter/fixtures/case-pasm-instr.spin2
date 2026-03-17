@@ -1,0 +1,39 @@
+' case-pasm-instr.spin2 — Test: mixed-case PASM mnemonics
+' PASM instructions with inconsistent casing
+
+CON
+  _clkfreq = 10_000_000
+  PIN_OUT = 56
+
+VAR
+  LONG  myCog
+
+PUB main()
+  myCog := coginit(COGEXEC_NEW, @worker, @myCog)
+
+DAT
+                org
+
+worker          MOV     pa, #PIN_OUT
+                drvnot  pa
+                WAITX   dlytime
+                JMP     #worker
+
+dlytime         LONG    10_000_000
+
+                fit 496
+
+DAT
+                org
+
+counter         mov     x, #0
+.loop           ADD     x, #1
+                CMP     x, limit        wcz
+    IF_AE       jmp     #.done
+                JMP     #.loop
+.done           RET
+
+x               Long    0
+limit           LONG    100
+
+                fit 496

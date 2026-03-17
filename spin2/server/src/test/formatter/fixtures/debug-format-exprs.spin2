@@ -1,0 +1,20 @@
+' debug-format-exprs.spin2 — Test: long backtick format expressions in debug()
+' Must not break inside `uhex_(...) or similar specifiers
+' Compile with -d flag
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  LONG  imgData[16]
+
+PUB main() | i, pImage
+  pImage := @imgData
+
+  debug(`bitmap e title 'RGB8' pos 100 690 trace 2 rgb8)
+  debug(`bitmap f title 'RGB16' pos 370 690 trace 2 rgb16)
+
+  repeat i from 0 to 15
+    debug(`e `uhex_(byte[pImage + i * 3 + 0] >> 6 + byte[pImage + i * 3 + 1] >> 5 << 2 + byte[pImage + i * 3 + 2] >> 5 << 5))
+    debug(`f `uhex_(byte[pImage + i * 3 + 0] >> 3 + byte[pImage + i * 3 + 1] >> 2 << 5 + byte[pImage + i * 3 + 2] >> 3 << 11))
+    debug(udec(i), uhex_long(long[pImage + i * 4]), uhex_byte(byte[pImage + i * 3 + 0]), uhex_byte(byte[pImage + i * 3 + 1]), uhex_byte(byte[pImage + i * 3 + 2]))

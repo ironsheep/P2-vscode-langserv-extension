@@ -1,0 +1,22 @@
+' debug-string-interp.spin2 — Test: single-quoted strings inside debug that look like comments
+' The ' inside debug display specs is a string delimiter, NOT a comment
+' Compile with -d flag
+
+CON
+  _clkfreq = 10_000_000
+
+PUB main() | temp, position, velocity
+  temp := 72
+  position := 150
+  velocity := 30
+
+  debug(`term StatusTerm pos 914 71 size 30 1 textsize 20 color red)
+  debug(`StatusTerm 0)
+  debug(`StatusTerm 'Temperature = `(temp)' degrees F')
+  debug(`StatusTerm 'Position = `(position)' steps')
+  debug(`StatusTerm 'Velocity = `(velocity)' steps/sec')
+
+  debug(`plot myplot size 400 480 backcolor white update)
+  debug(`myplot set 240 0 cyan 3 text 24 3 'Hub RAM Interface')
+  debug(`myplot set 210 0 text 11 3 'Cogs can r/w 32 bits per clock')
+  debug(`myplot orange 6 set 150 0 circle 61 text 13 'Cog0')

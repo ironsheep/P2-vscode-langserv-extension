@@ -1,0 +1,37 @@
+' indent-case-block.spin2 — Test: CASE statement indentation
+' CASE at level N, match values at N+1, body at N+2
+
+CON
+  _clkfreq = 10_000_000
+  #0, CMD_NOP, CMD_READ, CMD_WRITE, CMD_RESET
+
+VAR
+  LONG  result
+  LONG  status
+
+PUB main() | cmd, value
+  cmd := CMD_READ
+  value := 42
+
+  case cmd
+      CMD_NOP:
+            result := 0
+      CMD_READ:
+            result := value
+              status := 1
+      CMD_WRITE:
+          result := 0
+            status := 2
+      CMD_RESET:
+              result := 0
+              status := 0
+      other:
+          result := -1
+
+  case_fast value
+        0:
+            status := 0
+        1, 2, 3:
+              status := value
+        other:
+            status := -1

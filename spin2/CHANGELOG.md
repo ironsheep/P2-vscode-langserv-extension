@@ -11,7 +11,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Work on fixes to any reported issues
 - v43 Add Constants to OBJ I/F DOC
 - v45 Add Structures to OBJ I/F DOC
-- Add spin2 code formatter
+- Continue spin2 code formatter improvements
 
 ### More distant next Additions
 
@@ -20,6 +20,19 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 - Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
+
+## [2.9.0] 2026-03-17
+
+Spin2 document formatter with tab/space conversion and status bar indicator
+
+### New Features
+
+- Add Spin2 document formatter with section-aware column alignment for CON, VAR, OBJ, and DAT blocks, method body indentation normalization, PASM instruction alignment, keyword case normalization, and trailing comment alignment
+- Add bidirectional tab/space conversion -- the formatter enforces the user's whitespace preference: converts tabs to spaces or spaces to tabs based on the `tabsToSpaces` setting
+- Add "Spin2 Spaces: N" / "Spin2 Tabs: N" status bar indicator showing active tab/indent settings -- click to switch between spaces and tabs, change indent size, or change tab width
+- Add VSCode built-in `editor.tabSize` and `editor.insertSpaces` as fallback defaults when extension formatter settings are not explicitly configured
+- Add formatter test suite (1152 tests) covering binary parity, idempotency, configuration variation, crash resilience, and real-world file validation
+- Formatter is disabled by default -- enable via `spinExtension.formatter.enable` in settings
 
 ## [2.8.2] 2026-03-14
 

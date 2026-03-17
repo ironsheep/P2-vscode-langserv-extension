@@ -1,0 +1,22 @@
+' ws-trailing.spin2 — Test: trailing whitespace on various line types
+' Every line intentionally has trailing spaces that the formatter should remove
+ 
+CON
+  _clkfreq = 10_000_000     
+  MAX_COUNT = 100   
+ 
+VAR
+  LONG  counter   
+  BYTE  flags  
+ 
+PUB main() | i
+  repeat i from 0 to MAX_COUNT
+    counter := i    
+    if i > 50
+      flags := 1   
+    else
+      flags := 0      
+ 
+PUB helper(value) : result
+  result := value * 2  
+  result += 1

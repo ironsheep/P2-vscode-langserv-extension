@@ -1,0 +1,22 @@
+' align-con-equals.spin2 — Test: CON = signs at random columns
+' Named constants with wildly inconsistent alignment
+
+CON
+  _clkfreq = 10_000_000
+  MAX_SIZE =100
+  MIN_SIZE     =     5
+  BUFFER_LEN=          256
+  PIN_LED =56
+  PIN_BUTTON    = 57
+  TIMEOUT_MS =    1000
+  RETRY_MAX=3
+  DEFAULT_BAUD     =       115_200
+
+VAR
+  LONG  value
+
+PUB main() | i
+  value := MAX_SIZE
+  repeat i from MIN_SIZE to MAX_SIZE
+    value := i
+  value := BUFFER_LEN

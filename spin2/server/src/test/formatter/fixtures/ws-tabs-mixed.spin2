@@ -1,0 +1,24 @@
+' ws-tabs-mixed.spin2 — Test: tab characters mixed with spaces
+' Tabs appear in CON, VAR, and DAT sections (non-semantic indentation)
+' PUB section uses clean spaces to avoid ambiguous nesting
+
+CON
+	_clkfreq = 10_000_000
+	MAX_COUNT = 100
+	PIN_LED	=	56
+
+VAR
+	LONG	counter
+	BYTE	flags
+
+DAT
+myVal	long	0	' a value
+myBuf	byte	0[16]	' a buffer
+
+PUB main() | i
+  repeat i from 0 to MAX_COUNT
+    counter := i
+    if i > 50
+      flags := 1
+    else
+      flags := 0

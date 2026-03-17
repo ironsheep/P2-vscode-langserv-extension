@@ -1,0 +1,27 @@
+' debug-continuation.spin2 — Test: debug() with ... continuation
+' Compile with -d flag
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  LONG  sensorData[8]
+
+PUB main() | i, pData
+  pData := @sensorData
+
+  debug(`scope MainScope pos 100 0 size 800 600 linesize 6)
+
+  repeat i from 0 to 7
+    sensorData[i] := qsin(1000, i * 45, 360)
+
+  debug(uhex_long_array( ...
+    @sensorData, 8))
+  debug(udec(sensorData[0]), ...
+    udec(sensorData[1]), ...
+    udec(sensorData[2]), ...
+    udec(sensorData[3]))
+
+  repeat
+    debug(`MainScope `(sensorData[0]))
+    waitus(100)

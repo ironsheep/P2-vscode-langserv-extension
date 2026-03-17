@@ -1,0 +1,34 @@
+' align-dat-pasm-comments.spin2 — Test: PASM trailing comments at random columns
+' Comments should vertically align within each ORG region
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  LONG  myCog
+
+PUB main()
+  myCog := coginit(COGEXEC_NEW, @pwm_driver, @myCog)
+
+DAT
+                org
+
+pwm_driver      mov     period, baseper    ' initialize period counter
+                mov     duty, basedty ' set initial duty cycle
+                drvl    outpin       ' start with output low
+
+.loop           sub     period, #1         ' decrement period
+                cmp     period, duty     wcz ' compare against duty
+    if_be       drvh    outpin                        ' output high when period <= duty
+    if_a        drvl    outpin   ' output low otherwise
+                tjnz    period, #.loop               ' loop until period expires
+                mov     period, baseper ' reset period
+                jmp     #.loop    ' restart
+
+outpin          long    56           ' output pin number
+period          long    0       ' current period counter
+duty            long    0                   ' duty cycle value
+baseper         long    1000  ' base period
+basedty         long    500           ' base duty cycle
+
+                fit 496

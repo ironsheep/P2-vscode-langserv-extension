@@ -1,0 +1,46 @@
+' align-dat-multi-org.spin2 — Test: multiple ORG regions need independent alignment
+' Each ORG region should align independently
+
+CON
+  _clkfreq = 10_000_000
+  PIN_LED = 56
+  PIN_BTN = 57
+
+VAR
+  LONG  cog1
+  LONG  cog2
+
+PUB main()
+  cog1 := coginit(COGEXEC_NEW, @blink_task, @cog1)
+  cog2 := coginit(COGEXEC_NEW, @count_task, @cog2)
+
+DAT
+' --- blink task: short operands, effects should align close ---
+                org
+
+blink_task  mov  pa, #PIN_LED
+.loop    drvnot    pa
+       waitx  blkdly
+         jmp     #.loop
+
+blkdly       long   10_000_000
+
+            fit 496
+
+' --- count task: longer operands, effects pushed further out ---
+                org
+
+count_task      mov     accum, #0
+.cloop          add     accum, stepval
+                cmp     accum, threshold  wcz
+    if_ae       mov     accum, #0
+                wrlong  accum, ptra
+                waitx   cntdly
+                jmp     #.cloop
+
+accum           long    0
+stepval         long    1
+threshold       long    1000
+cntdly          long    5_000_000
+
+                fit 496

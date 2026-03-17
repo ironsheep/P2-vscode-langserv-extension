@@ -1,0 +1,30 @@
+' indent-cont-nested.spin2 — Test: line continuations inside nested blocks
+' Verifies formatter preserves continuation semantics after indent normalization
+
+CON
+  _clkfreq = 10_000_000
+  LIMIT = 1000
+  STEP_SIZE = 10
+
+VAR
+  LONG  result
+  LONG  buffer[16]
+
+PUB main() | i, total
+  total := 0
+  repeat i from 0 to LIMIT ...
+    step STEP_SIZE
+    if i > 500
+      total := total + ...
+        i * 2
+    else
+      total := total + i
+  result := total
+
+PUB compute(a, b, c, ...
+  d, e) : sum
+  sum := a + b + ...
+    c + d + e
+  if sum > ...
+    LIMIT
+    sum := LIMIT

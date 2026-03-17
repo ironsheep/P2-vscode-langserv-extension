@@ -1,0 +1,36 @@
+' case-keywords.spin2 — Test: mixed-case Spin2 keywords
+' Keywords should be normalized to lowercase
+
+CON
+  _clkfreq = 10_000_000
+  MAX = 20
+
+VAR
+  LONG  result
+  BYTE  state
+
+PUB main() | i, temp
+  result := 0
+  REPEAT i FROM 0 TO MAX
+    IF i > 10
+      result := i * 2
+    ELSEIF i > 5
+      result := i
+    ELSE
+      result := 0
+    CASE state
+      0:
+        temp := i
+      1:
+        temp := i * 2
+      OTHER:
+        temp := 0
+  REPEAT WHILE result > 100
+    result -= 10
+
+PUB helper(x) : y | temp
+  temp := ABS(x)
+  y := temp
+  IF y > MAX
+    y := MAX
+  RETURN y

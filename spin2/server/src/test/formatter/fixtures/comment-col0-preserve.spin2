@@ -1,0 +1,48 @@
+' comment-col0-preserve.spin2 — Test: column-0 comments must NOT be moved
+' File headers, banners, and dividers at left edge are preserved
+
+' ============================================================================
+' File: comment-col0-preserve.spin2
+' Purpose: Test that column-0 comments are never reformatted
+' Author: Test Suite
+' ============================================================================
+
+'' This is a documentation comment at column 0
+'' It should also be preserved exactly as-is
+
+CON
+  _clkfreq = 10_000_000
+  MAX = 50
+
+' ---------------------
+' Constant definitions
+' ---------------------
+
+  PIN_LED = 56
+  PIN_BTN = 57
+
+VAR
+
+' --- Variables ---
+
+  LONG  counter
+  BYTE  state
+
+PUB main() | i
+
+' This column-0 comment inside a method should not be indented
+
+  counter := 0
+  repeat i from 0 to MAX
+    counter := i
+
+'' Documentation comment at column 0 inside method body
+
+  state := 1
+
+PUB helper(x) : y
+  y := x
+
+' ===================
+' End of file
+' ===================

@@ -28,6 +28,7 @@ import { IUsbSerialDevice, UsbSerial } from './usb.serial';
 import { createStatusBarFlashDownloadItem, updateStatusBarFlashDownloadItem } from './providers/spin.downloadFlashMode.statusBarItem';
 import { createStatusBarCompileDebugItem, updateStatusBarCompileDebugItem } from './providers/spin.compileDebugMode.statusBarItem';
 import { createStatusBarPropPlugItem, updateStatusBarPropPlugItem } from './providers/spin.propPlug.statusBarItem';
+import { createStatusBarTabIndentItem, updateStatusBarTabIndentItem } from './providers/spin.tabIndent.statusBarItem';
 import {
   PATH_FLEXSPIN,
   PATH_LOADER_BIN,
@@ -195,13 +196,15 @@ function registerCommands(context: vscode.ExtensionContext): void {
   const statusCompileDebugBarItem: vscode.StatusBarItem = createStatusBarCompileDebugItem();
   const statusDownloadFlashBarItem: vscode.StatusBarItem = createStatusBarFlashDownloadItem();
   const statusPropPlugBarItem: vscode.StatusBarItem = createStatusBarPropPlugItem();
+  const statusTabIndentBarItem: vscode.StatusBarItem = createStatusBarTabIndentItem();
   handleActiveTextEditorChanged(); // now show or hide based upon current/active window
 
   context.subscriptions.push(
     vscode.commands.registerCommand('spinExtension.insertMode.rotate', toggleCommand),
     vscode.commands.registerCommand('spinExtension.insertMode.toggle', toggleCommand2State),
     vscode.commands.registerCommand('spinExtension.insertMode.deleteLeft', deleteLeftCommand),
-    vscode.commands.registerCommand('spinExtension.insertMode.deleteRight', deleteRightCommand)
+    vscode.commands.registerCommand('spinExtension.insertMode.deleteRight', deleteRightCommand),
+    vscode.commands.registerCommand('spinExtension.formatter.showTabSettings', showFormatterTabSettings)
   );
 
   // Register 'type' and 'paste' overrides separately — these can throw if another extension
@@ -230,7 +233,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
     statusCompileDebugBarItem,
     statusDownloadFlashBarItem,
     statusPropPlugBarItem,
-    statusInsertModeBarItem
+    statusInsertModeBarItem,
+    statusTabIndentBarItem
   );
 
   // ----------------------------------------------------------------------------
@@ -1582,6 +1586,13 @@ async function updateStatusBarItems(callerId: string): Promise<void> {
         }
       }
     }
+
+    // Show/hide tab indent indicator for Spin2 documents with formatter enabled
+    if (haveSpin2Document) {
+      updateStatusBarTabIndentItem(true);
+    } else {
+      updateStatusBarTabIndentItem(null);
+    }
   }
 }
 
@@ -1755,6 +1766,10 @@ const handleDidChangeConfiguration = async () => {
   if (textEditor !== undefined) {
     logExtensionMessage(`* (DBG) handleDidChangeConfiguration edit.doc=[${textEditor.document}]`);
     showHideLoaderSBControls(textEditor.document);
+    // Refresh tab indent status bar on config change
+    if (isSpin2Document(textEditor.document)) {
+      updateStatusBarTabIndentItem(true);
+    }
   }
 
   // update state if the per-editor/global configuration option changes
@@ -2350,6 +2365,49 @@ async function buildPnutTermTsSwitches(writeToFlash: boolean, serialPort: string
   loaderOptions.push(writeToFlash ? '-f' : '-r');
 
   return loaderOptions;
+}
+
+async function showFormatterTabSettings() {
+  const formatterConfig = vscode.workspace.getConfiguration('spinExtension.formatter');
+  const tabsToSpaces: boolean = formatterConfig.get<boolean>('tabsToSpaces', true);
+
+  const items: vscode.QuickPickItem[] = [
+    { label: 'Indent Using Spaces', description: tabsToSpaces ? '(current)' : '' },
+    { label: 'Indent Using Tabs', description: !tabsToSpaces ? '(current)' : '' },
+    { label: 'Change Indent Size...', description: `Currently: ${formatterConfig.get<number>('indentSize', 2)}` },
+    { label: 'Change Tab Width...', description: `Currently: ${formatterConfig.get<number>('tabWidth', 8)}` }
+  ];
+
+  const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Spin2 Formatter: Tab & Indent Settings' });
+  if (!picked) return;
+
+  if (picked.label === 'Indent Using Spaces') {
+    await formatterConfig.update('tabsToSpaces', true, vscode.ConfigurationTarget.Workspace);
+    updateStatusBarTabIndentItem(true);
+  } else if (picked.label === 'Indent Using Tabs') {
+    await formatterConfig.update('tabsToSpaces', false, vscode.ConfigurationTarget.Workspace);
+    updateStatusBarTabIndentItem(true);
+  } else if (picked.label === 'Change Indent Size...') {
+    const sizes: vscode.QuickPickItem[] = [2, 4, 8].map((n) => ({
+      label: `${n}`,
+      description: n === formatterConfig.get<number>('indentSize', 2) ? '(current)' : ''
+    }));
+    const sizePick = await vscode.window.showQuickPick(sizes, { placeHolder: 'Select indent size (spaces per level)' });
+    if (sizePick) {
+      await formatterConfig.update('indentSize', parseInt(sizePick.label), vscode.ConfigurationTarget.Workspace);
+      updateStatusBarTabIndentItem(true);
+    }
+  } else if (picked.label === 'Change Tab Width...') {
+    const widths: vscode.QuickPickItem[] = [2, 4, 8].map((n) => ({
+      label: `${n}`,
+      description: n === formatterConfig.get<number>('tabWidth', 8) ? '(current)' : ''
+    }));
+    const widthPick = await vscode.window.showQuickPick(widths, { placeHolder: 'Select tab width (columns per tab character)' });
+    if (widthPick) {
+      await formatterConfig.update('tabWidth', parseInt(widthPick.label), vscode.ConfigurationTarget.Workspace);
+      updateStatusBarTabIndentItem(true);
+    }
+  }
 }
 
 function toggleCommand() {

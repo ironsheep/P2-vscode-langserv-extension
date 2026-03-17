@@ -1,0 +1,29 @@
+' indent-inline-pasm.spin2 — Test: inline PASM with mixed indentation
+' ORG/END at method indent, PASM content at column 0
+
+CON
+  _clkfreq = 10_000_000
+  PIN_LED = 56
+
+VAR
+  LONG  result
+
+PUB main() | x
+  x := 0
+  repeat 10
+      org
+          mov     pa, #PIN_LED
+            drvnot  pa
+          waitx   pb
+      end
+    x++
+  result := x
+
+PUB toggle_pin(pin) | cycles
+  cycles := 5
+    org
+        mov   pa, pin
+          drvnot pa
+        waitx  pb
+    end
+  result := cycles

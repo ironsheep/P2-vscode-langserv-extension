@@ -1,0 +1,37 @@
+' indent-too-narrow.spin2 — Test: correct nesting at 1-space indent, target is 2
+' All nesting structure is correct, just using 1 space per level
+
+CON
+ _clkfreq = 10_000_000
+ MAX = 20
+
+VAR
+ LONG  result
+
+PUB main() | i, j
+ result := 0
+ repeat i from 0 to MAX
+  if i > 10
+   result := i * 2
+  else
+   result := i
+  if result > 30
+   result := 30
+ result := 0
+
+PUB compute(x, y) : sum | temp
+ temp := x + y
+ if temp > 100
+  repeat while temp > 100
+   temp -= 10
+ sum := temp
+
+PUB nested() | a, b
+ repeat a from 0 to 5
+  repeat b from 0 to 5
+   if a > b
+    result := a
+   elseif a == b
+    result := 0
+   else
+    result := b

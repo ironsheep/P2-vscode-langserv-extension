@@ -1,0 +1,27 @@
+' inline-pasm-multi-region.spin2 — Test: multiple ORG/END pairs in one method
+' Each inline PASM region should align independently
+
+CON
+  _clkfreq = 10_000_000
+  PIN_A = 56
+  PIN_B = 57
+
+VAR
+  LONG  result
+
+PUB main() | x, y
+  x := 0
+  org
+    mov  pa, #PIN_A
+    drvnot pa
+    waitx pb
+  end
+  x := 1
+  org
+    mov     pa, #PIN_B
+      drvnot    pa
+    waitx   pb
+    nop
+  end
+  y := x + 1
+  result := y

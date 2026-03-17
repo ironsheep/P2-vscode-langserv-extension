@@ -1,0 +1,31 @@
+' wrap-existing-cont.spin2 — Test: existing ... continuations at suboptimal break points
+
+CON
+  _clkfreq = 10_000_000
+  MAX_VAL = 100
+  MIN_VAL = 0
+  SCALE = 10
+
+VAR
+  LONG  result
+  LONG  buffer[16]
+
+PUB main() | x, ...
+  y, z
+  x := 1
+  y := 2
+  z := 3
+  result := x + ...
+    y + z
+  if result > ...
+    MAX_VAL
+    result := MAX_VAL
+  repeat x from MIN_VAL ...
+    to MAX_VAL step ...
+    SCALE
+    buffer[x / SCALE] := x
+
+PUB helper(a, b, ...
+  c, d) : sum
+  sum := a + b + ...
+    c + d

@@ -1,0 +1,35 @@
+' edge-dat-local-labels.spin2 — Test: DAT with local labels and varied constructs
+' Tests .local labels, condition codes, effects, data declarations
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  LONG  holder
+
+PUB main()
+  holder := 0
+
+DAT
+
+table         long    0[16]
+flags         byte    0, 1, 2, 3
+
+              org
+
+setup         mov     pa, #0
+              mov     pb, #16
+
+.loop         add     pa, #1
+              djnz    pb, #.loop
+
+process       mov     pa, #0
+.inner        add     pa, #1
+              cmp     pa, #10         wcz
+  if_ae       jmp     #.done
+              jmp     #.inner
+
+.done         nop
+              ret
+
+              fit     496

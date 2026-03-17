@@ -1,0 +1,39 @@
+' align-dat-pasm.spin2 — Test: PASM instructions with misaligned columns
+' Labels, conditions, mnemonics, and operands at wrong positions
+
+CON
+  _clkfreq = 10_000_000
+  PIN_LED = 56
+
+VAR
+  LONG  myCog
+
+PUB main()
+  myCog := coginit(COGEXEC_NEW, @blinker, @myCog)
+
+DAT
+              org
+
+blinker    mov    pa, #PIN_LED
+         drvnot  pa
+           waitx  dlytime
+      jmp   #blinker
+
+dlytime    long  10_000_000
+
+              fit 496
+
+DAT
+         org
+
+counter    mov   x, #0
+loop     add  x, #1
+         cmp   x, limit  wcz
+  if_ae  jmp     #done
+       jmp    #loop
+done     ret
+
+x    long  0
+limit   long    100
+
+         fit 496

@@ -1,0 +1,49 @@
+' ws-blank-lines.spin2 — Test: excessive consecutive blank lines
+' Has 3-5 blank lines between sections and methods, multiple inside bodies
+
+CON
+
+  _clkfreq = 10_000_000
+
+
+
+  MAX_COUNT = 100
+
+
+
+
+VAR
+
+
+
+  LONG  counter
+
+
+  BYTE  flags
+
+
+
+PUB main() | i
+
+
+  repeat i from 0 to MAX_COUNT
+
+    counter := i
+
+
+    if i > 50
+      flags := 1
+
+
+
+
+PUB helper(value) : result
+
+
+
+
+  result := value * 2
+
+
+
+  result += 1

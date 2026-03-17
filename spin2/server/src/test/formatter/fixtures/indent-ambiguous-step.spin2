@@ -1,0 +1,26 @@
+' indent-ambiguous-step.spin2 — Test: indent detection with ambiguous step size
+' Some levels look like step=2, others like step=3 or step=4
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  LONG  result
+
+PUB main() | i, j, k
+    result := 0
+      repeat i from 0 to 10
+            if i > 5
+                  j := i
+            else
+                  j := 0
+    result := j
+
+PUB helper(x) : y | t
+      t := x
+          if t > 0
+                if t < 100
+                      y := t
+                else
+                      y := 0
+      y := t

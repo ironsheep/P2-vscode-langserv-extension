@@ -1,0 +1,27 @@
+' indent-empty-method.spin2 — Test: methods with minimal or no code
+' Formatter should handle gracefully without crashing
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  LONG  dummy
+
+PUB main()
+  dummy := 0
+
+PUB empty_pub()
+
+PUB comments_only() | x
+  ' just a comment
+  ' another comment
+
+PUB one_liner() : y
+  y := 42
+
+PUB normal(a, b) : c | temp
+  temp := a + b
+  if temp > 100
+    c := 100
+  else
+    c := temp

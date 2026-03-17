@@ -1,0 +1,32 @@
+' comment-trailing-align.spin2 — Test: trailing comments at random columns within blocks
+' Comments should align vertically within each block
+
+CON
+  _clkfreq = 10_000_000
+  MAX_SIZE = 100      ' maximum buffer size
+  MIN_SIZE = 10  ' minimum allowed
+  TIMEOUT = 5000               ' timeout in ms
+  RETRIES = 3 ' retry count
+
+VAR
+  LONG  counter        ' main counter
+  BYTE  flags ' status flags
+  WORD  buffer[256]                    ' data buffer
+  LONG  timestamp   ' last update time
+
+PUB main() | i, temp
+  counter := 0    ' init counter
+  flags := 0                    ' clear flags
+  repeat i from 0 to MAX_SIZE - 1
+    buffer[i] := i ' fill buffer
+    if i > 50         ' check threshold
+      temp := i * 2  ' scale up
+    else
+      temp := i            ' keep original
+  timestamp := 0   ' reset timestamp
+
+PUB helper(x) : y
+  y := x * 2   ' double input
+  y += 1                ' add offset
+  if y > MAX_SIZE  ' bounds check
+    y := MAX_SIZE         ' clamp to max

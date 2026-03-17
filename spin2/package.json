@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.8.2",
+  "version": "2.9.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -1043,6 +1043,96 @@
             "description": "Directories to exclude from include path discovery. Each entry is a relative path from the workspace root. The directory and all its subdirectories will be excluded from scanning."
           }
         }
+      },
+      {
+        "title": "Spin2 Document Formatter",
+        "properties": {
+          "spinExtension.formatter.enable": {
+            "type": "boolean",
+            "default": false,
+            "scope": "resource",
+            "description": "Enable the Spin2 document formatter. When disabled, format document requests are ignored."
+          },
+          "spinExtension.formatter.formatOnSave": {
+            "type": "boolean",
+            "default": false,
+            "scope": "resource",
+            "description": "Automatically format Spin2 documents when saving. Requires spinExtension.formatter.enable to also be true."
+          },
+          "spinExtension.formatter.trimTrailingWhitespace": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "Remove trailing whitespace from all lines (except inside block comments)."
+          },
+          "spinExtension.formatter.insertFinalNewline": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "Ensure the file ends with exactly one newline character."
+          },
+          "spinExtension.formatter.maxConsecutiveBlankLines": {
+            "type": "number",
+            "default": 1,
+            "minimum": 0,
+            "scope": "resource",
+            "description": "Maximum number of consecutive blank lines allowed. Excess blank lines are removed."
+          },
+          "spinExtension.formatter.blankLinesBetweenSections": {
+            "type": "number",
+            "default": 1,
+            "minimum": 0,
+            "scope": "resource",
+            "description": "Number of blank lines between major sections (CON, VAR, OBJ, DAT, PUB, PRI)."
+          },
+          "spinExtension.formatter.blankLinesBetweenMethods": {
+            "type": "number",
+            "default": 2,
+            "minimum": 0,
+            "scope": "resource",
+            "description": "Number of blank lines between consecutive PUB/PRI methods."
+          },
+          "spinExtension.formatter.tabsToSpaces": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "Convert tab characters to spaces (except inside block comments)."
+          },
+          "spinExtension.formatter.tabWidth": {
+            "type": "number",
+            "default": 8,
+            "minimum": 1,
+            "scope": "resource",
+            "description": "Width of a tab character for tab-to-space conversion and alignment calculations."
+          },
+          "spinExtension.formatter.indentSize": {
+            "type": "number",
+            "default": 2,
+            "enum": [2, 4, 8],
+            "scope": "resource",
+            "description": "Spaces per indent level in PUB/PRI method bodies."
+          },
+          "spinExtension.formatter.keywordCase": {
+            "type": "string",
+            "default": "lowercase",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize Spin2 keywords and built-in symbols to the specified case."
+          },
+          "spinExtension.formatter.pasmInstructionCase": {
+            "type": "string",
+            "default": "preserve",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize PASM instruction mnemonics to the specified case."
+          },
+          "spinExtension.formatter.spaceAfterCommentStart": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "Ensure a space after comment opener (' text vs 'text)."
+          }
+        }
       }
     ],
     "keybindings": [
@@ -1452,7 +1542,10 @@
     "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt",
     "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
     "posttest": "npm run clean",
-    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 10000",
+    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 30000",
+    "test:formatter": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/**/*.test.ts' --timeout 60000",
+    "test:formatter:gold": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/formatter.gold-equiv.test.ts' --timeout 60000",
+    "test:formatter:safety": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/formatter.safety.test.ts' --timeout 120000",
     "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000"
   },
   "devDependencies": {

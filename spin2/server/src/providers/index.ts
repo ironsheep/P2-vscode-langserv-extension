@@ -8,7 +8,7 @@ import CompletionProvider from './CompletionProvider';
 import SemanticTokensProvider from './SemanticTokensProvider';
 // import ConfiguratonProvider from "./ConfigurationProvider";
 import DefinitionProvider from './DefinitionProvider';
-// import DocumentFormattingProvider from "./DocumentFormatttingProvider";
+import DocumentFormattingProvider from './DocumentFormattingProvider';
 import DocumentHighlightProvider from './DocumentHighlightProvider';
 import DocumentLinkProvider from './DocumentLinkProvider';
 import DocumentSymbolProvider from './DocumentSymbolProvider';
@@ -32,7 +32,7 @@ const providers = [
   SemanticTokensProvider,
   //   ConfiguratonProvider,
   DefinitionProvider,
-  //   DocumentFormattingProvider,
+  DocumentFormattingProvider,
   DocumentHighlightProvider,
   DocumentLinkProvider,
   DocumentSymbolProvider,

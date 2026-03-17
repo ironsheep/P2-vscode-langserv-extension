@@ -1,0 +1,24 @@
+' align-var-columns.spin2 — Test: VAR type/name/count columns misaligned
+' Inconsistent spacing between type, name, and array count
+
+VAR
+  LONG counter
+  BYTE   flags
+  WORD    buffer[256]
+  LONG  result
+  BYTE    name[32]
+  LONG     bigArray[64]
+  WORD smallVal
+  BYTE  a,  b,    c
+  LONG  ptrBuffer
+  WORD   statusFlags[8]
+
+CON
+  _clkfreq = 10_000_000
+
+PUB main() | i
+  counter := 0
+  flags := 0
+  result := 0
+  repeat i from 0 to 255
+    buffer[i] := i

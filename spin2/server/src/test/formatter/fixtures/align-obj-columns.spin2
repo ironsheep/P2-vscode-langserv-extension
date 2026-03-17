@@ -1,0 +1,24 @@
+' align-obj-columns.spin2 — Test: OBJ : and filename at random columns
+' Inconsistent spacing around : and filenames
+
+CON
+  _clkfreq = 10_000_000
+
+OBJ
+  sensor :    "dummy_child"
+  motor    :  "dummy_child"
+  display:"dummy_child"
+  comm     :     "dummy_child"
+  ctrl:      "dummy_child"
+
+VAR
+  LONG  value
+
+PUB main()
+  sensor.start()
+  motor.start()
+  display.start()
+  comm.start()
+  ctrl.start()
+  value := sensor.getvalue()
+  motor.stop()

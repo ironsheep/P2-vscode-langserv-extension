@@ -1,0 +1,19 @@
+' debug-long-widget.spin2 — Test: long debug() widget declarations exceeding line length
+' Compile with -d flag
+
+CON
+  _clkfreq = 10_000_000
+
+PUB main() | i, chanA, chanB
+  debug(`scope MyScope pos 100 0 size 800 600 linesize 6 color red green blue orange yellow cyan magenta white)
+  debug(`MyScope 'Analog Input Channel A' 0 3300 250 0 %1111 red auto)
+  debug(`MyScope 'Digital Output Channel B with Extra Long Description' 0 3300 250 300 %1111 green auto)
+  debug(`bitmap MyBitmap title 'Sensor Data Visualization Panel' pos 100 100 trace 2 lut8 longs_8bit alt)
+  debug(`term StatusTerm pos 914 71 size 40 2 textsize 18 color orange backcolor black)
+  debug(`SPECTRO MySpectro SAMPLES 2048 0 236 RANGE 1000 LUMA8X GREEN)
+  debug(`FFT MyFFT SIZE 250 200 SAMPLES 2048 0 127 RATE 256 LOGSCALE COLOR YELLOW 4 YELLOW 5)
+  repeat
+    chanA := qsin(1000, i++, 200)
+    chanB := qsin(1000, i, 99)
+    debug(`MyScope `(chanA, chanB))
+    waitus(200)

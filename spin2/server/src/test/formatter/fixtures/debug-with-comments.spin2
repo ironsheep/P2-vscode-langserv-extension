@@ -1,0 +1,24 @@
+' debug-with-comments.spin2 — Test: debug() lines with actual trailing comments
+' Must distinguish real trailing comments from ' inside debug strings
+' Compile with -d flag
+
+CON
+  _clkfreq = 10_000_000
+  CHAN_A = 0
+  CHAN_B = 1
+
+PUB main() | chanA, chanB, i
+  debug(`scope Scope1 pos 100 0 size 800 600 linesize 6)  ' set up oscilloscope
+  debug(`Scope1 'Analog Input' 0 3300 250 0 %1111 red auto)  ' WARNING: coloring issue
+  debug(`Scope1 'Digital Output' 0 3300 250 300 %1111 green auto) ' channel B config
+  debug(`Scope1 samples 16 trigger -1)
+  debug(`term Term1 pos 914 71 size 30 1 textsize 20 color red) ' status display
+
+  repeat
+    chanA := qsin(3300, i++, 200)
+    chanB := qsin(3300, i, 99)
+    debug(`Term1 0) ' clear terminal
+    debug(`Term1 'Pin 0 = ' '`(chanA)' ' *0.001V') ' show voltage
+    debug(`Scope1 `(chanA) `(chanB)) ' update scope
+    debug(udec(chanA), uhex(chanB))   ' raw values
+    waitms(20)

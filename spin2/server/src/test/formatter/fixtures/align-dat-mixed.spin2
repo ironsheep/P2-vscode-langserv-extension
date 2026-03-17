@@ -1,0 +1,35 @@
+' align-dat-mixed.spin2 — Test: DAT mixing data declarations and PASM, both misaligned
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  LONG  myCog
+
+PUB main() | pBuf
+  pBuf := @dataBuf
+  myCog := coginit(COGEXEC_NEW, @worker, @myCog)
+
+DAT
+' data declarations — misaligned
+dataBuf   long    0[16]       ' working buffer
+maxItems      long     64         ' item limit
+itemSize  word   4          ' bytes per item
+flagSet     byte   $00         ' initial flags
+
+              org
+
+worker    mov    pa, #0
+          rdlong  x, ptra
+          add   pa, x
+          wrlong pa, ptra
+          jmp     #worker
+
+x         long    0
+
+              fit 496
+
+' more data after the ORG block
+resultBuf     long    0[8]    ' result storage
+statusVal  long    $FFFF        ' status value
+errCount    long     0   ' error counter

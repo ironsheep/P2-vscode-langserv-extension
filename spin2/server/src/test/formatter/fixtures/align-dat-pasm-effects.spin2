@@ -1,0 +1,34 @@
+' align-dat-pasm-effects.spin2 — Test: PASM effects (wc,wz,wcz) at inconsistent columns
+' Effects should vertically align within each ORG region
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  LONG  myCog
+
+PUB main()
+  myCog := coginit(COGEXEC_NEW, @uart_rx, @myCog)
+
+DAT
+                org
+
+uart_rx         testp   rxpin     wc
+    if_nc       ret
+                rdpin   rxdata, rxpin wc
+                shr     rxdata, #24 wz
+                cmp     rxdata, #$0D    wcz
+    if_e        mov     rxdata, #$0A wz
+                wrbyte  rxdata, bufptr
+                add     bufptr, #1  wc
+                cmp     bufptr, buflimit    wcz
+    if_ae       mov     bufptr, bufstart
+                jmp     #uart_rx
+
+rxpin           long    63
+rxdata          long    0
+bufptr          long    0
+bufstart        long    0
+buflimit        long    0
+
+                fit 496

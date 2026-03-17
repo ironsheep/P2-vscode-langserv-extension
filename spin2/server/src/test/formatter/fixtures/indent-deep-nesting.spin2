@@ -1,0 +1,32 @@
+' indent-deep-nesting.spin2 — Test: 5+ nesting levels with indent errors
+' Deep nesting with some levels using wrong indent width
+
+CON
+  _clkfreq = 10_000_000
+  ROWS = 8
+  COLS = 8
+
+VAR
+  LONG  grid[64]
+
+PUB main() | row, col, val, sum, count
+  sum := 0
+  count := 0
+  repeat row from 0 to ROWS - 1
+      repeat col from 0 to COLS - 1
+        val := grid[row * COLS + col]
+          if val > 0
+            if val < 100
+                if row == col
+                  sum += val
+                    count++
+                else
+                  if val > 50
+                      sum += val / 2
+                  else
+                      sum += val
+            else
+              sum += 100
+  if count > 0
+      sum := sum / count
+  grid[0] := sum

@@ -1,0 +1,49 @@
+' comment-block-preserve.spin2 — Test: multi-line block comments must not be modified
+' Interior of { } and {{ }} is user-formatted, never touched
+
+CON
+  _clkfreq = 10_000_000
+
+{
+  This is a multi-line block comment.
+  The formatter must NOT touch any of this content.
+    Including this indented line.
+  Or this one with     extra     spaces.
+      Or this deeply indented one.
+}
+
+  MAX_COUNT = 100
+
+{{
+  This is a documentation block comment.
+  It has its own formatting:
+
+    - bullet point one
+    - bullet point two
+      - sub-bullet
+
+  Table:
+    Name        Value    Description
+    ----        -----    -----------
+    FOO         42       The answer
+    BAR         99       Almost there
+
+  The formatter must preserve ALL of this exactly.
+}}
+
+VAR
+  LONG  value { inline block comment }
+
+PUB main() | i
+  {
+    Another block comment inside a method.
+    With custom    spacing    preserved.
+  }
+  value := 0
+  repeat i from 0 to MAX_COUNT
+    value := i  { inline }
+  {{
+    Doc block comment
+    in method body
+  }}
+  value := 0

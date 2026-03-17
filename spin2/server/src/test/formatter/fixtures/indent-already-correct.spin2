@@ -1,0 +1,37 @@
+' indent-already-correct.spin2 — Test: pre-formatted file should be unchanged
+' File is already properly formatted with 2-space indent, correct tabstops
+
+CON
+  _clkfreq      =               10_000_000
+  MAX           =               100
+  TIMEOUT       =               5000
+
+VAR
+  LONG  result
+  BYTE  flags
+
+OBJ
+  child         :               "dummy_child"
+
+pub main() | i, temp
+  result := 0
+  repeat i from 0 to MAX
+    temp := i * 2
+    if temp > 100
+      result := temp
+    else
+      result := i
+  flags := 1
+
+
+pub helper(x) : y | scratch
+  scratch := x + 1
+  if scratch > 0
+    y := scratch
+  else
+    y := 0
+
+DAT
+
+mydata        long      0
+counter       long      0

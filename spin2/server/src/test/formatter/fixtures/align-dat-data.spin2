@@ -1,0 +1,22 @@
+' align-dat-data.spin2 — Test: DAT data lines with ragged label/type/value/comment
+' label, type, and value columns at inconsistent positions
+
+CON
+  _clkfreq = 10_000_000
+  TABLE_SIZE = 8
+
+PUB main() | i, pData
+  pData := @myTable
+  repeat i from 0 to TABLE_SIZE - 1
+    long[pData][i] := i
+
+DAT
+myTable   long    0, 0, 0, 0      ' lookup table
+stepSize      long      1                ' step increment
+maxVal long         255                   ' maximum value
+flagByte  byte    $FF       ' flag register
+statusWord    word  $0000       ' status register
+bufferStart     long       0          ' buffer start address
+bufferEnd long    0         ' buffer end address
+nameStr byte  "Hello", 0     ' greeting string
+padding   byte      0[16]         ' alignment padding
