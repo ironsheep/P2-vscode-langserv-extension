@@ -1837,6 +1837,21 @@ export class Spin2DocumentSemanticParser {
             // and ignore rest of this line
           } else if (isDebugLine) {
             this._logOBJ(`- colorize DEBUG Ln#${lineNbr} line=[${line}](${line.length})`);
+            // If there is code before the debug() call (e.g., case match values like
+            // "ORIENTATION_0:   debug(...)"), process the prefix as regular Spin code
+            // so that case match constants get colorized.
+            const debugCallMatch = nonCommentLine.match(/\bdebug\s*\(/i);
+            const debugStartInLine = debugCallMatch ? nonCommentLine.indexOf(debugCallMatch[0]) : -1;
+            const prefixBeforeDebug = debugStartInLine > 0 ? nonCommentLine.substring(0, debugStartInLine) : '';
+            if (prefixBeforeDebug.trim().length > 0) {
+              this._logSPIN(`- colorize DEBUG PREFIX Ln#${lineNbr} prefix=[${prefixBeforeDebug}](${prefixBeforeDebug.length})`);
+              continuedLineSet.clear();
+              continuedLineSet.addLine(prefixBeforeDebug, lineNbr - 1);
+              if (continuedLineSet.hasAllLines) {
+                const prefixTokenSet: IParsedToken[] = this._reportSPIN_CodeMultiLine(0, continuedLineSet);
+                this._reportNonDupeTokens(prefixTokenSet, '=> SPIN-pfx: ', line, tokenSet);
+              }
+            }
             continuedLineSet.clear();
             continuedLineSet.addLine(nonCommentLine, lineNbr - 1);
             const partialTokenSet: IParsedToken[] = this._reportDebugStatementMultiLine(0, continuedLineSet);
@@ -5828,12 +5843,22 @@ export class Spin2DocumentSemanticParser {
         //}
 
         const bIsDebugLine: boolean = haveDebugLine(nonStringAssignmentRHSStr);
+        // Find the position of debug( in the line so we can limit debug-line suppression
+        // to names that appear inside the debug() call, not case match values before it.
+        const debugCallOffset: number = bIsDebugLine ? nonStringAssignmentRHSStr.search(/\bdebug\s*\(/i) : -1;
         const assignmentStringOffset = currSingleLineOffset;
         this._logSPIN(`  -- rptSPIN() assignmentStringOffset=[${assignmentStringOffset}], bIsDebugLine=(${bIsDebugLine})`);
         //let offsetInNonStringRHS = 0;
         this._logSPIN(`  -- rptSPIN() FLOW Loop start possNames=[${possNames.join(', ')}](${possNames.length}), cslofs=(${currSingleLineOffset})`);
         for (let index = 0; index < possNames.length; index++) {
           let namePart = possNames[index];
+          // Strip trailing ':' from case match values (e.g., "ORIENTATION_0:" → "ORIENTATION_0")
+          // The low-complexity line splitter splits on whitespace only, leaving the case
+          // separator colon attached to the name.
+          if (namePart.endsWith(':') && !namePart.endsWith(':=')) {
+            namePart = namePart.substring(0, namePart.length - 1);
+            possNames[index] = namePart;
+          }
           const haveIgnoreBuiltInSymbol: boolean = namePart === '_'; // ignore built-in symbols
           this._logSPIN(`  -- rptSPIN() handle namePart=[${namePart}](${namePart.length}), index=(${index + 1} of ${possNames.length})`);
           if (haveIgnoreBuiltInSymbol) {
@@ -6287,6 +6312,8 @@ export class Spin2DocumentSemanticParser {
                       });
                     }
                     // we use bIsDebugLine in next line so we don't flag debug() arguments!
+                    // Only suppress for names that appear inside the debug() call (at or after
+                    // the debug( position), not for case match values that precede it.
                     else if (
                       !this.parseUtils.isSpinReservedWord(namePart) &&
                       !this.parseUtils.isSpinBuiltinMethod(namePart) &&
@@ -6297,7 +6324,7 @@ export class Spin2DocumentSemanticParser {
                       !this.parseUtils.isDebugMethod(namePart) &&
                       !this.parseUtils.isStorageType(namePart) && // prevent false id of missing 'byte'
                       !this.parseUtils.isDebugControlSymbol(namePart) &&
-                      !bIsDebugLine &&
+                      !(bIsDebugLine && debugCallOffset !== -1 && nameOffset >= debugCallOffset + assignmentStringOffset) &&
                       !this.parseUtils.isDebugInvocation(namePart)
                     ) {
                     // NO DEBUG FOR ELSE, most of spin control elements come through here!

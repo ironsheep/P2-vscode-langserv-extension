@@ -34,6 +34,10 @@ Spin2 document formatter with tab/space conversion and status bar indicator
 - Add formatter test suite (1152 tests) covering binary parity, idempotency, configuration variation, crash resilience, and real-world file validation
 - Formatter is disabled by default -- enable via `spinExtension.formatter.enable` in settings
 
+### Fixes
+
+- Fix case match values (e.g., `ORIENTATION_0:`) not being colorized when the case body contains a `debug()` call -- the debug-line suppression was applied to the entire line instead of only to names inside the `debug()` call
+
 ## [2.8.2] 2026-03-14
 
 Spin2 debug() statement colorizing fixes and project archive feature
