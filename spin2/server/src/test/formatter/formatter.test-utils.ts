@@ -223,9 +223,9 @@ export function scanBlockComments(lines: string[]): Set<number> {
  * @param config - formatter configuration (defaults applied for missing fields)
  * @returns the formatted text
  */
-export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>): string {
+export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>, elastic?: ElasticTabstopConfig): string {
   const cfg: FormatterConfig = { ...DEFAULT_FORMATTER_CONFIG, ...config };
-  const elasticConfig: ElasticTabstopConfig = { enabled: false, tabStops: DEFAULT_TABSTOPS };
+  const elasticConfig: ElasticTabstopConfig = elastic || { enabled: false, tabStops: DEFAULT_TABSTOPS };
 
   let lines = text.split(/\r?\n/);
 

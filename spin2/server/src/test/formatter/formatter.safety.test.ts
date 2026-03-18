@@ -12,6 +12,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { formatSpin2Text, FormatterConfig, DEFAULT_FORMATTER_CONFIG } from './formatter.test-utils';
+import { ElasticTabstopConfig, DEFAULT_TABSTOPS } from '../../formatter/spin2.formatter.base';
 
 const FIXTURES_DIR = path.resolve(__dirname, 'fixtures');
 const REALWORLD_DIR = path.resolve(__dirname, '../../../../TEST_LANG_SERVER/spin2');
@@ -384,6 +385,75 @@ describe('Formatter: Safety tests', function () {
           }
         });
       }
+    }
+  });
+
+  // =========================================================================
+  //  Cross-config binary parity: reformat through tabs-8, spaces-2,
+  //  spaces-4, and elastic tabs — each must compile to the same GOLD binary.
+  //  This verifies that no whitespace mode produces semantic changes.
+  // =========================================================================
+  describe('Cross-config binary parity (tabs-8 → spaces-2 → spaces-4 → elastic)', function () {
+    before(function () {
+      if (!pnutAvailable) this.skip();
+    });
+
+    const crossConfigs: { name: string; config: Partial<FormatterConfig>; elastic?: ElasticTabstopConfig }[] = [
+      { name: 'tabs-8', config: { tabsToSpaces: false, tabWidth: 8, indentSize: 2 } },
+      { name: 'spaces-2', config: { tabsToSpaces: true, indentSize: 2 } },
+      { name: 'spaces-4', config: { tabsToSpaces: true, indentSize: 4 } },
+      { name: 'elastic', config: { tabsToSpaces: true, indentSize: 2 }, elastic: { enabled: true, tabStops: DEFAULT_TABSTOPS } }
+    ];
+
+    for (const fixture of goldFixtures) {
+      it(`${fixture.name}: tabs-8 → spaces-2 → spaces-4 → elastic all match GOLD`, function () {
+        if (!pnutAvailable) this.skip();
+
+        const originalText = fs.readFileSync(fixture.spin2Path, 'utf-8');
+        const gold = fs.readFileSync(fixture.goldPath);
+
+        // Chain: format through each config sequentially, recompile after each
+        let currentText = originalText;
+        for (const cc of crossConfigs) {
+          currentText = formatSpin2Text(currentText, cc.config, cc.elastic);
+
+          const tmpDir = fs.mkdtempSync(path.join(FIXTURES_DIR, '.tmp-'));
+          try {
+            const fmtFile = path.join(tmpDir, path.basename(fixture.spin2Path));
+            fs.writeFileSync(fmtFile, currentText, 'utf-8');
+
+            const dummyChildSrc = path.join(FIXTURES_DIR, 'dummy_child.spin2');
+            if (fs.existsSync(dummyChildSrc)) {
+              fs.copyFileSync(dummyChildSrc, path.join(tmpDir, 'dummy_child.spin2'));
+            }
+
+            const debugFlag = fixture.useDebug ? '-d' : '';
+            const cmd = `pnut-ts -q ${debugFlag} "${path.basename(fmtFile)}"`.trim();
+            try {
+              execSync(cmd, { cwd: tmpDir, stdio: 'pipe' });
+            } catch (e: any) {
+              const stderr = e.stderr ? e.stderr.toString() : '';
+              assert.fail(`After ${cc.name}: compile failed: ${stderr}`);
+            }
+
+            const binFile = path.join(tmpDir, path.basename(fmtFile).replace('.spin2', '.bin'));
+            assert.ok(fs.existsSync(binFile), `After ${cc.name}: no binary produced`);
+
+            const actual = fs.readFileSync(binFile);
+            assert.strictEqual(
+              actual.length,
+              gold.length,
+              `After ${cc.name}: binary size mismatch: actual=${actual.length} vs GOLD=${gold.length}`
+            );
+            assert.ok(
+              actual.equals(gold),
+              `After ${cc.name}: binary content differs from GOLD`
+            );
+          } finally {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+          }
+        }
+      });
     }
   });
 
