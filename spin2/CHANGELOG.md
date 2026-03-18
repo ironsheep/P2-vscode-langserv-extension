@@ -37,6 +37,7 @@ Spin2 document formatter with tab/space conversion and status bar indicator
 ### Fixes
 
 - Fix case match values (e.g., `ORIENTATION_0:`) not being colorized when the case body contains a `debug()` call -- the debug-line suppression was applied to the entire line instead of only to names inside the `debug()` call
+- Fix compile/download tasks failing when VSCode is opened at a project root but `.spin2` source files are in a subfolder -- build tasks now run in the source file's directory instead of the workspace root
 
 ## [2.8.2] 2026-03-14
 

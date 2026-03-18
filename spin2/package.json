@@ -996,6 +996,10 @@
           "spin2.optionsBinaryFname": {
             "type": "string",
             "description": "The name of the binary file to be downloaded. (Content varies by compiler.)"
+          },
+          "spin2.fDirSource": {
+            "type": "string",
+            "description": "Directory containing the source file being compiled. Used as the working directory for build tasks, enabling subfolder project layouts."
           }
         }
       },

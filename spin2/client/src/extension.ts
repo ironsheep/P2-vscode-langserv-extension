@@ -21,7 +21,7 @@ import { editModeConfiguration, reloadEditModeConfiguration } from './providers/
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
-import { activeSpin1or2Filespec, findDebugBaud, isSpin2Document, isSpin2File, isSpin1or2File, isSpinOrPasmDocument } from './spin.vscode.utils';
+import { activeSpin1or2Filespec, findDebugBaud, isSpin2Document, isSpin2File, isSpin1or2File, isSpinOrPasmDocument, isSpinOrPasmFile } from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
 import { isMac, isWindows, locateExe, locateFileByPattern, locateNonExe, platform } from './fileUtils';
 import { IUsbSerialDevice, UsbSerial } from './usb.serial';
@@ -1834,6 +1834,19 @@ async function ensureIsGoodCompilerSelection(): Promise<boolean> {
   return goodCompilerSelectionStatus;
 }
 
+function getActiveSourceDirectory(currFspec?: string): string | undefined {
+  // Return the directory of the source file being compiled.
+  // Prefer the explicitly-passed file spec, fall back to the active editor's file.
+  let fspec: string | undefined = currFspec;
+  if (fspec === undefined || !isSpinOrPasmFile(fspec)) {
+    fspec = activeSpin1or2Filespec();
+  }
+  if (fspec !== undefined) {
+    return path.dirname(fspec);
+  }
+  return undefined;
+}
+
 function getActiveSourceFilename(): string | undefined {
   let fileBaseName: string | undefined = toolchainConfiguration.topFilename;
   //logExtensionMessage(`* getActiveSourceFilename() - top-fileBaseName=[${fileBaseName}]`);
@@ -1912,6 +1925,15 @@ async function writeToolchainBinaryFnameVariable(callerID: string, forceUpdate: 
       }
 
       if (fileBaseName !== undefined) {
+        // Determine and store the source directory so tasks can set cwd correctly.
+        // This enables subfolder project layouts where VSCode is opened at the repo root
+        // but .spin2 files live in a subdirectory.
+        const sourceDirFSpec = getActiveSourceDirectory(currFspec);
+        if (sourceDirFSpec !== undefined) {
+          await updateRuntimeConfig('spin2.fDirSource', sourceDirFSpec);
+          logExtensionMessage(`+ (DBG) wtbf() fDirSource=[${sourceDirFSpec}]`);
+        }
+
         const selectedCompilerId: string | undefined = toolchainConfiguration.selectedCompilerID;
         const writeToFlash: boolean = toolchainConfiguration.writeFlashEnabled;
         const activeSpin1or2Filename: string | undefined = getActiveSourceFilename();
