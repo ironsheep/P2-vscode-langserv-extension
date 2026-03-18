@@ -45,6 +45,8 @@ Additional pages:
 
 ```text
 Latest Updates:
+18 Mar 2026
+- Updated tasks file in support of Spin2 v2.9.0 and later
 09 Nov 2025
 - Added PNut-Term-TS installation section
 17 May 2025
@@ -366,9 +368,12 @@ In between the [] you can place your new task definitions. You should end up wit
       "type": "shell",
       "command": "\"${config:spin2.fSpecCompiler}\" ${command:spinExtension.getCompilerArguments} \"${fileBasename}\"",
       "args": [],
+      "options": {
+        "cwd": "${config:spin2.fDirSource}"
+      },
       "problemMatcher": {
         "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "fileLocation": ["autoDetect", "${config:spin2.fDirSource}"],
         "pattern": {
           "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
@@ -397,9 +402,12 @@ In between the [] you can place your new task definitions. You should end up wit
       "type": "shell",
       "command": "\"${config:spin2.fSpecCompiler}\" ${command:spinExtension.getCompilerArguments} \"${config:spin2.fNameTopLevel}\"",
       "args": [],
+      "options": {
+        "cwd": "${config:spin2.fDirSource}"
+      },
       "problemMatcher": {
         "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "fileLocation": ["autoDetect", "${config:spin2.fDirSource}"],
         "pattern": {
           "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
@@ -428,9 +436,12 @@ In between the [] you can place your new task definitions. You should end up wit
       "type": "shell",
       "command": "\"${config:spin2.fSpecLoader}\" ${command:spinExtension.getLoaderArguments} \"${config:spin2.optionsBinaryFname}\"",
       "args": [],
+      "options": {
+        "cwd": "${config:spin2.fDirSource}"
+      },
       "problemMatcher": {
         "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "fileLocation": ["autoDetect", "${config:spin2.fDirSource}"],
         "pattern": {
           "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
