@@ -245,3 +245,4 @@ spin2/package-lock.json
 *.obj
 spin2/.vscode/settings.json
 /spin2/TEST_LANG_SERVER/spin2/fmMichael
+spin2/.vscode/settings.json

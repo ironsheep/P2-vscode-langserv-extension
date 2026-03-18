@@ -4,7 +4,7 @@
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
   "forwardPorts": [5001, 9123],
   "postCreateCommand": "sudo npm install -g @vscode/vsce; npm install; curl -fsSL https://claude.ai/install.sh | bash",
-  "postStartCommand": "mkdir -p $HOME/.local/p2kb-mcp && tar xzf ${containerWorkspaceFolder}/.devcontainer/p2kb-mcp-v1.3.3-linux-arm64.tar.gz -C $HOME/.local && chmod +x $HOME/.local/p2kb-mcp/bin/p2kb-mcp || true",
+  "postStartCommand": "mkdir -p $HOME/.local/p2kb-mcp && tar xzf ${containerWorkspaceFolder}/.devcontainer/p2kb-mcp-v1.3.3-linux-arm64.tar.gz -C $HOME/.local && chmod +x $HOME/.local/p2kb-mcp/bin/p2kb-mcp || true; mkdir -p $HOME/.local/pnut_ts $HOME/.local/bin && unzip -o ${containerWorkspaceFolder}/.devcontainer/pnut-ts-linux-arm64-015300.zip -d /tmp/pnut-ts-extract && cp -r /tmp/pnut-ts-extract/pnut-ts-linux-arm64-015300/pnut_ts/* $HOME/.local/pnut_ts/ && chmod +x $HOME/.local/pnut_ts/pnut-ts && ln -sf $HOME/.local/pnut_ts/pnut-ts $HOME/.local/bin/pnut-ts && rm -rf /tmp/pnut-ts-extract || true",
   "remoteUser": "node",
   "mounts": [
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/tmp/.ssh,type=bind,consistency=cached"
