@@ -1,0 +1,79 @@
+================================================================================
+PNut-TS Memory Map: jm_nstrings.spin2
+Spin2_v41
+Generated: 2026-03-19T22:48:16.313Z
+================================================================================
+
+=== PROGRAM SUMMARY ===
+
+  Total Size:    756 bytes (636 code/data + 120 var bytes)
+  Objects:       1
+  Methods:       7
+
+=== OBJECT HIERARCHY ===
+
+  jm_nstrings  (7 methods)
+
+=== MEMORY LAYOUT ===
+
+  Start   End      Size  Object           Instance         Overrides
+  ------  ------  -----  ---------------  ---------------  ---------
+  $00000  $0027B    636  jm_nstrings      (entry)          
+
+    CODE/DATA TOTAL:     636 bytes
+
+  $0027C  $002F3    120  VAR SPACE        (runtime)      
+
+    PROGRAM TOTAL:       756 bytes
+
+=== OBJECT DETAILS ===
+
+--- jm_nstrings ---
+    Location: $00000-$0027B (636 bytes)
+    VAR Base: $0027C
+    Source:   jm_nstrings.spin2
+
+    Methods:
+      NULL                  Entry $00000  ($00000)
+      FMT_NUMBER            Entry $00001  ($00001)
+      DEC                   Entry $00002  ($00002)
+      DPDEC                 Entry $00003  ($00003)
+      ITOA                  Entry $00004  ($00004)
+      REVSTR                Entry $00005  ($00005)
+      PADSTR                Entry $00006  ($00006)
+
+    VAR:
+      BYTE      NBUF                  +$0004  ($00280)
+      BYTE      PBUF                  +$0025  ($002A1)
+
+=== ADDRESS INDEX ===
+
+  Address  Type      Object           Name
+  -------  --------  ---------------  ---------------
+   $00000  CODE      jm_nstrings      (entry)
+   $00000  METHOD    jm_nstrings      NULL
+   $00001  METHOD    jm_nstrings      FMT_NUMBER
+   $00002  METHOD    jm_nstrings      DEC
+   $00003  METHOD    jm_nstrings      DPDEC
+   $00004  METHOD    jm_nstrings      ITOA
+   $00005  METHOD    jm_nstrings      REVSTR
+   $00006  METHOD    jm_nstrings      PADSTR
+
+  Entries: 8
+
+=== SYMBOL INDEX ===
+
+  Symbol                Object           Type      Location
+  --------------------  ---------------  --------  ----------
+  DEC                   jm_nstrings      METHOD    $00002
+  DPDEC                 jm_nstrings      METHOD    $00003
+  FMT_NUMBER            jm_nstrings      METHOD    $00001
+  ITOA                  jm_nstrings      METHOD    $00004
+  NBUF                  jm_nstrings      VAR       $00280
+  NULL                  jm_nstrings      METHOD    $00000
+  PADSTR                jm_nstrings      METHOD    $00006
+  PBUF                  jm_nstrings      VAR       $002A1
+  REVSTR                jm_nstrings      METHOD    $00005
+
+  Symbols: 9
+

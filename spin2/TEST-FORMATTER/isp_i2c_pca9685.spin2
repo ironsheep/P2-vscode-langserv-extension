@@ -1,0 +1,632 @@
+'' =================================================================================================
+''
+''   File....... isp_i2c_pca9685.spin2
+''   Purpose.... Interface to Click MPU 9DOF module via I2C
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2021 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... Jun 2021
+''   Updated.... 06 Jun 2021
+''
+'' =================================================================================================
+
+
+ {{
+
+    REF Amazon: https://www.amazon.com/HiLetgo-PCA9685-Channel-12-Bit-Arduino/dp/B01D1D0CX2
+    REF pca9685 Datasheet: https://cdn-shop.adafruit.com/datasheets/PCA9685.pdf
+
+}}
+
+
+con { click pin offsets }
+
+  #true,  ON, OFF
+  #false, NO, YES
+
+con { PCA9685 configuration info }
+
+    SERVO_MIN_LIMIT_USEC = 600
+    SERVO_MAX_LIMIT_USEC = 2400
+
+    FREQ_PCA9685_I2C       = 150                ' 400 kHz max
+
+    ' pull-up options: PU_NONE, PU_1K5, PU_3K3, PU_15K
+    'PULL_UP_PCA9685_I2C    = i2c_bus.PU_NONE    ' no pullups needed
+    PULL_UP_PCA9685_I2C    = i2c_bus.PU_NONE    ' no pullups needed
+
+    '  57 -> $69 ->  60.6 Hz
+    '     -> $70 ->  56.8 Hz   <---- EYEs
+    '     -> $71 ->  56.3 Hz
+
+    '  50 -> $7A ->  52.9 Hz
+    '     -> $7B ->  52.5 Hz
+    '     -> $7C ->  52.1 Hz
+    '     -> $7E ->  50.6 Hz
+    '     -> $7F ->  50.3 Hz
+    '     -> $80 ->  49.9 Hz   <----
+    '     -> $81 ->  49.4 Hz
+    '     -> $82 ->  49.0 Hz
+
+    ' 125 -> $30 -> 133.0 Hz
+    '     -> $31 -> 133.2 Hz
+    '     -> $33 -> 125.3 Hz   <----
+    '     -> $34 -> 122.9 Hz
+
+    ' 121 -> $35 -> 117.0 Hz
+    '     -> $36 -> 117.0 Hz
+    '     -> $37 -> 114.9 Hz   <----
+    '     -> $38 -> 112.4 Hz
+
+    ' 250 -> $18 -> 260.0 Hz
+    '     -> $19 -> 251.0 Hz   <----
+    '     -> $1A -> 242.0 Hz
+
+    ' SPECIAL for mimic eyes arduino
+    PCA9685_DESIRED_FREQ_IN_HZ = 56                 ' desired Servo PWM Freq 56 Hz
+    PCA9685_PWM_FREQ_DIVISOR = $70                  ' Adjusted to be accurate
+    PCA9685_ACTUAL_FREQ_IN_HZ_x10 = 568             ' MEASURED at 57.0 Hz x 10
+
+    'PCA9685_DESIRED_FREQ_IN_HZ = 50                 ' desired Servo PWM Freq 50 Hz (better than 50 Hz and 250 Hz)
+    'PCA9685_PWM_FREQ_DIVISOR = $80                  ' Adjusted to be accurate
+    'PCA9685_ACTUAL_FREQ_IN_HZ_x10 = 499             ' MEASURED at 49.9 Hz x 10
+
+    'PCA9685_DESIRED_FREQ_IN_HZ = 121                ' desired Servo PWM Freq 120 Hz (better than 50 Hz and 250 Hz)
+    'PCA9685_PWM_FREQ_DIVISOR = $35                  ' Adjusted to be accurate
+    'PCA9685_ACTUAL_FREQ_IN_HZ_x10 = 1205            ' MEASURED at 120.5 Hz x 10
+
+    'PCA9685_DESIRED_FREQ_IN_HZ = 125                ' desired Servo PWM Freq 125 Hz (better than 50 Hz and 250 Hz)
+    'PCA9685_PWM_FREQ_DIVISOR = $33                  ' Adjusted to be accurate
+    'PCA9685_ACTUAL_FREQ_IN_HZ_x10 = 1253            ' MEASURED at 125.3 Hz x 10
+
+    'PCA9685_DESIRED_FREQ_IN_HZ = 250                ' desired Servo PWM Freq 250 Hz (better than 50 Hz and 250 Hz)
+    'PCA9685_PWM_FREQ_DIVISOR = $19                  ' Adjusted to be accurate
+    'PCA9685_ACTUAL_FREQ_IN_HZ_x10 = 2510            ' MEASURED at 251.0 Hz x 10
+
+con { PCA9685 constants }
+
+    PCA9685_RESET_ADDR                  = $00  ' base addr of device
+    PCA9685_ADDR                        = $80  ' base addr of device
+    PCA9685_ALL_CALL_ADDR               = $E0  ' AllCall Address exposed by device
+
+    PCA9685_MODE1                       = $00
+    PCA9685_MODE2                       = $01
+    PCA9685_SUBADR1                     = $02
+    PCA9685_SUBADR2                     = $03
+    PCA9685_SUBADR3                     = $04
+    PCA9685_ALLCALLADR                  = $05
+    PCA9685_CHAN00_ON_L                 = $06     ' LED0 or Servo0
+    PCA9685_CHAN00_ON_H                 = $07
+    PCA9685_CHAN00_OFF_L                = $08
+    PCA9685_CHAN00_OFF_H                = $09
+    PCA9685_CHAN01_ON_L                 = $0A     ' LED1 or Servo1
+    PCA9685_CHAN01_ON_H                 = $0B
+    PCA9685_CHAN01_OFF_L                = $0C
+    PCA9685_CHAN01_OFF_H                = $0D
+    PCA9685_CHAN02_ON_L                 = $0E     ' LED2 or Servo2
+    PCA9685_CHAN02_ON_H                 = $0F
+    PCA9685_CHAN02_OFF_L                = $10
+    PCA9685_CHAN02_OFF_H                = $11
+    PCA9685_CHAN03_ON_L                 = $12     ' LED3 or Servo3
+    PCA9685_CHAN03_ON_H                 = $13
+    PCA9685_CHAN03_OFF_L                = $14
+    PCA9685_CHAN03_OFF_H                = $15
+    PCA9685_CHAN04_ON_L                 = $16     ' LED4 or Servo4
+    PCA9685_CHAN04_ON_H                 = $17
+    PCA9685_CHAN04_OFF_L                = $18
+    PCA9685_CHAN04_OFF_H                = $19
+    PCA9685_CHAN05_ON_L                 = $1A     ' LED5 or Servo5
+    PCA9685_CHAN05_ON_H                 = $1B
+    PCA9685_CHAN05_OFF_L                = $1C
+    PCA9685_CHAN05_OFF_H                = $1D
+    PCA9685_CHAN06_ON_L                 = $1E     ' LED6 or Servo6
+    PCA9685_CHAN06_ON_H                 = $1F
+    PCA9685_CHAN06_OFF_L                = $20
+    PCA9685_CHAN06_OFF_H                = $21
+    PCA9685_CHAN07_ON_L                 = $22     ' LED7 or Servo7
+    PCA9685_CHAN07_ON_H                 = $23
+    PCA9685_CHAN07_OFF_L                = $24
+    PCA9685_CHAN07_OFF_H                = $25
+    PCA9685_CHAN08_ON_L                 = $26     ' LED8 or Servo8
+    PCA9685_CHAN08_ON_H                 = $27
+    PCA9685_CHAN08_OFF_L                = $28
+    PCA9685_CHAN08_OFF_H                = $29
+    PCA9685_CHAN09_ON_L                 = $2A     ' LED9 or Servo9
+    PCA9685_CHAN09_ON_H                 = $2B
+    PCA9685_CHAN09_OFF_L                = $2C
+    PCA9685_CHAN09_OFF_H                = $2D
+    PCA9685_CHAN10_ON_L                 = $2E     ' LED10 or Servo10
+    PCA9685_CHAN10_ON_H                 = $2F
+    PCA9685_CHAN10_OFF_L                = $30
+    PCA9685_CHAN10_OFF_H                = $31
+    PCA9685_CHAN11_ON_L                 = $32     ' LED11 or Servo11
+    PCA9685_CHAN11_ON_H                 = $33
+    PCA9685_CHAN11_OFF_L                = $34
+    PCA9685_CHAN11_OFF_H                = $35
+    PCA9685_CHAN12_ON_L                 = $36     ' LED12 or Servo12
+    PCA9685_CHAN12_ON_H                 = $37
+    PCA9685_CHAN12_OFF_L                = $38
+    PCA9685_CHAN12_OFF_H                = $39
+    PCA9685_CHAN13_ON_L                 = $3A     ' LED13or Servo13
+    PCA9685_CHAN13_ON_H                 = $3B
+    PCA9685_CHAN13_OFF_L                = $3C
+    PCA9685_CHAN13_OFF_H                = $3D
+    PCA9685_CHAN14_ON_L                 = $3E     ' LED14 or Servo14
+    PCA9685_CHAN14_ON_H                 = $3F
+    PCA9685_CHAN14_OFF_L                = $40
+    PCA9685_CHAN14_OFF_H                = $41
+    PCA9685_CHAN15_ON_L                 = $42     ' LED15 or Servo15
+    PCA9685_CHAN15_ON_H                 = $43
+    PCA9685_CHAN15_OFF_L                = $44
+    PCA9685_CHAN15_OFF_H                = $45
+
+    PCA9685_ALL_LED_ON_L                = $FA     ' All LEDs or Servos
+    PCA9685_ALL_LED_ON_H                = $FB
+    PCA9685_ALL_LED_OFF_L               = $FC
+    PCA9685_ALL_LED_OFF_H               = $FD
+
+    PCA9685_PRESCALE                    = $FE
+    PCA9685_TEST_MODE                   = $FF
+
+    PCA9685_SW_RESET_CMD                = $06
+
+    PCA9685_MAX_CHANNELS        = 16
+
+    ' Mode1 bits
+    MODE1_RESTART = $80
+    MODE1_EXTCLK_ENABLE = $40
+    MODE1_AUTOINCREMENT_ENABLE = $20
+    MODE1_SLEEP = $10
+    MODE1_SUB1_ENABLE = $08
+    MODE1_SUB2_ENABLE = $04
+    MODE1_SUB3_ENABLE = $02
+    MODE1_ALLCALL_ENABLE = $01
+
+    ' Mode2 bits
+    ' bit 4
+    MODE2_INVRT_ENABLE = $10
+    MODE2_INVRT_NOT = $00
+    ' bit 3
+    MODE2_OUTCHANGE_ON_STOP = $00
+    MODE2_OUTCHANGE_ON_ACK4 = $08
+    ' bit 2
+    MODE2_OUTDRV_TOTEM_POLE = $04
+    MODE2_OUTDRV_OPEN_DRAIN = $00
+    ' bits 0,1
+    ' NOTE: if bit 1 is set bit 0 is ignored
+    MODE2_OUTNE_HIGH_IMPEDANCE = $02
+    MODE2_OUTNE_WHEN_OUTDRV = $01
+    MODE2_OUTNE_NOT_ENABLED = $00
+
+    MODE2_CONFIG1 = MODE2_OUTNE_NOT_ENABLED | MODE2_OUTDRV_TOTEM_POLE | MODE2_OUTCHANGE_ON_STOP | MODE2_INVRT_NOT
+    MODE2_CONFIG2 = MODE2_OUTNE_HIGH_IMPEDANCE | MODE2_OUTDRV_OPEN_DRAIN | MODE2_OUTCHANGE_ON_ACK4 | MODE2_INVRT_NOT
+
+    LED_FULL_ON_ONVALUE                 = $1000
+    LED_FULL_ON_OFFVALUE                = $0000
+
+    LED_FULL_OFF_ONVALUE                 = $0000
+    LED_FULL_OFF_OFFVALUE                = $1000
+
+CON { object interface constants }
+
+#0, DVC_NOT_FOUND, DVC_ADDR0, DVC_ADDR1
+
+    MODE_READ  = %0000_0001
+    MODE_WRITE = %0000_0000
+
+
+OBJ
+
+    i2c_bus     : "isp_i2c_singleton"                               ' i2c coms
+    term        : "isp_serial_singleton"                            ' terminal output
+
+DAT { i2c pca9685 singleton globals }
+
+pin_scl         LONG    0
+pin_sda         LONG    0
+pin_oe          LONG    0    ' FIXED for now: pin 0 for testing
+
+slaveAddress    LONG    0
+eDeviceFound    LONG    DVC_NOT_FOUND
+
+bShowDebug      BYTE    TRUE
+bPinsSetUp      BYTE    FALSE
+bDeviceFound    BYTE    FALSE
+
+chanUSec        LONG    1500[PCA9685_MAX_CHANNELS]
+
+PUB null()
+    '' This is not a top-level object
+
+PUB enableDebug(bEnable)
+    '' Turn on/off file internal debug messaging (bEnable = T/F where T means show debug messages from this object)
+    bShowDebug := bEnable
+
+PUB enableOutput(bEnable)
+    '' Turn on/off the PWM output drivers
+    if(bEnable)
+        pinl(pin_oe)
+    else
+        pinh(pin_oe)
+    if bShowDebug
+        term.fstr1(string("pca- enableOutput(%d)\r\n"), bEnable)
+
+PUB init(pinSCL, pinSDA, pinOE)
+    '' Initialize the output pins (quiet the device so we can trigger LA)
+
+    enableDebug(FALSE) ' set this to FALSE to disable object debug output on serial port, override with enableDebug(T/F)
+
+    bPinsSetUp := setupPins(pinSCL, pinSDA, pinOE)  ' configure pin numbers if not already
+    if bPinsSetUp
+        floatI2cPins()
+        ' have the driver force its own pins quiet
+        i2c_bus.quiesce(pin_scl, pin_sda, PULL_UP_PCA9685_I2C)
+
+PUB start(pinSCL, pinSDA, pinOE) : bDevicePresent
+    '' Start the device running
+    enableDebug(FALSE) ' set this to FALSE to disable object debug output on serial port, override with enableDebug(T/F)
+
+    bPinsSetUp := setupPins(pinSCL, pinSDA, pinOE)  ' configure pin numbers if not already
+    if bPinsSetUp
+        'pinh(pin_oe)
+        i2c_bus.setup(pin_scl, pin_sda, FREQ_PCA9685_I2C, PULL_UP_PCA9685_I2C)
+        bDevicePresent := bDeviceFound := (idDevice() <> DVC_NOT_FOUND)
+        if bShowDebug
+            term.fstr0(string("pca- Start()\r\n"))
+        'pinl(pin_oe)
+
+PUB configureController()
+    '' Configure the device for normal use
+    if bDeviceFound
+        enableDebug(TRUE) ' set this to FALSE to disable object debug output on serial port, override with enableDebug(T/F)
+        setPWMFrequency()
+        'enableDebug(FALSE) ' set this to FALSE to disable object debug output on serial port, override with enableDebug(T/F)
+
+PUB deviceID() : eDevice
+    '' Return indication (enum value) of if and which device we found on i2c bus
+    eDevice := eDeviceFound
+
+
+PUB stop()
+    '' Stop our i2c bus use and float all pins
+    ' no i2c_buss call needed, simply release all our pins
+    if bPinsSetUp
+        floatI2cPins()
+        if bShowDebug
+            term.fstr0(string("pca- Stop()\r\n"))
+
+CON  { ---- SERVO Positioning Methods ---- }
+
+PUB setAllServos(uSec) | ok, validChan, regOnLAddr, onValue, offValue
+    '' Set servo position for ALL channels
+    if bShowDebug
+        term.fstr1(string("+ setAllServos(ALL, %d uS)\r\n"), uSec)
+    onValue, offValue := calcOnOffValuesForMicroSec(uSec)
+    setAllChannels(uSec)
+    ok := write9685OffOnWords(PCA9685_ALL_LED_ON_L, onValue, offValue)
+
+
+PUB gotoMicroSec(channel, uSec) | ok, validChan, regOnLAddr, onValue, offValue
+    '' Set servo position for channel
+    ' convert uSec to pulse width and
+    if bShowDebug
+        term.fstr3(string("+ gotoMicroSec(Ch%d, %d uS) Cg%d\r\n"), channel, uSec, cogid())
+    validChan := 0 #> channel <# PCA9685_MAX_CHANNELS - 1                             ' legal PWM channel
+    regOnLAddr := validChan * 4 + 6
+    onValue, offValue := calcOnOffValuesForMicroSec(uSec)
+    LONG [@chanUSec][channel] := uSec
+    ok := write9685OffOnWords(regOnLAddr, onValue, offValue)
+
+PUB getMicroSec(channel) : uSec| ok, validChan, regOnLAddr, onValue, offValue
+    '' Return last known position in uSec for channel
+    validChan := 0 #> channel <# PCA9685_MAX_CHANNELS - 1                             ' legal PWM channel
+    uSec := LONG [@chanUSec][validChan]
+
+CON  { ---- PRIVATE (Utility) Methods ---- }
+
+PRI setAllChannels(uSec) | chanIdx
+    repeat chanIdx from 0 to PCA9685_MAX_CHANNELS - 1
+        LONG [@chanUSec][chanIdx] := uSec
+
+PRI setupPins(pinSCL, pinSDA, pinOE) : ok
+    ' Configure pin numbers if not already
+    ok := TRUE
+    if pin_scl <> pinSCL || pin_sda <> pinSDA || pin_oe <> pinOE
+        pin_scl := pinSCL
+        pin_sda := pinSDA
+        pin_oe := pinOE
+        'if bShowDebug
+        term.fstr4(string("pca- setupPins(%d, %d, %d) Cg%d\r\n\r\n"), pin_scl, pin_sda, pin_oe, cogid())
+
+PRI floatI2cPins()
+    ' pre-condition the click I/O pins
+    if bPinsSetUp
+        pinf(pin_scl)   ' de-assert
+        pinf(pin_sda)   ' de-assert
+        'pinf(pin_oe)    ' de-assert
+
+PRI idDevice() : eDevice | bFoundAddr, pFoundStr
+    ' Identify the address our device is at on the i2c bus
+    bFoundAddr := false
+    if i2c_bus.present(((PCA9685_ADDR << 1) | $80) | MODE_WRITE)
+        bFoundAddr := true
+
+    eDeviceFound := DVC_NOT_FOUND
+    slaveAddress := DVC_NOT_FOUND
+    if(bFoundAddr)
+        eDeviceFound := DVC_ADDR0
+        slaveAddress := PCA9685_ADDR
+
+    if bShowDebug
+        if (bFoundAddr)
+            term.fstr1(string("pca- idDevice() found at Addr 0x%.02x\r\n"), slaveAddress)
+        else
+            term.fstr0(string("pca- idDevice() NOT found\r\n"))
+
+    i2c_bus.stop()  ' ensure we are in stable state
+    eDevice := eDeviceFound
+    pFoundStr := (eDeviceFound <> DVC_NOT_FOUND) ? @" " : @"NOT "
+    debug("idDevice() dvc ", zstr_(pFoundStr), "found at ", uhex_byte_(slaveAddress))
+
+PRI setPWMFrequencyARM() | ok, old_mode
+    ' configure our device (6DOF ARM)
+
+    ' Initialise the PCA9685 chip.
+    ' The internal reference clock is 25mhz but may vary slightly with environmental conditions and
+    ' manufacturing variances. The math herein configures PWM rate for all channels (one single rate)
+
+    ' Chip reset
+    'softwareReset()
+    'waitms(1)
+    ok, old_mode := read9685Byte(PCA9685_MODE1)
+    if bShowDebug
+        term.fstr1(string("pca- setPWMFrequency() MODE1=0x%.02x\r\n"), old_mode)
+    write9685Byte(PCA9685_MODE1, (old_mode & !MODE1_RESTART) | MODE1_SLEEP)  ' put to sleep
+
+    write9685Byte(PCA9685_PRESCALE, PCA9685_PWM_FREQ_DIVISOR)  ' set new clock rate
+
+    write9685Byte(PCA9685_MODE1, (old_mode & !(MODE1_SLEEP & MODE1_RESTART) | MODE1_AUTOINCREMENT_ENABLE))  ' wake
+    waitms(1)   ' 0.005 Sec for chip to settle
+
+    '  SET UP: autoincrement on, fix to stop pca9685 from accepting commands at all addresses (disable 'em)
+    write9685Byte(PCA9685_MODE2, MODE2_OUTNE_NOT_ENABLED | MODE2_OUTDRV_TOTEM_POLE | MODE2_OUTCHANGE_ON_STOP | MODE2_INVRT_NOT)
+    'write9685Byte(PCA9685_MODE2, MODE2_OUTNE_NOT_ENABLED | MODE2_OUTDRV_TOTEM_POLE | MODE2_OUTCHANGE_ON_STOP | MODE2_INVRT_ENABLE)
+
+PRI setPWMFrequency() | ok, old_mode
+    ' configure our device (EYEs)
+
+    ' Initialise the PCA9685 chip.
+    ' The internal reference clock is 25mhz but may vary slightly with environmental conditions and
+    ' manufacturing variances. The math herein configures PWM rate for all channels (one single rate)
+
+    ' Chip reset
+    'softwareReset()
+    'waitms(1)
+    write9685Byte(PCA9685_MODE1, 0)  ' clear values
+
+    ok, old_mode := read9685Byte(PCA9685_MODE1)
+
+    write9685Byte(PCA9685_MODE1, MODE1_SLEEP)  ' put to sleep
+
+    write9685Byte(PCA9685_PRESCALE, PCA9685_PWM_FREQ_DIVISOR)  ' set new clock rate
+
+    write9685Byte(PCA9685_MODE1, 0)  ' wake up
+
+    waitms(5)   ' 0.005 Sec for chip to settle
+
+    write9685Byte(PCA9685_MODE1, MODE1_RESTART | MODE1_AUTOINCREMENT_ENABLE | MODE1_ALLCALL_ENABLE)  ' wake
+
+PRI calcOnOffValuesForMicroSec(uSec): onValue, offValue | uSecValidated
+    ' calculate register loads based on configured clock frequency of PCA9685
+    uSecValidated := SERVO_MIN_LIMIT_USEC #> uSec <# SERVO_MAX_LIMIT_USEC                             ' legal uSec period for servo
+    onValue := 0 ' left edge at start of cycle
+    'offValue := ((uSecValidated * 1_000) / (1_000_000 / PCA9685_DESIRED_FREQ_IN_HZ * 1000 / 4096)) + onValue
+    offValue := ((uSecValidated * 1_000) / (10_000_000 / PCA9685_ACTUAL_FREQ_IN_HZ_x10 * 1000 / 4096)) + onValue
+
+
+CON  { ---- Device reads & writes ---- }
+
+PUB write9685OffOnWords(channelLoAddr, onValue, offValue) : ok | ackbit
+    '' Write {dataValue16} to register {regAddr} - hi byte to {regAddr}, lo byte to {regAddr}+1
+    if bShowDebug
+        ' following is more than 10ms...
+        term.fstr3(string("pca- write9685OffOnWords(0x%.02x)= ON:0x%.04x / OFF:0x%.04x\r\n"), channelLoAddr, onValue, offValue)
+    'debug("write9685OffOnWords() chan=", uhex_byte_(channelLoAddr), ", onV=", uhex_word_(onValue), ", offV=", uhex_word_(offValue))
+    i2c_bus.start()
+    'ok := ackBit := i2c_bus.write((slaveAddress << 1) | MODE_WRITE)
+    ok := ackBit := i2c_bus.write(slaveAddress | MODE_WRITE)
+    ackBit := i2c_bus.write(channelLoAddr)
+    ok |= ackbit
+    ackBit := i2c_bus.write(onValue.byte[0])            ' onL
+    ok |= ackbit
+    ackBit := i2c_bus.write(onValue.byte[1])            ' onH
+    ok |= ackbit
+    ackBit := i2c_bus.write(offValue.byte[0])           ' offL
+    ok |= ackbit
+    ackBit := i2c_bus.write(offValue.byte[1])           ' offH
+    ok |= ackbit
+    i2c_bus.stop()
+
+    if bShowDebug
+        ' following is more than 10ms...
+        term.fstr1(string(" --> ok:%d\r\n"), ok)
+    else
+        waitms(1)  ' after each write! (tBuf = 4.7 uS)
+
+PUB softwareReset() : ok | ackbit
+    '' Write {dataValue8} to register {regAddr}
+    ''  return 0 if success
+    if bShowDebug
+        ' following is more than 10ms...
+        term.fstr2(string("pca- softwareReset(0x%.02x)=0x%.02x\r\n"), PCA9685_RESET_ADDR, PCA9685_SW_RESET_CMD)
+    i2c_bus.start()
+    'ok := ackBit := i2c_bus.write((slaveAddress << 1) | MODE_WRITE)
+    ok := i2c_bus.write(PCA9685_RESET_ADDR | MODE_WRITE)
+    ackBit := i2c_bus.write(PCA9685_SW_RESET_CMD)
+    ok |= ackbit
+    i2c_bus.stop()
+
+    if bShowDebug
+        ' following is more than 10ms...
+        term.fstr1(string(" --> ok:%d\r\n"), ok)
+    else
+        waitms(1)  ' after each write! (tBuf = 4.7 uS)
+
+PUB write9685Byte(regAddr, dataValue8) : ok | ackbit
+    '' Write {dataValue8} to register {regAddr}
+    ''  return 0 if success
+    if bShowDebug
+        ' following is more than 10ms...
+        term.fstr2(string("pca- write9685Byte(0x%.02x)=0x%.02x\r\n"), regAddr, dataValue8)
+    i2c_bus.start()
+    'ok := ackBit := i2c_bus.write((slaveAddress << 1) | MODE_WRITE)
+    ok := ackBit := i2c_bus.write(slaveAddress | MODE_WRITE)
+    ackBit := i2c_bus.write(regAddr)
+    ok |= ackbit
+    ackBit := i2c_bus.write(dataValue8)
+    ok |= ackbit
+    i2c_bus.stop()
+
+    if bShowDebug
+        ' following is more than 10ms...
+        term.fstr1(string(" --> ok:%d\r\n"), ok)
+    else
+        waitms(1)  ' after each write! (tBuf = 4.7 uS)
+
+PUB write9685Word(regAddr, dataValue16) : ok | ackbit
+    '' Write {dataValue16} to register {regAddr} - hi byte to {regAddr}, lo byte to {regAddr}+1
+    ''  return 0 if success
+    i2c_bus.start()
+    'ok := ackBit := i2c_bus.write((slaveAddress << 1) | MODE_WRITE)
+    ok := ackBit := i2c_bus.write(slaveAddress | MODE_WRITE)
+    ackBit := i2c_bus.write(regAddr)
+    ok |= ackbit
+    ackBit := i2c_bus.write(dataValue16.byte[1])
+    ok |= ackbit
+    ackBit := i2c_bus.write(dataValue16.byte[0])
+    ok |= ackbit
+    i2c_bus.stop()
+
+    if bShowDebug
+        ' following is more than 10ms...
+        term.fstr3(string("pca- write9685Word(0x%.02x)=0x%.04x ok:%d\r\n"), regAddr, dataValue16, ok)
+    else
+        waitms(1)  ' after each write! (tBuf = 4.7 uS)
+
+PUB read9685Byte(regAddr) : ok, result8 | ackbit
+    '' Read {result16} from register {regAddr}
+    ''  return 0 if success
+    if bShowDebug
+        term.fstr1(string("pca- read9685Byte(0x%.02x)\r\n"), regAddr)
+    i2c_bus.start()
+    'ok := ackBit := i2c_bus.write((slaveAddress << 1) | MODE_WRITE)
+    ok := ackBit := i2c_bus.write(slaveAddress | MODE_WRITE)
+    ackBit := i2c_bus.write(regAddr)
+    ok |= ackbit
+    i2c_bus.start()
+    'ackBit := i2c_bus.write((slaveAddress << 1) | MODE_READ)
+    ackBit := i2c_bus.write(slaveAddress | MODE_READ)
+    ok |= ackbit
+    result8 := i2c_bus.read(i2c_bus.NAK)    ' NAK: last byte we're reading
+    i2c_bus.stop()
+    if bShowDebug
+        term.fstr3(string(" --> ok:%d, byt=0x%.02x, ret %d\r\n"), ok, result8, result8)
+
+PUB read9685Bytes(regAddr, byteCount, pByteStore) : ok | ackbit, byteIndex, endAckNak, result8
+    '' Read {result16} from register {regAddr}
+    ''  return 0 if success
+    if bShowDebug
+        term.fstr2(string("pca- read9685Bytes(0x%.02x, ct=%d)\r\n"), regAddr, byteCount)
+    i2c_bus.start()
+    'ok := ackBit := i2c_bus.write((slaveAddress << 1) | MODE_WRITE)
+    ok := ackBit := i2c_bus.write(slaveAddress | MODE_WRITE)
+    ackBit := i2c_bus.write(regAddr)
+    ok |= ackbit
+    i2c_bus.start()
+    'ackBit := i2c_bus.write((slaveAddress << 1) | MODE_READ)
+    ackBit := i2c_bus.write(slaveAddress | MODE_READ)
+    ok |= ackbit
+    repeat byteIndex from 0 to byteCount - 1
+        endAckNak := (byteIndex == byteCount - 1) ? i2c_bus.NAK : i2c_bus.ACK
+        result8 := i2c_bus.read(endAckNak)
+        result8 := result8 signx 7
+        BYTE [pByteStore][byteIndex] := result8
+        if bShowDebug
+            term.fstr5(string(" -- read9685Bytes(0x%.02x) ok:%d, BYTE[%d]ret 0x%.02x(%d)\r\n"), regAddr + byteIndex, ok, byteIndex, result8, result8)
+    i2c_bus.stop()
+    if bShowDebug
+        term.fstr3(string(" -- read9685Bytes(0x%.02x, ct=%d) ok:%d\r\n"), regAddr, byteCount, ok)
+
+PUB read9685Word(regAddr) : ok, result16 | ackbit
+    '' Read {result16} from register {regAddr} - hi byte from {regAddr}, lo byte from {regAddr}+1
+    i2c_bus.start()
+    'ok := ackBit := i2c_bus.write((slaveAddress << 1) | MODE_WRITE)
+    ok := ackBit := i2c_bus.write(slaveAddress | MODE_WRITE)
+    ackBit := i2c_bus.write(regAddr)
+    ok |= ackbit
+    i2c_bus.start()
+    'ackBit := i2c_bus.write((slaveAddress << 1) | MODE_READ)
+    ackBit := i2c_bus.write(slaveAddress | MODE_READ)
+    ok |= ackbit
+    result16.byte[1] := i2c_bus.read(i2c_bus.ACK)
+    result16.byte[0] := i2c_bus.read(i2c_bus.NAK)
+    i2c_bus.stop()
+    result16 := result16 signx 15
+    if bShowDebug
+        term.fstr5(string("pca- read9685Word(0x%.02x) ok:%d, hi 0x%.02x, lo 0x%.02x, ret %d\r\n"), regAddr, ok, result16.byte[1], result16.byte[0], result16)
+
+PUB read9685Words(regAddr, wordCount, pWordStore) : ok | ackbit, wordIndex, endAckNak, result16
+    '' Read {wordCount} WORDs starting from register {regAddr} - hi byte from {regAddr},
+    ''  lo byte from {regAddr}+1, hi byte from {regAddr}+2, lo byte from {regAddr}+3 and so on
+    ''  placing them into WORD array located at {pWordStore}
+    if bShowDebug
+        term.fstr2(string("pca- read9685Words(0x%.02x, ct=%d)\r\n"), regAddr, wordCount)
+    i2c_bus.start()
+    'ok := ackBit := i2c_bus.write((slaveAddress << 1) | MODE_WRITE)
+    ok := ackBit := i2c_bus.write(slaveAddress | MODE_WRITE)
+    ackBit := i2c_bus.write(regAddr)
+    ok |= ackbit
+    i2c_bus.start()
+    'ackBit := i2c_bus.write((slaveAddress << 1) | MODE_READ)
+    ackBit := i2c_bus.write(slaveAddress | MODE_READ)
+    ok |= ackbit
+    repeat wordIndex from 0 to wordCount - 1
+        endAckNak := (wordIndex == wordCount - 1) ? i2c_bus.NAK : i2c_bus.ACK
+        result16.byte[1] := i2c_bus.read(i2c_bus.ACK)
+        result16.byte[0] := i2c_bus.read(endAckNak)
+        result16 := result16 signx 15
+        WORD [pWordStore][wordIndex] := result16
+        if bShowDebug
+            term.fstr7(string(" -- read9685Words(0x%.02x) ok:%d, hi:0x%.02x, lo:0x%.02x, WORD[%d]ret 0x%.04x(%d)\r\n"), regAddr + (wordIndex * 2), ok, result16.byte[1], result16.byte[0], wordIndex, result16, result16)
+    i2c_bus.stop()
+    if bShowDebug
+        term.fstr3(string(" -- read9685Words(0x%.02x, ct=%d) ok:%d\r\n"), regAddr, wordCount, ok)
+
+
+
+con { license }
+
+{{
+
+ -------------------------------------------------------------------------------------------------
+  Terms of Use: MIT License
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this
+  software and associated documentation files (the "Software"), to deal in the Software
+  without restriction, including without limitation the rights to use, copy, modify,
+  merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to the following
+  conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies
+  or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+  PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+  CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+  OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ =================================================================================================
+}}

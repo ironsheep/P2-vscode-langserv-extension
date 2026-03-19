@@ -1,0 +1,681 @@
+================================================================================
+PNut-TS Memory Map: demo_quadEnc_wTimi.spin2
+Spin2_v41
+Generated: 2026-03-19T22:48:03.809Z
+================================================================================
+
+=== PROGRAM SUMMARY ===
+
+  Total Size:    7704 bytes (6856 code/data + 848 var bytes)
+  Objects:       6
+  Methods:       155
+
+=== OBJECT HIERARCHY ===
+
+  demo_quadEnc_wTimi  (8 methods)
+      +-- QUADENC : isp_quadEncWBtn_sp  (11 methods)
+      +-- TIMI : isp_timi_mates  (72 methods)
+      |   \-- SERIO : jm_nstrings  (15 methods)
+      |       \-- child_0 : object_7
+      \-- MEMSTR : isp_serial  (42 methods)
+
+=== MEMORY LAYOUT ===
+
+  Start   End      Size  Object           Instance         Overrides
+  ------  ------  -----  ---------------  ---------------  ---------
+  $00000  $00227    552  demo_quadEnc_wTimi  (entry)          
+  $00228  $004DB    692  isp_quadEncWBtn_sp  QUADENC          
+  $004DC  $01085   2986  isp_timi_mates   TIMI             
+  $01088  $01568   1249  isp_serial       MEMSTR           
+  $0156C  $01848    733  jm_nstrings      SERIO            
+  $0184C  $01AC7    636  isp_mem_strings  (entry)          
+
+    CODE/DATA TOTAL:    6856 bytes
+
+  $01AC8  $01E17    848  VAR SPACE        (runtime)      
+
+    PROGRAM TOTAL:      7704 bytes
+
+=== OBJECT DETAILS ===
+
+--- demo_quadEnc_wTimi ---
+    Location: $00000-$00227 (552 bytes)
+    VAR Base: $01AC8
+    Source:   demo_quadEnc_wTimi.spin2
+
+    Methods:
+      MAIN                  Entry $00006  ($00006)
+      UPDATEDISPLAY         Entry $00007  ($00007)
+      UPDATESTATEDISPLAY    Entry $00008  ($00008)
+      UPDATEOFFSETDISPLAY   Entry $00009  ($00009)
+      UPDATEINSTRUDISPLAY   Entry $0000A  ($0000A)
+      GENSTATEMSG           Entry $0000B  ($0000B)
+      RIGHTALIGNVALUE       Entry $0000C  ($0000C)
+      RIGHTALIGNSTRING      Entry $0000D  ($0000D)
+
+    DAT:
+      LONG      SERVOIDX              +$0003C  ($0003C)
+      LONG      SERVOOFFSET           +$00040  ($00040)
+      LONG      STATEIDX              +$00044  ($00044)
+      BYTE      MSGLOW                +$00048  ($00048)
+      BYTE      MSGHIGH               +$0004B  ($0004B)
+      BYTE      TITLE0                +$0004E  ($0004E)
+      BYTE      TITLE1                +$00058  ($00058)
+      BYTE      RATEMSG               +$00062  ($00062)
+      LONG      DELTAPOSITION         +$0006C  ($0006C)
+      LONG      PRIORPOSITION         +$00070  ($00070)
+      LONG      DESIREDOFFSET         +$00074  ($00074)
+
+    Child Objects:
+      QUADENC : isp_quadEncWBtn_sp (692 bytes)
+      TIMI : isp_timi_mates (2986 bytes)
+      MEMSTR : isp_serial (1249 bytes)
+
+--- QUADENC : isp_quadEncWBtn_sp ---
+    Location: $00228-$004DB (692 bytes)
+    VAR Base: $01ACC
+    Source:   isp_quadEncWBtn_sp.spin2
+
+    Methods:
+      NULL                  Entry $00000  ($00228)
+      START                 Entry $00001  ($00229)
+      STOP                  Entry $00002  ($0022A)
+      SETSCALE              Entry $00003  ($0022B)
+      GETSCALE              Entry $00004  ($0022C)
+      ISBUTTONPRESSED       Entry $00005  ($0022D)
+      POSITION              Entry $00006  ($0022E)
+      POSITIONSCALED        Entry $00007  ($0022F)
+      RATE                  Entry $00008  ($00230)
+      POSITIONRATE          Entry $00009  ($00231)
+      TASKCONTINUOUSENCODERSMARTPIN  Entry $0000A  ($00232)
+
+    DAT:
+      LONG      PRIORPOSITION         +$00030  ($00258)
+
+    VAR:
+      LONG      QUADENCCOG            +$0004  ($01AD0)
+      LONG      ENCPOSITION           +$0008  ($01AD4)
+      LONG      ENCPRIORPOSITION      +$000C  ($01AD8)
+      LONG      ENCSAMPLECT           +$0010  ($01ADC)
+      LONG      ENCSCALE              +$0014  ($01AE0)
+      LONG      TASKPRESSCOUNT        +$0018  ($01AE4)
+      LONG      TASKPRESSSAMPLENBR    +$001C  ($01AE8)
+      LONG      PRIORPRESSSAMPLENBR   +$0020  ($01AEC)
+      LONG      ENCRATE               +$0024  ($01AF0)
+      LONG      ENCPRIORRATE          +$0028  ($01AF4)
+      LONG      ENCRATESAMPLECT       +$002C  ($01AF8)
+      LONG      ENCBITS               +$0030  ($01AFC)
+      LONG      ENCSTACK              +$0034  ($01B00)
+      LONG      PINENC0               +$0134  ($01C00)
+      LONG      PINENC1               +$0138  ($01C04)
+      LONG      PINRATEENC0           +$013C  ($01C08)
+      LONG      PINRATEENC1           +$0140  ($01C0C)
+      LONG      PINENCBTN             +$0144  ($01C10)
+      LONG      BTNVALUE              +$0148  ($01C14)
+      LONG      BTNSAMPLE             +$014C  ($01C18)
+      LONG      BTNPRIORSAMPLE        +$0150  ($01C1C)
+      LONG      BTNCHANGED            +$0154  ($01C20)
+      LONG      BTNEDGECOUNT          +$0158  ($01C24)
+      LONG      TIMENOWMS             +$015C  ($01C28)
+      LONG      TIMEPRIOREDGEMS       +$0160  ($01C2C)
+      LONG      TIMESINCEEDGEMS       +$0164  ($01C30)
+      LONG      TIMEPRIORPRESSMS      +$0168  ($01C34)
+      LONG      TIMESINCEPRESSMS      +$016C  ($01C38)
+      LONG      BTNPRESSCOUNT         +$0170  ($01C3C)
+
+--- TIMI : isp_timi_mates ---
+    Location: $004DC-$01085 (2986 bytes)
+    VAR Base: $01C40
+    Source:   isp_timi_mates.spin2
+
+    Methods:
+      NULL                  Entry $00004  ($004E0)
+      START                 Entry $00005  ($004E1)
+      STOP                  Entry $00006  ($004E2)
+      ERROR                 Entry $00007  ($004E3)
+      HARDRESET             Entry $00008  ($004E4)
+      SOFTRESET             Entry $00009  ($004E5)
+      SETBACKLIGHT          Entry $0000A  ($004E6)
+      SETPAGE               Entry $0000B  ($004E7)
+      GETPAGE               Entry $0000C  ($004E8)
+      SETWIDGETVALUEBYID    Entry $0000D  ($004E9)
+      GETWIDGETVALUEBYID    Entry $0000E  ($004EA)
+      SETWIDGETVALUEBYINDEX  Entry $0000F  ($004EB)
+      GETWIDGETVALUEBYINDEX  Entry $00010  ($004EC)
+      SETLEDDIGITSSHORTVALUE  Entry $00011  ($004ED)
+      SETLEDDIGITSLONGVALUE  Entry $00012  ($004EE)
+      SETLEDDIGITSFLOATVALUE  Entry $00013  ($004EF)
+      SETSPECTRUMVALUE      Entry $00014  ($004F0)
+      SETLEDSPECTRUMVALUE   Entry $00015  ($004F1)
+      SETMEDIASPECTRUMVALUE  Entry $00016  ($004F2)
+      SETWIDGETPARAMBYID    Entry $00017  ($004F3)
+      GETWIDGETPARAMBYID    Entry $00018  ($004F4)
+      SETWIDGETPARAMBYINDEX  Entry $00019  ($004F5)
+      GETWIDGETPARAMBYINDEX  Entry $0001A  ($004F6)
+      SETBUFFERSIZE         Entry $0001B  ($004F7)
+      CLEARTEXTAREA         Entry $0001C  ($004F8)
+      UPDATETEXTAREA        Entry $0001D  ($004F9)
+      CLEARPRINTAREA        Entry $0001E  ($004FA)
+      SETPRINTAREACOLOR565  Entry $0001F  ($004FB)
+      SETPRINTAREACOLORRGB  Entry $00020  ($004FC)
+      APPENDARRAYTOPRINTAREA  Entry $00021  ($004FD)
+      APPENDSTRINGTOPRINTAREA  Entry $00022  ($004FE)
+      APPENDTOSCOPEWIDGET   Entry $00023  ($004FF)
+      UPDATEDOTMATRIXWIDGET  Entry $00024  ($00500)
+      GETBUTTONEVENTCOUNT   Entry $00025  ($00501)
+      GETNEXTBUTTONEVENT    Entry $00026  ($00502)
+      GETSWIPEEVENTCOUNT    Entry $00027  ($00503)
+      GETNEXTSWIPEEVENT     Entry $00028  ($00504)
+      GETVERSION            Entry $00029  ($00505)
+      GETCOMPATIBILITY      Entry $0002A  ($00506)
+      PRINTVERSION          Entry $0002B  ($00507)
+      GETERROR              Entry $0002C  ($00508)
+      TAKESCREENSHOT        Entry $0002D  ($00509)
+      SAVESCREENSHOT        Entry $0002E  ($0050A)
+      PULLUPVALUEFORENUM    Entry $0002F  ($0050B)
+      SYNC                  Entry $00030  ($0050C)
+      SETPAGESHOWINGDEBUG   Entry $00031  ($0050D)
+      GETPAGESHOWINGDEBUG   Entry $00032  ($0050E)
+      MATESHWRESET          Entry $00033  ($0050F)
+      WRITE_COMMAND         Entry $00034  ($00510)
+      WRITE_INT8            Entry $00035  ($00511)
+      WRITE_UINT8           Entry $00036  ($00512)
+      WRITE_INT16           Entry $00037  ($00513)
+      WRITE_UINT16          Entry $00038  ($00514)
+      WRITE_INT32           Entry $00039  ($00515)
+      WRITE_FLOAT           Entry $0003A  ($00516)
+      WRITE_STRING          Entry $0003B  ($00517)
+      WRITE_INT16_BUFFER    Entry $0003C  ($00518)
+      WRITE_BYTES           Entry $0003D  ($00519)
+      WAITFORACK            Entry $0003E  ($0051A)
+      READ_INT16            Entry $0003F  ($0051B)
+      READ_RESPONSE         Entry $00040  ($0051C)
+      SET_WIDGET_VALUE_32BIT  Entry $00041  ($0051D)
+      CONSTRUCT_RGB565_VALUE  Entry $00042  ($0051E)
+      CHECK_ARGUMENT_VALUE  Entry $00043  ($0051F)
+      GETWIDGETID           Entry $00044  ($00520)
+      RANGE_INIT            Entry $00045  ($00521)
+      INITRANGE             Entry $00046  ($00522)
+      GETRANGEFORTYPE       Entry $00047  ($00523)
+      STRINGFORRANGETYPE    Entry $00048  ($00524)
+      DELAYMS               Entry $00049  ($00525)
+      DELAYUS               Entry $0004A  ($00526)
+      GETWIDGETIDFORBASE    Entry $0004B  ($00527)
+
+    DAT:
+      LONG      PIN_TX                +$00134  ($00610)
+      LONG      PIN_RX                +$00138  ($00614)
+      LONG      PIN_RST               +$0013C  ($00618)
+      LONG      IOBAUDRATE            +$00140  ($0061C)
+      LONG      MATESERROR            +$00144  ($00620)
+      BYTE      MATESSTUDIOCOMPATVER  +$00148  ($00624)
+      BYTE      MATESCONTROLLERLIBVER  +$0014F  ($0062B)
+      LONG      DATATYPE_RANGES       +$00155  ($00631)
+
+    Child Objects:
+      SERIO : jm_nstrings (733 bytes)
+
+--- MEMSTR : isp_serial ---
+    Location: $01088-$01568 (1249 bytes)
+    VAR Base: $01D9C
+    Source:   isp_serial.spin2
+
+    Methods:
+      NULL                  Entry $00002  ($0108A)
+      START                 Entry $00003  ($0108B)
+      STARTX                Entry $00004  ($0108C)
+      STOP                  Entry $00005  ($0108D)
+      GETBAUDRATE           Entry $00006  ($0108E)
+      RXFLUSH               Entry $00007  ($0108F)
+      RXCHECK               Entry $00008  ($01090)
+      RXTIME                Entry $00009  ($01091)
+      RX                    Entry $0000A  ($01092)
+      TX                    Entry $0000B  ($01093)
+      TXN                   Entry $0000C  ($01094)
+      TXFLUSH               Entry $0000D  ($01095)
+      STR                   Entry $0000E  ($01096)
+      SUBSTR                Entry $0000F  ($01097)
+      PADSTR                Entry $00010  ($01098)
+      FSTR0                 Entry $00011  ($01099)
+      FSTR1                 Entry $00012  ($0109A)
+      FSTR2                 Entry $00013  ($0109B)
+      FSTR3                 Entry $00014  ($0109C)
+      FSTR4                 Entry $00015  ($0109D)
+      FSTR5                 Entry $00016  ($0109E)
+      FSTR6                 Entry $00017  ($0109F)
+      FORMAT                Entry $00018  ($010A0)
+      FMT_NUMBER            Entry $00019  ($010A1)
+      DEC                   Entry $0001A  ($010A2)
+      FWDEC                 Entry $0001B  ($010A3)
+      JDEC                  Entry $0001C  ($010A4)
+      DPDEC                 Entry $0001D  ($010A5)
+      JDPDEC                Entry $0001E  ($010A6)
+      HEX                   Entry $0001F  ($010A7)
+      FWHEX                 Entry $00020  ($010A8)
+      JHEX                  Entry $00021  ($010A9)
+      OCT                   Entry $00022  ($010AA)
+      FWOCT                 Entry $00023  ($010AB)
+      JOCT                  Entry $00024  ($010AC)
+      QRT                   Entry $00025  ($010AD)
+      FWQRT                 Entry $00026  ($010AE)
+      JQRT                  Entry $00027  ($010AF)
+      BIN                   Entry $00028  ($010B0)
+      FWBIN                 Entry $00029  ($010B1)
+      JBIN                  Entry $0002A  ($010B2)
+      GET_NARGS             Entry $0002B  ($010B3)
+
+    VAR:
+      LONG      RXP                   +$0004  ($01DA0)
+      LONG      TXP                   +$0008  ($01DA4)
+      LONG      BAUD                  +$000C  ($01DA8)
+      LONG      BYTEMASK              +$0010  ($01DAC)
+      LONG      BYTEEXTRABITS         +$0014  ($01DB0)
+      BYTE      PBUF                  +$0018  ($01DB4)
+
+--- SERIO : jm_nstrings ---
+    Location: $0156C-$01848 (733 bytes)
+    VAR Base: $01C60
+    Source:   jm_nstrings.spin2
+
+    Methods:
+      NULL                  Entry $00000  ($0156C)
+      FMT_NUMBER            Entry $00001  ($0156D)
+      DEC                   Entry $00002  ($0156E)
+      DPDEC                 Entry $00003  ($0156F)
+      ITOA                  Entry $00004  ($01570)
+      REVSTR                Entry $00005  ($01571)
+      PADSTR                Entry $00006  ($01572)
+
+    VAR:
+      BYTE      NBUF                  +$0004  ($01C64)
+      BYTE      PBUF                  +$0025  ($01C85)
+
+    Child Objects:
+      child_0 : object_7
+
+=== ADDRESS INDEX ===
+
+  Address  Type      Object           Name
+  -------  --------  ---------------  ---------------
+   $00000  CODE      demo_quadEnc_wTimi  (entry)
+   $00000  METHOD    isp_quadEncWBtn_sp  NULL
+   $00000  METHOD    jm_nstrings      NULL
+   $00001  METHOD    isp_quadEncWBtn_sp  START
+   $00001  METHOD    jm_nstrings      FMT_NUMBER
+   $00002  METHOD    isp_quadEncWBtn_sp  STOP
+   $00002  METHOD    jm_nstrings      DEC
+   $00002  METHOD    isp_serial       NULL
+   $00002  METHOD    Object_5         NULL
+   $00003  METHOD    isp_quadEncWBtn_sp  SETSCALE
+   $00003  METHOD    jm_nstrings      DPDEC
+   $00003  METHOD    isp_serial       START
+   $00003  METHOD    Object_5         SFORMATSTR0
+   $00004  METHOD    isp_quadEncWBtn_sp  GETSCALE
+   $00004  METHOD    jm_nstrings      ITOA
+   $00004  METHOD    isp_serial       STARTX
+   $00004  METHOD    isp_timi_mates   NULL
+   $00004  METHOD    Object_5         SFORMATSTR1
+   $00005  METHOD    isp_quadEncWBtn_sp  ISBUTTONPRESSED
+   $00005  METHOD    jm_nstrings      REVSTR
+   $00005  METHOD    isp_serial       STOP
+   $00005  METHOD    isp_timi_mates   START
+   $00005  METHOD    Object_5         SFORMATSTR2
+   $00006  METHOD    isp_quadEncWBtn_sp  POSITION
+   $00006  METHOD    jm_nstrings      PADSTR
+   $00006  METHOD    isp_serial       GETBAUDRATE
+   $00006  METHOD    isp_timi_mates   STOP
+   $00006  METHOD    Object_5         SFORMATSTR3
+   $00006  METHOD    demo_quadEnc_wTimi  MAIN
+   $00007  METHOD    isp_quadEncWBtn_sp  POSITIONSCALED
+   $00007  METHOD    isp_serial       RXFLUSH
+   $00007  METHOD    isp_timi_mates   ERROR
+   $00007  METHOD    Object_5         SFORMATSTR4
+   $00007  METHOD    demo_quadEnc_wTimi  UPDATEDISPLAY
+   $00008  METHOD    isp_quadEncWBtn_sp  RATE
+   $00008  METHOD    isp_serial       RXCHECK
+   $00008  METHOD    isp_timi_mates   HARDRESET
+   $00008  METHOD    Object_5         SFORMATSTR5
+   $00008  METHOD    demo_quadEnc_wTimi  UPDATESTATEDISPLAY
+   $00009  METHOD    isp_quadEncWBtn_sp  POSITIONRATE
+   $00009  METHOD    isp_serial       RXTIME
+   $00009  METHOD    isp_timi_mates   SOFTRESET
+   $00009  METHOD    Object_5         SFORMATSTR6
+   $00009  METHOD    demo_quadEnc_wTimi  UPDATEOFFSETDISPLAY
+   $0000A  METHOD    isp_quadEncWBtn_sp  TASKCONTINUOUSENCODERSMARTPIN
+   $0000A  METHOD    isp_serial       RX
+   $0000A  METHOD    isp_timi_mates   SETBACKLIGHT
+   $0000A  METHOD    Object_5         SFORMATSTR7
+   $0000A  METHOD    demo_quadEnc_wTimi  UPDATEINSTRUDISPLAY
+   $0000B  METHOD    isp_serial       TX
+   $0000B  METHOD    isp_timi_mates   SETPAGE
+   $0000B  METHOD    Object_5         SFORMATSTR8
+   $0000B  METHOD    demo_quadEnc_wTimi  GENSTATEMSG
+   $0000C  METHOD    isp_serial       TXN
+   $0000C  METHOD    isp_timi_mates   GETPAGE
+   $0000C  METHOD    Object_5         SFORMAT
+   $0000C  METHOD    demo_quadEnc_wTimi  RIGHTALIGNVALUE
+   $0000D  METHOD    isp_serial       TXFLUSH
+   $0000D  METHOD    isp_timi_mates   SETWIDGETVALUEBYID
+   $0000D  METHOD    Object_5         STX
+   $0000D  METHOD    demo_quadEnc_wTimi  RIGHTALIGNSTRING
+   $0000E  METHOD    isp_serial       STR
+   $0000E  METHOD    isp_timi_mates   GETWIDGETVALUEBYID
+   $0000E  METHOD    Object_5         STXN
+   $0000F  METHOD    isp_serial       SUBSTR
+   $0000F  METHOD    isp_timi_mates   SETWIDGETVALUEBYINDEX
+   $0000F  METHOD    Object_5         SSTR
+   $00010  METHOD    isp_serial       PADSTR
+   $00010  METHOD    isp_timi_mates   GETWIDGETVALUEBYINDEX
+   $00010  METHOD    Object_5         GET_NARGS
+   $00011  METHOD    isp_serial       FSTR0
+   $00011  METHOD    isp_timi_mates   SETLEDDIGITSSHORTVALUE
+   $00012  METHOD    isp_serial       FSTR1
+   $00012  METHOD    isp_timi_mates   SETLEDDIGITSLONGVALUE
+   $00013  METHOD    isp_serial       FSTR2
+   $00013  METHOD    isp_timi_mates   SETLEDDIGITSFLOATVALUE
+   $00014  METHOD    isp_serial       FSTR3
+   $00014  METHOD    isp_timi_mates   SETSPECTRUMVALUE
+   $00015  METHOD    isp_serial       FSTR4
+   $00015  METHOD    isp_timi_mates   SETLEDSPECTRUMVALUE
+   $00016  METHOD    isp_serial       FSTR5
+   $00016  METHOD    isp_timi_mates   SETMEDIASPECTRUMVALUE
+   $00017  METHOD    isp_serial       FSTR6
+   $00017  METHOD    isp_timi_mates   SETWIDGETPARAMBYID
+   $00018  METHOD    isp_serial       FORMAT
+   $00018  METHOD    isp_timi_mates   GETWIDGETPARAMBYID
+   $00019  METHOD    isp_serial       FMT_NUMBER
+   $00019  METHOD    isp_timi_mates   SETWIDGETPARAMBYINDEX
+   $0001A  METHOD    isp_serial       DEC
+   $0001A  METHOD    isp_timi_mates   GETWIDGETPARAMBYINDEX
+   $0001B  METHOD    isp_serial       FWDEC
+   $0001B  METHOD    isp_timi_mates   SETBUFFERSIZE
+   $0001C  METHOD    isp_serial       JDEC
+   $0001C  METHOD    isp_timi_mates   CLEARTEXTAREA
+   $0001D  METHOD    isp_serial       DPDEC
+   $0001D  METHOD    isp_timi_mates   UPDATETEXTAREA
+   $0001E  METHOD    isp_serial       JDPDEC
+   $0001E  METHOD    isp_timi_mates   CLEARPRINTAREA
+   $0001F  METHOD    isp_serial       HEX
+   $0001F  METHOD    isp_timi_mates   SETPRINTAREACOLOR565
+   $00020  METHOD    isp_serial       FWHEX
+   $00020  METHOD    isp_timi_mates   SETPRINTAREACOLORRGB
+   $00021  METHOD    isp_serial       JHEX
+   $00021  METHOD    isp_timi_mates   APPENDARRAYTOPRINTAREA
+   $00022  METHOD    isp_serial       OCT
+   $00022  METHOD    isp_timi_mates   APPENDSTRINGTOPRINTAREA
+   $00023  METHOD    isp_serial       FWOCT
+   $00023  METHOD    isp_timi_mates   APPENDTOSCOPEWIDGET
+   $00024  METHOD    isp_serial       JOCT
+   $00024  METHOD    isp_timi_mates   UPDATEDOTMATRIXWIDGET
+   $00025  METHOD    isp_serial       QRT
+   $00025  METHOD    isp_timi_mates   GETBUTTONEVENTCOUNT
+   $00026  METHOD    isp_serial       FWQRT
+   $00026  METHOD    isp_timi_mates   GETNEXTBUTTONEVENT
+   $00027  METHOD    isp_serial       JQRT
+   $00027  METHOD    isp_timi_mates   GETSWIPEEVENTCOUNT
+   $00028  METHOD    isp_serial       BIN
+   $00028  METHOD    isp_timi_mates   GETNEXTSWIPEEVENT
+   $00029  METHOD    isp_serial       FWBIN
+   $00029  METHOD    isp_timi_mates   GETVERSION
+   $0002A  METHOD    isp_serial       JBIN
+   $0002A  METHOD    isp_timi_mates   GETCOMPATIBILITY
+   $0002B  METHOD    isp_serial       GET_NARGS
+   $0002B  METHOD    isp_timi_mates   PRINTVERSION
+   $0002C  METHOD    isp_timi_mates   GETERROR
+   $0002D  METHOD    isp_timi_mates   TAKESCREENSHOT
+   $0002E  METHOD    isp_timi_mates   SAVESCREENSHOT
+   $0002F  METHOD    isp_timi_mates   PULLUPVALUEFORENUM
+   $00030  METHOD    isp_timi_mates   SYNC
+   $00031  METHOD    isp_timi_mates   SETPAGESHOWINGDEBUG
+   $00032  METHOD    isp_timi_mates   GETPAGESHOWINGDEBUG
+   $00033  METHOD    isp_timi_mates   MATESHWRESET
+   $00034  METHOD    isp_timi_mates   WRITE_COMMAND
+   $00035  METHOD    isp_timi_mates   WRITE_INT8
+   $00036  METHOD    isp_timi_mates   WRITE_UINT8
+   $00037  METHOD    isp_timi_mates   WRITE_INT16
+   $00038  METHOD    isp_timi_mates   WRITE_UINT16
+   $00039  METHOD    isp_timi_mates   WRITE_INT32
+   $0003A  METHOD    isp_timi_mates   WRITE_FLOAT
+   $0003B  METHOD    isp_timi_mates   WRITE_STRING
+   $0003C  METHOD    isp_timi_mates   WRITE_INT16_BUFFER
+   $0003D  METHOD    isp_timi_mates   WRITE_BYTES
+   $0003E  METHOD    isp_timi_mates   WAITFORACK
+   $0003F  METHOD    isp_timi_mates   READ_INT16
+   $00040  METHOD    isp_timi_mates   READ_RESPONSE
+   $00041  METHOD    isp_timi_mates   SET_WIDGET_VALUE_32BIT
+   $00042  METHOD    isp_timi_mates   CONSTRUCT_RGB565_VALUE
+   $00043  METHOD    isp_timi_mates   CHECK_ARGUMENT_VALUE
+   $00044  METHOD    isp_timi_mates   GETWIDGETID
+   $00045  METHOD    isp_timi_mates   RANGE_INIT
+   $00046  METHOD    isp_timi_mates   INITRANGE
+   $00047  METHOD    isp_timi_mates   GETRANGEFORTYPE
+   $00048  METHOD    isp_timi_mates   STRINGFORRANGETYPE
+   $00049  METHOD    isp_timi_mates   DELAYMS
+   $0004A  METHOD    isp_timi_mates   DELAYUS
+   $0004B  METHOD    isp_timi_mates   GETWIDGETIDFORBASE
+   $00228  CODE      isp_quadEncWBtn_sp  QUADENC
+   $004DC  CODE      isp_timi_mates   TIMI
+   $01088  CODE      isp_serial       MEMSTR
+   $0156C  CODE      jm_nstrings      SERIO
+
+  Entries: 160
+
+=== SYMBOL INDEX ===
+
+  Symbol                Object           Type      Location
+  --------------------  ---------------  --------  ----------
+  APPENDARRAYTOPRINTAREA  isp_timi_mates   METHOD    $00021
+  APPENDSTRINGTOPRINTAREA  isp_timi_mates   METHOD    $00022
+  APPENDTOSCOPEWIDGET   isp_timi_mates   METHOD    $00023
+  BAUD                  isp_serial       VAR       $01DA8
+  BIN                   isp_serial       METHOD    $00028
+  BTNCHANGED            isp_quadEncWBtn_sp  VAR       $01C20
+  BTNEDGECOUNT          isp_quadEncWBtn_sp  VAR       $01C24
+  BTNPRESSCOUNT         isp_quadEncWBtn_sp  VAR       $01C3C
+  BTNPRIORSAMPLE        isp_quadEncWBtn_sp  VAR       $01C1C
+  BTNSAMPLE             isp_quadEncWBtn_sp  VAR       $01C18
+  BTNVALUE              isp_quadEncWBtn_sp  VAR       $01C14
+  BYTEEXTRABITS         isp_serial       VAR       $01DB0
+  BYTEMASK              isp_serial       VAR       $01DAC
+  CHECK_ARGUMENT_VALUE  isp_timi_mates   METHOD    $00043
+  CLEARPRINTAREA        isp_timi_mates   METHOD    $0001E
+  CLEARTEXTAREA         isp_timi_mates   METHOD    $0001C
+  CONSTRUCT_RGB565_VALUE  isp_timi_mates   METHOD    $00042
+  DATATYPE_RANGES       isp_timi_mates   DAT       $00631
+  DEC                   jm_nstrings      METHOD    $00002
+  DEC                   isp_serial       METHOD    $0001A
+  DELAYMS               isp_timi_mates   METHOD    $00049
+  DELAYUS               isp_timi_mates   METHOD    $0004A
+  DELTAPOSITION         demo_quadEnc_wTimi  DAT       $0006C
+  DESIREDOFFSET         demo_quadEnc_wTimi  DAT       $00074
+  DPDEC                 jm_nstrings      METHOD    $00003
+  DPDEC                 isp_serial       METHOD    $0001D
+  ENCBITS               isp_quadEncWBtn_sp  VAR       $01AFC
+  ENCPOSITION           isp_quadEncWBtn_sp  VAR       $01AD4
+  ENCPRIORPOSITION      isp_quadEncWBtn_sp  VAR       $01AD8
+  ENCPRIORRATE          isp_quadEncWBtn_sp  VAR       $01AF4
+  ENCRATE               isp_quadEncWBtn_sp  VAR       $01AF0
+  ENCRATESAMPLECT       isp_quadEncWBtn_sp  VAR       $01AF8
+  ENCSAMPLECT           isp_quadEncWBtn_sp  VAR       $01ADC
+  ENCSCALE              isp_quadEncWBtn_sp  VAR       $01AE0
+  ENCSTACK              isp_quadEncWBtn_sp  VAR       $01B00
+  ERROR                 isp_timi_mates   METHOD    $00007
+  FMT_NUMBER            jm_nstrings      METHOD    $00001
+  FMT_NUMBER            isp_serial       METHOD    $00019
+  FORMAT                isp_serial       METHOD    $00018
+  FSTR0                 isp_serial       METHOD    $00011
+  FSTR1                 isp_serial       METHOD    $00012
+  FSTR2                 isp_serial       METHOD    $00013
+  FSTR3                 isp_serial       METHOD    $00014
+  FSTR4                 isp_serial       METHOD    $00015
+  FSTR5                 isp_serial       METHOD    $00016
+  FSTR6                 isp_serial       METHOD    $00017
+  FWBIN                 isp_serial       METHOD    $00029
+  FWDEC                 isp_serial       METHOD    $0001B
+  FWHEX                 isp_serial       METHOD    $00020
+  FWOCT                 isp_serial       METHOD    $00023
+  FWQRT                 isp_serial       METHOD    $00026
+  GENSTATEMSG           demo_quadEnc_wTimi  METHOD    $0000B
+  GET_NARGS             isp_serial       METHOD    $0002B
+  GET_NARGS             Object_5         METHOD    $00010
+  GETBAUDRATE           isp_serial       METHOD    $00006
+  GETBUTTONEVENTCOUNT   isp_timi_mates   METHOD    $00025
+  GETCOMPATIBILITY      isp_timi_mates   METHOD    $0002A
+  GETERROR              isp_timi_mates   METHOD    $0002C
+  GETNEXTBUTTONEVENT    isp_timi_mates   METHOD    $00026
+  GETNEXTSWIPEEVENT     isp_timi_mates   METHOD    $00028
+  GETPAGE               isp_timi_mates   METHOD    $0000C
+  GETPAGESHOWINGDEBUG   isp_timi_mates   METHOD    $00032
+  GETRANGEFORTYPE       isp_timi_mates   METHOD    $00047
+  GETSCALE              isp_quadEncWBtn_sp  METHOD    $00004
+  GETSWIPEEVENTCOUNT    isp_timi_mates   METHOD    $00027
+  GETVERSION            isp_timi_mates   METHOD    $00029
+  GETWIDGETID           isp_timi_mates   METHOD    $00044
+  GETWIDGETIDFORBASE    isp_timi_mates   METHOD    $0004B
+  GETWIDGETPARAMBYID    isp_timi_mates   METHOD    $00018
+  GETWIDGETPARAMBYINDEX  isp_timi_mates   METHOD    $0001A
+  GETWIDGETVALUEBYID    isp_timi_mates   METHOD    $0000E
+  GETWIDGETVALUEBYINDEX  isp_timi_mates   METHOD    $00010
+  HARDRESET             isp_timi_mates   METHOD    $00008
+  HEX                   isp_serial       METHOD    $0001F
+  INITRANGE             isp_timi_mates   METHOD    $00046
+  IOBAUDRATE            isp_timi_mates   DAT       $0061C
+  ISBUTTONPRESSED       isp_quadEncWBtn_sp  METHOD    $00005
+  ITOA                  jm_nstrings      METHOD    $00004
+  JBIN                  isp_serial       METHOD    $0002A
+  JDEC                  isp_serial       METHOD    $0001C
+  JDPDEC                isp_serial       METHOD    $0001E
+  JHEX                  isp_serial       METHOD    $00021
+  JOCT                  isp_serial       METHOD    $00024
+  JQRT                  isp_serial       METHOD    $00027
+  MAIN                  demo_quadEnc_wTimi  METHOD    $00006
+  MATESCONTROLLERLIBVER  isp_timi_mates   DAT       $0062B
+  MATESERROR            isp_timi_mates   DAT       $00620
+  MATESHWRESET          isp_timi_mates   METHOD    $00033
+  MATESSTUDIOCOMPATVER  isp_timi_mates   DAT       $00624
+  MSGHIGH               demo_quadEnc_wTimi  DAT       $0004B
+  MSGLOW                demo_quadEnc_wTimi  DAT       $00048
+  NBUF                  jm_nstrings      VAR       $01C64
+  NULL                  isp_quadEncWBtn_sp  METHOD    $00000
+  NULL                  jm_nstrings      METHOD    $00000
+  NULL                  isp_serial       METHOD    $00002
+  NULL                  isp_timi_mates   METHOD    $00004
+  NULL                  Object_5         METHOD    $00002
+  OCT                   isp_serial       METHOD    $00022
+  PADSTR                jm_nstrings      METHOD    $00006
+  PADSTR                isp_serial       METHOD    $00010
+  PBUF                  jm_nstrings      VAR       $01C85
+  PBUF                  isp_serial       VAR       $01DB4
+  PIN_RST               isp_timi_mates   DAT       $00618
+  PIN_RX                isp_timi_mates   DAT       $00614
+  PIN_TX                isp_timi_mates   DAT       $00610
+  PINENC0               isp_quadEncWBtn_sp  VAR       $01C00
+  PINENC1               isp_quadEncWBtn_sp  VAR       $01C04
+  PINENCBTN             isp_quadEncWBtn_sp  VAR       $01C10
+  PINRATEENC0           isp_quadEncWBtn_sp  VAR       $01C08
+  PINRATEENC1           isp_quadEncWBtn_sp  VAR       $01C0C
+  POSITION              isp_quadEncWBtn_sp  METHOD    $00006
+  POSITIONRATE          isp_quadEncWBtn_sp  METHOD    $00009
+  POSITIONSCALED        isp_quadEncWBtn_sp  METHOD    $00007
+  PRINTVERSION          isp_timi_mates   METHOD    $0002B
+  PRIORPOSITION         isp_quadEncWBtn_sp  DAT       $00258
+  PRIORPOSITION         demo_quadEnc_wTimi  DAT       $00070
+  PRIORPRESSSAMPLENBR   isp_quadEncWBtn_sp  VAR       $01AEC
+  PULLUPVALUEFORENUM    isp_timi_mates   METHOD    $0002F
+  QRT                   isp_serial       METHOD    $00025
+  QUADENCCOG            isp_quadEncWBtn_sp  VAR       $01AD0
+  RANGE_INIT            isp_timi_mates   METHOD    $00045
+  RATE                  isp_quadEncWBtn_sp  METHOD    $00008
+  RATEMSG               demo_quadEnc_wTimi  DAT       $00062
+  READ_INT16            isp_timi_mates   METHOD    $0003F
+  READ_RESPONSE         isp_timi_mates   METHOD    $00040
+  REVSTR                jm_nstrings      METHOD    $00005
+  RIGHTALIGNSTRING      demo_quadEnc_wTimi  METHOD    $0000D
+  RIGHTALIGNVALUE       demo_quadEnc_wTimi  METHOD    $0000C
+  RX                    isp_serial       METHOD    $0000A
+  RXCHECK               isp_serial       METHOD    $00008
+  RXFLUSH               isp_serial       METHOD    $00007
+  RXP                   isp_serial       VAR       $01DA0
+  RXTIME                isp_serial       METHOD    $00009
+  SAVESCREENSHOT        isp_timi_mates   METHOD    $0002E
+  SERVOIDX              demo_quadEnc_wTimi  DAT       $0003C
+  SERVOOFFSET           demo_quadEnc_wTimi  DAT       $00040
+  SET_WIDGET_VALUE_32BIT  isp_timi_mates   METHOD    $00041
+  SETBACKLIGHT          isp_timi_mates   METHOD    $0000A
+  SETBUFFERSIZE         isp_timi_mates   METHOD    $0001B
+  SETLEDDIGITSFLOATVALUE  isp_timi_mates   METHOD    $00013
+  SETLEDDIGITSLONGVALUE  isp_timi_mates   METHOD    $00012
+  SETLEDDIGITSSHORTVALUE  isp_timi_mates   METHOD    $00011
+  SETLEDSPECTRUMVALUE   isp_timi_mates   METHOD    $00015
+  SETMEDIASPECTRUMVALUE  isp_timi_mates   METHOD    $00016
+  SETPAGE               isp_timi_mates   METHOD    $0000B
+  SETPAGESHOWINGDEBUG   isp_timi_mates   METHOD    $00031
+  SETPRINTAREACOLOR565  isp_timi_mates   METHOD    $0001F
+  SETPRINTAREACOLORRGB  isp_timi_mates   METHOD    $00020
+  SETSCALE              isp_quadEncWBtn_sp  METHOD    $00003
+  SETSPECTRUMVALUE      isp_timi_mates   METHOD    $00014
+  SETWIDGETPARAMBYID    isp_timi_mates   METHOD    $00017
+  SETWIDGETPARAMBYINDEX  isp_timi_mates   METHOD    $00019
+  SETWIDGETVALUEBYID    isp_timi_mates   METHOD    $0000D
+  SETWIDGETVALUEBYINDEX  isp_timi_mates   METHOD    $0000F
+  SFORMAT               Object_5         METHOD    $0000C
+  SFORMATSTR0           Object_5         METHOD    $00003
+  SFORMATSTR1           Object_5         METHOD    $00004
+  SFORMATSTR2           Object_5         METHOD    $00005
+  SFORMATSTR3           Object_5         METHOD    $00006
+  SFORMATSTR4           Object_5         METHOD    $00007
+  SFORMATSTR5           Object_5         METHOD    $00008
+  SFORMATSTR6           Object_5         METHOD    $00009
+  SFORMATSTR7           Object_5         METHOD    $0000A
+  SFORMATSTR8           Object_5         METHOD    $0000B
+  SOFTRESET             isp_timi_mates   METHOD    $00009
+  SSTR                  Object_5         METHOD    $0000F
+  START                 isp_quadEncWBtn_sp  METHOD    $00001
+  START                 isp_serial       METHOD    $00003
+  START                 isp_timi_mates   METHOD    $00005
+  STARTX                isp_serial       METHOD    $00004
+  STATEIDX              demo_quadEnc_wTimi  DAT       $00044
+  STOP                  isp_quadEncWBtn_sp  METHOD    $00002
+  STOP                  isp_serial       METHOD    $00005
+  STOP                  isp_timi_mates   METHOD    $00006
+  STR                   isp_serial       METHOD    $0000E
+  STRINGFORRANGETYPE    isp_timi_mates   METHOD    $00048
+  STX                   Object_5         METHOD    $0000D
+  STXN                  Object_5         METHOD    $0000E
+  SUBSTR                isp_serial       METHOD    $0000F
+  SYNC                  isp_timi_mates   METHOD    $00030
+  TAKESCREENSHOT        isp_timi_mates   METHOD    $0002D
+  TASKCONTINUOUSENCODERSMARTPIN  isp_quadEncWBtn_sp  METHOD    $0000A
+  TASKPRESSCOUNT        isp_quadEncWBtn_sp  VAR       $01AE4
+  TASKPRESSSAMPLENBR    isp_quadEncWBtn_sp  VAR       $01AE8
+  TIMENOWMS             isp_quadEncWBtn_sp  VAR       $01C28
+  TIMEPRIOREDGEMS       isp_quadEncWBtn_sp  VAR       $01C2C
+  TIMEPRIORPRESSMS      isp_quadEncWBtn_sp  VAR       $01C34
+  TIMESINCEEDGEMS       isp_quadEncWBtn_sp  VAR       $01C30
+  TIMESINCEPRESSMS      isp_quadEncWBtn_sp  VAR       $01C38
+  TITLE0                demo_quadEnc_wTimi  DAT       $0004E
+  TITLE1                demo_quadEnc_wTimi  DAT       $00058
+  TX                    isp_serial       METHOD    $0000B
+  TXFLUSH               isp_serial       METHOD    $0000D
+  TXN                   isp_serial       METHOD    $0000C
+  TXP                   isp_serial       VAR       $01DA4
+  UPDATEDISPLAY         demo_quadEnc_wTimi  METHOD    $00007
+  UPDATEDOTMATRIXWIDGET  isp_timi_mates   METHOD    $00024
+  UPDATEINSTRUDISPLAY   demo_quadEnc_wTimi  METHOD    $0000A
+  UPDATEOFFSETDISPLAY   demo_quadEnc_wTimi  METHOD    $00009
+  UPDATESTATEDISPLAY    demo_quadEnc_wTimi  METHOD    $00008
+  UPDATETEXTAREA        isp_timi_mates   METHOD    $0001D
+  WAITFORACK            isp_timi_mates   METHOD    $0003E
+  WRITE_BYTES           isp_timi_mates   METHOD    $0003D
+  WRITE_COMMAND         isp_timi_mates   METHOD    $00034
+  WRITE_FLOAT           isp_timi_mates   METHOD    $0003A
+  WRITE_INT16           isp_timi_mates   METHOD    $00037
+  WRITE_INT16_BUFFER    isp_timi_mates   METHOD    $0003C
+  WRITE_INT32           isp_timi_mates   METHOD    $00039
+  WRITE_INT8            isp_timi_mates   METHOD    $00035
+  WRITE_STRING          isp_timi_mates   METHOD    $0003B
+  WRITE_UINT16          isp_timi_mates   METHOD    $00038
+  WRITE_UINT8           isp_timi_mates   METHOD    $00036
+
+  Symbols: 212
+

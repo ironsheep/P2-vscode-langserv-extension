@@ -1,0 +1,479 @@
+================================================================================
+PNut-TS Memory Map: isp_timi_mates.spin2
+Spin2_v41
+Generated: 2026-03-19T22:48:16.114Z
+================================================================================
+
+=== PROGRAM SUMMARY ===
+
+  Total Size:    5224 bytes (4876 code/data + 348 var bytes)
+  Objects:       3
+  Methods:       121
+
+=== OBJECT HIERARCHY ===
+
+  isp_timi_mates  (72 methods)
+      \-- SERIO : isp_serial  (42 methods)
+          \-- NSTR : jm_nstrings  (7 methods)
+
+=== MEMORY LAYOUT ===
+
+  Start   End      Size  Object           Instance         Overrides
+  ------  ------  -----  ---------------  ---------------  ---------
+  $00000  $00BA9   2986  isp_timi_mates   (entry)          
+  $00BAC  $0108C   1249  isp_serial       SERIO            
+  $01090  $0130B    636  jm_nstrings      NSTR             
+
+    CODE/DATA TOTAL:    4876 bytes
+
+  $0130C  $01467    348  VAR SPACE        (runtime)      
+
+    PROGRAM TOTAL:      5224 bytes
+
+=== OBJECT DETAILS ===
+
+--- isp_timi_mates ---
+    Location: $00000-$00BA9 (2986 bytes)
+    VAR Base: $0130C
+    Source:   isp_timi_mates.spin2
+
+    Methods:
+      NULL                  Entry $00004  ($00004)
+      START                 Entry $00005  ($00005)
+      STOP                  Entry $00006  ($00006)
+      ERROR                 Entry $00007  ($00007)
+      HARDRESET             Entry $00008  ($00008)
+      SOFTRESET             Entry $00009  ($00009)
+      SETBACKLIGHT          Entry $0000A  ($0000A)
+      SETPAGE               Entry $0000B  ($0000B)
+      GETPAGE               Entry $0000C  ($0000C)
+      SETWIDGETVALUEBYID    Entry $0000D  ($0000D)
+      GETWIDGETVALUEBYID    Entry $0000E  ($0000E)
+      SETWIDGETVALUEBYINDEX  Entry $0000F  ($0000F)
+      GETWIDGETVALUEBYINDEX  Entry $00010  ($00010)
+      SETLEDDIGITSSHORTVALUE  Entry $00011  ($00011)
+      SETLEDDIGITSLONGVALUE  Entry $00012  ($00012)
+      SETLEDDIGITSFLOATVALUE  Entry $00013  ($00013)
+      SETSPECTRUMVALUE      Entry $00014  ($00014)
+      SETLEDSPECTRUMVALUE   Entry $00015  ($00015)
+      SETMEDIASPECTRUMVALUE  Entry $00016  ($00016)
+      SETWIDGETPARAMBYID    Entry $00017  ($00017)
+      GETWIDGETPARAMBYID    Entry $00018  ($00018)
+      SETWIDGETPARAMBYINDEX  Entry $00019  ($00019)
+      GETWIDGETPARAMBYINDEX  Entry $0001A  ($0001A)
+      SETBUFFERSIZE         Entry $0001B  ($0001B)
+      CLEARTEXTAREA         Entry $0001C  ($0001C)
+      UPDATETEXTAREA        Entry $0001D  ($0001D)
+      CLEARPRINTAREA        Entry $0001E  ($0001E)
+      SETPRINTAREACOLOR565  Entry $0001F  ($0001F)
+      SETPRINTAREACOLORRGB  Entry $00020  ($00020)
+      APPENDARRAYTOPRINTAREA  Entry $00021  ($00021)
+      APPENDSTRINGTOPRINTAREA  Entry $00022  ($00022)
+      APPENDTOSCOPEWIDGET   Entry $00023  ($00023)
+      UPDATEDOTMATRIXWIDGET  Entry $00024  ($00024)
+      GETBUTTONEVENTCOUNT   Entry $00025  ($00025)
+      GETNEXTBUTTONEVENT    Entry $00026  ($00026)
+      GETSWIPEEVENTCOUNT    Entry $00027  ($00027)
+      GETNEXTSWIPEEVENT     Entry $00028  ($00028)
+      GETVERSION            Entry $00029  ($00029)
+      GETCOMPATIBILITY      Entry $0002A  ($0002A)
+      PRINTVERSION          Entry $0002B  ($0002B)
+      GETERROR              Entry $0002C  ($0002C)
+      TAKESCREENSHOT        Entry $0002D  ($0002D)
+      SAVESCREENSHOT        Entry $0002E  ($0002E)
+      PULLUPVALUEFORENUM    Entry $0002F  ($0002F)
+      SYNC                  Entry $00030  ($00030)
+      SETPAGESHOWINGDEBUG   Entry $00031  ($00031)
+      GETPAGESHOWINGDEBUG   Entry $00032  ($00032)
+      MATESHWRESET          Entry $00033  ($00033)
+      WRITE_COMMAND         Entry $00034  ($00034)
+      WRITE_INT8            Entry $00035  ($00035)
+      WRITE_UINT8           Entry $00036  ($00036)
+      WRITE_INT16           Entry $00037  ($00037)
+      WRITE_UINT16          Entry $00038  ($00038)
+      WRITE_INT32           Entry $00039  ($00039)
+      WRITE_FLOAT           Entry $0003A  ($0003A)
+      WRITE_STRING          Entry $0003B  ($0003B)
+      WRITE_INT16_BUFFER    Entry $0003C  ($0003C)
+      WRITE_BYTES           Entry $0003D  ($0003D)
+      WAITFORACK            Entry $0003E  ($0003E)
+      READ_INT16            Entry $0003F  ($0003F)
+      READ_RESPONSE         Entry $00040  ($00040)
+      SET_WIDGET_VALUE_32BIT  Entry $00041  ($00041)
+      CONSTRUCT_RGB565_VALUE  Entry $00042  ($00042)
+      CHECK_ARGUMENT_VALUE  Entry $00043  ($00043)
+      GETWIDGETID           Entry $00044  ($00044)
+      RANGE_INIT            Entry $00045  ($00045)
+      INITRANGE             Entry $00046  ($00046)
+      GETRANGEFORTYPE       Entry $00047  ($00047)
+      STRINGFORRANGETYPE    Entry $00048  ($00048)
+      DELAYMS               Entry $00049  ($00049)
+      DELAYUS               Entry $0004A  ($0004A)
+      GETWIDGETIDFORBASE    Entry $0004B  ($0004B)
+
+    DAT:
+      LONG      PIN_TX                +$00134  ($00134)
+      LONG      PIN_RX                +$00138  ($00138)
+      LONG      PIN_RST               +$0013C  ($0013C)
+      LONG      IOBAUDRATE            +$00140  ($00140)
+      LONG      MATESERROR            +$00144  ($00144)
+      BYTE      MATESSTUDIOCOMPATVER  +$00148  ($00148)
+      BYTE      MATESCONTROLLERLIBVER  +$0014F  ($0014F)
+      LONG      DATATYPE_RANGES       +$00155  ($00155)
+
+    Child Objects:
+      SERIO : isp_serial (1249 bytes)
+
+--- SERIO : isp_serial ---
+    Location: $00BAC-$0108C (1249 bytes)
+    VAR Base: $01310
+    Source:   isp_serial.spin2
+
+    Methods:
+      NULL                  Entry $00002  ($00BAE)
+      START                 Entry $00003  ($00BAF)
+      STARTX                Entry $00004  ($00BB0)
+      STOP                  Entry $00005  ($00BB1)
+      GETBAUDRATE           Entry $00006  ($00BB2)
+      RXFLUSH               Entry $00007  ($00BB3)
+      RXCHECK               Entry $00008  ($00BB4)
+      RXTIME                Entry $00009  ($00BB5)
+      RX                    Entry $0000A  ($00BB6)
+      TX                    Entry $0000B  ($00BB7)
+      TXN                   Entry $0000C  ($00BB8)
+      TXFLUSH               Entry $0000D  ($00BB9)
+      STR                   Entry $0000E  ($00BBA)
+      SUBSTR                Entry $0000F  ($00BBB)
+      PADSTR                Entry $00010  ($00BBC)
+      FSTR0                 Entry $00011  ($00BBD)
+      FSTR1                 Entry $00012  ($00BBE)
+      FSTR2                 Entry $00013  ($00BBF)
+      FSTR3                 Entry $00014  ($00BC0)
+      FSTR4                 Entry $00015  ($00BC1)
+      FSTR5                 Entry $00016  ($00BC2)
+      FSTR6                 Entry $00017  ($00BC3)
+      FORMAT                Entry $00018  ($00BC4)
+      FMT_NUMBER            Entry $00019  ($00BC5)
+      DEC                   Entry $0001A  ($00BC6)
+      FWDEC                 Entry $0001B  ($00BC7)
+      JDEC                  Entry $0001C  ($00BC8)
+      DPDEC                 Entry $0001D  ($00BC9)
+      JDPDEC                Entry $0001E  ($00BCA)
+      HEX                   Entry $0001F  ($00BCB)
+      FWHEX                 Entry $00020  ($00BCC)
+      JHEX                  Entry $00021  ($00BCD)
+      OCT                   Entry $00022  ($00BCE)
+      FWOCT                 Entry $00023  ($00BCF)
+      JOCT                  Entry $00024  ($00BD0)
+      QRT                   Entry $00025  ($00BD1)
+      FWQRT                 Entry $00026  ($00BD2)
+      JQRT                  Entry $00027  ($00BD3)
+      BIN                   Entry $00028  ($00BD4)
+      FWBIN                 Entry $00029  ($00BD5)
+      JBIN                  Entry $0002A  ($00BD6)
+      GET_NARGS             Entry $0002B  ($00BD7)
+
+    VAR:
+      LONG      RXP                   +$0004  ($01314)
+      LONG      TXP                   +$0008  ($01318)
+      LONG      BAUD                  +$000C  ($0131C)
+      LONG      BYTEMASK              +$0010  ($01320)
+      LONG      BYTEEXTRABITS         +$0014  ($01324)
+      BYTE      PBUF                  +$0018  ($01328)
+
+    Child Objects:
+      NSTR : jm_nstrings (636 bytes)
+
+--- NSTR : jm_nstrings ---
+    Location: $01090-$0130B (636 bytes)
+    VAR Base: $0132C
+    Source:   jm_nstrings.spin2
+
+    Methods:
+      NULL                  Entry $00000  ($01090)
+      FMT_NUMBER            Entry $00001  ($01091)
+      DEC                   Entry $00002  ($01092)
+      DPDEC                 Entry $00003  ($01093)
+      ITOA                  Entry $00004  ($01094)
+      REVSTR                Entry $00005  ($01095)
+      PADSTR                Entry $00006  ($01096)
+
+    VAR:
+      BYTE      NBUF                  +$0004  ($01330)
+      BYTE      PBUF                  +$0025  ($01351)
+
+=== ADDRESS INDEX ===
+
+  Address  Type      Object           Name
+  -------  --------  ---------------  ---------------
+   $00000  CODE      isp_timi_mates   (entry)
+   $00000  METHOD    jm_nstrings      NULL
+   $00001  METHOD    jm_nstrings      FMT_NUMBER
+   $00002  METHOD    jm_nstrings      DEC
+   $00002  METHOD    isp_serial       NULL
+   $00003  METHOD    jm_nstrings      DPDEC
+   $00003  METHOD    isp_serial       START
+   $00004  METHOD    jm_nstrings      ITOA
+   $00004  METHOD    isp_serial       STARTX
+   $00004  METHOD    isp_timi_mates   NULL
+   $00005  METHOD    jm_nstrings      REVSTR
+   $00005  METHOD    isp_serial       STOP
+   $00005  METHOD    isp_timi_mates   START
+   $00006  METHOD    jm_nstrings      PADSTR
+   $00006  METHOD    isp_serial       GETBAUDRATE
+   $00006  METHOD    isp_timi_mates   STOP
+   $00007  METHOD    isp_serial       RXFLUSH
+   $00007  METHOD    isp_timi_mates   ERROR
+   $00008  METHOD    isp_serial       RXCHECK
+   $00008  METHOD    isp_timi_mates   HARDRESET
+   $00009  METHOD    isp_serial       RXTIME
+   $00009  METHOD    isp_timi_mates   SOFTRESET
+   $0000A  METHOD    isp_serial       RX
+   $0000A  METHOD    isp_timi_mates   SETBACKLIGHT
+   $0000B  METHOD    isp_serial       TX
+   $0000B  METHOD    isp_timi_mates   SETPAGE
+   $0000C  METHOD    isp_serial       TXN
+   $0000C  METHOD    isp_timi_mates   GETPAGE
+   $0000D  METHOD    isp_serial       TXFLUSH
+   $0000D  METHOD    isp_timi_mates   SETWIDGETVALUEBYID
+   $0000E  METHOD    isp_serial       STR
+   $0000E  METHOD    isp_timi_mates   GETWIDGETVALUEBYID
+   $0000F  METHOD    isp_serial       SUBSTR
+   $0000F  METHOD    isp_timi_mates   SETWIDGETVALUEBYINDEX
+   $00010  METHOD    isp_serial       PADSTR
+   $00010  METHOD    isp_timi_mates   GETWIDGETVALUEBYINDEX
+   $00011  METHOD    isp_serial       FSTR0
+   $00011  METHOD    isp_timi_mates   SETLEDDIGITSSHORTVALUE
+   $00012  METHOD    isp_serial       FSTR1
+   $00012  METHOD    isp_timi_mates   SETLEDDIGITSLONGVALUE
+   $00013  METHOD    isp_serial       FSTR2
+   $00013  METHOD    isp_timi_mates   SETLEDDIGITSFLOATVALUE
+   $00014  METHOD    isp_serial       FSTR3
+   $00014  METHOD    isp_timi_mates   SETSPECTRUMVALUE
+   $00015  METHOD    isp_serial       FSTR4
+   $00015  METHOD    isp_timi_mates   SETLEDSPECTRUMVALUE
+   $00016  METHOD    isp_serial       FSTR5
+   $00016  METHOD    isp_timi_mates   SETMEDIASPECTRUMVALUE
+   $00017  METHOD    isp_serial       FSTR6
+   $00017  METHOD    isp_timi_mates   SETWIDGETPARAMBYID
+   $00018  METHOD    isp_serial       FORMAT
+   $00018  METHOD    isp_timi_mates   GETWIDGETPARAMBYID
+   $00019  METHOD    isp_serial       FMT_NUMBER
+   $00019  METHOD    isp_timi_mates   SETWIDGETPARAMBYINDEX
+   $0001A  METHOD    isp_serial       DEC
+   $0001A  METHOD    isp_timi_mates   GETWIDGETPARAMBYINDEX
+   $0001B  METHOD    isp_serial       FWDEC
+   $0001B  METHOD    isp_timi_mates   SETBUFFERSIZE
+   $0001C  METHOD    isp_serial       JDEC
+   $0001C  METHOD    isp_timi_mates   CLEARTEXTAREA
+   $0001D  METHOD    isp_serial       DPDEC
+   $0001D  METHOD    isp_timi_mates   UPDATETEXTAREA
+   $0001E  METHOD    isp_serial       JDPDEC
+   $0001E  METHOD    isp_timi_mates   CLEARPRINTAREA
+   $0001F  METHOD    isp_serial       HEX
+   $0001F  METHOD    isp_timi_mates   SETPRINTAREACOLOR565
+   $00020  METHOD    isp_serial       FWHEX
+   $00020  METHOD    isp_timi_mates   SETPRINTAREACOLORRGB
+   $00021  METHOD    isp_serial       JHEX
+   $00021  METHOD    isp_timi_mates   APPENDARRAYTOPRINTAREA
+   $00022  METHOD    isp_serial       OCT
+   $00022  METHOD    isp_timi_mates   APPENDSTRINGTOPRINTAREA
+   $00023  METHOD    isp_serial       FWOCT
+   $00023  METHOD    isp_timi_mates   APPENDTOSCOPEWIDGET
+   $00024  METHOD    isp_serial       JOCT
+   $00024  METHOD    isp_timi_mates   UPDATEDOTMATRIXWIDGET
+   $00025  METHOD    isp_serial       QRT
+   $00025  METHOD    isp_timi_mates   GETBUTTONEVENTCOUNT
+   $00026  METHOD    isp_serial       FWQRT
+   $00026  METHOD    isp_timi_mates   GETNEXTBUTTONEVENT
+   $00027  METHOD    isp_serial       JQRT
+   $00027  METHOD    isp_timi_mates   GETSWIPEEVENTCOUNT
+   $00028  METHOD    isp_serial       BIN
+   $00028  METHOD    isp_timi_mates   GETNEXTSWIPEEVENT
+   $00029  METHOD    isp_serial       FWBIN
+   $00029  METHOD    isp_timi_mates   GETVERSION
+   $0002A  METHOD    isp_serial       JBIN
+   $0002A  METHOD    isp_timi_mates   GETCOMPATIBILITY
+   $0002B  METHOD    isp_serial       GET_NARGS
+   $0002B  METHOD    isp_timi_mates   PRINTVERSION
+   $0002C  METHOD    isp_timi_mates   GETERROR
+   $0002D  METHOD    isp_timi_mates   TAKESCREENSHOT
+   $0002E  METHOD    isp_timi_mates   SAVESCREENSHOT
+   $0002F  METHOD    isp_timi_mates   PULLUPVALUEFORENUM
+   $00030  METHOD    isp_timi_mates   SYNC
+   $00031  METHOD    isp_timi_mates   SETPAGESHOWINGDEBUG
+   $00032  METHOD    isp_timi_mates   GETPAGESHOWINGDEBUG
+   $00033  METHOD    isp_timi_mates   MATESHWRESET
+   $00034  METHOD    isp_timi_mates   WRITE_COMMAND
+   $00035  METHOD    isp_timi_mates   WRITE_INT8
+   $00036  METHOD    isp_timi_mates   WRITE_UINT8
+   $00037  METHOD    isp_timi_mates   WRITE_INT16
+   $00038  METHOD    isp_timi_mates   WRITE_UINT16
+   $00039  METHOD    isp_timi_mates   WRITE_INT32
+   $0003A  METHOD    isp_timi_mates   WRITE_FLOAT
+   $0003B  METHOD    isp_timi_mates   WRITE_STRING
+   $0003C  METHOD    isp_timi_mates   WRITE_INT16_BUFFER
+   $0003D  METHOD    isp_timi_mates   WRITE_BYTES
+   $0003E  METHOD    isp_timi_mates   WAITFORACK
+   $0003F  METHOD    isp_timi_mates   READ_INT16
+   $00040  METHOD    isp_timi_mates   READ_RESPONSE
+   $00041  METHOD    isp_timi_mates   SET_WIDGET_VALUE_32BIT
+   $00042  METHOD    isp_timi_mates   CONSTRUCT_RGB565_VALUE
+   $00043  METHOD    isp_timi_mates   CHECK_ARGUMENT_VALUE
+   $00044  METHOD    isp_timi_mates   GETWIDGETID
+   $00045  METHOD    isp_timi_mates   RANGE_INIT
+   $00046  METHOD    isp_timi_mates   INITRANGE
+   $00047  METHOD    isp_timi_mates   GETRANGEFORTYPE
+   $00048  METHOD    isp_timi_mates   STRINGFORRANGETYPE
+   $00049  METHOD    isp_timi_mates   DELAYMS
+   $0004A  METHOD    isp_timi_mates   DELAYUS
+   $0004B  METHOD    isp_timi_mates   GETWIDGETIDFORBASE
+   $00BAC  CODE      isp_serial       SERIO
+   $01090  CODE      jm_nstrings      NSTR
+
+  Entries: 124
+
+=== SYMBOL INDEX ===
+
+  Symbol                Object           Type      Location
+  --------------------  ---------------  --------  ----------
+  APPENDARRAYTOPRINTAREA  isp_timi_mates   METHOD    $00021
+  APPENDSTRINGTOPRINTAREA  isp_timi_mates   METHOD    $00022
+  APPENDTOSCOPEWIDGET   isp_timi_mates   METHOD    $00023
+  BAUD                  isp_serial       VAR       $0131C
+  BIN                   isp_serial       METHOD    $00028
+  BYTEEXTRABITS         isp_serial       VAR       $01324
+  BYTEMASK              isp_serial       VAR       $01320
+  CHECK_ARGUMENT_VALUE  isp_timi_mates   METHOD    $00043
+  CLEARPRINTAREA        isp_timi_mates   METHOD    $0001E
+  CLEARTEXTAREA         isp_timi_mates   METHOD    $0001C
+  CONSTRUCT_RGB565_VALUE  isp_timi_mates   METHOD    $00042
+  DATATYPE_RANGES       isp_timi_mates   DAT       $00155
+  DEC                   jm_nstrings      METHOD    $00002
+  DEC                   isp_serial       METHOD    $0001A
+  DELAYMS               isp_timi_mates   METHOD    $00049
+  DELAYUS               isp_timi_mates   METHOD    $0004A
+  DPDEC                 jm_nstrings      METHOD    $00003
+  DPDEC                 isp_serial       METHOD    $0001D
+  ERROR                 isp_timi_mates   METHOD    $00007
+  FMT_NUMBER            jm_nstrings      METHOD    $00001
+  FMT_NUMBER            isp_serial       METHOD    $00019
+  FORMAT                isp_serial       METHOD    $00018
+  FSTR0                 isp_serial       METHOD    $00011
+  FSTR1                 isp_serial       METHOD    $00012
+  FSTR2                 isp_serial       METHOD    $00013
+  FSTR3                 isp_serial       METHOD    $00014
+  FSTR4                 isp_serial       METHOD    $00015
+  FSTR5                 isp_serial       METHOD    $00016
+  FSTR6                 isp_serial       METHOD    $00017
+  FWBIN                 isp_serial       METHOD    $00029
+  FWDEC                 isp_serial       METHOD    $0001B
+  FWHEX                 isp_serial       METHOD    $00020
+  FWOCT                 isp_serial       METHOD    $00023
+  FWQRT                 isp_serial       METHOD    $00026
+  GET_NARGS             isp_serial       METHOD    $0002B
+  GETBAUDRATE           isp_serial       METHOD    $00006
+  GETBUTTONEVENTCOUNT   isp_timi_mates   METHOD    $00025
+  GETCOMPATIBILITY      isp_timi_mates   METHOD    $0002A
+  GETERROR              isp_timi_mates   METHOD    $0002C
+  GETNEXTBUTTONEVENT    isp_timi_mates   METHOD    $00026
+  GETNEXTSWIPEEVENT     isp_timi_mates   METHOD    $00028
+  GETPAGE               isp_timi_mates   METHOD    $0000C
+  GETPAGESHOWINGDEBUG   isp_timi_mates   METHOD    $00032
+  GETRANGEFORTYPE       isp_timi_mates   METHOD    $00047
+  GETSWIPEEVENTCOUNT    isp_timi_mates   METHOD    $00027
+  GETVERSION            isp_timi_mates   METHOD    $00029
+  GETWIDGETID           isp_timi_mates   METHOD    $00044
+  GETWIDGETIDFORBASE    isp_timi_mates   METHOD    $0004B
+  GETWIDGETPARAMBYID    isp_timi_mates   METHOD    $00018
+  GETWIDGETPARAMBYINDEX  isp_timi_mates   METHOD    $0001A
+  GETWIDGETVALUEBYID    isp_timi_mates   METHOD    $0000E
+  GETWIDGETVALUEBYINDEX  isp_timi_mates   METHOD    $00010
+  HARDRESET             isp_timi_mates   METHOD    $00008
+  HEX                   isp_serial       METHOD    $0001F
+  INITRANGE             isp_timi_mates   METHOD    $00046
+  IOBAUDRATE            isp_timi_mates   DAT       $00140
+  ITOA                  jm_nstrings      METHOD    $00004
+  JBIN                  isp_serial       METHOD    $0002A
+  JDEC                  isp_serial       METHOD    $0001C
+  JDPDEC                isp_serial       METHOD    $0001E
+  JHEX                  isp_serial       METHOD    $00021
+  JOCT                  isp_serial       METHOD    $00024
+  JQRT                  isp_serial       METHOD    $00027
+  MATESCONTROLLERLIBVER  isp_timi_mates   DAT       $0014F
+  MATESERROR            isp_timi_mates   DAT       $00144
+  MATESHWRESET          isp_timi_mates   METHOD    $00033
+  MATESSTUDIOCOMPATVER  isp_timi_mates   DAT       $00148
+  NBUF                  jm_nstrings      VAR       $01330
+  NULL                  jm_nstrings      METHOD    $00000
+  NULL                  isp_serial       METHOD    $00002
+  NULL                  isp_timi_mates   METHOD    $00004
+  OCT                   isp_serial       METHOD    $00022
+  PADSTR                jm_nstrings      METHOD    $00006
+  PADSTR                isp_serial       METHOD    $00010
+  PBUF                  jm_nstrings      VAR       $01351
+  PBUF                  isp_serial       VAR       $01328
+  PIN_RST               isp_timi_mates   DAT       $0013C
+  PIN_RX                isp_timi_mates   DAT       $00138
+  PIN_TX                isp_timi_mates   DAT       $00134
+  PRINTVERSION          isp_timi_mates   METHOD    $0002B
+  PULLUPVALUEFORENUM    isp_timi_mates   METHOD    $0002F
+  QRT                   isp_serial       METHOD    $00025
+  RANGE_INIT            isp_timi_mates   METHOD    $00045
+  READ_INT16            isp_timi_mates   METHOD    $0003F
+  READ_RESPONSE         isp_timi_mates   METHOD    $00040
+  REVSTR                jm_nstrings      METHOD    $00005
+  RX                    isp_serial       METHOD    $0000A
+  RXCHECK               isp_serial       METHOD    $00008
+  RXFLUSH               isp_serial       METHOD    $00007
+  RXP                   isp_serial       VAR       $01314
+  RXTIME                isp_serial       METHOD    $00009
+  SAVESCREENSHOT        isp_timi_mates   METHOD    $0002E
+  SET_WIDGET_VALUE_32BIT  isp_timi_mates   METHOD    $00041
+  SETBACKLIGHT          isp_timi_mates   METHOD    $0000A
+  SETBUFFERSIZE         isp_timi_mates   METHOD    $0001B
+  SETLEDDIGITSFLOATVALUE  isp_timi_mates   METHOD    $00013
+  SETLEDDIGITSLONGVALUE  isp_timi_mates   METHOD    $00012
+  SETLEDDIGITSSHORTVALUE  isp_timi_mates   METHOD    $00011
+  SETLEDSPECTRUMVALUE   isp_timi_mates   METHOD    $00015
+  SETMEDIASPECTRUMVALUE  isp_timi_mates   METHOD    $00016
+  SETPAGE               isp_timi_mates   METHOD    $0000B
+  SETPAGESHOWINGDEBUG   isp_timi_mates   METHOD    $00031
+  SETPRINTAREACOLOR565  isp_timi_mates   METHOD    $0001F
+  SETPRINTAREACOLORRGB  isp_timi_mates   METHOD    $00020
+  SETSPECTRUMVALUE      isp_timi_mates   METHOD    $00014
+  SETWIDGETPARAMBYID    isp_timi_mates   METHOD    $00017
+  SETWIDGETPARAMBYINDEX  isp_timi_mates   METHOD    $00019
+  SETWIDGETVALUEBYID    isp_timi_mates   METHOD    $0000D
+  SETWIDGETVALUEBYINDEX  isp_timi_mates   METHOD    $0000F
+  SOFTRESET             isp_timi_mates   METHOD    $00009
+  START                 isp_serial       METHOD    $00003
+  START                 isp_timi_mates   METHOD    $00005
+  STARTX                isp_serial       METHOD    $00004
+  STOP                  isp_serial       METHOD    $00005
+  STOP                  isp_timi_mates   METHOD    $00006
+  STR                   isp_serial       METHOD    $0000E
+  STRINGFORRANGETYPE    isp_timi_mates   METHOD    $00048
+  SUBSTR                isp_serial       METHOD    $0000F
+  SYNC                  isp_timi_mates   METHOD    $00030
+  TAKESCREENSHOT        isp_timi_mates   METHOD    $0002D
+  TX                    isp_serial       METHOD    $0000B
+  TXFLUSH               isp_serial       METHOD    $0000D
+  TXN                   isp_serial       METHOD    $0000C
+  TXP                   isp_serial       VAR       $01318
+  UPDATEDOTMATRIXWIDGET  isp_timi_mates   METHOD    $00024
+  UPDATETEXTAREA        isp_timi_mates   METHOD    $0001D
+  WAITFORACK            isp_timi_mates   METHOD    $0003E
+  WRITE_BYTES           isp_timi_mates   METHOD    $0003D
+  WRITE_COMMAND         isp_timi_mates   METHOD    $00034
+  WRITE_FLOAT           isp_timi_mates   METHOD    $0003A
+  WRITE_INT16           isp_timi_mates   METHOD    $00037
+  WRITE_INT16_BUFFER    isp_timi_mates   METHOD    $0003C
+  WRITE_INT32           isp_timi_mates   METHOD    $00039
+  WRITE_INT8            isp_timi_mates   METHOD    $00035
+  WRITE_STRING          isp_timi_mates   METHOD    $0003B
+  WRITE_UINT16          isp_timi_mates   METHOD    $00038
+  WRITE_UINT8           isp_timi_mates   METHOD    $00036
+
+  Symbols: 137
+

@@ -1,0 +1,216 @@
+'' =================================================================================================
+''
+''   File....... isp_6servo_eyes.spin2
+''   Purpose.... Our eyes Object: controlling the PCA9685 attached suite of 6 servos
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2023 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... May 2023
+''   Updated.... 26 May 2023
+''
+'' =================================================================================================
+
+CON { fixed io pins }
+
+    RX1      = 63  { I }                                          ' programming / debug
+    TX1      = 62  { O }
+
+    SF_CS    = 61  { O }                                          ' serial flash
+    SF_SCK   = 60  { O }
+    SF_SDO   = 59  { O }
+    SF_SDI   = 58  { I }
+
+CON { Eyes specifics }
+
+    MAX_SERVOS = 6
+
+' which servos are on which PWM channels?
+#0, CHAN_SERVO_EYE_LT_RT, CHAN_SERVO_EYE_UP_DN, CHAN_SERVO_LID_TOP_RT
+#3, CHAN_SERVO_LID_BOT_RT, CHAN_SERVO_LID_TOP_LT, CHAN_SERVO_LID_BOT_LT
+
+    CHAN_SERVO_TEST_15 = 15
+    CHAN_SERVO_TEST_12 = 12
+
+' servo object indexes
+#0, SERVO_EYE_LT_RT, SERVO_EYE_UP_DN, SERVO_LID_TOP_RT
+#3, SERVO_LID_BOT_RT, SERVO_LID_TOP_LT, SERVO_LID_BOT_LT
+#6, SERVO_TEST_12, SERVO_TEST_15
+
+
+CON { application io pins }
+
+    SRVO_OFST_RANGE = 750       ' NOTE customize this to adjut servo range span
+    SRVO_OFST_CNTR = 1500
+    SRVO_OFST_MIN = SRVO_OFST_CNTR - SRVO_OFST_RANGE
+    SRVO_OFST_MAX = SRVO_OFST_CNTR + SRVO_OFST_RANGE
+    SRVO_PULSE_WIDTH_MS = 50    ' pulse width in milliSeconds
+
+OBJ
+
+    pca9685                     : "isp_i2c_pca9685"                 ' 16-channel servo controller
+    servos[MAX_SERVOS]          : "isp_i2c_pca9685_servo"           ' our six servos
+    term                        : "isp_serial_singleton"            ' debug terminal output
+
+PUB null()
+
+'' This is not a top-level object
+
+PUB start(pinSCL, pinSDA, pinOE) : bDevicePresent
+    '' Start the device running
+
+    ' start our output set of servos
+    pca9685.init(pinSCL, pinSDA, pinOE)
+    pca9685.enableOutput(FALSE)
+
+    ' connect to servos
+    bDevicePresent := pca9685.start(pinSCL, pinSDA, pinOE)
+    if bDevicePresent
+        debug("EYEs: connected to PCA9685")
+        pca9685.configureController()
+        pca9685.enableOutput(TRUE)
+
+        ' center our servos
+        'pca9685.setAllServos(SRVO_OFST_CNTR)
+
+        initEyeServos()
+        debug("EYEs: ready...")
+
+PUB stop()
+    '' Stop our i2c bus use and float all pins
+    ' no i2c_buss call needed, simply release all our pins
+    debug("EYEs: Stopped.")
+    pca9685.stop()
+
+PUB moveServoByRange(servoIdx, servoRange) | legalServo, legalRange
+'' Move servo using configured range value
+    legalServo := 0 #> servoRange <# MAX_SERVOS - 1
+    if legalServo > 1
+        ' have LID servo
+        legalRange := 0 #> servoRange <# 100
+    else
+        ' have EYE servo
+        legalRange := -50 #> servoRange <# 50
+    servos[servoIdx].writePosition(servos.M_PRCNT, legalRange)
+
+PUB getRange(servoIdx) : servoRange
+'' Read servo position returning range value
+    debug("EYEs: getRange()")
+    servoRange := servos[servoIdx].readPosition(servos.M_PRCNT)
+    debug("EYEs: getRange() = ", udec_(servoRange))
+
+PUB eyesLookAhead() | legalValue
+'' Center the eyes, both horiz. and vert.
+    legalValue := -50 #> 0 <# +50
+    eyesLookUPDown(legalValue)
+    eyesLookLeftRight(legalValue)
+    debug("   ")
+
+PUB eyesLookUPDown(value) | legalValue
+'' Move the eyes vertically [+ is up, - is down, 0 is centered]
+    legalValue := -50 #> value <# +50
+    servos[SERVO_EYE_UP_DN].writePosition(servos.M_PRCNT, legalValue)
+
+PUB eyesLookLeftRight(value) | legalValue
+'' Move the eyes horizontally [+ is right, - is left, 0 is centered]
+    legalValue := -50 #> value <# +50
+    servos[SERVO_EYE_LT_RT].writePosition(servos.M_PRCNT, legalValue)
+
+PUB lidsOpen() | legalValue
+'' Open the lids, both top and bottom
+    legalValue := 0 #> 100 <# 100
+    lidsLeft(legalValue)
+    lidsRight(legalValue)
+
+PUB lidsClose() | legalValue
+'' Close the lids, both top and bottom
+    legalValue := 0 #> 0 <# 100
+    lidsLeft(legalValue)
+    lidsRight(legalValue)
+
+PUB isZeroTo100(nServo) : bIsZeroTo100 | rangeMin, rangeMax
+'' Return T/F where T means servo is configured for 0 to 100 range
+    rangeMin, rangeMax := servos[nServo].rangePercent()
+    bIsZeroTo100 := FALSE
+    if rangeMin <> servos.SERVO_POSITION_NOT_SET
+        bIsZeroTo100 := (rangeMin == 0 and rangeMax == 100) ? TRUE : FALSE
+
+CON ' PRIVATE (Utility) Methods
+
+PRI lidsLeft(value) | legalValue
+    legalValue := 0 #> value <# 100
+    servos[SERVO_LID_TOP_LT].writePosition(servos.M_PRCNT, legalValue)
+    servos[SERVO_LID_BOT_LT].writePosition(servos.M_PRCNT, 100 - legalValue)
+    debug("   ")
+
+PRI lidsRight(value) | legalValue
+    legalValue := 0 #> value <# 100
+    servos[SERVO_LID_TOP_RT].writePosition(servos.M_PRCNT, 100 - legalValue)
+    servos[SERVO_LID_BOT_RT].writePosition(servos.M_PRCNT, legalValue)
+    debug("   ")
+
+PRI initEyeServos()
+    ' configure all the servo objects with channel and limits specific to each
+    pca9685.enableDebug(FALSE)
+    term.fstr0(string("\r\n** taskInitArmServos() ENTRY\r\n"))
+    servos[SERVO_EYE_LT_RT].configureMinCtrMaxType(1260, 1519, 1698, servos.ST_STANDARD)
+    servos[SERVO_EYE_LT_RT].init(CHAN_SERVO_EYE_LT_RT, servos.M_NOT_SET, 0, string("EyeL/R"))
+    servos[SERVO_EYE_LT_RT].configureRangePercent(-50, 50)
+    servos[SERVO_EYE_LT_RT].enableDebug(TRUE)
+
+    servos[SERVO_EYE_UP_DN].configureMinCtrMaxType(1420, 1690, 1953, servos.ST_STANDARD)
+    servos[SERVO_EYE_UP_DN].init(CHAN_SERVO_EYE_UP_DN, servos.M_NOT_SET, 0, string("EyeU/D"))
+    servos[SERVO_EYE_UP_DN].configureRangePercent(-50, 50)
+    servos[SERVO_EYE_UP_DN].enableDebug(TRUE)
+
+    servos[SERVO_LID_TOP_RT].configureMinCtrMaxType(754, servos.CALCULATE_CENTER, 1395, servos.ST_STANDARD)
+    servos[SERVO_LID_TOP_RT].init(CHAN_SERVO_LID_TOP_RT, servos.M_NOT_SET, 0, string("Lid-tprt"))
+    servos[SERVO_LID_TOP_RT].configureRangePercent(0, 100)
+    servos[SERVO_LID_TOP_RT].enableDebug(TRUE)
+
+    servos[SERVO_LID_BOT_RT].configureMinCtrMaxType(1186, servos.CALCULATE_CENTER, 1911, servos.ST_STANDARD)
+    servos[SERVO_LID_BOT_RT].init(CHAN_SERVO_LID_BOT_RT, servos.M_NOT_SET, 0, string("Lid-btrt"))
+    servos[SERVO_LID_BOT_RT].configureRangePercent(0, 100)
+    servos[SERVO_LID_BOT_RT].enableDebug(TRUE)
+
+    servos[SERVO_LID_TOP_LT].configureMinCtrMaxType(1440, servos.CALCULATE_CENTER, 2033, servos.ST_STANDARD)
+    servos[SERVO_LID_TOP_LT].init(CHAN_SERVO_LID_TOP_LT, servos.M_NOT_SET, 0, string("Lid-tplt"))
+    servos[SERVO_LID_TOP_LT].configureRangePercent(0, 100)
+    servos[SERVO_LID_TOP_LT].enableDebug(TRUE)
+
+    servos[SERVO_LID_BOT_LT].configureMinCtrMaxType(750, servos.CALCULATE_CENTER, 1431, servos.ST_STANDARD)
+    servos[SERVO_LID_BOT_LT].init(CHAN_SERVO_LID_BOT_LT, servos.M_NOT_SET, 0, string("Lid-btlt"))
+    servos[SERVO_LID_BOT_LT].configureRangePercent(0, 100)
+    servos[SERVO_LID_BOT_LT].enableDebug(TRUE)
+
+    term.fstr0(string("** taskInitArmServos() EXIT\r\n\r\n"))
+    pca9685.enableDebug(FALSE)
+
+
+CON { license }
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2023 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+}}

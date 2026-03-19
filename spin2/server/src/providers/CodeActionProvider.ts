@@ -5,6 +5,7 @@ import * as lsp from 'vscode-languageserver';
 import { Provider } from '.';
 import { Context } from '../context';
 import { fileSpecFromURI } from '../parser/lang.utils';
+import { DocumentFindings, eBLockType } from '../parser/spin.semantic.findings';
 
 export default class CodeActionProvider implements Provider {
   private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
@@ -280,13 +281,42 @@ export default class CodeActionProvider implements Provider {
       return;
     }
 
+    // Check if the variable is referenced in commented-out code within the method body.
+    // If so, offer "comment out" (wrap in { }) as the preferred fix instead of removal.
+    const usedInComments = this._isSymbolInMethodComments(symbolName, lineIdx, lines);
+
+    if (usedInComments) {
+      // Build a "comment out" version: wrap the target item in { } in-place
+      const commentOutLine = this._buildCommentOutLine(items, targetIdx, prefix, suffix, isReturnValue, commentPart);
+      if (commentOutLine !== null) {
+        const kindLabel = isReturnValue ? 'return value' : 'local variable';
+        this._logMessage(`CodeAction: offering comment-out of unused ${kindLabel} '${symbolName}' (found in method comments)`);
+        actions.push({
+          title: `Comment out unused ${kindLabel} '${symbolName}'`,
+          kind: lsp.CodeActionKind.QuickFix,
+          diagnostics: [diag],
+          isPreferred: true,
+          edit: {
+            changes: {
+              [uri]: [lsp.TextEdit.replace(
+                lsp.Range.create(lineIdx, 0, lineIdx, line.length),
+                commentOutLine
+              )]
+            }
+          }
+        });
+      }
+    }
+
+    // Always offer the "remove" action (preferred only when not used in comments)
     // Each variable has its own type prefix (no inheritance across commas).
     // Removing a typed item does not affect the type of remaining items.
-    items.splice(targetIdx, 1);
+    const removeItems = [...items];
+    removeItems.splice(targetIdx, 1);
 
     // Rebuild the line
     let newLine: string;
-    if (items.length === 0) {
+    if (removeItems.length === 0) {
       // Section is now empty — remove the delimiter too
       newLine = prefix.trimEnd();
       if (suffix.length > 0) {
@@ -294,7 +324,7 @@ export default class CodeActionProvider implements Provider {
       }
     } else {
       const delim = isReturnValue ? ':' : '|';
-      newLine = prefix.trimEnd() + ' ' + delim + ' ' + items.join(', ');
+      newLine = prefix.trimEnd() + ' ' + delim + ' ' + removeItems.join(', ');
       if (suffix.length > 0) {
         newLine += suffix;
       }
@@ -311,7 +341,7 @@ export default class CodeActionProvider implements Provider {
       title: `Remove unused ${kindLabel} '${symbolName}'`,
       kind: lsp.CodeActionKind.QuickFix,
       diagnostics: [diag],
-      isPreferred: true,
+      isPreferred: !usedInComments,
       edit: {
         changes: {
           [uri]: [lsp.TextEdit.replace(
@@ -321,6 +351,91 @@ export default class CodeActionProvider implements Provider {
         }
       }
     });
+  }
+
+  private _buildCommentOutLine(
+    items: string[],
+    targetIdx: number,
+    prefix: string,
+    suffix: string,
+    isReturnValue: boolean,
+    commentPart: string
+  ): string | null {
+    // Wrap the target item (and its comma) in { } block comment
+    const commentedItems: string[] = items.map((item, idx) => {
+      if (idx === targetIdx) {
+        // If target is the last item, no trailing comma inside the comment
+        if (idx === items.length - 1) {
+          return `{ ${item} }`;
+        }
+        // Otherwise include the trailing comma inside the comment
+        return `{ ${item}, }`;
+      }
+      return item;
+    });
+
+    // If the commented item included its trailing comma, remove the comma
+    // that would otherwise appear between the commented block and the next item
+    const delim = isReturnValue ? ':' : '|';
+    let newLine = prefix.trimEnd() + ' ' + delim + ' ' + commentedItems.join(', ');
+
+    // Clean up double commas: "{ item, }, nextItem" → "{ item, } nextItem"
+    newLine = newLine.replace(/\},\s*/g, '} ');
+
+    if (suffix.length > 0) {
+      newLine += suffix;
+    }
+
+    // Re-add end-of-line comment if present
+    if (commentPart.length > 0) {
+      newLine = newLine.trimEnd() + '  ' + commentPart.trimStart();
+    }
+
+    return newLine;
+  }
+
+  private _isSymbolInMethodComments(symbolName: string, declLineIdx: number, lines: string[]): boolean {
+    // Find the method body range: from the declaration line to the next PUB/PRI/CON/VAR/OBJ/DAT or end of file
+    const methodEndIdx = this._findMethodEnd(declLineIdx, lines);
+    const wordRe = new RegExp(`\\b${symbolName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+
+    for (let i = declLineIdx + 1; i <= methodEndIdx; i++) {
+      const line = lines[i];
+      const trimmed = line.trimStart();
+
+      // Only check full-line comments (entire line is commented-out code)
+      if (!trimmed.startsWith("'")) continue;
+
+      // Strip the leading comment marker(s) to get the "commented-out code"
+      let uncommented = trimmed.replace(/^'{1,2}\s?/, '');
+
+      // The commented-out code line may itself have a trailing comment.
+      // Only search the code portion, not the trailing comment.
+      // e.g., "' result := doStuff()  ' save myVar for later"
+      //   → uncommented = "result := doStuff()  ' save myVar for later"
+      //   → codePortion = "result := doStuff()"   (we search only this part)
+      const trailingCommentIdx = uncommented.indexOf("'");
+      if (trailingCommentIdx >= 0) {
+        uncommented = uncommented.substring(0, trailingCommentIdx);
+      }
+
+      if (wordRe.test(uncommented)) {
+        this._logMessage(`CodeAction: found '${symbolName}' in commented-out code at line ${i + 1}`);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private _findMethodEnd(declLineIdx: number, lines: string[]): number {
+    const sectionRe = /^(pub|pri|con|var|obj|dat)\b/i;
+    for (let i = declLineIdx + 1; i < lines.length; i++) {
+      const trimmed = lines[i].trimStart();
+      if (sectionRe.test(trimmed)) {
+        return i - 1;
+      }
+    }
+    return lines.length - 1;
   }
 
   private _createRemoveUnusedGlobalAction(

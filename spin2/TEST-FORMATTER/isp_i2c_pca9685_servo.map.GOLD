@@ -1,0 +1,633 @@
+================================================================================
+PNut-TS Memory Map: isp_i2c_pca9685_servo.spin2
+Spin2_v41
+Generated: 2026-03-19T22:48:12.116Z
+================================================================================
+
+=== PROGRAM SUMMARY ===
+
+  Total Size:    9948 bytes (9292 code/data + 656 var bytes)
+  Objects:       5
+  Methods:       127
+
+=== OBJECT HIERARCHY ===
+
+  isp_i2c_pca9685_servo  (38 methods)
+      \-- PCA9685 : isp_i2c_pca9685  (26 methods)
+          \-- I2C_BUS : jm_nstrings  (7 methods)
+
+=== MEMORY LAYOUT ===
+
+  Start   End      Size  Object           Instance         Overrides
+  ------  ------  -----  ---------------  ---------------  ---------
+  $00000  $00D1C   3357  isp_i2c_pca9685_servo  (entry)          
+  $00D20  $01731   2578  isp_i2c_pca9685  PCA9685          
+  $01734  $01C0F   1244  isp_i2c_singleton  TERM             
+  $01C10  $021CF   1472  isp_serial_singleton  NSTR             
+  $021D0  $0244B    636  jm_nstrings      I2C_BUS          
+
+    CODE/DATA TOTAL:    9292 bytes
+
+  $0244C  $026DB    656  VAR SPACE        (runtime)      
+
+    PROGRAM TOTAL:      9948 bytes
+
+=== OBJECT DETAILS ===
+
+--- isp_i2c_pca9685_servo ---
+    Location: $00000-$00D1C (3357 bytes)
+    VAR Base: $0244C
+    Source:   isp_i2c_pca9685_servo.spin2
+
+    Methods:
+      NULL                  Entry $00006  ($00006)
+      INIT                  Entry $00007  ($00007)
+      STOP                  Entry $00008  ($00008)
+      ENABLEDEBUG           Entry $00009  ($00009)
+      SAVEDEBUG             Entry $0000A  ($0000A)
+      RESTOREDEBUG          Entry $0000B  ($0000B)
+      CONFIGUREMINCTRMAXTYPE  Entry $0000C  ($0000C)
+      CONFIGURERANGEPERCENT  Entry $0000D  ($0000D)
+      RANGEPERCENT          Entry $0000E  ($0000E)
+      CENTERMICROSEC        Entry $0000F  ($0000F)
+      SETSLEWRATE           Entry $00010  ($00010)
+      SETSLEWSTEPS          Entry $00011  ($00011)
+      SLEWTOPOSITION        Entry $00012  ($00012)
+      CONTINUESLEW          Entry $00013  ($00013)
+      CONTINUESLEWOLD       Entry $00014  ($00014)
+      ISATPOSTION           Entry $00015  ($00015)
+      DELAYEXPIRED          Entry $00016  ($00016)
+      ISACTIVE              Entry $00017  ($00017)
+      NAME                  Entry $00018  ($00018)
+      WRITEPOSITION         Entry $00019  ($00019)
+      READPOSITION          Entry $0001A  ($0001A)
+      GETPOSITION           Entry $0001B  ($0001B)
+      SHOWPOSITION          Entry $0001C  ($0001C)
+      MAPVALUETOSERVOPOSNINUSEC  Entry $0001D  ($0001D)
+      INTERPMODEVALUE       Entry $0001E  ($0001E)
+      STRCPY                Entry $0001F  ($0001F)
+      RELOADSLEWRAMPTABLE   Entry $00020  ($00020)
+      DUMPTABLE             Entry $00021  ($00021)
+      ISVALIDMODE           Entry $00022  ($00022)
+      HARDWARECONFIGURED    Entry $00023  ($00023)
+      CONVERTPOSITION       Entry $00024  ($00024)
+      POSITIONINLIMITS      Entry $00025  ($00025)
+      SETSERVODEFAULTS      Entry $00026  ($00026)
+      ANGLE2US              Entry $00027  ($00027)
+      US2ANGLE              Entry $00028  ($00028)
+      US2RANGE              Entry $00029  ($00029)
+      RANGETOUSEC           Entry $0002A  ($0002A)
+      MAP                   Entry $0002B  ($0002B)
+
+    DAT:
+      BYTE      USMSG                 +$000B4  ($000B4)
+      BYTE      DEGRMSG               +$000B9  ($000B9)
+      BYTE      NOTSETMSG             +$000BE  ($000BE)
+
+    VAR:
+      LONG      CHANNEL               +$0004  ($02450)
+      LONG      SERVOTYPE             +$0008  ($02454)
+      LONG      USECMINIMUM           +$000C  ($02458)
+      LONG      USECCENTER            +$0010  ($0245C)
+      LONG      USECMAXIMUM           +$0014  ($02460)
+      LONG      USECSLEWRATE          +$0018  ($02464)
+      LONG      RNGMINIMUM            +$001C  ($02468)
+      LONG      RNGMAXIMUM            +$0020  ($0246C)
+      LONG      CURRPOSNUSEC          +$0024  ($02470)
+      LONG      CURRPOSNDEGR          +$0028  ($02474)
+      LONG      TARGETUSEC            +$002C  ($02478)
+      LONG      TARGETDEGR            +$0030  ($0247C)
+      LONG      BLASTATTARGETSTATUS   +$0034  ($02480)
+      BYTE      BCHANNELSPECIFIED     +$0038  ($02484)
+      BYTE      BSTOPPED              +$0039  ($02485)
+      BYTE      BSHOWDEBUG            +$003A  ($02486)
+      BYTE      BDONEMSGSHOWN         +$003B  ($02487)
+      BYTE      BHAVESAVEDDEBUG       +$003C  ($02488)
+      BYTE      BPRIORSHOWDEBUG       +$003D  ($02489)
+      BYTE      BHAVELIMITS           +$003E  ($0248A)
+      BYTE      NAMESTR               +$003F  ($0248B)
+      LONG      MS001                 +$004A  ($02496)
+      LONG      US001                 +$004E  ($0249A)
+      LONG      STNEXTEXPIRE          +$0052  ($0249E)
+      LONG      STDUMMY               +$0056  ($024A2)
+      WORD      STDELAY               +$005A  ($024A6)
+      BYTE      STUSEC                +$006A  ($024B6)
+      BYTE      STCOUNT               +$0072  ($024BE)
+      BYTE      STENTRYCT             +$007A  ($024C6)
+      BYTE      STCURRIDX             +$007B  ($024C7)
+      BYTE      STCURRCT              +$007C  ($024C8)
+      BYTE      MODESTR               +$007D  ($024C9)
+
+    Child Objects:
+      PCA9685 : isp_i2c_pca9685 (2578 bytes)
+
+--- PCA9685 : isp_i2c_pca9685 ---
+    Location: $00D20-$01731 (2578 bytes)
+    VAR Base: $024E8
+    Source:   isp_i2c_pca9685.spin2
+
+    Methods:
+      NULL                  Entry $00004  ($00D24)
+      ENABLEDEBUG           Entry $00005  ($00D25)
+      ENABLEOUTPUT          Entry $00006  ($00D26)
+      INIT                  Entry $00007  ($00D27)
+      START                 Entry $00008  ($00D28)
+      CONFIGURECONTROLLER   Entry $00009  ($00D29)
+      DEVICEID              Entry $0000A  ($00D2A)
+      STOP                  Entry $0000B  ($00D2B)
+      SETALLSERVOS          Entry $0000C  ($00D2C)
+      GOTOMICROSEC          Entry $0000D  ($00D2D)
+      GETMICROSEC           Entry $0000E  ($00D2E)
+      WRITE9685OFFONWORDS   Entry $0000F  ($00D2F)
+      SOFTWARERESET         Entry $00010  ($00D30)
+      WRITE9685BYTE         Entry $00011  ($00D31)
+      WRITE9685WORD         Entry $00012  ($00D32)
+      READ9685BYTE          Entry $00013  ($00D33)
+      READ9685BYTES         Entry $00014  ($00D34)
+      READ9685WORD          Entry $00015  ($00D35)
+      READ9685WORDS         Entry $00016  ($00D36)
+      SETALLCHANNELS        Entry $00017  ($00D37)
+      SETUPPINS             Entry $00018  ($00D38)
+      FLOATI2CPINS          Entry $00019  ($00D39)
+      IDDEVICE              Entry $0001A  ($00D3A)
+      SETPWMFREQUENCYARM    Entry $0001B  ($00D3B)
+      SETPWMFREQUENCY       Entry $0001C  ($00D3C)
+      CALCONOFFVALUESFORMICROSEC  Entry $0001D  ($00D3D)
+
+    DAT:
+      LONG      PIN_SCL               +$0007C  ($00D9C)
+      LONG      PIN_SDA               +$00080  ($00DA0)
+      LONG      PIN_OE                +$00084  ($00DA4)
+      LONG      SLAVEADDRESS          +$00088  ($00DA8)
+      LONG      EDEVICEFOUND          +$0008C  ($00DAC)
+      BYTE      BSHOWDEBUG            +$00090  ($00DB0)
+      BYTE      BPINSSETUP            +$00091  ($00DB1)
+      BYTE      BDEVICEFOUND          +$00092  ($00DB2)
+      LONG      CHANUSEC              +$00093  ($00DB3)
+
+    Child Objects:
+      I2C_BUS : jm_nstrings (636 bytes)
+
+--- TERM : isp_i2c_singleton ---
+    Location: $01734-$01C0F (1244 bytes)
+    VAR Base: $024D0
+    Source:   isp_i2c_singleton.spin2
+
+    Methods:
+      NULL                  Entry $00002  ($01736)
+      QUIESCE               Entry $00003  ($01737)
+      SETUP                 Entry $00004  ($01738)
+      PRESENT               Entry $00005  ($01739)
+      WAIT                  Entry $00006  ($0173A)
+      START                 Entry $00007  ($0173B)
+      WRITE                 Entry $00008  ($0173C)
+      WR_BLOCK              Entry $00009  ($0173D)
+      READ                  Entry $0000A  ($0173E)
+      RD_BLOCK              Entry $0000B  ($0173F)
+      STOP                  Entry $0000C  ($01740)
+      RECORD                Entry $0000D  ($01741)
+      REPORT                Entry $0000E  ($01742)
+
+    DAT:
+      LONG      SCLPIN                +$00040  ($01774)
+      LONG      SDAPIN                +$00044  ($01778)
+      LONG      CLKTIX                +$00048  ($0177C)
+      WORD      BYTES                 +$0004C  ($01780)
+      WORD      COUNT                 +$00088  ($017BC)
+      BYTE      BSHOWDEBUG            +$0008A  ($017BE)
+
+    Inline PASM:
+      DONE'0006             +$011  ($01778)
+      WR_BYTE'0006          +$001  ($01738)
+      GET_ACK'0006          +$00A  ($0175C)
+      GET_BYTE'0006         +$000  ($01734)
+      WR_BYTE'0006          +$003  ($01740)
+      GET_ACK'0006          +$00C  ($01764)
+      RD_BYTE'0006          +$001  ($01738)
+      PUT_ACK'0006          +$00B  ($01760)
+      RD_BLOCK'0006         +$000  ($01734)
+      RD_BYTE'0006          +$002  ($0173C)
+      PUT_ACK'0006          +$00C  ($01764)
+      PUT_BYTE'0006         +$017  ($01790)
+
+    Child Objects:
+      TERM : isp_i2c_singleton (1244 bytes)
+
+--- NSTR : isp_serial_singleton ---
+    Location: $01C10-$021CF (1472 bytes)
+    VAR Base: $024D4
+    Source:   isp_serial_singleton.spin2
+
+    Methods:
+      NULL                  Entry $00002  ($01C12)
+      START                 Entry $00003  ($01C13)
+      STARTX                Entry $00004  ($01C14)
+      RXFLUSH               Entry $00005  ($01C15)
+      RXCHECK               Entry $00006  ($01C16)
+      RXTIME                Entry $00007  ($01C17)
+      RX                    Entry $00008  ($01C18)
+      TX                    Entry $00009  ($01C19)
+      TXN                   Entry $0000A  ($01C1A)
+      TXFLUSH               Entry $0000B  ($01C1B)
+      STR                   Entry $0000C  ($01C1C)
+      SUBSTR                Entry $0000D  ($01C1D)
+      PADSTR                Entry $0000E  ($01C1E)
+      FSTR0                 Entry $0000F  ($01C1F)
+      FSTR1                 Entry $00010  ($01C20)
+      FSTR2                 Entry $00011  ($01C21)
+      FSTR3                 Entry $00012  ($01C22)
+      FSTR4                 Entry $00013  ($01C23)
+      FSTR5                 Entry $00014  ($01C24)
+      FSTR6                 Entry $00015  ($01C25)
+      FSTR7                 Entry $00016  ($01C26)
+      FORMAT                Entry $00017  ($01C27)
+      FMT_NUMBER            Entry $00018  ($01C28)
+      DEC                   Entry $00019  ($01C29)
+      FWDEC                 Entry $0001A  ($01C2A)
+      JDEC                  Entry $0001B  ($01C2B)
+      DPDEC                 Entry $0001C  ($01C2C)
+      JDPDEC                Entry $0001D  ($01C2D)
+      HEX                   Entry $0001E  ($01C2E)
+      FHEX                  Entry $0001F  ($01C2F)
+      JHEX                  Entry $00020  ($01C30)
+      OCT                   Entry $00021  ($01C31)
+      FOCT                  Entry $00022  ($01C32)
+      JOCT                  Entry $00023  ($01C33)
+      QRT                   Entry $00024  ($01C34)
+      FQRT                  Entry $00025  ($01C35)
+      JQRT                  Entry $00026  ($01C36)
+      BIN                   Entry $00027  ($01C37)
+      FBIN                  Entry $00028  ($01C38)
+      JBIN                  Entry $00029  ($01C39)
+      MEMDUMP               Entry $0002A  ($01C3A)
+      GET_NARGS             Entry $0002B  ($01C3B)
+      MEMDUMPROW            Entry $0002C  ($01C3C)
+
+    DAT:
+      LONG      RXP                   +$000B8  ($01CC8)
+      LONG      TXP                   +$000BC  ($01CCC)
+      BYTE      PBUF                  +$000C0  ($01CD0)
+      BYTE      KLOCK                 +$00110  ($01D20)
+
+    Child Objects:
+      NSTR : isp_serial_singleton (1472 bytes)
+
+--- I2C_BUS : jm_nstrings ---
+    Location: $021D0-$0244B (636 bytes)
+    VAR Base: $024D8
+    Source:   jm_nstrings.spin2
+
+    Methods:
+      NULL                  Entry $00000  ($021D0)
+      FMT_NUMBER            Entry $00001  ($021D1)
+      DEC                   Entry $00002  ($021D2)
+      DPDEC                 Entry $00003  ($021D3)
+      ITOA                  Entry $00004  ($021D4)
+      REVSTR                Entry $00005  ($021D5)
+      PADSTR                Entry $00006  ($021D6)
+
+    VAR:
+      BYTE      NBUF                  +$0004  ($024DC)
+      BYTE      PBUF                  +$0025  ($024FD)
+
+=== ADDRESS INDEX ===
+
+  Address  Type      Object           Name
+  -------  --------  ---------------  ---------------
+   $00000  CODE      isp_i2c_pca9685_servo  (entry)
+   $00000  METHOD    jm_nstrings      NULL
+   $00001  METHOD    jm_nstrings      FMT_NUMBER
+   $00002  METHOD    jm_nstrings      DEC
+   $00002  METHOD    isp_serial_singleton  NULL
+   $00002  METHOD    isp_i2c_singleton  NULL
+   $00003  METHOD    jm_nstrings      DPDEC
+   $00003  METHOD    isp_serial_singleton  START
+   $00003  METHOD    isp_i2c_singleton  QUIESCE
+   $00004  METHOD    jm_nstrings      ITOA
+   $00004  METHOD    isp_serial_singleton  STARTX
+   $00004  METHOD    isp_i2c_singleton  SETUP
+   $00004  METHOD    isp_i2c_pca9685  NULL
+   $00005  METHOD    jm_nstrings      REVSTR
+   $00005  METHOD    isp_serial_singleton  RXFLUSH
+   $00005  METHOD    isp_i2c_singleton  PRESENT
+   $00005  METHOD    isp_i2c_pca9685  ENABLEDEBUG
+   $00006  METHOD    jm_nstrings      PADSTR
+   $00006  METHOD    isp_serial_singleton  RXCHECK
+   $00006  METHOD    isp_i2c_singleton  WAIT
+   $00006  METHOD    isp_i2c_pca9685  ENABLEOUTPUT
+   $00006  METHOD    isp_i2c_pca9685_servo  NULL
+   $00007  METHOD    isp_serial_singleton  RXTIME
+   $00007  METHOD    isp_i2c_singleton  START
+   $00007  METHOD    isp_i2c_pca9685  INIT
+   $00007  METHOD    isp_i2c_pca9685_servo  INIT
+   $00008  METHOD    isp_serial_singleton  RX
+   $00008  METHOD    isp_i2c_singleton  WRITE
+   $00008  METHOD    isp_i2c_pca9685  START
+   $00008  METHOD    isp_i2c_pca9685_servo  STOP
+   $00009  METHOD    isp_serial_singleton  TX
+   $00009  METHOD    isp_i2c_singleton  WR_BLOCK
+   $00009  METHOD    isp_i2c_pca9685  CONFIGURECONTROLLER
+   $00009  METHOD    isp_i2c_pca9685_servo  ENABLEDEBUG
+   $0000A  METHOD    isp_serial_singleton  TXN
+   $0000A  METHOD    isp_i2c_singleton  READ
+   $0000A  METHOD    isp_i2c_pca9685  DEVICEID
+   $0000A  METHOD    isp_i2c_pca9685_servo  SAVEDEBUG
+   $0000B  METHOD    isp_serial_singleton  TXFLUSH
+   $0000B  METHOD    isp_i2c_singleton  RD_BLOCK
+   $0000B  METHOD    isp_i2c_pca9685  STOP
+   $0000B  METHOD    isp_i2c_pca9685_servo  RESTOREDEBUG
+   $0000C  METHOD    isp_serial_singleton  STR
+   $0000C  METHOD    isp_i2c_singleton  STOP
+   $0000C  METHOD    isp_i2c_pca9685  SETALLSERVOS
+   $0000C  METHOD    isp_i2c_pca9685_servo  CONFIGUREMINCTRMAXTYPE
+   $0000D  METHOD    isp_serial_singleton  SUBSTR
+   $0000D  METHOD    isp_i2c_singleton  RECORD
+   $0000D  METHOD    isp_i2c_pca9685  GOTOMICROSEC
+   $0000D  METHOD    isp_i2c_pca9685_servo  CONFIGURERANGEPERCENT
+   $0000E  METHOD    isp_serial_singleton  PADSTR
+   $0000E  METHOD    isp_i2c_singleton  REPORT
+   $0000E  METHOD    isp_i2c_pca9685  GETMICROSEC
+   $0000E  METHOD    isp_i2c_pca9685_servo  RANGEPERCENT
+   $0000F  METHOD    isp_serial_singleton  FSTR0
+   $0000F  METHOD    isp_i2c_pca9685  WRITE9685OFFONWORDS
+   $0000F  METHOD    isp_i2c_pca9685_servo  CENTERMICROSEC
+   $00010  METHOD    isp_serial_singleton  FSTR1
+   $00010  METHOD    isp_i2c_pca9685  SOFTWARERESET
+   $00010  METHOD    isp_i2c_pca9685_servo  SETSLEWRATE
+   $00011  METHOD    isp_serial_singleton  FSTR2
+   $00011  METHOD    isp_i2c_pca9685  WRITE9685BYTE
+   $00011  METHOD    isp_i2c_pca9685_servo  SETSLEWSTEPS
+   $00012  METHOD    isp_serial_singleton  FSTR3
+   $00012  METHOD    isp_i2c_pca9685  WRITE9685WORD
+   $00012  METHOD    isp_i2c_pca9685_servo  SLEWTOPOSITION
+   $00013  METHOD    isp_serial_singleton  FSTR4
+   $00013  METHOD    isp_i2c_pca9685  READ9685BYTE
+   $00013  METHOD    isp_i2c_pca9685_servo  CONTINUESLEW
+   $00014  METHOD    isp_serial_singleton  FSTR5
+   $00014  METHOD    isp_i2c_pca9685  READ9685BYTES
+   $00014  METHOD    isp_i2c_pca9685_servo  CONTINUESLEWOLD
+   $00015  METHOD    isp_serial_singleton  FSTR6
+   $00015  METHOD    isp_i2c_pca9685  READ9685WORD
+   $00015  METHOD    isp_i2c_pca9685_servo  ISATPOSTION
+   $00016  METHOD    isp_serial_singleton  FSTR7
+   $00016  METHOD    isp_i2c_pca9685  READ9685WORDS
+   $00016  METHOD    isp_i2c_pca9685_servo  DELAYEXPIRED
+   $00017  METHOD    isp_serial_singleton  FORMAT
+   $00017  METHOD    isp_i2c_pca9685  SETALLCHANNELS
+   $00017  METHOD    isp_i2c_pca9685_servo  ISACTIVE
+   $00018  METHOD    isp_serial_singleton  FMT_NUMBER
+   $00018  METHOD    isp_i2c_pca9685  SETUPPINS
+   $00018  METHOD    isp_i2c_pca9685_servo  NAME
+   $00019  METHOD    isp_serial_singleton  DEC
+   $00019  METHOD    isp_i2c_pca9685  FLOATI2CPINS
+   $00019  METHOD    isp_i2c_pca9685_servo  WRITEPOSITION
+   $0001A  METHOD    isp_serial_singleton  FWDEC
+   $0001A  METHOD    isp_i2c_pca9685  IDDEVICE
+   $0001A  METHOD    isp_i2c_pca9685_servo  READPOSITION
+   $0001B  METHOD    isp_serial_singleton  JDEC
+   $0001B  METHOD    isp_i2c_pca9685  SETPWMFREQUENCYARM
+   $0001B  METHOD    isp_i2c_pca9685_servo  GETPOSITION
+   $0001C  METHOD    isp_serial_singleton  DPDEC
+   $0001C  METHOD    isp_i2c_pca9685  SETPWMFREQUENCY
+   $0001C  METHOD    isp_i2c_pca9685_servo  SHOWPOSITION
+   $0001D  METHOD    isp_serial_singleton  JDPDEC
+   $0001D  METHOD    isp_i2c_pca9685  CALCONOFFVALUESFORMICROSEC
+   $0001D  METHOD    isp_i2c_pca9685_servo  MAPVALUETOSERVOPOSNINUSEC
+   $0001E  METHOD    isp_serial_singleton  HEX
+   $0001E  METHOD    isp_i2c_pca9685_servo  INTERPMODEVALUE
+   $0001F  METHOD    isp_serial_singleton  FHEX
+   $0001F  METHOD    isp_i2c_pca9685_servo  STRCPY
+   $00020  METHOD    isp_serial_singleton  JHEX
+   $00020  METHOD    isp_i2c_pca9685_servo  RELOADSLEWRAMPTABLE
+   $00021  METHOD    isp_serial_singleton  OCT
+   $00021  METHOD    isp_i2c_pca9685_servo  DUMPTABLE
+   $00022  METHOD    isp_serial_singleton  FOCT
+   $00022  METHOD    isp_i2c_pca9685_servo  ISVALIDMODE
+   $00023  METHOD    isp_serial_singleton  JOCT
+   $00023  METHOD    isp_i2c_pca9685_servo  HARDWARECONFIGURED
+   $00024  METHOD    isp_serial_singleton  QRT
+   $00024  METHOD    isp_i2c_pca9685_servo  CONVERTPOSITION
+   $00025  METHOD    isp_serial_singleton  FQRT
+   $00025  METHOD    isp_i2c_pca9685_servo  POSITIONINLIMITS
+   $00026  METHOD    isp_serial_singleton  JQRT
+   $00026  METHOD    isp_i2c_pca9685_servo  SETSERVODEFAULTS
+   $00027  METHOD    isp_serial_singleton  BIN
+   $00027  METHOD    isp_i2c_pca9685_servo  ANGLE2US
+   $00028  METHOD    isp_serial_singleton  FBIN
+   $00028  METHOD    isp_i2c_pca9685_servo  US2ANGLE
+   $00029  METHOD    isp_serial_singleton  JBIN
+   $00029  METHOD    isp_i2c_pca9685_servo  US2RANGE
+   $0002A  METHOD    isp_serial_singleton  MEMDUMP
+   $0002A  METHOD    isp_i2c_pca9685_servo  RANGETOUSEC
+   $0002B  METHOD    isp_serial_singleton  GET_NARGS
+   $0002B  METHOD    isp_i2c_pca9685_servo  MAP
+   $0002C  METHOD    isp_serial_singleton  MEMDUMPROW
+   $00D20  CODE      isp_i2c_pca9685  PCA9685
+   $01734  CODE      isp_i2c_singleton  TERM
+   $01C10  CODE      isp_serial_singleton  NSTR
+   $021D0  CODE      jm_nstrings      I2C_BUS
+
+  Entries: 132
+
+=== SYMBOL INDEX ===
+
+  Symbol                Object           Type      Location
+  --------------------  ---------------  --------  ----------
+  ANGLE2US              isp_i2c_pca9685_servo  METHOD    $00027
+  BCHANNELSPECIFIED     isp_i2c_pca9685_servo  VAR       $02484
+  BDEVICEFOUND          isp_i2c_pca9685  DAT       $00DB2
+  BDONEMSGSHOWN         isp_i2c_pca9685_servo  VAR       $02487
+  BHAVELIMITS           isp_i2c_pca9685_servo  VAR       $0248A
+  BHAVESAVEDDEBUG       isp_i2c_pca9685_servo  VAR       $02488
+  BIN                   isp_serial_singleton  METHOD    $00027
+  BLASTATTARGETSTATUS   isp_i2c_pca9685_servo  VAR       $02480
+  BPINSSETUP            isp_i2c_pca9685  DAT       $00DB1
+  BPRIORSHOWDEBUG       isp_i2c_pca9685_servo  VAR       $02489
+  BSHOWDEBUG            isp_i2c_singleton  DAT       $017BE
+  BSHOWDEBUG            isp_i2c_pca9685  DAT       $00DB0
+  BSHOWDEBUG            isp_i2c_pca9685_servo  VAR       $02486
+  BSTOPPED              isp_i2c_pca9685_servo  VAR       $02485
+  BYTES                 isp_i2c_singleton  DAT       $01780
+  CALCONOFFVALUESFORMICROSEC  isp_i2c_pca9685  METHOD    $0001D
+  CENTERMICROSEC        isp_i2c_pca9685_servo  METHOD    $0000F
+  CHANNEL               isp_i2c_pca9685_servo  VAR       $02450
+  CHANUSEC              isp_i2c_pca9685  DAT       $00DB3
+  CLKTIX                isp_i2c_singleton  DAT       $0177C
+  CONFIGURECONTROLLER   isp_i2c_pca9685  METHOD    $00009
+  CONFIGUREMINCTRMAXTYPE  isp_i2c_pca9685_servo  METHOD    $0000C
+  CONFIGURERANGEPERCENT  isp_i2c_pca9685_servo  METHOD    $0000D
+  CONTINUESLEW          isp_i2c_pca9685_servo  METHOD    $00013
+  CONTINUESLEWOLD       isp_i2c_pca9685_servo  METHOD    $00014
+  CONVERTPOSITION       isp_i2c_pca9685_servo  METHOD    $00024
+  COUNT                 isp_i2c_singleton  DAT       $017BC
+  CURRPOSNDEGR          isp_i2c_pca9685_servo  VAR       $02474
+  CURRPOSNUSEC          isp_i2c_pca9685_servo  VAR       $02470
+  DEC                   jm_nstrings      METHOD    $00002
+  DEC                   isp_serial_singleton  METHOD    $00019
+  DEGRMSG               isp_i2c_pca9685_servo  DAT       $000B9
+  DELAYEXPIRED          isp_i2c_pca9685_servo  METHOD    $00016
+  DEVICEID              isp_i2c_pca9685  METHOD    $0000A
+  DONE'0006             isp_i2c_singleton  INLINE    +$011  ($01778)
+  DPDEC                 jm_nstrings      METHOD    $00003
+  DPDEC                 isp_serial_singleton  METHOD    $0001C
+  DUMPTABLE             isp_i2c_pca9685_servo  METHOD    $00021
+  EDEVICEFOUND          isp_i2c_pca9685  DAT       $00DAC
+  ENABLEDEBUG           isp_i2c_pca9685  METHOD    $00005
+  ENABLEDEBUG           isp_i2c_pca9685_servo  METHOD    $00009
+  ENABLEOUTPUT          isp_i2c_pca9685  METHOD    $00006
+  FBIN                  isp_serial_singleton  METHOD    $00028
+  FHEX                  isp_serial_singleton  METHOD    $0001F
+  FLOATI2CPINS          isp_i2c_pca9685  METHOD    $00019
+  FMT_NUMBER            jm_nstrings      METHOD    $00001
+  FMT_NUMBER            isp_serial_singleton  METHOD    $00018
+  FOCT                  isp_serial_singleton  METHOD    $00022
+  FORMAT                isp_serial_singleton  METHOD    $00017
+  FQRT                  isp_serial_singleton  METHOD    $00025
+  FSTR0                 isp_serial_singleton  METHOD    $0000F
+  FSTR1                 isp_serial_singleton  METHOD    $00010
+  FSTR2                 isp_serial_singleton  METHOD    $00011
+  FSTR3                 isp_serial_singleton  METHOD    $00012
+  FSTR4                 isp_serial_singleton  METHOD    $00013
+  FSTR5                 isp_serial_singleton  METHOD    $00014
+  FSTR6                 isp_serial_singleton  METHOD    $00015
+  FSTR7                 isp_serial_singleton  METHOD    $00016
+  FWDEC                 isp_serial_singleton  METHOD    $0001A
+  GET_ACK'0006          isp_i2c_singleton  INLINE    +$00A  ($0175C)
+  GET_ACK'0006          isp_i2c_singleton  INLINE    +$00C  ($01764)
+  GET_BYTE'0006         isp_i2c_singleton  INLINE    +$000  ($01734)
+  GET_NARGS             isp_serial_singleton  METHOD    $0002B
+  GETMICROSEC           isp_i2c_pca9685  METHOD    $0000E
+  GETPOSITION           isp_i2c_pca9685_servo  METHOD    $0001B
+  GOTOMICROSEC          isp_i2c_pca9685  METHOD    $0000D
+  HARDWARECONFIGURED    isp_i2c_pca9685_servo  METHOD    $00023
+  HEX                   isp_serial_singleton  METHOD    $0001E
+  IDDEVICE              isp_i2c_pca9685  METHOD    $0001A
+  INIT                  isp_i2c_pca9685  METHOD    $00007
+  INIT                  isp_i2c_pca9685_servo  METHOD    $00007
+  INTERPMODEVALUE       isp_i2c_pca9685_servo  METHOD    $0001E
+  ISACTIVE              isp_i2c_pca9685_servo  METHOD    $00017
+  ISATPOSTION           isp_i2c_pca9685_servo  METHOD    $00015
+  ISVALIDMODE           isp_i2c_pca9685_servo  METHOD    $00022
+  ITOA                  jm_nstrings      METHOD    $00004
+  JBIN                  isp_serial_singleton  METHOD    $00029
+  JDEC                  isp_serial_singleton  METHOD    $0001B
+  JDPDEC                isp_serial_singleton  METHOD    $0001D
+  JHEX                  isp_serial_singleton  METHOD    $00020
+  JOCT                  isp_serial_singleton  METHOD    $00023
+  JQRT                  isp_serial_singleton  METHOD    $00026
+  KLOCK                 isp_serial_singleton  DAT       $01D20
+  MAP                   isp_i2c_pca9685_servo  METHOD    $0002B
+  MAPVALUETOSERVOPOSNINUSEC  isp_i2c_pca9685_servo  METHOD    $0001D
+  MEMDUMP               isp_serial_singleton  METHOD    $0002A
+  MEMDUMPROW            isp_serial_singleton  METHOD    $0002C
+  MODESTR               isp_i2c_pca9685_servo  VAR       $024C9
+  MS001                 isp_i2c_pca9685_servo  VAR       $02496
+  NAME                  isp_i2c_pca9685_servo  METHOD    $00018
+  NAMESTR               isp_i2c_pca9685_servo  VAR       $0248B
+  NBUF                  jm_nstrings      VAR       $024DC
+  NOTSETMSG             isp_i2c_pca9685_servo  DAT       $000BE
+  NULL                  jm_nstrings      METHOD    $00000
+  NULL                  isp_serial_singleton  METHOD    $00002
+  NULL                  isp_i2c_singleton  METHOD    $00002
+  NULL                  isp_i2c_pca9685  METHOD    $00004
+  NULL                  isp_i2c_pca9685_servo  METHOD    $00006
+  OCT                   isp_serial_singleton  METHOD    $00021
+  PADSTR                jm_nstrings      METHOD    $00006
+  PADSTR                isp_serial_singleton  METHOD    $0000E
+  PBUF                  jm_nstrings      VAR       $024FD
+  PBUF                  isp_serial_singleton  DAT       $01CD0
+  PIN_OE                isp_i2c_pca9685  DAT       $00DA4
+  PIN_SCL               isp_i2c_pca9685  DAT       $00D9C
+  PIN_SDA               isp_i2c_pca9685  DAT       $00DA0
+  POSITIONINLIMITS      isp_i2c_pca9685_servo  METHOD    $00025
+  PRESENT               isp_i2c_singleton  METHOD    $00005
+  PUT_ACK'0006          isp_i2c_singleton  INLINE    +$00B  ($01760)
+  PUT_ACK'0006          isp_i2c_singleton  INLINE    +$00C  ($01764)
+  PUT_BYTE'0006         isp_i2c_singleton  INLINE    +$017  ($01790)
+  QRT                   isp_serial_singleton  METHOD    $00024
+  QUIESCE               isp_i2c_singleton  METHOD    $00003
+  RANGEPERCENT          isp_i2c_pca9685_servo  METHOD    $0000E
+  RANGETOUSEC           isp_i2c_pca9685_servo  METHOD    $0002A
+  RD_BLOCK              isp_i2c_singleton  METHOD    $0000B
+  RD_BLOCK'0006         isp_i2c_singleton  INLINE    +$000  ($01734)
+  RD_BYTE'0006          isp_i2c_singleton  INLINE    +$001  ($01738)
+  RD_BYTE'0006          isp_i2c_singleton  INLINE    +$002  ($0173C)
+  READ                  isp_i2c_singleton  METHOD    $0000A
+  READ9685BYTE          isp_i2c_pca9685  METHOD    $00013
+  READ9685BYTES         isp_i2c_pca9685  METHOD    $00014
+  READ9685WORD          isp_i2c_pca9685  METHOD    $00015
+  READ9685WORDS         isp_i2c_pca9685  METHOD    $00016
+  READPOSITION          isp_i2c_pca9685_servo  METHOD    $0001A
+  RECORD                isp_i2c_singleton  METHOD    $0000D
+  RELOADSLEWRAMPTABLE   isp_i2c_pca9685_servo  METHOD    $00020
+  REPORT                isp_i2c_singleton  METHOD    $0000E
+  RESTOREDEBUG          isp_i2c_pca9685_servo  METHOD    $0000B
+  REVSTR                jm_nstrings      METHOD    $00005
+  RNGMAXIMUM            isp_i2c_pca9685_servo  VAR       $0246C
+  RNGMINIMUM            isp_i2c_pca9685_servo  VAR       $02468
+  RX                    isp_serial_singleton  METHOD    $00008
+  RXCHECK               isp_serial_singleton  METHOD    $00006
+  RXFLUSH               isp_serial_singleton  METHOD    $00005
+  RXP                   isp_serial_singleton  DAT       $01CC8
+  RXTIME                isp_serial_singleton  METHOD    $00007
+  SAVEDEBUG             isp_i2c_pca9685_servo  METHOD    $0000A
+  SCLPIN                isp_i2c_singleton  DAT       $01774
+  SDAPIN                isp_i2c_singleton  DAT       $01778
+  SERVOTYPE             isp_i2c_pca9685_servo  VAR       $02454
+  SETALLCHANNELS        isp_i2c_pca9685  METHOD    $00017
+  SETALLSERVOS          isp_i2c_pca9685  METHOD    $0000C
+  SETPWMFREQUENCY       isp_i2c_pca9685  METHOD    $0001C
+  SETPWMFREQUENCYARM    isp_i2c_pca9685  METHOD    $0001B
+  SETSERVODEFAULTS      isp_i2c_pca9685_servo  METHOD    $00026
+  SETSLEWRATE           isp_i2c_pca9685_servo  METHOD    $00010
+  SETSLEWSTEPS          isp_i2c_pca9685_servo  METHOD    $00011
+  SETUP                 isp_i2c_singleton  METHOD    $00004
+  SETUPPINS             isp_i2c_pca9685  METHOD    $00018
+  SHOWPOSITION          isp_i2c_pca9685_servo  METHOD    $0001C
+  SLAVEADDRESS          isp_i2c_pca9685  DAT       $00DA8
+  SLEWTOPOSITION        isp_i2c_pca9685_servo  METHOD    $00012
+  SOFTWARERESET         isp_i2c_pca9685  METHOD    $00010
+  START                 isp_serial_singleton  METHOD    $00003
+  START                 isp_i2c_singleton  METHOD    $00007
+  START                 isp_i2c_pca9685  METHOD    $00008
+  STARTX                isp_serial_singleton  METHOD    $00004
+  STCOUNT               isp_i2c_pca9685_servo  VAR       $024BE
+  STCURRCT              isp_i2c_pca9685_servo  VAR       $024C8
+  STCURRIDX             isp_i2c_pca9685_servo  VAR       $024C7
+  STDELAY               isp_i2c_pca9685_servo  VAR       $024A6
+  STDUMMY               isp_i2c_pca9685_servo  VAR       $024A2
+  STENTRYCT             isp_i2c_pca9685_servo  VAR       $024C6
+  STNEXTEXPIRE          isp_i2c_pca9685_servo  VAR       $0249E
+  STOP                  isp_i2c_singleton  METHOD    $0000C
+  STOP                  isp_i2c_pca9685  METHOD    $0000B
+  STOP                  isp_i2c_pca9685_servo  METHOD    $00008
+  STR                   isp_serial_singleton  METHOD    $0000C
+  STRCPY                isp_i2c_pca9685_servo  METHOD    $0001F
+  STUSEC                isp_i2c_pca9685_servo  VAR       $024B6
+  SUBSTR                isp_serial_singleton  METHOD    $0000D
+  TARGETDEGR            isp_i2c_pca9685_servo  VAR       $0247C
+  TARGETUSEC            isp_i2c_pca9685_servo  VAR       $02478
+  TX                    isp_serial_singleton  METHOD    $00009
+  TXFLUSH               isp_serial_singleton  METHOD    $0000B
+  TXN                   isp_serial_singleton  METHOD    $0000A
+  TXP                   isp_serial_singleton  DAT       $01CCC
+  US001                 isp_i2c_pca9685_servo  VAR       $0249A
+  US2ANGLE              isp_i2c_pca9685_servo  METHOD    $00028
+  US2RANGE              isp_i2c_pca9685_servo  METHOD    $00029
+  USECCENTER            isp_i2c_pca9685_servo  VAR       $0245C
+  USECMAXIMUM           isp_i2c_pca9685_servo  VAR       $02460
+  USECMINIMUM           isp_i2c_pca9685_servo  VAR       $02458
+  USECSLEWRATE          isp_i2c_pca9685_servo  VAR       $02464
+  USMSG                 isp_i2c_pca9685_servo  DAT       $000B4
+  WAIT                  isp_i2c_singleton  METHOD    $00006
+  WR_BLOCK              isp_i2c_singleton  METHOD    $00009
+  WR_BYTE'0006          isp_i2c_singleton  INLINE    +$001  ($01738)
+  WR_BYTE'0006          isp_i2c_singleton  INLINE    +$003  ($01740)
+  WRITE                 isp_i2c_singleton  METHOD    $00008
+  WRITE9685BYTE         isp_i2c_pca9685  METHOD    $00011
+  WRITE9685OFFONWORDS   isp_i2c_pca9685  METHOD    $0000F
+  WRITE9685WORD         isp_i2c_pca9685  METHOD    $00012
+  WRITEPOSITION         isp_i2c_pca9685_servo  METHOD    $00019
+
+  Symbols: 195
+

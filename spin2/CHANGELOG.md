@@ -28,6 +28,8 @@ Spin2 document formatter with tab/space conversion and status bar indicator
 ### New Features
 
 - Add Spin2 document formatter with section-aware column alignment for CON, VAR, OBJ, and DAT blocks, method body indentation normalization, PASM instruction alignment, keyword case normalization, and trailing comment alignment
+- Add formatter format-on-save support via `spinExtension.formatter.formatOnSave` -- sends format requests directly through the language client, bypassing VSCode's `editor.formatOnSave` dispatch to avoid conflicts with Prettier and other formatters
+- Add `configurationDefaults` claiming `editor.defaultFormatter` for `[spin2]`, `[spin]`, and `[p2asm]` languages -- prevents other formatters from interfering with Spin2 files
 - Add bidirectional tab/space conversion -- the formatter enforces the user's whitespace preference: converts tabs to spaces or spaces to tabs based on the `tabsToSpaces` setting
 - Add "Spin2 Spaces: N" / "Spin2 Tabs: N" status bar indicator showing active tab/indent settings -- click to switch between spaces and tabs, change indent size, or change tab width
 - Add VSCode built-in `editor.tabSize` and `editor.insertSpaces` as fallback defaults when extension formatter settings are not explicitly configured
@@ -36,6 +38,8 @@ Spin2 document formatter with tab/space conversion and status bar indicator
 
 ### Fixes
 
+- Improve language server responsiveness on large files -- add 350ms debounce to document change handler so the expensive parse/diagnostics/dependency chain waits until typing pauses instead of running on every keystroke
+- Fix elastic tabstops Tab/Shift+Tab keybindings silently stopping -- the `runtime.spin2.elasticTabstops.enabled` context variable is now re-asserted on every configuration change event, recovering from extension host restarts or transient state loss
 - Fix case match values (e.g., `ORIENTATION_0:`) not being colorized when the case body contains a `debug()` call -- the debug-line suppression was applied to the entire line instead of only to names inside the `debug()` call
 - Fix compile/download tasks failing when VSCode is opened at a project root but `.spin2` source files are in a subfolder -- build tasks now run in the source file's directory instead of the workspace root
 

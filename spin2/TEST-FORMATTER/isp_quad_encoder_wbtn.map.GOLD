@@ -1,0 +1,80 @@
+================================================================================
+PNut-TS Memory Map: isp_quad_encoder_wbtn.spin2
+Spin2_v41
+Generated: 2026-03-19T22:48:14.581Z
+================================================================================
+
+=== PROGRAM SUMMARY ===
+
+  Total Size:    536 bytes (252 code/data + 284 var bytes)
+  Objects:       1
+  Methods:       4
+
+=== OBJECT HIERARCHY ===
+
+  isp_quad_encoder_wbtn  (4 methods)
+
+=== MEMORY LAYOUT ===
+
+  Start   End      Size  Object           Instance         Overrides
+  ------  ------  -----  ---------------  ---------------  ---------
+  $00000  $000F8    249  isp_quad_encoder_wbtn  (entry)          
+
+    CODE/DATA TOTAL:     252 bytes
+
+  $000FC  $00217    284  VAR SPACE        (runtime)      
+
+    PROGRAM TOTAL:       536 bytes
+
+=== OBJECT DETAILS ===
+
+--- isp_quad_encoder_wbtn ---
+    Location: $00000-$000F8 (249 bytes)
+    VAR Base: $000FC
+    Source:   isp_quad_encoder_wbtn.spin2
+
+    Methods:
+      NULL                  Entry $00000  ($00000)
+      START                 Entry $00001  ($00001)
+      TASKCONTINUOUSENCODER  Entry $00002  ($00002)
+      GETNEXTENCVALUENOT    Entry $00003  ($00003)
+
+    VAR:
+      LONG      POSITION              +$0004  ($00100)
+      LONG      ENCBITS               +$0008  ($00104)
+      LONG      ENCSTACK              +$000C  ($00108)
+      LONG      PINENC0               +$010C  ($00208)
+      LONG      PINENC1               +$0110  ($0020C)
+      LONG      PINENCBTN             +$0114  ($00210)
+      LONG      SAMPLECT              +$0118  ($00214)
+
+=== ADDRESS INDEX ===
+
+  Address  Type      Object           Name
+  -------  --------  ---------------  ---------------
+   $00000  CODE      isp_quad_encoder_wbtn  (entry)
+   $00000  METHOD    isp_quad_encoder_wbtn  NULL
+   $00001  METHOD    isp_quad_encoder_wbtn  START
+   $00002  METHOD    isp_quad_encoder_wbtn  TASKCONTINUOUSENCODER
+   $00003  METHOD    isp_quad_encoder_wbtn  GETNEXTENCVALUENOT
+
+  Entries: 5
+
+=== SYMBOL INDEX ===
+
+  Symbol                Object           Type      Location
+  --------------------  ---------------  --------  ----------
+  ENCBITS               isp_quad_encoder_wbtn  VAR       $00104
+  ENCSTACK              isp_quad_encoder_wbtn  VAR       $00108
+  GETNEXTENCVALUENOT    isp_quad_encoder_wbtn  METHOD    $00003
+  NULL                  isp_quad_encoder_wbtn  METHOD    $00000
+  PINENC0               isp_quad_encoder_wbtn  VAR       $00208
+  PINENC1               isp_quad_encoder_wbtn  VAR       $0020C
+  PINENCBTN             isp_quad_encoder_wbtn  VAR       $00210
+  POSITION              isp_quad_encoder_wbtn  VAR       $00100
+  SAMPLECT              isp_quad_encoder_wbtn  VAR       $00214
+  START                 isp_quad_encoder_wbtn  METHOD    $00001
+  TASKCONTINUOUSENCODER  isp_quad_encoder_wbtn  METHOD    $00002
+
+  Symbols: 11
+

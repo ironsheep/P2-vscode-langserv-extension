@@ -221,22 +221,33 @@ function parsePasmLine(line: string, lineIdx: number): PasmLine | null {
   const [codePart, comment] = splitTrailingComment(line);
   if (codePart.trim().length === 0 && comment.length === 0) return null;
 
-  let remaining = codePart;
+  let remaining = codePart.trimStart();
   let label = '';
   let condition = '';
   let mnemonic = '';
   let operands = '';
   let effects = '';
 
-  // Extract label: non-whitespace at column 0, or local label (.name) at column 0
-  if (remaining.length > 0 && remaining[0] !== ' ' && remaining[0] !== '\t') {
-    const match = remaining.match(/^(\S+)\s*/);
-    if (match) {
-      label = match[1];
-      remaining = remaining.substring(match[0].length);
+  // Check if the first token is a PASM keyword (condition, mnemonic, or data type).
+  // If not, it is a label.
+  if (remaining.length > 0 && !CONDITION_RE.test(remaining) && !DATA_TYPE_RE.test(remaining)) {
+    // First token might be a label — but only if it's not a known mnemonic.
+    // Since we can't enumerate all mnemonics, use heuristic: if the first token
+    // starts a line that had leading whitespace in the original, and the token
+    // doesn't look like an identifier followed by a mnemonic/condition, treat it
+    // as a label when the original line had it at column 0 or it's followed by
+    // a recognizable PASM pattern.
+    const firstTokenMatch = remaining.match(/^(\S+)\s*/);
+    if (firstTokenMatch) {
+      const afterFirst = remaining.substring(firstTokenMatch[0].length);
+      // It's a label if what follows is a condition, type keyword, or known pattern
+      // OR if the original line started at column 0 (traditional label position)
+      const originalAtCol0 = codePart.length > 0 && codePart[0] !== ' ' && codePart[0] !== '\t';
+      if (originalAtCol0 || CONDITION_RE.test(afterFirst) || DATA_TYPE_RE.test(afterFirst) || afterFirst.trim().length === 0) {
+        label = firstTokenMatch[1];
+        remaining = remaining.substring(firstTokenMatch[0].length);
+      }
     }
-  } else {
-    remaining = remaining.trimStart();
   }
 
   // Extract condition prefix (if_*, _ret_)
@@ -298,6 +309,11 @@ function formatDatDataLines(
 
   if (dataLines.length === 0) return;
 
+  // Data-only DAT sections indent labels to the first tabstop (like CON/VAR/OBJ).
+  // DAT sections containing PASM (ORG regions) keep labels at column 0.
+  const dataOnly = orgRegions.length === 0;
+  const labelIndent = dataOnly ? (tabStops.length > 0 ? tabStops[0] : 8) : 0;
+
   // Two-pass alignment for DAT data lines
   let maxLabelWidth = 0;
   let maxTypeWidth = 0;
@@ -307,8 +323,9 @@ function formatDatDataLines(
     if (d.type.length > maxTypeWidth) maxTypeWidth = d.type.length;
   }
 
-  // Labels at column 0
-  const typeCol = maxLabelWidth > 0 ? snapToNextTabstop(maxLabelWidth, tabStops) : (tabStops.length > 1 ? tabStops[1] : 14);
+  const typeCol = maxLabelWidth > 0
+    ? snapToNextTabstop(labelIndent + maxLabelWidth, tabStops)
+    : (tabStops.length > 1 ? tabStops[1] : 14);
   const valueCol = snapToNextTabstop(typeCol + maxTypeWidth, tabStops);
 
   const contentEndCols: number[] = [];
@@ -320,7 +337,7 @@ function formatDatDataLines(
   const commentCol = computeBlockCommentColumn(contentEndCols, tabStops);
 
   for (const d of dataLines) {
-    let formatted = d.label;
+    let formatted = ' '.repeat(labelIndent) + d.label;
     formatted = padToColumn(formatted, typeCol) + d.type;
     if (d.value.length > 0) {
       formatted = padToColumn(formatted, valueCol) + d.value;
@@ -334,24 +351,27 @@ function formatDatDataLines(
 
 function parseDatDataLine(line: string, lineIdx: number): DatDataLine | null {
   const [codePart, comment] = splitTrailingComment(line);
-  let remaining = codePart;
+  let remaining = codePart.trimStart();
   let label = '';
 
-  // Extract label at column 0
-  if (remaining.length > 0 && remaining[0] !== ' ' && remaining[0] !== '\t') {
-    const match = remaining.match(/^(\S+)\s*/);
-    if (match) {
-      label = match[1];
-      remaining = remaining.substring(match[0].length);
+  if (remaining.length === 0) {
+    return null;
+  }
+
+  // Check if the first token is a type keyword (no-label case, e.g. "  word  @addr")
+  if (!DATA_TYPE_RE.test(remaining)) {
+    // First token is a label — extract it
+    const labelMatch = remaining.match(/^(\S+)\s*/);
+    if (labelMatch) {
+      label = labelMatch[1];
+      remaining = remaining.substring(labelMatch[0].length);
     }
-  } else {
-    remaining = remaining.trimStart();
   }
 
   // Extract type keyword
   const typeMatch = remaining.match(DATA_TYPE_RE);
   if (!typeMatch) {
-    // Not a data declaration line — might be something else
+    // Not a data declaration line — label-only or unrecognized
     return null;
   }
   const type = typeMatch[1].toLowerCase();

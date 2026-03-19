@@ -1,0 +1,59 @@
+================================================================================
+PNut-TS Memory Map: isp_dummy_flash.spin2
+Spin2_v41
+Generated: 2026-03-19T22:48:10.422Z
+================================================================================
+
+=== PROGRAM SUMMARY ===
+
+  Total Size:    24 bytes (16 code/data + 8 var bytes)
+  Objects:       1
+  Methods:       1
+
+=== OBJECT HIERARCHY ===
+
+  isp_dummy_flash  (1 methods)
+
+=== MEMORY LAYOUT ===
+
+  Start   End      Size  Object           Instance         Overrides
+  ------  ------  -----  ---------------  ---------------  ---------
+  $00000  $0000E     15  isp_dummy_flash  (entry)          
+
+    CODE/DATA TOTAL:      16 bytes
+
+  $00010  $00017      8  VAR SPACE        (runtime)      
+
+    PROGRAM TOTAL:        24 bytes
+
+=== OBJECT DETAILS ===
+
+--- isp_dummy_flash ---
+    Location: $00000-$0000E (15 bytes)
+    VAR Base: $00010
+    Source:   isp_dummy_flash.spin2
+
+    Methods:
+      MAIN                  Entry $00000  ($00000)
+
+    VAR:
+      LONG      REMOTECOG             +$0004  ($00014)
+
+=== ADDRESS INDEX ===
+
+  Address  Type      Object           Name
+  -------  --------  ---------------  ---------------
+   $00000  CODE      isp_dummy_flash  (entry)
+   $00000  METHOD    isp_dummy_flash  MAIN
+
+  Entries: 2
+
+=== SYMBOL INDEX ===
+
+  Symbol                Object           Type      Location
+  --------------------  ---------------  --------  ----------
+  MAIN                  isp_dummy_flash  METHOD    $00000
+  REMOTECOG             isp_dummy_flash  VAR       $00014
+
+  Symbols: 2
+

@@ -1,0 +1,30 @@
+TYPE: CON_INT           VALUE: 1017DF80          NAME: CLK_FREQ
+TYPE: CON_INT           VALUE: 1017DF80          NAME: _CLKFREQ
+TYPE: CON_INT           VALUE: 0000003F          NAME: RX1
+TYPE: CON_INT           VALUE: 0000003E          NAME: TX1
+TYPE: CON_INT           VALUE: 0000003D          NAME: SF_CS
+TYPE: CON_INT           VALUE: 0000003C          NAME: SF_SCK
+TYPE: CON_INT           VALUE: 0000003B          NAME: SF_SDO
+TYPE: CON_INT           VALUE: 0000003A          NAME: SF_SDI
+TYPE: CON_INT           VALUE: 01041AFB          NAME: CLKMODE_
+TYPE: CON_INT           VALUE: 1017DF80          NAME: CLKFREQ_
+TYPE: VAR_LONG          VALUE: 00000004          NAME: REMOTECOG
+TYPE: METHOD            VALUE: 00000000          NAME: MAIN
+
+Spin2_v41
+
+CLKMODE:   $01041AFB
+CLKFREQ: 270_000_000
+XINFREQ:  20_000_000
+
+
+OBJ bytes:          16
+VAR bytes:           8
+
+00000- 08 00 00 80 0F 00 00 00 00 41 00 01 12 7F 04 00   '.........A......'
+
+
+DEBUG data
+
+00000- 1A 00 04 00 04 06 2A 20 48 69 21 20 66 72 6F 6D   '......* Hi! from'
+00010- 20 46 4C 41 53 48 20 2A 00 00                     ' FLASH *..'

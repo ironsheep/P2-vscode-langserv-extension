@@ -1,0 +1,29 @@
+' regr-casefast-org-indent.spin2
+' Regression: CASE_FAST followed by inline PASM must keep ORG/END at the
+' enclosing code level, not at the case match level.  Same issue as with
+' CASE — the ORG keyword must participate in indent normalization.
+
+CON
+
+  _clkfreq  = 10_000_000
+  MODE_A    = 0
+  MODE_B    = 1
+
+VAR
+
+  LONG  mode_val
+
+PUB main() | mode, pin
+
+  mode := MODE_A
+  pin := 0
+
+  case_fast mode
+    MODE_A : mode_val := $1000
+    MODE_B : mode_val := $2000
+    other  : mode_val := $3000
+
+  org
+                drvl      pin
+                waitx     #0
+  end

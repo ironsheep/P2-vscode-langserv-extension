@@ -1,0 +1,272 @@
+'' =================================================================================================
+''
+''   File....... isp_quadEncWBtn_sp.spin2
+''   Purpose.... provide access to rotary values and button press (using Smart Pins)
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2023 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... May 2023
+''   Updated.... 2 Jun 2023
+''
+'' =================================================================================================
+''
+
+CON { app constants }
+
+    ENC_STACK_SIZE_LONGS = 64
+
+    NOT_SET = -1
+
+    DEFAULT_ENC_SCALE = 4
+
+    DEBOUNCE_IN_MS = 125
+
+    REPORT_INTERVAL_IN_MS = 1200
+
+VAR ' driver variables
+
+    LONG    quadEncCog
+
+    LONG    encPosition
+    LONG    encPriorPosition
+    LONG    encSampleCt
+    LONG    encScale
+
+    ' values from TASK for BUTTON press
+    LONG    taskPressCount
+    LONG    taskPressSampleNbr
+    LONG    priorPressSampleNbr
+
+    LONG    encRate
+    LONG    encPriorRate
+    LONG    encRateSampleCt
+
+    LONG    encBits
+    LONG    encStack[ENC_STACK_SIZE_LONGS]
+
+    LONG    pinEnc0
+    LONG    pinEnc1
+    LONG    pinRateEnc0     ' pinEnc0 - 2
+    LONG    pinRateEnc1     ' pinEnc1 - 2
+    LONG    pinEncBtn
+
+pub null()
+
+'' This is not a top-level object
+
+PUB start(pnEnc0, pnEnc1, pnBtn) | lowPin, highPin
+'' Start our position and rate tracking task
+    lowPin := pnEnc0 < pnEnc1 ? pnEnc0 : pnEnc1
+    highPin := pnEnc0 < pnEnc1 ? pnEnc1 : pnEnc0
+    if lowPin + 1 <> highPin
+        debug("enc: pins must be adjacent! (", udec_(lowPin), ") and (", udec_(highPin), ") are not!  Aborting")
+        Abort
+
+    encScale := DEFAULT_ENC_SCALE
+    priorPressSampleNbr := 0
+    pinEnc0 := lowPin
+    pinEnc1 := highPin
+    pinEncBtn := pnBtn
+    pinRateEnc0 := pinEnc0 - 2     ' pins for rate determination
+    pinRateEnc1 := pinEnc1 - 2
+
+    debug("enc: pins [", udec_(pinEnc0), ", ", udec_(pinEnc1), "], btn pin [", udec_(pinEncBtn), "]")
+
+    quadEncCog := cogspin(NewCog, TaskContinuousEncoderSmartPin(), @encStack) + 1
+    if not quadEncCog
+        debug("enc: ERROR: Failed to start Quad Encoder Task!  Aborting")
+        abort
+
+PUB stop()
+'' if our task is running stop it
+    if quadEncCog
+        cogstop(quadEncCog - 1)
+        quadEncCog := 0
+    ' disable our smart pins
+    pinclear(pinEnc0)                                   ' clear any prior modes
+    pinclear(pinEnc1)
+    pinclear(pinRateEnc0)                                   ' clear any prior modes
+    pinclear(pinRateEnc1)
+    pinf(pinEnc0)
+    pinf(pinEnc1)
+    pinf(pinRateEnc0)
+    pinf(pinRateEnc1)
+    pinclear(pinEncBtn)
+    pinf(pinEncBtn)
+
+PUB setScale(scaleValue)
+'' Set encoder distance scaling to {scaleValue} [Default: 4]
+    encScale := scaleValue
+
+PUB getScale() : scaleValue
+'' Return encoder distance {scaleValue}
+    scaleValue := encScale
+
+PUB isButtonPressed() : bIsPressed, bIsDouble | tmpPressSampleNbr, tmpPressCt
+'' Return {bIsPressed} - T/F where T means button was pressed
+''   and {bIsDouble} - T/F where T means the press was a double press
+    tmpPressSampleNbr := taskPressSampleNbr
+    tmpPressCt := taskPressCount
+    if priorPressSampleNbr <>  tmpPressSampleNbr
+        bIsPressed := (tmpPressCt > 0) ? TRUE : FALSE
+        bIsDouble := (tmpPressCt > 1) ? TRUE : FALSE
+        priorPressSampleNbr := tmpPressSampleNbr
+    else
+        bIsPressed := FALSE
+
+PUB position() : currPosn
+'' Return current quadEncoder position N where N=[-n < 0 < n]
+    currPosn := encPosition
+
+DAT ' driver class data
+    priorPosition   LONG    0
+
+PUB positionScaled() : currScaledPosn | currPosn, currRate, deltaPosition
+'' Return scaled value for current quadEncoder position N where N=[-n < 0 < n]
+    currPosn, currRate := positionRate()
+    if currPosn <> priorPosition
+        deltaPosition := currPosn - priorPosition
+        priorPosition := currPosn
+        if deltaPosition <> 0
+            if currRate <= 2
+                currScaledPosn := deltaPosition
+            else
+                currScaledPosn := deltaPosition * currRate * encScale
+            'debug("ROT: Rotary Encoder at ", sdec_(currPosn), ", delta=", sdec_(deltaPosition), ", rate=", sdec_(currRate), ", scaled=", sdec_(currScaledPosn))
+
+PUB rate() : currRate
+'' Return current quadEncoder rate of rotation N where N=[0-n]
+    currRate := encRate
+
+PUB positionRate() : currPosn, currRate
+'' Return {currPosn} the current quadEncoder position N where N=[-n < 0 < n]
+''  and {currRate} the current quadEncoder rate of rotation N where N=[0-n]
+    currPosn := encPosition
+    currRate := encRate
+
+VAR ' TASK instance variables
+
+    LONG    btnValue
+    LONG    btnSample
+    LONG    btnPriorSample
+    LONG    btnChanged
+    LONG    btnEdgeCount
+    LONG    timeNowMS
+    LONG    timePriorEdgeMS
+    LONG    timeSinceEdgeMS
+    LONG    timePriorPressMS
+    LONG    timeSincePressMS
+    LONG    btnPressCount
+
+PRI TaskContinuousEncoderSmartPin() | sampleRate, bDataRdy, tmpEncPosition, tmpEncRate, lastReportTimeMS, fallingEdgeCt
+' read quad encoder signals attached to smart pins, update postion based on change
+    debug("TASK: quad enc running")
+    pinclear(pinEnc0)                                   ' clear any prior modes
+    pinclear(pinEnc1)
+    pinclear(pinRateEnc0)                               ' clear any prior modes
+    pinclear(pinRateEnc1)
+    wrpin(pinEnc0, P_PLUS1_B | P_QUADRATURE)            ' Set Quad-Encoder mode, 2 pins
+    wrpin(pinRateEnc0, P_PLUS2_A | P_PLUS3_B | P_QUADRATURE)  ' Set Quad-Encoder mode, 2 pins - 2 smart pins below quad pins
+    'sampleRate := clkfreq/ 2
+    wxpin(pinEnc0, 0)                                   ' Set Quad-Encoder sample: continuous
+    sampleRate := clkfreq / 4                           ' sample rate = 1/4 sec
+    wxpin(pinRateEnc0, sampleRate)                      ' Set Quad-Encoder sample: 4 Hz
+    pinlow(pinEnc0)                                     ' enable decoders
+    pinlow(pinRateEnc0)
+
+    pinclear(pinEncBtn)                                 ' clear pin of smart mode
+    pinfloat(pinEncBtn)                                 ' reset
+    wrpin(pinEncBtn, P_HIGH_1K5)                        ' configure pull-up
+    pinfloat(pinEncBtn)                                 ' activate the pull up
+
+    encPosition := 0
+    encPriorPosition := -1
+    encSampleCt := -1
+    btnPriorSample := 1
+    lastReportTimeMS := getms()
+    timeSinceEdgeMS := DEBOUNCE_IN_MS + 1
+    fallingEdgeCt := 0
+    btnPressCount := 0
+    btnEdgeCount := 0
+    repeat
+        ' check rotary - count
+        tmpEncPosition := rdpin(pinEnc0) >> 2 signx 29 ' div by 4
+        if encPriorPosition <> tmpEncPosition
+            encSampleCt++
+            encPriorPosition := encPosition := tmpEncPosition
+            'debug("TASK: enc #", udec_(encSampleCt), ", ", sdec(encPosition))
+
+        ' check rotary - rate
+        bDataRdy := pinr(pinRateEnc0)
+        if bDataRdy
+            tmpEncRate := rdpin(pinRateEnc0) >> 2 signx 29 ' div by 4
+            if encPriorRate <> tmpEncRate
+                encRateSampleCt++
+                encPriorRate := tmpEncRate
+                encRate := abs tmpEncRate
+                'debug("TASK: encRate #", udec_(encRateSampleCt), ", ", sdec(encRate))
+
+        ' check button
+        timeNowMS := getms()
+        btnSample := ina.[pinEncBtn]
+        ' iff have EDGE
+        if btnPriorSample <> btnSample
+            timeSinceEdgeMS := timeNowMS - timePriorEdgeMS
+            ' DEBOUNCE (edges only outside of debounce window)
+            'debug("TASK: btn ??? Edge [", udec_(btnPriorSample), " -> ", udec_(btnSample), "] tm=", udec_(timeSinceEdgeMS), "ms")
+            if timeSinceEdgeMS > DEBOUNCE_IN_MS
+                timePriorEdgeMS := timeNowMS
+                btnEdgeCount++  ' only count debounced edges
+                ' iff have falling edge (PRESS)
+                if btnSample == 0
+                    timeSincePressMS := timeNowMS - timePriorPressMS
+                    timePriorPressMS := timeNowMS
+                    btnPressCount++
+                '    debug("TASK: btn PRS Edge [", udec_(btnPriorSample), " -> ", udec_(btnSample), "] tm=", udec_(timeSinceEdgeMS), "ms, pressTm=", udec_(timeSincePressMS), "ms")
+                'else
+                    ' have rising edge (RELEASE)
+                '    debug("TASK: btn RLS Edge [", udec_(btnPriorSample), " -> ", udec_(btnSample), "] tm=", udec_(timeSinceEdgeMS), "ms")
+                btnPriorSample := btnSample
+        ' iff time to report...
+        if timeNowMS > lastReportTimeMS + REPORT_INTERVAL_IN_MS
+            if btnPressCount <> 0
+                taskPressCount := btnPressCount
+                taskPressSampleNbr := btnEdgeCount
+                'if taskPressCount > 0
+                '    debug("TASK: btn PRESS Ct ", udec_(btnPressCount), ", #", udec_(taskPressSampleNbr))
+                btnPressCount := 0
+            else
+                taskPressCount := 0
+                taskPressSampleNbr := 0
+            lastReportTimeMS := timeNowMS
+
+CON { license }
+
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2023 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+
+}}

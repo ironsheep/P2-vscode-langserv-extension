@@ -1,0 +1,28 @@
+' regr-case-org-indent.spin2
+' Regression: ORG/END boundary lines must participate in indent normalization.
+' When case block is followed by inline PASM, the ORG keyword must stay at the
+' enclosing code level, not at the case match level (which confuses the compiler).
+
+CON
+
+  _clkfreq  = 10_000_000
+  PU_NONE   = 0
+  PU_1K5    = 1
+
+VAR
+
+  LONG  pullup_mode
+
+PUB main() | pullup, scl
+
+  pullup := PU_NONE
+  scl := 0
+
+  case pullup
+    PU_NONE : pullup_mode := $4000
+    PU_1K5  : pullup_mode := $6000
+    other   : pullup_mode := $8000
+
+  org
+                mov       scl, #0
+  end

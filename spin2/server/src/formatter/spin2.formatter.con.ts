@@ -96,12 +96,12 @@ export function formatConBlock(
     }
   }
 
-  // Determine the = column: snap name end to first available tabstop
+  // Determine the = column: fixed gap after longest name (no tabstop snapping)
   const indentWidth = tabStops.length > 0 ? tabStops[0] : 2;
-  const equalsCol = snapToNextTabstop(indentWidth + maxNameWidth, tabStops);
+  const equalsCol = indentWidth + maxNameWidth + 2;
 
-  // Determine value column: snap = end (equalsCol + 1) to next tabstop
-  const valueCol = snapToNextTabstop(equalsCol + 1, tabStops);
+  // Value follows immediately after "= " (one space)
+  const valueCol = equalsCol + 2;
 
   // Pass 1b: measure max content end for comment alignment
   const contentEndCols: number[] = [];

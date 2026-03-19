@@ -1,0 +1,24 @@
+' regr-string-keyword-case.spin2
+' Regression: keyword case normalization must not modify text inside strings.
+' string("BYTE"), string("NOT found"), and @"WORD" must be preserved exactly.
+
+CON
+
+  _clkfreq = 10_000_000
+
+PUB main() | result
+
+  result := 0
+  if result == 0
+    showMsg(@"NOT ready")
+  showType(string("BYTE value"))
+  showSize(string("WORD[0] is first"))
+
+PRI showMsg(pStr)
+  BYTE [pStr] := 0
+
+PRI showType(pStr)
+  BYTE [pStr] := 0
+
+PRI showSize(pStr)
+  BYTE [pStr] := 0

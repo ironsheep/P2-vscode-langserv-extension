@@ -123,7 +123,28 @@ export function normalizeKeywordCase(
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     const normalized = normalizeWordsInCode(codePart, SPIN2_KEYWORDS, keywordCase);
-    lines[i] = commentPart.length > 0 ? normalized + commentPart : normalized;
+    if (commentPart.length > 0) {
+      // Preserve the original spacing between code and comment.
+      // splitTrailingComment trims trailing spaces from codePart, so we
+      // recover the gap from the original line.
+      const originalGapStart = codePart.length;
+      const commentIdx = lines[i].indexOf(commentPart, originalGapStart);
+      const originalGap = commentIdx > originalGapStart ? lines[i].substring(originalGapStart, commentIdx) : '  ';
+      // If case normalization changed the code length, adjust the gap to
+      // keep the comment at the same column it was before.
+      const lengthDelta = normalized.trimEnd().length - codePart.length;
+      let gap: string;
+      if (lengthDelta === 0) {
+        gap = originalGap;
+      } else {
+        // Shrink or grow the gap, but guarantee at least 2 spaces
+        const newGapLen = Math.max(2, originalGap.length - lengthDelta);
+        gap = ' '.repeat(newGapLen);
+      }
+      lines[i] = normalized.trimEnd() + gap + commentPart;
+    } else {
+      lines[i] = normalized;
+    }
   }
 }
 
@@ -146,27 +167,54 @@ export function normalizePasmCase(
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     const normalized = normalizeWordsInCode(codePart, PASM_INSTRUCTIONS, pasmCase);
-    lines[i] = commentPart.length > 0 ? normalized + commentPart : normalized;
+    if (commentPart.length > 0) {
+      const originalGapStart = codePart.length;
+      const commentIdx = lines[i].indexOf(commentPart, originalGapStart);
+      const originalGap = commentIdx > originalGapStart ? lines[i].substring(originalGapStart, commentIdx) : '  ';
+      const lengthDelta = normalized.trimEnd().length - codePart.length;
+      const newGapLen = Math.max(2, originalGap.length - lengthDelta);
+      lines[i] = normalized.trimEnd() + ' '.repeat(newGapLen) + commentPart;
+    } else {
+      lines[i] = normalized;
+    }
   }
 }
 
 function normalizeWordsInCode(code: string, wordSet: Set<string>, targetCase: string): string {
   // Replace words that match the set with the target case, preserving non-word characters.
   //
-  // Two types of regions are preserved (no keyword normalization):
-  //   1. Backtick expressions (debug widget syntax) — display text, not compiled code
-  //   2. debug() call arguments — the compiler handles keywords specially inside debug()
+  // Three types of regions are preserved (no keyword normalization):
+  //   1. Double-quoted strings — user text, not code keywords
+  //   2. Backtick expressions (debug widget syntax) — display text, not compiled code
+  //   3. debug() call arguments — the compiler handles keywords specially inside debug()
   //      and case changes to type keywords (LONG/BYTE/WORD) can produce different binaries
   //
   // Strategy: split the code into normalizable and preserved segments, then rejoin.
   const segments: { text: string; preserve: boolean }[] = [];
   let inDebugCall = false;
   let inBacktick = false;
+  let inString = false;
   let parenDepth = 0;
   let segStart = 0;
 
   for (let i = 0; i < code.length; i++) {
     const ch = code[i];
+
+    // Track double-quoted strings — preserve their content
+    if (inString) {
+      if (ch === '"') {
+        segments.push({ text: code.substring(segStart, i + 1), preserve: true });
+        segStart = i + 1;
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"' && !inBacktick) {
+      segments.push({ text: code.substring(segStart, i), preserve: false });
+      segStart = i;
+      inString = true;
+      continue;
+    }
 
     if (inBacktick) {
       // Inside backtick expression: track parens to find enclosing close-paren
@@ -264,10 +312,17 @@ export function normalizeCommentSpacing(
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     if (commentPart.length === 0) continue;
 
-    // Ensure space after ' or ''
-    const normalized = commentPart.replace(/^('{1,2})(\S)/, '$1 $2');
+    // Ensure space after ' or '' — the [^'\s] prevents the regex from
+    // backtracking and splitting '' into ' ' (inserting a space between quotes)
+    const normalized = commentPart.replace(/^('{1,2})([^'\s])/, '$1 $2');
     if (normalized !== commentPart) {
-      lines[i] = codePart.length > 0 ? codePart + '  ' + normalized : normalized;
+      if (codePart.length > 0) {
+        lines[i] = codePart + '  ' + normalized;
+      } else {
+        // Full-line comment — preserve leading whitespace
+        const leadingWs = lines[i].match(/^(\s*)/)?.[1] || '';
+        lines[i] = leadingWs + normalized;
+      }
     }
   }
 }

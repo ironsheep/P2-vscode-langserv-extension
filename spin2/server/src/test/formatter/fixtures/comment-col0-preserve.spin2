@@ -30,8 +30,7 @@ VAR
 
 PUB main() | i
 
-' This column-0 comment inside a method should not be indented
-
+  ' This single-quote comment inside a method aligns to next code line
   counter := 0
   repeat i from 0 to MAX
     counter := i

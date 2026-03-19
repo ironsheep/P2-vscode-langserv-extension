@@ -1,0 +1,20 @@
+' regr-pasm-case-strings.spin2
+' Regression: PASM case normalization must not modify text inside strings.
+' DAT sections may contain BYTE "text" with words that match PASM mnemonics
+' (e.g., "ADD", "MOV", "NOT").  These must be preserved literally.
+
+CON
+
+  _clkfreq = 10_000_000
+
+PUB main() | p
+
+  p := @msgAdd
+  BYTE [p] := 0
+
+DAT
+
+msgAdd        byte    "ADD values here",0
+msgMov        byte    "MOV data now",0
+msgNot        byte    "NOT ready yet",0
+testVal       long    0

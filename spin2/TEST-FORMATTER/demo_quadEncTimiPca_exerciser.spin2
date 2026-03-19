@@ -1,0 +1,263 @@
+'' =================================================================================================
+''
+''   File....... demo_quadEncTimiPca_exerciser.spin2
+''   Purpose.... Using Quad encoder for control and Timi-130 display, let's determine limits of PCA9685 attached servos
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2023 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... May 2023
+''   Updated.... 16 May 2023
+''
+'' =================================================================================================
+
+CON { timing }
+
+    CLK_FREQ = 270_000_000                                        ' system freq as a constant
+    _clkfreq = CLK_FREQ                                           ' set system clock
+
+CON { fixed io pins }
+
+    RX1      = 63  { I }                                          ' programming / debug
+    TX1      = 62  { O }
+
+    SF_CS    = 61  { O }                                          ' serial flash
+    SF_SCK   = 60  { O }
+    SF_SDO   = 59  { O }
+    SF_SDI   = 58  { I }
+
+CON { application io pins }
+
+    ' NOTE: pins 24 & 25 also use 26 & 27 to determine rate of rotation
+    QUAD_ENC_CLK = 26  { I }
+    QUAD_ENC_DAT = 27  { I }
+    QUAD_ENC_BTN = 28  { I }
+
+    SRVO_OFST_RANGE = 750       ' NOTE customize this to adjut servo range span
+    SRVO_OFST_CNTR = 1500
+    SRVO_OFST_MIN = SRVO_OFST_CNTR - SRVO_OFST_RANGE
+    SRVO_OFST_MAX = SRVO_OFST_CNTR + SRVO_OFST_RANGE
+    SRVO_PULSE_WIDTH_MS = 50    ' pulse width in milliSeconds
+    MAX_SERVOS = 6
+    ' multiply the runtime-determined spin rate of the encoder knob
+    ENC_RATE_SCALE = 4          ' 2 = 5 turns end-to-end, 4 = 3 turns end-to-end
+
+    ' TIMI-130 display pins
+    TIMI_RX = 16
+    TIMI_TX = 17
+    TIMI_RST = 18
+
+    TIMI_BAUD_RATE = 9600
+
+    TIMI_PAGEID_DIAL = 0
+    TIMI_PAGEID_METER = 1
+    TIMI_PAGEID_LEDMTX = 2
+    TIMI_PAGEID_NET_MTR = 3
+
+    ' the PCA9685 with attached servos
+    PCA9685_OE = 8
+    PCA9685_SCL = 9
+    PCA9685_SDA = 10
+
+OBJ
+
+   quadEnc      : "isp_quadEncWBtn_sp"      ' 3-pin I/F to push button rotary encoder
+   timi         : "isp_timi_mates"          ' serial I/F to display
+   memstr       : "isp_mem_strings"         ' in-ram formatter for strings
+   pcaServos    : "isp_i2c_pca9685"         ' 16-channel servo controller
+
+DAT
+
+    servoIdx     LONG    0
+    servoOffset  LONG    1500
+    stateIdx     LONG    0
+
+    msgLOW       BYTE    "LO",0
+    msgHIGH      BYTE    "HI",0
+
+    Title0       BYTE    "ServoExer",0
+    Title1       BYTE    "SRVO-1 LO",0
+    rateMsg      BYTE    "     1500",0
+
+    deltaPosition     LONG    0
+    priorPosition     LONG    0
+    desiredOffset     LONG    0
+
+    ' ------------------------------------------------------------
+    srvoId1         BYTE    0, "Eye L/R",0
+    srvoId2         BYTE    1, "Eye U/D",0
+    srvoId3         BYTE    2, "Lid TR",0
+    srvoId4         BYTE    3, "Lid BR",0
+    srvoId5         BYTE    4, "Lid TL",0
+    srvoId6         BYTE    5, "Lid BL",0
+
+    srvoIdTable    ' 1st table-entry must follow immediately
+                    WORD    @srvoId1
+                    WORD    @srvoId2
+                    WORD    @srvoId3
+                    WORD    @srvoId4
+                    WORD    @srvoId5
+                    WORD    @srvoId6
+    srvoIdTableEnd ' last entry must be immediately above this line
+    ' ------------------------------------------------------------
+    srvoIdEntCt        BYTE    (@srvoIdTableEnd-@srvoIdTable) >> 1   ' div by 2
+    ' ------------------------------------------------------------
+
+PUB main() | pageId, bDidSucceed, currPosn, currRate, tmpOffset, bIsPressed, bIsDouble, bDevicePresent, incre
+    ' start our input device
+    quadEnc.start(QUAD_ENC_CLK, QUAD_ENC_DAT, QUAD_ENC_BTN)
+    quadEnc.setScale(ENC_RATE_SCALE)
+
+    ' start our display device
+    timi.start(TIMI_TX, TIMI_RX, TIMI_RST, TIMI_BAUD_RATE)
+
+    ' start our output set of servos
+    pcaServos.init(PCA9685_SCL, PCA9685_SDA, PCA9685_OE)
+    pcaServos.enableOutput(FALSE)
+
+    '  interfae prototype
+    '  button pressess selects next servo or high/low range
+    '  knob rotates incrementing servo offset value
+    '  current effort is shown on the TIMI display
+
+    ' connect to servos
+    bDevicePresent := pcaServos.start(PCA9685_SCL, PCA9685_SDA, PCA9685_OE)
+    if bDevicePresent
+        debug("* connected to PCA9685")
+        pcaServos.configureController()
+        pcaServos.enableOutput(TRUE)
+
+        ' center our servos
+        pcaServos.setAllServos(SRVO_OFST_CNTR)
+
+        debug("* all servos PWMing.... 1500 uSec...")
+
+        'debug("* all servos PWMing.... 1500 uSec, holding")
+        'repeat
+
+    debug("  ")
+    'debug("test... ")
+
+{
+    repeat pageId from 0 to 3
+        bDidSucceed := timi.setPage(pageId, timi.MATES_RESPONSE_LTIMEOUT)
+        if not bDidSucceed
+            quit
+        waitms(2000)    ' show for 2 sec
+'}
+
+    ' select the 4x LED matrix page
+    pcaServos.gotoMicroSec(servoIdx, servoOffset)
+    bDidSucceed := timi.setPage(TIMI_PAGEID_LEDMTX, timi.MATES_RESPONSE_LTIMEOUT)
+    if bDidSucceed
+        ' set titles
+        timi.updateDotMatrixWidget(0, @Title0)
+        updateDisplay()
+        repeat
+            bIsPressed, bIsDouble :=  quadEnc.isButtonPressed()
+            if bIsPressed
+                ' debug("* Button Pressed, isDbl=", sdec_(bIsDouble))
+
+                ' select next/prior servo
+                incre := (bIsDouble) ? -1 : +1
+                servoIdx += incre
+                if servoIdx >= MAX_SERVOS
+                    servoIdx := 0
+                if servoIdx < 0
+                    servoIdx := MAX_SERVOS - 1
+
+                ' get last known position
+                servoOffset := pcaServos.getMicroSec(servoIdx)                  ' get last known position
+
+                ' write to display
+                updateStateDisplay()
+
+            deltaPosition := quadEnc.positionScaled()
+            if deltaPosition <> 0
+                tmpOffset := servoOffset + deltaPosition
+                servoOffset := SRVO_OFST_MIN #> tmpOffset <# SRVO_OFST_MAX
+                'debug("* Offset=", sdec_(servoOffset), ", delta=",  sdec_(deltaPosition))
+                'debug("   ")
+                updateOffsetDisplay()
+                pcaServos.gotoMicroSec(servoIdx, servoOffset)
+
+    debug("done... holding...")
+    repeat
+
+PRI updateDisplay()
+    updateStateDisplay()
+    updateOffsetDisplay()
+
+PRI updateStateDisplay() | pStateTitle
+    pStateTitle := genStateMsg(servoIdx)
+    timi.updateDotMatrixWidget(1, pStateTitle)
+    updateInstruDisplay()
+
+PRI updateOffsetDisplay() | pRateMsg
+    pRateMsg := rightAlignValue(servoOffset, 9)
+    timi.updateDotMatrixWidget(2, pRateMsg)
+
+PRI updateInstruDisplay() | pInstruMsg, pText
+    pText := @"750  2250"
+    pInstruMsg := rightAlignString(pText, 9)
+    timi.updateDotMatrixWidget(3, pInstruMsg)
+
+PRI genStateMsg(nServo) : pMessage | lenBytes, pStateMsg
+    pStateMsg := strForServoIdx(nServo)
+    lenBytes := memstr.sFormatStr2(@Title1, @"%d %s", nServo, pStateMsg)
+    pMessage := @Title1
+
+PRI rightAlignValue(value, width) : pMessage | lenBytes, BYTE fmtStr[20]
+    lenBytes := memstr.sFormatStr1(@fmtStr, @"\%%dd", width)
+    lenBytes := memstr.sFormatStr1(@rateMsg, @fmtStr, value)
+    pMessage := @rateMsg
+
+PRI rightAlignString(pStr, width) : pMessage | lenBytes, BYTE fmtStr[20]
+    lenBytes := memstr.sFormatStr1(@fmtStr, @"\%%ds", width)
+    lenBytes := memstr.sFormatStr1(@rateMsg, @fmtStr, pStr)
+    pMessage := @rateMsg
+
+PRI strForServoIdx(servoIndex) : pStr | nIdx, pTblEntry, pPossIdStr, nServoIdx
+' identify command requested
+    pStr := 0
+    repeat nIdx from 0 to srvoIdEntCt - 1
+        pTblEntry := @@WORD[@srvoIdTable][nIdx] ' get BYTE ptr from table
+        nServoIdx := BYTE[pTblEntry][0]  ' skip enumVal get BYTE ptr to cmd zstring
+        pPossIdStr := @BYTE[pTblEntry][1]  ' skip enumVal get BYTE ptr to cmd zstring
+        'debug("-? Tbl[", udec_(nIdx), "] ", uhex_long(pTblEntry), ", srvo=", udec_(nServoIdx), ", [", zstr_(pPossIdStr), "] ?-")
+        'debug("-? pPossIdStr(", udec_(strsize(pPossIdStr)), ")=[", zstr_(pPossIdStr), "] ?-")
+        if nServoIdx == servoIndex
+            pStr := pPossIdStr   ' do match, we have our value
+            quit
+
+    if pStr == 0
+        debug("EEE strForServoIdx: Unknown servo id(", udec_(servoIndex), ")!")
+
+
+CON { license }
+{{
+
+ -------------------------------------------------------------------------------------------------
+  MIT License
+
+  Copyright (c) 2023 Iron Sheep Productions, LLC
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+ =================================================================================================
+}}

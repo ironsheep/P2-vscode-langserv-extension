@@ -1404,17 +1404,21 @@ export function activate(context: vscode.ExtensionContext) {
       });
     }
 
-    /*   EXAMPLE
-          vscode.workspace.onDidSaveTextDocument(e => {
-          getAsmFile(e.uri.fsPath)
-              .then(file => {
-                  const filePath: string = file[0] as string;
-
-                  asmDefinitionProvider.parseSingleFile(filePath);
-                  asmReferenceProvider.parseSingleFile(filePath);
-              });
-      }, null, context.subscriptions);
-      */
+    // Format-on-save handler: sends formatting request directly through our language
+    // client, bypassing VSCode's editor.formatOnSave dispatch entirely.  This avoids
+    // conflicts with Prettier or other formatters that might claim .spin2 files.
+    context.subscriptions.push(
+      vscode.workspace.onWillSaveTextDocument((event) => {
+        if (event.document.languageId !== 'spin2') {
+          return;
+        }
+        const formatterConfig = vscode.workspace.getConfiguration('spinExtension.formatter', event.document.uri);
+        if (!formatterConfig.get<boolean>('enable') || !formatterConfig.get<boolean>('formatOnSave')) {
+          return;
+        }
+        event.waitUntil(formatSpin2OnSave(event.document));
+      })
+    );
 
     // Re-evaluate active editor state now that all listeners are registered.
     // This catches the case where a Spin2 file was opened (triggering activation)
@@ -1468,6 +1472,43 @@ export function deactivate(): Thenable<void> | undefined {
     return undefined;
   }
   return client.stop();
+}
+
+// ----------------------------------------------------------------------------
+//   Format-on-save helper   //////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
+
+async function formatSpin2OnSave(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
+  if (!client || !client.isRunning()) {
+    return [];
+  }
+  try {
+    const editorConfig = vscode.workspace.getConfiguration('editor', document.uri);
+    const params = {
+      textDocument: { uri: document.uri.toString() },
+      options: {
+        tabSize: editorConfig.get<number>('tabSize', 4),
+        insertSpaces: editorConfig.get<boolean>('insertSpaces', true)
+      }
+    };
+    const result = await client.sendRequest<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }[] | null>(
+      'textDocument/formatting',
+      params
+    );
+    if (!result) {
+      return [];
+    }
+    return result.map((edit) => {
+      const range = new vscode.Range(
+        new vscode.Position(edit.range.start.line, edit.range.start.character),
+        new vscode.Position(edit.range.end.line, edit.range.end.character)
+      );
+      return new vscode.TextEdit(range, edit.newText);
+    });
+  } catch (err) {
+    logExtensionMessage(`* formatSpin2OnSave() error: ${err}`);
+    return [];
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -1735,6 +1776,9 @@ const handleDidChangeConfiguration = async () => {
 
   // tell tabFormatter that is might have changed, too
   tabFormatter.updateTabConfiguration();
+  // Always re-assert the keybinding context so it recovers if it got out of sync
+  // (e.g., extension host restart, devcontainer reconnect, programmatic settings write)
+  vscode.commands.executeCommand('setContext', 'runtime.spin2.elasticTabstops.enabled', tabFormatter.isEnabled());
 
   codeBlockColorizer.updateColorizerConfiguration();
   let editModeUpdated: boolean = reloadEditModeConfiguration();

@@ -1,0 +1,28 @@
+' regr-mixed-indent-width.spin2
+' Regression: methods with mixed indent widths (e.g., 4-space and 2-space in the
+' same file) must preserve nesting structure.  The old formula-based approach
+' mis-computed levels; the stack-based algorithm handles this correctly.
+
+CON
+
+  _clkfreq = 10_000_000
+
+PUB main() | x, y
+
+    ' This method uses 4-space indent
+    x := 0
+    repeat
+        y := x + 1
+        if y > 10
+            x := y
+    while x < 100
+
+
+PUB helper(a) : b | temp
+
+  ' This method uses 2-space indent
+  temp := a * 2
+  if temp > 0
+    b := temp
+  else
+    b := 0

@@ -19,7 +19,7 @@ import {
 import { formatDatBlock } from './spin2.formatter.dat';
 import { DocumentFindings } from '../parser/spin.semantic.findings';
 
-const ORG_RE = /^\s*org\b/i;
+const ORG_RE = /^\s*(org|orgh)\b/i;
 const END_RE = /^\s*end\b/i;
 
 interface InlinePasmRegion {
@@ -53,6 +53,9 @@ export function formatMethodBlock(
 
   // Normalize indentation for Spin2 code lines (not inline PASM content)
   normalizeIndentation(lines, startLine, endLine, findings, tabStops, indentSize, inlinePasm);
+
+  // Align indented full-line comments to the indent of the next code line below
+  alignFullLineComments(lines, startLine, endLine, findings, inlinePasm);
 
   // Align trailing comments within the method
   alignMethodComments(lines, startLine, endLine, findings, tabStops, inlinePasm);
@@ -109,54 +112,64 @@ function normalizeIndentation(
   indentSize: number,
   inlinePasm: InlinePasmRegion[]
 ): void {
-  // Skip the PUB/PRI declaration line itself
-  // Determine the base indent of the method body
-  // Derive nesting levels from relative indentation changes
+  // Derive nesting levels from line-to-line indent changes using a stack.
+  // This correctly handles files with mixed indent widths (e.g., some methods
+  // at 4-space, others at 2-space) because it tracks relative depth changes
+  // rather than computing absolute levels from a single global step.
 
   if (startLine >= endLine) return;
 
-  // Find the first non-blank code line after the method declaration to establish base indent
-  let baseIndent = -1;
+  // Collect code-line indices and their current indents.
+  // ORG/END boundary lines participate in indent normalization (they are at the
+  // enclosing code's nesting level), but PASM content between them is skipped.
+  const codeLines: { lineIdx: number; indent: number }[] = [];
   for (let i = startLine + 1; i <= endLine; i++) {
     if (isInInlinePasmContent(i, inlinePasm)) continue;
-    if (isInlinePasmBoundary(i, inlinePasm)) continue;
     if (findings.isLineInBlockComment(i)) continue;
-    const trimmed = lines[i].trim();
-    if (trimmed.length === 0) continue;
-    if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
-    baseIndent = getIndentColumns(lines[i]);
-    break;
-  }
-
-  if (baseIndent < 0) return; // no code lines found
-
-  // Compute the current indent step being used
-  const currentIndentStep = detectIndentStep(lines, startLine + 1, endLine, inlinePasm, findings);
-  if (currentIndentStep <= 0) return; // can't determine
-
-  for (let i = startLine + 1; i <= endLine; i++) {
-    if (isInInlinePasmContent(i, inlinePasm)) continue;
-    if (isInlinePasmBoundary(i, inlinePasm)) continue;
-    if (findings.isLineInBlockComment(i)) continue;
-
     const line = lines[i];
     if (line.trim().length === 0) continue;
-    if (isColumnZero(line) && isFullLineComment(line)) continue;
+    if (isFullLineComment(line)) continue;
+    codeLines.push({ lineIdx: i, indent: getIndentColumns(line) });
+  }
 
-    const currentIndent = getIndentColumns(line);
-    // Compute logical nesting level relative to the base indent
-    const level = Math.max(0, Math.round((currentIndent - baseIndent) / currentIndentStep)) + 1;
+  if (codeLines.length === 0) return;
 
-    // Re-express at target indent using indentSize * level.
-    // This produces consistent, predictable indentation that is always idempotent.
-    // The tabstop arrays (e.g. pub: [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80])
-    // have their indentation region sized in increments of 2, which matches the
-    // default indentSize.  For non-default indentSize values, tabstop-based
-    // indentation would create mixed progressions that break on re-detection.
+  // Stack-based nesting: walk code lines top-to-bottom.
+  // The indent stack tracks column positions we've seen at each nesting level.
+  // - Indent increases → push (go deeper)
+  // - Indent same → same level
+  // - Indent decreases → pop back to the matching level
+  const indentStack: number[] = [codeLines[0].indent]; // level 1 = first code line's indent
+  const lineLevels: Map<number, number> = new Map();
+
+  for (const cl of codeLines) {
+    const indent = cl.indent;
+    const topIndent = indentStack[indentStack.length - 1];
+
+    if (indent > topIndent) {
+      // Deeper nesting — push new level
+      indentStack.push(indent);
+    } else if (indent < topIndent) {
+      // Shallower — pop until we find a level <= this indent
+      while (indentStack.length > 1 && indentStack[indentStack.length - 1] > indent) {
+        indentStack.pop();
+      }
+      // If the indent doesn't exactly match any level we've seen,
+      // it's a new level at this position (push it)
+      if (indentStack[indentStack.length - 1] !== indent) {
+        indentStack.push(indent);
+      }
+    }
+    // else indent === topIndent → same level, no stack change
+
+    lineLevels.set(cl.lineIdx, indentStack.length); // level = stack depth
+  }
+
+  // Apply: level 1 → indentSize * 1, level 2 → indentSize * 2, etc.
+  for (const cl of codeLines) {
+    const level = lineLevels.get(cl.lineIdx) || 1;
     const targetCol = indentSize * level;
-
-    const newLine = ' '.repeat(targetCol) + line.trimStart();
-    lines[i] = newLine;
+    lines[cl.lineIdx] = ' '.repeat(targetCol) + lines[cl.lineIdx].trimStart();
   }
 }
 
@@ -175,7 +188,8 @@ function detectIndentStep(
     if (findings.isLineInBlockComment(i)) continue;
     const trimmed = lines[i].trim();
     if (trimmed.length === 0) continue;
-    if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
+    // Skip all full-line comments — their indent is not meaningful for step detection
+    if (isFullLineComment(lines[i])) continue;
     indents.push(getIndentColumns(lines[i]));
   }
 
@@ -202,6 +216,77 @@ function getIndentColumns(line: string): number {
     else break;
   }
   return col;
+}
+
+function alignFullLineComments(
+  lines: string[],
+  startLine: number,
+  endLine: number,
+  findings: DocumentFindings,
+  inlinePasm: InlinePasmRegion[]
+): void {
+  // Find the first actual code line in the method body.  Everything before it
+  // is method documentation ('' doc blocks for PUB, ' description blocks for
+  // PRI, local variable descriptions, blank lines) and should not be moved.
+  const firstCodeLine = findFirstCodeLine(lines, startLine + 1, endLine, findings, inlinePasm);
+  if (firstCodeLine < 0) return; // no code lines in method
+
+  for (let i = firstCodeLine; i <= endLine; i++) {
+    if (isInInlinePasmContent(i, inlinePasm)) continue;
+    if (isInlinePasmBoundary(i, inlinePasm)) continue;
+    if (findings.isLineInBlockComment(i)) continue;
+    if (lines[i].trim().length === 0) continue;
+    if (!isFullLineComment(lines[i])) continue;
+
+    // Doc comments ('' at column 0) are documentation, not commented-out code — skip them.
+    const trimmed = lines[i].trimStart();
+    if (isColumnZero(lines[i]) && trimmed.startsWith("''")) continue;
+
+    // All other full-line comments after the first code line are treated as
+    // commented-out code and aligned to the next code line below.
+    const nextIndent = findNextCodeLineIndent(lines, i + 1, endLine, findings, inlinePasm);
+    if (nextIndent >= 0) {
+      lines[i] = ' '.repeat(nextIndent) + lines[i].trimStart();
+    }
+  }
+}
+
+function findFirstCodeLine(
+  lines: string[],
+  fromLine: number,
+  endLine: number,
+  findings: DocumentFindings,
+  inlinePasm: InlinePasmRegion[]
+): number {
+  for (let i = fromLine; i <= endLine; i++) {
+    if (isInInlinePasmContent(i, inlinePasm)) continue;
+    if (isInlinePasmBoundary(i, inlinePasm)) continue;
+    if (findings.isLineInBlockComment(i)) continue;
+    const trimmed = lines[i].trim();
+    if (trimmed.length === 0) continue;
+    if (isFullLineComment(lines[i])) continue;
+    return i;
+  }
+  return -1;
+}
+
+function findNextCodeLineIndent(
+  lines: string[],
+  fromLine: number,
+  endLine: number,
+  findings: DocumentFindings,
+  inlinePasm: InlinePasmRegion[]
+): number {
+  for (let i = fromLine; i <= endLine; i++) {
+    if (isInInlinePasmContent(i, inlinePasm)) continue;
+    if (isInlinePasmBoundary(i, inlinePasm)) continue;
+    if (findings.isLineInBlockComment(i)) continue;
+    const trimmed = lines[i].trim();
+    if (trimmed.length === 0) continue;
+    if (isFullLineComment(lines[i])) continue; // skip other comments too
+    return getIndentColumns(lines[i]);
+  }
+  return -1; // no code line found below
 }
 
 function alignMethodComments(

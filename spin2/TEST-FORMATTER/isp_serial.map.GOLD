@@ -1,0 +1,232 @@
+================================================================================
+PNut-TS Memory Map: isp_serial.spin2
+Spin2_v41
+Generated: 2026-03-19T22:48:15.519Z
+================================================================================
+
+=== PROGRAM SUMMARY ===
+
+  Total Size:    2112 bytes (1888 code/data + 224 var bytes)
+  Objects:       2
+  Methods:       49
+
+=== OBJECT HIERARCHY ===
+
+  isp_serial  (42 methods)
+      \-- NSTR : jm_nstrings  (7 methods)
+
+=== MEMORY LAYOUT ===
+
+  Start   End      Size  Object           Instance         Overrides
+  ------  ------  -----  ---------------  ---------------  ---------
+  $00000  $004E0   1249  isp_serial       (entry)          
+  $004E4  $0075F    636  jm_nstrings      NSTR             
+
+    CODE/DATA TOTAL:    1888 bytes
+
+  $00760  $0083F    224  VAR SPACE        (runtime)      
+
+    PROGRAM TOTAL:      2112 bytes
+
+=== OBJECT DETAILS ===
+
+--- isp_serial ---
+    Location: $00000-$004E0 (1249 bytes)
+    VAR Base: $00760
+    Source:   isp_serial.spin2
+
+    Methods:
+      NULL                  Entry $00002  ($00002)
+      START                 Entry $00003  ($00003)
+      STARTX                Entry $00004  ($00004)
+      STOP                  Entry $00005  ($00005)
+      GETBAUDRATE           Entry $00006  ($00006)
+      RXFLUSH               Entry $00007  ($00007)
+      RXCHECK               Entry $00008  ($00008)
+      RXTIME                Entry $00009  ($00009)
+      RX                    Entry $0000A  ($0000A)
+      TX                    Entry $0000B  ($0000B)
+      TXN                   Entry $0000C  ($0000C)
+      TXFLUSH               Entry $0000D  ($0000D)
+      STR                   Entry $0000E  ($0000E)
+      SUBSTR                Entry $0000F  ($0000F)
+      PADSTR                Entry $00010  ($00010)
+      FSTR0                 Entry $00011  ($00011)
+      FSTR1                 Entry $00012  ($00012)
+      FSTR2                 Entry $00013  ($00013)
+      FSTR3                 Entry $00014  ($00014)
+      FSTR4                 Entry $00015  ($00015)
+      FSTR5                 Entry $00016  ($00016)
+      FSTR6                 Entry $00017  ($00017)
+      FORMAT                Entry $00018  ($00018)
+      FMT_NUMBER            Entry $00019  ($00019)
+      DEC                   Entry $0001A  ($0001A)
+      FWDEC                 Entry $0001B  ($0001B)
+      JDEC                  Entry $0001C  ($0001C)
+      DPDEC                 Entry $0001D  ($0001D)
+      JDPDEC                Entry $0001E  ($0001E)
+      HEX                   Entry $0001F  ($0001F)
+      FWHEX                 Entry $00020  ($00020)
+      JHEX                  Entry $00021  ($00021)
+      OCT                   Entry $00022  ($00022)
+      FWOCT                 Entry $00023  ($00023)
+      JOCT                  Entry $00024  ($00024)
+      QRT                   Entry $00025  ($00025)
+      FWQRT                 Entry $00026  ($00026)
+      JQRT                  Entry $00027  ($00027)
+      BIN                   Entry $00028  ($00028)
+      FWBIN                 Entry $00029  ($00029)
+      JBIN                  Entry $0002A  ($0002A)
+      GET_NARGS             Entry $0002B  ($0002B)
+
+    VAR:
+      LONG      RXP                   +$0004  ($00764)
+      LONG      TXP                   +$0008  ($00768)
+      LONG      BAUD                  +$000C  ($0076C)
+      LONG      BYTEMASK              +$0010  ($00770)
+      LONG      BYTEEXTRABITS         +$0014  ($00774)
+      BYTE      PBUF                  +$0018  ($00778)
+
+    Child Objects:
+      NSTR : jm_nstrings (636 bytes)
+
+--- NSTR : jm_nstrings ---
+    Location: $004E4-$0075F (636 bytes)
+    VAR Base: $007C8
+    Source:   jm_nstrings.spin2
+
+    Methods:
+      NULL                  Entry $00000  ($004E4)
+      FMT_NUMBER            Entry $00001  ($004E5)
+      DEC                   Entry $00002  ($004E6)
+      DPDEC                 Entry $00003  ($004E7)
+      ITOA                  Entry $00004  ($004E8)
+      REVSTR                Entry $00005  ($004E9)
+      PADSTR                Entry $00006  ($004EA)
+
+    VAR:
+      BYTE      NBUF                  +$0004  ($007CC)
+      BYTE      PBUF                  +$0025  ($007ED)
+
+=== ADDRESS INDEX ===
+
+  Address  Type      Object           Name
+  -------  --------  ---------------  ---------------
+   $00000  CODE      isp_serial       (entry)
+   $00000  METHOD    jm_nstrings      NULL
+   $00001  METHOD    jm_nstrings      FMT_NUMBER
+   $00002  METHOD    jm_nstrings      DEC
+   $00002  METHOD    isp_serial       NULL
+   $00003  METHOD    jm_nstrings      DPDEC
+   $00003  METHOD    isp_serial       START
+   $00004  METHOD    jm_nstrings      ITOA
+   $00004  METHOD    isp_serial       STARTX
+   $00005  METHOD    jm_nstrings      REVSTR
+   $00005  METHOD    isp_serial       STOP
+   $00006  METHOD    jm_nstrings      PADSTR
+   $00006  METHOD    isp_serial       GETBAUDRATE
+   $00007  METHOD    isp_serial       RXFLUSH
+   $00008  METHOD    isp_serial       RXCHECK
+   $00009  METHOD    isp_serial       RXTIME
+   $0000A  METHOD    isp_serial       RX
+   $0000B  METHOD    isp_serial       TX
+   $0000C  METHOD    isp_serial       TXN
+   $0000D  METHOD    isp_serial       TXFLUSH
+   $0000E  METHOD    isp_serial       STR
+   $0000F  METHOD    isp_serial       SUBSTR
+   $00010  METHOD    isp_serial       PADSTR
+   $00011  METHOD    isp_serial       FSTR0
+   $00012  METHOD    isp_serial       FSTR1
+   $00013  METHOD    isp_serial       FSTR2
+   $00014  METHOD    isp_serial       FSTR3
+   $00015  METHOD    isp_serial       FSTR4
+   $00016  METHOD    isp_serial       FSTR5
+   $00017  METHOD    isp_serial       FSTR6
+   $00018  METHOD    isp_serial       FORMAT
+   $00019  METHOD    isp_serial       FMT_NUMBER
+   $0001A  METHOD    isp_serial       DEC
+   $0001B  METHOD    isp_serial       FWDEC
+   $0001C  METHOD    isp_serial       JDEC
+   $0001D  METHOD    isp_serial       DPDEC
+   $0001E  METHOD    isp_serial       JDPDEC
+   $0001F  METHOD    isp_serial       HEX
+   $00020  METHOD    isp_serial       FWHEX
+   $00021  METHOD    isp_serial       JHEX
+   $00022  METHOD    isp_serial       OCT
+   $00023  METHOD    isp_serial       FWOCT
+   $00024  METHOD    isp_serial       JOCT
+   $00025  METHOD    isp_serial       QRT
+   $00026  METHOD    isp_serial       FWQRT
+   $00027  METHOD    isp_serial       JQRT
+   $00028  METHOD    isp_serial       BIN
+   $00029  METHOD    isp_serial       FWBIN
+   $0002A  METHOD    isp_serial       JBIN
+   $0002B  METHOD    isp_serial       GET_NARGS
+   $004E4  CODE      jm_nstrings      NSTR
+
+  Entries: 51
+
+=== SYMBOL INDEX ===
+
+  Symbol                Object           Type      Location
+  --------------------  ---------------  --------  ----------
+  BAUD                  isp_serial       VAR       $0076C
+  BIN                   isp_serial       METHOD    $00028
+  BYTEEXTRABITS         isp_serial       VAR       $00774
+  BYTEMASK              isp_serial       VAR       $00770
+  DEC                   jm_nstrings      METHOD    $00002
+  DEC                   isp_serial       METHOD    $0001A
+  DPDEC                 jm_nstrings      METHOD    $00003
+  DPDEC                 isp_serial       METHOD    $0001D
+  FMT_NUMBER            jm_nstrings      METHOD    $00001
+  FMT_NUMBER            isp_serial       METHOD    $00019
+  FORMAT                isp_serial       METHOD    $00018
+  FSTR0                 isp_serial       METHOD    $00011
+  FSTR1                 isp_serial       METHOD    $00012
+  FSTR2                 isp_serial       METHOD    $00013
+  FSTR3                 isp_serial       METHOD    $00014
+  FSTR4                 isp_serial       METHOD    $00015
+  FSTR5                 isp_serial       METHOD    $00016
+  FSTR6                 isp_serial       METHOD    $00017
+  FWBIN                 isp_serial       METHOD    $00029
+  FWDEC                 isp_serial       METHOD    $0001B
+  FWHEX                 isp_serial       METHOD    $00020
+  FWOCT                 isp_serial       METHOD    $00023
+  FWQRT                 isp_serial       METHOD    $00026
+  GET_NARGS             isp_serial       METHOD    $0002B
+  GETBAUDRATE           isp_serial       METHOD    $00006
+  HEX                   isp_serial       METHOD    $0001F
+  ITOA                  jm_nstrings      METHOD    $00004
+  JBIN                  isp_serial       METHOD    $0002A
+  JDEC                  isp_serial       METHOD    $0001C
+  JDPDEC                isp_serial       METHOD    $0001E
+  JHEX                  isp_serial       METHOD    $00021
+  JOCT                  isp_serial       METHOD    $00024
+  JQRT                  isp_serial       METHOD    $00027
+  NBUF                  jm_nstrings      VAR       $007CC
+  NULL                  jm_nstrings      METHOD    $00000
+  NULL                  isp_serial       METHOD    $00002
+  OCT                   isp_serial       METHOD    $00022
+  PADSTR                jm_nstrings      METHOD    $00006
+  PADSTR                isp_serial       METHOD    $00010
+  PBUF                  jm_nstrings      VAR       $007ED
+  PBUF                  isp_serial       VAR       $00778
+  QRT                   isp_serial       METHOD    $00025
+  REVSTR                jm_nstrings      METHOD    $00005
+  RX                    isp_serial       METHOD    $0000A
+  RXCHECK               isp_serial       METHOD    $00008
+  RXFLUSH               isp_serial       METHOD    $00007
+  RXP                   isp_serial       VAR       $00764
+  RXTIME                isp_serial       METHOD    $00009
+  START                 isp_serial       METHOD    $00003
+  STARTX                isp_serial       METHOD    $00004
+  STOP                  isp_serial       METHOD    $00005
+  STR                   isp_serial       METHOD    $0000E
+  SUBSTR                isp_serial       METHOD    $0000F
+  TX                    isp_serial       METHOD    $0000B
+  TXFLUSH               isp_serial       METHOD    $0000D
+  TXN                   isp_serial       METHOD    $0000C
+  TXP                   isp_serial       VAR       $00768
+
+  Symbols: 57
+

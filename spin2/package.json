@@ -1521,7 +1521,21 @@
         "view": "spinExtension.includeDirectories",
         "contents": "No Spin2 include directories configured. Open a workspace with .spin2 files to auto-discover include directories."
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "[spin2]": {
+        "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",
+        "editor.formatOnSave": false
+      },
+      "[spin]": {
+        "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",
+        "editor.formatOnSave": false
+      },
+      "[p2asm]": {
+        "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",
+        "editor.formatOnSave": false
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run prebuild && npm run esbuild-base -- --minify",

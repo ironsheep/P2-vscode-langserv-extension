@@ -1,0 +1,667 @@
+'' =================================================================================================
+''
+''   File....... isp_i2c_pca9685_servo.spin2
+''   Purpose.... Servo Interface to underlying PCA9685 I2C Controller
+''   Authors.... Stephen M Moraco
+''               -- Copyright (c) 2021 Iron Sheep Productions, LLC
+''               -- see below for terms of use
+''   E-mail..... stephen@ironsheep.biz
+''   Started.... Jun 2021
+''   Updated.... 06 Jun 2021
+''
+'' =================================================================================================
+
+CON
+
+    CLK_FREQ = 270_000_000                                          ' system freq as a constant (MAKE SURE THIS IS SAME AS IN TOP FILE!!!)
+
+    #0, M_NOT_SET, M_ANGLE, M_USECS, M_PRCNT                        ' write/read modes
+    #0, ST_NOT_SET, ST_STANDARD, ST_360_DEGREE                      ' Servo Types (limit behaviors)
+
+    CALCULATE_CENTER = -1
+    SERVO_POSITION_NOT_SET = -1
+
+    DEFAULT_LIMIT_USEC_MIN = 800    ' was 600 uSec
+    DEFAULT_LIMIT_USEC_CTR = 1500
+    DEFAULT_LIMIT_USEC_MAX = 2200   ' was 2400 uSec
+
+    DEFAULT_SLEW_STEPS = 75
+    DEFAULT_SLEW_RATE_IN_USEC = (DEFAULT_LIMIT_USEC_MAX - DEFAULT_LIMIT_USEC_MIN) / DEFAULT_SLEW_STEPS
+
+    MAX_SERVO_NAME_CHARS = 10
+    MAX_SLEW_TABLE_TABLE_ENTRIES = 8    ' was 5 now 8 for easy debug
+
+    ' Delays for MG996R at 5v
+    DELAY_USEC_HALF_RATE = 707
+    DELAY_USEC_QUARTER_RATE = 1414
+    DELAY_USEC_EIGHTH_RATE = 2829
+    DELAY_USEC_SIXTEENTH_RATE = 5657
+
+    TAIL_SML_PERCENT = 3    ' was 6
+    TAIL_LRG_PERCENT = 9    ' was 5
+
+
+    STEP_INCRE_MIDDLE = 18      ' was 20, 16
+    STEP_INCRE_LRG_TAIL = 10    ' was 12
+    STEP_INCRE_SML_TAIL = 6     ' same 6
+    STEP_TABLE_LIMIT = (2 * STEP_INCRE_SML_TAIL) + (2 * STEP_INCRE_LRG_TAIL) + STEP_INCRE_MIDDLE
+
+VAR
+
+    LONG    channel                                             ' servo controller channel [0-15]
+    LONG    servoType                                           ' [ST_NOT_SET, ST_STANDARD, ST_360_DEGREE]
+    LONG    uSecMinimum                                         ' default 600/800
+    LONG    uSecCenter                                          ' default 1500
+    LONG    uSecMaximum                                         ' default 2200/2400
+    LONG    uSecSlewRate                                        ' default {DEFAULT_SLEW_RATE_IN_USEC} 75 steps in full range
+    LONG    rngMinimum                                         ' default NOT_SET
+    LONG    rngMaximum                                         ' default NOT_SET
+
+    ' last value written to servo
+    LONG    currPosnUSec                                        ' [600..2400]
+    LONG    currPosnDegr                                        ' [0..180]
+    ' destination value for servo (when stepping to destination)
+    LONG    targetUSec                                         ' valid only during slew
+    LONG    targetDegr                                         ' valid only during slew
+
+    LONG    bLastAtTargetStatus
+
+
+    BYTE    bChannelSpecified                                   ' true when servo-channel is set up
+    BYTE    bStopped
+    BYTE    bShowDebug
+    BYTE    bDoneMsgShown
+    BYTE    bHaveSavedDebug
+    BYTE    bPriorShowDebug
+    BYTE    bHaveLimits                                         ' true when limits are specified
+    BYTE    nameStr[MAX_SERVO_NAME_CHARS + 1]
+    ' slew table ea. entry:  rate, delay
+    '   rate: increment in uSec
+    '   delay: step expiration in tics
+    '
+    ' table calcs:
+    '   bell curve:
+    '     40-1400 % 6(1/8), 9(1/4), 70(1/2), 9(1/4), 6(1/8)   ct=5
+    '      1-39   %        10(1/8), 80(1/4), 10(1/8)          ct=3
+    LONG    ms001           ' mSec tics at curr clock freq
+    LONG    us001           ' uSec tics at curr clock freq
+    LONG    stNextExpire    ' when we need to send servo commands (tics since last + start of last)
+    LONG    stDummy         ' fill
+    WORD    stDelay[MAX_SLEW_TABLE_TABLE_ENTRIES]   ' delay value in tics for this entry
+    BYTE    stUSec[MAX_SLEW_TABLE_TABLE_ENTRIES]    ' travel rate in uSec for this entry
+    BYTE    stCount[MAX_SLEW_TABLE_TABLE_ENTRIES]   ' number of times to step at this rate
+    BYTE    stEntryCt       ' value of 3 or 5
+    BYTE    stCurrIdx       ' index of curr entry
+    BYTE    stCurrCt        ' number of steps to switch
+
+OBJ
+
+    pca9685     : "isp_i2c_pca9685"                     ' our 16-chan servo controller
+    term        : "isp_serial_singleton"                ' debug terminal output
+    nstr        : "jm_nstrings"                         ' number-to-string
+
+PUB null()
+
+'' This is not a top-level object
+
+
+PUB init(chan, mode, value, pNameStr) | bValidMode, nameLen
+'' Configure servo output channel
+'' -- {chan} is pca9685 channel number [0-15] associated with this servo
+'' -- {mode} is M_ANGLE, M_USECS or 0 (M_NOT_SET)
+'' -- {value} is desired position angle[0-180], uSec[600-2400]
+' EX:
+'  servo.init(14, M_NOT_SET, 0)     ' just assign channel
+'  servo.init(14, M_ANGLE, 90)     ' assign channel and move servo to 90 degr
+    ' fill in our name for debug use
+    bShowDebug := FALSE
+    bHaveSavedDebug := FALSE
+    targetUSec := SERVO_POSITION_NOT_SET
+    targetDegr := SERVO_POSITION_NOT_SET
+    bLastAtTargetStatus := -2           ' value can't happen
+    rngMinimum := SERVO_POSITION_NOT_SET
+    rngMaximum := SERVO_POSITION_NOT_SET
+
+    ms001 := CLK_FREQ / 1_000           ' ticks in 1ms
+    us001 := CLK_FREQ / 1_000_000       ' ticks in 1us
+    stDummy := -1                       ' dump marker
+
+    bytefill(@nameStr, 0, MAX_SERVO_NAME_CHARS + 1)
+    byte [@nameStr][0] := chan + $30    ' add ASCII bias
+    byte [@nameStr][1] := $2D           ' hyphen
+
+    nameLen := strsize(pNameStr)
+    if(nameLen > MAX_SERVO_NAME_CHARS - 2)
+        nameLen:= MAX_SERVO_NAME_CHARS - 2
+
+    bytemove(@byte [@nameStr][2], pNameStr, nameLen)
+
+    term.fstr3(string("+ init([%s]: CHAN %d, %s)\r\n"), @nameStr, chan, interpModeValue(mode, value))
+
+    setServoDefaults()
+
+    uSecSlewRate := DEFAULT_SLEW_RATE_IN_USEC  ' deafult to 24 uSec slew, 75 increments
+
+    channel := 0 #> chan <# 15                                  ' save controller channel for this servo
+    bChannelSpecified := TRUE                                   ' mark servo channel as specified
+
+    currPosnUSec := SERVO_POSITION_NOT_SET  ' preset nonsense values so we move first time
+
+    if mode <> M_NOT_SET
+        bValidMode := isValidMode(mode)
+
+        if bValidMode
+            writePosition(mode, value)
+
+PUB stop()
+    '' Disable servo channel if previously configured
+    if (bChannelSpecified)
+        bChannelSpecified := FALSE
+
+PUB enableDebug(bEnable)
+    '' Turn on/off file internal debug messaging (bEnable = T/F where T means show debug messages from this object)
+    bShowDebug := bEnable
+
+PUB saveDebug()
+    '' Preserve last debug state (push state)
+    if not bHaveSavedDebug
+        bPriorShowDebug := bShowDebug
+        bHaveSavedDebug := TRUE
+    else
+        term.fstr0(string("!!! saveDebug() ERROR - Already SAVED!\r\n"))
+
+PUB restoreDebug()
+    '' Restore prior debug state (pop state)
+    if bHaveSavedDebug
+        bShowDebug := bPriorShowDebug
+        bHaveSavedDebug := FALSE
+    else
+        term.fstr0(string("!!! restoreDebug() ERROR - Nothing SAVED to restore!\r\n"))
+
+PUB configureMinCtrMaxType(uSecMin, uSecCntr, uSecMax, type)
+    '' Configure limits and center for this servo instance
+    servoType := type
+    uSecMinimum := uSecMin
+    uSecMaximum := uSecMax
+    uSecCenter := uSecCntr
+    if(uSecCntr == CALCULATE_CENTER)
+        uSecCenter := ((uSecMaximum - uSecMinimum) / 2) + uSecMinimum
+    uSecSlewRate := (uSecMaximum - uSecMinimum) / DEFAULT_SLEW_STEPS
+    bHaveLimits := TRUE
+    if bShowDebug
+        term.fstr4(string("+ configureMinCtrMaxType(MIN %d, CTR %d, MAX %d, TYPE %d)\r\n"), uSecMin, uSecCenter, uSecMax, type)
+
+PUB configureRangePercent(rngMin, rngMax)
+    '' Configure limits in terms of percent: [-100 to 0, 0 to 100, -100 to 100, etc.]
+    if rngMin < rngMax
+        rngMinimum := rngMin
+        rngMaximum := rngMax
+    else
+        rngMinimum := SERVO_POSITION_NOT_SET
+        rngMaximum := SERVO_POSITION_NOT_SET
+
+PUB rangePercent() : rangeMin, rangeMax
+    '' Return configured limits in terms of percent: [-100 to 0, 0 to 100, -100 to 100, etc.]
+    rangeMin := rngMinimum
+    rangeMax := rngMaximum
+
+PUB centerMicroSec() : centerInMicroSecs
+    '' Return the center in uSec for this servo instance
+    centerInMicroSecs := uSecCenter
+
+PUB setSlewRate(newRatInUSec)
+    '' Set new slew rate for this servo instance (default 30 uSec)
+    uSecSlewRate := 5 #> newRatInUSec <# 450   ' min is 5 uSec, max is 1/4 range
+    if newRatInUSec == 0
+        uSecSlewRate := DEFAULT_LIMIT_USEC_MAX - DEFAULT_LIMIT_USEC_MIN ' eff no slew!
+
+PUB setSlewSteps(newSlewStepCount) | valSlewSteps, slewRateInUSec
+    '' Set new slew rate for this servo instance in terms of # steps over limit-range
+    valSlewSteps := 1 #> newSlewStepCount <# 100   ' 1 - 100 steps limit
+    if newSlewStepCount == 0
+        valSlewSteps := DEFAULT_SLEW_STEPS ' default slew!
+    slewRateInUSec := (uSecMaximum - uSecMinimum) / valSlewSteps
+    setSlewRate(slewRateInUSec)
+
+PUB slewToPosition(mode, value) | bHaveHardware, bIsValidMode, tmpTargetUSec, tmpTargetDegr, bValueChanged
+    '' Start slew of servo to desired target position
+    bHaveHardware := hardwareConfigured(string("slewToPosition"))
+    bIsValidMode := isValidMode(mode)
+    if (bHaveHardware && bIsValidMode)
+        ' now that slew can be called while slewing only save if NOT saved
+        tmpTargetUSec, tmpTargetDegr := positionInLimits(mode, value)
+        bValueChanged := targetUSec <> tmpTargetUSec ? TRUE : FALSE
+        if bValueChanged
+            targetUSec := tmpTargetUSec
+            targetDegr := tmpTargetDegr
+            ' XYZZY Recalculate ramps?!
+            if bShowDebug
+                term.fstr3(string("+ slewToPosn(%s) [%s] Cg%d)\r\n"), interpModeValue(mode, value), @nameStr, cogid())
+            reloadSlewRampTable(targetUSec, currPosnUSec)
+        'else
+        '    if bShowDebug
+        '        term.fstr3(string("+   -at-Postion(%s) [%s] Cg%d)\r\n"), interpModeValue(mode, value), @nameStr, cogid())
+
+        if NOT bHaveSavedDebug
+            saveDebug()
+        bShowDebug := FALSE
+
+
+PUB continueSlew() : bAtTargetStatus | bHaveHardware, bIsValidTarget, deltaUSec, intermediateTargetUSec, bSlewComplete, currTicks
+    '' Continue slew to target position ... to final target or just next increment (table chase version)
+    bHaveHardware := hardwareConfigured(string("continueSlew"))
+    if bHaveHardware
+        currTicks := getct()
+        if stCurrCt > 0 && currTicks >= stNextExpire       ' if exired, move
+            ' curr table index points to our values
+            ' calc our next intermediate target
+            intermediateTargetUSec := currPosnUSec + (BYTE [@stUSec][stCurrIdx] signx 7)
+            ' calc and set our next expiration time in Ticks
+            stNextExpire := currTicks + (WORD [@stDelay][stCurrIdx] * us001)
+            stCurrCt--
+            if stCurrCt == 0
+              if stCurrIdx < stEntryCt - 1
+                stCurrIdx++
+                stCurrCt := BYTE [@stCount][stCurrIdx]
+            {
+            term.fstr2(string("+ -CS- intermediateTargetUSec[%s]: %d\r\n"), @nameStr, intermediateTargetUSec)
+            term.fstr1(string("+    - currTicks: %d\r\n"), currTicks)
+            term.fstr1(string("+    - stCurrCt: %d\r\n"), stCurrCt)
+            term.fstr1(string("+    - stCurrIdx: %d\r\n"), stCurrIdx)
+            term.fstr1(string("+    - stNextExpire: %d\r\n\r\n"), stNextExpire)
+            '}
+            writePosition(M_USECS, intermediateTargetUSec)
+        else
+            if stCurrCt == 0 && bDoneMsgShown == FALSE
+                bDoneMsgShown := TRUE
+                'term.fstr1(string("+ table chase [%s] done\r\n"), @nameStr)
+                if (targetUSec - currPosnUSec) <> 0
+                    term.fstr4(string("+ table chase [%s] done  desired:(%d), actual:(%d) DELTA=%d\r\n"), @nameStr, targetUSec, currPosnUSec, targetUSec - currPosnUSec)
+
+PUB continueSlewOld() : bAtTargetStatus | bHaveHardware, bIsValidTarget, deltaUSec, intermediateTargetUSec, bSlewComplete
+    '' Continue slew to target position ... to final target or just next increment
+    bHaveHardware := hardwareConfigured(string("continueSlew"))
+    if bHaveHardware
+        deltaUSec := targetUSec - currPosnUSec
+        'if bShowDebug
+        '    term.fstr3(string("+ continueSlew() [%s], target %d, delta %d)\r\n"), @nameStr, targetUSec, deltaUSec)
+
+        ' if not at final target then move
+        bSlewComplete := FALSE
+        if deltaUSec <> 0
+            ' if we have more then slew interval to move then just do slew distance
+            if (abs deltaUSec > uSecSlewRate)
+                if targetUSec < currPosnUSec
+                    intermediateTargetUSec := currPosnUSec - uSecSlewRate
+                else
+                    intermediateTargetUSec := currPosnUSec + uSecSlewRate
+                writePosition(M_USECS, intermediateTargetUSec)
+            else
+                ' have less than slew distance do rest of travel
+                writePosition(M_USECS, targetUSec)
+                bSlewComplete := TRUE
+
+        else
+            bSlewComplete := TRUE
+
+        if bSlewComplete
+            restoreDebug()
+            term.fstr2(string("+ continueSlew() [%s] Cg%d  DONE\r\n"), @nameStr, cogid())
+
+PUB isAtPostion() : bAtTargetStatus | bHaveHardware, bIsActive, bValueChanged
+    '' Return T/F where T means this servo is at desired target position
+    bHaveHardware := hardwareConfigured(string("isAtPostion"))
+    bIsActive := isActive()
+    bAtTargetStatus := TRUE ' if servo not yet positioned
+    if (bHaveHardware && bIsActive)
+        bAtTargetStatus := (currPosnUSec == targetUSec) ? TRUE : FALSE
+        bValueChanged := bLastAtTargetStatus <> bAtTargetStatus
+        if bValueChanged
+            bLastAtTargetStatus := bAtTargetStatus
+        'if bShowDebug && bAtTargetStatus == FALSE && targetUSec <> SERVO_POSITION_NOT_SET
+        'if bShowDebug && targetUSec <> SERVO_POSITION_NOT_SET && bValueChanged
+        '    term.fstr4(string("+ isAtPostion() [%s] Cg%d, target %d == %d  --SLEW--\r\n"), @nameStr, cogid(), targetUSec, bAtTargetStatus)
+
+PUB delayExpired() : bDelayDidExpire
+    '' Return T/F where T means it's time for another command (delay has expired)
+    bDelayDidExpire := getct() > stNextExpire ? TRUE : FALSE
+    'bDelayDidExpire := TRUE ' fake this for now...
+
+PUB isActive() : bActiveStatus
+    '' Return T/F where T means that servo is in USE (does know its last position)
+    bActiveStatus := (currPosnUSec <> SERVO_POSITION_NOT_SET)
+
+PUB name() : pNameStr
+    '' return pointer to name of this servo
+    pNameStr := @nameStr
+
+PUB writePosition(mode, value) | bHaveHardware, bIsValidMode, currValue, bIsActive, pInterp
+    '' Update servo
+    '' -- {mode} is M_ANGLE, M_USECS or 0 (M_NOT_SET)
+    '' -- {value} is desired position angle[0-180], uSec[600-2400]
+    bHaveHardware := hardwareConfigured(string("writePosition"))
+    bIsValidMode := isValidMode(mode)
+    if (bHaveHardware && bIsValidMode)
+        currValue := readPosition(mode) ' returns SERVO_POSITION_NOT_SET if servo not yet positioned first time
+        pInterp := interpModeValue(mode, value)
+        if currValue <> value ' (currValue of SERVO_POSITION_NOT_SET - won't match either!)
+            if bShowDebug
+                term.fstr3(string("+ writePosn(%s) [%s] Cg%d\r\n"), pInterp, @nameStr, cogid())
+            currPosnUSec, currPosnDegr := positionInLimits(mode, value)
+            if targetUSec == SERVO_POSITION_NOT_SET
+                targetUSec := currPosnUSec
+                targetDegr := currPosnDegr
+            pca9685.enableDebug(bShowDebug)
+            debug("+ writePosn(", zstr_(pInterp), ") [", zstr_(@nameStr), "] Cg", udec_(cogid()))
+            pca9685.gotoMicroSec(channel, currPosnUSec)                             ' update servo
+
+PUB readPosition(mode) : result | bHaveHardware, bIsValidMode
+    '' Return the current servo Position in {mode} units
+    result := SERVO_POSITION_NOT_SET
+    bHaveHardware := hardwareConfigured(string("readPosition"))
+    bIsValidMode := isValidMode(mode)
+    if (bHaveHardware && bIsValidMode)
+        if (mode == M_ANGLE)
+            result := currPosnDegr
+        elseif (mode == M_PRCNT)
+            result := us2Range(currPosnUSec)
+        else
+            result := currPosnUSec
+    if bShowDebug
+        if result == SERVO_POSITION_NOT_SET
+            term.fstr2(string("+ readPosn([%s] MODE %d) = SERVO_POSITION_NOT_SET\r\n"), @nameStr, mode)
+        'else
+        '    term.fstr2(string("+ readPosn([%s]) [%s]\r\n"), @nameStr, interpModeValue(mode, result))
+
+PUB getPosition() : retUSec, retDegr
+    '' Return the current servo Position in {USec} and {Degr} units
+    retUSec := currPosnUSec
+    retDegr := currPosnDegr
+
+PUB showPosition()
+    '' Display the current servo Position in {USec} and {Degr} units
+    term.fstr3(string("-->  [%s]  %d uSec (%d degr)\r\n"), @nameStr, currPosnUSec, currPosnDegr)
+
+PUB mapValueToServoPosnInUSec(inValue,  inMin,  inMax) : valueInUSec
+    '' map given value of range(min, max) to servo range
+    valueInUSec := map(inValue,  inMin,  inMax,  uSecMinimum,  uSecMaximum)
+
+
+CON  { ---- PRIVATE Utility Methods ---- }
+
+DAT  { mode formatting strings }
+
+usMsg BYTE    "uSec",0
+degrMsg BYTE    "degr",0
+notSetMsg BYTE    "{mode notSet}",0
+
+VAR { mode formatting vars }
+
+    BYTE    modeStr[30+1]
+
+
+PRI interpModeValue(mode, value) : pInterpStr | bValidMode, byteIndex, pDigitStr, valUSec, valDegr
+    pInterpStr := @modeStr
+    byte [@modeStr][0] := 0     ' space
+    if mode == M_NOT_SET
+        byteIndex := 0
+        byteIndex += strcpy(@byte [@modeStr][byteIndex], @notSetMsg)
+        byte [@modeStr][byteIndex++] := $0     ' space
+    else
+        bValidMode := isValidMode(mode)
+        if bValidMode
+            valUSec, valDegr := positionInLimits(mode, value)
+            byteIndex := 0
+            pDigitStr := nstr.itoa(valUSec, 10, 0)
+            byteIndex += strcpy(@byte [@modeStr][byteIndex], pDigitStr)
+            byte [@modeStr][byteIndex++] := $20     ' space
+            byteIndex += strcpy(@byte [@modeStr][byteIndex], @usMsg)
+            byte [@modeStr][byteIndex++] := $20     ' space
+            byte [@modeStr][byteIndex++] := $28     ' open paren
+            pDigitStr := nstr.itoa(valDegr, 10, 0)
+            byteIndex += strcpy(@byte [@modeStr][byteIndex], pDigitStr)
+            byte [@modeStr][byteIndex++] := $20     ' space
+            byteIndex += strcpy(@byte [@modeStr][byteIndex], @degrMsg)
+            byte [@modeStr][byteIndex++] := $29     ' close paren
+            byte [@modeStr][byteIndex++] := 0     ' string terminator
+        else
+            term.fstr2(string("+ interpModeValue(Mode %d, Value %d) BAD MODE!\r\n"), mode, value)
+
+PRI strcpy(pDest, pSrc) : lenCopied
+    lenCopied := strsize(pSrc)
+    bytemove(pDest, pSrc, lenCopied)
+
+PRI reloadSlewRampTable(nTargetUSec, currUSec) | deltaUSec, bIsIncreasing, absDeltaUSec, eighthUSec, qtrUSec, halfUSec, bigStepCt, smallStepCt, finalStepSize, tableIdx, pTable, tableLen
+    deltaUSec := nTargetUSec - currUSec
+    bIsIncreasing := deltaUSec >= 0 ? TRUE : FALSE
+    absDeltaUSec := abs deltaUSec
+    bDoneMsgShown := FALSE
+    if absDeltaUSec > STEP_TABLE_LIMIT
+        ' populate 5 entry table
+        '     50-1400 % 6(1/8), 9(1/4), 70(1/2), 9(1/4), 6(1/8)   ct=5  <OLD>
+        '     46-1400 % 3(1/8), 5(1/4), 84(1/2), 5(1/4), 3(1/8)   ct=5
+        eighthUSec := absDeltaUSec * TAIL_SML_PERCENT / 100                        ' 6 %
+        qtrUSec := absDeltaUSec * TAIL_LRG_PERCENT / 100                           ' 9 %
+        halfUSec := absDeltaUSec - (eighthUSec * 2 + qtrUSec * 2)   ' remainder after - 30% (2 x 15%)
+        stEntryCt := 5
+        ' load distance in USec
+        BYTE [@stUSec][0] := BYTE [@stUSec][4] := bIsIncreasing ? STEP_INCRE_SML_TAIL : 0 - STEP_INCRE_SML_TAIL
+        BYTE [@stUSec][1] := BYTE [@stUSec][3] := bIsIncreasing ? STEP_INCRE_LRG_TAIL : 0 - STEP_INCRE_LRG_TAIL
+        BYTE [@stUSec][2] := bIsIncreasing ? STEP_INCRE_MIDDLE : 0 - STEP_INCRE_MIDDLE
+        ' load our step count
+        BYTE [@stCount][0] := BYTE [@stCount][4] := eighthUSec / STEP_INCRE_SML_TAIL
+        BYTE [@stCount][1] := BYTE [@stCount][3] := qtrUSec / STEP_INCRE_LRG_TAIL
+        BYTE [@stCount][2] := halfUSec / STEP_INCRE_MIDDLE
+        ' load delay time in tics
+        WORD [@stDelay][0] := WORD [@stDelay][4] := DELAY_USEC_EIGHTH_RATE
+        WORD [@stDelay][1] := WORD [@stDelay][3] := DELAY_USEC_QUARTER_RATE
+        WORD [@stDelay][2] := DELAY_USEC_HALF_RATE
+
+        finalStepSize := absDeltaUSec
+        finalStepSize -= ((eighthUSec / STEP_INCRE_SML_TAIL) * STEP_INCRE_SML_TAIL) * 2
+        finalStepSize -= ((qtrUSec / STEP_INCRE_LRG_TAIL ) * STEP_INCRE_LRG_TAIL) * 2
+        finalStepSize -= (halfUSec / STEP_INCRE_MIDDLE) * STEP_INCRE_MIDDLE
+
+        if finalStepSize > 0
+            stEntryCt++
+            ' load distance in USec
+            BYTE [@stUSec][5] := bIsIncreasing ? finalStepSize : 0 - finalStepSize
+            ' load our step count
+            BYTE [@stCount][5] := 1
+            ' load delay time in tics
+            WORD [@stDelay][5] := DELAY_USEC_EIGHTH_RATE
+
+    elseif absDeltaUSec > STEP_INCRE_SML_TAIL
+        ' populate double/single entry table - slow move w/tail (or just tail)
+        qtrUSec := absDeltaUSec * 10 / 100  ' tail minimum (10%)
+        halfUSec := (absDeltaUSec - qtrUSec) / STEP_INCRE_SML_TAIL
+        ' add rest of remainder to tail
+        qtrUSec := absDeltaUSec - (halfUSec * STEP_INCRE_SML_TAIL)
+        ' cal step counts to know how populate table
+        bigStepCt := halfUSec / STEP_INCRE_LRG_TAIL
+        smallStepCt := qtrUSec / STEP_INCRE_SML_TAIL
+        finalStepSize := absDeltaUSec - ((bigStepCt * STEP_INCRE_LRG_TAIL) + (smallStepCt * STEP_INCRE_SML_TAIL))
+        'if small step size is 1 add it into the final step size
+        if smallStepCt == 1
+            finalStepSize := finalStepSize + STEP_INCRE_SML_TAIL
+        tableIdx := 0
+        if bigStepCt > 0
+            ' have 2 or 3 entry table
+            ' load distance in USec
+            BYTE [@stUSec][tableIdx] := bIsIncreasing ? STEP_INCRE_LRG_TAIL : 0 - STEP_INCRE_LRG_TAIL
+            ' load our step count
+            BYTE [@stCount][tableIdx]  := bigStepCt
+            ' load delay time in tics
+            WORD [@stDelay][tableIdx] :=  DELAY_USEC_QUARTER_RATE
+            tableIdx++
+            if smallStepCt > 1
+            ' have 3 entry table
+                ' load distance in USec
+                BYTE [@stUSec][tableIdx] := bIsIncreasing ? STEP_INCRE_SML_TAIL : 0 - STEP_INCRE_SML_TAIL
+                ' load our step count
+                BYTE [@stCount][tableIdx]  := smallStepCt
+                ' load delay time in tics
+                WORD [@stDelay][tableIdx] :=  DELAY_USEC_EIGHTH_RATE
+                tableIdx++
+            ' place final entry of 2 or 3 entry table
+            ' load distance in USec
+            BYTE [@stUSec][tableIdx] := bIsIncreasing ? finalStepSize : 0 - finalStepSize
+            ' load our step count
+            BYTE [@stCount][tableIdx]  := 1
+            ' load delay time in tics
+            WORD [@stDelay][tableIdx] :=  DELAY_USEC_EIGHTH_RATE
+            tableIdx++
+        else
+            ' have 1 or 2 entry table
+            if smallStepCt > 1
+            ' have 2 entry table
+                BYTE [@stUSec][tableIdx] := bIsIncreasing ? STEP_INCRE_SML_TAIL : 0 - STEP_INCRE_SML_TAIL
+                ' load our step count
+                BYTE [@stCount][tableIdx]  := smallStepCt
+                ' load delay time in tics
+                WORD [@stDelay][tableIdx] :=  DELAY_USEC_EIGHTH_RATE
+                tableIdx++
+            ' place final entry of 1 or 2 entry table
+            ' load distance in USec
+            BYTE [@stUSec][tableIdx] := bIsIncreasing ? finalStepSize : 0 - finalStepSize
+            ' load our step count
+            BYTE [@stCount][tableIdx]  := 1
+            ' load delay time in tics
+            WORD [@stDelay][tableIdx] :=  DELAY_USEC_EIGHTH_RATE
+            tableIdx++
+        stEntryCt := tableIdx
+    else
+        ' single entry table
+        ' -- travel remainder of distance in 1 go at half/speed
+        stEntryCt := 1
+        ' load distance in USec
+        BYTE [@stUSec][0] := bIsIncreasing ? absDeltaUSec : 0 - absDeltaUSec
+        ' load our step count
+        BYTE [@stCount][0]  := 1
+        ' load delay time in tics
+        WORD [@stDelay][0] :=  DELAY_USEC_HALF_RATE
+
+    stCurrIdx := 0
+    stCurrCt := BYTE [@stCount][stCurrIdx]  ' set initial number of steps (must be > 0)
+    stNextExpire := getct()                 ' set already expired
+
+    'term.memDump(@ms001, @stCurrCt - @ms001 + 1, string("ServoSlewTable"))
+    dumpTable(targetUSec, currUSec, deltaUSec)
+    term.fstr0(string("\r\n"))
+
+PRI dumpTable(nTargetUSec, currUSec, deltaUSec) | tableIndex
+    ' dump our table formatted
+    term.fstr5(string("- TABLE [%s] %d entry/ies, from(%d) to(%d) delta(%d)\r\n"), @nameStr, stEntryCt, currUSec, nTargetUSec, deltaUSec)
+    repeat tableIndex from 0 to stEntryCt - 1
+        term.fstr4(string("- E%d: uS(%d), ct(%d), delay(%d)\r\n"), tableIndex+1, BYTE [@stUSec][tableIndex] signx 7, BYTE [@stCount][tableIndex], WORD [@stDelay][tableIndex])
+
+PRI isValidMode(mode) : bValidStatus
+    ' Return T/F where T means {mode} is valid
+    bValidStatus := FALSE
+    if (mode == M_ANGLE)
+        bValidStatus := TRUE
+    elseif (mode == M_USECS)
+        bValidStatus := TRUE
+    elseif (mode == M_PRCNT)
+        bValidStatus := TRUE
+    if NOT bValidStatus
+        term.fstr1(string("+ isValidMode() ERROR mode(%d) NOT valid\r\n"), mode)
+
+PRI hardwareConfigured(callerIDMsg) : bIsConfigured
+    bIsConfigured := bChannelSpecified
+    if NOT bChannelSpecified
+        term.fstr2(string("+ %s() ERROR Channel[%s] NOT configured\r\n"), callerIDMsg, @nameStr)
+
+PRI convertPosition(inMode, inValue, outMode) : outValue | bIsValidMode, tmpDegr, tmpUSec
+    bIsValidMode := isValidMode(inMode)
+    bIsValidMode &= isValidMode(outMode)
+    if (bIsValidMode)
+        tmpUSec, tmpDegr := positionInLimits(inMode, inValue)
+        if (outMode == M_ANGLE)
+            outValue := tmpDegr
+        elseif (outMode == M_USECS)
+            outValue := tmpUSec
+        elseif (outMode == M_PRCNT)
+            outValue := us2Range(tmpUSec)
+    else
+        if bShowDebug
+            term.fstr3(string("+ convertPosn(INMODE %d, VAL %d, OUTMODE %d) ERROR Bad Param!\r\n"), inMode, inValue, outMode)
+
+PRI positionInLimits(mode, value) : retUSec, retDegr | tmpRange
+    if (mode == M_ANGLE)
+        retDegr := 0 #> value <# 180                    ' legal degrees
+        retUSec := angle2us(retDegr)                    ' convert to uSecs
+        if retDegr <> value
+            term.fstr4(string("+ positionInLimits(ANGLE[%d], VAL %d) --> uSec %d, angle %d\r\n"), mode, value, retUSec, retDegr)
+    elseif (mode == M_USECS)
+        retUSec := uSecMinimum #> value <# uSecMaximum  ' legal microseconds
+        retDegr := us2Angle(retUSec)                    ' convert to posnDegr
+        if retUSec <> value
+            term.fstr4(string("+ positionInLimits(uSec[%d], VAL %d) --> uSec %d, angle %d\r\n"), mode, value, retUSec, retDegr)
+    elseif (mode == M_PRCNT)
+        tmpRange := rngMinimum #> value <# rngMaximum   ' legal range
+        retUSec := rangeToUSec(tmpRange)                ' convert to uSecs
+        retDegr := us2Angle(retUSec)                    ' convert to posnDegr
+    else
+        term.fstr2(string("+ positionInLimits(MODE %d, VAL %d) ERROR Bad MODE!\r\n"), mode, value)
+
+PRI setServoDefaults()
+    ' configure default values for this servo if we don't yet have these
+    if not bHaveLimits
+        uSecMinimum := DEFAULT_LIMIT_USEC_MIN
+        uSecMaximum := DEFAULT_LIMIT_USEC_MAX
+        uSecCenter := DEFAULT_LIMIT_USEC_CTR
+        servoType := ST_STANDARD
+        bHaveLimits := TRUE
+
+PRI angle2us(degr) : posnUSec | validDegr
+    ' convert degrees to uSecs
+    validDegr := 0 #> degr <# 180                           ' legal degrees
+    ' map our number of degrees to uSec time
+    posnUSec := map(validDegr, 0, 180, uSecMinimum, uSecMaximum)
+    'term.fstr4(string("+ angle2us(%d degr) --> %d uSec [uSec min:%d, max:%d]\r\n"), validDegr, posnUSec, uSecMinimum, uSecMaximum)
+
+PRI us2Angle(uSecs) : posnDegr | validUs
+    ' convert uSecs to degrees
+    validUs := uSecMinimum #> uSecs <# uSecMaximum          ' legal microseconds
+    ' map our uSec time to number of degrees
+    posnDegr := map(validUs, uSecMinimum, uSecMaximum, 0, 180)
+    'term.fstr4(string("+ us2Angle(uSec %d) --> %d degr [uSec min:%d, max:%d]\r\n"), validUs, posnDegr, uSecMinimum, uSecMaximum)
+
+PRI us2Range(uSecs) : posnRange | validUs
+    ' convert uSecs to degrees
+    validUs := uSecMinimum #> uSecs <# uSecMaximum          ' legal microseconds
+    ' map our uSec time to range
+    posnRange := map(validUs, uSecMinimum, uSecMaximum, rngMinimum, rngMaximum)
+    'term.fstr4(string("+ us2Angle(uSec %d) --> %d degr [uSec min:%d, max:%d]\r\n"), validUs, posnDegr, uSecMinimum, uSecMaximum)
+
+PRI rangeToUSec(inValue) : valueInUSec
+    valueInUSec := SERVO_POSITION_NOT_SET
+    if rngMinimum <> SERVO_POSITION_NOT_SET and rngMaximum <> SERVO_POSITION_NOT_SET
+        valueInUSec := map(inValue,  rngMinimum,  rngMaximum,  uSecMinimum,  uSecMaximum)
+
+PRI map(inValue,  inMin,  inMax,  outMin,  outMax) : outValue
+{
+    REF: https://www.arduino.cc/reference/en/language/functions/math/map
+
+    Re-maps a number from one range to another. That is, a value of fromLow would get mapped to toLow,
+    a value of fromHigh to toHigh, values in-between to values in-between, etc.
+
+    Does not constrain values to within the range, because out-of-range values are sometimes intended and
+    useful. The constrain() function may be used either before or after this function, if limits to the ranges are desired.
+
+    Note that the "lower bounds" of either range may be larger or smaller than the "upper bounds" so the
+    map() function may be used to reverse a range of numbers, for example
+
+    y = map(x, 1, 50, 50, 1);
+
+    The function also handles negative numbers well, so that this example
+
+    y = map(x, 1, 50, 50, -100);
+
+    is also valid and works well.
+
+    The map() function uses integer math so will not generate fractions, when the math might indicate that
+    it should do so. Fractional remainders are truncated, and are not rounded or averaged.
+}
+  outValue := (inValue - inMin) * (outMax - outMin) / (inMax - inMin) + outMin

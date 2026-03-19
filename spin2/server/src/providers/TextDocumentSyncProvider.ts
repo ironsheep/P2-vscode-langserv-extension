@@ -25,6 +25,12 @@ export default class TextDocumentSyncProvider implements Provider {
   private connection: lsp.Connection;
   private includeDiscovery: IncludeDiscovery;
 
+  // Debounce state: per-document timers so editing one file doesn't delay another.
+  // The document text is updated immediately on each keystroke, but the expensive
+  // parse → diagnostics → dependency chain waits until typing pauses.
+  private parseTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private static readonly PARSE_DEBOUNCE_MS = 350;
+
   constructor(protected readonly ctx: Context) {
     this.processor = new DocumentProcessor(ctx);
     //this.diagnostics = new DiagnosticProcessor(ctx);
@@ -58,8 +64,33 @@ export default class TextDocumentSyncProvider implements Provider {
   }
 
   async handleTextDocumentChanged({ textDocument: { uri, version }, contentChanges }: lsp.DidChangeTextDocumentParams) {
-    // update top-level document on change
+    // Update the in-memory document text IMMEDIATELY so that other providers
+    // (hover, completion, semantic tokens) always see the latest content.
+    // The expensive parse → diagnostics → dependency chain is debounced below.
     this.ctx.logger.log(`TRC: DOC-CHANGED: update: [v${version}:${uri}] and those including URI`);
+    const docFSpec: string = fileSpecFromURI(uri);
+    const existingInclude = this.ctx.docsByFSpec.get(docFSpec);
+    if (existingInclude) {
+      TextDocument.update(existingInclude.document, contentChanges, version);
+    }
+
+    // Cancel any pending parse for this document and restart the timer.
+    const existingTimer = this.parseTimers.get(uri);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+    this.parseTimers.set(
+      uri,
+      setTimeout(() => {
+        this.parseTimers.delete(uri);
+        this.debouncedParse(uri).catch((err) => {
+          this.ctx.logger.log(`TRC: DOC-CHANGED debounced parse error: ${err}`);
+        });
+      }, TextDocumentSyncProvider.PARSE_DEBOUNCE_MS)
+    );
+  }
+
+  private async debouncedParse(uri: string): Promise<void> {
     const docFSpec: string = fileSpecFromURI(uri);
     const existingTopLevel = this.ctx.topDocsByFSpec.get(docFSpec);
     const existingInclude = this.ctx.docsByFSpec.get(docFSpec);
@@ -67,14 +98,8 @@ export default class TextDocumentSyncProvider implements Provider {
       //
       // have a top-level file
       //
-      const { document } = existingInclude;
-
-      const updatedDoc = TextDocument.update(document, contentChanges, version);
-
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      await this.processor.process(updatedDoc).then(({ parseResult }) => {
-        // Send just local parser diagnostics
-        // FIXME: not quite correct but works for now...
+      await this.processor.process(existingInclude.document).then(({ parseResult }) => {
         this.fileDiagnostics(uri);
         this.sendDependenciesChangedNotification(uri);
       });
@@ -82,15 +107,11 @@ export default class TextDocumentSyncProvider implements Provider {
       //
       // have an include file
       //
-      const { document } = existingInclude;
-      const updatedDoc = TextDocument.update(document, contentChanges, version);
-
-      await this.processor.process(updatedDoc);
+      await this.processor.process(existingInclude.document);
       await this.processor.updateFindings(uri);
       this.sendDependenciesChangedNotification(uri);
     }
     await this.processor.processEnclosing(uri).then((x) => {
-      // Send Diagnostics for each URI affected by the include
       for (let index = 0; index < x.length; index++) {
         const uri = x[index];
         this.fileDiagnostics(uri);

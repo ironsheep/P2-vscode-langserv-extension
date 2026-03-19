@@ -2,9 +2,9 @@
 ' File is already properly formatted with 2-space indent, correct tabstops
 
 CON
-  _clkfreq      =               10_000_000
-  MAX           =               100
-  TIMEOUT       =               5000
+  _clkfreq  = 10_000_000
+  MAX       = 100
+  TIMEOUT   = 5000
 
 VAR
   LONG  result
@@ -33,5 +33,5 @@ pub helper(x) : y | scratch
 
 DAT
 
-mydata        long      0
-counter       long      0
+        mydata          long    0
+        counter         long    0
