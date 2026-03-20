@@ -426,8 +426,8 @@ export class Formatter {
         }
         const { firstLine, lastLine, lineCount } = this.lineNumbersFromSelection(document, selection);
         const cursorPos: vscode.Position = new vscode.Position(firstLine, 0);
-        let charactersToInsert: string = "'";
-        let priorTabstop: number = 0;
+        let charactersToInsert: string = "' ";
+        let priorTabstop: number = 1;
         let currTabstop: number = 0;
         let tabNumber: number = 1;
         do {

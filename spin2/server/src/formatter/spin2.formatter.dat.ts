@@ -160,10 +160,12 @@ function formatPasmRegion(
     if (p.mnemonic.length > maxMnemWidth) maxMnemWidth = p.mnemonic.length;
   }
 
-  // Determine column positions using tabstop snapping
-  // Labels are at column 0
-  const condCol = maxLabelWidth > 0 ? snapToNextTabstop(maxLabelWidth, tabStops) : (tabStops.length > 0 ? tabStops[0] : 8);
-  const mnemCol = maxCondWidth > 0 ? snapToNextTabstop(condCol + maxCondWidth, tabStops) : snapToNextTabstop(condCol, tabStops);
+  // Determine column positions from tabstops.
+  // Labels at column 0, conditions at first tabstop, instructions at second tabstop.
+  // Labels and conditions share the pre-instruction space (they never appear on
+  // the same line) so the instruction column is fixed, not computed from widths.
+  const condCol = tabStops.length > 0 ? tabStops[0] : 8;
+  const mnemCol = tabStops.length > 1 ? tabStops[1] : 14;
   const operandCol = snapToNextTabstop(mnemCol + maxMnemWidth, tabStops);
 
   // Compute operand end columns for effects alignment
@@ -194,31 +196,69 @@ function formatPasmRegion(
   }
   const commentCol = computeBlockCommentColumn(contentEndCols, tabStops);
 
+  // Detect REP blocks and mark lines that should be indented.
+  // REP #N, #count — next N instruction lines are the block.
+  // REP @label, #count — lines until the label are the block.
+  const REP_INDENT = 1;
+  const repIndentLines = new Set<number>();
+  for (let pi = 0; pi < pasmLines.length; pi++) {
+    const p = pasmLines[pi];
+    if (p.mnemonic.toLowerCase() !== 'rep') continue;
+
+    const operands = p.operands;
+    // REP @label, ... — find the label
+    const labelMatch = operands.match(/^@([^\s,]+)/);
+    if (labelMatch) {
+      const targetLabel = labelMatch[1];
+      for (let pj = pi + 1; pj < pasmLines.length; pj++) {
+        if (pasmLines[pj].label === targetLabel) break;
+        if (pasmLines[pj].mnemonic.length > 0) {
+          repIndentLines.add(pasmLines[pj].lineIdx);
+        }
+      }
+      continue;
+    }
+
+    // REP #N, ... or REP ##N, ... — next N instruction lines
+    const countMatch = operands.match(/^#{1,2}(\d+)/);
+    if (countMatch) {
+      const blockSize = parseInt(countMatch[1], 10);
+      let count = 0;
+      for (let pj = pi + 1; pj < pasmLines.length && count < blockSize; pj++) {
+        if (pasmLines[pj].mnemonic.length > 0) {
+          repIndentLines.add(pasmLines[pj].lineIdx);
+          count++;
+        }
+      }
+    }
+  }
+
   // Pass 2: apply alignment
   for (const p of pasmLines) {
     let formatted = '';
+    const indent = repIndentLines.has(p.lineIdx) ? REP_INDENT : 0;
 
-    // Label at column 0
+    // Label at column 0 (labels are never inside REP blocks)
     if (p.label.length > 0) {
       formatted = p.label;
     }
 
-    // Condition
+    // Condition — always at fixed column
     if (p.condition.length > 0) {
       formatted = padToColumn(formatted, condCol) + p.condition;
     }
 
-    // Mnemonic
+    // Mnemonic — indent inside REP blocks for visual grouping
     if (p.mnemonic.length > 0) {
-      formatted = padToColumn(formatted, mnemCol) + p.mnemonic;
+      formatted = padToColumn(formatted, mnemCol + indent) + p.mnemonic;
     }
 
-    // Operands
+    // Operands — always at fixed column (no REP indent)
     if (p.operands.length > 0) {
       formatted = padToColumn(formatted, operandCol) + p.operands;
     }
 
-    // Effects
+    // Effects — always at fixed column (no REP indent)
     if (p.effects.length > 0) {
       formatted = padToColumn(formatted, effectsCol) + p.effects;
     }

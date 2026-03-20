@@ -409,7 +409,27 @@ describe('Formatter: Safety tests', function () {
   //  spaces-4, and elastic tabs — each must compile to the same GOLD binary.
   //  This verifies that no whitespace mode produces semantic changes.
   // =========================================================================
-  describe('Cross-config binary parity (tabs-8 → spaces-2 → spaces-4 → elastic)', function () {
+  // IronSheep elastic tabstop config (shipped defaults from package.json)
+  const IRONSHEEP_TABSTOPS: Record<string, number[]> = {
+    con: [2, 8, 16, 18, 32, 56, 78, 80],
+    var: [2, 8, 22, 32, 56, 80],
+    obj: [2, 8, 16, 18, 32, 56, 80],
+    pub: [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80],
+    pri: [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80],
+    dat: [8, 14, 24, 32, 48, 56, 80]
+  };
+
+  // PropellerTool elastic tabstop config (shipped defaults from package.json)
+  const PROPELLERTOOL_TABSTOPS: Record<string, number[]> = {
+    con: [4, 8, 16, 20, 32, 44, 56, 68, 80],
+    var: [4, 12, 24, 28, 32, 44, 56, 68, 80],
+    obj: [4, 8, 16, 20, 32, 44, 56, 68, 80],
+    pub: [4, 8, 12, 16, 20, 24, 28, 32, 56, 80],
+    pri: [4, 8, 12, 16, 20, 24, 28, 32, 56, 80],
+    dat: [4, 16, 20, 24, 28, 48, 52, 56, 60, 64, 68, 80]
+  };
+
+  describe('Cross-config binary parity (tabs-8 → spaces-2 → spaces-4 → elastic-IronSheep → elastic-PropellerTool)', function () {
     before(function () {
       if (!pnutAvailable) this.skip();
     });
@@ -418,11 +438,12 @@ describe('Formatter: Safety tests', function () {
       { name: 'tabs-8', config: { tabsToSpaces: false, tabWidth: 8, indentSize: 2 } },
       { name: 'spaces-2', config: { tabsToSpaces: true, indentSize: 2 } },
       { name: 'spaces-4', config: { tabsToSpaces: true, indentSize: 4 } },
-      { name: 'elastic', config: { tabsToSpaces: true, indentSize: 2 }, elastic: { enabled: true, tabStops: DEFAULT_TABSTOPS } }
+      { name: 'elastic-IronSheep', config: { tabsToSpaces: true, indentSize: 2 }, elastic: { enabled: true, tabStops: IRONSHEEP_TABSTOPS } },
+      { name: 'elastic-PropellerTool', config: { tabsToSpaces: true, indentSize: 4 }, elastic: { enabled: true, tabStops: PROPELLERTOOL_TABSTOPS } }
     ];
 
     for (const fixture of goldFixtures) {
-      it(`${fixture.name}: tabs-8 → spaces-2 → spaces-4 → elastic all match GOLD`, function () {
+      it(`${fixture.name}: tabs-8 → spaces-2 → spaces-4 → elastic-IronSheep → elastic-PropellerTool all match GOLD`, function () {
         if (!pnutAvailable) this.skip();
 
         const originalText = fs.readFileSync(fixture.spin2Path, 'utf-8');

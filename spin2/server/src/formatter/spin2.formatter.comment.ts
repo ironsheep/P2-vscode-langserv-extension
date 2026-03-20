@@ -166,7 +166,9 @@ export function normalizeMethodBlockCase(
   caseConfig: CaseConfig,
   conConstants?: Set<string>
 ): void {
-  // Apply each non-preserve word set in order
+  // Apply each non-preserve word set in order.
+  // PASM instructions are included because PUB/PRI blocks can contain
+  // inline PASM (org...end) whose mnemonics need case normalization.
   const sets: { words: Set<string>; targetCase: string }[] = [];
 
   if (caseConfig.blockNameCase !== 'preserve') {
@@ -180,6 +182,9 @@ export function normalizeMethodBlockCase(
   }
   if (caseConfig.typeCase !== 'preserve') {
     sets.push({ words: TYPE_KEYWORDS, targetCase: caseConfig.typeCase });
+  }
+  if (caseConfig.pasmInstructionCase !== 'preserve') {
+    sets.push({ words: PASM_INSTRUCTIONS, targetCase: caseConfig.pasmInstructionCase });
   }
   if (caseConfig.constantCase !== 'preserve' && conConstants && conConstants.size > 0) {
     sets.push({ words: conConstants, targetCase: caseConfig.constantCase });
