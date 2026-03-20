@@ -1,0 +1,16 @@
+' dummy_child.spin2 — Minimal compilable child object for OBJ tests
+
+CON
+  CHILD_VERSION = 1
+
+VAR
+  LONG  state
+
+PUB start()
+  state := 1
+
+PUB stop()
+  state := 0
+
+PUB getvalue() : result
+  result := state

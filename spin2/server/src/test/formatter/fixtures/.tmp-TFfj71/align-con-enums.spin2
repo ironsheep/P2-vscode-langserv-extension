@@ -1,0 +1,25 @@
+' align-con-enums.spin2 — Test: CON enum groups with ragged spacing
+' Extra spaces between enum members, multiple groups
+
+CON
+  _clkfreq = 10_000_000
+
+  #0,  STATE_IDLE,   STATE_RUN,    STATE_STOP,   STATE_ERROR
+  #10,    ERR_NONE,    ERR_TIMEOUT,     ERR_OVERFLOW,  ERR_UNDERFLOW,    ERR_INVALID
+
+  ' pin assignments as constants
+  PIN_LED     = 56
+  PIN_BUTTON  = 57
+
+  #0,  CMD_NOP,   CMD_READ,CMD_WRITE,    CMD_RESET   ' command set
+  #100[10],   REGION_A,   REGION_B,   REGION_C  ' regions with step
+
+  MAX_RETRIES = 5
+
+VAR
+  LONG  state
+  LONG  errCode
+
+PUB main()
+  state := STATE_IDLE
+  errCode := ERR_NONE
