@@ -16,7 +16,7 @@ import {
   DEFAULT_TABSTOPS,
   ElasticTabstopConfig
 } from './spin2.formatter.base';
-import { formatDatBlock } from './spin2.formatter.dat';
+import { formatPasmRegionDirect } from './spin2.formatter.dat';
 import { DocumentFindings } from '../parser/spin.semantic.findings';
 
 const ORG_RE = /^\s*(org|orgh)\b/i;
@@ -54,6 +54,15 @@ export function formatMethodBlock(
   // Normalize indentation for Spin2 code lines (not inline PASM content)
   normalizeIndentation(lines, startLine, endLine, findings, tabStops, indentSize, inlinePasm);
 
+  // Fix ORG/END indent: these are always at the method body's base indent
+  // level (level 1).  They are never nested inside control structures — org/end
+  // is a standalone statement that happens to contain PASM.
+  const baseIndentCol = indentSize; // level 1
+  for (const region of inlinePasm) {
+    lines[region.orgLine] = ' '.repeat(baseIndentCol) + lines[region.orgLine].trimStart();
+    lines[region.endLine] = ' '.repeat(baseIndentCol) + lines[region.endLine].trimStart();
+  }
+
   // Align indented full-line comments to the indent of the next code line below
   alignFullLineComments(lines, startLine, endLine, findings, inlinePasm);
 
@@ -86,6 +95,8 @@ function isInlinePasmBoundary(lineIdx: number, regions: InlinePasmRegion[]): boo
   return regions.some((r) => lineIdx === r.orgLine || lineIdx === r.endLine);
 }
 
+// findNearestCodeIndent removed — org/end always use method base indent (level 1)
+
 function formatInlinePasmRegion(
   lines: string[],
   region: InlinePasmRegion,
@@ -99,8 +110,13 @@ function formatInlinePasmRegion(
     // Strip leading whitespace — PASM content goes to column 0
     lines[i] = lines[i].trimStart();
   }
-  // Delegate to DAT formatter for column alignment within the region
-  formatDatBlock(lines, region.orgLine + 1, region.endLine - 1, findings, elasticConfig);
+  // Delegate to PASM formatter directly for column alignment.
+  // formatDatBlock can't be used here because it looks for ORG...END regions
+  // within the range, but the ORG/END keywords are outside this range.
+  const tabStops = elasticConfig.enabled
+    ? (elasticConfig.tabStops['dat'] || DEFAULT_TABSTOPS.dat)
+    : DEFAULT_TABSTOPS.dat;
+  formatPasmRegionDirect(lines, region.orgLine + 1, region.endLine - 1, findings, tabStops);
 }
 
 function normalizeIndentation(
@@ -234,12 +250,17 @@ function alignFullLineComments(
   for (let i = firstCodeLine; i <= endLine; i++) {
     if (isInInlinePasmContent(i, inlinePasm)) continue;
     if (isInlinePasmBoundary(i, inlinePasm)) continue;
-    if (findings.isLineInBlockComment(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (!isFullLineComment(lines[i])) continue;
 
-    // Doc comments ('' at column 0) are documentation, not commented-out code — skip them.
+    // The parser records consecutive single-' comment lines as "block comments"
+    // in its tracking.  But these are commented-out code, not { } block comments.
+    // Only skip lines that are truly inside { } or {{ }} block comments — NOT
+    // single-line comment groups.
     const trimmed = lines[i].trimStart();
+    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
+
+    // Doc comments ('' at column 0) are documentation, not commented-out code — skip them.
     if (isColumnZero(lines[i]) && trimmed.startsWith("''")) continue;
 
     // All other full-line comments after the first code line are treated as

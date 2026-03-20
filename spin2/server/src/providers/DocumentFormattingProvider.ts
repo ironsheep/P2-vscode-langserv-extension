@@ -152,6 +152,12 @@ export default class DocumentFormattingProvider implements Provider {
     // Phase 1c: Blank line normalization (after section formatting to preserve line indices)
     result = this.normalizeBlankLines(result, findings, config);
 
+    // Phase 1e: Ensure blank line between method documentation and first code line
+    result = this.ensureBlankBeforeMethodCode(result);
+
+    // Phase 1f: Remove blank lines between PUB/PRI declaration and its documentation
+    result = this.removeBlankAfterMethodDecl(result);
+
     // Phase 1d: Final newline
     if (config.insertFinalNewline) {
       result = this.ensureFinalNewline(result);
@@ -289,6 +295,79 @@ export default class DocumentFormattingProvider implements Provider {
         }
         consecutiveBlanks = 0;
         result.push(line);
+      }
+    }
+
+    return result;
+  }
+
+  private ensureBlankBeforeMethodCode(lines: string[]): string[] {
+    // For each PUB/PRI method that has documentation between the declaration
+    // and the first code line, ensure a blank line separates them.
+    const methodRe = /^(pub|pri)\b/i;
+    const result: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      result.push(lines[i]);
+
+      if (!methodRe.test(lines[i].trimStart())) continue;
+
+      // Found a PUB/PRI declaration.  Scan forward for the first code line.
+      let hasDoc = false;
+      let firstCodeIdx = -1;
+      for (let j = i + 1; j < lines.length; j++) {
+        const trimmed = lines[j].trimStart();
+        if (trimmed.length === 0) continue; // blank line
+        if (trimmed.startsWith("'") || trimmed.startsWith('{')) {
+          hasDoc = true;
+          continue; // comment (doc or otherwise)
+        }
+        if (methodRe.test(trimmed)) break; // hit next method without finding code
+        firstCodeIdx = j;
+        break;
+      }
+
+      if (!hasDoc || firstCodeIdx < 0) continue; // no doc, or no code — skip
+
+      // Check if there's already a blank line before the first code line
+      if (firstCodeIdx > 0 && lines[firstCodeIdx - 1].trim().length === 0) continue;
+
+      // Push lines up to (but not including) the first code line, then insert blank
+      for (let j = i + 1; j < firstCodeIdx; j++) {
+        result.push(lines[j]);
+      }
+      result.push(''); // the blank separator
+      // Continue the main loop from the first code line
+      i = firstCodeIdx - 1; // -1 because the for loop will i++
+    }
+
+    return result;
+  }
+
+  private removeBlankAfterMethodDecl(lines: string[]): string[] {
+    // Remove blank lines between a PUB/PRI declaration and its documentation.
+    // The declaration and doc comments should be visually connected.
+    const methodRe = /^(pub|pri)\b/i;
+    const result: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      result.push(lines[i]);
+
+      if (!methodRe.test(lines[i].trimStart())) continue;
+
+      // Skip blank lines immediately after the declaration
+      let j = i + 1;
+      while (j < lines.length && lines[j].trim().length === 0) {
+        j++;
+      }
+
+      // If the next non-blank line is a comment (method documentation), drop the blanks
+      if (j < lines.length && j > i + 1) {
+        const nextTrimmed = lines[j].trimStart();
+        if (nextTrimmed.startsWith("'") || nextTrimmed.startsWith('{')) {
+          // Skip the blank lines — continue from the first comment
+          i = j - 1; // -1 because the for loop will i++
+        }
       }
     }
 

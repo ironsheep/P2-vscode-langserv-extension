@@ -103,6 +103,21 @@ function isInOrgRegion(lineIdx: number, orgRegions: OrgRegion[]): boolean {
   return orgRegions.some((r) => lineIdx >= r.startLine && lineIdx <= r.endLine);
 }
 
+/**
+ * Format PASM lines directly (for use by inline PASM in methods).
+ * Unlike formatDatBlock, this does not search for ORG...END regions —
+ * it treats the entire range as PASM content.
+ */
+export function formatPasmRegionDirect(
+  lines: string[],
+  startLine: number,
+  endLine: number,
+  findings: DocumentFindings,
+  tabStops: number[]
+): void {
+  formatPasmRegion(lines, startLine, endLine, findings, tabStops);
+}
+
 function formatPasmRegion(
   lines: string[],
   startLine: number,
@@ -229,22 +244,23 @@ function parsePasmLine(line: string, lineIdx: number): PasmLine | null {
   let effects = '';
 
   // Check if the first token is a PASM keyword (condition, mnemonic, or data type).
-  // If not, it is a label.
+  // If not, it may be a label.
   if (remaining.length > 0 && !CONDITION_RE.test(remaining) && !DATA_TYPE_RE.test(remaining)) {
-    // First token might be a label — but only if it's not a known mnemonic.
-    // Since we can't enumerate all mnemonics, use heuristic: if the first token
-    // starts a line that had leading whitespace in the original, and the token
-    // doesn't look like an identifier followed by a mnemonic/condition, treat it
-    // as a label when the original line had it at column 0 or it's followed by
-    // a recognizable PASM pattern.
     const firstTokenMatch = remaining.match(/^(\S+)\s*/);
     if (firstTokenMatch) {
+      const firstToken = firstTokenMatch[1];
       const afterFirst = remaining.substring(firstTokenMatch[0].length);
-      // It's a label if what follows is a condition, type keyword, or known pattern
-      // OR if the original line started at column 0 (traditional label position)
-      const originalAtCol0 = codePart.length > 0 && codePart[0] !== ' ' && codePart[0] !== '\t';
-      if (originalAtCol0 || CONDITION_RE.test(afterFirst) || DATA_TYPE_RE.test(afterFirst) || afterFirst.trim().length === 0) {
-        label = firstTokenMatch[1];
+
+      // Local labels (.name) are always labels
+      if (firstToken.startsWith('.')) {
+        label = firstToken;
+        remaining = remaining.substring(firstTokenMatch[0].length);
+      }
+      // Otherwise: the first token is a label if what follows it is a recognizable
+      // PASM pattern (condition, type keyword, or nothing).  If what follows looks
+      // like operands (not a keyword), then the first token is a mnemonic, not a label.
+      else if (CONDITION_RE.test(afterFirst) || DATA_TYPE_RE.test(afterFirst) || afterFirst.trim().length === 0) {
+        label = firstToken;
         remaining = remaining.substring(firstTokenMatch[0].length);
       }
     }

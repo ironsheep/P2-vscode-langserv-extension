@@ -277,6 +277,12 @@ export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>,
   // Phase 1c: Blank line normalization
   lines = normalizeBlankLines(lines, findings, cfg);
 
+  // Phase 1e: Ensure blank line between method documentation and first code line
+  lines = ensureBlankBeforeMethodCode(lines);
+
+  // Phase 1f: Remove blank lines between PUB/PRI declaration and its documentation
+  lines = removeBlankAfterMethodDecl(lines);
+
   // Phase 1d: Final newline
   if (cfg.insertFinalNewline) {
     lines = ensureFinalNewline(lines);
@@ -404,6 +410,67 @@ function getDesiredBlanksBeforeLine(lineIdx: number, blockSpans: IBlockSpan[], c
     }
   }
   return undefined;
+}
+
+function ensureBlankBeforeMethodCode(lines: string[]): string[] {
+  const methodRe = /^(pub|pri)\b/i;
+  const result: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    result.push(lines[i]);
+
+    if (!methodRe.test(lines[i].trimStart())) continue;
+
+    let hasDoc = false;
+    let firstCodeIdx = -1;
+    for (let j = i + 1; j < lines.length; j++) {
+      const trimmed = lines[j].trimStart();
+      if (trimmed.length === 0) continue;
+      if (trimmed.startsWith("'") || trimmed.startsWith('{')) {
+        hasDoc = true;
+        continue;
+      }
+      if (methodRe.test(trimmed)) break;
+      firstCodeIdx = j;
+      break;
+    }
+
+    if (!hasDoc || firstCodeIdx < 0) continue;
+    if (firstCodeIdx > 0 && lines[firstCodeIdx - 1].trim().length === 0) continue;
+
+    for (let j = i + 1; j < firstCodeIdx; j++) {
+      result.push(lines[j]);
+    }
+    result.push('');
+    i = firstCodeIdx - 1;
+  }
+
+  return result;
+}
+
+function removeBlankAfterMethodDecl(lines: string[]): string[] {
+  const methodRe = /^(pub|pri)\b/i;
+  const result: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    result.push(lines[i]);
+
+    if (!methodRe.test(lines[i].trimStart())) continue;
+
+    let j = i + 1;
+    while (j < lines.length && lines[j].trim().length === 0) {
+      j++;
+    }
+
+    if (j < lines.length && j > i + 1) {
+      const nextTrimmed = lines[j].trimStart();
+      if (nextTrimmed.startsWith("'") || nextTrimmed.startsWith('{')) {
+        i = j - 1;
+      }
+    }
+  }
+
+  return result;
 }
 
 function ensureFinalNewline(lines: string[]): string[] {

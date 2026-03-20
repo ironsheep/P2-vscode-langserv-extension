@@ -255,6 +255,13 @@ moreData      long    0
 - `spaceInsideParens` is declared in config but **not implemented**.
 - Line length enforcement / auto-wrapping with `...` is **not implemented** (Phase 5 deferred).
 
+**Futures — documentation style awareness:**
+- The formatter currently treats all comment groups after PUB/PRI as documentation (removes blank lines between declaration and first comment, enforces blank line before first code). It does not distinguish between documentation comments and commented-out code in this zone.
+- A future enhancement could recognize the two documentation styles used in the Spin2 community:
+  - **VSCode style**: `@param name description`, `@returns name description` — structured, extractable to interface docs
+  - **Traditional style**: Free-form `''`/`'` description with `--` parameter notes — informal, human-readable
+- With style awareness, the formatter could make smarter decisions: detect when no documentation is present (only commented-out code after PUB/PRI) and preserve/insert a blank line before it instead of pulling it tight to the declaration.
+
 ---
 
 ## 3. Elastic Tabstops Mode
