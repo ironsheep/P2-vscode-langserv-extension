@@ -148,6 +148,25 @@ We know the three extension so far which might interfere with our Spin2 extensio
 1. If I haven't already, I'll be submitting pull requests to the Overtype extension maintainers to add code for avoiding interference with our .spin/.spin2 InsertMode feature, but in the meantime, please ensure that the [Overtype by Adma Maras](https://marketplace.visualstudio.com/items?itemName=adammaras.overtype) and/or [Overtype by DrMerfy](https://marketplace.visualstudio.com/items?itemName=DrMerfy.overtype) extensions are disabled or uninstalled, as they can interfere with our extensions' behavior.
 2. The Extension [Document This](https://marketplace.visualstudio.com/items?itemName=oouo-diogo-perdigao.docthis) v0.8.2 currently also occasionally intercepts the Ctrl+Alt+D keystroke, which we use to generate documentation, and our extension then doesn't get the request. I've filed an issue with the maintainer of that extension, so maybe this will be fixed in the future.  Meanwhile, you can either disable the **Document This** extension or, when you see the warning pop-up from the document this extension, you can usually just click in your editor window again, then press Ctrl+Alt+d again, and it will work after one or more tries.
 
+### Color picker showing for #{hexdigits} constants in .spin2 code
+This is a common issue caused by VS Code's built-in Color Decorator feature, not necessarily a separate extension. VS Code's default behavior interprets # followed by hex digits as CSS color codes and shows color picker swatches.
+
+To confirm and fix this, you can check a couple of things:
+
+Built-in CSS/HTML language features — VS Code ships with extensions like "CSS Language Features" and "HTML Language Features" that detect #RRGGBB patterns even in non-CSS files.
+
+The setting to disable it — Search your VS Code settings for:
+
+editor.colorDecorators — set this to false to disable color picker indicators globally
+Or better, disable it only for Spin2 files by adding to your settings.json:
+
+```json
+"[spin2]": {
+    "editor.colorDecorators": false
+}
+```
+You can also check which extensions are active in your Spin2 files by opening a .spin2 file, then running the command "Developer: Show Running Extensions" from the command palette (Cmd+Shift+P). Look for any extension that provides color decoration — common culprits besides the built-in ones include extensions like "Color Highlight", "Color Picker", or "Colorize".
+
 ## Repository Notes
 
 This repository contains a single subproject, which is the VS Code extension:
