@@ -238,12 +238,14 @@ function alignFullLineComments(
   // be at column 0; other comments before code are left alone.
   const firstCodeLine = findFirstCodeLine(lines, startLine + 1, endLine, findings, inlinePasm);
 
-  // Move accidentally-indented doc comments ('') to column 0
+  // Move accidentally-indented method comments (' and '') to column 0.
+  // All comment lines between the PUB/PRI declaration and the first code line
+  // are method documentation and belong at column 0.
   const docEnd = firstCodeLine >= 0 ? firstCodeLine : endLine + 1;
   for (let i = startLine + 1; i < docEnd; i++) {
     if (lines[i].trim().length === 0) continue;
     const trimmed = lines[i].trimStart();
-    if (trimmed.startsWith("''") && !isColumnZero(lines[i])) {
+    if (trimmed.startsWith("'") && !isColumnZero(lines[i])) {
       lines[i] = trimmed;
     }
   }
