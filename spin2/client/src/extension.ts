@@ -28,7 +28,7 @@ import { IUsbSerialDevice, UsbSerial } from './usb.serial';
 import { createStatusBarFlashDownloadItem, updateStatusBarFlashDownloadItem } from './providers/spin.downloadFlashMode.statusBarItem';
 import { createStatusBarCompileDebugItem, updateStatusBarCompileDebugItem } from './providers/spin.compileDebugMode.statusBarItem';
 import { createStatusBarPropPlugItem, updateStatusBarPropPlugItem } from './providers/spin.propPlug.statusBarItem';
-import { createStatusBarTabIndentItem, updateStatusBarTabIndentItem } from './providers/spin.tabIndent.statusBarItem';
+import { createStatusBarTabIndentItem, updateStatusBarTabIndentItem, profileDisplayName } from './providers/spin.tabIndent.statusBarItem';
 import {
   PATH_FLEXSPIN,
   PATH_LOADER_BIN,
@@ -2435,11 +2435,27 @@ async function buildPnutTermTsSwitches(writeToFlash: boolean, serialPort: string
 
 async function showFormatterTabSettings() {
   const formatterConfig = vscode.workspace.getConfiguration('spinExtension.formatter');
+  const elasticConfig = vscode.workspace.getConfiguration('spinExtension.elasticTabstops');
+  const elasticEnabled: boolean = elasticConfig.get<boolean>('enable', false);
   const tabsToSpaces: boolean = formatterConfig.get<boolean>('tabsToSpaces', true);
+  const currentProfile: string = elasticConfig.get<string>('choice', 'PropellerTool');
+
+  // Determine current mode for marking items
+  const isSpaces = !elasticEnabled && tabsToSpaces;
+  const isTabs = !elasticEnabled && !tabsToSpaces;
+
+  // Build elastic profile items
+  const elasticProfiles = ['PropellerTool', 'IronSheep', 'User1'];
 
   const items: vscode.QuickPickItem[] = [
-    { label: 'Indent Using Spaces', description: tabsToSpaces ? '(current)' : '' },
-    { label: 'Indent Using Tabs', description: !tabsToSpaces ? '(current)' : '' },
+    { label: 'Indent Using Spaces', description: isSpaces ? '(current)' : '' },
+    { label: 'Indent Using Tabs', description: isTabs ? '(current)' : '' },
+    { label: '', kind: vscode.QuickPickItemKind.Separator },
+    ...elasticProfiles.map((profile) => ({
+      label: `Elastic: ${profileDisplayName(profile)}`,
+      description: elasticEnabled && currentProfile === profile ? '(current)' : ''
+    })),
+    { label: '', kind: vscode.QuickPickItemKind.Separator },
     { label: 'Change Indent Size...', description: `Currently: ${formatterConfig.get<number>('indentSize', 2)}` },
     { label: 'Change Tab Width...', description: `Currently: ${formatterConfig.get<number>('tabWidth', 8)}` }
   ];
@@ -2448,11 +2464,21 @@ async function showFormatterTabSettings() {
   if (!picked) return;
 
   if (picked.label === 'Indent Using Spaces') {
+    await elasticConfig.update('enable', false, vscode.ConfigurationTarget.Workspace);
     await formatterConfig.update('tabsToSpaces', true, vscode.ConfigurationTarget.Workspace);
     updateStatusBarTabIndentItem(true);
   } else if (picked.label === 'Indent Using Tabs') {
+    await elasticConfig.update('enable', false, vscode.ConfigurationTarget.Workspace);
     await formatterConfig.update('tabsToSpaces', false, vscode.ConfigurationTarget.Workspace);
     updateStatusBarTabIndentItem(true);
+  } else if (picked.label.startsWith('Elastic: ')) {
+    // Find which profile was selected by matching the display name
+    const selectedProfile = elasticProfiles.find((p) => `Elastic: ${profileDisplayName(p)}` === picked.label);
+    if (selectedProfile) {
+      await elasticConfig.update('enable', true, vscode.ConfigurationTarget.Workspace);
+      await elasticConfig.update('choice', selectedProfile, vscode.ConfigurationTarget.Workspace);
+      updateStatusBarTabIndentItem(true);
+    }
   } else if (picked.label === 'Change Indent Size...') {
     const sizes: vscode.QuickPickItem[] = [2, 4, 8].map((n) => ({
       label: `${n}`,

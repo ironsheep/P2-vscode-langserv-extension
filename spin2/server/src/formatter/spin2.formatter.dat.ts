@@ -27,6 +27,44 @@ const DATA_TYPE_RE = /^(byte|word|long)\b/i;
 // ORG/FIT/END keywords
 const ORG_RE = /^\s*(org|orgh)\b/i;
 const FIT_RE = /^\s*(fit|end)\b/i;
+// Debug call pattern (handled specially to avoid splitting at whitespace inside strings)
+const DEBUG_CALL_RE = /^debug\s*\(/i;
+// Full P2 PASM instruction set (from spin2.utils.ts).
+// Used to distinguish labels from mnemonics: if the token AFTER the first word
+// is a known instruction, the first word is a label.  Also used for standalone
+// single-token lines (stalli, nop, ret, etc.).
+// prettier-ignore
+const P2_PASM_MNEMONICS = new Set(
+  ('abs add addct1 addct2 addct3 addpix adds addsx addx akpin allowi altb altd altgb altgn altgw alti altr alts altsb altsn altsw ' +
+  'and andn asmclk augd augs bitc bith bitl bitnc bitnot bitnz bitrnd bitz blnpix bmask brk ' +
+  'call calla callb calld callpa callpb cmp cmpm cmpr cmps cmpsub cmpsx cmpx cogatn cogbrk cogid coginit cogstop crcbit crcnib ' +
+  'debug decmod decod dirc dirh dirl dirnc dirnot dirnz dirrnd dirz djf djnf djnz djz ' +
+  'drvc drvh drvl drvnc drvnot drvnz drvrnd drvz encod execf fblock fge fges fle fles ' +
+  'fltc flth fltl fltnc fltnot fltnz fltrnd fltz getbrk getbyte getct getnib getptr getqx getqy getrnd getscp getword getxacc ' +
+  'hubset ijnz ijz incmod jatn jct1 jct2 jct3 jfbw jint jmp jmprel ' +
+  'jnatn jnct1 jnct2 jnct3 jnfbw jnint jnpat jnqmt jnse1 jnse2 jnse3 jnse4 jnxfi jnxmt jnxrl jnxro ' +
+  'jpat jqmt jse1 jse2 jse3 jse4 jxfi jxmt jxrl jxro ' +
+  'loc locknew lockrel lockret locktry mergeb mergew mixpix modc modcz modz mov movbyts mul mulpix muls ' +
+  'muxc muxnc muxnibs muxnits muxnz muxq muxz neg negc negnc negnz negz nixint1 nixint2 nixint3 nop not ones or ' +
+  'outc outh outl outnc outnot outnz outrnd outz pollatn pollct1 pollct2 pollct3 pollfbw pollint pollpat pollqmt ' +
+  'pollse1 pollse2 pollse3 pollse4 pollxfi pollxmt pollxrl pollxro pop popa popb push pusha pushb ' +
+  'qdiv qexp qfrac qlog qmul qrotate qsqrt qvector rcl rcr rczl rczr rdbyte rdfast rdlong rdlut rdpin rdword ' +
+  'rep resi0 resi1 resi2 resi3 ret reta retb reti0 reti1 reti2 reti3 rev rfbyte rflong rfvar rfvars rfword rgbexp rgbsqz ' +
+  'rol rolbyte rolnib rolword ror rqpin sal sar sca scas ' +
+  'setbyte setcfrq setci setcmod setcq setcy setd setdacs setint1 setint2 setint3 setluts setnib setpat setpiv setpix setq setq2 setr sets ' +
+  'setscp setse1 setse2 setse3 setse4 setword setxfrq seussf seussr shl shr signx skip skipf splitb splitw stalli ' +
+  'sub subr subs subsx subx sumc sumnc sumnz sumz test testb testbn testn testp testpn ' +
+  'tjf tjnf tjns tjnz tjs tjv tjz trgint1 trgint2 trgint3 ' +
+  'waitatn waitct1 waitct2 waitct3 waitfbw waitint waitpat waitse1 waitse2 waitse3 waitse4 waitx waitxfi waitxmt waitxrl waitxro ' +
+  'wfbyte wflong wfword wmlong wrbyte wrc wrfast wrlong wrlut wrnc wrnz wrpin wrword wrz wxpin wypin ' +
+  'xcont xinit xor xoro32 xstop xzero zerox').split(' ')
+);
+
+/** Check if the text starts with a known PASM instruction mnemonic */
+function afterFirstStartsWithMnemonic(text: string): boolean {
+  const match = text.trimStart().match(/^([a-z_]\w*)\b/i);
+  return match !== null && P2_PASM_MNEMONICS.has(match[1].toLowerCase());
+}
 
 interface DatDataLine {
   lineIdx: number;
@@ -115,7 +153,7 @@ export function formatPasmRegionDirect(
   findings: DocumentFindings,
   tabStops: number[]
 ): void {
-  formatPasmRegion(lines, startLine, endLine, findings, tabStops);
+  formatPasmRegion(lines, startLine, endLine, findings, tabStops, true);
 }
 
 function formatPasmRegion(
@@ -123,7 +161,8 @@ function formatPasmRegion(
   startLine: number,
   endLine: number,
   findings: DocumentFindings,
-  tabStops: number[]
+  tabStops: number[],
+  isInlinePasm: boolean = false
 ): void {
   const pasmLines: PasmLine[] = [];
 
@@ -147,47 +186,70 @@ function formatPasmRegion(
   if (pasmLines.length === 0) return;
 
   // Two-pass alignment
-  // Pass 1: measure column widths
-  let maxLabelWidth = 0;
+  // Pass 1: measure column widths, separating data declarations from instructions.
+  // Data declarations (label LONG/WORD/BYTE value) have their own type column
+  // driven by data label widths.  PASM instruction mnemonics are only pushed
+  // out by long conditions, NOT by long data labels.
+  let maxDataLabelWidth = 0;
+  let maxDataTypeWidth = 0;
   let maxCondWidth = 0;
-  let maxMnemWidth = 0;
-  let maxOperandsEnd = 0;
-  let maxEffectsEnd = 0;
+  let maxInstrMnemWidth = 0;
 
   for (const p of pasmLines) {
-    if (p.label.length > maxLabelWidth) maxLabelWidth = p.label.length;
-    if (p.condition.length > maxCondWidth) maxCondWidth = p.condition.length;
-    if (p.mnemonic.length > maxMnemWidth) maxMnemWidth = p.mnemonic.length;
+    const isData = DATA_TYPE_RE.test(p.mnemonic);
+    if (isData) {
+      if (p.label.length > maxDataLabelWidth) maxDataLabelWidth = p.label.length;
+      if (p.mnemonic.length > maxDataTypeWidth) maxDataTypeWidth = p.mnemonic.length;
+    } else {
+      if (p.condition.length > maxCondWidth) maxCondWidth = p.condition.length;
+      // Exclude debug() calls — they are self-contained expressions
+      if (p.mnemonic.length > maxInstrMnemWidth && !DEBUG_CALL_RE.test(p.mnemonic)) {
+        maxInstrMnemWidth = p.mnemonic.length;
+      }
+    }
   }
 
-  // Determine column positions from tabstops.
-  // Labels at column 0, conditions at first tabstop, instructions at second tabstop.
-  // Labels and conditions share the pre-instruction space (they never appear on
-  // the same line) so the instruction column is fixed, not computed from widths.
-  const condCol = tabStops.length > 0 ? tabStops[0] : 8;
-  const mnemCol = tabStops.length > 1 ? tabStops[1] : 14;
-  const operandCol = snapToNextTabstop(mnemCol + maxMnemWidth, tabStops);
+  // Column positions from tabstops
+  const defaultCondCol = tabStops.length > 0 ? tabStops[0] : 8;
+  const defaultMnemCol = tabStops.length > 1 ? tabStops[1] : 14;
+  const condCol = defaultCondCol;
 
-  // Compute operand end columns for effects alignment
+  // Instruction mnemonic column: driven by conditions ONLY
+  const condEnd = maxCondWidth > 0 ? condCol + maxCondWidth : 0;
+  const instrMnemCol = condEnd >= defaultMnemCol
+    ? snapToNextTabstop(condEnd, tabStops)
+    : defaultMnemCol;
+  const instrOperandCol = snapToNextTabstop(instrMnemCol + maxInstrMnemWidth, tabStops);
+
+  // Data type column: driven by data label widths (independent of conditions)
+  const dataMnemCol = maxDataLabelWidth >= defaultMnemCol
+    ? snapToNextTabstop(maxDataLabelWidth, tabStops)
+    : defaultMnemCol;
+  const dataValueCol = snapToNextTabstop(dataMnemCol + maxDataTypeWidth, tabStops);
+
+  // Compute operand end columns for effects alignment (instructions only)
   const operandEndCols: number[] = [];
   for (const p of pasmLines) {
     if (p.effects.length > 0) {
-      operandEndCols.push(operandCol + p.operands.length);
+      operandEndCols.push(instrOperandCol + p.operands.length);
     }
   }
-  const effectsCol = operandEndCols.length > 0 ? snapToNextTabstop(Math.max(...operandEndCols), tabStops) : operandCol;
+  const effectsCol = operandEndCols.length > 0 ? snapToNextTabstop(Math.max(...operandEndCols), tabStops) : instrOperandCol;
 
-  // Compute content end for comment alignment
+  // Compute content end for comment alignment (shared across both types)
   const contentEndCols: number[] = [];
   for (const p of pasmLines) {
     if (p.comment.length > 0) {
+      const isData = DATA_TYPE_RE.test(p.mnemonic);
       let contentEnd: number;
-      if (p.effects.length > 0) {
+      if (isData) {
+        contentEnd = p.operands.length > 0 ? dataValueCol + p.operands.length : dataMnemCol + p.mnemonic.length;
+      } else if (p.effects.length > 0) {
         contentEnd = effectsCol + p.effects.length;
       } else if (p.operands.length > 0) {
-        contentEnd = operandCol + p.operands.length;
+        contentEnd = instrOperandCol + p.operands.length;
       } else if (p.mnemonic.length > 0) {
-        contentEnd = mnemCol + p.mnemonic.length;
+        contentEnd = instrMnemCol + p.mnemonic.length;
       } else {
         contentEnd = condCol;
       }
@@ -235,6 +297,9 @@ function formatPasmRegion(
 
   // Pass 2: apply alignment
   for (const p of pasmLines) {
+    const isData = DATA_TYPE_RE.test(p.mnemonic);
+    const mnemCol = isData ? dataMnemCol : instrMnemCol;
+    const operandCol = isData ? dataValueCol : instrOperandCol;
     let formatted = '';
     const indent = repIndentLines.has(p.lineIdx) ? REP_INDENT : 0;
 
@@ -243,22 +308,22 @@ function formatPasmRegion(
       formatted = p.label;
     }
 
-    // Condition — always at fixed column
+    // Condition — always at fixed column (instructions only)
     if (p.condition.length > 0) {
       formatted = padToColumn(formatted, condCol) + p.condition;
     }
 
-    // Mnemonic — indent inside REP blocks for visual grouping
+    // Mnemonic (or type keyword for data lines)
     if (p.mnemonic.length > 0) {
       formatted = padToColumn(formatted, mnemCol + indent) + p.mnemonic;
     }
 
-    // Operands — always at fixed column (no REP indent)
+    // Operands (or value for data lines)
     if (p.operands.length > 0) {
       formatted = padToColumn(formatted, operandCol) + p.operands;
     }
 
-    // Effects — always at fixed column (no REP indent)
+    // Effects — instructions only
     if (p.effects.length > 0) {
       formatted = padToColumn(formatted, effectsCol) + p.effects;
     }
@@ -269,6 +334,25 @@ function formatPasmRegion(
     }
 
     lines[p.lineIdx] = formatted;
+  }
+
+  // Align full-line comments within the PASM region.
+  // Inside an ORG...END region (whether in DAT or inline PASM), all comments
+  // are PASM commentary and should be aligned — there are no "section headers"
+  // within ORG regions.  Align to condCol (the first code column after labels).
+  //
+  // Note: the real parser records consecutive ' comment groups as "block comments"
+  // in its tracking.  We must allow '-prefixed lines through even when
+  // isLineInBlockComment returns true — only skip true { } block comments.
+  for (let i = startLine; i <= endLine; i++) {
+    const trimmed = lines[i].trimStart();
+    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
+    if (lines[i].trim().length === 0) continue;
+    if (!isFullLineComment(lines[i])) continue;
+    // skip org/fit/end directive lines
+    if (ORG_RE.test(trimmed) || FIT_RE.test(trimmed)) continue;
+    // Align to condCol (where conditions/code start)
+    lines[i] = ' '.repeat(condCol) + trimmed;
   }
 }
 
@@ -296,10 +380,20 @@ function parsePasmLine(line: string, lineIdx: number): PasmLine | null {
         label = firstToken;
         remaining = remaining.substring(firstTokenMatch[0].length);
       }
-      // Otherwise: the first token is a label if what follows it is a recognizable
-      // PASM pattern (condition, type keyword, or nothing).  If what follows looks
-      // like operands (not a keyword), then the first token is a mnemonic, not a label.
-      else if (CONDITION_RE.test(afterFirst) || DATA_TYPE_RE.test(afterFirst) || afterFirst.trim().length === 0) {
+      // Single token that is a known PASM instruction (stalli, nop, ret, mov, etc.)
+      // — NOT a label, leave in remaining for mnemonic extraction
+      else if (afterFirst.trim().length === 0 && P2_PASM_MNEMONICS.has(firstToken.toLowerCase())) {
+        // intentionally not extracting as label
+      }
+      // The first token is a label if what follows it is a recognizable PASM
+      // pattern: condition, type keyword, debug call, known instruction, or nothing.
+      else if (
+        CONDITION_RE.test(afterFirst) ||
+        DATA_TYPE_RE.test(afterFirst) ||
+        DEBUG_CALL_RE.test(afterFirst) ||
+        afterFirstStartsWithMnemonic(afterFirst) ||
+        afterFirst.trim().length === 0
+      ) {
         label = firstToken;
         remaining = remaining.substring(firstTokenMatch[0].length);
       }
@@ -311,6 +405,42 @@ function parsePasmLine(line: string, lineIdx: number): PasmLine | null {
   if (condMatch) {
     condition = condMatch[1];
     remaining = remaining.substring(condMatch[0].length);
+  }
+
+  // Handle debug() calls: parse balanced parens to keep the entire debug(...)
+  // as a single mnemonic token, avoiding splits at whitespace inside strings
+  if (DEBUG_CALL_RE.test(remaining.trimStart())) {
+    const trimmedRemaining = remaining.trimStart();
+    let depth = 0;
+    let inStr = false;
+    let inBacktick = false;
+    let btParenDepth = 0;
+    let endIdx = -1;
+    for (let j = 0; j < trimmedRemaining.length; j++) {
+      const ch = trimmedRemaining[j];
+      if (inBacktick) {
+        if (ch === '(') btParenDepth++;
+        else if (ch === ')') {
+          btParenDepth--;
+          if (btParenDepth < 0) {
+            inBacktick = false;
+            depth--;
+            if (depth === 0) { endIdx = j; break; }
+          }
+        }
+        continue;
+      }
+      if (ch === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (ch === '`') { inBacktick = true; btParenDepth = 0; continue; }
+      if (ch === '(') depth++;
+      else if (ch === ')') {
+        depth--;
+        if (depth === 0) { endIdx = j; break; }
+      }
+    }
+    mnemonic = endIdx >= 0 ? trimmedRemaining.substring(0, endIdx + 1) : trimmedRemaining;
+    return { lineIdx, label, condition, mnemonic, operands: '', effects: '', comment };
   }
 
   // Extract effects from end of remaining code (before comment was stripped)
@@ -402,6 +532,22 @@ function formatDatDataLines(
       formatted = padToColumn(formatted, commentCol) + d.comment;
     }
     lines[d.lineIdx] = formatted;
+  }
+
+  // Align non-col-0 full-line comments outside ORG regions to the label indent.
+  // The real parser records consecutive ' comment groups as "block comments" —
+  // allow '-prefixed lines through, only skip true { } block comments.
+  for (let i = startLine; i <= endLine; i++) {
+    if (isInOrgRegion(i, orgRegions)) continue;
+    const trimmed = lines[i].trimStart();
+    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
+    if (lines[i].trim().length === 0) continue;
+    if (!isFullLineComment(lines[i])) continue;
+    if (/^dat\b/i.test(trimmed)) continue;
+    // Column-0 comments are section headers — leave them
+    if (isColumnZero(lines[i])) continue;
+    // Align to the label indent position (where data content starts)
+    lines[i] = ' '.repeat(labelIndent) + trimmed;
   }
 }
 

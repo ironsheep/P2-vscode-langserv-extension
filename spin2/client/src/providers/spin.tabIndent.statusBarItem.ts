@@ -2,12 +2,23 @@
 // client/src/providers/spin.tabIndent.statusBarItem.ts
 //
 // Status bar item showing current formatter tab/indent settings.
-// Displays "Spaces: N" or "Tabs: N" to indicate the active style.
+// Displays "Spaces: N", "Tabs: N", or the elastic profile name.
 // Clicking opens the Spin2 formatter settings.
 
 import * as vscode from 'vscode';
 
 let statusBarItem: vscode.StatusBarItem | null;
+
+// Map internal profile names to shorter display names for the status bar
+const PROFILE_DISPLAY_NAMES: Record<string, string> = {
+  PropellerTool: 'Prop Tool',
+  IronSheep: 'IronSheep',
+  User1: 'User1'
+};
+
+export function profileDisplayName(profileKey: string): string {
+  return PROFILE_DISPLAY_NAMES[profileKey] || profileKey;
+}
 
 export const createStatusBarTabIndentItem = () => {
   if (statusBarItem != null) {
@@ -51,8 +62,10 @@ export const updateStatusBarTabIndentItem = (showItem: boolean | null) => {
       let tooltipText: string;
 
       if (elasticEnabled) {
-        sbiText = 'Spin2 Elastic';
-        tooltipText = 'Spin2 Formatter: elastic tabstops enabled (click to change)';
+        const profileKey: string = elasticConfig.get<string>('choice', 'PropellerTool');
+        const displayName = profileDisplayName(profileKey);
+        sbiText = `Spin2 ${displayName}`;
+        tooltipText = `Spin2 Formatter: elastic tabstops — ${displayName} profile (click to change)`;
       } else if (tabsToSpaces) {
         sbiText = `Spin2 Spaces: ${indentSize}`;
         tooltipText = `Spin2 Formatter: ${indentSize}-space indentation (click to change)`;

@@ -22,126 +22,112 @@ const CONTROL_FLOW_KEYWORDS = new Set([
   'next', 'quit', 'return', 'abort'
 ]);
 
-// Built-in methods and constants/registers
-const METHOD_KEYWORDS = new Set([
-  'cogspin', 'coginit', 'cogstop', 'cogid', 'cogchk',
-  'locknew', 'lockret', 'locktry', 'lockrel', 'lockchk',
-  'cogatn', 'pollatn', 'waitatn',
-  'pinw', 'pinwrite', 'pinr', 'pinread',
-  'pinl', 'pinlow', 'pinh', 'pinhigh',
-  'pint', 'pintoggle', 'pinf', 'pinfloat',
-  'pinstart', 'pinclear',
-  'wrpin', 'wxpin', 'wypin', 'akpin', 'rdpin', 'rqpin',
-  'getct', 'pollct', 'waitct', 'waitus', 'waitms', 'waitx',
-  'getsec', 'getms',
-  'call', 'regexec', 'regload',
-  'rotxy', 'polxy', 'xypol',
-  'qsin', 'qcos', 'muldiv64',
-  'getrnd', 'nan',
-  'getregs', 'setregs',
-  'bytemove', 'wordmove', 'longmove',
-  'bytefill', 'wordfill', 'longfill',
-  'movbyts',
-  'strsize', 'strcomp', 'strcopy',
-  'getcrc',
-  'string',
-  'lookup', 'lookupz', 'lookdown', 'lookdownz',
-  'lstring',
-  'byteswap', 'wordswap', 'longswap',
-  'bytecomp', 'wordcomp', 'longcomp',
-  'sizeof', 'offsetof',
-  'taskspin', 'tasknext', 'taskstop', 'taskhalt', 'taskcont', 'taskchk', 'taskid',
-  'endianl', 'endianw',
-  'hubset', 'clkset',
-  'debug',
-  'float', 'round', 'trunc',
-  'abs', 'encod', 'decod', 'bmask', 'ones', 'sqrt', 'qlog', 'qexp',
-  'sar', 'ror', 'rol', 'rev', 'zerox', 'signx',
-  'sca', 'scas', 'frac',
-  'addbits', 'addpins',
-  'not', 'and', 'or', 'xor',
-  'recv', 'send',
-  'getcnt',
-  // Built-in constants and registers
-  'true', 'false', 'negx', 'posx', 'pi',
-  'clkmode', 'clkfreq', '_clkfreq', 'clkmode_', 'clkfreq_',
-  'varbase', 'field',
-  'reg', 'pr0', 'pr1', 'pr2', 'pr3', 'pr4', 'pr5', 'pr6', 'pr7',
-  'ijmp1', 'ijmp2', 'ijmp3', 'iret1', 'iret2', 'iret3',
-  'pa', 'pb', 'ptra', 'ptrb', 'dira', 'dirb', 'outa', 'outb', 'ina', 'inb'
-]);
+// Full set of built-in methods, constants, and registers (from spin2.utils.ts).
+// Sourced from: _tableSpinHubMethods, _tableSpinPinMethods, _tableSpinTimingMethods,
+// _tablePAsmInterfaceMethods, _tableSpinMathMethods, _tableSpinMemoryMethods,
+// _tableSpinStringMethods, _tableSpinStringBuilder, _tableSpinIndexValueMethods,
+// _tableSpinControlFlowMethods, _tableSpinFloatConversions, _tableSpinMethodPointerSymbols,
+// _tableSpinEnhancements_v42/_v44/_v44_replaced/_v45/_v47/_v52/_v53,
+// _tableSpinNumericSymbols, _tableSpinCogRegisters, _tableSpinHubLocations,
+// _tableSpinHubVariables, _tableClockSpinSymbols, _tableClockControlSymbols_v46,
+// _tableSpinCoginitSymbols, _tableSpinCogexecSymbols, _tableSpinTaskSymbols_v47,
+// _tableSpinTaskRegisters_v47
+// prettier-ignore
+const METHOD_KEYWORDS = new Set(
+  (// Hub methods
+  'hubset clkset cogspin coginit cogstop cogid cogchk locknew lockret locktry lockrel lockchk cogatn pollatn waitatn ' +
+  // Pin methods
+  'pinw pinwrite pinr pinread pinl pinlow pinh pinhigh pint pintoggle pinf pinfloat pinstart pinclear ' +
+  'wrpin wxpin wypin akpin rdpin rqpin ' +
+  // Timing methods
+  'getct pollct waitct waitus waitms getsec getms ' +
+  // PASM interface methods
+  'call regexec regload ' +
+  // Math methods
+  'rotxy polxy xypol qsin qcos muldiv64 getrnd nan ' +
+  // Memory methods
+  'getregs setregs bytemove wordmove longmove bytefill wordfill longfill movbyts ' +
+  // String methods
+  'strsize strcomp strcopy getcrc string lstring ' +
+  // Index/value methods
+  'lookup lookupz lookdown lookdownz ' +
+  // Control flow methods (used as expressions)
+  'abort return ' +
+  // Float conversions
+  'float round trunc ' +
+  // Method pointers
+  'send recv ' +
+  // Spin2 operators used as built-in methods
+  'abs encod decod bmask ones sqrt qlog qexp sar ror rol rev zerox signx sca scas frac addbits addpins not and or xor ' +
+  // v42 enhancements
+  'bytes words longs ' +
+  // v44 enhancements
+  'byteswap wordswap longswap bytecomp wordcomp longcomp ' +
+  // v44 struct methods (replaced in later versions)
+  'fill copy swap comp ' +
+  // v45 enhancements
+  'sizeof ' +
+  // v47 enhancements (task methods)
+  'taskspin tasknext taskstop taskhalt taskcont taskchk taskid ' +
+  // v52 enhancements
+  'endianl endianw ' +
+  // v53 enhancements
+  'offsetof ' +
+  // Debug
+  'debug ' +
+  // Built-in numeric constants
+  'true false negx posx pi ' +
+  // Hub locations and variables
+  'clkmode clkfreq varbase ' +
+  // Clock symbols
+  'clkmode_ clkfreq_ _clkfreq _autoclk ' +
+  // Coginit/cogexec symbols
+  'cogexec hubexec cogexec_new hubexec_new cogexec_new_pair hubexec_new_pair newcog ' +
+  // Task symbols
+  'newtask thistask ' +
+  // Task registers
+  'taskhlt ' +
+  // Cog registers
+  'reg field pr0 pr1 pr2 pr3 pr4 pr5 pr6 pr7 ijmp1 ijmp2 ijmp3 iret1 iret2 iret3 ' +
+  'pa pb ptra ptrb dira dirb outa outb ina inb').split(' ')
+);
 
 // Type keywords
 const TYPE_KEYWORDS = new Set([
   'byte', 'word', 'long', 'struct', 'union'
 ]);
 
-// PASM mnemonics (for case normalization)
-const PASM_INSTRUCTIONS = new Set([
-  'nop', 'ror', 'rol', 'shr', 'shl', 'rcr', 'rcl', 'sar', 'sal',
-  'add', 'addx', 'adds', 'addsx', 'sub', 'subx', 'subs', 'subsx',
-  'cmp', 'cmpx', 'cmps', 'cmpsx', 'cmpr', 'cmpm', 'subr',
-  'cmpsub', 'fge', 'fle', 'fges', 'fles',
-  'sumc', 'sumz', 'sumnc', 'sumnz',
-  'testb', 'testbn', 'bitl', 'bith', 'bitc', 'bitnc', 'bitz', 'bitnz', 'bitrnd', 'bitnot',
-  'and', 'andn', 'or', 'xor', 'muxc', 'muxnc', 'muxz', 'muxnz',
-  'mov', 'not', 'abs', 'neg', 'negc', 'negnc', 'negz', 'negnz',
-  'incmod', 'decmod', 'zerox', 'signx', 'encod', 'ones', 'test', 'testn',
-  'setnib', 'getnib', 'rolnib', 'setbyte', 'getbyte', 'rolbyte', 'setword', 'getword', 'rolword',
-  'altsn', 'altgn', 'altsb', 'altgb', 'altsw', 'altgw', 'altd', 'alts', 'altr', 'altds',
-  'decod', 'bmask', 'crcbit', 'crcnib',
-  'muls', 'mulu', 'sca', 'scas',
-  'addpix', 'mulpix', 'blnpix', 'mixpix',
-  'addct1', 'addct2', 'addct3', 'wmlong',
-  'rqpin', 'rdpin', 'rdlut', 'rdbyte', 'rdword', 'rdlong',
-  'calld', 'resi3', 'resi2', 'resi1', 'resi0', 'reti3', 'reti2', 'reti1', 'reti0',
-  'callpa', 'callpb',
-  'djz', 'djnz', 'djf', 'djnf', 'ijz', 'ijnz', 'tjz', 'tjnz', 'tjf', 'tjnf',
-  'tjs', 'tjns', 'tjv',
-  'jint', 'jct1', 'jct2', 'jct3', 'jse1', 'jse2', 'jse3', 'jse4',
-  'jpat', 'jfbw', 'jxmt', 'jxfi', 'jxro', 'jxrl', 'jatn', 'jqmt',
-  'jnint', 'jnct1', 'jnct2', 'jnct3', 'jnse1', 'jnse2', 'jnse3', 'jnse4',
-  'jnpat', 'jnfbw', 'jnxmt', 'jnxfi', 'jnxro', 'jnxrl', 'jnatn', 'jnqmt',
-  'setpat', 'wrpin', 'wxpin', 'wypin', 'wrlut', 'wrbyte', 'wrword', 'wrlong',
-  'rdfast', 'wrfast', 'fblock', 'xinit', 'xstop', 'xzero', 'xcont',
-  'rep', 'coginit', 'qmul', 'qdiv', 'qfrac', 'qsqrt', 'qrotate', 'qvector',
-  'hubset', 'cogid', 'cogstop', 'locknew', 'lockret', 'locktry', 'lockrel',
-  'qlog', 'qexp',
-  'rfbyte', 'rfword', 'rflong', 'rfvar', 'rfvars',
-  'wfbyte', 'wfword', 'wflong',
-  'getbrk', 'cogbrk', 'brk',
-  'getqx', 'getqy',
-  'getct', 'getrnd', 'getregs', 'setregs',
-  'setdacs', 'setxfrq', 'getxacc', 'waitx', 'waitxfi', 'waitxmt', 'waitxrl', 'waitxro',
-  'setint1', 'setint2', 'setint3',
-  'waitint', 'subcon', 'waitatn',
-  'setq', 'setq2',
-  'push', 'pop',
-  'jmp', 'call', 'calla', 'callb', 'ret', 'reta', 'retb',
-  'jmprel',
-  'skip', 'skipf', 'execf',
-  'getptr', 'cogbrk', 'brk',
-  'setluts', 'setcy', 'setci', 'setcq', 'setcfrq', 'setcmod',
-  'loc', 'augs', 'augd',
-  'testp', 'testpn', 'dirl', 'dirh', 'dirc', 'dirnc', 'dirz', 'dirnz', 'dirrnd', 'dirnot',
-  'outl', 'outh', 'outc', 'outnc', 'outz', 'outnz', 'outrnd', 'outnot',
-  'fltl', 'flth', 'fltc', 'fltnc', 'fltz', 'fltnz', 'fltrnd', 'fltnot',
-  'drvl', 'drvh', 'drvc', 'drvnc', 'drvz', 'drvnz', 'drvrnd', 'drvnot',
-  'splitb', 'mergeb', 'splitw', 'mergew', 'seussf', 'seussr',
-  'rgbsqr', 'rgbexp', 'xoro32',
-  'rev', 'rczr', 'rczl', 'wrc', 'wrnc', 'wrz', 'wrnz',
-  'modcz', 'modc', 'modz',
-  'setscp', 'getscp',
-  'akpin', 'asmclk',
-  'nop', 'pinread', 'pinwrite', 'pinlow', 'pinhigh', 'pintoggle', 'pinfloat',
-  'pinstart', 'pinclear',
-  'longfill', 'wordfill', 'bytefill', 'longmove', 'wordmove', 'bytemove',
-  // DAT directives
-  'org', 'orgh', 'orgf', 'fit', 'end', 'res',
-  'alignw', 'alignl',
-  // Type keywords in DAT context
-  'byte', 'word', 'long'
-]);
+// Full P2 PASM instruction set + assembler directives (from spin2.utils.ts isP2AsmInstruction).
+// Used for pasmInstructionCase normalization.
+// NOTE: byte/word/long are NOT included — they use TYPE_KEYWORDS with typeCase instead.
+// prettier-ignore
+const PASM_INSTRUCTIONS = new Set(
+  ('abs add addct1 addct2 addct3 addpix adds addsx addx akpin allowi altb altd altgb altgn altgw alti altr alts altsb altsn altsw ' +
+  'and andn asmclk augd augs bitc bith bitl bitnc bitnot bitnz bitrnd bitz blnpix bmask brk ' +
+  'call calla callb calld callpa callpb cmp cmpm cmpr cmps cmpsub cmpsx cmpx cogatn cogbrk cogid coginit cogstop crcbit crcnib ' +
+  'debug decmod decod dirc dirh dirl dirnc dirnot dirnz dirrnd dirz djf djnf djnz djz ' +
+  'drvc drvh drvl drvnc drvnot drvnz drvrnd drvz encod execf fblock fge fges fle fles ' +
+  'fltc flth fltl fltnc fltnot fltnz fltrnd fltz getbrk getbyte getct getnib getptr getqx getqy getrnd getscp getword getxacc ' +
+  'hubset ijnz ijz incmod jatn jct1 jct2 jct3 jfbw jint jmp jmprel ' +
+  'jnatn jnct1 jnct2 jnct3 jnfbw jnint jnpat jnqmt jnse1 jnse2 jnse3 jnse4 jnxfi jnxmt jnxrl jnxro ' +
+  'jpat jqmt jse1 jse2 jse3 jse4 jxfi jxmt jxrl jxro ' +
+  'loc locknew lockrel lockret locktry mergeb mergew mixpix modc modcz modz mov movbyts mul mulpix muls ' +
+  'muxc muxnc muxnibs muxnits muxnz muxq muxz neg negc negnc negnz negz nixint1 nixint2 nixint3 nop not ones or ' +
+  'outc outh outl outnc outnot outnz outrnd outz pollatn pollct1 pollct2 pollct3 pollfbw pollint pollpat pollqmt ' +
+  'pollse1 pollse2 pollse3 pollse4 pollxfi pollxmt pollxrl pollxro pop popa popb push pusha pushb ' +
+  'qdiv qexp qfrac qlog qmul qrotate qsqrt qvector rcl rcr rczl rczr rdbyte rdfast rdlong rdlut rdpin rdword ' +
+  'rep resi0 resi1 resi2 resi3 ret reta retb reti0 reti1 reti2 reti3 rev rfbyte rflong rfvar rfvars rfword rgbexp rgbsqz ' +
+  'rol rolbyte rolnib rolword ror rqpin sal sar sca scas ' +
+  'setbyte setcfrq setci setcmod setcq setcy setd setdacs setint1 setint2 setint3 setluts setnib setpat setpiv setpix setq setq2 setr sets ' +
+  'setscp setse1 setse2 setse3 setse4 setword setxfrq seussf seussr shl shr signx skip skipf splitb splitw stalli ' +
+  'sub subr subs subsx subx sumc sumnc sumnz sumz test testb testbn testn testp testpn ' +
+  'tjf tjnf tjns tjnz tjs tjv tjz trgint1 trgint2 trgint3 ' +
+  'waitatn waitct1 waitct2 waitct3 waitfbw waitint waitpat waitse1 waitse2 waitse3 waitse4 waitx waitxfi waitxmt waitxrl waitxro ' +
+  'wfbyte wflong wfword wmlong wrbyte wrc wrfast wrlong wrlut wrnc wrnz wrpin wrword wrz wxpin wypin ' +
+  'xcont xinit xor xoro32 xstop xzero zerox ' +
+  // assembler directives (not instructions, but need case normalization in DAT)
+  'org orgh orgf fit end res alignw alignl').split(' ')
+);
 
 /**
  * Case normalization configuration for the 6 granular controls.

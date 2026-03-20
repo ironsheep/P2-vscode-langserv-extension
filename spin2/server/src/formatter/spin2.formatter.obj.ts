@@ -117,8 +117,8 @@ function parseObjLine(line: string, lineIdx: number): ObjLine | null {
   const name = trimmed.substring(0, colonIdx).trimEnd();
   const afterColon = trimmed.substring(colonIdx + 1).trimStart();
 
-  // Validate it looks like an object declaration
-  if (!/^[A-Z_][A-Z0-9_]*$/i.test(name)) {
+  // Validate it looks like an object declaration (with optional array count, e.g., name[7] or name[MAX])
+  if (!/^[A-Z_][A-Z0-9_]*(\[.+\])?$/i.test(name)) {
     return null;
   }
 
