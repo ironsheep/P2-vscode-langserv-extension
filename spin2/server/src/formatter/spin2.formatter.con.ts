@@ -71,7 +71,8 @@ export function formatConBlock(
 
     // Detect enum lines: start with # or are comma-separated without =
     if (isEnumLine(trimmed)) {
-      lines[i] = formatEnumLine(line, tabStops);
+      const indentW = tabStops.length > 0 ? tabStops[0] : 2;
+      lines[i] = formatEnumLine(line, tabStops, indentW);
       continue;
     }
 
@@ -141,15 +142,15 @@ function isEnumLine(trimmed: string): boolean {
   return false;
 }
 
-function formatEnumLine(line: string, tabStops: number[]): string {
-  const indent = line.match(/^(\s*)/)?.[1] || '';
+function formatEnumLine(line: string, tabStops: number[], indentWidth: number): string {
   const [codePart, commentPart] = splitTrailingComment(line);
   const trimmedCode = codePart.trimStart();
 
   // Normalize whitespace: single space after each comma
   const normalized = trimmedCode.replace(/\s*,\s*/g, ', ').replace(/\s+/g, ' ');
 
-  let result = indent + normalized;
+  // Always use the block indent (same as assignment lines)
+  let result = ' '.repeat(indentWidth) + normalized;
 
   if (commentPart.length > 0) {
     const commentCol = computeBlockCommentColumn([result.length], tabStops);

@@ -7,13 +7,13 @@ CON
   TIMEOUT   = 5000
 
 VAR
-  LONG  result
-  BYTE  flags
+  long  result
+  byte  flags
 
 OBJ
-  child         :               "dummy_child"
+  child         : "dummy_child"
 
-pub main() | i, temp
+PUB main() | i, temp
   result := 0
   repeat i from 0 to MAX
     temp := i * 2
@@ -24,7 +24,7 @@ pub main() | i, temp
   flags := 1
 
 
-pub helper(x) : y | scratch
+PUB helper(x) : y | scratch
   scratch := x + 1
   if scratch > 0
     y := scratch

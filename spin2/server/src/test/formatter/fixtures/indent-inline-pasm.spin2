@@ -6,7 +6,7 @@ CON
   PIN_LED = 56
 
 VAR
-  LONG  result
+  long  result
 
 PUB main() | x
   x := 0

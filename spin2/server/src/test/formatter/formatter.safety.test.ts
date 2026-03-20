@@ -89,12 +89,28 @@ const CONFIG_VARIANTS: { name: string; config: Partial<FormatterConfig> }[] = [
     config: { indentSize: 4 }
   },
   {
-    name: 'keyword-uppercase',
-    config: { keywordCase: 'uppercase' }
+    name: 'blockname-lowercase',
+    config: { blockNameCase: 'lowercase' }
   },
   {
-    name: 'keyword-preserve',
-    config: { keywordCase: 'preserve' }
+    name: 'controlflow-uppercase',
+    config: { controlFlowCase: 'uppercase' }
+  },
+  {
+    name: 'method-uppercase',
+    config: { methodCase: 'uppercase' }
+  },
+  {
+    name: 'type-uppercase',
+    config: { typeCase: 'uppercase' }
+  },
+  {
+    name: 'constant-lowercase',
+    config: { constantCase: 'lowercase' }
+  },
+  {
+    name: 'all-case-preserve',
+    config: { blockNameCase: 'preserve', controlFlowCase: 'preserve', methodCase: 'preserve', typeCase: 'preserve' }
   },
   {
     name: 'pasm-lowercase',

@@ -54,15 +54,6 @@ export function formatMethodBlock(
   // Normalize indentation for Spin2 code lines (not inline PASM content)
   normalizeIndentation(lines, startLine, endLine, findings, tabStops, indentSize, inlinePasm);
 
-  // Fix ORG/END indent: these are always at the method body's base indent
-  // level (level 1).  They are never nested inside control structures — org/end
-  // is a standalone statement that happens to contain PASM.
-  const baseIndentCol = indentSize; // level 1
-  for (const region of inlinePasm) {
-    lines[region.orgLine] = ' '.repeat(baseIndentCol) + lines[region.orgLine].trimStart();
-    lines[region.endLine] = ' '.repeat(baseIndentCol) + lines[region.endLine].trimStart();
-  }
-
   // Align indented full-line comments to the indent of the next code line below
   alignFullLineComments(lines, startLine, endLine, findings, inlinePasm);
 
@@ -243,8 +234,20 @@ function alignFullLineComments(
 ): void {
   // Find the first actual code line in the method body.  Everything before it
   // is method documentation ('' doc blocks for PUB, ' description blocks for
-  // PRI, local variable descriptions, blank lines) and should not be moved.
+  // PRI, local variable descriptions, blank lines).  Doc comments ('') should
+  // be at column 0; other comments before code are left alone.
   const firstCodeLine = findFirstCodeLine(lines, startLine + 1, endLine, findings, inlinePasm);
+
+  // Move accidentally-indented doc comments ('') to column 0
+  const docEnd = firstCodeLine >= 0 ? firstCodeLine : endLine + 1;
+  for (let i = startLine + 1; i < docEnd; i++) {
+    if (lines[i].trim().length === 0) continue;
+    const trimmed = lines[i].trimStart();
+    if (trimmed.startsWith("''") && !isColumnZero(lines[i])) {
+      lines[i] = trimmed;
+    }
+  }
+
   if (firstCodeLine < 0) return; // no code lines in method
 
   for (let i = firstCodeLine; i <= endLine; i++) {

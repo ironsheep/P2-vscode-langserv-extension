@@ -13,7 +13,7 @@ import { formatVarBlock } from '../formatter/spin2.formatter.var';
 import { formatObjBlock } from '../formatter/spin2.formatter.obj';
 import { formatDatBlock } from '../formatter/spin2.formatter.dat';
 import { formatMethodBlock } from '../formatter/spin2.formatter.method';
-import { normalizeKeywordCase, normalizePasmCase, normalizeCommentSpacing } from '../formatter/spin2.formatter.comment';
+import { CaseConfig, normalizeMethodBlockCase, normalizeDatBlockCase, normalizeNonCodeBlockCase, normalizeCommentSpacing, extractConConstants } from '../formatter/spin2.formatter.comment';
 
 interface FormatterConfig {
   enable: boolean;
@@ -25,7 +25,11 @@ interface FormatterConfig {
   tabsToSpaces: boolean;
   tabWidth: number;
   indentSize: number;
-  keywordCase: string;
+  blockNameCase: string;
+  controlFlowCase: string;
+  methodCase: string;
+  typeCase: string;
+  constantCase: string;
   pasmInstructionCase: string;
   spaceAfterCommentStart: boolean;
 }
@@ -111,7 +115,11 @@ export default class DocumentFormattingProvider implements Provider {
       tabsToSpaces: typeof raw?.['tabsToSpaces'] === 'boolean' ? raw['tabsToSpaces'] : (editorInsertSpaces !== undefined ? editorInsertSpaces : true),
       tabWidth: typeof raw?.['tabWidth'] === 'number' ? raw['tabWidth'] : (editorTabSize !== undefined ? editorTabSize : 8),
       indentSize: typeof raw?.['indentSize'] === 'number' ? raw['indentSize'] : 2,
-      keywordCase: typeof raw?.['keywordCase'] === 'string' ? raw['keywordCase'] : 'lowercase',
+      blockNameCase: typeof raw?.['blockNameCase'] === 'string' ? raw['blockNameCase'] : 'uppercase',
+      controlFlowCase: typeof raw?.['controlFlowCase'] === 'string' ? raw['controlFlowCase'] : 'lowercase',
+      methodCase: typeof raw?.['methodCase'] === 'string' ? raw['methodCase'] : 'lowercase',
+      typeCase: typeof raw?.['typeCase'] === 'string' ? raw['typeCase'] : 'lowercase',
+      constantCase: typeof raw?.['constantCase'] === 'string' ? raw['constantCase'] : 'preserve',
       pasmInstructionCase: typeof raw?.['pasmInstructionCase'] === 'string' ? raw['pasmInstructionCase'] : 'preserve',
       spaceAfterCommentStart: raw?.['spaceAfterCommentStart'] !== false
     };
@@ -199,14 +207,25 @@ export default class DocumentFormattingProvider implements Provider {
 
   private formatCaseAndComments(lines: string[], findings: DocumentFindings, config: FormatterConfig): void {
     const blockSpans: IBlockSpan[] = findings.blockSpans();
+    const caseConfig: CaseConfig = {
+      blockNameCase: config.blockNameCase,
+      controlFlowCase: config.controlFlowCase,
+      methodCase: config.methodCase,
+      typeCase: config.typeCase,
+      constantCase: config.constantCase,
+      pasmInstructionCase: config.pasmInstructionCase
+    };
+
+    // Extract CON constants for constantCase normalization
+    const conConstants = extractConConstants(lines, blockSpans);
+
     for (const span of blockSpans) {
-      // Keyword case normalization in PUB/PRI
       if (span.blockType === eBLockType.isPub || span.blockType === eBLockType.isPri) {
-        normalizeKeywordCase(lines, span.startLineIdx, span.endLineIdx, findings, config.keywordCase);
-      }
-      // PASM case normalization in DAT
-      if (span.blockType === eBLockType.isDat) {
-        normalizePasmCase(lines, span.startLineIdx, span.endLineIdx, findings, config.pasmInstructionCase);
+        normalizeMethodBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
+      } else if (span.blockType === eBLockType.isDat) {
+        normalizeDatBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
+      } else {
+        normalizeNonCodeBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
       }
     }
     // Comment spacing across entire file

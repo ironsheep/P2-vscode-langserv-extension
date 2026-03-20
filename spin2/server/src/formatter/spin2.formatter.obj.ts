@@ -79,15 +79,14 @@ export function formatObjBlock(
     }
   }
 
-  // : column
+  // : column — first tabstop after the longest name
   const colonCol = snapToNextTabstop(indentWidth + maxNameWidth, tabStops);
-  // filename column (after ": ")
-  const filenameCol = snapToNextTabstop(colonCol + 1, tabStops);
 
   // Measure content end for comment alignment
+  // Filename is one space after the colon: ": filename"
   const contentEndCols: number[] = [];
   for (const o of objLines) {
-    const contentEnd = filenameCol + o.filename.length;
+    const contentEnd = colonCol + 2 + o.filename.length; // ": " + filename
     if (o.comment.length > 0) {
       contentEndCols.push(contentEnd);
     }
@@ -97,8 +96,7 @@ export function formatObjBlock(
   // Pass 2: apply
   for (const o of objLines) {
     let formatted = ' '.repeat(indentWidth) + o.name;
-    formatted = padToColumn(formatted, colonCol) + ':';
-    formatted = padToColumn(formatted, filenameCol) + o.filename;
+    formatted = padToColumn(formatted, colonCol) + ': ' + o.filename;
     if (o.comment.length > 0) {
       formatted = padToColumn(formatted, commentCol) + o.comment;
     }

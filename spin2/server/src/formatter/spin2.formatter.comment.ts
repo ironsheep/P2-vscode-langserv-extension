@@ -2,44 +2,78 @@
 // src/formatter/spin2.formatter.comment.ts
 //
 // Phase 6: Comment formatting and case normalization.
-// - Keyword case normalization (lowercase for Spin2 keywords)
+// - Keyword case normalization with 6 granular controls
 // - PASM instruction case normalization
 // - Space after comment opener (' text vs 'text)
 
 import { splitTrailingComment, isFullLineComment, isColumnZero } from './spin2.formatter.base';
 import { DocumentFindings, eBLockType } from '../parser/spin.semantic.findings';
 
-// Spin2 keywords that should be lowercase
-const SPIN2_KEYWORDS = new Set([
-  'con', 'var', 'obj', 'dat', 'pub', 'pri',
-  'byte', 'word', 'long',
+// Block section keywords
+const BLOCK_NAME_KEYWORDS = new Set([
+  'con', 'var', 'obj', 'dat', 'pub', 'pri'
+]);
+
+// Control flow keywords
+const CONTROL_FLOW_KEYWORDS = new Set([
   'if', 'ifnot', 'elseif', 'elseifnot', 'else',
   'case', 'case_fast', 'other',
   'repeat', 'from', 'to', 'step', 'while', 'until', 'with',
-  'next', 'quit', 'return', 'abort',
-  'lookupz', 'lookup', 'lookdownz', 'lookdown',
+  'next', 'quit', 'return', 'abort'
+]);
+
+// Built-in methods and constants/registers
+const METHOD_KEYWORDS = new Set([
   'cogspin', 'coginit', 'cogstop', 'cogid', 'cogchk',
   'locknew', 'lockret', 'locktry', 'lockrel', 'lockchk',
-  'pinwrite', 'pinlow', 'pinhigh', 'pintoggle', 'pinfloat',
-  'pinread', 'pinstart', 'pinclear', 'wrpin', 'wxpin', 'wypin',
-  'rdpin', 'rqpin', 'akpin',
-  'waitms', 'waitus', 'waitct', 'waitx', 'pollct',
-  'getct', 'getcnt',
-  'string', 'float', 'round', 'trunc',
+  'cogatn', 'pollatn', 'waitatn',
+  'pinw', 'pinwrite', 'pinr', 'pinread',
+  'pinl', 'pinlow', 'pinh', 'pinhigh',
+  'pint', 'pintoggle', 'pinf', 'pinfloat',
+  'pinstart', 'pinclear',
+  'wrpin', 'wxpin', 'wypin', 'akpin', 'rdpin', 'rqpin',
+  'getct', 'pollct', 'waitct', 'waitus', 'waitms', 'waitx',
+  'getsec', 'getms',
+  'call', 'regexec', 'regload',
+  'rotxy', 'polxy', 'xypol',
+  'qsin', 'qcos', 'muldiv64',
+  'getrnd', 'nan',
+  'getregs', 'setregs',
+  'bytemove', 'wordmove', 'longmove',
+  'bytefill', 'wordfill', 'longfill',
+  'movbyts',
+  'strsize', 'strcomp', 'strcopy',
+  'getcrc',
+  'string',
+  'lookup', 'lookupz', 'lookdown', 'lookdownz',
+  'lstring',
+  'byteswap', 'wordswap', 'longswap',
+  'bytecomp', 'wordcomp', 'longcomp',
+  'sizeof', 'offsetof',
+  'taskspin', 'tasknext', 'taskstop', 'taskhalt', 'taskcont', 'taskchk', 'taskid',
+  'endianl', 'endianw',
+  'hubset', 'clkset',
+  'debug',
+  'float', 'round', 'trunc',
   'abs', 'encod', 'decod', 'bmask', 'ones', 'sqrt', 'qlog', 'qexp',
   'sar', 'ror', 'rol', 'rev', 'zerox', 'signx',
-  'sca', 'scas', 'frac', 'addbits', 'addpins',
+  'sca', 'scas', 'frac',
+  'addbits', 'addpins',
   'not', 'and', 'or', 'xor',
-  'org', 'orgh', 'orgf', 'fit', 'end', 'res',
-  'alignw', 'alignl',
-  'debug',
   'recv', 'send',
+  'getcnt',
+  // Built-in constants and registers
   'true', 'false', 'negx', 'posx', 'pi',
   'clkmode', 'clkfreq', '_clkfreq', 'clkmode_', 'clkfreq_',
   'varbase', 'field',
   'reg', 'pr0', 'pr1', 'pr2', 'pr3', 'pr4', 'pr5', 'pr6', 'pr7',
   'ijmp1', 'ijmp2', 'ijmp3', 'iret1', 'iret2', 'iret3',
   'pa', 'pb', 'ptra', 'ptrb', 'dira', 'dirb', 'outa', 'outb', 'ina', 'inb'
+]);
+
+// Type keywords
+const TYPE_KEYWORDS = new Set([
+  'byte', 'word', 'long', 'struct', 'union'
 ]);
 
 // PASM mnemonics (for case normalization)
@@ -86,7 +120,7 @@ const PASM_INSTRUCTIONS = new Set([
   'jmp', 'call', 'calla', 'callb', 'ret', 'reta', 'retb',
   'jmprel',
   'skip', 'skipf', 'execf',
-  'getptr', 'getbrk', 'cogbrk', 'brk',
+  'getptr', 'cogbrk', 'brk',
   'setluts', 'setcy', 'setci', 'setcq', 'setcfrq', 'setcmod',
   'loc', 'augs', 'augd',
   'testp', 'testpn', 'dirl', 'dirh', 'dirc', 'dirnc', 'dirz', 'dirnz', 'dirrnd', 'dirnot',
@@ -101,20 +135,57 @@ const PASM_INSTRUCTIONS = new Set([
   'akpin', 'asmclk',
   'nop', 'pinread', 'pinwrite', 'pinlow', 'pinhigh', 'pintoggle', 'pinfloat',
   'pinstart', 'pinclear',
-  'longfill', 'wordfill', 'bytefill', 'longmove', 'wordmove', 'bytemove'
+  'longfill', 'wordfill', 'bytefill', 'longmove', 'wordmove', 'bytemove',
+  // DAT directives
+  'org', 'orgh', 'orgf', 'fit', 'end', 'res',
+  'alignw', 'alignl',
+  // Type keywords in DAT context
+  'byte', 'word', 'long'
 ]);
 
 /**
- * Normalize keyword case in PUB/PRI method lines.
+ * Case normalization configuration for the 6 granular controls.
  */
-export function normalizeKeywordCase(
+export interface CaseConfig {
+  blockNameCase: string;       // 'lowercase' | 'uppercase' | 'preserve'
+  controlFlowCase: string;     // 'lowercase' | 'uppercase' | 'preserve'
+  methodCase: string;          // 'lowercase' | 'uppercase' | 'preserve'
+  typeCase: string;            // 'lowercase' | 'uppercase' | 'preserve'
+  constantCase: string;        // 'lowercase' | 'uppercase' | 'preserve'
+  pasmInstructionCase: string; // 'lowercase' | 'uppercase' | 'preserve'
+}
+
+/**
+ * Normalize case in PUB/PRI method lines using granular controls.
+ */
+export function normalizeMethodBlockCase(
   lines: string[],
   startLine: number,
   endLine: number,
   findings: DocumentFindings,
-  keywordCase: string // 'lowercase' | 'uppercase' | 'preserve'
+  caseConfig: CaseConfig,
+  conConstants?: Set<string>
 ): void {
-  if (keywordCase === 'preserve') return;
+  // Apply each non-preserve word set in order
+  const sets: { words: Set<string>; targetCase: string }[] = [];
+
+  if (caseConfig.blockNameCase !== 'preserve') {
+    sets.push({ words: BLOCK_NAME_KEYWORDS, targetCase: caseConfig.blockNameCase });
+  }
+  if (caseConfig.controlFlowCase !== 'preserve') {
+    sets.push({ words: CONTROL_FLOW_KEYWORDS, targetCase: caseConfig.controlFlowCase });
+  }
+  if (caseConfig.methodCase !== 'preserve') {
+    sets.push({ words: METHOD_KEYWORDS, targetCase: caseConfig.methodCase });
+  }
+  if (caseConfig.typeCase !== 'preserve') {
+    sets.push({ words: TYPE_KEYWORDS, targetCase: caseConfig.typeCase });
+  }
+  if (caseConfig.constantCase !== 'preserve' && conConstants && conConstants.size > 0) {
+    sets.push({ words: conConstants, targetCase: caseConfig.constantCase });
+  }
+
+  if (sets.length === 0) return;
 
   for (let i = startLine; i <= endLine; i++) {
     if (findings.isLineInBlockComment(i)) continue;
@@ -122,22 +193,19 @@ export function normalizeKeywordCase(
     if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
-    const normalized = normalizeWordsInCode(codePart, SPIN2_KEYWORDS, keywordCase);
+    let normalized = codePart;
+    for (const { words, targetCase } of sets) {
+      normalized = normalizeWordsInCode(normalized, words, targetCase);
+    }
     if (commentPart.length > 0) {
-      // Preserve the original spacing between code and comment.
-      // splitTrailingComment trims trailing spaces from codePart, so we
-      // recover the gap from the original line.
       const originalGapStart = codePart.length;
       const commentIdx = lines[i].indexOf(commentPart, originalGapStart);
       const originalGap = commentIdx > originalGapStart ? lines[i].substring(originalGapStart, commentIdx) : '  ';
-      // If case normalization changed the code length, adjust the gap to
-      // keep the comment at the same column it was before.
       const lengthDelta = normalized.trimEnd().length - codePart.length;
       let gap: string;
       if (lengthDelta === 0) {
         gap = originalGap;
       } else {
-        // Shrink or grow the gap, but guarantee at least 2 spaces
         const newGapLen = Math.max(2, originalGap.length - lengthDelta);
         gap = ' '.repeat(newGapLen);
       }
@@ -149,16 +217,33 @@ export function normalizeKeywordCase(
 }
 
 /**
- * Normalize PASM instruction case in DAT sections.
+ * Normalize case in DAT blocks using granular controls.
  */
-export function normalizePasmCase(
+export function normalizeDatBlockCase(
   lines: string[],
   startLine: number,
   endLine: number,
   findings: DocumentFindings,
-  pasmCase: string // 'lowercase' | 'uppercase' | 'preserve'
+  caseConfig: CaseConfig,
+  conConstants?: Set<string>
 ): void {
-  if (pasmCase === 'preserve') return;
+  // In DAT blocks, apply PASM instructions, block names, and type keywords
+  const sets: { words: Set<string>; targetCase: string }[] = [];
+
+  if (caseConfig.pasmInstructionCase !== 'preserve') {
+    sets.push({ words: PASM_INSTRUCTIONS, targetCase: caseConfig.pasmInstructionCase });
+  }
+  if (caseConfig.blockNameCase !== 'preserve') {
+    sets.push({ words: BLOCK_NAME_KEYWORDS, targetCase: caseConfig.blockNameCase });
+  }
+  if (caseConfig.typeCase !== 'preserve') {
+    sets.push({ words: TYPE_KEYWORDS, targetCase: caseConfig.typeCase });
+  }
+  if (caseConfig.constantCase !== 'preserve' && conConstants && conConstants.size > 0) {
+    sets.push({ words: conConstants, targetCase: caseConfig.constantCase });
+  }
+
+  if (sets.length === 0) return;
 
   for (let i = startLine; i <= endLine; i++) {
     if (findings.isLineInBlockComment(i)) continue;
@@ -166,7 +251,10 @@ export function normalizePasmCase(
     if (isFullLineComment(lines[i])) continue;
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
-    const normalized = normalizeWordsInCode(codePart, PASM_INSTRUCTIONS, pasmCase);
+    let normalized = codePart;
+    for (const { words, targetCase } of sets) {
+      normalized = normalizeWordsInCode(normalized, words, targetCase);
+    }
     if (commentPart.length > 0) {
       const originalGapStart = codePart.length;
       const commentIdx = lines[i].indexOf(commentPart, originalGapStart);
@@ -174,6 +262,60 @@ export function normalizePasmCase(
       const lengthDelta = normalized.trimEnd().length - codePart.length;
       const newGapLen = Math.max(2, originalGap.length - lengthDelta);
       lines[i] = normalized.trimEnd() + ' '.repeat(newGapLen) + commentPart;
+    } else {
+      lines[i] = normalized;
+    }
+  }
+}
+
+/**
+ * Normalize case in CON/VAR/OBJ blocks (block name keyword + type keywords).
+ */
+export function normalizeNonCodeBlockCase(
+  lines: string[],
+  startLine: number,
+  endLine: number,
+  findings: DocumentFindings,
+  caseConfig: CaseConfig,
+  conConstants?: Set<string>
+): void {
+  const sets: { words: Set<string>; targetCase: string }[] = [];
+
+  if (caseConfig.blockNameCase !== 'preserve') {
+    sets.push({ words: BLOCK_NAME_KEYWORDS, targetCase: caseConfig.blockNameCase });
+  }
+  if (caseConfig.typeCase !== 'preserve') {
+    sets.push({ words: TYPE_KEYWORDS, targetCase: caseConfig.typeCase });
+  }
+  if (caseConfig.constantCase !== 'preserve' && conConstants && conConstants.size > 0) {
+    sets.push({ words: conConstants, targetCase: caseConfig.constantCase });
+  }
+
+  if (sets.length === 0) return;
+
+  for (let i = startLine; i <= endLine; i++) {
+    if (findings.isLineInBlockComment(i)) continue;
+    if (lines[i].trim().length === 0) continue;
+    if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
+
+    const [codePart, commentPart] = splitTrailingComment(lines[i]);
+    let normalized = codePart;
+    for (const { words, targetCase } of sets) {
+      normalized = normalizeWordsInCode(normalized, words, targetCase);
+    }
+    if (commentPart.length > 0) {
+      const originalGapStart = codePart.length;
+      const commentIdx = lines[i].indexOf(commentPart, originalGapStart);
+      const originalGap = commentIdx > originalGapStart ? lines[i].substring(originalGapStart, commentIdx) : '  ';
+      const lengthDelta = normalized.trimEnd().length - codePart.length;
+      let gap: string;
+      if (lengthDelta === 0) {
+        gap = originalGap;
+      } else {
+        const newGapLen = Math.max(2, originalGap.length - lengthDelta);
+        gap = ' '.repeat(newGapLen);
+      }
+      lines[i] = normalized.trimEnd() + gap + commentPart;
     } else {
       lines[i] = normalized;
     }
@@ -322,6 +464,74 @@ export function normalizeCommentSpacing(
         // Full-line comment — preserve leading whitespace
         const leadingWs = lines[i].match(/^(\s*)/)?.[1] || '';
         lines[i] = leadingWs + normalized;
+      }
+    }
+  }
+}
+
+/**
+ * Extract CON constant names from lines within CON block spans.
+ * Scans for assignment lines (NAME = value) and enum members.
+ */
+export function extractConConstants(lines: string[], blockSpans: { startLineIdx: number; endLineIdx: number; blockType: eBLockType }[]): Set<string> {
+  const constants = new Set<string>();
+  for (const span of blockSpans) {
+    if (span.blockType !== eBLockType.isCon) continue;
+
+    for (let i = span.startLineIdx; i <= span.endLineIdx; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      // Skip empty lines, comments, and the CON keyword itself
+      if (trimmed.length === 0) continue;
+      if (trimmed.startsWith("'") || trimmed.startsWith('{')) continue;
+      if (/^con\b/i.test(trimmed)) {
+        // CON keyword line — may have inline assignments like "CON  NAME = value"
+        const afterKw = trimmed.substring(3).trim();
+        if (afterKw.length === 0) continue;
+        // Fall through to parse the rest
+        extractConstantNames(afterKw, constants);
+        continue;
+      }
+      extractConstantNames(trimmed, constants);
+    }
+  }
+  return constants;
+}
+
+/**
+ * Extract constant names from a CON block line (after removing leading CON keyword if any).
+ * Handles: NAME = value, NAME[size], #enumStart, NAME, NAME[size]
+ */
+function extractConstantNames(text: string, constants: Set<string>): void {
+  // Remove trailing comment
+  const commentIdx = text.indexOf("'");
+  const code = commentIdx >= 0 ? text.substring(0, commentIdx) : text;
+
+  // Split by comma to handle enum lists: NAME1, NAME2, NAME3
+  const parts = code.split(',');
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (trimmed.length === 0) continue;
+    // Skip #enumStart directives (just the # part)
+    if (trimmed.startsWith('#')) {
+      // #0, #1, etc. — no name to extract, but #NAME could be an enum reset
+      const afterHash = trimmed.substring(1).trim();
+      // If it's just a number, skip
+      if (/^\d+$/.test(afterHash)) continue;
+      // Otherwise extract the name part (before any = or [)
+      const match = afterHash.match(/^([a-zA-Z_][a-zA-Z0-9_]*)/);
+      if (match) {
+        constants.add(match[1].toLowerCase());
+      }
+      continue;
+    }
+    // Match NAME (optionally followed by = value or [size])
+    const match = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)/);
+    if (match) {
+      const name = match[1].toLowerCase();
+      // Don't add type keywords or block names as constants
+      if (!BLOCK_NAME_KEYWORDS.has(name) && !TYPE_KEYWORDS.has(name)) {
+        constants.add(name);
       }
     }
   }

@@ -1116,12 +1116,40 @@
             "scope": "resource",
             "description": "Spaces per indent level in PUB/PRI method bodies."
           },
-          "spinExtension.formatter.keywordCase": {
+          "spinExtension.formatter.blockNameCase": {
+            "type": "string",
+            "default": "uppercase",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize section keywords (CON, VAR, OBJ, DAT, PUB, PRI) to the specified case."
+          },
+          "spinExtension.formatter.controlFlowCase": {
             "type": "string",
             "default": "lowercase",
             "enum": ["uppercase", "lowercase", "preserve"],
             "scope": "resource",
-            "description": "Normalize Spin2 keywords and built-in symbols to the specified case."
+            "description": "Normalize control flow keywords (if, else, repeat, case, return, abort, etc.) to the specified case."
+          },
+          "spinExtension.formatter.methodCase": {
+            "type": "string",
+            "default": "lowercase",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize built-in methods and constants (cogspin, pinwrite, debug, true, false, etc.) to the specified case."
+          },
+          "spinExtension.formatter.typeCase": {
+            "type": "string",
+            "default": "lowercase",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize type keywords (byte, word, long, struct, union) to the specified case."
+          },
+          "spinExtension.formatter.constantCase": {
+            "type": "string",
+            "default": "preserve",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize user-defined CON constant names to the specified case."
           },
           "spinExtension.formatter.pasmInstructionCase": {
             "type": "string",

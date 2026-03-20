@@ -12,7 +12,7 @@ import { formatVarBlock } from '../../formatter/spin2.formatter.var';
 import { formatObjBlock } from '../../formatter/spin2.formatter.obj';
 import { formatDatBlock } from '../../formatter/spin2.formatter.dat';
 import { formatMethodBlock } from '../../formatter/spin2.formatter.method';
-import { normalizeKeywordCase, normalizePasmCase, normalizeCommentSpacing } from '../../formatter/spin2.formatter.comment';
+import { CaseConfig, normalizeMethodBlockCase, normalizeDatBlockCase, normalizeNonCodeBlockCase, normalizeCommentSpacing, extractConConstants } from '../../formatter/spin2.formatter.comment';
 
 // ---------------------------------------------------------------------------
 //  Formatter configuration (mirrors DocumentFormattingProvider's config)
@@ -26,7 +26,11 @@ export interface FormatterConfig {
   tabsToSpaces: boolean;
   tabWidth: number;
   indentSize: number;
-  keywordCase: string;
+  blockNameCase: string;
+  controlFlowCase: string;
+  methodCase: string;
+  typeCase: string;
+  constantCase: string;
   pasmInstructionCase: string;
   spaceAfterCommentStart: boolean;
 }
@@ -40,7 +44,11 @@ export const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
   tabsToSpaces: true,
   tabWidth: 8,
   indentSize: 2,
-  keywordCase: 'lowercase',
+  blockNameCase: 'uppercase',
+  controlFlowCase: 'lowercase',
+  methodCase: 'lowercase',
+  typeCase: 'lowercase',
+  constantCase: 'preserve',
   pasmInstructionCase: 'preserve',
   spaceAfterCommentStart: true
 };
@@ -264,12 +272,22 @@ export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>,
   }
 
   // Phase 6: Case normalization and comment spacing
+  const caseConfig: CaseConfig = {
+    blockNameCase: cfg.blockNameCase,
+    controlFlowCase: cfg.controlFlowCase,
+    methodCase: cfg.methodCase,
+    typeCase: cfg.typeCase,
+    constantCase: cfg.constantCase,
+    pasmInstructionCase: cfg.pasmInstructionCase
+  };
+  const conConstants = extractConConstants(lines, blockSpans);
   for (const span of blockSpans) {
     if (span.blockType === eBLockType.isPub || span.blockType === eBLockType.isPri) {
-      normalizeKeywordCase(lines, span.startLineIdx, span.endLineIdx, findings, cfg.keywordCase);
-    }
-    if (span.blockType === eBLockType.isDat) {
-      normalizePasmCase(lines, span.startLineIdx, span.endLineIdx, findings, cfg.pasmInstructionCase);
+      normalizeMethodBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
+    } else if (span.blockType === eBLockType.isDat) {
+      normalizeDatBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
+    } else {
+      normalizeNonCodeBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
     }
   }
   normalizeCommentSpacing(lines, 0, lines.length - 1, findings, cfg.spaceAfterCommentStart);
