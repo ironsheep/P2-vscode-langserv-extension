@@ -403,3 +403,39 @@ The regex `/^('{1,2})(\S)/` backtracks: it first matches `''`, sees a space (fai
 ### D.10 GOLD files must be compiled with PNut on Windows
 
 The `.bin.GOLD` files checked into the repo must be compiled by PNut (the Windows Propeller 2 compiler), not pnut-ts. The test suite verifies cross-compiler parity (pnut-ts output == PNut output). Using pnut-ts for GOLD files defeats this check. New regression fixtures need Windows-compiled GOLD files before binary parity tests pass.
+
+### D.11 Mixed tab/space indent within a method changes nesting (`isp_hub75_display_bmp`)
+
+**Binary-breaking.** When a method mixes tab-indented lines (tab=8 columns) and space-indented lines (4 spaces) for the same nesting level, the stack-based indent normalizer incorrectly assigns different levels. After tab-to-space expansion, the indents become 8 and 4 — both representing level 1, but the stack treats 4 as level 2 because it can't pop below the base.
+
+Example: `get24BitBMPColorForRC` method had `\tif(...)` (→ indent 8) followed later by `    pixColorAddr := ...` (indent 4). Both are level 1 in the method body. The normalizer set `if` to col 2 (correct) but `pixColorAddr` to col 4 (wrong — moved it inside the `if` block).
+
+Root cause: `while (indentStack.length > 1 && ...)` prevented popping below the base. When indent < base, the new indent was pushed ON TOP, creating a false deeper level: `stack=[8,4], level=2`.
+
+The fix: when the stack has popped to length 1 (the base) and the current indent is less than the base, **update the base** (`indentStack[0] = indent`) instead of pushing. This recognizes that both indent values represent the same logical nesting level — the user simply used different whitespace conventions in different parts of the method.
+
+Discovered via binary audit of `TEST-FORMATTER/p2-HUB75-LED-Matrix-Driver/` — 1 byte changed at offset 0x1A4D, traced by per-method isolation to `get24BitBMPColorForRC`.
+
+### D.12 PASM label-vs-mnemonic detection requires known instruction set
+
+**Not binary-breaking (alignment only).** Without a known PASM instruction set, `parsePasmLine` cannot distinguish labels from mnemonics when the second token is an instruction like `OR`, `AND`, `MOV`. The line `dirInst1of2 OR DIRA, maskAllPins` was parsed as mnemonic=`dirInst1of2` operands=`OR DIRA, maskAllPins` — putting the label at the mnemonic column instead of column 0.
+
+The fix: add the full P2 PASM instruction set (`P2_PASM_MNEMONICS`, 362 entries from `spin2.utils.ts`) and check `afterFirstStartsWithMnemonic()` in the label extraction heuristic. If the token after the first word is a known instruction, the first word is a label.
+
+Also fixes standalone no-operand instructions (`stalli`, `nop`, `ret`, etc.) being misidentified as labels when they appear alone on a line.
+
+### D.13 `debug()` calls in PASM inflate column widths
+
+**Not binary-breaking (alignment only).** `parsePasmLine` splits mnemonic from operands at the first whitespace. For `debug("MTX:     --Start--")`, whitespace inside the string causes `debug("MTX:` to become a 12-character "mnemonic", pushing `maxMnemWidth` and all operand columns far right.
+
+The fix: detect `debug(` and parse with balanced parentheses (tracking strings and backtick expressions) to keep the entire `debug(...)` as a single mnemonic token. Exclude debug calls from `maxMnemWidth` calculation.
+
+### D.14 DAT data declarations and PASM instructions need separate column alignment
+
+**Not binary-breaking (alignment only).** Data declarations (`maskQtrRowsModulus LONG 0`) can have very long labels that pushed the mnemonic column out for ALL lines in an ORG region, including short PASM instructions. The fix: classify lines as data (type keyword as mnemonic) or instruction, compute separate column positions (`dataMnemCol` driven by data label widths, `instrMnemCol` driven by condition widths only), and apply per-line.
+
+### D.15 Full-line comment alignment in PASM regions must handle parser's comment grouping
+
+**Not binary-breaking (alignment only).** The real parser records consecutive `'` comment lines (2+) as "block comments" via `recordComment()`. The formatter's `isLineInBlockComment()` check skipped these, leaving grouped comments unaligned. Single-line comments were aligned correctly but multi-line comment groups were not.
+
+The fix: use `findings.isLineInBlockComment(i) && !trimmed.startsWith("'")` — allow `'`-prefixed lines through even when the parser reports them as block comments. This matches the pattern already used in the method formatter (`spin2.formatter.method.ts` line 266).

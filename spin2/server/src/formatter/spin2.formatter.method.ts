@@ -146,6 +146,11 @@ function normalizeIndentation(
   // - Indent increases → push (go deeper)
   // - Indent same → same level
   // - Indent decreases → pop back to the matching level
+  //
+  // Mixed-indent handling: when a file uses inconsistent indent widths
+  // (e.g., tabs=8 and spaces=4 for the same nesting level), a line can
+  // have LESS indent than the base (stack[0]).  In that case, update the
+  // base rather than pushing a false deeper level.
   const indentStack: number[] = [codeLines[0].indent]; // level 1 = first code line's indent
   const lineLevels: Map<number, number> = new Map();
 
@@ -161,10 +166,17 @@ function normalizeIndentation(
       while (indentStack.length > 1 && indentStack[indentStack.length - 1] > indent) {
         indentStack.pop();
       }
-      // If the indent doesn't exactly match any level we've seen,
-      // it's a new level at this position (push it)
       if (indentStack[indentStack.length - 1] !== indent) {
-        indentStack.push(indent);
+        if (indentStack.length === 1 && indent <= indentStack[0]) {
+          // Indent is below the base level (mixed indent widths for the same
+          // nesting depth, e.g., tabs=8 and spaces=4 both meaning level 1).
+          // Update the base to the smaller value — this line is at the same
+          // logical level, not a deeper one.
+          indentStack[0] = indent;
+        } else {
+          // New level between existing levels (indent > base but < previous top)
+          indentStack.push(indent);
+        }
       }
     }
     // else indent === topIndent → same level, no stack change
