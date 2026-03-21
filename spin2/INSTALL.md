@@ -19,8 +19,8 @@ code --install-extension spin2-?.?.?.vsix
 1. Clone the repository and enter into the folder
 
     ```bash
-    git clone git@github.com:ironsheep/P2-vscode-support.git
-    cd spin-p2-support/spin2
+    git clone git@github.com:ironsheep/P2-vscode-langserv-extension.git
+    cd P2-vscode-langserv-extension/spin2
     ```
 
 2. Install the required packages with `npm`
@@ -53,7 +53,7 @@ To complete the manual installation, follow the remaining steps to manually crea
     vsce package
     ```
 
-    This should generate a `swmf-grammar-?.?.?.vsix` file in the current directory.
+    This should generate a `spin2-?.?.?.vsix` file in the current directory.
 5. Manually install the extension in VS Code (you may want to replace the wildcards in the version number)
 
     ```bash
