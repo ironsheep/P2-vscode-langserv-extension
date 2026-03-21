@@ -46,6 +46,7 @@ Full **language server based** support for Spin2 and Pasm2 on the Parallax Prope
 - **Syntax and Semantic Highlighting** — rich, context-aware coloring for Spin2 and Pasm2, including Streamer and Smart-pin symbols as well as all `debug()` display types with parameter validation
 - **Error Detection** — parse errors are reported as you work. Install the **Error Lens** extension to see errors inline on the offending line.
 - **Show Hovers** — hover over any symbol to see its type, value, and documentation, including symbols defined in external object files
+- **Autocomplete / IntelliSense** — context-aware code completion with dot-triggered suggestions for object methods/constants and struct fields, general completion for local/global symbols and built-ins, and full documentation resolve
 - **Signature Help** — as you type a method call, see its parameters and types for both user-written and built-in methods
 - **Code Folding** — collapse and expand CON, VAR, OBJ, PUB, PRI, and DAT sections
 
@@ -96,6 +97,10 @@ The extension also provides Spin and Pasm support for the Propeller 1. P1 users 
 - Compile support via **FlexSpin**
 
 **Not yet available for P1:** built-in download to hardware and Go to Type Definition (STRUCT is a Spin2 language construct).
+
+### Language Version Tracking
+
+The extension tracks the evolving Spin2/PASM2 language specification as new PNut compiler versions add features. Currently supported through **PNut v53**, including structures, preprocessor directives, math functions, `OFFSETOF()`, and more. See the [language version reference](spin2/REF-LangUpdates/README.md) for details on each version's additions.
 
 ### Future directions
 

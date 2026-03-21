@@ -21,7 +21,7 @@ Both Spin and Pasm are now completely supported for the P1 while Spin2 and Pasm2
 ## Feature: Semantic Highlighting
 
 P1 Spin/Pasm along with P2 Spin2/Pasm2 are fully supported and will be improving over future releases.
-See the **[ChangeLog](https://github.com/ironsheep/P2-vscode-extensions/blob/main/spin2/CHANGELOG.md)** for detailed status.
+See the **[ChangeLog](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/spin2/CHANGELOG.md)** for detailed status.
 
 ## Feature: Code Outline
 
@@ -102,20 +102,42 @@ Peek at or go to the definition of variables/methods from where the variables/me
 - Workspace Symbol Search finds any symbol across your project
 - Rename Symbol provides safe, project-wide renaming — see [Rename Symbol](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/Spin2-code-navigation.md#rename-symbol-safe-project-wide-renaming) for details
 
+## Feature: Autocomplete / IntelliSense
+
+Context-aware code completion for Spin2 and Spin1 files:
+
+- **Dot completion** after object instance names offers public methods and constants from that object
+- **Dot completion** after struct instances offers struct field members, including nested struct chains (e.g., `cfg.Servo[0].`)
+- **General completion** (Ctrl+Space) offers local variables/parameters scoped to the current method, global symbols (CON, VAR, PUB/PRI, DAT), object instance names, and built-in Spin2/Spin1 methods, variables, registers, and keywords
+- Completion resolve provides full documentation (signatures, parameters, returns) when an item is highlighted
+
+## Feature: Spin2 Document Formatter
+
+Section-aware code formatting for Spin2 files (disabled by default, enable via `spinExtension.formatter.enable`):
+
+- Column alignment for CON, VAR, OBJ, and DAT blocks
+- Method body indentation normalization
+- PASM instruction alignment within DAT/ORG regions
+- Keyword case normalization
+- Trailing comment alignment
+- Bidirectional tab/space conversion based on user preference
+- Format-on-save support via `spinExtension.formatter.formatOnSave`
+- Status bar indicator ("Spin2 Spaces: N" / "Spin2 Tabs: N" / "Spin2 Prop Tool" / "Spin2 IronSheep") — click to switch profiles
+
 ## Feature: Code Folding
 
 Provides Spin specific code folding support
 
 - Fold Block comments, code blocks (CON, VAR, PUB, etc.), and continued lines
 - This is controlled by editor settings: Editor: **Folding**, Editor: **Folding Strategy** and Editor: **Show Folding Controls**
-- Up Next: fold indented flow control within Spin code
 
 ## Feature: Quick Fix Code Actions
 
 The extension offers Quick Fix lightbulb actions for common issues:
 
 - **Version directives** — When version-gated language features are used (structures, external object types, etc.), a Quick Fix will offer to add or update the `{Spin2_v##}` directive in your file
-- **Unused symbols** — Unused return values and local variables in PUB/PRI method signatures are flagged with warnings and a Quick Fix to remove them
+- **Unused method symbols** — Unused return values and local variables in PUB/PRI method signatures are flagged with warnings and a Quick Fix to remove them
+- **Unused VAR/DAT variables** — Unused VAR block variables and DAT block data variables are flagged with warnings and Quick Fix code actions to remove them
 
 ## Feature: Generate "Object public interface" documentation
 
@@ -202,29 +224,35 @@ PRI pullUpValueForEnum(ePullupRqst) : pullup
 
 **Note**: _for PRI methods this generates a block of single line non-doc comments. This is so the comment for private methods are not included in generated documentaion for this object._
 
+## Feature: Toolchain Integration
+
+Built-in compile, download, and serial communication support for P1 and P2 hardware:
+
+- **Automatic toolchain discovery** — PNut, PNut-TS, and FlexSpin compilers are automatically found in well-known install directories and PATH
+- **Automatic PropPlug discovery** — USB-attached PropPlug devices are enumerated and selectable
+- **"Spin2: Select Compiler"** and **"Spin2: Add Compiler"** commands for managing compiler configurations
+- **Status bar controls** for switching between compile with/without debug(), download to FLASH/RAM, and selecting PropPlug devices
+- **Universal tasks file** supporting all compilers — workspace settings can override the project-wide compiler preference
+- Enable via `spinExtension.toolchain.enable` in settings
+
+## Feature: Project Archive
+
+- **"Spin2: Archive Project"** command generates a ZIP archive of the top-level source file and all OBJ-referenced dependencies as a flat file set, with a `_README_.txt` showing project name, timestamp, tool version, and object hierarchy tree
+
+## Spin2 Language Version Support
+
+This extension tracks the evolving Spin2/PASM2 language as new PNut compiler versions add features. Currently supported through PNut v53, including structures, preprocessor directives, math functions, and more. See [REF-LangUpdates](REF-LangUpdates/README.md) for details on each version's additions.
+
 ## Possible Conflicts with other VSCode Extensions
 
 **NOTE1:** _This extension now replaces the [Spin by Entomy](https://marketplace.visualstudio.com/items?itemName=Entomy.spin) vscode extension. While either can be used, this version provides more comprehensive Syntax highlighting (as the former has not been maintained) and this extension adds full Semantic Highlighting, Outlining and Tab support with InsertModes._ The `Spin` extension can be **uninstalled** with no loss of functionality.
 
 **NOTE2:** _I'll be submitting pull requests to the Overtype extension maintainer to add code for avoiding interference with our .spin/.spin2 InsertMode feature but in the meantime please ensure that the [Overtype by Adma Maras](https://marketplace.visualstudio.com/items?itemName=adammaras.overtype) and/or [Overtype by DrMerfy](https://marketplace.visualstudio.com/items?itemName=DrMerfy.overtype) extensions are disabled or uninstalled as they can interfere with this extensions' behavior._
 
-## Known Issues
+## Known Limitations
 
-We are working on fixes to the following issues we've seen during our testing. However, they are not major enough to prevent this release.
-
-- The spin2 line-continuation syntax is supported only in OBJ block and on PUB/PRI declaration lines for now. More support coming!
-- We are still working through validating the P1 support against the full P1 obex - this is a work in progress
-- Some line comments are not properly colored
-- Occasionally [byte|word|long] storage types are not properly colored
-- Occasionally some pasm code escapes coloring. We're trying to understand this.
-- Ocassionally the syntax highlighting will just stop working for the final lines in a file. This appears to be a VSCode issue. But we are monitoring it.
-
-_The above appear to be mostly syntax recognizer issues_
-
-There are some things that currently are limitations which we may or may not address in the future:
-
-- P2 Signature help is not available for send() method pointer - as it has variant forms of paramaters
-- P1 and P2 Signature help is not available for lookup(), lookupz(), lookdown(), lookupdownz() as these have non-standard signature patterns not supported. Within the parens are found a ':' followed by one or more ','s.
+- P2 Signature help is not available for the `send()` method pointer as it has variant forms of parameters
+- P1 and P2 Signature help is not available for `lookup()`, `lookupz()`, `lookdown()`, `lookdownz()` as these have non-standard signature patterns
 
 ## Reporting Issues
 
