@@ -100,6 +100,17 @@ export function formatVarBlock(
     }
     lines[v.lineIdx] = formatted;
   }
+
+  // Align indented full-line comments to the same indent as declarations.
+  for (let i = startLine; i <= endLine; i++) {
+    const trimmed = lines[i].trimStart();
+    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
+    if (lines[i].trim().length === 0) continue;
+    if (!isFullLineComment(lines[i])) continue;
+    if (/^var\b/i.test(trimmed)) continue;
+    if (isColumnZero(lines[i])) continue;
+    lines[i] = ' '.repeat(indentWidth) + trimmed;
+  }
 }
 
 function parseVarLine(line: string, lineIdx: number): VarLine | null {

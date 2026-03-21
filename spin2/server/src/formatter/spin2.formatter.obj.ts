@@ -102,6 +102,17 @@ export function formatObjBlock(
     }
     lines[o.lineIdx] = formatted;
   }
+
+  // Align indented full-line comments to the same indent as declarations.
+  for (let i = startLine; i <= endLine; i++) {
+    const trimmed = lines[i].trimStart();
+    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
+    if (lines[i].trim().length === 0) continue;
+    if (!isFullLineComment(lines[i])) continue;
+    if (/^obj\b/i.test(trimmed)) continue;
+    if (isColumnZero(lines[i])) continue;
+    lines[i] = ' '.repeat(indentWidth) + trimmed;
+  }
 }
 
 function parseObjLine(line: string, lineIdx: number): ObjLine | null {

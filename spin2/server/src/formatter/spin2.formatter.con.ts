@@ -124,6 +124,20 @@ export function formatConBlock(
     }
     lines[a.lineIdx] = formatted;
   }
+
+  // Align indented full-line comments to the same indent as constants.
+  // Column-0 comments are section headers and stay put.
+  // The real parser records consecutive ' groups as "block comments" —
+  // allow '-prefixed lines through.
+  for (let i = startLine; i <= endLine; i++) {
+    const trimmed = lines[i].trimStart();
+    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
+    if (lines[i].trim().length === 0) continue;
+    if (!isFullLineComment(lines[i])) continue;
+    if (/^con\b/i.test(trimmed)) continue;
+    if (isColumnZero(lines[i])) continue;
+    lines[i] = ' '.repeat(indentWidth) + trimmed;
+  }
 }
 
 function isEnumLine(trimmed: string): boolean {
