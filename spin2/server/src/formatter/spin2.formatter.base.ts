@@ -129,6 +129,39 @@ export function isColumnZero(line: string): boolean {
 }
 
 /**
+ * Build a set of line indices that are inside { } block comments.
+ * This is independent of the parser's isLineInBlockComment() which also
+ * includes consecutive ' comment groups.  The formatter needs to distinguish
+ * the two: { } block content is truly untouchable, while ' groups may need
+ * comment alignment.
+ */
+export function findCurlyBlockCommentLines(lines: string[], startLine: number, endLine: number): Set<number> {
+  const result = new Set<number>();
+  let depth = 0;
+  let blockStartLine = -1;
+  for (let i = startLine; i <= endLine; i++) {
+    const line = lines[i];
+    let inString = false;
+    for (let j = 0; j < line.length; j++) {
+      const ch = line[j];
+      if (depth === 0 && ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (depth === 0 && ch === "'") break;
+      if (ch === '{') { if (depth === 0) blockStartLine = i; depth++; }
+      else if (ch === '}' && depth > 0) {
+        depth--;
+        if (depth === 0) {
+          for (let k = blockStartLine; k <= i; k++) result.add(k);
+          blockStartLine = -1;
+        }
+      }
+    }
+    if (depth > 0) result.add(i);
+  }
+  return result;
+}
+
+/**
  * Check if a line is a preprocessor directive (#define, #ifdef, #include, etc.).
  * These are never reformatted — they must stay exactly as written.
  */

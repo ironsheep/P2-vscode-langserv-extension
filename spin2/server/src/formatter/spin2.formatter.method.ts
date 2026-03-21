@@ -12,6 +12,7 @@ import {
   isFullLineComment,
   isColumnZero,
   isPreprocessorLine,
+  findCurlyBlockCommentLines,
   computeBlockCommentColumn,
   padToColumn,
   DEFAULT_TABSTOPS,
@@ -255,8 +256,11 @@ function alignFullLineComments(
   // Move accidentally-indented method comments (' and '') to column 0.
   // All comment lines between the PUB/PRI declaration and the first code line
   // are method documentation and belong at column 0.
+  // Use curly-block scan so { } block content is not touched.
+  const curlyBlockDocLines = findCurlyBlockCommentLines(lines, startLine, endLine);
   const docEnd = firstCodeLine >= 0 ? firstCodeLine : endLine + 1;
   for (let i = startLine + 1; i < docEnd; i++) {
+    if (curlyBlockDocLines.has(i)) continue;
     if (lines[i].trim().length === 0) continue;
     const trimmed = lines[i].trimStart();
     if (trimmed.startsWith("'") && !isColumnZero(lines[i])) {
@@ -266,18 +270,16 @@ function alignFullLineComments(
 
   if (firstCodeLine < 0) return; // no code lines in method
 
+  // Use curly-block scan to skip { } content while allowing ' groups through.
+  const curlyBlockLines = findCurlyBlockCommentLines(lines, startLine, endLine);
   for (let i = firstCodeLine; i <= endLine; i++) {
     if (isInInlinePasmContent(i, inlinePasm)) continue;
     if (isInlinePasmBoundary(i, inlinePasm)) continue;
+    if (curlyBlockLines.has(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (!isFullLineComment(lines[i])) continue;
 
-    // The parser records consecutive single-' comment lines as "block comments"
-    // in its tracking.  But these are commented-out code, not { } block comments.
-    // Only skip lines that are truly inside { } or {{ }} block comments — NOT
-    // single-line comment groups.
     const trimmed = lines[i].trimStart();
-    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
 
     // Doc comments ('' at column 0) are documentation, not commented-out code — skip them.
     if (isColumnZero(lines[i]) && trimmed.startsWith("''")) continue;

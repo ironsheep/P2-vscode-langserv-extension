@@ -10,6 +10,7 @@ import {
   isFullLineComment,
   isColumnZero,
   isPreprocessorLine,
+  findCurlyBlockCommentLines,
   snapToNextTabstop,
   computeBlockCommentColumn,
   padToColumn,
@@ -108,9 +109,10 @@ export function formatObjBlock(
   }
 
   // Align indented full-line comments to the same indent as declarations.
+  const curlyBlockLines = findCurlyBlockCommentLines(lines, startLine, endLine);
   for (let i = startLine; i <= endLine; i++) {
+    if (curlyBlockLines.has(i)) continue;
     const trimmed = lines[i].trimStart();
-    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
     if (lines[i].trim().length === 0) continue;
     if (!isFullLineComment(lines[i])) continue;
     if (/^obj\b/i.test(trimmed)) continue;

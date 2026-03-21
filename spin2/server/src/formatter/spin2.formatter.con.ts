@@ -11,6 +11,7 @@ import {
   isFullLineComment,
   isColumnZero,
   isPreprocessorLine,
+  findCurlyBlockCommentLines,
   snapToNextTabstop,
   computeBlockCommentColumn,
   padToColumn,
@@ -133,13 +134,13 @@ export function formatConBlock(
 
   // Align indented full-line comments to the same indent as constants.
   // Column-0 comments are section headers and stay put.
-  // The real parser records consecutive ' groups as "block comments" —
-  // allow '-prefixed lines through.
+  // Use curly-block scan to skip { } content while allowing ' groups through.
+  const curlyBlockLines = findCurlyBlockCommentLines(lines, startLine, endLine);
   for (let i = startLine; i <= endLine; i++) {
-    const trimmed = lines[i].trimStart();
-    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
+    if (curlyBlockLines.has(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (!isFullLineComment(lines[i])) continue;
+    const trimmed = lines[i].trimStart();
     if (/^con\b/i.test(trimmed)) continue;
     if (isColumnZero(lines[i])) continue;
     lines[i] = ' '.repeat(indentWidth) + trimmed;

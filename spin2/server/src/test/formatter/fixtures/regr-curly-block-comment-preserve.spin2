@@ -1,0 +1,36 @@
+' regr-curly-block-comment-preserve.spin2
+' Regression: content inside { } block comments must not be reformatted.
+' The formatter's comment alignment was moving ' lines inside { } blocks
+' because it couldn't distinguish them from parser-grouped ' comment blocks.
+
+CON
+
+    _clkfreq = 10_000_000
+
+{
+    ' debug via serial to RPi (using RPi gateway pins)
+    '  USES LED1 (56) and LED2 (57) pins
+    DEBUG_PIN_TX = 57           ' GRY GPIO 10
+    DEBUG_PIN_RX = 56           ' WHT GPIO 8 (gnd is BLK GPIO 6)
+    DEBUG_WINDOWS_OFF = -1      ' no debug windows showing
+    DEBUG_BAUD = 2_000_000      ' comms at 2Mbit
+}
+
+VAR
+
+    long  result
+
+{
+    ' commented-out variables
+    long  oldResult
+    byte  flags[8]
+}
+
+PUB main() | x
+    x := 0
+{
+    ' commented-out code block
+    x := x + 1
+    debug("test")
+}
+    result := x

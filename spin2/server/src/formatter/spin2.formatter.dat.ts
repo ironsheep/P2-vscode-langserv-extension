@@ -11,6 +11,7 @@ import {
   isFullLineComment,
   isColumnZero,
   isPreprocessorLine,
+  findCurlyBlockCommentLines,
   snapToNextTabstop,
   computeBlockCommentColumn,
   padToColumn,
@@ -343,12 +344,11 @@ function formatPasmRegion(
   // the code they describe (e.g., a comment before REP-indented instructions
   // aligns to the instruction column, not the condition column).
   //
-  // Note: the real parser records consecutive ' comment groups as "block comments"
-  // in its tracking.  We must allow '-prefixed lines through even when
-  // isLineInBlockComment returns true — only skip true { } block comments.
+  // Use curly-block scan to skip { } content while allowing ' groups through.
+  const curlyBlockLinesPasm = findCurlyBlockCommentLines(lines, startLine, endLine);
   for (let i = startLine; i <= endLine; i++) {
+    if (curlyBlockLinesPasm.has(i)) continue;
     const trimmed = lines[i].trimStart();
-    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
     if (lines[i].trim().length === 0) continue;
     if (!isFullLineComment(lines[i])) continue;
     if (ORG_RE.test(trimmed) || FIT_RE.test(trimmed)) continue;
@@ -548,12 +548,12 @@ function formatDatDataLines(
   }
 
   // Align non-col-0 full-line comments outside ORG regions to the label indent.
-  // The real parser records consecutive ' comment groups as "block comments" —
-  // allow '-prefixed lines through, only skip true { } block comments.
+  // Use curly-block scan to skip { } content while allowing ' groups through.
+  const curlyBlockLinesData = findCurlyBlockCommentLines(lines, startLine, endLine);
   for (let i = startLine; i <= endLine; i++) {
     if (isInOrgRegion(i, orgRegions)) continue;
+    if (curlyBlockLinesData.has(i)) continue;
     const trimmed = lines[i].trimStart();
-    if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
     if (lines[i].trim().length === 0) continue;
     if (!isFullLineComment(lines[i])) continue;
     if (/^dat\b/i.test(trimmed)) continue;
