@@ -29,17 +29,28 @@ The Spin2 download controls are present in the Status Bar when a Spin or Spin2 f
     <p align="center"><caption><B>Figure 2 - The Spin2 Status Bar Items</B></caption><br>
 </p></p>
 
-The Spin2 Download Controls affect debug, programming port and destination of RAM, or FLASH.  These items are click-able. When clicked they toggle their state.
+The Spin2 Status Bar items fall into two groups: **formatter controls** and **download controls**. All items are click-able.
 
-Here's a table showing states.
+Here's a table showing all status bar items.
 
 | Control | Purpose |
 | --- | --- |
-| Debug: [on, off] | Debug() statement compile, click to toggle.
-| Dnld: [RAM, FLASH] | click to toggle download to RAM or to FLASH
-| Plug: {selected Prop Plug} | Prop Plug to be used for download
+| **Formatter / Tab Indicator** | |
+| Spin2 Spaces: N | Using N-space indentation — click to switch to tabs, change indent size, or select an elastic tabstop profile |
+| Spin2 Tabs: N | Using tab characters (width N) — click to switch to spaces or elastic tabstops |
+| Spin2 Prop Tool | Using PropellerTool elastic tabstops — click to switch profiles or to spaces/tabs |
+| Spin2 IronSheep | Using IronSheep elastic tabstops — click to switch profiles or to spaces/tabs |
+| Spin2 User1 | Using User1 elastic tabstops — click to switch profiles or to spaces/tabs |
+| **Insert Mode** (when enabled) | |
+| Insert / Overtype / Align | Current edit mode — click to cycle through modes |
+| **Download Controls** (when toolchain is configured) | |
+| Debug: [on, off] | Debug() statement compile — click to toggle |
+| Dnld: [RAM, FLASH] | Click to toggle download to RAM or to FLASH |
+| Plug: {selected Prop Plug} | Prop Plug to be used for download |
 
-**NOTE:** The Plug: item has more than two states.  It will show when no prop plugs are available, when one or more are available but none are selected or, when clicked and there is more than one Prop Plug available, it will provide a list from which you can choose the Prop Plug you'd like to use for subsequent downloads.
+**NOTE:** The Plug: item has more than two states. It will show when no prop plugs are available, when one or more are available but none are selected or, when clicked and there is more than one Prop Plug available, it will provide a list from which you can choose the Prop Plug you'd like to use for subsequent downloads.
+
+**NOTE:** The formatter tab indicator appears for all `.spin2` files. The download controls (Debug, Dnld, Plug) only appear when the advanced toolchain is enabled and a compiler is configured.
 
 
 
