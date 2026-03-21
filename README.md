@@ -18,11 +18,13 @@ The **P2 Forum Thread** containing discussion of [this VSCode support](https://f
 
 The **P1 Forum Thread** containing discussion of [this VSCode support](https://forums.parallax.com/discussion/175207/visual-studio-code-supports-p1-development-on-windows-mac-linux-yes-rpi#latest)
 
-#### New in v2.6.0 — Code Navigation and Include Directories
+#### New in v2.9.0 — Spin2 Document Formatter
 
-This release adds powerful code navigation features — Find All References, Workspace Symbol Search, Rename Symbol, Go to Type Definition, and Document Links — that work across your entire multi-object project. A new Include Directories panel in the Explorer sidebar automatically discovers which directories your project needs and configures both the compiler and language server for you.
+This release adds a full source code formatter for `.spin2` files with section-aware column alignment (CON, VAR, OBJ, DAT), method body indentation normalization, PASM instruction alignment, six independent keyword case controls, and trailing comment alignment. The formatter is provably safe — it is tested by compiling before and after formatting and verifying the binary output is byte-for-byte identical.
 
-See the [Code Navigation Guide](Spin2-code-navigation.md) and [Include Directories Guide](Spin2-Include-Directories.md) for details.
+Enable it in settings with `spinExtension.formatter.enable: true`. Click the status bar indicator ("Spin2 Spaces: 2", "Spin2 Prop Tool", etc.) to switch between spaces, tabs, or elastic tabstop profiles.
+
+See the [Formatter User Guide](Spin2-Formatter-UserGuide.md) for all options and examples.
 
 ## Quick Start
 
@@ -68,6 +70,7 @@ Full **language server based** support for Spin2 and Pasm2 on the Parallax Prope
 
 ### Editor Features
 
+- **Document Formatter** — section-aware source code formatting for `.spin2` files with column alignment (CON, VAR, OBJ, DAT), method body indentation normalization, inline PASM alignment, six independent keyword case controls (`blockNameCase`, `controlFlowCase`, `methodCase`, `typeCase`, `constantCase`, `pasmInstructionCase`), trailing comment alignment, and format-on-save support. Preserves block comments, string literals, debug() content, and preprocessor directives. Status bar indicator shows active whitespace mode; click to switch between spaces, tabs, or elastic tabstop profiles.
 - **Screen Coloring** — per-section background coloring à la Parallax Propeller Tool
 - **Elastic Tabstops** — custom tab-stop support per section à la Propeller Tool, with selectable tab sets (`Propeller Tool`, `IronSheep`, or `User1`)
 - **Edit Modes** — Insert, Overtype, and Align modes à la Propeller Tool
@@ -96,7 +99,6 @@ The extension also provides Spin and Pasm support for the Propeller 1. P1 users 
 
 ### Future directions
 
-- Spin2/Pasm2 code formatter/beautifier with format-on-save support
 - Snippets for common Spin2/Pasm2 code patterns (e.g., smart pin setup for a given mode)
 
 ## Installation
@@ -121,9 +123,14 @@ There are additional companion documents in this Repository:
 1. [Setup for macOS](TASKS-User-macOS.md) — compiler installation and build configuration on **macOS**
 1. [Setup for Raspberry Pi](TASKS-User-RPi.md) — compiler installation and build configuration on **Raspberry Pi / Linux**
 
+**Formatter:**
+
+6. [Formatter User Guide](Spin2-Formatter-UserGuide.md) — all formatter options with examples, recommended configurations, and what the formatter preserves
+1. [Formatter Regression Testing](FORMATTER-REGRESSION-TESTING.md) — theory of operations for the binary-equivalence test suite
+
 **Editor features:**
 
-6. [Status Bar Controls](Spin2-Editor-StatusBar.md) — download controls for debug, RAM/FLASH, and PropPlug selection
+8. [Status Bar Controls](Spin2-Editor-StatusBar.md) — download controls for debug, RAM/FLASH, and PropPlug selection
 1. [Background Coloring](PT-Color-setup.md) — Propeller Tool-style block coloring and theme setup
 1. [Edit Modes](Spin2-InsertMode.md) — Insert, Overtype, and Align modes à la Propeller Tool
 1. [Tabbing - Visual Examples](TAB-VisualEx.md) — a visual walkthrough of how Elastic Tabstops work
