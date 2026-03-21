@@ -164,14 +164,16 @@ Built-in CSS/HTML language features — VS Code ships with extensions like "CSS 
 
 The setting to disable it — Search your VS Code settings for:
 
-editor.colorDecorators — set this to false to disable color picker indicators globally
-Or better, disable it only for Spin2 files by adding to your settings.json:
+`editor.colorDecorators` — set this to `false` to disable color picker indicators globally.
+Or better, disable it only for Spin2 files by adding to your `settings.json`:
 
 ```json
 "[spin2]": {
     "editor.colorDecorators": false
 }
 ```
+
+To open your user `settings.json` for editing: open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`), type **"Preferences: Open User Settings (JSON)"**, and select it. Add the snippet above, save, and the color pickers will stop appearing in `.spin2` files.
 You can also check which extensions are active in your Spin2 files by opening a .spin2 file, then running the command "Developer: Show Running Extensions" from the command palette (Cmd+Shift+P). Look for any extension that provides color decoration — common culprits besides the built-in ones include extensions like "Color Highlight", "Color Picker", or "Colorize".
 
 ## Repository Notes
