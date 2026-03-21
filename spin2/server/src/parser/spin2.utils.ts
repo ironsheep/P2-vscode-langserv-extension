@@ -844,18 +844,23 @@ export class Spin2ParseUtils {
       searchOffset = quoteStartOffset + badElement.length;
     }
 
-    // NEW also remove {text} strings
-    const braceStartChar: string = '{';
-    const braceEndChar: string = '}';
-    let braceStartOffset: number = 0; // value doesn't matter
-    while ((braceStartOffset = trimmedLine.indexOf(braceStartChar)) != -1) {
-      const braceEndOffset: number = trimmedLine.indexOf(braceEndChar, braceStartOffset + 1);
-      if (braceEndOffset != -1) {
-        const badElement = trimmedLine.substring(braceStartOffset, braceEndOffset + 1);
-        trimmedLine = trimmedLine.replace(badElement, ' '.repeat(badElement.length));
-        didRemove = true;
-      } else {
-        break; // we don't handle a single brace (of multi-line)
+    // Remove {text} inline block comments — but only when NOT called with
+    // preservePacked (i.e., not when building checkLine for comment detection).
+    // When preservePacked is true, the caller needs braces preserved so it can
+    // find and remove inline comments itself (getLineWithoutInlineComments).
+    if (!preservePacked) {
+      const braceStartChar: string = '{';
+      const braceEndChar: string = '}';
+      let braceStartOffset: number = 0; // value doesn't matter
+      while ((braceStartOffset = trimmedLine.indexOf(braceStartChar)) != -1) {
+        const braceEndOffset: number = trimmedLine.indexOf(braceEndChar, braceStartOffset + 1);
+        if (braceEndOffset != -1) {
+          const badElement = trimmedLine.substring(braceStartOffset, braceEndOffset + 1);
+          trimmedLine = trimmedLine.replace(badElement, ' '.repeat(badElement.length));
+          didRemove = true;
+        } else {
+          break; // we don't handle a single brace (of multi-line)
+        }
       }
     }
 
