@@ -1,0 +1,26 @@
+' regr-pasm-comment-align.spin2
+' Regression D.15: Full-line comments in PASM regions must align to the
+' next code line's indent. Grouped ' comment blocks must not be skipped.
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  long  result
+
+PUB main() | x
+  x := 0
+    org
+              ' init section
+              mov       pa, #1
+              ' multi-line comment group
+              ' second line of group
+              add       pa, #2
+              rep       #3, #2
+               ' comment inside REP block
+               mov      pb, pa
+               add      pb, #1
+               sub      pb, #1
+              ret
+    end
+  result := x

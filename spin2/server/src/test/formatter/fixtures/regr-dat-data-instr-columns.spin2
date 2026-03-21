@@ -1,0 +1,27 @@
+' regr-dat-data-instr-columns.spin2
+' Regression D.14: DAT data declarations and PASM instructions must have
+' separate column alignment. Long data labels must not push instruction
+' mnemonic columns wider.
+
+CON
+  _clkfreq = 10_000_000
+
+DAT
+              org
+
+' data declarations with long labels
+nPhysLineIdx            long    0
+maskQtrRowsModulus      long    0
+redBitRGB1Value         long    $01
+greenBitRGB1Value       long    $02
+
+' PASM instructions should stay at their own column
+              mov       pa, #1
+              add       pa, #2
+              sub       pb, pa
+              jmp       #startCode
+
+startCode
+              nop
+              ret
+              end

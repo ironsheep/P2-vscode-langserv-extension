@@ -1,0 +1,20 @@
+' regr-debug-pasm-columns.spin2
+' Regression D.13: debug() calls in PASM must not inflate column widths.
+' Whitespace inside debug string arguments must not split the mnemonic.
+
+CON
+  _clkfreq = 10_000_000
+
+VAR
+  long  result
+
+PUB main() | x
+  x := 0
+    org
+              debug("start program here")
+              mov       pa, #1
+              add       pa, #2
+              debug("value is now set")
+              mov       pb, pa
+    end
+  result := x

@@ -1,0 +1,22 @@
+' regr-preprocessor-preserve.spin2
+' Regression: Preprocessor directives must not be indented or case-normalized.
+
+#define USE_DEBUG
+#ifdef USE_DEBUG
+CON
+  _clkfreq = 10_000_000
+  DEBUG_PIN = 56
+#else
+CON
+  _clkfreq = 10_000_000
+#endif
+
+VAR
+  long  result
+
+PUB main() | x
+  x := 0
+#ifdef USE_DEBUG
+  debug("test")
+#endif
+  result := x

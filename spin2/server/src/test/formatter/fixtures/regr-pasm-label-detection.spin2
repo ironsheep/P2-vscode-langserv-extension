@@ -1,0 +1,20 @@
+' regr-pasm-label-detection.spin2
+' Regression D.12: PASM labels before instructions like OR, AND, MOV must be
+' recognized as labels (at col 0), not treated as mnemonics.
+' Also tests standalone no-operand instructions (stalli, nop, ret).
+
+CON
+  _clkfreq = 10_000_000
+
+DAT
+              org
+drive_start
+              nop
+              stalli
+myLabel       MOV       pa, #1
+dirInst       OR        dira, pb
+flagSet       AND       outa, pa
+              allowi
+              ret
+.done
+              end

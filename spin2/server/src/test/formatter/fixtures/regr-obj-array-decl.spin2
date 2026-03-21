@@ -1,0 +1,18 @@
+' regr-obj-array-decl.spin2
+' Regression: OBJ array declarations (name[count]) must be recognized
+' and aligned, not skipped by the name validation regex.
+
+CON
+  _clkfreq = 10_000_000
+  MAX_SEGMENTS = 7
+
+OBJ
+  driver    : "dummy_child"
+  segments[MAX_SEGMENTS] : "dummy_child"
+  panels[4] : "dummy_child"
+
+VAR
+  long  result
+
+PUB main()
+  result := 0
