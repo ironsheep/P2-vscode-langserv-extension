@@ -5,13 +5,25 @@
 
 ## New Toolchain configuration and use
 
-Currently the following compilers are runtime detected:
+Currently the following compilers and downloaders are runtime detected:
+
+**Compilers:**
 
 |  name | executable name | description |
 | --- | --- | --- |
 | flexspin | flexspin.exe, flexspin.mac, flexspin | Compiler provided by FlexProp by Total Spectrum Software, Inc. (Eric R. Smith) <br>**All Platforms**
 | pnut | pnut_shell.bat | Compiler provided by Parallax.com. (Chip Gracey) <br>**Windows only**
 | pnut_ts | pnut_ts | Compiler provided by Parallax.com, and Iron Sheep Productions, LLC. (Chip Gracey, and Stephen M. Moraco) <br>**All Platforms**
+
+**Downloaders:**
+
+|  name | executable name | description |
+| --- | --- | --- |
+| loadp2 | loadp2.exe, loadp2.mac, loadp2 | Downloader provided by FlexProp (for use with flexspin) <br>**All Platforms**
+| proploader | proploader.exe, proploader.mac, proploader | Downloader for P1 (for use with flexspin) <br>**All Platforms**
+| pnut | pnut_shell.bat | Built-in downloader in PNut (Windows PNut auto-selects port) <br>**Windows only**
+| pnut_ts | (built-in) | Built-in downloader in the Spin2 Extension (for use with pnut_ts compiler) <br>**All Platforms**
+| pnut-term-ts | pnut-term-ts | Alternative downloader with debug terminal support. Enable via **Use Pnut Term TS** in Settings under **Spin2 Toolchain > Options Download**. When enabled, pnut-term-ts is used instead of the built-in pnut_ts loader, providing a debug terminal window for debug() output. <br>**All Platforms**
 
 A couple of expected paths per platform and the user's environment variables are used to find the install for each compiler.
 
@@ -61,9 +73,12 @@ This now translates into a single entry in the **user tasks** file:
         },
         "${fileBasename}"
       ],
+      "options": {
+        "cwd": "${config:spin2.fDirSource}"
+      },
       "problemMatcher": {
         "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "fileLocation": ["autoDetect", "${config:spin2.fDirSource}"],
         "pattern": {
           "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
@@ -90,7 +105,7 @@ This now translates into a single entry in the **user tasks** file:
 
 ```
 
-**NOTE**: This supports any runtime-selected compiler. The `${command:spinExtension.getCompilerArguments}` call returns the correct compiler flags because the Spin2 extension knows which compiler is selected. The `"quoting": "weak"` setting ensures arguments containing spaces are handled correctly.
+**NOTE**: This supports any runtime-selected compiler. The `${command:spinExtension.getCompilerArguments}` call returns the correct compiler flags because the Spin2 extension knows which compiler is selected. The `"quoting": "weak"` setting ensures arguments containing spaces are handled correctly. The `"cwd"` ensures tasks run in the source file's directory, which is required when VSCode is opened at a project root but `.spin2` files are in a subfolder.
 
 **NOTE2**: Requires a modified **pnut_shell.bat** file that reorders the given parameters.
 
@@ -117,9 +132,12 @@ This now translates into a single entry in the **user tasks** file:
         },
         "${config:spin2.fNameTopLevel}"
       ],
+      "options": {
+        "cwd": "${config:spin2.fDirSource}"
+      },
       "problemMatcher": {
         "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "fileLocation": ["autoDetect", "${config:spin2.fDirSource}"],
         "pattern": {
           "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
@@ -160,6 +178,7 @@ This now translates into a single entry in the **user tasks** file:
 | pnut to RAM | `pnut_shell.bat ${config:spin2.fNameTopLevel}.spin2 -r` <br>*NOTE: -r becomes -rd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
 | pnut to FLASH | `pnut_shell.bat ${config:spin2.fNameTopLevel}.spin2 -f` <br>*NOTE: -f becomes -fd if debug() compile is specified. Also, port is autoselected, there is no control of port.*
 | pnut_ts to FLASH/RAM | *NOTE: The pnut_ts loader is built into the Spin2 Extension so is not represented in the Users Tasks file*
+| pnut-term-ts to FLASH/RAM | `pnut-term-ts -r -p{port} ${config:spin2.fNameTopLevel}.spin2` <br>*NOTE: Enable "Use Pnut Term TS" in Settings. Provides a debug terminal window for debug() output. -r becomes -f for FLASH, -rd/-fd for debug.*
 
 This now translates into a single entry in the **user tasks** file:
 
@@ -175,9 +194,12 @@ This now translates into a single entry in the **user tasks** file:
         },
         "${config:spin2.optionsBinaryFname}"
       ],
+      "options": {
+        "cwd": "${config:spin2.fDirSource}"
+      },
       "problemMatcher": {
         "owner": "Spin2",
-        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "fileLocation": ["autoDetect", "${config:spin2.fDirSource}"],
         "pattern": {
           "regexp": "^(.*):(\\d+):\\s*(warning|error):\\s*(.*)$",
           "file": 1,
