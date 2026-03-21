@@ -11,6 +11,7 @@ import {
   splitTrailingComment,
   isFullLineComment,
   isColumnZero,
+  isPreprocessorLine,
   computeBlockCommentColumn,
   padToColumn,
   DEFAULT_TABSTOPS,
@@ -136,6 +137,7 @@ function normalizeIndentation(
     const line = lines[i];
     if (line.trim().length === 0) continue;
     if (isFullLineComment(line)) continue;
+    if (isPreprocessorLine(line)) continue;
     codeLines.push({ lineIdx: i, indent: getIndentColumns(line) });
   }
 

@@ -10,6 +10,7 @@ import {
   splitTrailingComment,
   isFullLineComment,
   isColumnZero,
+  isPreprocessorLine,
   snapToNextTabstop,
   computeBlockCommentColumn,
   padToColumn,
@@ -176,6 +177,7 @@ function formatPasmRegion(
     const trimmed = line.trimStart();
     // skip org/fit/end directives themselves
     if (ORG_RE.test(trimmed) || FIT_RE.test(trimmed)) continue;
+    if (isPreprocessorLine(line)) continue;
 
     const parsed = parsePasmLine(line, i);
     if (parsed) {
@@ -496,6 +498,7 @@ function formatDatDataLines(
 
     const trimmed = line.trimStart();
     if (/^dat\b/i.test(trimmed)) continue; // skip DAT keyword
+    if (isPreprocessorLine(line)) continue;
 
     const parsed = parseDatDataLine(line, i);
     if (parsed) {

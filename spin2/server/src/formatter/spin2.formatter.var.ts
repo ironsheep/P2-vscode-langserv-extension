@@ -10,6 +10,7 @@ import {
   splitTrailingComment,
   isFullLineComment,
   isColumnZero,
+  isPreprocessorLine,
   snapToNextTabstop,
   computeBlockCommentColumn,
   padToColumn,
@@ -57,6 +58,9 @@ export function formatVarBlock(
     const trimmed = line.trimStart();
     if (/^var\b/i.test(trimmed)) {
       continue; // skip the VAR keyword line
+    }
+    if (isPreprocessorLine(line)) {
+      continue;
     }
 
     const parsed = parseVarLine(line, i);

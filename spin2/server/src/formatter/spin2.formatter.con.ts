@@ -10,6 +10,7 @@ import {
   splitTrailingComment,
   isFullLineComment,
   isColumnZero,
+  isPreprocessorLine,
   snapToNextTabstop,
   computeBlockCommentColumn,
   padToColumn,
@@ -66,6 +67,11 @@ export function formatConBlock(
 
     // Skip the CON keyword line itself
     if (/^con\b/i.test(trimmed)) {
+      continue;
+    }
+
+    // Skip preprocessor directives — leave them untouched
+    if (isPreprocessorLine(line)) {
       continue;
     }
 

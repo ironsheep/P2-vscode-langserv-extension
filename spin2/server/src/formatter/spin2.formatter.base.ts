@@ -129,6 +129,15 @@ export function isColumnZero(line: string): boolean {
 }
 
 /**
+ * Check if a line is a preprocessor directive (#define, #ifdef, #include, etc.).
+ * These are never reformatted — they must stay exactly as written.
+ */
+export function isPreprocessorLine(line: string): boolean {
+  const trimmed = line.trimStart();
+  return /^#(define|ifdef|ifndef|else|elseifdef|elseifndef|endif|undef|pragma|include|error|warn)\b/i.test(trimmed);
+}
+
+/**
  * Given an array of measured content-end columns (one per line in a block),
  * determine the best comment alignment column using the tabstop grid.
  */

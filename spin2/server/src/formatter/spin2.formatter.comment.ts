@@ -6,7 +6,7 @@
 // - PASM instruction case normalization
 // - Space after comment opener (' text vs 'text)
 
-import { splitTrailingComment, isFullLineComment, isColumnZero } from './spin2.formatter.base';
+import { splitTrailingComment, isFullLineComment, isColumnZero, isPreprocessorLine } from './spin2.formatter.base';
 import { DocumentFindings, eBLockType } from '../parser/spin.semantic.findings';
 
 // Block section keywords
@@ -182,6 +182,7 @@ export function normalizeMethodBlockCase(
     if (findings.isLineInBlockComment(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
+    if (isPreprocessorLine(lines[i])) continue;
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;
@@ -240,6 +241,7 @@ export function normalizeDatBlockCase(
     if (findings.isLineInBlockComment(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (isFullLineComment(lines[i])) continue;
+    if (isPreprocessorLine(lines[i])) continue;
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;
@@ -288,6 +290,7 @@ export function normalizeNonCodeBlockCase(
     if (findings.isLineInBlockComment(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
+    if (isPreprocessorLine(lines[i])) continue;
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;

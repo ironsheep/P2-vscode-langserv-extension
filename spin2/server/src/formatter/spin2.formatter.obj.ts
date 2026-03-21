@@ -9,6 +9,7 @@ import {
   splitTrailingComment,
   isFullLineComment,
   isColumnZero,
+  isPreprocessorLine,
   snapToNextTabstop,
   computeBlockCommentColumn,
   padToColumn,
@@ -56,6 +57,9 @@ export function formatObjBlock(
     const trimmed = line.trimStart();
     if (/^obj\b/i.test(trimmed)) {
       continue; // skip the OBJ keyword line
+    }
+    if (isPreprocessorLine(line)) {
+      continue;
     }
 
     const parsed = parseObjLine(line, i);
