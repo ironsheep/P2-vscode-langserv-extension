@@ -31,12 +31,29 @@ Spin2 document formatter with tab/space conversion and status bar indicator
 - Add formatter format-on-save support via `spinExtension.formatter.formatOnSave` -- sends format requests directly through the language client, bypassing VSCode's `editor.formatOnSave` dispatch to avoid conflicts with Prettier and other formatters
 - Add `configurationDefaults` claiming `editor.defaultFormatter` for `[spin2]`, `[spin]`, and `[p2asm]` languages -- prevents other formatters from interfering with Spin2 files
 - Add bidirectional tab/space conversion -- the formatter enforces the user's whitespace preference: converts tabs to spaces or spaces to tabs based on the `tabsToSpaces` setting
-- Add "Spin2 Spaces: N" / "Spin2 Tabs: N" status bar indicator showing active tab/indent settings -- click to switch between spaces and tabs, change indent size, or change tab width
+- Add "Spin2 Spaces: N" / "Spin2 Tabs: N" / "Spin2 Prop Tool" / "Spin2 IronSheep" status bar indicator showing active tab/indent settings and elastic tabstop profile -- click to switch between spaces, tabs, or any elastic tabstop profile
 - Add VSCode built-in `editor.tabSize` and `editor.insertSpaces` as fallback defaults when extension formatter settings are not explicitly configured
-- Add formatter test suite (1152 tests) covering binary parity, idempotency, configuration variation, crash resilience, and real-world file validation
+- Add formatter test suite (1683 tests) covering binary parity, idempotency, configuration variation, crash resilience, cross-config binary parity, and real-world file validation
 - Formatter is disabled by default -- enable via `spinExtension.formatter.enable` in settings
 
-### Fixes
+### Formatter Fixes
+
+- Fix OBJ formatter rejecting array object declarations (e.g., `segments[7] : "isp_hub75_segment"`) -- name validation now accepts optional `[count]` suffix
+- Fix mixed tab/space indentation within a method body changing code nesting -- when a method mixes tab-indented lines (8 columns) and space-indented lines (4 spaces) for the same logical level, the indent normalizer now correctly maps both to the same nesting depth
+- Fix DAT/PASM data declarations (e.g., `maskQtrRowsModulus LONG 0`) pushing instruction mnemonic columns too wide -- data type columns and instruction mnemonic columns are now computed independently; instruction columns are only affected by condition widths
+- Fix PASM `debug()` calls with embedded strings inflating column widths -- `debug("text with spaces")` is now parsed as a single token with balanced parentheses instead of splitting at whitespace inside the string
+- Fix PASM labels misidentified as mnemonics (e.g., `dirInst1of2 OR DIRA, maskAllPins`) -- added the full P2 PASM instruction set (362 entries) for label-vs-mnemonic detection
+- Fix standalone PASM instructions (`stalli`, `nop`, `ret`, etc.) misidentified as labels when appearing alone on a line
+- Fix full-line comments in PASM ORG regions not aligning with following code -- comments now align to the next code line's starting column instead of a fixed position
+- Fix full-line comments in CON, VAR, OBJ sections not moving with declarations -- interspersed comments now align to the same indent as the constants/variables/objects they describe
+- Fix grouped single-quote comment blocks (`' line1` / `' line2`) skipped by comment alignment in DAT/PASM -- the parser records these as "block comments" but they are single-line comments that need alignment
+- Replace partial keyword sets for case normalization with full authoritative lists from `spin2.utils.ts` -- `PASM_INSTRUCTIONS` (362 entries) and `METHOD_KEYWORDS` (all built-in methods, constants, registers, and enhancement keywords)
+
+### Highlighting Fixes
+
+- Fix DAT inline `{comment}` labels (e.g., `{00}`, `{01}`) incorrectly flagged as "missing declaration" when the same line contains quoted strings -- `removeDoubleQuotedStrings()` was stripping `{...}` inline block comments when building the search string, preventing the comment stripper from finding them
+
+### Other Fixes
 
 - Improve language server responsiveness on large files -- add 350ms debounce to document change handler so the expensive parse/diagnostics/dependency chain waits until typing pauses instead of running on every keystroke
 - Fix elastic tabstops Tab/Shift+Tab keybindings silently stopping -- the `runtime.spin2.elasticTabstops.enabled` context variable is now re-asserted on every configuration change event, recovering from extension host restarts or transient state loss
