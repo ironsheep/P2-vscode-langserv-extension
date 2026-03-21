@@ -51,8 +51,8 @@ The background coloring is now capable of looking like our familiar Propeller To
 
 - Same colors per code Block as displayed by Propeller Tool
 - Light and Dark colors alternate with each same section
-- Coloring is **off by default** but is easily enbaled in settings
-- Two new themes (_Light and Dark for bavckground color_) alter the theme colors for better visiblity when using colored backgrounds
+- Coloring is **off by default** but is easily enabled in settings
+- Two new themes (_Light and Dark for background color_) alter the theme colors for better visibility when using colored backgrounds
 
 ## Feature: Object Hierarchy view à la Propeller Tool
 
@@ -204,9 +204,9 @@ PRI pullUpValueForEnum(ePullupRqst) : pullup
 
 ## Possible Conflicts with other VSCode Extensions
 
-**NOTE1:** _This extension now replaces the [Spin by Entomy](https://marketplace.visualstudio.com/items?itemName=Entomy.spin) vscode extension. While either can be used, this version provides more comprehensive Syntax highlighting (as the former has not been maintained) and this extension adds full Semantice Highlighting, Outlining and Tab support with InsertModes._ The `Spin` extension can be **uninistalled** with no loss of functionality.
+**NOTE1:** _This extension now replaces the [Spin by Entomy](https://marketplace.visualstudio.com/items?itemName=Entomy.spin) vscode extension. While either can be used, this version provides more comprehensive Syntax highlighting (as the former has not been maintained) and this extension adds full Semantic Highlighting, Outlining and Tab support with InsertModes._ The `Spin` extension can be **uninstalled** with no loss of functionality.
 
-**NOTE2:** _I'll be submitting pull requests to the Overtype extension maintainer to add code for avoiding interferrance with our .spin/.spin2 InsertMode feature but in the meantime please ensure that the [Overtype by Adma Maras](https://marketplace.visualstudio.com/items?itemName=adammaras.overtype) and/or [Overtype by DrMerfy](https://marketplace.visualstudio.com/items?itemName=DrMerfy.overtype) extensions are disabled or uninstalled as they can interfere with this extensions' behavior._
+**NOTE2:** _I'll be submitting pull requests to the Overtype extension maintainer to add code for avoiding interference with our .spin/.spin2 InsertMode feature but in the meantime please ensure that the [Overtype by Adma Maras](https://marketplace.visualstudio.com/items?itemName=adammaras.overtype) and/or [Overtype by DrMerfy](https://marketplace.visualstudio.com/items?itemName=DrMerfy.overtype) extensions are disabled or uninstalled as they can interfere with this extensions' behavior._
 
 ## Known Issues
 
