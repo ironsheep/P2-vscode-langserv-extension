@@ -336,10 +336,10 @@ function formatPasmRegion(
     lines[p.lineIdx] = formatted;
   }
 
-  // Align full-line comments within the PASM region.
-  // Inside an ORG...END region (whether in DAT or inline PASM), all comments
-  // are PASM commentary and should be aligned — there are no "section headers"
-  // within ORG regions.  Align to condCol (the first code column after labels).
+  // Align full-line comments within the PASM region to the indent of the
+  // next code line below them.  This keeps comments visually associated with
+  // the code they describe (e.g., a comment before REP-indented instructions
+  // aligns to the instruction column, not the condition column).
   //
   // Note: the real parser records consecutive ' comment groups as "block comments"
   // in its tracking.  We must allow '-prefixed lines through even when
@@ -349,10 +349,20 @@ function formatPasmRegion(
     if (findings.isLineInBlockComment(i) && !trimmed.startsWith("'")) continue;
     if (lines[i].trim().length === 0) continue;
     if (!isFullLineComment(lines[i])) continue;
-    // skip org/fit/end directive lines
     if (ORG_RE.test(trimmed) || FIT_RE.test(trimmed)) continue;
-    // Align to condCol (where conditions/code start)
-    lines[i] = ' '.repeat(condCol) + trimmed;
+    // Find the next non-comment, non-blank code line's indent
+    let alignCol = condCol; // fallback
+    for (let j = i + 1; j <= endLine; j++) {
+      const nextLine = lines[j];
+      if (nextLine.trim().length === 0) continue;
+      if (isFullLineComment(nextLine)) continue;
+      const nextTrimmed = nextLine.trimStart();
+      if (ORG_RE.test(nextTrimmed) || FIT_RE.test(nextTrimmed)) continue;
+      // Use the indent of this code line
+      alignCol = nextLine.length - nextTrimmed.length;
+      break;
+    }
+    lines[i] = ' '.repeat(alignCol) + trimmed;
   }
 }
 
