@@ -20,6 +20,7 @@ The Spin2 extension brings a rich set of editing features to VSCode for both Spi
   - [Generating an Object Interface Document](#generating-an-object-interface-document)
   - [Generating a Project Hierarchy Report](#generating-a-project-hierarchy-report)
 - [Editor Features](#editor-features)
+  - [Document Formatter](#document-formatter)
   - [Edit Modes — Insert, Overtype, and Align](#edit-modes--insert-overtype-and-align)
   - [Elastic TabStops](#elastic-tabstops)
   - [Screen Coloring](#screen-coloring)
@@ -166,6 +167,17 @@ Press `Ctrl+Alt+H` (`Ctrl+Alt+Cmd+H` on Mac) to generate a `.hier.txt` file show
 ## Editor Features
 
 The Spin2 extension includes several editor features inspired by the Parallax Propeller Tool that are specifically designed for writing Spin and PASM code.
+
+### Document Formatter
+
+The Spin2 document formatter automatically formats `.spin2` files with section-aware column alignment, method body indentation normalization, PASM instruction alignment, and six independent keyword case controls. It is designed to be provably safe — formatting never changes what your code compiles to.
+
+- **Enable**: Open Settings, search for "Spin2 Formatter", and check **Enable**
+- **Format on save**: Also check **Format On Save** for automatic formatting
+- **Manual format**: `Shift+Alt+F` (Windows/Linux) or `Shift+Option+F` (Mac)
+- **Status bar**: Click the "Spin2 Spaces: N" / "Spin2 Prop Tool" indicator to switch between spaces, tabs, or elastic tabstop profiles
+
+The formatter preserves block comments (`{ }`), string literals, `debug()` arguments, backtick expressions, and preprocessor directives. For the full list of settings and examples, see the [Formatter User Guide](Spin2-Formatter-UserGuide.md).
 
 ### Edit Modes — Insert, Overtype, and Align
 

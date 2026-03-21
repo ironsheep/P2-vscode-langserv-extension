@@ -7,7 +7,7 @@
 
 In general To open the Settings editor, navigate to **[Code]** > **Settings** > **Settings**.
 
-The Spin2 extension settings are in 6 sections.  If when you get to settings and type in "**SpinExt**" as a filter and you'll see the 6 sections of our new Spin2 Extension settings:
+The Spin2 extension settings are in 7 sections.  If when you get to settings and type in "**SpinExt**" as a filter and you'll see the 7 sections of our new Spin2 Extension settings:
 
 ## Spin2 Settings - Section 1 - Extension Behaviors
 
@@ -137,7 +137,33 @@ The following is adjusted by clicking on status bar controls:
 
 - **Prop Plug: Selected**- Shows which prop plug you are downloading to. Click on "plug:[name, N/A]" StatusBar control to change this.
 
-## Spin2 Settings - Section 5 - Workspace Build Environment
+## Spin2 Settings - Section 5 - Document Formatter
+
+Search for "**Spin2 Formatter**" in the Settings UI to see all formatter options.
+
+Formatter Adjustments:
+
+- **Enable** - Master enable/disable for the formatter (default: off)
+- **Format On Save** - Automatically format `.spin2` files when saving (default: off)
+- **Tabs To Spaces** - Convert tab characters to spaces (default: on)
+- **Tab Width** - Width of a tab character for conversion and alignment (default: 8)
+- **Indent Size** - Spaces per indent level in PUB/PRI method bodies (default: 2, options: 2, 4, 8)
+- **Trim Trailing Whitespace** - Remove trailing spaces/tabs from lines (default: on)
+- **Insert Final Newline** - Ensure file ends with one newline (default: on)
+- **Max Consecutive Blank Lines** - Maximum blank lines in a row (default: 1)
+- **Blank Lines Between Sections** - Blank lines between CON/VAR/OBJ/DAT/PUB/PRI (default: 1)
+- **Blank Lines Between Methods** - Blank lines between consecutive PUB/PRI methods (default: 2)
+- **Block Name Case** - Case for section keywords CON/VAR/OBJ/DAT/PUB/PRI (default: uppercase)
+- **Control Flow Case** - Case for if/repeat/case/return/etc. (default: lowercase)
+- **Method Case** - Case for built-in methods and constants (default: lowercase)
+- **Type Case** - Case for byte/word/long/struct/union (default: lowercase)
+- **Constant Case** - Case for user-defined CON constants (default: preserve)
+- **Pasm Instruction Case** - Case for PASM mnemonics (default: preserve)
+- **Space After Comment Start** - Insert space after `'` or `''` in comments (default: on)
+
+For detailed usage with examples, see the [Formatter User Guide](Spin2-Formatter-UserGuide.md).
+
+## Spin2 Settings - Section 6 - Workspace Build Environment
 
 <p align="center">
   <img alt="Spin2 Workspace Build Environment" src="./DOCs/stgs-buildEnv.png" width="800"><br>
@@ -149,7 +175,7 @@ The following is adjusted by clicking on status bar controls:
 **WARNING** there are no user configurable options here. This page was automatically genrated when we added the persistance of our user and workspace tool selections.  You can click on User and Workspace tabs for this section to review the current settings. **But do not change anything here as any changes you make will be overwritten.**
 
 
-## Spin2 Settings - Section 6 - Include Directories
+## Spin2 Settings - Section 7 - Include Directories
 
 <p align="center">
   <img alt="Spin2 Include Directories" src="./DOCs/stgs-includeDirs.png" width="800"><br>
