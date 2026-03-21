@@ -6,26 +6,28 @@ The Spin2 Formatter automatically formats your `.spin2` source files: normalizin
 
 ## Getting Started
 
+### Finding the Formatter Settings
+
+All formatter settings are in the VSCode Settings UI:
+
+1. Open Settings: **File > Preferences > Settings** (or `Ctrl+,` / `Cmd+,`)
+2. In the search bar, type **"Spin2 Formatter"**
+3. All formatter options appear in the **Spin2 Document Formatter** section
+
 ### Enabling the Formatter
 
-The formatter is **disabled by default**. To enable it, add these settings to your VSCode `settings.json`:
+The formatter is **disabled by default**. To enable it:
 
-```json
-{
-  "spinExtension.formatter.enable": true
-}
-```
+1. Open Settings and search for **"Spin2 Formatter"**
+2. Check the box for **Enable** — *"Enable the Spin2 document formatter"*
 
 ### Format on Save
 
 To automatically format every time you save a `.spin2` file:
 
-```json
-{
-  "spinExtension.formatter.enable": true,
-  "spinExtension.formatter.formatOnSave": true
-}
-```
+1. Check the box for **Format On Save** — *"Automatically format Spin2 documents when saving"*
+
+Both **Enable** and **Format On Save** must be checked for auto-formatting to work.
 
 ### Manual Formatting
 
@@ -34,38 +36,41 @@ With the formatter enabled, you can format manually:
 - **Command Palette**: `Format Document`
 - **Right-click**: `Format Document` from the context menu
 
+### Status Bar Indicator
+
+When a `.spin2` file is open, the status bar shows the active whitespace mode:
+
+- **"Spin2 Spaces: 2"** — using 2-space indentation
+- **"Spin2 Tabs: 8"** — using tab characters (width 8)
+- **"Spin2 Prop Tool"** — using PropellerTool elastic tabstops
+- **"Spin2 IronSheep"** — using IronSheep elastic tabstops
+
+Click the indicator to switch between spaces, tabs, or any elastic tabstop profile from a single menu. You can also change the indent size and tab width from this menu.
+
 ---
 
 ## Settings Reference
 
-All settings are prefixed with `spinExtension.formatter.` in your `settings.json`. For example, `spinExtension.formatter.indentSize`.
+All settings are in the **Spin2 Document Formatter** section of the Settings UI. Search for **"Spin2 Formatter"** to find them.
 
 ### Whitespace & Tabs
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `tabsToSpaces` | boolean | `true` | Convert tabs to spaces. Set to `false` to keep tab characters. |
-| `tabWidth` | number | `8` | Width of a tab character (used for conversion and alignment math). |
-| `trimTrailingWhitespace` | boolean | `true` | Remove trailing spaces/tabs from each line. |
-| `insertFinalNewline` | boolean | `true` | Ensure the file ends with exactly one newline. |
-
-**Example** — use tabs with width 4:
-```json
-{
-  "spinExtension.formatter.tabsToSpaces": false,
-  "spinExtension.formatter.tabWidth": 4
-}
-```
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Tabs To Spaces** | checked | Convert tab characters to spaces. Uncheck to keep tab characters in the output. |
+| **Tab Width** | `8` | Width of a tab character for conversion and alignment calculations. |
+| **Trim Trailing Whitespace** | checked | Remove trailing spaces and tabs from all lines (except inside block comments). |
+| **Insert Final Newline** | checked | Ensure the file ends with exactly one newline character. |
 
 ### Indentation
 
-| Setting | Type | Default | Allowed Values |
-|---------|------|---------|----------------|
-| `indentSize` | number | `2` | `2`, `4`, or `8` |
+| Setting | Default | Options |
+|---------|---------|---------|
+| **Indent Size** | `2` | `2`, `4`, or `8` |
 
 This controls the number of spaces per indent level inside PUB and PRI method bodies. Code nesting is preserved; only the width of each level changes.
 
-**Example** — 2-space indent (default):
+**With indent size 2** (default):
 ```spin2
 PUB main() | i
   repeat i from 0 to 9
@@ -73,7 +78,7 @@ PUB main() | i
       debug("big")
 ```
 
-**Example** — 4-space indent:
+**With indent size 4:**
 ```spin2
 PUB main() | i
     repeat i from 0 to 9
@@ -83,35 +88,17 @@ PUB main() | i
 
 ### Blank Lines
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `maxConsecutiveBlankLines` | number | `1` | Maximum blank lines allowed in a row. Excess blanks are removed. |
-| `blankLinesBetweenSections` | number | `1` | Blank lines between sections (CON, VAR, OBJ, DAT, PUB, PRI). |
-| `blankLinesBetweenMethods` | number | `2` | Blank lines between consecutive PUB/PRI methods. |
-
-**Example** — tight spacing:
-```json
-{
-  "spinExtension.formatter.maxConsecutiveBlankLines": 0,
-  "spinExtension.formatter.blankLinesBetweenSections": 1,
-  "spinExtension.formatter.blankLinesBetweenMethods": 1
-}
-```
-
-**Example** — generous spacing:
-```json
-{
-  "spinExtension.formatter.maxConsecutiveBlankLines": 2,
-  "spinExtension.formatter.blankLinesBetweenSections": 2,
-  "spinExtension.formatter.blankLinesBetweenMethods": 3
-}
-```
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Max Consecutive Blank Lines** | `1` | Maximum blank lines allowed in a row. Excess blanks are removed. |
+| **Blank Lines Between Sections** | `1` | Blank lines between major sections (CON, VAR, OBJ, DAT, PUB, PRI). |
+| **Blank Lines Between Methods** | `2` | Blank lines between consecutive PUB/PRI methods. |
 
 ### Comments
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `spaceAfterCommentStart` | boolean | `true` | Insert a space after `'` or `''` in comments. |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Space After Comment Start** | checked | Insert a space after `'` or `''` in comments. |
 
 When enabled:
 - `'text` becomes `' text`
@@ -122,17 +109,17 @@ When enabled:
 
 ## Keyword Case Normalization
 
-The formatter provides **six independent case controls**, each accepting one of three values:
+The formatter provides **six independent case controls**. Each appears as a dropdown in the Settings UI with three options:
 
-| Value | Effect |
-|-------|--------|
-| `"uppercase"` | Force to UPPERCASE |
-| `"lowercase"` | Force to lowercase |
-| `"preserve"` | Leave as-is (no changes) |
+| Dropdown Value | Effect |
+|----------------|--------|
+| **uppercase** | Force to UPPERCASE |
+| **lowercase** | Force to lowercase |
+| **preserve** | Leave as-is (no changes) |
 
 ### Block Name Case
 
-**Setting**: `blockNameCase` (default: `"uppercase"`)
+**Setting**: **Block Name Case** (default: `uppercase`)
 
 Controls the case of section keywords: CON, VAR, OBJ, DAT, PUB, PRI.
 
@@ -145,7 +132,7 @@ PUB main()                        pub main()
 
 ### Control Flow Case
 
-**Setting**: `controlFlowCase` (default: `"lowercase"`)
+**Setting**: **Control Flow Case** (default: `lowercase`)
 
 Controls keywords used for program flow in PUB/PRI methods:
 
@@ -160,7 +147,7 @@ Controls keywords used for program flow in PUB/PRI methods:
 
 ### Method & Built-in Case
 
-**Setting**: `methodCase` (default: `"lowercase"`)
+**Setting**: **Method Case** (default: `lowercase`)
 
 Controls built-in methods and constants:
 
@@ -176,7 +163,7 @@ Controls built-in methods and constants:
 
 ### Type Case
 
-**Setting**: `typeCase` (default: `"lowercase"`)
+**Setting**: **Type Case** (default: `lowercase`)
 
 Controls type keywords: `byte`, `word`, `long`, `struct`, `union`
 
@@ -191,7 +178,7 @@ VAR                                VAR
 
 ### User-Defined Constant Case
 
-**Setting**: `constantCase` (default: `"preserve"`)
+**Setting**: **Constant Case** (default: `preserve`)
 
 Controls the case of user-defined constant names from CON sections. The formatter collects all constant names you define in CON blocks and normalizes their case everywhere they appear.
 
@@ -206,7 +193,7 @@ PUB main()                        PUB main()
 
 ### PASM Instruction Case
 
-**Setting**: `pasmInstructionCase` (default: `"preserve"`)
+**Setting**: **Pasm Instruction Case** (default: `preserve`)
 
 Controls PASM assembly instruction mnemonics in DAT sections and inline PASM:
 
@@ -224,40 +211,18 @@ myLabel       mov     x, #5       myLabel       MOV     x, #5
 ### Recommended Case Configurations
 
 **Traditional Spin2 style** (matches Propeller Tool conventions):
-```json
-{
-  "spinExtension.formatter.blockNameCase": "uppercase",
-  "spinExtension.formatter.controlFlowCase": "lowercase",
-  "spinExtension.formatter.methodCase": "lowercase",
-  "spinExtension.formatter.typeCase": "lowercase",
-  "spinExtension.formatter.constantCase": "preserve",
-  "spinExtension.formatter.pasmInstructionCase": "preserve"
-}
-```
+- Block Name Case: `uppercase`
+- Control Flow Case: `lowercase`
+- Method Case: `lowercase`
+- Type Case: `lowercase`
+- Constant Case: `preserve`
+- Pasm Instruction Case: `preserve`
 
-**All uppercase** (some users prefer this for visual emphasis):
-```json
-{
-  "spinExtension.formatter.blockNameCase": "uppercase",
-  "spinExtension.formatter.controlFlowCase": "uppercase",
-  "spinExtension.formatter.methodCase": "uppercase",
-  "spinExtension.formatter.typeCase": "uppercase",
-  "spinExtension.formatter.constantCase": "uppercase",
-  "spinExtension.formatter.pasmInstructionCase": "uppercase"
-}
-```
+**All uppercase:**
+Set all six dropdowns to `uppercase`.
 
 **Hands-off** (only do whitespace/alignment, don't change any case):
-```json
-{
-  "spinExtension.formatter.blockNameCase": "preserve",
-  "spinExtension.formatter.controlFlowCase": "preserve",
-  "spinExtension.formatter.methodCase": "preserve",
-  "spinExtension.formatter.typeCase": "preserve",
-  "spinExtension.formatter.constantCase": "preserve",
-  "spinExtension.formatter.pasmInstructionCase": "preserve"
-}
-```
+Set all six dropdowns to `preserve`.
 
 ---
 
@@ -278,6 +243,7 @@ CON                                CON
 - Names are indented consistently
 - `=` signs are vertically aligned
 - Values are placed immediately after `=`
+- Interspersed comments align to the same indent as the constants
 
 Enum groups (lines using `#`) are normalized to single-space-after-comma:
 
@@ -342,7 +308,7 @@ done          ret                        ' return
 
 ### PUB/PRI Methods — Indentation Normalization
 
-The formatter detects your code's nesting structure and re-expresses it using the configured `indentSize`:
+The formatter detects your code's nesting structure and re-expresses it using the configured indent size:
 
 ```spin2
 ' Before (messy, inconsistent):    ' After (indentSize: 2):
@@ -389,23 +355,33 @@ The formatter is careful to preserve certain content exactly as-is:
 
 ## Elastic Tabstops Integration
 
-If you have elastic tabstops enabled (`spinExtension.elasticTabstops.enable: true`), the formatter uses your custom tabstop positions instead of the built-in defaults. This lets you control exactly where columns align in each section.
+If you have elastic tabstops enabled (check **Enable** under the **Spin2 Elastic Tabstops** section in Settings), the formatter uses your custom tabstop positions instead of the built-in defaults. This lets you control exactly where columns align in each section.
 
 The formatter reads tabstop arrays from your selected profile (PropellerTool, IronSheep, or User1). If a section doesn't have a custom tabstop array, it falls back to the PropellerTool defaults.
 
 The status bar indicator shows the active profile name — **"Spin2 Prop Tool"**, **"Spin2 IronSheep"**, or **"Spin2 User1"** — instead of a generic label. Click it to switch between spaces, tabs, or any elastic tabstop profile from a single menu.
 
-**Note**: Method indentation (`indentSize` x nesting level) is not affected by elastic tabstops. Elastic tabstops only affect column alignment in CON, VAR, OBJ, DAT, and trailing comment positioning in PUB/PRI.
+**Note**: Method indentation (indent size x nesting level) is not affected by elastic tabstops. Elastic tabstops only affect column alignment in CON, VAR, OBJ, DAT, and trailing comment positioning in PUB/PRI.
 
 ---
 
-## Complete Example Configuration
+## Tips
 
-Here is a complete `settings.json` configuration showing all formatter options at their default values:
+- **Start with defaults**: Enable the formatter with default settings first. Adjust individual settings as you discover preferences.
+- **Use format-on-save**: Once you're comfortable with the formatter's output, enable Format On Save to keep code consistent without thinking about it.
+- **Block comments for art**: If you have carefully formatted tables, diagrams, or ASCII art, wrap them in `{ }` block comments to protect them from reformatting.
+- **Preserve mode**: Set all six case dropdowns to `preserve` if you only want whitespace/alignment formatting without any keyword case changes.
+- **The formatter is safe**: Formatting never changes what your code compiles to. The formatter is tested by compiling before and after formatting and verifying the binary output is identical.
+
+---
+
+## Appendix: JSON Settings Reference
+
+For users who prefer editing `settings.json` directly (open via Command Palette: `Ctrl+Shift+P` > **"Preferences: Open User Settings (JSON)"**), here are all formatter settings with their default values:
 
 ```json
 {
-  "spinExtension.formatter.enable": true,
+  "spinExtension.formatter.enable": false,
   "spinExtension.formatter.formatOnSave": false,
   "spinExtension.formatter.trimTrailingWhitespace": true,
   "spinExtension.formatter.insertFinalNewline": true,
@@ -435,13 +411,3 @@ You only need to include settings where you want a non-default value. For exampl
   "spinExtension.formatter.controlFlowCase": "uppercase"
 }
 ```
-
----
-
-## Tips
-
-- **Start with defaults**: Enable the formatter with default settings first. Adjust individual settings as you discover preferences.
-- **Use format-on-save**: Once you're comfortable with the formatter's output, enable `formatOnSave` to keep code consistent without thinking about it.
-- **Block comments for art**: If you have carefully formatted tables, diagrams, or ASCII art, wrap them in `{ }` block comments to protect them from reformatting.
-- **Preserve mode**: Set all case options to `"preserve"` if you only want whitespace/alignment formatting without any keyword case changes.
-- **The formatter is safe**: Formatting never changes what your code compiles to. The formatter is tested by compiling before and after formatting and verifying the binary output is identical.
