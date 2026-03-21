@@ -4,1573 +4,1254 @@ All notable changes to the "spin2 syntax highlighting & code navigation" extensi
 
 Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to structure this file. Also, note that our version numbering adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Roadmap
 
-### Follow-on work to appear in Upcoming releases
+### Near-term
 
 - Work on fixes to any reported issues
-- v43 Add Constants to OBJ I/F DOC
-- v45 Add Structures to OBJ I/F DOC
+- Add Constants to OBJ Interface Documentation
+- Add Structures to OBJ Interface Documentation
 - Continue spin2 code formatter improvements
 
-### More distant next Additions
+### Longer-term
 
-- More features coming. We're looking for what's next...
-- Investigate and possibly add unique coloring for method pointers
-- Add spin2 instruction templates as Snippets (_for instructions with two or more parameters_)
+- Investigate unique coloring for method pointers
+- Add spin2 instruction templates as Snippets (for instructions with two or more parameters)
 - Add new-file templates as Snippets
 - Add additional Snippets as the community identifies them
 
-## [2.9.0] 2026-03-17
+## [Unreleased]
+
+_No unreleased changes at this time._
+
+## [2.9.0] - 2026-03-21
 
 Spin2 document formatter with tab/space conversion and status bar indicator
 
-### New Features
+### Added
 
-- Add Spin2 document formatter with section-aware column alignment for CON, VAR, OBJ, and DAT blocks, method body indentation normalization, PASM instruction alignment, keyword case normalization, and trailing comment alignment
-- Add formatter format-on-save support via `spinExtension.formatter.formatOnSave` -- sends format requests directly through the language client, bypassing VSCode's `editor.formatOnSave` dispatch to avoid conflicts with Prettier and other formatters
-- Add `configurationDefaults` claiming `editor.defaultFormatter` for `[spin2]`, `[spin]`, and `[p2asm]` languages -- prevents other formatters from interfering with Spin2 files
-- Add bidirectional tab/space conversion -- the formatter enforces the user's whitespace preference: converts tabs to spaces or spaces to tabs based on the `tabsToSpaces` setting
-- Add "Spin2 Spaces: N" / "Spin2 Tabs: N" / "Spin2 Prop Tool" / "Spin2 IronSheep" status bar indicator showing active tab/indent settings and elastic tabstop profile -- click to switch between spaces, tabs, or any elastic tabstop profile
-- Add VSCode built-in `editor.tabSize` and `editor.insertSpaces` as fallback defaults when extension formatter settings are not explicitly configured
-- Add formatter test suite (1683 tests) covering binary parity, idempotency, configuration variation, crash resilience, cross-config binary parity, and real-world file validation
-- Formatter is disabled by default -- enable via `spinExtension.formatter.enable` in settings
+- Spin2 document formatter with section-aware column alignment for CON, VAR, OBJ, DAT blocks, method body indentation, PASM instruction alignment, keyword case normalization, and trailing comment alignment
+- Format-on-save support via `spinExtension.formatter.formatOnSave`, bypassing VSCode's dispatch to avoid conflicts with other formatters
+- `configurationDefaults` claiming `editor.defaultFormatter` for `[spin2]`, `[spin]`, and `[p2asm]` languages
+- Bidirectional tab/space conversion enforcing the user's whitespace preference
+- "Spin2 Spaces: N" / "Spin2 Tabs: N" / "Spin2 Prop Tool" / "Spin2 IronSheep" status bar indicator showing active tab/indent settings; click to switch profiles
+- VSCode `editor.tabSize` and `editor.insertSpaces` as fallback defaults when extension settings are not configured
+- Formatter test suite (1683 tests) covering binary parity, idempotency, configuration variation, crash resilience, and real-world file validation
+- Formatter is disabled by default; enable via `spinExtension.formatter.enable`
 
-### Formatter Fixes
+### Fixed
 
-- Fix OBJ formatter rejecting array object declarations (e.g., `segments[7] : "isp_hub75_segment"`) -- name validation now accepts optional `[count]` suffix
-- Fix mixed tab/space indentation within a method body changing code nesting -- when a method mixes tab-indented lines (8 columns) and space-indented lines (4 spaces) for the same logical level, the indent normalizer now correctly maps both to the same nesting depth
-- Fix DAT/PASM data declarations (e.g., `maskQtrRowsModulus LONG 0`) pushing instruction mnemonic columns too wide -- data type columns and instruction mnemonic columns are now computed independently; instruction columns are only affected by condition widths
-- Fix PASM `debug()` calls with embedded strings inflating column widths -- `debug("text with spaces")` is now parsed as a single token with balanced parentheses instead of splitting at whitespace inside the string
-- Fix PASM labels misidentified as mnemonics (e.g., `dirInst1of2 OR DIRA, maskAllPins`) -- added the full P2 PASM instruction set (362 entries) for label-vs-mnemonic detection
-- Fix standalone PASM instructions (`stalli`, `nop`, `ret`, etc.) misidentified as labels when appearing alone on a line
-- Fix full-line comments in PASM ORG regions not aligning with following code -- comments now align to the next code line's starting column instead of a fixed position
-- Fix full-line comments in CON, VAR, OBJ sections not moving with declarations -- interspersed comments now align to the same indent as the constants/variables/objects they describe
-- Fix grouped single-quote comment blocks (`' line1` / `' line2`) skipped by comment alignment in DAT/PASM -- the parser records these as "block comments" but they are single-line comments that need alignment
-- Replace partial keyword sets for case normalization with full authoritative lists from `spin2.utils.ts` -- `PASM_INSTRUCTIONS` (362 entries) and `METHOD_KEYWORDS` (all built-in methods, constants, registers, and enhancement keywords)
+- BUGFIX: DAT inline `{comment}` labels no longer falsely flagged as "missing declaration" when quoted strings are present
+- BUGFIX: Language server now debounces document changes (350ms) for better responsiveness on large files
+- BUGFIX: Elastic tabstops Tab/Shift+Tab keybindings now recover from extension host restarts
+- BUGFIX: Case match values (e.g., `ORIENTATION_0:`) now colorized when the case body contains `debug()`
+- BUGFIX: Compile/download tasks now run in the source file's directory when files are in a subfolder
 
-### Highlighting Fixes
-
-- Fix DAT inline `{comment}` labels (e.g., `{00}`, `{01}`) incorrectly flagged as "missing declaration" when the same line contains quoted strings -- `removeDoubleQuotedStrings()` was stripping `{...}` inline block comments when building the search string, preventing the comment stripper from finding them
-
-### Other Fixes
-
-- Improve language server responsiveness on large files -- add 350ms debounce to document change handler so the expensive parse/diagnostics/dependency chain waits until typing pauses instead of running on every keystroke
-- Fix elastic tabstops Tab/Shift+Tab keybindings silently stopping -- the `runtime.spin2.elasticTabstops.enabled` context variable is now re-asserted on every configuration change event, recovering from extension host restarts or transient state loss
-- Fix case match values (e.g., `ORIENTATION_0:`) not being colorized when the case body contains a `debug()` call -- the debug-line suppression was applied to the entire line instead of only to names inside the `debug()` call
-- Fix compile/download tasks failing when VSCode is opened at a project root but `.spin2` source files are in a subfolder -- build tasks now run in the source file's directory instead of the workspace root
-
-## [2.8.2] 2026-03-14
+## [2.8.2] - 2026-03-14
 
 Spin2 debug() statement colorizing fixes and project archive feature
 
-### New Features
+### Added
 
-- Add "Spin2: Archive Project" command -- generates a ZIP archive of the top-level source file and all OBJ-referenced dependencies as a flat file set, with a `_README_.txt` showing the project name, timestamp, tool version, and object hierarchy tree
+- "Spin2: Archive Project" command generates a ZIP of the top-level source and all OBJ dependencies with a `_README_.txt` showing project metadata and object hierarchy
 
-### Fixes
+### Fixed
 
-- Fix Spin2 TextMate grammar ending debug() scope prematurely when format specifiers with parentheses are used (e.g., `debug("text", ubin(mode))`) -- nested parentheses are now consumed correctly so the full statement is scoped
-- Fix debug display feed single-quoted strings containing format specifier escapes like `` `zstr_(expr) ``, `` `udec_(expr) ``, `` `lstr_(expr) `` not being recognized as tic escapes -- these were stripped as plain string text, preventing colorization of the format specifiers, object method references, and variables within
-- Fix close-paren matching for tic escapes with nested parentheses (e.g., `` `zstr_(rtc.calendar(dt, mo, yr)) ``) -- now uses balanced paren matching instead of finding the first `)` which matched the inner call
-- Fix built-in variables (e.g., `clkfreq`) not highlighted inside non-display debug() statements with format specifiers -- the `isSpinBuiltInVariable()` check was missing from this code path
+- BUGFIX: Spin2 TextMate grammar now handles `debug()` with nested parentheses in format specifiers
+- BUGFIX: Debug display feed single-quoted strings with tic escapes (e.g., `` `zstr_(expr) ``) now colorize correctly
+- BUGFIX: Tic escapes with nested parentheses now use balanced paren matching
+- BUGFIX: Built-in variables (e.g., `clkfreq`) now highlighted inside non-display `debug()` with format specifiers
 
-## [2.8.1] 2026-03-13
+## [2.8.1] - 2026-03-13
 
 Preserve original case for symbol names in completion, workspace symbols, and diagnostics
 
-### Fixes
+### Fixed
 
-- Fix completion provider (typeahead) lowercasing all symbol names -- global tokens, local tokens, and object instance names now display with their original case as written in source
-- Fix workspace symbol search returning lowercased symbol names
-- Fix unused variable diagnostics showing lowercased names in warning messages
-- Fix object dependency tree showing lowercased object instance names
+- BUGFIX: Completion provider, workspace symbol search, unused variable diagnostics, and object dependency tree now preserve original symbol case instead of lowercasing
 
-## [2.8.0] 2026-03-11
+## [2.8.0] - 2026-03-11
 
 PNut v52a/v53 language support and colorizing fixes
 
-### New Features
+### Added
 
-- Add `OFFSETOF(struct.member)` support for PNut v53 -- returns the compile-time byte offset of a member within a structure definition
-- Semantic highlighting for `OFFSETOF()` as a built-in function (same coloring as `SIZEOF()`)
-- Hover documentation for `OFFSETOF()` showing syntax and description
-- Validate `OFFSETOF()` argument is a structure type; report error for non-structure arguments
-- Version directive gating: `OFFSETOF()` requires `{Spin2_v53}` directive
+- `OFFSETOF(struct.member)` support for PNut v53 with semantic highlighting, hover docs, argument validation, and version directive gating
 - Quick Fix code action to add or update `{Spin2_v53}` directive when `OFFSETOF()` is used
-- Add `MOVBYTS(value, order)` as a Spin2 built-in function with hover documentation (byte reordering via base-4 pattern)
-- Add semantic highlighting for `DEBUG_END_SESSION` constant in PUB/PRI and CON blocks
+- `MOVBYTS(value, order)` as a Spin2 built-in function with hover documentation
+- Semantic highlighting for `DEBUG_END_SESSION` constant in PUB/PRI and CON blocks
 
-### Fixes
+### Fixed
 
-- Fix `OFFSETOF(struct_type.member)` and `SIZEOF(struct_type.member)` coloring -- struct type names (not just instances) are now recognized as valid struct references
-- Fix `SIZEOF(obj.structType)` and `OFFSETOF(obj.structType...)` validation -- external object struct types no longer flagged as invalid arguments
-- Fix `DEBUG_END_SESSION` not receiving any semantic coloring when used outside of `DEBUG()` calls
+- BUGFIX: `OFFSETOF()` and `SIZEOF()` now accept struct type names (not just instances)
+- BUGFIX: `SIZEOF(obj.structType)` and `OFFSETOF(obj.structType...)` no longer flagged as invalid for external object struct types
+- BUGFIX: `DEBUG_END_SESSION` now receives semantic coloring outside `DEBUG()` calls
 
-## [2.7.5] 2026-03-11
+## [2.7.5] - 2026-03-11
 
 Toolchain discovery improvements and compiler selection UI
 
-### New Features
+### Added
 
-- Add "Spin2: Select Compiler" command -- QuickPick showing discovered compilers instead of manual text entry in settings
-- Add "Spin2: Add Compiler" command -- native file picker dialog to browse for and add a compiler executable, with auto-identification of compiler type from filename
-- Improved tool discovery: search well-known install directories first, then fall back to PATH environment variable segments
-- When multiple installations of a tool are found and no prior selection exists, prompt the user to choose via QuickPick instead of showing an error
-- PNut (Windows): if `pnut_shell.bat` is not found but `Pnut.exe` or `Pnut_v*.exe` is detected, warn that the bat file is required
+- "Spin2: Select Compiler" and "Spin2: Add Compiler" commands for discovering and configuring compilers via UI
+- Improved tool discovery: search well-known install directories first, then fall back to PATH
+- When multiple tool installations are found, prompt user to choose via QuickPick
 
-### Changes
+### Changed
 
-- Rename PNut TS executable from `pnut_ts` to `pnut-ts` to match the new official distribution name
-- Add `.exe` suffix handling for `pnut-term-ts` on Windows (was previously missing)
+- Rename PNut TS executable from `pnut_ts` to `pnut-ts` to match official distribution name
+- Add `.exe` suffix handling for `pnut-term-ts` on Windows
 
-## [2.7.4] 2026-03-10
+## [2.7.4] - 2026-03-10
 
-Unused VAR/DAT variable detection with Quick Fix removal and whitespace-in-path fix
+Unused VAR/DAT variable detection with Quick Fix removal
 
-### New Features
+### Added
 
-- Detect and report unused VAR block variables with warning diagnostics and Quick Fix code actions to remove them
-- Detect and report unused DAT block data variables (not code labels) with warning diagnostics and Quick Fix code actions to remove them
-- VAR Quick Fix handles single-variable lines (deletes line), multi-variable comma lists (removes name, transfers type prefix to next variable if needed)
-- DAT Quick Fix deletes the entire declaration line
-- Detection respects existing `reportUnusedVariables` setting (same toggle as local unused detection)
+- Detect and report unused VAR and DAT block variables with warning diagnostics and Quick Fix code actions to remove them
+- VAR Quick Fix handles single-variable lines and multi-variable comma lists
 - Code actions now supported for both `.spin2` and `.spin` files
 
-### Fixes
+### Fixed
 
-- Fix tasks.json template to quote compiler/loader paths, preventing errors when tools are installed in directories with spaces
+- BUGFIX: Fix tasks.json template to quote compiler/loader paths for directories with spaces
 
-## [2.7.3] 2026-03-10
+## [2.7.3] - 2026-03-10
 
 Autocomplete/IntelliSense support and external struct field colorizing fix
 
-### New Features
+### Added
 
-- Add CompletionProvider with dot-triggered and general completion support for Spin2 and Spin1 files
-  - Dot completion after object instance names offers public methods and constants from that object
-  - Dot completion after struct instances offers struct field members
-  - Dot completion after nested struct chains (e.g., `cfg.Servo[0].`) descends through struct hierarchy, including external object structs
-  - General completion (Ctrl+Space) offers local variables/parameters scoped to current method, global symbols (CON, VAR, PUB/PRI, DAT), object instance names, and built-in Spin2/Spin1 methods, variables, registers, and keywords
-  - Completion resolve provides full documentation (signatures, parameters, returns) when an item is highlighted
-- Add server-side unit tests for completion data model accessors (26 new tests)
+- CompletionProvider with dot-triggered and general completion for Spin2 and Spin1 files (object methods/constants, struct fields, nested struct chains, local/global symbols, built-ins)
+- Completion resolve provides full documentation when an item is highlighted
+- Server-side unit tests for completion data model accessors (26 new tests)
 
-### Fixes
+### Fixed
 
-- BUGFIX: Fix nested struct fields from external objects colored red as errors -- when descending into a nested struct member (e.g., `cfg.Servo[0].PLimitBrakeJerk` where `cfg` is typed as `myCfg.DATA_CFGx`), the parser now correctly looks up the nested struct type in the external object's namespace instead of only searching locally
+- BUGFIX: Nested struct fields from external objects now colorize correctly instead of showing as errors
 
-## [2.7.2] 2026-03-09
+## [2.7.2] - 2026-03-09
 
 STRUCT continuation, built-in symbol highlighting, and multi-line method signature fixes
 
-### New Features
+### Added
 
-- Emit warning diagnostic when a line continuation `...` is followed by a blank line, indicating the `...` is likely unnecessary
+- Warning diagnostic when line continuation `...` is followed by a blank line
 
-### Fixes
+### Fixed
 
-- BUGFIX: Fix STRUCT type not recognized in VAR declarations when prior STRUCT ends with trailing `...` followed by a blank line -- blank lines during pre-scan now correctly trigger `forceComplete()` on in-progress continuation sets
-- BUGFIX: Fix index expressions (e.g., `[SRV_COUNT]`) not highlighted in continued PUB/PRI method signatures -- token coordinates now use raw line position instead of concatenated line offset
-- BUGFIX: Fix `clkfreq_` and `clkmode_` compiler-generated symbols not highlighted -- added `_tableClockSpinSymbols` to built-in variable recognition and added built-in variable check to CON RHS expression processing
-- BUGFIX: Fix STRUCT member array sizes not recognized when whitespace separates the member name from the brackets (e.g., `led_rgb [LED_COUNT]`) -- member parsing regex now allows optional whitespace before `[`
+- BUGFIX: STRUCT type now recognized in VAR declarations when prior STRUCT ends with trailing `...` and blank line
+- BUGFIX: Index expressions now highlighted in continued PUB/PRI method signatures
+- BUGFIX: `clkfreq_` and `clkmode_` compiler-generated symbols now highlighted
+- BUGFIX: STRUCT member array sizes now recognized with whitespace before brackets
 
-## [2.7.1] 2026-03-09
+## [2.7.1] - 2026-03-09
 
 `#PRAGMA EXPORTDEF` support and CON constant name parsing fix
 
-### New Features
+### Added
 
-- Support `#PRAGMA EXPORTDEF` directive -- exported defines are propagated to child OBJ files so `#ifdef`-guarded code (PUB methods, constants) is properly recognized
-- `#PRAGMA EXPORTDEF` semantic highlighting -- `exportdef` keyword and symbol name are now colored
-- Transitive export propagation -- exported defines pass through the full object dependency tree (parent to child to grandchild)
-- Union of exports from multiple open top-level files -- child objects see all exported defines from all parents
+- `#PRAGMA EXPORTDEF` directive support with semantic highlighting and transitive propagation through the full object dependency tree
+- Union of exports from multiple open top-level files
 
-### Fixes
+### Fixed
 
-- BUGFIX: Fix false STRUCT keyword detection in CON constant names -- names containing "STRUCT" as a substring (e.g., `IDX_CSD_STRUCTURE`) were incorrectly flagged as struct declarations, preventing constant registration and causing "unknown name" errors at use sites. Now uses word-boundary matching.
+- BUGFIX: Constant names containing "STRUCT" as a substring (e.g., `IDX_CSD_STRUCTURE`) no longer falsely detected as struct declarations
 
-## [2.7.0] 2026-03-08
+## [2.7.0] - 2026-03-08
 
 Quick Fix code actions and version directive management
 
-### New Features
+### Added
 
-- Quick Fix: offer to add or update `{Spin2_v##}` version directive when version-gated language features are used (structure references, external object types, version-added keywords)
-- Quick Fix: offer to remove unused return values from PUB/PRI method signatures
-- Quick Fix: offer to remove unused local variables from PUB/PRI method signatures
-- Improved version hints for external object structure types (e.g., `^dfs.vbr_t`) -- correctly suggests v49 instead of v44
+- Quick Fix: add or update `{Spin2_v##}` version directive when version-gated features are used
+- Quick Fix: remove unused return values and local variables from PUB/PRI method signatures
 
-### Fixes
+### Fixed
 
-- BUGFIX: Version hint diagnostics now emit correctly when a lower version directive is already present (e.g., file has `{Spin2_v45}` but needs v49 for external object structure references)
-- BUGFIX: Fix parameter structure instance registration for external object types -- no longer strips object prefix when the stripped name is not a known local structure
-- BUGFIX: Fix parser state tracking -- pending state changes from mid-line comment detection are now applied before section `continue` processing
-- BUGFIX: Fix line continuation (`...`) detection -- no longer falsely triggered by `...` appearing inside quoted strings
+- BUGFIX: Version hint diagnostics now emit correctly when a lower version directive is already present
+- BUGFIX: Fix parameter structure instance registration for external object types
+- BUGFIX: Fix line continuation (`...`) detection inside quoted strings
 
-## [2.6.3] 2026-03-04
+## [2.6.3] - 2026-03-04
 
 Debug highlighting and task argument fixes
 
-### Fixes
+### Fixed
 
-- BUGFIX: Highlight `DEBUG_END_SESSION` and other debug control symbols correctly inside `debug()` statements (v52+)
-- BUGFIX: Preserve struct field references (e.g., `name[0].namefield`) inside non-display `debug()` statements -- index expression rebuild was truncating the dotted member access
-- BUGFIX: Fix `getCompilerArguments` / `getLoaderArguments` -- remove per-element quoting that prevented shell argument splitting; user tasks should use the `command` field (not `args`) for proper multi-argument expansion
-- BUGFIX: Prevent empty string arguments from being pushed into proploader option arrays (P1 and P2 paths)
+- BUGFIX: `DEBUG_END_SESSION` and debug control symbols now highlighted correctly inside `debug()` (v52+)
+- BUGFIX: Struct field references in non-display `debug()` statements no longer truncated
+- BUGFIX: Fix compiler/loader argument quoting for proper shell argument splitting
+- BUGFIX: Fix empty string arguments in proploader option arrays
 
-## [2.6.2] 2026-03-03
+## [2.6.2] - 2026-03-03
 
-Detune "declared but never used" warnings for statement patterns like varargs use or copying a list of pins
+### Changed
 
-## [2.6.1] 2026-02-28
+- Detune "declared but never used" warnings for statement patterns like varargs or copying a list of pins
+
+## [2.6.1] - 2026-02-28
 
 Unused variable warnings, sizeof() validation, outline improvements, and diagnostic severity fix
 
-### New Features
+### Added
 
 - Report warnings for unused parameters, return values, and local variables in PUB/PRI methods
-- New setting `spinExtension.ServerBehavior.reportUnusedVariables` to enable/disable unused variable warnings (default: enabled)
-- Validate `SIZEOF()` argument is a structure type or structure instance; report error for non-structure arguments
-- Outline: only use comment text for block sections (CON, VAR, OBJ, DAT) when the content after the keyword starts with a comment (`'` or `{`), not when there is code on the line
+- New setting `spinExtension.ServerBehavior.reportUnusedVariables` (default: enabled)
+- Validate `SIZEOF()` argument is a structure type or instance
 
-### Fixes
+### Changed
 
-- BUGFIX: Fix Warning severity mapping: warnings now render as yellow/orange squiggles instead of red errors
+- Outline uses comment text for block sections only when content after keyword starts with a comment
 
-## [2.6.0] 2026-02-23
+### Fixed
 
-Major feature additions, code navigation improvements, grammar fixes, and many diagnostic/highlighting corrections
+- BUGFIX: Warning severity now renders as yellow/orange squiggles instead of red errors
 
-### New Features
+## [2.6.0] - 2026-02-23
 
-- PASM2 Hover Documentation: comprehensive hover help for 362 instructions, conditionals, effects, and streamer constants with context-aware display (AND in DAT shows PASM2 doc, AND in PUB shows Spin2 operator doc)
-- Include Directory Support: two-tier include directory system (central library paths and per-folder project includes) with auto-discovery, Tree View UI, and compiler -I flag generation
-- Struct-aware Go to Definition: navigate to struct field declarations through multi-level chains (e.g., `pline.a.x`)
-- Hover Type Annotations: all variables, parameters, and return values now show their type (BYTE, WORD, LONG, or struct type) in hover tooltips
-- New Code Navigation features:
-  - Document Links: Click to Open Object Files
-  - Go to Type Definition: Navigate to STRUCT Definitions
-  - Workspace Symbol Search: Find Any Symbol, Anywhere
-  - (First release, use with care) Rename Symbol: Safe, Project-Wide Renaming, see Doc's before use [Rename Symbol](https://github.com/ironsheep/P2-vscode-langserv-extension/blob/main/Spin2-code-navigation.md#rename-symbol-safe-project-wide-renaming)
-  - New `authorFilePrefix` setting to identify your files during Rename Symbol operations
+Major feature additions, code navigation improvements, grammar fixes, and diagnostic/highlighting corrections
 
-### Language Version Support
+### Added
 
-- Add v52 support: ENDIANL and ENDIANW methods (reverse-endian value conversion)
-- Add v52 support: DEBUG_END_SESSION constant for use in DEBUG
-- Add BACKCOLOR as recognized TERM debug display feed/update parameter
+- PASM2 Hover Documentation for 362 instructions, conditionals, effects, and streamer constants with context-aware display
+- Include Directory Support with two-tier system (central library, per-folder project), auto-discovery, Tree View UI, and compiler -I flag generation
+- Struct-aware Go to Definition through multi-level chains (e.g., `pline.a.x`)
+- Hover Type Annotations for all variables, parameters, and return values
+- Document Links: click to open object files
+- Go to Type Definition: navigate to STRUCT definitions
+- Workspace Symbol Search: find any symbol across workspace
+- Rename Symbol: project-wide safe renaming with `authorFilePrefix` setting
+- v52 support: `ENDIANL`, `ENDIANW` methods and `DEBUG_END_SESSION` constant
+- `BACKCOLOR` as recognized TERM debug display parameter
+- DITTO directive in Spin2 TextMate grammar
 
-### Semantic Highlighting Fixes
+### Fixed
 
-- BUGFIX: Fix false "missing declaration" for PRI return values when method names contain "debug" (e.g., `setPageShowingDebug`)
-- BUGFIX: Fix false "Missing '=' part of assignment [}]" for multi-line block comment closing braces in CON sections
-- BUGFIX: Fix false "missing declaration" for PASM conditional prefixes (IF\_\*, \_RET\_) and effects in DAT sections
-- BUGFIX: Fix PASM highlighting lost across consecutive DAT sections (now maintains DatPAsm mode after ORG)
-- BUGFIX: Fix false "BAD Storage/Align Type" for external object struct types in VAR and DAT (e.g., `sd.cid_t`)
-- BUGFIX: Fix wrong coloring for values after strings in DAT sections (string content skewing offsets)
-- BUGFIX: Fix wrong coloring for names ending in digits before index expressions (e.g., `screenTable0[0]`)
-- BUGFIX: Fix semantic token length clamping to prevent "end character > model.getLineLength" errors
-- BUGFIX: Fix false "Missing '=' part of assignment" error on comment lines containing debug() text (e.g., `'' all output via debug()`)
-
-### Hover and Go to Definition Fixes
-
+- BUGFIX: Fix false "missing declaration" for PRI return values when method names contain "debug"
+- BUGFIX: Fix false "Missing '=' part of assignment" for multi-line block comment closing braces in CON sections
+- BUGFIX: Fix false "missing declaration" for PASM conditional prefixes and effects in DAT sections
+- BUGFIX: Fix PASM highlighting across consecutive DAT sections
+- BUGFIX: Fix false "BAD Storage/Align Type" for external object struct types in VAR and DAT
+- BUGFIX: Fix wrong coloring for values after strings in DAT sections
+- BUGFIX: Fix wrong coloring for names ending in digits before index expressions
+- BUGFIX: Fix semantic token length clamping to prevent editor errors
+- BUGFIX: Fix false error on comment lines containing `debug()` text
 - BUGFIX: Fix DITTO directive hover showing no documentation
 - BUGFIX: Fix method hover always showing comment template instead of actual doc-comments
-- BUGFIX: Fix hover for external object method calls (e.g., `serial.start()`)
+- BUGFIX: Fix hover for external object method calls
 - BUGFIX: Fix Go to Definition for methods, inline PASM labels, and local tokens
-- BUGFIX: Fix unclosed PASM span at end-of-file affecting local label recognition and code navigation
-- BUGFIX: Fix cycle guard in object dependency resolution preventing infinite recursion on circular dependencies
+- BUGFIX: Fix unclosed PASM span at end-of-file
+- BUGFIX: Fix cycle guard in object dependency resolution
 - BUGFIX: Allow both Spin1 and Spin2 hovers in HoverProvider
+- BUGFIX: Fix elastic tabstops JSON schema, runtime crashes, NaN generation, array mutation, Align mode on first line, and configuration mutation issues
+- BUGFIX: Fix inverted PropPlug removal notification
+- BUGFIX: Fix Spin2 variable block capture group mismatch in grammar
+- BUGFIX: Fix multiple TextMate grammar issues (scope names, regex patterns, missing constants, operator matching, block end patterns, phantom instructions)
+- Removed dead experimental grammar patterns
 
-### Tab Formatting Fixes
+## [2.5.0] - 2025-11-20
 
-- BUGFIX: Corrected malformed JSON schema for elastic tabstops configuration
-- BUGFIX: Fixed runtime crashes when invalid block names encountered in tab formatting
-- BUGFIX: Fixed NaN generation when custom tab stop configurations have minimal stops
-- BUGFIX: Fixed array mutation issue causing configuration corruption during tab operations
-- BUGFIX: Fixed Align mode not working on first line of file (line 0)
-- BUGFIX: Fixed configuration object mutation preventing proper state management
+### Added
 
-### Other Fixes
+- Allow `pnut-term-ts` as downloader when using `pnut_ts` as compiler
+- Optionally allow `pnut-term-ts` with flexspin compiler
 
-- BUGFIX: Fix inverted PropPlug removal notification (showed "undefined" instead of device name)
+## [2.4.10] - 2025-07-13
 
-### Grammar Fixes
+### Fixed
 
-- BUGFIX: Fix Spin2 variable block capture group mismatch causing variable names to be incorrectly scoped
-- BUGFIX: Fix Spin2 public_block and float_number scope names (.spin -> .spin2)
-- BUGFIX: Fix coginit_constants regex for _NEW_PAIR variants
-- BUGFIX: Fix modcz_constants missing underscores (_CEQ_Z -> _C_EQ_Z, etc.)
-- BUGFIX: Fix unary operators (!!, !, -) unable to match due to incorrect \\b usage
-- BUGFIX: Fix Spin1 block end patterns falsely terminating on prefixed words (e.g., DATX)
-- BUGFIX: Fix Spin1 symbol operators (+, -, *) unable to match due to \\b usage
-- BUGFIX: Fix Spin1 incorrect .spin2 scope suffix in base10 constant
-- BUGFIX: Remove phantom PASM2 instructions (FVAR/FVARS, ADDAND/ADDOR/ADDXOR) and fix ADDBINTS typo
-- Add DITTO directive to Spin2 TextMate grammar
-- Remove dead experimental grammar patterns (no_debug_statements, save_this, etc.)
+- BUGFIX: VAR arrayed structure declarations now highlighted correctly
+- BUGFIX: Variable names within quoted strings no longer match as declarations
+- BUGFIX: Variable bit-field specifications within index now highlighted correctly
 
-## [2.5.0] 2025-11-20
+## [2.4.9] - 2025-07-02
 
-Spin2 Add pnut-term-ts use as downloader when using pnut_ts as compiler
+### Fixed
 
-- optionally, allow pnut-term-ts to be used with flexspin compiler
+- BUGFIX: CON enum declaration with step offset now highlights correctly
+- BUGFIX: Nested index expressions, overlapping local variable names, and indexed size overrides in PUB/PRI now color correctly
+- BUGFIX: Object/structure and size-override references in `debug()` statements now color correctly
+- BUGFIX: Missing Smart Pin constants now recognized (including alternate spellings)
 
-## [2.4.10] 2025-07-13
+## [2.4.8] - 2025-06-21
 
-Spin2 Semantic Highlighting Update
+### Fixed
 
-- BUGFIX: VAR - repair highlight of arrayed structure declarations
-- BUGFIX: General highlight don't match on variable names when name match is within quoted string
-- BUGFIX: highlight variable.[bit-field] specification within index correctly
+- BUGFIX: Index-expression, complex case statement, and complex Spin2 statement highlighting corrected
+- BUGFIX: Fix server crash on RegEx search with variable names containing control characters
+- BUGFIX: Fix server crash on failing name searches
 
-## [2.4.9] 2025-07-02
+## [2.4.7] - 2025-06-03
 
-Spin2 Semantic Highlighting Update
+### Fixed
 
-- BUGFIX: CON - Clean up Constant ENUM declaration with step offset highlight failures
-- BUGFIX: PUB/PRI - Repair coloring of nested index expressions
-- BUGFIX: PUB/PRI - Repair coloring local variables with overlapping names
-- BUGFIX: PUB/PRI - Repair coloring of indexed size overrides
-- BUGFIX: debug() statements - Repair coloring of object/structure references
-- BUGFIX: debug() statements - Repair coloring of size-override references
+- BUGFIX: Fix server crash on `byte/word/long[expression]` within `debug()` statements
+- BUGFIX: Fix PUB/PRI param/retVal/local symbol returning incorrect structure type
+- BUGFIX: Miscellaneous highlight fixes
 
-Spin2 Syntax Highlighting Update
+### Changed
 
-- BUGFIX: Add Highlighting of missing Smart Pin Constants (Including legal alternate spellings)
+- Allow P1 reserved names (`cnt`, `par`) as constant names in P2 CON sections
 
-## [2.4.8] 2025-06-21
+## [2.4.6] - 2025-05-27
 
-Spin2 Highlighting Update
+### Added
 
-- BUGFIX: Clean up "Index-expression" highlight failures
-- BUGFIX: Clean up Complex single-line "Case Statement" highlight failures
-- BUGFIX: Clean up Complex "General Spin2 Statement" highlight failures
-- BUGFIX: server crashed on RegEx search when variable name contained RegEx control characters
-- BUGFIX: server crashed on failing name searches
+- Setting to allow non-Parallax FTDI USB serial devices
+- Setting to control DTR/RTS for non-Parallax serial devices
+- More detail in the USB Detection Report Document
 
-## [2.4.7] 2025-06-03
+### Fixed
 
-Spin2 Highlighting Update
+- BUGFIX: USB serial devices now recognized whether or not the P2 is attached
+- BUGFIX: Cancelling the selection dialog no longer deselects a serial device
 
-- BUGFIX: server crashed on byte/word/long[expression] within debug() statements
-- BUGFIX: dereference of PUB/PRI param/retVal/local symbol returned incorrect structure type
-- BUGFIX: Clean up miscellaneous highlight bugs
-- Allow P1 reserved names (cnt, par - "common english spellings") to be used as constant names in P2 CON sections
+## [2.4.5] - 2025-05-21
 
-## [2.4.6] 2025-05-27
+### Changed
 
-Extension USB support update
+- `serialport` package updated from v12.0.0 to v13.0.0
+- Added PropPlug indicator in USB Devices found report
+- Updated supported VSCode version to v1.96.0
 
-- NEW Setting: allow Non-Parallax (but still FTDI) USB Serial Devices
-- NEW Setting: control use of DTR, RTS for non-Parallax Serial Devices
-- Add more detail to the USB Detection Report Document
-- Internal track VID and PID for each allowed USB serial device
-- BUGFIX Allow Spin2 extension to recognize USB Serial devices whether or not the P2 is attached
-- BUGFIX Don't deselect a serial device if cancelling the selection dialog
+## [2.4.4] - 2025-05-19
 
-## [2.4.5] 2025-05-21
+### Fixed
 
-Extension USB support update
+- BUGFIX: Spin2 built-in methods now recognized correctly in all cases
+- BUGFIX: Names appearing in strings and as variables on the same line now handled correctly
+- BUGFIX: Object and structure references in PUB/PRI now recognized correctly
 
-- Underlying support package 'serialport' updated from v12.0.0 to v13.0.0
-- Added indication of (is PropPlug) in USB Devices found report
-- Updated supported VSCode version to v1.96.0 (Dec. 2024 and later)
+### Changed
 
-## [2.4.4] 2025-05-19
+- More flexible VAR declaration recognition
 
-Spin2 Highlight repairs resulting in stronger parser
+## [2.4.3] - 2025-05-18
 
-- BUGFIX repaired flaw in recognizing spin2 built-in methods correctly (only some cases were failing)
-- BUGFIX repaired flaw in finding names when names appeared in strings and as variable on same line
-- BUGFIX repaired flaw in logic recognizing object references or structure references in SPIN PUB or PRI (thank you @wummi)
-- Add more flexibility for recognition of VAR declarations
+### Fixed
 
-## [2.4.3] 2025-05-18
+- BUGFIX: FlexSpin inline directives no longer interfere with PUB/PRI signature identification
+- BUGFIX: Local variable identification corrected
+- BUGFIX: Multiple double-quote strings on the same line now parsed correctly
+- BUGFIX: Fix crash in SemanticFindings RememberedComment code
+- BUGFIX: Fix parser control-flow for some forms of structure access
+- BUGFIX: Preprocessor statements now work when not starting in column 0
 
-Spin2 Minor Highlight repairs, fixes resulting in stronger parser
+## [2.4.2] - 2025-05-13
 
-- BUGFIX Flexspin inline directives as comments were interfering with PUB/PRI signature identification
-- BUGFIX local variable identification was flawed
-- BUGFIX double quote string identification was broken for multiple strings on the same line
-- BUGFIX eliminated crash in SemanticFindings:RememberedComment() code
-- BUGFIX found general parser control-flow issue when identifying some forms of structure access
-- BUGFIX found highlighter problem when preprocessor statement didn't start in column 0
+### Added
 
-## [2.4.2] 2025-05-13
+- Preprocessor highlight support (added in v48)
+- Escape-sequence highlighting within escaped strings (added in v50)
 
-Spin2 Minor Highlight repairs
+### Fixed
 
-- Add preprocessor highlight support (preprocessor added in v48)
-- Add highlighting of escape-sequences within escaped strings (added in v50)
-- BUGFIX: repair some missed coloring of object overrides
-- BUGFIX: repair missed coloring within some types of debug() statements
+- BUGFIX: Fix missed coloring of object overrides
+- BUGFIX: Fix missed coloring within some types of `debug()` statements
 
-## [2.4.1] 2025-05-08
+## [2.4.1] - 2025-05-08
 
-Spin2 Language upgrades
+### Added
 
-- Highlight %"...." packed character constants as numeric constants
-- BUGFIX: dial-in various coloring _faux pas_ - small corner cases fixed
+- Highlight `%"..."` packed character constants as numeric constants
 
-## [2.4.0] 2025-05-01
+### Fixed
 
-Spin2 Language upgrades
+- BUGFIX: Various small corner-case coloring fixes
 
-- Add language support for {Spin2_v48}, through {Spin2_v51} (except for preprocessor support)
-- Highlight new STRUCT types
-- Highlight %"...." packed character constants as numeric constants
-- BUGFIX: corrected Syntax coloring of smart-pin constant 'P_REG_UP_DOWN' constant (spelled badly in prior versions)
+## [2.4.0] - 2025-05-01
 
-## [2.3.4] 2025-02-22
+### Added
 
-Bugfixes and Spin2 Language upgrades
+- Language support for `{Spin2_v48}` through `{Spin2_v51}` (except preprocessor)
+- Highlight STRUCT types
+- Highlight `%"..."` packed character constants as numeric constants
 
-- Repair parser crashes (#17)
-- Prevent some toolChain-related actions when toolChain support not enabled (#16)
-- Add language support for Spin2 v44, v45, v46, and v47
+### Fixed
 
-NOTE: the new types created with structure support are not yet highlighted. This is upcoming along with v48, v49, etc. support.
+- BUGFIX: Fix syntax coloring of `P_REG_UP_DOWN` smart-pin constant
 
-## [2.3.2] 2024-12-12
+## [2.3.4] - 2025-02-22
 
-Minor updates to Compiler detection for P1/P2 on Windows
+### Fixed
 
-- Repair parsing of PATH on windows and how expected location paths are created
-- Extension logging is enabled for now to help us diagnose new-user installations
+- BUGFIX: Fix parser crashes (#17)
+- BUGFIX: Prevent toolchain actions when toolchain support is not enabled (#16)
 
-## [2.3.1] 2024-12-12
+### Added
 
-Minor updates to Compiler detection for P1/P2
+- Language support for Spin2 v44, v45, v46, and v47
 
-- Error if multiple installations are found for a given tool
-- Reducing search to unique paths (no dupes from PATH values)
-- Extension logging is enabled for now to help us diagnose new-user installations
+NOTE: structure types are not yet highlighted; upcoming with v48+ support.
 
-## [2.3.0] 2024-12-11
+## [2.3.2] - 2024-12-12
+
+### Fixed
+
+- BUGFIX: Fix PATH parsing on Windows and expected location path creation for compiler detection
+
+## [2.3.1] - 2024-12-12
+
+### Changed
+
+- Error when multiple installations are found for a given tool
+- Reduce search to unique paths (no duplicates from PATH values)
+
+## [2.3.0] - 2024-12-11
 
 Updates to Compile/Download support for P2
 
-This update improves/simplifies the ability to compile and download code for Spin2 projects
+### Added
 
-- NEW Automatic Toolchain discovery (paths for FlexProp, PNut, and pnut_ts are now automatically determined)
-- NEW Automatic PropPlug discovery
-- NEW statusBar control for switching between compile with debug() and without
-- NEW statusBar control for switching between download to FLASH / RAM
-- NEW statusBar control for selecting amongst available USB attached PropPlugs
-- NEW Setting to selected preferred compiler for all projects
-- NEW this Setting can be overridden for each specific workspace (project)
-- NEW Setting to enable all this new spin2 toolchain support (disabled by defult)
-- NEW Replacement User Tasks file is now universal (all supported compilers)
+- Automatic toolchain discovery for FlexProp, PNut, and pnut_ts
+- Automatic PropPlug discovery
+- Status bar controls for debug mode, FLASH/RAM target, and PropPlug selection
+- Setting to select preferred compiler per workspace
+- Setting to enable toolchain support (disabled by default)
+- Universal replacement User Tasks file for all supported compilers
 
-General Repairs
+### Fixed
 
-- BUGFIX Repair crash when system-settings documents are open at startup
-- BUGFIX Spin2 Semantic Highlighting: fixed VAR section index coloring
+- BUGFIX: Fix crash when system-settings documents are open at startup
+- BUGFIX: Fix VAR section index coloring
 
-## [2.2.18] 2024-05-09
+## [2.2.18] - 2024-05-09
 
-- Quick repackage and release to pull cruft out of distribution package (oops!)
+### Fixed
 
-## [2.2.17] 2024-05-09
+- Repackaged to remove extraneous files from distribution
 
-Update P2 Only
+## [2.2.17] - 2024-05-09
 
-- BUGFIX: parsing repair detection of alignl/alignw in VAR. Issue(#9)
+### Fixed
 
-Update P1 and P2
+- BUGFIX: Fix `alignl`/`alignw` detection in VAR (#9)
+- BUGFIX: FlexSpin `#include` now works without `.spin`/`.spin2` extension (#11)
+- BUGFIX: Fix highlighting for `#include` lines
 
-- BUGFIX: FlexSpin support: implement new understanding. #include is including spin code but no longer needs spin/spin2 file extension. Issue(#11)
-- BUGFIX: FlexSpin support: fix highlighting for #include lines
+## [2.2.16] - 2024-04-14
 
-## [2.2.16] 2024-04-14
+### Fixed
 
-Update P2 Only
+- BUGFIX: Add missing `bytefit`/`wordfit` recognition in DAT blocks (#6)
+- BUGFIX: Fix `{Spin2_v??}` built-in method name support
+- BUGFIX: Fix file access issues on Windows
 
-- BUGFIX: Syntax: add missing bytefit/wordfit recognition in DAT blocks (#6)
-- BUGFIX: Semantic: repair handling of {Spin2_v??} built-in method name support
-- BUGFIX: File access issues on Windows (11?) repaired
-- Cleaned up the code-fold detection... now handling ORG\* forms better
-- Adjusted report key-chords for windows:
-  - Ctrl+Win+r - Generate Object Hierarchy Report
-  - Ctrl+Win+d - Generate OBject Public Interface Report
-  - Ctrl+Win+c - (When cursor on PUB or PRI line) Insert Doc comment below the PUB or PRI line
+### Changed
 
-## [2.2.15] 2024-04-09
+- Improved code-fold detection for ORG variants
+- Adjusted report key-chords for Windows (Ctrl+Win+r, Ctrl+Win+d, Ctrl+Win+c)
 
-Update P1 and P2
+## [2.2.15] - 2024-04-09
 
-- Adjust object hierarchy to fully expand the tree by default
-- [-] collapse and [+] expand icons now work in object hierarchy tree view
-- Adds new Object Hierarchy report similar to that generated during propeller tool "Archive". Report is available via keystroke [Ctrl+Alt+r] - Ctrl+Alt+( r )eport from within spin/spin2 source file.
+### Added
 
-Update P2 Only
+- Object hierarchy tree view with full expansion, collapse/expand icons, and hierarchy report via Ctrl+Alt+r
+- Highlighting of `object[index]` expressions where index is an expression
+- Preliminary FlexSpin support: conditional compile greying out deselected code, `#import` of .spin2 code
 
-- Add highlighting of object[index] expressions where index itself is an expression
-- BUGFIX don't report `@instance[index].method` reference as bad constant use when it really is a method
-- preliminary flexspin support changes:
-- update conditional compile suppot to grey out deslected code
-- add support for #import of .spin2 code
+### Fixed
 
-## [2.2.14] 2024-01-11
+- BUGFIX: Fix `@instance[index].method` incorrectly reported as bad constant use
 
-Update P1 & P2
+## [2.2.14] - 2024-01-11
 
-- Adjust settings/configuration mechanism (turn on/off elastic tabs no longer requires vscode restart/reload)
-- Adjust text-cursor colors for our themes (Make them more visible and consistent with other themes)
-  - NOTE: this does NOT affect the mouse pointer (arrow, or I-beam) which is controlled from your operating-system settings
+### Changed
 
-Update P2 Only
+- Elastic tabs toggle no longer requires VSCode restart/reload
+- Improved text-cursor colors for Spin2 themes
 
-- Minor DAT block highlighting fixes
-- Adjusted duplicate variable declaration message (clarified meaning)
+### Fixed
 
-## [2.2.13] 2024-01-09
+- BUGFIX: Minor DAT block highlighting fixes
+- BUGFIX: Clarified duplicate variable declaration message
 
-Update P2
+## [2.2.13] - 2024-01-09
 
-- Fix a broken case of filename parsing (hyphens in filename)
+### Fixed
 
-## [2.2.12] 2024-01-02
+- BUGFIX: Fix filename parsing with hyphens
 
-Update P1 and P2
+## [2.2.12] - 2024-01-02
 
-- Clean up Syntax recognition of block names - Statements like 'DAT{{' caused problems (exposed other potential issues, which are now fixed)
-- Clean up Semantic highlighting of code in presence of statements like 'DAT{{'
-- P2 BUGFIX repair VAR name detection when storage type not provided
+### Fixed
 
-## [2.2.11] 2023-12-30
+- BUGFIX: Fix syntax recognition of block names with inline comments (e.g., `DAT{{`)
+- BUGFIX: Fix semantic highlighting in presence of inline block comments
+- BUGFIX: Fix VAR name detection when storage type not provided (P2)
 
-Update P2 Only
+## [2.2.11] - 2023-12-30
 
-- Add recognition of "auto" on debug scope display declarations
-- Add semantic highlight color change for byte(), word(), and long() method overrides
-- Add recognition of byte(), word(), and long() method names to provide method vs. storage type hover text
-- Add recognition of {Spin2_v##} format Spin Language Requirement directive
-- Emit any language directive when used to generated interface documentation
-- Add support for lstring() when {Spin2_v43} is specified
-- Add detection of/error generation for duplicate declarations within CON, VAR and DAT sections
+### Added
 
-## [2.2.10] 2023-12-24
+- Recognition of "auto" on debug scope display declarations
+- Semantic color for `byte()`, `word()`, and `long()` method overrides with method vs. storage type hover text
+- Recognition of `{Spin2_v##}` language requirement directive
+- Language directive emitted in generated interface documentation
+- `lstring()` support when `{Spin2_v43}` is specified
+- Detection and error generation for duplicate declarations in CON, VAR, and DAT sections
 
-Update P1 and P2
+## [2.2.10] - 2023-12-24
 
-- Complete the implementation of the spin/spin2 code folding
+### Added
 
-## [2.2.9] 2023-12-11
+- Complete implementation of spin/spin2 code folding
 
-Update P2 Only
+## [2.2.9] - 2023-12-11
 
-- Fixes to SPIN2 object constant override highlight. (was broken in earlier release)
+### Fixed
 
-## [2.2.8] 2023-12-05
+- BUGFIX: Fix object constant override highlighting (broken in earlier release)
 
-Update P1 and P2
+## [2.2.8] - 2023-12-05
 
-- Awaken First draft of Code Folding:
-  - folds code blocks, continued lines, pasm code, and comment blocks
-  - UP NEXT: fold spin language itself (repeat, if, case, etc.)
+### Added
 
-Update P1
+- Code folding for code blocks, continued lines, pasm code, and comment blocks
 
-- Repair more Pasm syntax highlighing
+### Fixed
 
-## [2.2.7] 2023-11-24
+- BUGFIX: Fix P1 Pasm syntax highlighting
 
-Update P2 Only
+## [2.2.7] - 2023-11-24
 
-- Fixes to SPIN2 symbol.storageType and object[index].method() parsing
-- Handle \methodName() in debug() statements
+### Fixed
 
-## [2.2.6] 2023-11-21
+- BUGFIX: Fix `symbol.storageType` and `object[index].method()` parsing (P2)
+- BUGFIX: Handle `\methodName()` in `debug()` statements (P2)
 
-Update P2 Only
+## [2.2.6] - 2023-11-21
 
-- Awaken CON section line continuation "..." processing
-- Awaken SPIN code (code in PUB/PRI) line continuation "..." processing
+### Added
 
-## [2.2.5] 2023-11-17
+- Line continuation `...` processing for CON sections and PUB/PRI code (P2)
 
-Update for P1 and P2
+## [2.2.5] - 2023-11-17
 
-- Fixed documentation parsing (Signature help, Hover text). Earlier changes broke this.
+### Fixed
 
-## [2.2.4] 2023-11-16
+- BUGFIX: Fix documentation parsing for Signature Help and Hover Text (P1 and P2)
 
-Update for P1 and P2
+## [2.2.4] - 2023-11-16
 
-- Adds proper CON highlighting as top-most default code block
-- Removed demo completion provider. It never should have been active!
+### Added
 
-Update for P2 only
+- Proper CON highlighting as top-most default code block (P1 and P2)
+- Line continuation `...` processing for PUB/PRI declarations (P2)
 
-- Add line-continuation "..." processing to PUB/PRI declarations
-- Repair broken cases where local pasm label go-to went to incorrect instance
-- Remove BYTES(), WORDS(), LONGS(), LSTRING() methods for now until we get new language version directive
-- Repair debug() statement single-quoted string parsing
+### Fixed
 
-## [2.2.3] 2023-11-12
+- BUGFIX: Fix local pasm label go-to navigating to wrong instance
+- BUGFIX: Fix `debug()` single-quoted string parsing
 
-Update for P2 only
+### Removed
 
-- P2 Add new built-in methods LSTRING(), LONGS(), WORDS() and BYTES() to syntax highlighter
-- P2 Dialed-in behavior when encountering FlexSpin in-line pasm directives (pasm now highlighted, but errors generated for the directives)
-- P2 Adjust DOC Generator: don't generate for methods that are commented out!
+- Demo completion provider (should never have been active)
+- Temporarily removed `BYTES()`, `WORDS()`, `LONGS()`, `LSTRING()` methods pending language version directive
 
-Bug fixes for Both P1 and P2
+## [2.2.3] - 2023-11-12
 
-- P1 & P2 Repair a couple of cases of incorrect bitfield highlighting
+### Added
 
-## [2.2.2] 2023-11-8
+- New built-in methods `LSTRING()`, `LONGS()`, `WORDS()`, `BYTES()` (P2)
+- FlexSpin inline pasm directives now handled (pasm highlighted, errors for directives)
+- DOC Generator no longer generates for commented-out methods
 
-General bug fixes for P2 only (round 2)
+### Fixed
 
-- P2 Add DRAFT handling of line continuation "..." - (support only in OBJ section for now!)
-- P2 Repair DAT pasm symbol offset calculations so highlights are in correct position
-- P2 Add new built-in keyword "with" to syntax highlighter
+- BUGFIX: Fix incorrect bitfield highlighting (P1 and P2)
 
-General bug fixes for Both P1 and P2 (round 2)
+## [2.2.2] - 2023-11-08
 
-- P1 & P2 Adjusted parameter, return-value, and local variable name collision with global variable to produce error messages.
-- P1 & P2 Repair go to def'n for local variables (limit search scope to the current method)
-- P1 & P2 Repair go to def'n for local pasm labels (limit search scope to between the enclosing global pasm labels)
-- P1 & P2 Increase resolution on go to def'n - was line number only. Is now line number with character offset so now will position cursor at actual symbol within the line (e.g., good for go to enum declaration!)
-- P1 & P2 Repair DAT pasm parser so it doesn't leave pasm mode until end of DAT block
-- P1 & P2 Found and fixed a couple of crash causes
+### Added
 
-## [2.2.1] 2023-10-30
+- Draft handling of line continuation `...` in OBJ section (P2)
+- New built-in keyword `with` (P2)
 
-General bug fixes for P1 and P2
+### Fixed
 
-- Repair filename validation in object includes - make checking the same as PNut/Propeller Tool
-- Ensure no parser Error/Warning/Information messages are returned when **maxNumberOfReportedIssues** is set to zero
-- P1 repair hover detection for object#constant references
-- P2 add basic hover text for Streamer Constants
-- P1/P2 CON enhance parsing of operators used within RHS of assignment
-- P1/P2 enhance parsing when {comment} used within the line being parsed
-- P2 OBJ enhance parsing of object override values
-- P1/P2 PUB/PRI enhance parsing left-hand side of assignments
+- BUGFIX: Fix DAT pasm symbol offset calculations (P2)
+- BUGFIX: Parameter, return-value, and local variable name collisions with globals now produce errors (P1 and P2)
+- BUGFIX: Go to Definition now scoped correctly for local variables and local pasm labels (P1 and P2)
+- BUGFIX: Go to Definition now positions cursor at symbol within the line (P1 and P2)
+- BUGFIX: Fix DAT pasm parser prematurely leaving pasm mode (P1 and P2)
+- BUGFIX: Fix several crash causes (P1 and P2)
 
-## [2.2.0] 2023-10-28
+## [2.2.1] - 2023-10-30
 
-- Awaken **Show Definitions of a Symbol feature** supporting peek at and go-to definition(s). (returns one or more matching symbols found in current open find and included objects)
-- Enables right-mouse commands "Go to Definition" and "Peek -> Peek Definition"
-- In spin, this works for method names, global variables, parameters, return values, method local variables, and pasm global labels.
+### Fixed
 
-## [2.1.0] 2023-10-27
+- BUGFIX: Fix filename validation in object includes to match PNut/Propeller Tool
+- BUGFIX: Respect `maxNumberOfReportedIssues` setting when set to zero
+- BUGFIX: Fix P1 hover detection for `object#constant` references
+- BUGFIX: Improve CON operator parsing, inline `{comment}` handling, OBJ override parsing, and PUB/PRI assignment LHS parsing (P1 and P2)
 
-Formal release of Language-server-based P1 and P2 Spin Extension for VScode
+### Added
 
-- Files included by current file are parsed and references to the included objects are validated
-- Documentation from the included object files is shown for Hover Text and Signature help
-- Live parsing on file change allowing changes in one editor window to affect another editor window (e.g., You have a toplevel spin file open and and object spin file open in 2nd window. Changes in object file can immediately affect the toplevel file.)
-- Display of errors found during parse are listed for each file parsed (and with **Error Lens** errors show on affected line)
-- What a file is parsed and errors are found the file entry in the left panel file browser turns light red to highlight that file contains errors
-- Many improvements in parsing / highlighting for both P1 and P2
+- Basic hover text for Streamer Constants (P2)
 
-## [2.0.0 - 2.0.4] 2023 Oct 22-26
+## [2.2.0] - 2023-10-28
 
-Convert to Spin and Spin2 Language Server as separate Process (P1 and P2)
+### Added
 
-- Initial builds for alpha testing with key users.
+- Show Definitions of a Symbol: peek at and go-to definition(s) across current file and included objects
+- Right-mouse "Go to Definition" and "Peek -> Peek Definition" commands
+- Works for method names, global variables, parameters, return values, local variables, and pasm global labels
 
-## [1.9.13] 2023-08-03
+## [2.1.0] - 2023-10-27
 
-Theme, Syntax, and Semantic Highlight Updates (P1 and P2)
+Formal release of Language-server-based P1 and P2 Spin Extension
 
-- Cleaned up both Light and Dark non-colored-background-use color themes
-- BUGFIX Semantic: fix incorrect flagging of pasm instructions as missing labels
-- BUGFIX Semantic: correctly highlight variable and label declarations in PAsm code
-- BUGFIX Semantic: correctly highlight global and local label declarations in PAsm code
-- BUGFIX P2 Syntax: add missing smart pin constants P_LEVEL_B_FBP and P_LEVEL_B_FBN
-- BUGFIX P1 and P2 Object Dependencies parser: Fixed whitespace confusing parse
+### Added
 
-## [1.9.12] 2023-08-01
+- Multi-file parsing: included objects are parsed and references validated
+- Documentation from included objects shown in Hover Text and Signature Help
+- Live parsing on file change with cross-editor window updates
+- Error display per parsed file (with Error Lens integration)
+- Files with parse errors highlighted in the file browser
+- Many parsing/highlighting improvements for P1 and P2
 
-Feature Updates (P1 and P2)
+## [2.0.0 - 2.0.4] - 2023-10-22
 
-- P1 & P2: Adds editor background coloring per section à la **Parallax Propeller Tool** (disabled by default, enable in settings, requires the use of the new background color-supporting themes)
-- Adds two new color themes which are better suited to colorized backgrounds
-- Adds new Light theme for non-colored background use which compliments the Dark theme already present
+Convert to Spin and Spin2 Language Server as separate process (P1 and P2)
 
-## [1.9.11] 2023-07-25
+### Added
 
-General Updates (P1 and P2)
+- Initial builds for alpha testing with key users
 
-- P1 & P2: Adds light theme supporting semantic highlighting
+## [1.9.13] - 2023-08-03
 
-## [1.9.10] 2023-07-22
+### Changed
 
-General repairs to Hover Help (P1 and P2)
+- Cleaned up Light and Dark non-colored-background themes
 
-- P1 & P2: Repair hover help - fixed hover display for method parameters, return values, and local variables
+### Fixed
 
-## [1.9.9] 2023-07-17
+- BUGFIX: Fix incorrect flagging of pasm instructions as missing labels
+- BUGFIX: Fix variable and label declaration highlighting in PASM code
+- BUGFIX: Add missing smart pin constants `P_LEVEL_B_FBP` and `P_LEVEL_B_FBN` (P2)
+- BUGFIX: Fix whitespace confusing object dependencies parser (P1 and P2)
 
-General repairs to Signature Help (P1 and P2)
+## [1.9.12] - 2023-08-01
 
-- P1 & P2: Repair signature help - signatures shown for users PUB/PRI methods (ensure hover pop-ups and signature pop-ups show same for PRI/PUB signatures)
+### Added
 
-## [1.9.8] 2023-07-17
+- Editor background coloring per section (Propeller Tool style), disabled by default
+- Two new color themes for colorized backgrounds
+- New Light theme for non-colored background use
 
-General repairs to Hover Support and Signature Help (P1 and P2)
+## [1.9.11] - 2023-07-25
 
-- Repair generation of internal comments used for user method signature help when no comments present, P1 and P2
-- P2 Improve hover pop-up content for SEND(), RECV() method pointers
+### Added
 
-## [1.9.7] 2023-07-15
+- Light theme supporting semantic highlighting (P1 and P2)
 
-Add **Signature Help**, **Hover support** and **Documentation Generation** features for P1!
+## [1.9.10] - 2023-07-22
 
-This release brings our P1 support into feature parity with the P2 feature set and also includes minor fixes for the P2 side of things.
+### Fixed
 
-- When typing user and built-in method calls **Signature Help** will describe parameters needed, with meaning, as they are typed
-- Now supports hover over **User** variables, constants, methods, pasm labels and objects to display pop-up information about the item including comments within the code for the item
-- Now supports hover for **Built-in Spin** methods, variables, and constants to display pop-up documentation about the built-in item
-- Adds new **Doc-Comment Generation** for PUB and PRI methods via keystroke [Ctrl+Alt+c] - Ctrl+Alt+( c )omment. <br>- Comment is inserted immediately below the PUB or PRI line.
-- Adds new **Object Public interface documentation generation** via keystroke [Ctrl+Alt+d], Ctrl+Alt+( d )ocument. Doc opens on the right side of the editor
-- P2 Hover information is now shown for debug display window names.
-- New for P1 and P2: when user methods don't have parameter documentation the **signature help** now works and it reminds us how to generate the missing documentation.
+- BUGFIX: Fix hover help for method parameters, return values, and local variables (P1 and P2)
 
-## [1.9.6] 2023-07-11
+## [1.9.9] - 2023-07-17
 
-Minor adjustment to P2 support!
+### Fixed
 
-- disable debug output logs
+- BUGFIX: Fix signature help for user PUB/PRI methods (P1 and P2)
 
-## [1.9.5] 2023-07-10
+## [1.9.8] - 2023-07-17
 
-Add Signature Help support for P2!
+### Fixed
 
-- When typing method calls "signature help" will describe parameters needed, with meaning, as they are typed
-- Adds display of parameter and return value descriptions to built-in method hover text
-- BUGFIX Semantic P2: flag illegal use of trunc|float|round [with missing ()'s, or no parameter]
+- BUGFIX: Fix generated comments used for method signature help when no comments present (P1 and P2)
+- BUGFIX: Improve hover content for `SEND()`, `RECV()` method pointers (P2)
 
-## [1.9.4] 2023-06-27
+## [1.9.7] - 2023-07-15
 
-Minor fixes to hover support for P2!
+P1 feature parity with P2 feature set
 
-- PRI methods want non-doc-comments vs doc-comments
-- Add blank line before locals in PUB/PRI generated method comments
+### Added
 
-## [1.9.3] 2023-06-27
+- Signature Help for P1: parameter descriptions shown as they are typed
+- Hover support for P1: user variables, constants, methods, pasm labels, objects, and built-in Spin methods/variables/constants
+- Doc-Comment Generation for P1 PUB/PRI methods via Ctrl+Alt+c
+- Object Public Interface documentation generation for P1 via Ctrl+Alt+d
+- Hover for debug display window names (P2)
+- Signature help now works for methods without parameter documentation, with a reminder to generate docs
 
-Minor fixes to hover support for P2!
+## [1.9.6] - 2023-07-11
 
-- Now handle PUB/PRI inline pasm variables and labels
-- Adjust naming of method parameters, return values, local variables, and inline-pasm labels, variables
-- Adjust naming of object variables, methods, labels
-- Allow preceding non-doc comments to be multi-line (in addition to single-line) for constants, variables, labels
-- Provide missing signatures for float(), trunc() and round()
+### Fixed
 
-## [1.9.2] 2023-06-26
+- Disable debug output logs
 
-Add new hover support for P2!
+## [1.9.5] - 2023-07-10
 
-- Now can hover over **User** variables, constants, methods, pasm labels and objects to display pop-up information about the item including comments within the code for the item
-- Now supports hover for **Built-in Spin2** methods, variables, constants and smart-pin contstants to display pop-up documentation about the built-in item
-- Adds new Doc-Comment Generation for PUB and PRI methods via keystroke [Ctrl+Alt+c] - Ctrl+Alt+( c )omment. <br>- Comment is inserted immediately below the PUB or PRI line.
-- BUGFIX P2 no longer treats `asmclk` as pasm label (Oops)
-- BUGFIX P2 in debug() statements: variables accessed as sub bitfields now highlighted correctly (e.g., c.[2..7])
-- P2 syntax: added getcrc, strcopy
-- P2 semantic highlight: added missing smartpin constants
+### Added
 
-## [1.9.1] 2023-06-13
+- Signature Help for P2: parameter descriptions shown as method calls are typed
+- Parameter and return value descriptions in built-in method hover text
 
-New Object Hierarchy view for P1 and P2!
+### Fixed
 
-- Adds new Object Hierarchy browser when editing spin code
+- BUGFIX: Flag illegal use of `trunc`/`float`/`round` with missing parentheses or parameters (P2)
 
-## [1.9.0] 2023-06-9
+## [1.9.4] - 2023-06-27
 
-Minor Semantic updates for P1 and P2 along with new Documentation feature!
+### Fixed
 
-- Add documentation generation via keystroke [Ctrl+Alt+d], doc opens on right side
-- Fix highlight of object constant references in case statement selector P1 and P2 (#17)
-- Flag "else if" on spin as illegal / won't compile - P1 and P2 (#18)
+- BUGFIX: PRI methods now show non-doc-comments in hover
+- BUGFIX: Add blank line before locals in generated PUB/PRI method comments
 
-## [1.8.9] 2023-05-15
+## [1.9.3] - 2023-06-27
 
-Documentation change and attempt to avoid intercept of TAB when using github copilot
+### Fixed
 
-## [1.8.8] 2023-03-27
+- BUGFIX: Handle PUB/PRI inline pasm variables and labels in hover
+- BUGFIX: Improve naming for method parameters, return values, local variables, and inline-pasm labels
+- BUGFIX: Multi-line preceding comments now supported for constants, variables, and labels
 
-Minor Semantic updates for P2
+### Added
 
-- P2 Add parsing/highlight of new 'field' accessor
-- P2 Fix highlight of short variable names within line (offset to var was incorrect)
-- P2 Fix highlight of spin-builtin names within debug() lines
+- Missing signatures for `float()`, `trunc()`, and `round()`
 
-## [1.8.7] 2023-02-16
+## [1.9.2] - 2023-06-26
 
-Minor Semantic fixes for P1 and P2
+### Added
 
-- P1/P2 Repair detection/highlight of OBJ statements with no whitespace around colon
-- P2 Add parsing/highlight of new constant override syntax in OBJ section (partial, more to do in syntax parsing)
+- Hover support for P2: user variables, constants, methods, pasm labels, objects, and built-in Spin2 methods/variables/constants/smart-pin constants
+- Doc-Comment Generation for PUB/PRI methods via Ctrl+Alt+c
 
-## [1.8.6] 2023-01-05
+### Fixed
 
-Minor Semantic fixes for P1 and P2
+- BUGFIX: `asmclk` no longer treated as a pasm label (P2)
+- BUGFIX: Variables as sub-bitfields in `debug()` now highlighted correctly (P2)
+- Add `getcrc`, `strcopy` to syntax recognition (P2)
+- Add missing smart-pin constants to semantic highlighting (P2)
 
-- P1 Repair detection/highlight of multi-line doc comments
-- P2 highlight PUB/PRI P1 signatures (without parens) as NEED porting! (color them RED)
+## [1.9.1] - 2023-06-13
 
-## [1.8.5] 2023-01-05
+### Added
 
-Minor Semantic/Outline fixes for P1
+- Object Hierarchy browser view for P1 and P2
 
-- Repair parsing of PUB/PRI method names (fix distraction by comment content)
-- Repair parsing of object constants being used as array length specification
-- Repair double-entries of PUB/PRI names in P1 Outline
+## [1.9.0] - 2023-06-09
 
-## [1.8.4] 2023-01-05
+### Added
 
-Minor Outline adjustments for P1 and P2
+- Object Public Interface documentation generation via Ctrl+Alt+d
 
-- Repair parsing of long(...) code -- recognize long when adjacent paren. (issue #14)
-- Move global labels under their enclosing DAT section, creating more descriptive outline hierarchy (issue #13)
+### Fixed
 
-## [1.8.3] 2023-01-04
+- BUGFIX: Fix highlighting of object constant references in case statement selectors (#17, P1 and P2)
+- BUGFIX: Flag `else if` as illegal syntax (P1 and P2, #18)
 
-Minor Syntax/Semantic recognizer update - Adds help for porting p1 code to p2
+## [1.8.9] - 2023-05-15
 
-- Syntax P1 & P2: Recognize nested {} and {{}} comments
-- Semantic P2: if () missing after a method name (mark it as unknown - RED -> error)
-  - NOTE: we can't do this for "object method calls" until we have a full language server. (It's coming!)
-- Semantic P2: If () missing after a spin built-in method name (mark it as unknown - RED -> error)
-- Semantic P2: Flag P1 specific variables, mnemonics, methods as RED -> error so we know what needs conversion to P2
+### Changed
 
-## [1.8.2] 2023-01-02
+- Avoid intercepting TAB key when using GitHub Copilot
 
-Minor Outline/Navigation update for P1
+## [1.8.8] - 2023-03-27
 
-- Add global Pasm labels to outline
-- This finishes the delivery of showing Global Labels within the outline for both P1 and P2
+### Added
 
-## [1.8.1] 2022-12-26
+- Parsing/highlight of `field` accessor (P2)
 
-Minor Outline/Navigation update for P2
+### Fixed
 
-- Add global Pasm labels to outline
+- BUGFIX: Fix short variable name highlighting offset (P2)
+- BUGFIX: Fix spin built-in name highlighting within `debug()` lines (P2)
 
-## [1.8.0] 2022-12-23
+## [1.8.7] - 2023-02-16
 
-Add [optional] FlexSpin preprocessor support (P1 & P2), Repair semantic highlight (P2)
+### Fixed
 
-- Add new extension setting to enable recognition of FlexSpin Preprocessor Directives (Default: disabled)
-- Adds flagging of Preprocessor directive lines as unknown when FlexSpin support is not enabled
-- Fix P2 recognition of _RET_ directive in Pasm2
-- Fix P2 recognition of built-in \_set, \_clr variables in Pasm2
-- Fix P1 & P2 recognition of constants when assignment uses #> and <# operators
+- BUGFIX: Fix OBJ statement detection without whitespace around colon (P1 and P2)
 
-## [1.7.8] 2022-12-22
+### Added
 
-Minor tabbing update
+- Constant override syntax support in OBJ section (P2, partial)
 
-- Ensure `org`, `asm` and `end`, `endasm` lines use PUB/PRI tabstops
-- Ensure Deconflict "Tab" with "Tab to Autocomplete"
-- Adjust auto-closing pairs behavior (dialing things in slowly)
+## [1.8.6] - 2023-01-05
 
-## [1.7.7] 2022-12-17
+### Fixed
 
-Minor tabbing update
+- BUGFIX: Fix multi-line doc comment detection (P1)
+- BUGFIX: PUB/PRI P1 signatures without parens now flagged as needing port (P2)
 
-- `end` and `endasm` are now positioned using **In-line Pasm** tabstops
-- Corrected delete (left/Right) behavior in Align edit mode
-- Cursor now positions as expected after TAB / SHIFT+TAB (this didn't work before)
+## [1.8.5] - 2023-01-05
 
-**NOTE**: _originally released as v1.7.6 which failed to codesign and had to be re-released_
+### Fixed
 
-## [1.7.5] 2022-12-16
+- BUGFIX: Fix PUB/PRI method name parsing confused by comment content (P1)
+- BUGFIX: Fix object constants as array length specification (P1)
+- BUGFIX: Fix double-entries of PUB/PRI names in Outline (P1)
 
-Minor highlighting update
+## [1.8.4] - 2023-01-05
 
-- Add offset color for local vs. global pasm labels
-- Detect and Flag invalid local pasm label syntax version: p1asm vs. p2asm
-- Correct backspace behavior (no longer removes more than one character)
+### Fixed
 
-## [1.7.4] 2022-12-13
+- BUGFIX: Fix `long(...)` recognition when adjacent to paren (#14)
+- BUGFIX: Move global labels under enclosing DAT section in outline (#13)
 
-Minor highlighting update
+## [1.8.3] - 2023-01-04
 
-- Constant declarations are now identified correctly
-- Spin builtin methods are now identified so other themes can render them better
+### Added
 
-## [1.7.3] 2022-12-09
+- Recognize nested `{}` and `{{}}` comments (P1 and P2 syntax)
+- Flag missing `()` after method and built-in method names as errors (P2)
+- Flag P1-specific variables, mnemonics, and methods as errors in P2 files (porting aid)
 
-Minor update to Extension Settings
+## [1.8.2] - 2023-01-02
 
-- Add Named TAB configurations (select between `Propeller Tool`, `IronSheep` or your own custom `User1` tabs)
-- The extension default is `Propeller Tool`
-- The `IronSheep` configuration is derived from Propeller Tool but realigned to "tabstop: 4" (every 4 spaces)
+### Added
 
-## [1.7.2] 2022-12-07
+- Global Pasm labels in Outline for P1 (completing P1+P2 coverage)
 
-Update Spin highlighting (syntax and/or semantic parser fixes)
+## [1.8.1] - 2022-12-26
 
-- Spin: Recognize label or data declaration on DAT line
-- Spin: Recognize non-float decimal numbers with exponents
+### Added
 
-Update Spin2 highlighting (syntax and/or semantic parser fixes)
+- Global Pasm labels in Outline for P2
 
-- Spin2: Recognize label or data declaration on DAT line
-- Spin2: Recognize non-float decimal numbers with exponents
-- Spin2: Recognize `debug_main` and `debug_coginit` compile time directives
-- Spin2: Recognize event names in p2asm correctly
-- Spin2: Fix cases where `debug` used without parenthesis causes extension crash
-- Spin2: Recognize coginit constants (some p2asm cases were being missed)
-- Spin2: Add recognition of LutColors directive in debug statements with run-time terminal assignment
-- Spin2: Recognize `modcz` operand constants
+## [1.8.0] - 2022-12-23
 
-### - Known Issues w/v1.7.2
+### Added
 
-- We haven't yet learned how to control the ending position of the edit cursor. So in many cases when using selection, not an insert point, the cursor may end up not being where you might expect it to be after pressing TAB or Shift+TAB. We are looking into how to solve this. Even tho' this problem exists the formatting ability this new service provides is well worth this minor headache. We will keep looking for a means to get this under control.
-- The single-quote comment (now only on debug statements) is being handled by the semantic (vs. syntactic) parser this is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within trailing line comments on debug lines
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
+- Optional FlexSpin preprocessor directive support (P1 and P2, disabled by default)
+- Flag preprocessor directive lines as unknown when FlexSpin support is not enabled
 
-## [1.7.1] 2022-12-05
+### Fixed
 
-Update to keyboard mapping: All key mapping now reenabled and Align mode now fully functional
+- BUGFIX: Fix `_RET_` directive recognition in Pasm2 (P2)
+- BUGFIX: Fix built-in `_set`, `_clr` variable recognition in Pasm2 (P2)
+- BUGFIX: Fix constant recognition with `#>` and `<#` operators (P1 and P2)
 
-- Fixed: Backspace and Delete now working correctly in Align Mode
-- Fixed: Oops, now all keymapping is working. (When clause was set to enable for spin and spin2 but killed everything instead)
-- [F11] key is now assigned as an alternate in case you don't have an [Insert] key (or Fn+Enter is not working)
+## [1.7.8] - 2022-12-22
 
-### - Known Issues w/v1.7.1
+### Changed
 
-- We haven't yet learned how to control the ending position of the edit cursor. So in many cases when using selection, not an insert point, the cursor may end up not being where you might expect it to be after pressing TAB or Shift+TAB. We are looking into how to solve this. Even tho' this problem exists the formatting ability this new service provides is well worth this minor headache. We will keep looking for a means to get this under control.
-- The single-quote comment (now only on debug statements) is being handled by the semantic (vs. syntactic) parser this is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within trailing line comments on debug lines
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
+- `org`, `asm`, `end`, `endasm` lines now use PUB/PRI tabstops
+- Deconflict Tab with Tab-to-Autocomplete
+- Adjust auto-closing pairs behavior
 
-## [1.7.0] 2022-12-02
+## [1.7.7] - 2022-12-17
 
-Fun Update! First release of two **NEW** features and more.
+### Fixed
 
-- **NEW** P1 support for .spin files (full syntax and semantic highlighting of the P1 language: spin/pasm)
-- **NEW** Add InsertMode support: [Insert|Overwrite|Align]
-- More changes to tabbing behavior, we're gradually dialing it in
-- P2 Syntax/Semantic highlighting changes - adds support for:
-  ● New Spin2 'GETCRC(dataptr,crcpoly,bytecount) method
-  ● New Spin2 'STRCOPY(destination,source,maxsize)' method
-  ● DEBUG display BITMAP now validates 'SPARSE color'
-  ● GRAY, in addition to GREY, now recognized as a color in DEBUG displays
+- BUGFIX: `end` and `endasm` now positioned using in-line Pasm tabstops
+- BUGFIX: Fix delete (left/right) behavior in Align edit mode
+- BUGFIX: Cursor now positions correctly after Tab/Shift+Tab
 
-### - Known Issues w/v1.7.0
+## [1.7.5] - 2022-12-16
 
-- We need to get Backspace and Delete working correctly when in InsertMode:Align - it's coming, hopefully soon.
-- We haven't yet learned how to control the ending position of the edit cursor. So in many cases when using selection not an insert point the cursor may end up not being where you might expect it to be after pressing TAB or Shift+TAB. We are looking into how to solve this. Even tho' this problem exists the formatting ability this new service provides is well worth this minor headache. We will keep looking for a means to get this under control.
-- The single-quote comment (now only on debug statements) is being handled by the semantic (vs. syntactic) parser this is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within trailing line comments on debug lines
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
+### Added
 
-## [1.6.1] 2022-11-29
+- Offset color for local vs. global pasm labels
+- Detect and flag invalid local pasm label syntax (P1 vs. P2)
 
-Minor update to the formal release (_clean up muli-line behavior, clean up in-line pasm support._)
+### Fixed
 
-- NEW: Fixes detection of in-line pasm by now treating `end` correctly and reverting to PUB/PRI tab use after the `end` statement
-- NEW: Adds support for `asm` and `endasm` **FlexSpin** in-line pasm keywords
-- NEW: adds 3 more tab stops for spin2 code in `PUB` and `PRI` (at 12, 14, at 16)
-- Adjusts: the multiline selection behavior for `TAB` and `Shift+TAB` has changed to treating each line individually.
+- BUGFIX: Fix backspace removing more than one character
 
-### - Known Issues w/v1.6.1
+## [1.7.4] - 2022-12-13
 
-- We haven't yet learned how to control the ending position of the edit cursor. So in many cases when using selection not an insert point the cursor may end up not being where you might expect it to be after pressing TAB or Shift+TAB. We are looking into how to solve this. Even tho' this problem exists the formatting ability this new service provides is well worth this minor headache. We will keep looking for a means to get this under control.
-- The single-quote comment (now only on debug statements) is being handled by the semantic (vs. syntactic) parser this is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within trailing line comments on debug lines
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
+### Fixed
 
-## [1.6.0] 2022-11-28
+- BUGFIX: Constant declarations now identified correctly
+- BUGFIX: Spin built-in methods now identified for better theme rendering
 
-First formal release - Update for tabbing. Now operates according to latest Spec.
+## [1.7.3] - 2022-12-09
 
-- NEW: adds use of DAT tabbing for PUB/PRI inline-pasm
+### Added
 
-- Supports configurable tab-stops-per-section like Propeller Tool.
-- Adds support for single-line indent/outdent
-- Adds support for multi-line indent/outdent
-- Adds command `Ctrl+Alt+Tab` which inserts a current tabs placement comment as a line above the cursor
-- This TAB support **Spin2 Elastic Tab Stops** provides two new settings:
-  - **Spin2 Elastic Tab Stops**:`Blocks`: is where the tab stops are listed for each section
-  - **Spin2 Elastic Tab Stops**:`Enable`: checkbox which is by default NOT enabled</br>(_As this is an early release this feature is not enabled by default. You must enable and then restart vscode_)
-  - These settings are global but can be edited and made custom per project as well
+- Named TAB configurations: select between Propeller Tool, IronSheep, or custom User1 tabs
 
-### - Known Issues w/v1.6.0
+## [1.7.2] - 2022-12-07
 
-- We haven't yet learned how to control the ending postion of the edit cursor. So in many cases when using selection not single insert point the cursor may end up not being where you might expect it to be after pressing TAB or Shift+TAB. We are looking into how to solve this. Even tho' this problem exists the formatting ability this new service provides is well worth this minor headache. We will keep looking for a means to get this under control.
+### Fixed
 
-## [1.5.2] 2022-11-19
+- Recognize label or data declaration on DAT line (P1 and P2)
+- Recognize non-float decimal numbers with exponents (P1 and P2)
+- Recognize `debug_main` and `debug_coginit` compile time directives (P2)
+- Recognize event names in p2asm correctly (P2)
+- Fix `debug` without parenthesis causing extension crash (P2)
+- Recognize coginit constants in more p2asm cases (P2)
+- Add `LutColors` directive recognition in debug statements (P2)
+- Recognize `modcz` operand constants (P2)
 
-Bugifx Update - Extension Tabbing-Disable now works! (Oops!)
+### Known Issues
 
-## [1.5.1] 2022-11-16
+- Cursor ending position after Tab/Shift+Tab with selection may be unexpected
+- Single-quote comment on debug lines causes bracket pairing issues with external extensions
+- DAT section syntax highlighting occasionally fails
+- Semantic highlight 'modification' attribute over-applied
 
-Minor Update - Release without DEBUG output enabled. (otherwise same as v1.5.0)
+## [1.7.1] - 2022-12-05
 
-## [1.5.0] 2022-11-16
+### Fixed
 
-Feature Update - add TAB support according to traditional spin2 custom tab-stops (Propeller Tool like)
+- BUGFIX: Fix Backspace and Delete in Align Mode
+- BUGFIX: Fix keymapping (when clause was killing all keybindings instead of enabling for spin/spin2)
+- F11 key assigned as alternate for Insert key
 
-New Tabbing Support:
+## [1.7.0] - 2022-12-02
 
-- Supports configurable tab-stops-per-section like Propeller Tool.
-- Adds support for single-line indent/outdent
-- Adds support for multi-line indent/outdent
-- Adds new command `Ctrl+Alt+Tab` which inserts a current tabs placement comment as a line above the cursor
-- This TAB support **Spin2 Elastic Tab Stops** provides two new settings:
-  - **Spin2 Elastic Tab Stops**:`Blocks`: is where the tab stops are listed for each section
-  - **Spin2 Elastic Tab Stops**:`Enable`: checkbox which is by default NOT enabled</br>(_As this is an early release this feature is not enabled by default. You must enable and then restart vscode_)
-  - These settings are global but can be edited and made custom per project as well
+### Added
 
-### - Known Issues w/v1.5.0
+- P1 support for .spin files (full syntax and semantic highlighting)
+- InsertMode support: Insert/Overwrite/Align
+- New Spin2 methods: `GETCRC()`, `STRCOPY()`
+- DEBUG display BITMAP validates `SPARSE color`; `GRAY` recognized alongside `GREY`
 
-- The new TAB support does not adhere to `INSERT/OVERTYPE/ALIGN` modes (will in a later release)
-- The single-quote comment (now only on debug statements) is being handled by semantic (vs. syntactic) parser this is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within trailing line comments on debug lines
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
+### Changed
 
-## [1.4.1] 2022-09-17
+- Ongoing tabbing behavior refinements
 
-### Various Highlight fixes and better single-line comment processing
+## [1.6.1] - 2022-11-29
 
-- BUGFIX: (#8) Now correctly recognize assignments within enum declarations
-- BUGFIX: (#5) Most of the single-line comments are once again recognized during syntax recognition the remaining exception is when comments following debug() statements
-- Now recognize the use of spin2 unary and binary operators within constant assignments
-- Fixed a number of small highlight problems: (1) (local variables were not recognized in spin statements), (2) occasionally some comments were processed as spin statements
+### Added
 
-### - Known Issues w/v1.4.1
+- Inline pasm detection: `end` reverts to PUB/PRI tab use; `asm`/`endasm` FlexSpin keywords supported
+- Three additional tab stops for PUB/PRI at columns 12, 14, 16
 
-- The single-quote comment (now only on debug statements) is being handled by semantic (vs. syntactic) parser this is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within trailing line comments on debug lines
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
+### Changed
 
-## [1.3.9] 2022-08-08
+- Multi-line selection Tab/Shift+Tab now treats each line individually
 
-### Minor Highlight fix for unrecognized symbol
+## [1.6.0] - 2022-11-28
 
-- BUGFIX: (#6) correct internal misspelling of X_4P_4DAC1_WFBYTE symbol.
+First formal release of elastic tabstops
 
-### - Known Issues w/v1.3.9
+### Added
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
+- Configurable tab-stops-per-section (Propeller Tool style)
+- Single-line and multi-line indent/outdent
+- `Ctrl+Alt+Tab` inserts tab placement comment above cursor
+- DAT tabbing for PUB/PRI inline pasm
+- New settings: `Elastic Tab Stops: Blocks` and `Elastic Tab Stops: Enable` (disabled by default)
 
-## [1.3.8] 2022-08-08
+## [1.5.2] - 2022-11-19
 
-### Minor semantic pasm highlight fixes
+### Fixed
 
-- BUGFIX (#7) - Fix highlighting in pasm statements when using operators with constants. (added missing detection of =,?,:,!, and ^ pasm operators as defined in pasm language manual)
+- BUGFIX: Tabbing disable setting now works
 
-### - Known Issues w/v1.3.8
+## [1.5.1] - 2022-11-16
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
+### Fixed
 
-## [1.3.7] 2022-05-05
+- Release without debug output enabled (same as v1.5.0 otherwise)
 
-### Miscellaneous semantic highlight fixes
+## [1.5.0] - 2022-11-16
 
-- Fix highlighting of multiple same-name constants in con declaration
-- Fix highlighting of variable and method names in debug() statements
-- Fix highlighting of constant names in case statements with a constant range as match case
-- Fix highlighting of org constant name as the offset
-- Fix highlighting of constant names in complex constant assignment
+### Added
 
-### - Known Issues w/v1.3.7
+- TAB support with traditional spin2 custom tab-stops (Propeller Tool style)
+- Single-line and multi-line indent/outdent
+- `Ctrl+Alt+Tab` inserts tab placement comment above cursor
+- New settings: `Elastic Tab Stops: Blocks` and `Elastic Tab Stops: Enable` (disabled by default)
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
+### Known Issues
 
-## [1.3.6] 2022-04-22
+- TAB support does not adhere to Insert/Overtype/Align modes yet
+- Single-quote comment on debug lines causes bracket pairing issues
+- DAT section syntax highlighting occasionally fails
 
-### Improve debug() highlight methods and named operators correctly - misc fixes
+## [1.4.1] - 2022-09-17
 
-- NEW single-quote comments on section name (DAT, VAR, OBJ, and CON) lines now show up in the outline (was just brace comments)
-- Now highlights method names and named operators within debug() statements
-- Improved number, number-base recognition
-- Improved highlighting of array sizes when multiple arrays are declared on single line
-- Improved highlighting of array-of-objects declaration
-- Finally addresses the "Occasional issues with highlighting of enum leading constant"
+### Fixed
 
-### - Known Issues w/v1.3.6
+- BUGFIX: Fix assignment recognition within enum declarations (#8)
+- BUGFIX: Single-line comments re-recognized during syntax pass (except after `debug()`) (#5)
+- Recognize spin2 unary and binary operators within constant assignments
+- Fix local variable recognition and comment-as-statement misidentification
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
+## [1.3.9] - 2022-08-08
 
-## [1.3.5] 2022-04-20
+### Fixed
 
-### Improve debug() single quote string parsing and misc. fixes
+- BUGFIX: Fix misspelling of `X_4P_4DAC1_WFBYTE` symbol (#6)
 
-- Don't flag keywords within single quote strings
-- Recognize float operators in more locations
-- Recognize debug methods in more correct manner
+## [1.3.8] - 2022-08-08
 
-### - Known Issues w/v1.3.5
+### Fixed
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+- BUGFIX: Fix pasm operator highlighting with constants (added `=`, `?`, `:`, `!`, `^` operators) (#7)
 
-## [1.3.4] 2022-04-16
+## [1.3.7] - 2022-05-05
 
-### Improve debug()-display Highlight for new style with single-quoted strings
+### Fixed
 
-- Fix case where there are multiple `() sets in one string
+- BUGFIX: Fix highlighting of multiple same-name constants in CON declarations
+- BUGFIX: Fix highlighting of variable and method names in `debug()` statements
+- BUGFIX: Fix highlighting of constant names in case statement ranges
+- BUGFIX: Fix highlighting of ORG constant name as offset
+- BUGFIX: Fix highlighting of constant names in complex constant assignments
 
-### - Known Issues w/v1.3.4
+## [1.3.6] - 2022-04-22
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+### Added
 
-## [1.3.2] 2022-04-04
+- Single-quote comments on section lines (DAT, VAR, OBJ, CON) now appear in Outline
 
-### Improve debug()-display Highlight for older style with double-quoted strings
+### Fixed
 
-- Fix highlighting of debug() statements containing double-quoted strings
-- Fix object references in DAT-PASM and debug() statements containing double-quoted strings
-- Fix highlight of comments starting with '' (two single-quotes)
+- Method names and named operators now highlighted within `debug()` statements
+- Improved number/number-base recognition, array size highlighting, and array-of-objects declaration highlighting
+- Fix enum leading constant highlighting
 
-### - Known Issues w/v1.3.2
+## [1.3.5] - 2022-04-20
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+### Fixed
 
-## [1.3.1] 2022-03-31
+- BUGFIX: Keywords within single-quote strings no longer flagged
+- Improved float operator and debug method recognition
 
-### Finish debug()-display Highlight and Validation
+## [1.3.4] - 2022-04-16
 
-- Adds new directive support for validating debug() display lines which use runtime display names
-- Fix highlighting of debug() statements within in-line pasm
-- Fix label on ORG directive
-- Fix highlighting of ORGH directive
+### Fixed
 
-### NOTEs v1.3.1
+- BUGFIX: Fix debug display highlighting with multiple parenthesized sets in one string
 
-- this adds support for the new Spin2 Extension directive:
-  - {-_ VSCode-Spin2: nextline debug()-display: {displayType} _-}
-  - Where: {displayType} should be one of [Logic, Scope, Scope_XY, FFT, Spectro, Plot, Term, Bitmap, and Midi]
-- The following **runtime forms** can now be handled by preceeding them with this new directive:
-  - debug(**\`zstr\_(displayName)** lutcolors `uhex*long_array*(image_address, lut_size))
-  - debug(**\`lstr\_(displayName, len)** lutcolors `uhex*long_array*(image_address, lut_size))
-  - debug(**\`#(letter)** lutcolors `uhex*long_array*(image_address, lut_size))
+## [1.3.2] - 2022-04-04
 
-### - Known Issues w/v1.3.1
+### Fixed
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+- BUGFIX: Fix highlighting of `debug()` statements with double-quoted strings
+- BUGFIX: Fix object references in DAT-PASM and `debug()` with double-quoted strings
+- BUGFIX: Fix highlight of `''` (two single-quote) comments
 
-## [1.3.0] 2022-03-29
+## [1.3.1] - 2022-03-31
 
-Initial Release of debug()-display **Highlight** and **Validation**
+### Added
 
-- NEW add initial highlighting support for all debug() displays (Logic, Scope, Scope_XY, FFT, Spectro, Plot, Term, Bitmap, and Midi)
-- Unique colors within debug statement for: displayType, displayName, keywords, and colors
-- Validation: when a keyword is not legal for the display or is spelled incorrectly then is colored bright red
-- Moved single comment out of syntax into semantic highlighting so we can have single-quoted strings in our debug statements. (_Syntax highlighting is not context aware, so entire tail of a debug() statement was incorectly rendered as a comment_)
+- Runtime debug display name directive: `{-_ VSCode-Spin2: nextline debug()-display: {displayType} _-}`
+- Highlighting of `debug()` statements within inline pasm
 
-### Initial limitations v1.3.0
+### Fixed
 
-- The runtime calulation of display name is not supported, yet. (_In an upcoming release you'll be able to specify the preferred display type for validation of each of these statements._)
-- The following **example runtime forms** will be handled by the new directive when released:
-  - debug(**\`zstr\_(displayName)** lutcolors `uhex*long_array*(image_address, lut_size))
-  - debug(**\`lstr\_(displayName, len)** lutcolors `uhex*long_array*(image_address, lut_size))
-  - debug(**\`#(letter)** lutcolors `uhex*long_array*(image_address, lut_size))
+- BUGFIX: Fix label on ORG directive
+- BUGFIX: Fix highlighting of ORGH directive
 
-### - Known Issues w/v1.3.0
+## [1.3.0] - 2022-03-29
 
-- The single-quote comment now being handled as semantic (vs. syntactic) is causing external VSCode extensions to do brace, parenthesis, and bracket paring to be marked within our trailing line comments. _We have don't have a fix for this yet._
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+### Added
 
-## [1.2.3] 2022-03-16
+- debug() display highlighting and validation for all display types (Logic, Scope, Scope_XY, FFT, Spectro, Plot, Term, Bitmap, Midi)
+- Unique colors for displayType, displayName, keywords, and colors within debug statements
+- Invalid keywords colored red for validation feedback
+- Single-quote comment moved from syntax to semantic highlighting for debug statement support
 
-Minor Highlighting Update
+### Known Issues
 
-- Repair highlighting of float operators used in spin2
-- Repair coloring of constant names used in array declarations
-- Minor update to debug() statements: (1) allow in pasm, (2) don't flag unknown names within debug()
-- Repair recognition of org on DAT lines
+- Runtime calculation of display name not yet supported
+- Single-quote comment in semantic parser causes bracket pairing issues with external extensions
+- DAT section syntax highlighting occasionally fails
 
-### - Known Issues w/v1.2.3
+## [1.2.3] - 2022-03-16
 
-- debug() statements that don't use double-quoted strings currently are not parsed correctly
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+### Fixed
 
-## [1.2.2] 2022-02-17
+- BUGFIX: Fix highlighting of float operators in spin2
+- BUGFIX: Fix coloring of constant names in array declarations
+- BUGFIX: Allow `debug()` in pasm; don't flag unknown names within `debug()`
+- BUGFIX: Fix ORG recognition on DAT lines
 
-Minor Highlighting Update - Repair highlighting of binary operators in DAT data declarations
-(missed a case, fixed now)
+## [1.2.2] - 2022-02-17
 
-### - Known Issues w/v1.2.2
+### Fixed
 
-- debug() statements that don't use double-quoted strings currently are not parsed correctly
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+- BUGFIX: Fix binary operator highlighting in DAT data declarations (missed case)
 
-## [1.2.1] 2022-02-16
+## [1.2.1] - 2022-02-16
 
-Minor Highlighting Update - Repair highlighting of binary operators in DAT data declarations
+### Fixed
 
-### - Known Issues w/v1.2.1
+- BUGFIX: Fix binary operator highlighting in DAT data declarations
 
-- debug() statements that don't use double-quoted strings currently are not parsed correctly
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+## [1.2.0] - 2022-02-09
 
-## [1.2.0] 2022-02-09
+### Added
 
-Highlighting Update - Bugfixes and Catch up with Spin2 Language updates inclu. new DEBUG methods and constants
+- New Spin2/Pasm2/Debug methods and constants added since last release
+- Directives invalid in inline-pasm now highlighted in red
+- Unknown names highlighted in bright red
 
-Syntax/Semantic Adjustments:
+### Fixed
 
-- NEW: add new Spin2/Pasm2/Debug methods & constants which were added since our last release
-- NEW: directives that shouldn't be used in inline-pasm are now highlighted with bright red color
-- BUGFIX: parser no longer expects p2asm labels to be in the 1st column
-- BUGFIX: added missing: four pasm if\_ conditionals, one spin2 method name
-- BUGFIX: parser now parses multiplying of constant values correctly
-- BUGFIX: previously seen files no longer affect the semantic highlighting of the current file
-- BUGFIX: symbol-names starting with PUB, PRI, CON, DAT, etc. are no longer confusing parser
-- BUGFIX: RES and FIT coloring is working
+- BUGFIX: PASM labels no longer required to be in first column
+- BUGFIX: Add missing pasm conditionals and spin2 method name
+- BUGFIX: Fix constant value multiplication parsing
+- BUGFIX: Previously seen files no longer affect current file highlighting
+- BUGFIX: Symbol names starting with PUB, PRI, CON, DAT no longer confuse parser
+- BUGFIX: RES and FIT coloring now works
 
-### - Known Issues w/v1.2.0
+## [1.1.0] - 2021-05-19
 
-- debug() statements that don't use double-quoted strings currently are not parsed correctly
-- Syntax highlight of DAT section sometimes fails... (although it is less often now...)
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- Occasional issues with highlighting of enum leading constant (#nnn should be recognized as number)
-- _I'm sure there are more issues..._
+### Fixed
 
-## [1.1.0] 2021-05-19
+- BUGFIX: Fix highlighting of `debug()` functions in DAT section pasm code
 
-Minor update to fix incorrect highlighting
+## [1.0.1] - 2021-03-30
 
-Semantic Adjustments:
+### Fixed
 
-- BUGFIX: correct highlighting of debug() functions in DAT section pasm code
+- BUGFIX: Add missing `recv` symbol support
 
-### - Known Issues w/v1.1.0
-
-- debug() statements that don't use double-quoted strings currently are not parsed correctly
-- Syntax highlight of DAT section sometimes fails... RES and FIT not colored correctly
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
-
-## [1.0.1] 2021-03-30
-
-Minor update to fix missing things
-
-Syntax Adjustments:
-
-- BUGFIX: add missing `recv` symbol support
-
-### - Known Issues w/v1.0.1
-
-- debug() statements that don't use double-quoted strings currently are not parsed correctly
-- Syntax highlight of DAT section sometimes fails... RES and FIT not colored correctly
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
-
-## [1.0.0] 2021-03-18
+## [1.0.0] - 2021-03-18
 
 The Official Release of Semantic Highlighting
 
-In this release we clean things up a bit more, we deliver unknown name highlighting in brighter red, and **herein** we report on the state of testing against various code-sets.
+### Added
 
-**NOTE:** _with this new **unknown names** coloring feature we were able to find two files that shouldn't compile due to undefined symbols but actually do compile. The findings are being reported to Chip. The author of the files confirmed that the two files are missing symbols._
+- Unknown names highlighted in bright red
+- Built-in symbol recognition now case-independent
+- Added newly added `DEBUG_*` variables
 
-Semantic Adjustments:
+### Fixed
 
-- NEW FEATURE! **Unknown names** in the file are now highlighted with noticable bright red
-- BUGFIX: pasm - repaired variable/label hightlight when short names
-- BUGFIX: by default the compiler treats the first lines in the file as being in CON, this highlighter does now as well.
-- BUGFIX: recognize round(), float(), and trunc() in DAT, CON and PUB/PRI
-- BUGFIX: built-in constants should now be colored correctly
+- BUGFIX: Fix pasm variable/label highlighting with short names
+- BUGFIX: First lines in file now treated as CON by default (matching compiler behavior)
+- BUGFIX: `round()`, `float()`, and `trunc()` recognized in DAT, CON, and PUB/PRI
+- BUGFIX: Built-in constants now colored correctly
 
-Syntax Adjustments:
+### Known Issues
 
-- BUGFIX: adjusted built-in symbol recognition, now independent of case
-- BUGFIX: added missing, newly added to PNut, `DEBUG_*` variables
+- Syntax missing `recv` symbol
+- `debug()` statements with non-double-quoted strings cannot be parsed
+- DAT section syntax highlighting occasionally fails
 
-### - Known Issues w/v1.0.0
+## [0.3.4] - 2021-03-17
 
-- Syntax missing `recv` symbol (but has `send`)
-- debug() statements that don't use double-quoted strings currently can't be parsed
-- Syntax highlight of DAT section sometimes fails... RES and FIT not colored correctly
-- Semantic highlight: the 'modification' attribute is being over-applied, should use more than := as test!!!!
-- _I'm sure there are more issues..._
+5th release of Semantic Highlighting
 
-### REPORT: Source code shipped with PNut
+### Changed
 
-- **LIMITATIONs**: all highlighting is working with the exception of:
-- FILE `Spin2_interpreter.spin2` - breaks the syntax highlighter, but the sematic highlighter works.
-- (meaning pasm instruction names, built-in names, conditions, etc. are not highlighted)
-- All files with debug() statements that don't use double-quoted strings can't be parsed correctly
+- Darkened storage type color slightly
 
-### REPORT: Source code shipped in P2 OBEX
+### Fixed
 
-- For all P2 Obex files, highlighting is working with the exception of:
-- FILE `Parktransformation.spin2` I'm checking the Chip as to why this is.
+- BUGFIX: Parser now ignores contents of strings
+- BUGFIX: `debug()` statements now parse correctly
+- BUGFIX: Remove invalid `pinc` instruction (older form of `pinclear`)
+- BUGFIX: Add `BYTE|WORD|LONG` recognition within spin statements
 
-## [0.3.4] 2021-03-17
+## [0.3.3] - 2021-03-16
 
-5th Release of Semantic Highlighting
+4th release of Semantic Highlighting
 
-This adds quoted-string avoidance when looking for names and their use.
+### Added
 
-Theme Adjustments:
+- `Spin2 Ironsheep Syntax` theme (disables semantic highlighting for comparison)
+- Undefined variables now shown in red
 
-- Darkened storage type color slightly.
+### Removed
 
-Semantic Adjustments:
+- `Spin2 Cluso99` theme (by request)
 
-- BUGFIX Spin: now ignores contents of strings
-- BUGFIX Spin: debug() statements should now be parsing correctly
+### Fixed
 
-Syntax Adjustments:
+- Semantic parsing now handles all VAR and CON examples from spin2 documentation
+- Parses all PNut-shipped examples (less `Spin2_interpreter.spin2`)
+- BUGFIX: Fix multi-line enum, comma-delimited constants, embedded assignments, shorter variable names, and multiple assignment LHS highlighting
+- BUGFIX: Fix variable index recognition, number recognition, and add missing constants/operators/built-ins
 
-- BUGFIX removed invalid instruction `pinc` (older form of pinclear, no longer legal)
-- BUGFIX added recognition of `BYTE|WORD|LONG` within spin statements
+### Known Issues
 
-### - Known Issues w/v0.3.4
+- Pasm: `round()`, `float()`, `trunc()` not recognized as operands
+- Strings not properly ignored during parsing
+- Some `debug()` statements parsed incorrectly
+- DAT section syntax highlighting occasionally fails
 
-- debug() statements that don't use double-quoted strings just can't be parsed
-- Pasm: doesn't recognize round(), float(), and trunc() as pasm operand
-- Incorrectly colors **built-in** constants (should be own color)
-- Syntax highlight of DAT section sometimes fails... RES and FIT not colored correctly
-- Semantic highlight: the 'modification' attribute is being over-applied
-- Semantic highlight: the 'modification' attribute should use more than := as test!!!!
-- _I'm sure there are more issues..._
+## [0.3.2] - 2021-03-12
 
-## [0.3.3] 2021-03-16
+3rd release of Semantic Highlighting
 
-4th Release of Semantic Highlighting
+### Fixed
 
-This represents a noticeable cleanup of parsing most existing code.
+- BUGFIX: Highlighting is now case-insensitive (matching spin language)
+- BUGFIX: Add missing `posx` and `negx` spin2 constants
 
-### - What's new in v0.3.3
+## [0.3.1] - 2021-03-09
 
-Theme Adjustments:
+2nd release of Semantic Highlighting
 
-- Removed `Spin2 Cluso99` theme (by request)
-- Added `Spin2 Ironsheep Syntax` theme (primarily for extension developer use, disables Semantic highlighting)
+### Added
 
-**Note**: _Should you wish, you can switch between the two ironsheep themes to show code with or without semantic highlighting_
+- PASM semantic highlighting support
 
-Semantic Adjustments:
+### Changed
 
-- Update: VAR declarations - parses all examples in spin2 doc
-- Update: CON declarations - parses all examples in spin2 doc
-- Update: parses all examples shipped with PNut (less `Spin2_interpreter.spin2`)
-- Update: now parses most of the P2 OBEX cleanly... still more to do tho'
-- NEW: if variables are used but not (yet?) defined they'll be shown in RED
-- BUGFIX: no longer marking vars within `{ }` single line comments
-- BUGFIX: now handles multi-line enum declarations
-- BUGFIX: now handles comma-delimited constant assignments
-- BUGFIX: most if not all embedded assignment (e.g., `until ((b := rxcheck()) >= 0)`) now correct
-- BUGFIX: most if not all shorter variable highlight is now working
-- BUGFIX: multiple assignment LHS of := now highlighted correctly
+- Theme moved to pastel-like colors
 
-Syntax Adjustments:
+### Fixed
 
-- BUGFIX improved variable index recognition - missing fewer of them now...
-- ENHANCEMENT added floating point number recognition
-- BUGFIX improved number recognition - recognizes asll examples in spin2 doc
-- BUGFIX add missing `clkfreq_`, `_clkfreq` constant
-- BUGFIX add missing `FVAR`, `FVARS` overrides
-- BUGFIX add missing `REG`, `AND` operators
-- BUGFIX add missing spin built-ins `getms()`, `QSIN()`, `QCOS()`, `PINC()`
-- BUGFIX adjusted pub/pri to allow space before open paren
+- BUGFIX: Fix comma-separated VAR declarations, external object constants, outline issues, case statement ranges, assignment LHS, storage types in locals, indexed object calls, DAT external constants, NOT operator, and address-of expressions
+- BUGFIX: Add `FILE` include operator recognition in DAT sections
+- BUGFIX: Fix decimal number recognition (false `+`/`-` prefix)
 
-### - Known Issues w/v0.3.3
-
-- Pasm: doesn't recognize round(), float(), and trunc() as pasm operand
-- Spin: Badly handles strings (should be ignoring contents of them)
-- Incorrectly colors **built-in** constants (should be own color)
-- Fails to parse some debug() statements correctly
-- Syntax highlight of DAT section sometimes fails... RES and FIT not colored correctly
-- Semantic highlight: the 'modification' attribute is being over-applied
-- Semantic highlight: the 'modification' attribute should use more than := as test!!!!
-- _I'm sure there are more issues..._
-
-## [0.3.2] 2021-03-12
-
-3rd Release of Semantic Highlighting
-
-This represents an overall improvement in parsing when there is less whitespace between things
-
-### - What's new in v0.3.2
-
-Semantic Fixes:
-
-- BUGFIX spin is not case-sensitive... adjust so highlighting is also not!
-- Decision: not fixing: Does not handle the .label (local-scoped pasm labels) properly
-  - works well enough to highlight properly
-
-Syntax Fixes:
-
-- BUGFIX add missing `posx` and `negx` spin2 constants
-
-### - Known Issues w/v0.3.2
-
-- Spin: Badly handles single line { comment }: see's names in them, no good
-- Spin: Badly handles strings (should be ignoring contents of them)
-- Spin: Badly handles marking multiple vars LHS of assignment
-- Incorrectly colors **built-in** constants (should be own color)
-- Fails to parse some debug() statements correctly
-- Does NOT handle multi-line enum declarations
-- Does NOT handle comma-delimited constant assignment
-- Fails to properly identify location of shorter variable name when is found within longer name earler in line...
-- Syntax highlight of DAT section sometimes fails... RES and FIT not colored correctly
-- Semantic highlight: the 'modification' attribute is being over-applied
-- Semantic highlight: the 'modification' attribute should use more than := as test!!!!
-- _I'm sure there are more issues..._
-
-## [0.3.1] 2021-03-09
-
-2nd Release of Semantic Highlighting
-
-### - What's new in v0.3.1
-
-- Theme: Entire theme moved to pastel-like colors, less shocking, closer to commercial quality
-
-- Spin2: Added Semantic Highlighting support for PASM
-
-Semantic Fixes:
-
-- BUGFIX recognize comma separated var declarations (names after first name)
-- BUGFIX Repaired identification of constant assignment from constant of external object
-- BUGFIX cleaned up couple of minor OUTLINE issues (false detections, missing comments)
-- BUGFIX recognize range-value symbols in case statement (e.g., SEG_TOP..SEG_BOTTOM:)
-- BUGFIX repair recognizer for assignment LHS: (eg., `byte[pColor][2] := {value}`)
-- BUGFIX identify storage types in method's local variable list
-- BUGFIX recognize method calls to indexed objects
-- BUGFIX recognize data init from external constant in DAT section
-- BUGFIX correctly highlight symbol when NOT(!) used: `!maskBitsBGR`
-- BUGFIX correctly highlight address var of: `byte[@msgPwm][3] := frameASCII`
-
-Syntax Fixes:
-
-- BUGFIX add recognition of 'FILE' include operator in DAT sections
-- BUGFIX repair decimal number recognition (was falsely including [+|-] prefix)
-
-### - Known Issues w/v0.3.1
-
-- Pasm: Does not handle the .label (local-scoped pasm labels) properly (:labels for P1, . for P2)
-- Spin: Badly handles strings (should be ignoring contents of them)
-- Spin: Badly handles marking multiple vars LHS of assignment
-- Incorrectly colors **built-in** constants (should be own color)
-- Fails to parse some debug() statements correctly
-- Does NOT handle multi-line enum declarations
-- Does NOT handle comma-delimited constant assignment
-- Fails to properly identify location of shorter variable name when is found within longer name earler in line...
-- Syntax highlight of DAT section sometimes fails... RES and FIT not colored correctly
-- Semantic the 'modification' attribute is being over-applied
-- Oops spin is not case-sensative... I need to adjust so highlighting is also not!
-- _I'm sure there are more issues..._
-
-## [0.3.0] 2021-03-07
+## [0.3.0] - 2021-03-07
 
 Preview Release of Semantic Highlighting
 
-- Spin2: Initial Semantic Highlighting support (partial: Spin only, no Pasm)
-- Syntax Highlight BUGFIX: stop falsely recognizing 'or' within symbol name
-- Syntax Highlight BUGFIX: stop falsely recognizing numbers within symbol name
-- DECISION: we won't add FIXME/TODO highlighting as there is an extension for that!
+### Added
 
-### - Known Issues w/v0.3.0
+- Initial Spin2 semantic highlighting (Spin only, no Pasm)
 
-- Pasm: Does not handle the .label (local-scoped pasm labels) properly
-- Spin: Badly handles strings (should be ignoring contents of them)
-- Spin: Fails to correctly highlight symbol when NOT used `!maskBitsBGR`
-- Spin: Fails to correctly highlight address var of `byte[@msgPwm][3] := frameASCII`
-- Fails to recognize comma separated var declarations (misses names after first)
-- Fails to recognize data init from external constant in DAT section
-- Incorrectly colors **built-in** constants
-- Fails to identify storage types in local variable list of method
-- Fails to parse some debug() statements correctly
-- Misses some symbols in constant declarations
-- PASM code not processed at all (in DAT or in PRI/PUB inline)
-- Does NOT handle multi-line enum declarations
-- Does NOT handle comma-delimited constant assignment
-- Does NOT recognize method calls to indexed objects
-- Fails to properly identify location of shorter variable name when is found within longer name earler in line...
-- Syntax highlight of DAT section sometimes failes... RES and FIT not colored correctly
-- _I'm sure there are more issues..._
+### Fixed
 
-## [0.2.2] 2020-11-30
+- BUGFIX: Fix false recognition of `or` within symbol names
+- BUGFIX: Fix false recognition of numbers within symbol names
 
-### Minor update
+### Known Issues
 
-- Spin2: Added missing named operators
+- Local pasm labels not handled properly
+- String contents not ignored during parsing
+- Multi-line enum and comma-delimited constants not supported
+- Some `debug()` statements parsed incorrectly
+- DAT section syntax highlighting occasionally fails
 
-## [0.2.1] 2020-11-25
+## [0.2.2] - 2020-11-30
 
-### Minor repairs
+### Added
 
-- Spin2: Added "not" operator
-- Spin2: Removed escape sequence recognizer so that strings would highlight correctly
+- Missing named operators for Spin2
 
-## [0.2.0] 2020-11-07
+## [0.2.1] - 2020-11-25
 
-### Spin2 and Pasm2 are now complete
+### Fixed
 
-- Spin2: Added 105 smart pin symbols
-- Spin2: Added 78 streamer mode symbols
-- Spin2: Added missing AKPIN instru.
-- Spin2: Added 24 COG-REGISTER symbols, fixed classification of 3 variables and 1 instru.
-- Pasm2: Completely rebuilt the Pasm2 instructions each group seperately labelled
-- Pasm2: Added 105 smart pin symbols
-- Pasm2: Added 78 streamer mode symbols
-- Pasm2: Added 24 COG-REGISTER symbols
-- Pasm2: Added missing clock variables
+- BUGFIX: Add `not` operator for Spin2
+- BUGFIX: Remove escape sequence recognizer so strings highlight correctly
 
-## [0.1.2] 2020-11-06
+## [0.2.0] - 2020-11-07
 
-- Works with many of your favorite theme
-- (Ships with my test theme: "Spin2 IronSheep", and the "Spin2 Cluso99" theme which still needs to have my changes backported)
-- Add Outline support for file navigation
-- Nearly all of spin2 language core is in place (less operators)
-- Nearly all of debug() related methods are place (less "if(condition)" as the "if" is not unique in this case)
-- Symbols for Events and Interrupt sources in place
-- Most of p2asm (lots still to verify)
-- Two draft themes are in place
+### Added
 
-## [0.1.1] 2020-11-04 (internal only)
+- 105 smart pin symbols, 78 streamer mode symbols, 24 COG-REGISTER symbols for Spin2 and Pasm2
+- Complete Pasm2 instruction rebuild with separately labeled groups
+- Missing clock variables for Pasm2
 
-- Internal build testing packaging
-- Converted to new content arrangement as exhibited by [entomy](https://github.com/Entomy)'s work
+## [0.1.2] - 2020-11-06
 
-## [0.1.0] 2019-04-22
+### Added
+
+- Outline support for file navigation
+- Nearly complete Spin2 language core and debug() methods
+- Event and interrupt source symbols
+- Two draft themes: Spin2 IronSheep and Spin2 Cluso99
+- Works with many popular VSCode themes
+
+## [0.1.1] - 2020-11-04 (internal only)
+
+### Changed
+
+- Internal build testing, converted to new content arrangement
+
+## [0.1.0] - 2019-04-22
+
+### Added
 
 - Initial files published by Cluso99 in [P2 forum post](https://forums.parallax.com/discussion/170068/visual-studio-code-editor-for-p1-p2-spin-pasm/p1)
