@@ -36,7 +36,7 @@ export function formatObjBlock(
   findings: DocumentFindings,
   elasticConfig: ElasticTabstopConfig
 ): void {
-  const tabStops = elasticConfig.enabled ? (elasticConfig.tabStops['obj'] || DEFAULT_TABSTOPS.obj) : DEFAULT_TABSTOPS.obj;
+  const tabStops = elasticConfig.tabStops['obj'] || DEFAULT_TABSTOPS.obj;
 
   const objLines: ObjLine[] = [];
 
@@ -96,7 +96,7 @@ export function formatObjBlock(
       contentEndCols.push(contentEnd);
     }
   }
-  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops);
+  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops, elasticConfig.commentGap);
 
   // Pass 2: apply
   for (const o of objLines) {

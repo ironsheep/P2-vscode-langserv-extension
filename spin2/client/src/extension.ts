@@ -1483,12 +1483,13 @@ async function formatSpin2OnSave(document: vscode.TextDocument): Promise<vscode.
     return [];
   }
   try {
-    const editorConfig = vscode.workspace.getConfiguration('editor', document.uri);
+    // Tab width is fixed at 8 — the server reads indentSize from our extension
+    // settings directly, so the LSP options here are just protocol defaults.
     const params = {
       textDocument: { uri: document.uri.toString() },
       options: {
-        tabSize: editorConfig.get<number>('tabSize', 4),
-        insertSpaces: editorConfig.get<boolean>('insertSpaces', true)
+        tabSize: 8,
+        insertSpaces: true
       }
     };
     const result = await client.sendRequest<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }[] | null>(
@@ -2437,69 +2438,76 @@ async function showFormatterTabSettings() {
   const formatterConfig = vscode.workspace.getConfiguration('spinExtension.formatter');
   const elasticConfig = vscode.workspace.getConfiguration('spinExtension.elasticTabstops');
   const elasticEnabled: boolean = elasticConfig.get<boolean>('enable', false);
-  const tabsToSpaces: boolean = formatterConfig.get<boolean>('tabsToSpaces', true);
   const currentProfile: string = elasticConfig.get<string>('choice', 'PropellerTool');
-
-  // Determine current mode for marking items
-  const isSpaces = !elasticEnabled && tabsToSpaces;
-  const isTabs = !elasticEnabled && !tabsToSpaces;
 
   // Build elastic profile items
   const elasticProfiles = ['PropellerTool', 'IronSheep', 'User1'];
 
   const items: vscode.QuickPickItem[] = [
-    { label: 'Indent Using Spaces', description: isSpaces ? '(current)' : '' },
-    { label: 'Indent Using Tabs', description: isTabs ? '(current)' : '' },
+    { label: 'Indent Using Spaces', description: !elasticEnabled ? '(current)' : '' },
     { label: '', kind: vscode.QuickPickItemKind.Separator },
     ...elasticProfiles.map((profile) => ({
       label: `Elastic: ${profileDisplayName(profile)}`,
       description: elasticEnabled && currentProfile === profile ? '(current)' : ''
     })),
     { label: '', kind: vscode.QuickPickItemKind.Separator },
-    { label: 'Change Indent Size...', description: `Currently: ${formatterConfig.get<number>('indentSize', 2)}` },
-    { label: 'Change Tab Width...', description: `Currently: ${formatterConfig.get<number>('tabWidth', 8)}` }
+    { label: 'Change Indent Size...', description: `Currently: ${formatterConfig.get<number>('indentSize', 2)}` }
   ];
 
   const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Spin2 Formatter: Tab & Indent Settings' });
   if (!picked) return;
 
+  let settingsChanged = false;
+
   if (picked.label === 'Indent Using Spaces') {
     await elasticConfig.update('enable', false, vscode.ConfigurationTarget.Workspace);
-    await formatterConfig.update('tabsToSpaces', true, vscode.ConfigurationTarget.Workspace);
-    updateStatusBarTabIndentItem(true);
-  } else if (picked.label === 'Indent Using Tabs') {
-    await elasticConfig.update('enable', false, vscode.ConfigurationTarget.Workspace);
-    await formatterConfig.update('tabsToSpaces', false, vscode.ConfigurationTarget.Workspace);
-    updateStatusBarTabIndentItem(true);
+    settingsChanged = true;
   } else if (picked.label.startsWith('Elastic: ')) {
-    // Find which profile was selected by matching the display name
     const selectedProfile = elasticProfiles.find((p) => `Elastic: ${profileDisplayName(p)}` === picked.label);
     if (selectedProfile) {
       await elasticConfig.update('enable', true, vscode.ConfigurationTarget.Workspace);
       await elasticConfig.update('choice', selectedProfile, vscode.ConfigurationTarget.Workspace);
-      updateStatusBarTabIndentItem(true);
+      settingsChanged = true;
     }
   } else if (picked.label === 'Change Indent Size...') {
-    const sizes: vscode.QuickPickItem[] = [2, 4, 8].map((n) => ({
+    const sizes: vscode.QuickPickItem[] = Array.from({ length: 8 }, (_, i) => i + 1).map((n) => ({
       label: `${n}`,
       description: n === formatterConfig.get<number>('indentSize', 2) ? '(current)' : ''
     }));
     const sizePick = await vscode.window.showQuickPick(sizes, { placeHolder: 'Select indent size (spaces per level)' });
     if (sizePick) {
       await formatterConfig.update('indentSize', parseInt(sizePick.label), vscode.ConfigurationTarget.Workspace);
-      updateStatusBarTabIndentItem(true);
-    }
-  } else if (picked.label === 'Change Tab Width...') {
-    const widths: vscode.QuickPickItem[] = [2, 4, 8].map((n) => ({
-      label: `${n}`,
-      description: n === formatterConfig.get<number>('tabWidth', 8) ? '(current)' : ''
-    }));
-    const widthPick = await vscode.window.showQuickPick(widths, { placeHolder: 'Select tab width (columns per tab character)' });
-    if (widthPick) {
-      await formatterConfig.update('tabWidth', parseInt(widthPick.label), vscode.ConfigurationTarget.Workspace);
-      updateStatusBarTabIndentItem(true);
+      settingsChanged = true;
     }
   }
+
+  if (settingsChanged) {
+    updateStatusBarTabIndentItem(true);
+    // Explicitly reformat the active document so the new settings take effect
+    // immediately, even if the document is clean (format-on-save only triggers
+    // when the document is dirty).
+    await reformatActiveDocument();
+  }
+}
+
+async function reformatActiveDocument(): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || !isSpin2Document(editor.document)) {
+    return;
+  }
+  const formatterConfig = vscode.workspace.getConfiguration('spinExtension.formatter', editor.document.uri);
+  if (!formatterConfig.get<boolean>('enable')) {
+    return;
+  }
+  const edits = await formatSpin2OnSave(editor.document);
+  if (edits.length === 0) {
+    return;
+  }
+  const wsEdit = new vscode.WorkspaceEdit();
+  for (const edit of edits) {
+    wsEdit.replace(editor.document.uri, edit.range, edit.newText);
+  }
+  await vscode.workspace.applyEdit(wsEdit);
 }
 
 function toggleCommand() {

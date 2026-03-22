@@ -41,9 +41,7 @@ export function formatMethodBlock(
   indentSize: number
 ): void {
   const sectionType = lines[startLine].trimStart().toLowerCase().startsWith('pub') ? 'pub' : 'pri';
-  const tabStops = elasticConfig.enabled
-    ? (elasticConfig.tabStops[sectionType] || DEFAULT_TABSTOPS[sectionType])
-    : DEFAULT_TABSTOPS[sectionType];
+  const tabStops = elasticConfig.tabStops[sectionType] || DEFAULT_TABSTOPS[sectionType];
 
   // Find inline PASM regions (ORG...END)
   const inlinePasm = findInlinePasmRegions(lines, startLine, endLine);
@@ -60,7 +58,7 @@ export function formatMethodBlock(
   alignFullLineComments(lines, startLine, endLine, findings, inlinePasm);
 
   // Align trailing comments within the method
-  alignMethodComments(lines, startLine, endLine, findings, tabStops, inlinePasm);
+  alignMethodComments(lines, startLine, endLine, findings, tabStops, inlinePasm, elasticConfig.commentGap);
 }
 
 function findInlinePasmRegions(lines: string[], startLine: number, endLine: number): InlinePasmRegion[] {
@@ -106,10 +104,8 @@ function formatInlinePasmRegion(
   // Delegate to PASM formatter directly for column alignment.
   // formatDatBlock can't be used here because it looks for ORG...END regions
   // within the range, but the ORG/END keywords are outside this range.
-  const tabStops = elasticConfig.enabled
-    ? (elasticConfig.tabStops['dat'] || DEFAULT_TABSTOPS.dat)
-    : DEFAULT_TABSTOPS.dat;
-  formatPasmRegionDirect(lines, region.orgLine + 1, region.endLine - 1, findings, tabStops);
+  const tabStops = elasticConfig.tabStops['dat'] || DEFAULT_TABSTOPS.dat;
+  formatPasmRegionDirect(lines, region.orgLine + 1, region.endLine - 1, findings, tabStops, elasticConfig.commentGap);
 }
 
 function normalizeIndentation(
@@ -337,7 +333,8 @@ function alignMethodComments(
   endLine: number,
   findings: DocumentFindings,
   tabStops: number[],
-  inlinePasm: InlinePasmRegion[]
+  inlinePasm: InlinePasmRegion[],
+  commentGap: number
 ): void {
   // Collect content end columns for all lines with trailing comments
   const linesWithComments: { lineIdx: number; codePart: string; commentPart: string }[] = [];
@@ -359,7 +356,7 @@ function alignMethodComments(
 
   if (linesWithComments.length === 0) return;
 
-  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops);
+  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops, commentGap);
 
   for (const entry of linesWithComments) {
     lines[entry.lineIdx] = padToColumn(entry.codePart, commentCol) + entry.commentPart;

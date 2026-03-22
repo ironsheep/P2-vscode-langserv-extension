@@ -141,6 +141,12 @@ The following is adjusted by clicking on status bar controls:
 
 Search for "**Spin2 Formatter**" in the Settings UI to see all formatter options.
 
+<p align="center">
+  <img alt="Spin/Spin2 Language Extension Behaviors" src="./DOCs/stgs-formatter.png" width="800"><br>
+ <p align="center">
+ <caption><B>Figure 5 - Settings Section: Spin/Spin2 Language Formatter</B></caption><br>
+ </p>
+</p>
 Formatter Adjustments:
 
 - **Enable** - Master enable/disable for the formatter (default: off)
@@ -168,7 +174,7 @@ For detailed usage with examples, see the [Formatter User Guide](Spin2-Formatter
 <p align="center">
   <img alt="Spin2 Workspace Build Environment" src="./DOCs/stgs-buildEnv.png" width="800"><br>
  <p align="center">
- <caption><B>Figure 5 - Settings Section: Spin2 Workspace Build Environment</B></caption><br>
+ <caption><B>Figure 6 - Settings Section: Spin2 Workspace Build Environment</B></caption><br>
  </p>
 </p>
 
@@ -180,7 +186,7 @@ For detailed usage with examples, see the [Formatter User Guide](Spin2-Formatter
 <p align="center">
   <img alt="Spin2 Include Directories" src="./DOCs/stgs-includeDirs.png" width="800"><br>
  <p align="center">
- <caption><B>Figure 6 - Settings Section: Spin2 Include Directories</B></caption><br>
+ <caption><B>Figure 7 - Settings Section: Spin2 Include Directories</B></caption><br>
  </p>
 </p>
 

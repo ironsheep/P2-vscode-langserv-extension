@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.9.1",
+  "version": "2.9.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -1096,25 +1096,13 @@
             "scope": "resource",
             "description": "Blank lines inserted between consecutive PUB/PRI methods. Independent of Max Consecutive Blank Lines."
           },
-          "spinExtension.formatter.tabsToSpaces": {
-            "type": "boolean",
-            "default": true,
-            "scope": "resource",
-            "description": "Convert tab characters to spaces (except inside block comments)."
-          },
-          "spinExtension.formatter.tabWidth": {
-            "type": "number",
-            "default": 8,
-            "minimum": 1,
-            "scope": "resource",
-            "description": "Width of a tab character for tab-to-space conversion and alignment calculations."
-          },
           "spinExtension.formatter.indentSize": {
             "type": "number",
             "default": 2,
-            "enum": [2, 4, 8],
+            "minimum": 1,
+            "maximum": 8,
             "scope": "resource",
-            "description": "Spaces per indent level in PUB/PRI method bodies."
+            "description": "Spaces per indent level for column alignment and PUB/PRI method body indentation."
           },
           "spinExtension.formatter.blockNameCase": {
             "type": "string",

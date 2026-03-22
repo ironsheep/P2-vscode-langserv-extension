@@ -7,13 +7,16 @@ import { Provider } from '.';
 import { Context } from '../context';
 import { DocumentFindings, IBlockSpan, eBLockType } from '../parser/spin.semantic.findings';
 import { fileSpecFromURI } from '../parser/lang.utils';
-import { ElasticTabstopConfig, DEFAULT_TABSTOPS } from '../formatter/spin2.formatter.base';
+import { ElasticTabstopConfig, DEFAULT_TABSTOPS, buildRegularTabStops, alignContinuationGroups, splitTrailingComment, padToColumn, isFullLineComment, computeBlockCommentColumn } from '../formatter/spin2.formatter.base';
 import { formatConBlock } from '../formatter/spin2.formatter.con';
 import { formatVarBlock } from '../formatter/spin2.formatter.var';
 import { formatObjBlock } from '../formatter/spin2.formatter.obj';
 import { formatDatBlock } from '../formatter/spin2.formatter.dat';
 import { formatMethodBlock } from '../formatter/spin2.formatter.method';
 import { CaseConfig, normalizeMethodBlockCase, normalizeDatBlockCase, normalizeNonCodeBlockCase, normalizeCommentSpacing, extractConConstants } from '../formatter/spin2.formatter.comment';
+
+// Tab characters are always 8 columns wide — this is not configurable.
+const TAB_WIDTH = 8;
 
 interface FormatterConfig {
   enable: boolean;
@@ -22,8 +25,6 @@ interface FormatterConfig {
   maxConsecutiveBlankLines: number;
   blankLinesBetweenSections: number;
   blankLinesBetweenMethods: number;
-  tabsToSpaces: boolean;
-  tabWidth: number;
   indentSize: number;
   blockNameCase: string;
   controlFlowCase: string;
@@ -70,12 +71,12 @@ export default class DocumentFormattingProvider implements Provider {
       return null;
     }
 
-    const config = await this.getFormatterConfig(params.options);
+    const config = await this.getFormatterConfig();
     if (!config.enable) {
       return null;
     }
 
-    const elasticConfig = await this.getElasticTabstopConfig();
+    const elasticConfig = await this.getElasticTabstopConfig(config);
 
     this._logMessage(`Formatter: formatting ${docFSpec}`);
 
@@ -96,14 +97,8 @@ export default class DocumentFormattingProvider implements Provider {
     return [lsp.TextEdit.replace(fullRange, formattedText)];
   }
 
-  private async getFormatterConfig(editorOptions?: lsp.FormattingOptions): Promise<FormatterConfig> {
+  private async getFormatterConfig(): Promise<FormatterConfig> {
     const raw = await this.ctx.connection.workspace.getConfiguration('spinExtension.formatter');
-
-    // Use VSCode's built-in editor settings as fallback defaults when our extension
-    // settings are not explicitly configured.  editorOptions comes from the LSP
-    // DocumentFormattingParams and reflects the editor's tabSize and insertSpaces.
-    const editorTabSize = editorOptions?.tabSize;
-    const editorInsertSpaces = editorOptions?.insertSpaces;
 
     return {
       enable: raw?.['enable'] === true,
@@ -112,8 +107,6 @@ export default class DocumentFormattingProvider implements Provider {
       maxConsecutiveBlankLines: typeof raw?.['maxConsecutiveBlankLines'] === 'number' ? raw['maxConsecutiveBlankLines'] : 1, // within section bodies only
       blankLinesBetweenSections: typeof raw?.['blankLinesBetweenSections'] === 'number' ? raw['blankLinesBetweenSections'] : 1, // independent of maxConsecutiveBlankLines
       blankLinesBetweenMethods: typeof raw?.['blankLinesBetweenMethods'] === 'number' ? raw['blankLinesBetweenMethods'] : 2, // independent of maxConsecutiveBlankLines
-      tabsToSpaces: typeof raw?.['tabsToSpaces'] === 'boolean' ? raw['tabsToSpaces'] : (editorInsertSpaces !== undefined ? editorInsertSpaces : true),
-      tabWidth: typeof raw?.['tabWidth'] === 'number' ? raw['tabWidth'] : (editorTabSize !== undefined ? editorTabSize : 8),
       indentSize: typeof raw?.['indentSize'] === 'number' ? raw['indentSize'] : 2,
       blockNameCase: typeof raw?.['blockNameCase'] === 'string' ? raw['blockNameCase'] : 'uppercase',
       controlFlowCase: typeof raw?.['controlFlowCase'] === 'string' ? raw['controlFlowCase'] : 'preserve',
@@ -125,11 +118,12 @@ export default class DocumentFormattingProvider implements Provider {
     };
   }
 
-  private async getElasticTabstopConfig(): Promise<ElasticTabstopConfig> {
+  private async getElasticTabstopConfig(config: FormatterConfig): Promise<ElasticTabstopConfig> {
     const raw = await this.ctx.connection.workspace.getConfiguration('spinExtension.elasticTabstops');
     const enabled = raw?.['enable'] === true;
     if (!enabled) {
-      return { enabled: false, tabStops: DEFAULT_TABSTOPS };
+      // Spaces mode: regular grid from indentSize, fixed comment gap
+      return { enabled: false, tabStops: buildRegularTabStops(config.indentSize), commentGap: 2 * config.indentSize };
     }
     const choice: string = raw?.['choice'] || 'PropellerTool';
     const blocksRaw = await this.ctx.connection.workspace.getConfiguration(`spinExtension.elasticTabstops.blocks.${choice}`);
@@ -137,14 +131,15 @@ export default class DocumentFormattingProvider implements Provider {
     for (const section of ['con', 'var', 'obj', 'pub', 'pri', 'dat']) {
       tabStops[section] = blocksRaw?.[section]?.tabStops || DEFAULT_TABSTOPS[section] || [];
     }
-    return { enabled: true, tabStops };
+    // Elastic mode: use tabstop-snapping for comments (commentGap = 0)
+    return { enabled: true, tabStops, commentGap: 0 };
   }
 
   private formatLines(lines: string[], findings: DocumentFindings, config: FormatterConfig, elasticConfig: ElasticTabstopConfig): string[] {
     let result: string[] = [...lines];
 
-    // Phase 1a: Tab-to-space conversion (always convert tabs to spaces for internal processing)
-    result = this.convertTabsToSpaces(result, findings, config.tabWidth);
+    // Phase 1a: Tab-to-space conversion (tabs are always 8 columns wide)
+    result = this.convertTabsToSpaces(result, findings, TAB_WIDTH);
 
     // Phase 1b: Trailing whitespace trimming
     if (config.trimTrailingWhitespace) {
@@ -152,10 +147,19 @@ export default class DocumentFormattingProvider implements Provider {
     }
 
     // Phase 2-4: Section column alignment and method formatting
+    // Elastic mode uses profile-defined tabstops; Spaces mode uses a
+    // regular grid derived from indentSize.
     this.formatSections(result, findings, config, elasticConfig);
+
+    // Phase 2b: Merge comment columns across consecutive small same-type blocks
+    this.mergeSmallBlockComments(result, findings, elasticConfig);
 
     // Phase 6: Case normalization and comment spacing
     this.formatCaseAndComments(result, findings, config);
+
+    // Phase 5: Align `...` line-continuation markers vertically within groups
+    const defaultStops = elasticConfig.tabStops['pub'] || elasticConfig.tabStops['con'] || [];
+    alignContinuationGroups(result, elasticConfig.commentGap, defaultStops);
 
     // Phase 1c: Blank line normalization (after section formatting to preserve line indices)
     result = this.normalizeBlankLines(result, findings, config);
@@ -171,11 +175,11 @@ export default class DocumentFormattingProvider implements Provider {
       result = this.ensureFinalNewline(result);
     }
 
-    // Phase 7: Enforce tab/space preference
-    // All internal formatting uses spaces for consistent alignment math.
-    // As the final step, convert to the user's preferred whitespace style.
-    if (!config.tabsToSpaces) {
-      result = this.convertSpacesToTabs(result, findings, config.tabWidth);
+    // Phase 7: Tab compression (spaces mode only)
+    // Elastic mode uses pure spaces — tab characters would corrupt non-8-aligned columns.
+    // Spaces mode compresses runs of spaces with tab characters at 8-column boundaries.
+    if (!elasticConfig.enabled) {
+      result = this.convertSpacesToTabs(result, findings, TAB_WIDTH);
     }
 
     return result;
@@ -202,6 +206,82 @@ export default class DocumentFormattingProvider implements Provider {
           formatMethodBlock(lines, span.startLineIdx, span.endLineIdx, findings, elasticConfig, config.indentSize);
           break;
       }
+    }
+  }
+
+  /**
+   * Post-processing pass: merge trailing comment columns across consecutive
+   * same-type blocks when each block is small (under SMALL_BLOCK_THRESHOLD lines).
+   * This prevents jagged comment columns when several small CON (or VAR, OBJ, DAT)
+   * blocks appear in sequence.
+   */
+  private mergeSmallBlockComments(lines: string[], findings: DocumentFindings, elasticConfig: ElasticTabstopConfig): void {
+    const SMALL_BLOCK_THRESHOLD = 15;
+    const blockSpans: IBlockSpan[] = findings.blockSpans();
+
+    // Find runs of consecutive same-type small blocks
+    let runStart = 0;
+    while (runStart < blockSpans.length) {
+      const runType = blockSpans[runStart].blockType;
+      const runSize = blockSpans[runStart].endLineIdx - blockSpans[runStart].startLineIdx + 1;
+
+      // Skip PUB/PRI — methods have their own comment alignment
+      if (runType === eBLockType.isPub || runType === eBLockType.isPri || runSize > SMALL_BLOCK_THRESHOLD) {
+        runStart++;
+        continue;
+      }
+
+      // Extend the run: consecutive same-type blocks, each under threshold
+      let runEnd = runStart;
+      while (runEnd + 1 < blockSpans.length &&
+             blockSpans[runEnd + 1].blockType === runType &&
+             blockSpans[runEnd + 1].endLineIdx - blockSpans[runEnd + 1].startLineIdx + 1 <= SMALL_BLOCK_THRESHOLD) {
+        runEnd++;
+      }
+
+      // Only merge if there are 2+ blocks in the run
+      if (runEnd > runStart) {
+        const firstLine = blockSpans[runStart].startLineIdx;
+        const lastLine = blockSpans[runEnd].endLineIdx;
+        this.unifyCommentColumn(lines, firstLine, lastLine, findings, elasticConfig);
+      }
+
+      runStart = runEnd + 1;
+    }
+  }
+
+  /** Re-align trailing comments across a range of lines to a single column. */
+  private unifyCommentColumn(
+    lines: string[],
+    startLine: number,
+    endLine: number,
+    findings: DocumentFindings,
+    elasticConfig: ElasticTabstopConfig
+  ): void {
+    const entries: { lineIdx: number; codePart: string; commentPart: string }[] = [];
+    const contentEndCols: number[] = [];
+
+    for (let i = startLine; i <= endLine; i++) {
+      if (findings.isLineInBlockComment(i)) continue;
+      const line = lines[i];
+      if (line.trim().length === 0) continue;
+      if (isFullLineComment(line)) continue;
+
+      const [codePart, commentPart] = splitTrailingComment(line);
+      if (commentPart.length > 0) {
+        const trimmedCode = codePart.trimEnd();
+        entries.push({ lineIdx: i, codePart: trimmedCode, commentPart });
+        contentEndCols.push(trimmedCode.length);
+      }
+    }
+
+    if (entries.length < 2) return;
+
+    const tabStops = elasticConfig.tabStops['con'] || [];
+    const commentCol = computeBlockCommentColumn(contentEndCols, tabStops, elasticConfig.commentGap);
+
+    for (const entry of entries) {
+      lines[entry.lineIdx] = padToColumn(entry.codePart, commentCol) + entry.commentPart;
     }
   }
 
@@ -437,18 +517,44 @@ export default class DocumentFormattingProvider implements Provider {
       if (findings.isLineInBlockComment(idx)) {
         return line;
       }
-      // Count leading spaces
-      let leadingSpaces = 0;
-      while (leadingSpaces < line.length && line[leadingSpaces] === ' ') {
-        leadingSpaces++;
-      }
-      if (leadingSpaces === 0) {
+      if (line.indexOf(' ') === -1) {
         return line;
       }
-      // Convert: every tabWidth spaces → one tab, remainder stays as spaces
-      const tabs = Math.floor(leadingSpaces / tabWidth);
-      const remainingSpaces = leadingSpaces % tabWidth;
-      return '\t'.repeat(tabs) + ' '.repeat(remainingSpaces) + line.substring(leadingSpaces);
+      // Convert all runs of spaces to tabs + remainder spaces, not just leading.
+      // Walk the line tracking the column position so tab stops are computed correctly.
+      let result = '';
+      let i = 0;
+      let column = 0;
+      while (i < line.length) {
+        if (line[i] === ' ') {
+          // Collect the full run of consecutive spaces
+          const runStart = column;
+          let runSpaces = 0;
+          while (i < line.length && line[i] === ' ') {
+            i++;
+            runSpaces++;
+          }
+          const runEnd = runStart + runSpaces;
+          // Replace with tabs that snap to tab-stop boundaries, plus remainder spaces
+          let pos = runStart;
+          while (pos < runEnd) {
+            const nextStop = (Math.floor(pos / tabWidth) + 1) * tabWidth;
+            if (nextStop <= runEnd) {
+              result += '\t';
+              pos = nextStop;
+            } else {
+              result += ' '.repeat(runEnd - pos);
+              pos = runEnd;
+            }
+          }
+          column = runEnd;
+        } else {
+          result += line[i];
+          i++;
+          column++;
+        }
+      }
+      return result;
     });
   }
 }

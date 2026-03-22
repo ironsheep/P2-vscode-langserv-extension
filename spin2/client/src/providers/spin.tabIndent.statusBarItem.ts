@@ -54,8 +54,6 @@ export const updateStatusBarTabIndentItem = (showItem: boolean | null) => {
       const formatterConfig = vscode.workspace.getConfiguration('spinExtension.formatter');
       const elasticConfig = vscode.workspace.getConfiguration('spinExtension.elasticTabstops');
       const elasticEnabled: boolean = elasticConfig.get<boolean>('enable', false);
-      const tabsToSpaces: boolean = formatterConfig.get<boolean>('tabsToSpaces', true);
-      const tabWidth: number = formatterConfig.get<number>('tabWidth', 8);
       const indentSize: number = formatterConfig.get<number>('indentSize', 2);
 
       let sbiText: string;
@@ -66,12 +64,9 @@ export const updateStatusBarTabIndentItem = (showItem: boolean | null) => {
         const displayName = profileDisplayName(profileKey);
         sbiText = `Spin2 ${displayName}`;
         tooltipText = `Spin2 Formatter: elastic tabstops — ${displayName} profile (click to change)`;
-      } else if (tabsToSpaces) {
+      } else {
         sbiText = `Spin2 Spaces: ${indentSize}`;
         tooltipText = `Spin2 Formatter: ${indentSize}-space indentation (click to change)`;
-      } else {
-        sbiText = `Spin2 Tabs: ${tabWidth}`;
-        tooltipText = `Spin2 Formatter: tab characters, width ${tabWidth} (click to change)`;
       }
 
       statusBarItem.text = sbiText;

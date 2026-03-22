@@ -9,7 +9,7 @@
 
 const MIN_COLUMN_GAP = 2;
 
-/** Default PropellerTool tabstop arrays (used when elastic tabstops are disabled) */
+/** Default PropellerTool tabstop arrays (used as fallback for elastic profiles with missing sections) */
 export const DEFAULT_TABSTOPS: Record<string, number[]> = {
   con: [2, 8, 16, 18, 32, 56, 78, 80],
   var: [2, 8, 22, 32, 56, 80],
@@ -18,6 +18,31 @@ export const DEFAULT_TABSTOPS: Record<string, number[]> = {
   pri: [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80],
   dat: [8, 14, 24, 32, 48, 56, 80]
 };
+
+/**
+ * Build a regular-grid tabstop array for all sections.
+ * Used when elastic tabstops are disabled — the grid spacing is the indentSize.
+ * @param gridSize - column spacing (indentSize)
+ * @param lineWidth - maximum line width (default 80)
+ */
+export function buildRegularTabStops(gridSize: number, lineWidth: number = 80): Record<string, number[]> {
+  const stops: number[] = [];
+  for (let col = gridSize; col <= lineWidth; col += gridSize) {
+    stops.push(col);
+  }
+  // Ensure lineWidth is the last stop (for getLineWidth/getCommentColumn conventions)
+  if (stops.length === 0 || stops[stops.length - 1] !== lineWidth) {
+    stops.push(lineWidth);
+  }
+  return {
+    con: stops,
+    var: stops,
+    obj: stops,
+    pub: stops,
+    pri: stops,
+    dat: stops
+  };
+}
 
 /**
  * Snap a column position to the next tabstop that provides at least MIN_COLUMN_GAP
@@ -172,19 +197,29 @@ export function isPreprocessorLine(line: string): boolean {
 
 /**
  * Given an array of measured content-end columns (one per line in a block),
- * determine the best comment alignment column using the tabstop grid.
+ * determine the best comment alignment column.
+ *
+ * When fixedGap > 0 (non-elastic mode): column = maxContentEnd + fixedGap,
+ * with a floor of MIN_COLUMN_GAP so comments never overlap code.
+ *
+ * When fixedGap == 0 (elastic mode): snap to the profile's tabstop grid.
  */
-export function computeBlockCommentColumn(contentEndCols: number[], tabStops: number[]): number {
+export function computeBlockCommentColumn(contentEndCols: number[], tabStops: number[], fixedGap: number = 0): number {
   if (contentEndCols.length === 0) {
     return getCommentColumn(tabStops);
   }
   const maxContentEnd = Math.max(...contentEndCols);
+
+  if (fixedGap > 0) {
+    // Non-elastic: fixed gap past widest line, floor of MIN_COLUMN_GAP
+    return maxContentEnd + Math.max(fixedGap, MIN_COLUMN_GAP);
+  }
+
+  // Elastic: snap to profile tabstop grid
   const defaultCommentCol = getCommentColumn(tabStops);
-  // if all content fits before the default comment column (with gap), use it
   if (maxContentEnd + MIN_COLUMN_GAP <= defaultCommentCol) {
     return defaultCommentCol;
   }
-  // otherwise snap to next tabstop after the longest content
   return snapToNextTabstop(maxContentEnd, tabStops);
 }
 
@@ -219,7 +254,92 @@ export function alignTokensToGrid(tokens: string[], tabStops: number[], startCol
   return result;
 }
 
+/**
+ * Align `...` line-continuation markers vertically within each group of
+ * consecutive continuation lines.  The `...` column is placed at
+ * widestCodePart + gap, where gap = commentGap (non-elastic) or snaps to
+ * the next tabstop (elastic).  A group is one or more consecutive lines
+ * whose code (before any trailing comment) ends with ` ...`.
+ */
+export function alignContinuationGroups(lines: string[], commentGap: number, tabStops: number[]): void {
+  let groupStart = -1;
+
+  const flush = (groupEnd: number) => {
+    if (groupStart === -1) return;
+    alignGroup(lines, groupStart, groupEnd, commentGap, tabStops);
+    groupStart = -1;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lineHasContinuation(lines[i])) {
+      if (groupStart === -1) groupStart = i;
+    } else {
+      flush(i - 1);
+    }
+  }
+  flush(lines.length - 1);
+}
+
+/** Does this line end with ` ...` (before an optional trailing comment)? */
+function lineHasContinuation(line: string): boolean {
+  const [codePart] = splitTrailingComment(line);
+  const trimmed = codePart.trimEnd();
+  return trimmed.endsWith(' ...') || trimmed === '...';
+}
+
+/** Split a continuation line into: code before `...`, and `... [comment]`. */
+function splitContinuation(line: string): [string, string] {
+  const [codePart, commentPart] = splitTrailingComment(line);
+  const trimmedCode = codePart.trimEnd();
+  const dotsIdx = trimmedCode.lastIndexOf('...');
+  if (dotsIdx < 0) return [line, ''];
+  const beforeDots = trimmedCode.substring(0, dotsIdx).trimEnd();
+  const afterDots = commentPart; // trailing comment (may be empty)
+  return [beforeDots, afterDots];
+}
+
+function alignGroup(lines: string[], start: number, end: number, commentGap: number, tabStops: number[]): void {
+  // Measure widest code portion (before `...`) in the group
+  const parts: { beforeDots: string; comment: string }[] = [];
+  let maxCodeWidth = 0;
+  for (let i = start; i <= end; i++) {
+    const [beforeDots, comment] = splitContinuation(lines[i]);
+    parts.push({ beforeDots, comment });
+    if (beforeDots.length > maxCodeWidth) {
+      maxCodeWidth = beforeDots.length;
+    }
+  }
+
+  // Compute the `...` column: fixed gap or tabstop-snapped
+  let dotsCol: number;
+  if (commentGap > 0) {
+    dotsCol = maxCodeWidth + Math.max(commentGap, MIN_COLUMN_GAP);
+  } else {
+    dotsCol = snapToNextTabstop(maxCodeWidth, tabStops);
+  }
+
+  // Rebuild each line with aligned `...`
+  for (let i = start; i <= end; i++) {
+    const { beforeDots, comment } = parts[i - start];
+    let rebuilt = beforeDots;
+    // Pad to the dots column
+    if (rebuilt.length < dotsCol) {
+      rebuilt += ' '.repeat(dotsCol - rebuilt.length);
+    } else {
+      rebuilt += ' '.repeat(MIN_COLUMN_GAP);
+    }
+    rebuilt += '...';
+    if (comment.length > 0) {
+      rebuilt += '    ' + comment; // preserve some gap before comment
+    }
+    lines[i] = rebuilt;
+  }
+}
+
 export interface ElasticTabstopConfig {
   enabled: boolean;
   tabStops: Record<string, number[]>;
+  /** Fixed gap (in columns) between widest code and comment/continuation alignment.
+   *  Set to 2×indentSize for non-elastic mode; 0 means use tabstop-snapping (elastic). */
+  commentGap: number;
 }

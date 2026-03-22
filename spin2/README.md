@@ -115,14 +115,15 @@ Context-aware code completion for Spin2 and Spin1 files:
 
 Section-aware code formatting for Spin2 files (disabled by default, enable via `spinExtension.formatter.enable`):
 
+- Two formatting modes: **Spaces** (content-driven alignment with `indentSize` grid + tab compression at 8-column boundaries) or **Elastic** (profile-defined column positions with pure spaces)
 - Column alignment for CON, VAR, OBJ, and DAT blocks
+- Content-driven PASM column layout in spaces mode — adapts to actual label/instruction/operand widths
 - Method body indentation normalization
-- PASM instruction alignment within DAT/ORG regions
 - Keyword case normalization
-- Trailing comment alignment
-- Bidirectional tab/space conversion based on user preference
+- Trailing comment alignment — unified across consecutive small blocks to prevent jagged comments
+- Vertical alignment of `...` line-continuation markers
 - Format-on-save support via `spinExtension.formatter.formatOnSave`
-- Status bar indicator ("Spin2 Spaces: N" / "Spin2 Tabs: N" / "Spin2 Prop Tool" / "Spin2 IronSheep") — click to switch profiles
+- Status bar indicator ("Spin2 Spaces: N" / "Spin2 Prop Tool" / "Spin2 IronSheep") — click to switch modes and profiles
 
 ## Feature: Code Folding
 

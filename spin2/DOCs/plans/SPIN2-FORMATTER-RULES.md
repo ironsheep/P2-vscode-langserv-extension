@@ -23,13 +23,15 @@ These rules apply regardless of whether elastic tabstops are enabled or disabled
 
 The formatter applies rules in this order:
 
-1. **Tab-to-space conversion** — All tab characters expanded to equivalent spaces (tab-stop-aware using `tabWidth`). This is always done first so all internal alignment math uses spaces.
+1. **Tab-to-space conversion** — All tab characters expanded to equivalent spaces (tab width is fixed at 8). This is always done first so all internal alignment math uses spaces.
 2. **Trailing whitespace trimming** — `trimEnd()` on all non-block-comment lines (when `trimTrailingWhitespace` is true).
-3. **Section column alignment** — Per-section formatters for CON, VAR, OBJ, DAT, PUB/PRI.
-4. **Case normalization & comment spacing** — Keyword case, PASM case, space-after-comment-start.
-5. **Blank line normalization** — Excess consecutive blank lines removed; section/method boundaries get configured blank-line counts.
-6. **Final newline** — File ends with exactly one newline (when `insertFinalNewline` is true).
-7. **Spaces-to-tabs conversion** — If `tabsToSpaces` is false, leading spaces are converted back to tabs using `tabWidth`.
+3. **Section column alignment** — Per-section formatters for CON, VAR, OBJ, DAT, PUB/PRI. In non-elastic mode, uses content-driven column layout with `indentSize` gaps. In elastic mode, uses profile-defined tabstop arrays.
+4. **Small-block comment merging** — Consecutive same-type blocks under 15 lines share a unified trailing comment column, preventing jagged comments across small blocks.
+5. **Case normalization & comment spacing** — Keyword case, PASM case, space-after-comment-start.
+6. **Line-continuation alignment** — `...` markers within consecutive continuation groups are vertically aligned.
+7. **Blank line normalization** — Excess consecutive blank lines removed; section/method boundaries get configured blank-line counts.
+8. **Final newline** — File ends with exactly one newline (when `insertFinalNewline` is true).
+9. **Tab compression** (non-elastic only) — Runs of spaces are compressed with tab characters at 8-column boundaries. Elastic mode uses pure spaces (no tabs) to preserve non-8-aligned column positions.
 
 ### 1.3 Untouchable Content
 
@@ -58,9 +60,27 @@ This ensures vertical alignment: the "worst-case" (longest) token drives the col
 
 In every section, trailing comments (`' ...`) are vertically aligned within their block:
 
-1. Measure the content-end column for all lines that have trailing comments.
+**Non-elastic mode** (content-driven):
+1. Measure the content-end column for all lines with trailing comments.
+2. Place comments at `maxContentEnd + 2×indentSize`, with a floor of 2 spaces.
+
+**Elastic mode** (tabstop-snapped):
+1. Measure the content-end column for all lines with trailing comments.
 2. If all content fits before the default comment column (second-to-last tabstop, typically col 56), use that.
 3. Otherwise, snap to the next tabstop after the longest content line.
+
+### 1.6a Small-Block Comment Merging
+
+When consecutive same-type blocks (e.g., CON, CON, CON) each have fewer than 15 lines, their trailing comment columns are unified across the entire run. This prevents jagged comment alignment across small blocks. Large blocks (15+ lines) keep independent comment columns. PUB/PRI blocks are excluded (they have their own method-level comment alignment).
+
+### 1.6b Line-Continuation Alignment
+
+Groups of consecutive lines ending with `...` (line-continuation markers) are vertically aligned within each group:
+
+1. Identify the group: consecutive lines whose code (before any trailing comment) ends with ` ...`.
+2. Split each line into: code before `...`, and `... [comment]`.
+3. Align `...` at `maxCodeWidth + 2×indentSize` (non-elastic) or snapped to the next tabstop (elastic).
+4. The floor is 2 spaces (MIN_COLUMN_GAP).
 
 ### 1.7 Comment Spacing
 
@@ -90,22 +110,15 @@ When the comment is a trailing comment (code precedes it), 2 spaces are placed b
 
 ---
 
-## 2. Spaces/Tabs-Only Mode (Elastic Tabstops Disabled)
+## 2. Spaces Mode (Elastic Tabstops Disabled)
 
-When `spinExtension.elasticTabstops.enable` is false (or not configured), the formatter uses the **PropellerTool default tabstop arrays** as its alignment grid. These are hardcoded constants:
+When `spinExtension.elasticTabstops.enable` is false (or not configured), the formatter uses **content-driven column alignment** with `indentSize`-based gaps.
 
-```
-CON: [2, 8, 16, 18, 32, 56, 78, 80]
-VAR: [2, 8, 22, 32, 56, 80]
-OBJ: [2, 8, 16, 18, 32, 56, 80]
-PUB: [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
-PRI: [2, 4, 6, 8, 10, 12, 14, 16, 32, 56, 80]
-DAT: [8, 14, 24, 32, 48, 56, 80]
-```
+**Tab model**: Tab characters are always 8 columns wide (fixed, not configurable). In spaces mode, the formatter aligns using spaces internally, then compresses runs of spaces with tab characters at 8-column boundaries. Elastic mode uses pure spaces (no tab characters).
 
-**Convention**: The last stop in each array (80) is the line-width boundary. The second-to-last stop is the default trailing comment column.
+**Column grid**: A regular grid derived from `indentSize` (e.g., with `indentSize=2`: `[2, 4, 6, 8, 10, ...]`). This grid is used for initial column snapping in CON/VAR/OBJ sections.
 
-All section-specific rules below use these default arrays for column snapping.
+**Content-driven gaps**: For PASM and DAT data columns, column positions are computed dynamically from actual content widths with 1×`indentSize` gaps between columns and 2×`indentSize` before trailing comments.
 
 ### 2.1 CON Section Rules
 
@@ -176,54 +189,49 @@ OBJ
 
 **Label indentation depends on whether the DAT section contains PASM:**
 
-- **Data-only DAT sections** (no ORG regions): Labels are indented to the first tabstop (col 8), like CON/VAR/OBJ names. This gives a consistent visual style across all non-PASM sections.
-- **DAT sections containing PASM** (has ORG regions): Labels stay at column 0, even for data lines outside the ORG regions. The entire section follows PASM conventions.
+- **Data-only DAT sections** (no ORG regions): Labels are indented to the first grid stop (e.g., col 2 with `indentSize=2`).
+- **DAT sections containing PASM** (has ORG regions): Labels stay at column 0.
 
-**Column alignment:**
-- Type column: snapped to next tabstop after (label indent + longest label width). If no labels exist, uses `tabStops[1]` (col 14).
-- Types are **lowercased** in the output.
+**Column alignment (non-elastic — content-driven):**
+- Type column: 1×`indentSize` past longest label.
+- Value column: 1×`indentSize` past longest type keyword.
+- Trailing comments: 2×`indentSize` past widest content.
+
+**Column alignment (elastic — tabstop-snapped):**
+- Type column: snapped to next tabstop after (label indent + longest label width).
 - Value column: snapped to next tabstop after (type column + max type width).
-- Trailing comments aligned per block.
-- **Label-only lines** (no type keyword): left untouched.
-- **Alignment scope**: All non-ORG data lines in the DAT block share one alignment scope.
+- Trailing comments: snapped per profile.
 
 **Parsing**: After stripping whitespace, if the first token is NOT a type keyword (`byte`/`word`/`long`), it is treated as a label. Then the type keyword is expected.
 
-**Example — data-only DAT** (default DAT stops `[8, 14, 24, 32, 48, 56, 80]`):
+**Example — data-only DAT** (indentSize=2):
 ```spin2
 DAT
-        servoIdx      long    0
-        servoOffset   long    1500
-        msgLOW        byte    "LO", 0
-                      word    @srvoId1
-        srvoIdEntCt   byte    (@srvoIdTableEnd-@srvoIdTable) >> 1   ' div by 2
-```
-
-**Example — DAT with PASM** (labels at column 0):
-```spin2
-DAT
-servoIdx      long    0
-              org
-myLabel       mov     x, #5
-              end
-moreData      long    0
+  s_Help  BYTE  13
+          BYTE  "text", 13
+          BYTE  0
 ```
 
 ### 2.5 DAT Section — PASM Lines (ORG Regions)
 
 **Lines**: `label  condition  mnemonic  operands  effects  comment` (6 columns)
 
-- **Each ORG...END region is an independent alignment scope.** Different ORG regions align independently.
+- **Each ORG...END region is an independent alignment scope.**
 - Labels at column 0.
-- Condition column: snapped to next tabstop after longest label. If no labels, uses `tabStops[0]` (col 8).
-- Conditions: `if_*` prefixes and `_ret_`.
-- Mnemonic column: snapped to next tabstop after (condition column + max condition width). If no conditions, snapped from condition column.
-- Operand column: snapped to next tabstop after (mnemonic column + max mnemonic width).
-- Operand comma spacing normalized to single space after comma.
-- Effects column: snapped to next tabstop after the longest operand end. Effects: `wc`, `wz`, `wcz`.
-- Comment column: computed per-block from content end columns.
 
-**Data lines within ORG regions**: Handled as PASM lines (type keyword appears in the mnemonic slot — aligns the same way).
+**Non-elastic — content-driven column layout:**
+- Condition column: 1×`indentSize` past longest label.
+- Mnemonic column: 1×`indentSize` past longest condition (or past label column if no conditions).
+- Operand column: 1×`indentSize` past longest mnemonic.
+- Effects column: 1×`indentSize` past longest operand.
+- Comment column: 2×`indentSize` past longest effect (or operand if no effects).
+
+**Elastic — tabstop-snapped column layout:**
+- Condition column: snapped to `tabStops[0]` (or next stop past longest label).
+- Mnemonic column: snapped to `tabStops[1]` (or next stop past longest condition).
+- Operand/effects/comment columns: snapped to successive tabstops.
+
+**Data lines within ORG regions**: Handled as PASM lines (type keyword appears in the mnemonic slot).
 
 ### 2.6 PUB/PRI Method Rules
 
@@ -274,38 +282,30 @@ spinExtension.elasticTabstops.blocks.<choice>.<section>.tabStops
 
 where `<choice>` is the selected tabstop profile (default `"PropellerTool"`) and `<section>` is `con`, `var`, `obj`, `pub`, `pri`, or `dat`.
 
-If a section's tabstop array is not configured, it falls back to the PropellerTool defaults (same arrays as Section 2).
+If a section's tabstop array is not configured, it falls back to the PropellerTool defaults.
 
-### 3.1 What Changes
+### 3.1 Key Differences from Spaces Mode
 
-**The alignment algorithm is identical** — all section formatters use `snapToNextTabstop()` the same way. The only difference is **which tabstop array** is used:
-
-| Mode | Tabstop source |
-|------|---------------|
-| Non-elastic | Hardcoded PropellerTool defaults |
-| Elastic | User-configured arrays (with PropellerTool defaults as fallback) |
-
-This means:
-- If the user's elastic tabstop arrays match the PropellerTool defaults, the output is **identical** in both modes.
-- If the user has customized their tabstop arrays (e.g., wider columns, different comment position), the formatter respects those positions.
+| Aspect | Spaces mode | Elastic mode |
+|--------|-------------|--------------|
+| Column positions | Content-driven with `indentSize` gaps | Profile-defined tabstop arrays |
+| Comment alignment | 2×`indentSize` past widest code | Snapped to profile comment column |
+| Tab characters | Compressed at 8-column boundaries | Pure spaces (no tabs) |
+| PASM columns | Dynamic per content widths | Fixed per profile tabstops |
 
 ### 3.2 What Does NOT Change
 
-**Method indentation** (`indentSize × level`) does **not** use the tabstop array. PUB/PRI nesting levels are always expressed as fixed multiples of `indentSize`, regardless of elastic tabstop mode. The PUB/PRI tabstop array is only used for trailing comment alignment within methods.
+**Method indentation** (`indentSize × level`) does **not** use the tabstop array in either mode. PUB/PRI nesting levels are always expressed as fixed multiples of `indentSize`. The tabstop array is only used for trailing comment alignment and column snapping within methods.
 
 ### 3.3 Per-Section Tabstop Selection
 
 ```typescript
-// Elastic enabled: use user config, fall back to defaults
+// Always use elasticConfig.tabStops — contains profile stops (elastic)
+// or regular indentSize grid (non-elastic)
 tabStops = elasticConfig.tabStops['con'] || DEFAULT_TABSTOPS.con
-
-// Elastic disabled: always use defaults
-tabStops = DEFAULT_TABSTOPS.con
 ```
 
-This pattern is applied in every section formatter (CON, VAR, OBJ, DAT, PUB/PRI).
-
-### 3.4 Tabstop Array Conventions
+### 3.4 Tabstop Array Conventions (Elastic Only)
 
 - **Last stop** = line-width boundary (e.g., 80). Not a content column.
 - **Second-to-last stop** = default trailing comment column for that section.
@@ -325,14 +325,18 @@ This pattern is applied in every section formatter (CON, VAR, OBJ, DAT, PUB/PRI)
 | `formatter.maxConsecutiveBlankLines` | number | `1` | Max consecutive blank lines |
 | `formatter.blankLinesBetweenSections` | number | `1` | Blanks between sections |
 | `formatter.blankLinesBetweenMethods` | number | `2` | Blanks between PUB/PRI |
-| `formatter.tabsToSpaces` | boolean | `true` | Convert tabs to spaces |
-| `formatter.tabWidth` | number | `8` | Tab character width |
-| `formatter.indentSize` | number | `2` | Spaces per indent level (PUB/PRI) |
-| `formatter.keywordCase` | enum | `"lowercase"` | Spin2 keyword case |
+| `formatter.indentSize` | number | `2` | Spaces per indent level and column gap (1–8) |
+| `formatter.blockNameCase` | enum | `"uppercase"` | Section keyword case (CON, VAR, etc.) |
+| `formatter.controlFlowCase` | enum | `"preserve"` | Control flow keyword case |
+| `formatter.methodCase` | enum | `"preserve"` | Method name case |
+| `formatter.typeCase` | enum | `"uppercase"` | Type keyword case (BYTE, WORD, LONG) |
+| `formatter.constantCase` | enum | `"uppercase"` | Constant name case |
 | `formatter.pasmInstructionCase` | enum | `"preserve"` | PASM mnemonic case |
 | `formatter.spaceAfterCommentStart` | boolean | `true` | Space after `'` / `''` |
 
 All settings are prefixed with `spinExtension.` (e.g., `spinExtension.formatter.enable`).
+
+**Removed settings** (v2.9.2): `tabsToSpaces` and `tabWidth` — tab characters are now always 8 columns wide. Use `indentSize` to control column spacing.
 
 ## Appendix B: Settings Declared But Not Implemented
 

@@ -57,8 +57,10 @@ themes/*
 !themes/isp-spin-dark-bg-theme.json
 !themes/isp-spin-light-bg-theme.json
 !themes/isp-spin-syntax-theme.json
-images/.DS_Store
-!images/**
+images/**
+!images/icon.png
+!images/patreon.png
+!images/Propeller.ico
 !README.md
 !CHANGELOG.md
 !LICENSE

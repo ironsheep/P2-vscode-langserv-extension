@@ -6,7 +6,7 @@
 // formatting pipeline that doesn't require the full LSP server.
 
 import { IBlockSpan, eBLockType } from '../../parser/spin.semantic.findings';
-import { ElasticTabstopConfig, DEFAULT_TABSTOPS } from '../../formatter/spin2.formatter.base';
+import { ElasticTabstopConfig, DEFAULT_TABSTOPS, buildRegularTabStops } from '../../formatter/spin2.formatter.base';
 import { formatConBlock } from '../../formatter/spin2.formatter.con';
 import { formatVarBlock } from '../../formatter/spin2.formatter.var';
 import { formatObjBlock } from '../../formatter/spin2.formatter.obj';
@@ -17,14 +17,15 @@ import { CaseConfig, normalizeMethodBlockCase, normalizeDatBlockCase, normalizeN
 // ---------------------------------------------------------------------------
 //  Formatter configuration (mirrors DocumentFormattingProvider's config)
 // ---------------------------------------------------------------------------
+// Tab characters are always 8 columns wide — matches the server constant.
+const TAB_WIDTH = 8;
+
 export interface FormatterConfig {
   trimTrailingWhitespace: boolean;
   insertFinalNewline: boolean;
   maxConsecutiveBlankLines: number;
   blankLinesBetweenSections: number;
   blankLinesBetweenMethods: number;
-  tabsToSpaces: boolean;
-  tabWidth: number;
   indentSize: number;
   blockNameCase: string;
   controlFlowCase: string;
@@ -41,8 +42,6 @@ export const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
   maxConsecutiveBlankLines: 1,
   blankLinesBetweenSections: 1,
   blankLinesBetweenMethods: 2,
-  tabsToSpaces: true,
-  tabWidth: 8,
   indentSize: 2,
   blockNameCase: 'uppercase',
   controlFlowCase: 'preserve',
@@ -233,15 +232,15 @@ export function scanBlockComments(lines: string[]): Set<number> {
  */
 export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>, elastic?: ElasticTabstopConfig): string {
   const cfg: FormatterConfig = { ...DEFAULT_FORMATTER_CONFIG, ...config };
-  const elasticConfig: ElasticTabstopConfig = elastic || { enabled: false, tabStops: DEFAULT_TABSTOPS };
+  const elasticConfig: ElasticTabstopConfig = elastic || { enabled: false, tabStops: buildRegularTabStops(cfg.indentSize), commentGap: 2 * cfg.indentSize };
 
   let lines = text.split(/\r?\n/);
 
   // Build mock findings from the source lines
   const findings = new MockDocumentFindings(lines) as any; // cast to satisfy DocumentFindings parameter type
 
-  // Phase 1a: Tab-to-space conversion (always convert for internal processing)
-  lines = convertTabsToSpaces(lines, findings, cfg.tabWidth);
+  // Phase 1a: Tab-to-space conversion (tabs are always 8 columns wide)
+  lines = convertTabsToSpaces(lines, findings, TAB_WIDTH);
 
   // Phase 1b: Trailing whitespace trimming
   if (cfg.trimTrailingWhitespace) {
@@ -306,10 +305,10 @@ export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>,
     lines = ensureFinalNewline(lines);
   }
 
-  // Phase 7: Enforce tab/space preference
-  // All internal formatting uses spaces. As the final step, convert to user's preference.
-  if (!cfg.tabsToSpaces) {
-    lines = convertSpacesToTabs(lines, findings, cfg.tabWidth);
+  // Phase 7: Tab compression (spaces mode only)
+  // Elastic mode uses pure spaces. Spaces mode compresses with tabs at 8-column boundaries.
+  if (!elasticConfig.enabled) {
+    lines = convertSpacesToTabs(lines, findings, TAB_WIDTH);
   }
 
   return lines.join('\n');

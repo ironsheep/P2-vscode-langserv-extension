@@ -37,7 +37,7 @@ export function formatVarBlock(
   findings: DocumentFindings,
   elasticConfig: ElasticTabstopConfig
 ): void {
-  const tabStops = elasticConfig.enabled ? (elasticConfig.tabStops['var'] || DEFAULT_TABSTOPS.var) : DEFAULT_TABSTOPS.var;
+  const tabStops = elasticConfig.tabStops['var'] || DEFAULT_TABSTOPS.var;
 
   const varLines: VarLine[] = [];
 
@@ -94,7 +94,7 @@ export function formatVarBlock(
       contentEndCols.push(contentEnd);
     }
   }
-  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops);
+  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops, elasticConfig.commentGap);
 
   // Pass 2: apply
   for (const v of varLines) {

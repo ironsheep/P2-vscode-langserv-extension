@@ -24,6 +24,28 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.9.2] - 2026-03-22
+
+Simplified tab model and content-driven column alignment
+
+### Changed
+
+- **BREAKING**: Remove `tabsToSpaces` and `tabWidth` settings — tabs are now fixed at 8 columns
+- Two formatting modes: Spaces (indentSize grid with tab compression) or Elastic (profile-defined columns, pure spaces)
+- Indent size choices expanded to 1–8
+
+### Added
+
+- Vertical alignment of `...` line-continuation markers within consecutive groups
+- Content-driven trailing comment alignment (2×indentSize past widest code line)
+- Content-driven PASM column layout — label/condition/mnemonic/operand/effect columns adapt to actual content widths
+- Unified comment columns across consecutive small same-type blocks (under 15 lines) to prevent jagged alignment
+- Switching formatter modes via the status bar immediately reformats the active document
+
+### Removed
+
+- "Indent Using Tabs" and "Change Tab Width..." status bar menu options
+
 ## [2.9.1] - 2026-03-21
 
 Formatter default adjustments, and documentation updates

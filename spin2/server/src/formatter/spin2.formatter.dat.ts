@@ -101,18 +101,20 @@ export function formatDatBlock(
   findings: DocumentFindings,
   elasticConfig: ElasticTabstopConfig
 ): void {
-  const tabStops = elasticConfig.enabled ? (elasticConfig.tabStops['dat'] || DEFAULT_TABSTOPS.dat) : DEFAULT_TABSTOPS.dat;
+  const tabStops = elasticConfig.tabStops['dat'] || DEFAULT_TABSTOPS.dat;
 
   // Identify ORG regions
   const orgRegions = findOrgRegions(lines, startLine, endLine);
 
+  const commentGap = elasticConfig.commentGap;
+
   // Format each ORG region independently (PASM alignment)
   for (const region of orgRegions) {
-    formatPasmRegion(lines, region.startLine, region.endLine, findings, tabStops);
+    formatPasmRegion(lines, region.startLine, region.endLine, findings, tabStops, false, commentGap);
   }
 
   // Format non-ORG DAT data lines
-  formatDatDataLines(lines, startLine, endLine, findings, tabStops, orgRegions);
+  formatDatDataLines(lines, startLine, endLine, findings, tabStops, orgRegions, commentGap);
 }
 
 function findOrgRegions(lines: string[], startLine: number, endLine: number): OrgRegion[] {
@@ -153,9 +155,10 @@ export function formatPasmRegionDirect(
   startLine: number,
   endLine: number,
   findings: DocumentFindings,
-  tabStops: number[]
+  tabStops: number[],
+  commentGap: number = 0
 ): void {
-  formatPasmRegion(lines, startLine, endLine, findings, tabStops, true);
+  formatPasmRegion(lines, startLine, endLine, findings, tabStops, true, commentGap);
 }
 
 function formatPasmRegion(
@@ -164,7 +167,8 @@ function formatPasmRegion(
   endLine: number,
   findings: DocumentFindings,
   tabStops: number[],
-  isInlinePasm: boolean = false
+  isInlinePasm: boolean = false,
+  commentGap: number = 0
 ): void {
   const pasmLines: PasmLine[] = [];
 
@@ -212,32 +216,67 @@ function formatPasmRegion(
     }
   }
 
-  // Column positions from tabstops
-  const defaultCondCol = tabStops.length > 0 ? tabStops[0] : 8;
-  const defaultMnemCol = tabStops.length > 1 ? tabStops[1] : 14;
-  const condCol = defaultCondCol;
+  // Column positions: content-driven (non-elastic) or tabstop-snapped (elastic)
+  let condCol: number;
+  let instrMnemCol: number;
+  let instrOperandCol: number;
+  let dataMnemCol: number;
+  let dataValueCol: number;
+  let effectsCol: number;
 
-  // Instruction mnemonic column: driven by conditions ONLY
-  const condEnd = maxCondWidth > 0 ? condCol + maxCondWidth : 0;
-  const instrMnemCol = condEnd >= defaultMnemCol
-    ? snapToNextTabstop(condEnd, tabStops)
-    : defaultMnemCol;
-  const instrOperandCol = snapToNextTabstop(instrMnemCol + maxInstrMnemWidth, tabStops);
+  if (commentGap > 0) {
+    // Non-elastic: content-driven layout with 1×indentSize gaps
+    const gap = commentGap / 2; // commentGap = 2×indentSize, so gap = indentSize
 
-  // Data type column: driven by data label widths (independent of conditions)
-  const dataMnemCol = maxDataLabelWidth >= defaultMnemCol
-    ? snapToNextTabstop(maxDataLabelWidth, tabStops)
-    : defaultMnemCol;
-  const dataValueCol = snapToNextTabstop(dataMnemCol + maxDataTypeWidth, tabStops);
+    // Condition column: 1 indent past longest label (or 1 indent from left if no labels)
+    const maxLabelWidth = pasmLines.reduce((max, p) => Math.max(max, p.label.length), 0);
+    condCol = maxLabelWidth > 0 ? maxLabelWidth + gap : gap;
 
-  // Compute operand end columns for effects alignment (instructions only)
-  const operandEndCols: number[] = [];
-  for (const p of pasmLines) {
-    if (p.effects.length > 0) {
-      operandEndCols.push(instrOperandCol + p.operands.length);
+    // Instruction mnemonic: 1 indent past longest condition
+    instrMnemCol = maxCondWidth > 0 ? condCol + maxCondWidth + gap : condCol;
+
+    // Instruction operands: 1 indent past longest mnemonic
+    instrOperandCol = maxInstrMnemWidth > 0 ? instrMnemCol + maxInstrMnemWidth + gap : instrMnemCol;
+
+    // Data type column: 1 indent past longest data label
+    dataMnemCol = maxDataLabelWidth > 0 ? maxDataLabelWidth + gap : gap;
+
+    // Data value column: 1 indent past longest data type
+    dataValueCol = maxDataTypeWidth > 0 ? dataMnemCol + maxDataTypeWidth + gap : dataMnemCol;
+
+    // Effects column: 1 indent past longest operand (instructions only)
+    let maxOperandWidth = 0;
+    for (const p of pasmLines) {
+      if (!DATA_TYPE_RE.test(p.mnemonic) && p.operands.length > maxOperandWidth) {
+        maxOperandWidth = p.operands.length;
+      }
     }
+    effectsCol = maxOperandWidth > 0 ? instrOperandCol + maxOperandWidth + gap : instrOperandCol;
+  } else {
+    // Elastic: tabstop-snapped layout (original behavior)
+    const defaultCondCol = tabStops.length > 0 ? tabStops[0] : 8;
+    const defaultMnemCol = tabStops.length > 1 ? tabStops[1] : 14;
+    condCol = defaultCondCol;
+
+    const condEnd = maxCondWidth > 0 ? condCol + maxCondWidth : 0;
+    instrMnemCol = condEnd >= defaultMnemCol
+      ? snapToNextTabstop(condEnd, tabStops)
+      : defaultMnemCol;
+    instrOperandCol = snapToNextTabstop(instrMnemCol + maxInstrMnemWidth, tabStops);
+
+    dataMnemCol = maxDataLabelWidth >= defaultMnemCol
+      ? snapToNextTabstop(maxDataLabelWidth, tabStops)
+      : defaultMnemCol;
+    dataValueCol = snapToNextTabstop(dataMnemCol + maxDataTypeWidth, tabStops);
+
+    const operandEndCols: number[] = [];
+    for (const p of pasmLines) {
+      if (p.effects.length > 0) {
+        operandEndCols.push(instrOperandCol + p.operands.length);
+      }
+    }
+    effectsCol = operandEndCols.length > 0 ? snapToNextTabstop(Math.max(...operandEndCols), tabStops) : instrOperandCol;
   }
-  const effectsCol = operandEndCols.length > 0 ? snapToNextTabstop(Math.max(...operandEndCols), tabStops) : instrOperandCol;
 
   // Compute content end for comment alignment (shared across both types)
   const contentEndCols: number[] = [];
@@ -259,7 +298,7 @@ function formatPasmRegion(
       contentEndCols.push(contentEnd);
     }
   }
-  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops);
+  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops, commentGap);
 
   // Detect REP blocks and mark lines that should be indented.
   // REP #N, #count — next N instruction lines are the block.
@@ -484,7 +523,8 @@ function formatDatDataLines(
   endLine: number,
   findings: DocumentFindings,
   tabStops: number[],
-  orgRegions: OrgRegion[]
+  orgRegions: OrgRegion[],
+  commentGap: number = 0
 ): void {
   const dataLines: DatDataLine[] = [];
 
@@ -522,10 +562,20 @@ function formatDatDataLines(
     if (d.type.length > maxTypeWidth) maxTypeWidth = d.type.length;
   }
 
-  const typeCol = maxLabelWidth > 0
-    ? snapToNextTabstop(labelIndent + maxLabelWidth, tabStops)
-    : (tabStops.length > 1 ? tabStops[1] : 14);
-  const valueCol = snapToNextTabstop(typeCol + maxTypeWidth, tabStops);
+  let typeCol: number;
+  let valueCol: number;
+  if (commentGap > 0) {
+    // Non-elastic: content-driven layout
+    const gap = commentGap / 2; // indentSize
+    typeCol = maxLabelWidth > 0 ? labelIndent + maxLabelWidth + gap : labelIndent + gap;
+    valueCol = maxTypeWidth > 0 ? typeCol + maxTypeWidth + gap : typeCol;
+  } else {
+    // Elastic: tabstop-snapped layout
+    typeCol = maxLabelWidth > 0
+      ? snapToNextTabstop(labelIndent + maxLabelWidth, tabStops)
+      : (tabStops.length > 1 ? tabStops[1] : 14);
+    valueCol = snapToNextTabstop(typeCol + maxTypeWidth, tabStops);
+  }
 
   const contentEndCols: number[] = [];
   for (const d of dataLines) {
@@ -533,7 +583,7 @@ function formatDatDataLines(
       contentEndCols.push(valueCol + d.value.length);
     }
   }
-  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops);
+  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops, commentGap);
 
   for (const d of dataLines) {
     let formatted = ' '.repeat(labelIndent) + d.label;

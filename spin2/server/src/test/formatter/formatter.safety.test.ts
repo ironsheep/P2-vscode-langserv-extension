@@ -133,8 +133,8 @@ const CONFIG_VARIANTS: { name: string; config: Partial<FormatterConfig> }[] = [
     config: { spaceAfterCommentStart: false }
   },
   {
-    name: 'no-tab-conversion',
-    config: { tabsToSpaces: false }
+    name: 'indent-size-4',
+    config: { indentSize: 4 }
   },
   {
     name: 'blank-lines-0',
@@ -429,21 +429,20 @@ describe('Formatter: Safety tests', function () {
     dat: [4, 16, 20, 24, 28, 48, 52, 56, 60, 64, 68, 80]
   };
 
-  describe('Cross-config binary parity (tabs-8 → spaces-2 → spaces-4 → elastic-IronSheep → elastic-PropellerTool)', function () {
+  describe('Cross-config binary parity (spaces-2 → spaces-4 → elastic-IronSheep → elastic-PropellerTool)', function () {
     before(function () {
       if (!pnutAvailable) this.skip();
     });
 
     const crossConfigs: { name: string; config: Partial<FormatterConfig>; elastic?: ElasticTabstopConfig }[] = [
-      { name: 'tabs-8', config: { tabsToSpaces: false, tabWidth: 8, indentSize: 2 } },
-      { name: 'spaces-2', config: { tabsToSpaces: true, indentSize: 2 } },
-      { name: 'spaces-4', config: { tabsToSpaces: true, indentSize: 4 } },
-      { name: 'elastic-IronSheep', config: { tabsToSpaces: true, indentSize: 2 }, elastic: { enabled: true, tabStops: IRONSHEEP_TABSTOPS } },
-      { name: 'elastic-PropellerTool', config: { tabsToSpaces: true, indentSize: 4 }, elastic: { enabled: true, tabStops: PROPELLERTOOL_TABSTOPS } }
+      { name: 'spaces-2', config: { indentSize: 2 } },
+      { name: 'spaces-4', config: { indentSize: 4 } },
+      { name: 'elastic-IronSheep', config: { indentSize: 2 }, elastic: { enabled: true, tabStops: IRONSHEEP_TABSTOPS, commentGap: 0 } },
+      { name: 'elastic-PropellerTool', config: { indentSize: 4 }, elastic: { enabled: true, tabStops: PROPELLERTOOL_TABSTOPS, commentGap: 0 } }
     ];
 
     for (const fixture of goldFixtures) {
-      it(`${fixture.name}: tabs-8 → spaces-2 → spaces-4 → elastic-IronSheep → elastic-PropellerTool all match GOLD`, function () {
+      it(`${fixture.name}: spaces-2 → spaces-4 → elastic-IronSheep → elastic-PropellerTool all match GOLD`, function () {
         if (!pnutAvailable) this.skip();
 
         const originalText = fs.readFileSync(fixture.spin2Path, 'utf-8');

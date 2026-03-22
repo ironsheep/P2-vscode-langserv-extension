@@ -43,7 +43,7 @@ export function formatConBlock(
   findings: DocumentFindings,
   elasticConfig: ElasticTabstopConfig
 ): void {
-  const tabStops = elasticConfig.enabled ? (elasticConfig.tabStops['con'] || DEFAULT_TABSTOPS.con) : DEFAULT_TABSTOPS.con;
+  const tabStops = elasticConfig.tabStops['con'] || DEFAULT_TABSTOPS.con;
 
   // Collect assignment lines for alignment
   const assignments: ConAssignment[] = [];
@@ -119,7 +119,7 @@ export function formatConBlock(
       contentEndCols.push(contentEnd);
     }
   }
-  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops);
+  const commentCol = computeBlockCommentColumn(contentEndCols, tabStops, elasticConfig.commentGap);
 
   // Pass 2: apply alignment
   for (const a of assignments) {
