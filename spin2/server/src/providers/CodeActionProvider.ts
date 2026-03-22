@@ -158,9 +158,9 @@ export default class CodeActionProvider implements Provider {
     // simplified lookup for common version-gated keywords
     const nameLC = name.toLowerCase();
     const v44Keywords = ['lstring', 'lstring.'];
-    const v45Keywords = ['struct', 'union', 'sizeof', 'valueof', 'ones', 'field'];
-    const v47Keywords = ['taskreg', 'pr0', 'pr1', 'pr2', 'pr3', 'pr4', 'pr5', 'pr6', 'pr7'];
-    const v50Keywords = ['ditto', 'asmclk', 'setclk', 'getclk'];
+    const v45Keywords = ['struct', 'sizeof', 'ones', 'field'];
+    const v47Keywords = ['taskhlt', 'pr0', 'pr1', 'pr2', 'pr3', 'pr4', 'pr5', 'pr6', 'pr7'];
+    const v50Keywords = ['ditto'];
     const v51Keywords = ['zerox', 'signx', 'sca', 'scas', 'frac'];
     const v52Keywords = ['regload', 'regexec'];
     const v53Keywords = ['offsetof'];

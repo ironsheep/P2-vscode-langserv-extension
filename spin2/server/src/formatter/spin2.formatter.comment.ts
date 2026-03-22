@@ -94,7 +94,7 @@ const METHOD_KEYWORDS = new Set(
 
 // Type keywords
 const TYPE_KEYWORDS = new Set([
-  'byte', 'word', 'long', 'struct', 'union'
+  'byte', 'word', 'long', 'struct'
 ]);
 
 // Full P2 PASM instruction set + assembler directives (from spin2.utils.ts isP2AsmInstruction).

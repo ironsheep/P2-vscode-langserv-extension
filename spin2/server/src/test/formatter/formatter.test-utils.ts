@@ -45,10 +45,10 @@ export const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
   tabWidth: 8,
   indentSize: 2,
   blockNameCase: 'uppercase',
-  controlFlowCase: 'lowercase',
-  methodCase: 'lowercase',
-  typeCase: 'lowercase',
-  constantCase: 'preserve',
+  controlFlowCase: 'preserve',
+  methodCase: 'preserve',
+  typeCase: 'uppercase',
+  constantCase: 'uppercase',
   pasmInstructionCase: 'preserve',
   spaceAfterCommentStart: true
 };

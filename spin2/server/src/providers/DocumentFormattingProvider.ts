@@ -109,17 +109,17 @@ export default class DocumentFormattingProvider implements Provider {
       enable: raw?.['enable'] === true,
       trimTrailingWhitespace: raw?.['trimTrailingWhitespace'] !== false,
       insertFinalNewline: raw?.['insertFinalNewline'] !== false,
-      maxConsecutiveBlankLines: typeof raw?.['maxConsecutiveBlankLines'] === 'number' ? raw['maxConsecutiveBlankLines'] : 1,
-      blankLinesBetweenSections: typeof raw?.['blankLinesBetweenSections'] === 'number' ? raw['blankLinesBetweenSections'] : 1,
-      blankLinesBetweenMethods: typeof raw?.['blankLinesBetweenMethods'] === 'number' ? raw['blankLinesBetweenMethods'] : 2,
+      maxConsecutiveBlankLines: typeof raw?.['maxConsecutiveBlankLines'] === 'number' ? raw['maxConsecutiveBlankLines'] : 1, // within section bodies only
+      blankLinesBetweenSections: typeof raw?.['blankLinesBetweenSections'] === 'number' ? raw['blankLinesBetweenSections'] : 1, // independent of maxConsecutiveBlankLines
+      blankLinesBetweenMethods: typeof raw?.['blankLinesBetweenMethods'] === 'number' ? raw['blankLinesBetweenMethods'] : 2, // independent of maxConsecutiveBlankLines
       tabsToSpaces: typeof raw?.['tabsToSpaces'] === 'boolean' ? raw['tabsToSpaces'] : (editorInsertSpaces !== undefined ? editorInsertSpaces : true),
       tabWidth: typeof raw?.['tabWidth'] === 'number' ? raw['tabWidth'] : (editorTabSize !== undefined ? editorTabSize : 8),
       indentSize: typeof raw?.['indentSize'] === 'number' ? raw['indentSize'] : 2,
       blockNameCase: typeof raw?.['blockNameCase'] === 'string' ? raw['blockNameCase'] : 'uppercase',
-      controlFlowCase: typeof raw?.['controlFlowCase'] === 'string' ? raw['controlFlowCase'] : 'lowercase',
-      methodCase: typeof raw?.['methodCase'] === 'string' ? raw['methodCase'] : 'lowercase',
-      typeCase: typeof raw?.['typeCase'] === 'string' ? raw['typeCase'] : 'lowercase',
-      constantCase: typeof raw?.['constantCase'] === 'string' ? raw['constantCase'] : 'preserve',
+      controlFlowCase: typeof raw?.['controlFlowCase'] === 'string' ? raw['controlFlowCase'] : 'preserve',
+      methodCase: typeof raw?.['methodCase'] === 'string' ? raw['methodCase'] : 'preserve',
+      typeCase: typeof raw?.['typeCase'] === 'string' ? raw['typeCase'] : 'uppercase',
+      constantCase: typeof raw?.['constantCase'] === 'string' ? raw['constantCase'] : 'uppercase',
       pasmInstructionCase: typeof raw?.['pasmInstructionCase'] === 'string' ? raw['pasmInstructionCase'] : 'preserve',
       spaceAfterCommentStart: raw?.['spaceAfterCommentStart'] !== false
     };

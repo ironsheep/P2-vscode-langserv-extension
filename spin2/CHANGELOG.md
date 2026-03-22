@@ -24,6 +24,25 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.9.1] - 2026-03-21
+
+Formatter default adjustments, and documentation updates
+
+### Changed
+
+- Change default `controlFlowCase` from `lowercase` to `preserve`
+- Change default `methodCase` from `lowercase` to `preserve`
+- Change default `typeCase` from `lowercase` to `uppercase`
+- Change default `constantCase` from `preserve` to `uppercase`
+- Clarify blank line setting descriptions — `maxConsecutiveBlankLines` applies within section bodies only and is independent of `blankLinesBetweenSections` and `blankLinesBetweenMethods`
+
+### Fixed
+
+- Fix CHANGELOG link in README.md to correct repository
+- Update README.md with missing features: Autocomplete, Formatter, Toolchain Integration, Project Archive
+- Remove stale Known Issues from README.md
+- Update Formatter User Guide for new defaults and blank line independence
+
 ## [2.9.0] - 2026-03-21
 
 Spin2 document formatter with tab/space conversion and status bar indicator

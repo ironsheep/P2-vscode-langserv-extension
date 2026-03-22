@@ -150,14 +150,14 @@ Formatter Adjustments:
 - **Indent Size** - Spaces per indent level in PUB/PRI method bodies (default: 2, options: 2, 4, 8)
 - **Trim Trailing Whitespace** - Remove trailing spaces/tabs from lines (default: on)
 - **Insert Final Newline** - Ensure file ends with one newline (default: on)
-- **Max Consecutive Blank Lines** - Maximum blank lines in a row (default: 1)
-- **Blank Lines Between Sections** - Blank lines between CON/VAR/OBJ/DAT/PUB/PRI (default: 1)
-- **Blank Lines Between Methods** - Blank lines between consecutive PUB/PRI methods (default: 2)
+- **Max Consecutive Blank Lines** - Maximum blank lines within a section body (default: 1). Independent of the next two settings.
+- **Blank Lines Between Sections** - Blank lines between CON/VAR/OBJ/DAT/PUB/PRI (default: 1). Independent of Max Consecutive.
+- **Blank Lines Between Methods** - Blank lines between consecutive PUB/PRI methods (default: 2). Independent of Max Consecutive.
 - **Block Name Case** - Case for section keywords CON/VAR/OBJ/DAT/PUB/PRI (default: uppercase)
-- **Control Flow Case** - Case for if/repeat/case/return/etc. (default: lowercase)
-- **Method Case** - Case for built-in methods and constants (default: lowercase)
-- **Type Case** - Case for byte/word/long/struct/union (default: lowercase)
-- **Constant Case** - Case for user-defined CON constants (default: preserve)
+- **Control Flow Case** - Case for if/repeat/case/return/etc. (default: preserve)
+- **Method Case** - Case for built-in methods and constants (default: preserve)
+- **Type Case** - Case for BYTE/WORD/LONG/STRUCT (default: uppercase)
+- **Constant Case** - Case for user-defined CON constants (default: uppercase)
 - **Pasm Instruction Case** - Case for PASM mnemonics (default: preserve)
 - **Space After Comment Start** - Insert space after `'` or `''` in comments (default: on)
 

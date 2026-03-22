@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -1080,21 +1080,21 @@
             "default": 1,
             "minimum": 0,
             "scope": "resource",
-            "description": "Maximum number of consecutive blank lines allowed. Excess blank lines are removed."
+            "description": "Maximum consecutive blank lines allowed within a section body (e.g., inside a PUB method or a CON block). Does not affect blank lines between sections or methods — those are controlled by their own settings."
           },
           "spinExtension.formatter.blankLinesBetweenSections": {
             "type": "number",
             "default": 1,
             "minimum": 0,
             "scope": "resource",
-            "description": "Number of blank lines between major sections (CON, VAR, OBJ, DAT, PUB, PRI)."
+            "description": "Blank lines inserted between different major sections (e.g., CON→VAR, DAT→PUB). Independent of Max Consecutive Blank Lines."
           },
           "spinExtension.formatter.blankLinesBetweenMethods": {
             "type": "number",
             "default": 2,
             "minimum": 0,
             "scope": "resource",
-            "description": "Number of blank lines between consecutive PUB/PRI methods."
+            "description": "Blank lines inserted between consecutive PUB/PRI methods. Independent of Max Consecutive Blank Lines."
           },
           "spinExtension.formatter.tabsToSpaces": {
             "type": "boolean",
@@ -1125,28 +1125,28 @@
           },
           "spinExtension.formatter.controlFlowCase": {
             "type": "string",
-            "default": "lowercase",
+            "default": "preserve",
             "enum": ["uppercase", "lowercase", "preserve"],
             "scope": "resource",
             "description": "Normalize control flow keywords (if, else, repeat, case, return, abort, etc.) to the specified case."
           },
           "spinExtension.formatter.methodCase": {
             "type": "string",
-            "default": "lowercase",
+            "default": "preserve",
             "enum": ["uppercase", "lowercase", "preserve"],
             "scope": "resource",
             "description": "Normalize built-in methods and constants (cogspin, pinwrite, debug, true, false, etc.) to the specified case."
           },
           "spinExtension.formatter.typeCase": {
             "type": "string",
-            "default": "lowercase",
+            "default": "uppercase",
             "enum": ["uppercase", "lowercase", "preserve"],
             "scope": "resource",
-            "description": "Normalize type keywords (byte, word, long, struct, union) to the specified case."
+            "description": "Normalize type keywords (BYTE, WORD, LONG, STRUCT) to the specified case."
           },
           "spinExtension.formatter.constantCase": {
             "type": "string",
-            "default": "preserve",
+            "default": "uppercase",
             "enum": ["uppercase", "lowercase", "preserve"],
             "scope": "resource",
             "description": "Normalize user-defined CON constant names to the specified case."

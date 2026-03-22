@@ -88,11 +88,15 @@ PUB main() | i
 
 ### Blank Lines
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **Max Consecutive Blank Lines** | `1` | Maximum blank lines allowed in a row. Excess blanks are removed. |
-| **Blank Lines Between Sections** | `1` | Blank lines between major sections (CON, VAR, OBJ, DAT, PUB, PRI). |
-| **Blank Lines Between Methods** | `2` | Blank lines between consecutive PUB/PRI methods. |
+These three settings are **independent** — each controls a different location in the file and they do not interact with each other:
+
+| Setting | Default | Scope |
+|---------|---------|-------|
+| **Max Consecutive Blank Lines** | `1` | Controls blank lines *within* a section body (e.g., inside a PUB method or a CON block). |
+| **Blank Lines Between Sections** | `1` | Controls blank lines at boundaries between different sections (e.g., CON→VAR, DAT→PUB). |
+| **Blank Lines Between Methods** | `2` | Controls blank lines between consecutive PUB/PRI methods. |
+
+For example, the defaults give you at most 1 blank line inside a method body, 1 blank line between a CON and VAR section, but 2 blank lines between consecutive PUB or PRI methods — all at the same time without conflict.
 
 ### Comments
 
@@ -132,22 +136,22 @@ PUB main()                        pub main()
 
 ### Control Flow Case
 
-**Setting**: **Control Flow Case** (default: `lowercase`)
+**Setting**: **Control Flow Case** (default: `preserve`)
 
 Controls keywords used for program flow in PUB/PRI methods:
 
 `if`, `ifnot`, `elseif`, `elseifnot`, `else`, `case`, `case_fast`, `other`, `repeat`, `from`, `to`, `step`, `while`, `until`, `with`, `next`, `quit`, `return`, `abort`
 
 ```spin2
-' With "lowercase" (default):     ' With "uppercase":
-  repeat i from 0 to 9              REPEAT i FROM 0 TO 9
-    if i > 5                           IF i > 5
-      quit                              QUIT
+' With "preserve" (default):      ' With "lowercase":
+  Repeat i From 0 To 9              repeat i from 0 to 9
+    If i > 5                           if i > 5
+      Quit                              quit
 ```
 
 ### Method & Built-in Case
 
-**Setting**: **Method Case** (default: `lowercase`)
+**Setting**: **Method Case** (default: `preserve`)
 
 Controls built-in methods and constants:
 
@@ -155,40 +159,40 @@ Controls built-in methods and constants:
 - **Constants**: `true`, `false`, `clkfreq`, `clkmode`, `pi`, `negx`, `posx`
 
 ```spin2
-' With "lowercase" (default):     ' With "uppercase":
-  pinwrite(PIN, 1)                   PINWRITE(PIN, 1)
-  if x == true                       if x == TRUE
-  debug("value: ", udec(x))          DEBUG("value: ", udec(x))
+' With "preserve" (default):      ' With "lowercase":
+  PinWrite(PIN, 1)                   pinwrite(PIN, 1)
+  if x == True                       if x == true
+  Debug("value: ", udec(x))          debug("value: ", udec(x))
 ```
 
 ### Type Case
 
-**Setting**: **Type Case** (default: `lowercase`)
+**Setting**: **Type Case** (default: `uppercase`)
 
-Controls type keywords: `byte`, `word`, `long`, `struct`, `union`
+Controls type keywords: `BYTE`, `WORD`, `LONG`, `STRUCT`
 
 These appear in VAR blocks, DAT blocks, and method bodies:
 
 ```spin2
-' With "lowercase" (default):     ' With "uppercase":
+' With "uppercase" (default):     ' With "lowercase":
 VAR                                VAR
-  long  position                     LONG  position
-  byte  flags[8]                     BYTE  flags[8]
+  LONG  position                     long  position
+  BYTE  flags[8]                     byte  flags[8]
 ```
 
 ### User-Defined Constant Case
 
-**Setting**: **Constant Case** (default: `preserve`)
+**Setting**: **Constant Case** (default: `uppercase`)
 
 Controls the case of user-defined constant names from CON sections. The formatter collects all constant names you define in CON blocks and normalizes their case everywhere they appear.
 
 ```spin2
-' With "preserve" (default):      ' With "uppercase":
+' With "uppercase" (default):     ' With "preserve":
 CON                                CON
-  Max_Servos = 6                     MAX_SERVOS = 6
+  MAX_SERVOS = 6                     Max_Servos = 6
 
 PUB main()                        PUB main()
-  if count > Max_Servos              if count > MAX_SERVOS
+  if count > MAX_SERVOS              if count > Max_Servos
 ```
 
 ### PASM Instruction Case
@@ -210,12 +214,12 @@ myLabel       mov     x, #5       myLabel       MOV     x, #5
 
 ### Recommended Case Configurations
 
-**Traditional Spin2 style** (matches Propeller Tool conventions):
+**Default** (section keywords and types uppercase, everything else left alone):
 - Block Name Case: `uppercase`
-- Control Flow Case: `lowercase`
-- Method Case: `lowercase`
-- Type Case: `lowercase`
-- Constant Case: `preserve`
+- Control Flow Case: `preserve`
+- Method Case: `preserve`
+- Type Case: `uppercase`
+- Constant Case: `uppercase`
 - Pasm Instruction Case: `preserve`
 
 **All uppercase:**
@@ -392,22 +396,22 @@ For users who prefer editing `settings.json` directly (open via Command Palette:
   "spinExtension.formatter.tabWidth": 8,
   "spinExtension.formatter.indentSize": 2,
   "spinExtension.formatter.blockNameCase": "uppercase",
-  "spinExtension.formatter.controlFlowCase": "lowercase",
-  "spinExtension.formatter.methodCase": "lowercase",
-  "spinExtension.formatter.typeCase": "lowercase",
-  "spinExtension.formatter.constantCase": "preserve",
+  "spinExtension.formatter.controlFlowCase": "preserve",
+  "spinExtension.formatter.methodCase": "preserve",
+  "spinExtension.formatter.typeCase": "uppercase",
+  "spinExtension.formatter.constantCase": "uppercase",
   "spinExtension.formatter.pasmInstructionCase": "preserve",
   "spinExtension.formatter.spaceAfterCommentStart": true
 }
 ```
 
-You only need to include settings where you want a non-default value. For example, to enable the formatter with 4-space indentation and uppercase control flow:
+You only need to include settings where you want a non-default value. For example, to enable the formatter with 4-space indentation and lowercase control flow:
 
 ```json
 {
   "spinExtension.formatter.enable": true,
   "spinExtension.formatter.formatOnSave": true,
   "spinExtension.formatter.indentSize": 4,
-  "spinExtension.formatter.controlFlowCase": "uppercase"
+  "spinExtension.formatter.controlFlowCase": "lowercase"
 }
 ```

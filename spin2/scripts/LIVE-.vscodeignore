@@ -66,5 +66,7 @@ images/.DS_Store
 CPU-PROFILE-WORK
 TEST-P2-TERM
 TEST_PNUT_TS
+REF-LangUpdates
+TEST-FORMATTER
 updVscode
 *.tar.gz

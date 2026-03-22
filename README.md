@@ -18,13 +18,15 @@ The **P2 Forum Thread** containing discussion of [this VSCode support](https://f
 
 The **P1 Forum Thread** containing discussion of [this VSCode support](https://forums.parallax.com/discussion/175207/visual-studio-code-supports-p1-development-on-windows-mac-linux-yes-rpi#latest)
 
+#### New in v2.9.1 — Formatter Default Adjustments
+
+The Spin2 Document Formatter now ships with more conservative case defaults: block names and types are uppercase, user constants are uppercase, and control flow, methods, and PASM instructions are `preserve` (left as-is). See the [Formatter User Guide](Spin2-Formatter-UserGuide.md) for all options and examples.
+
 #### New in v2.9.0 — Spin2 Document Formatter
 
-This release adds a full source code formatter for `.spin2` files with section-aware column alignment (CON, VAR, OBJ, DAT), method body indentation normalization, PASM instruction alignment, six independent keyword case controls, and trailing comment alignment. The formatter is provably safe — it is tested by compiling before and after formatting and verifying the binary output is byte-for-byte identical.
+Full source code formatter for `.spin2` files with section-aware column alignment (CON, VAR, OBJ, DAT), method body indentation normalization, PASM instruction alignment, six independent keyword case controls, and trailing comment alignment. The formatter is provably safe — tested by compiling before and after formatting and verifying the binary output is byte-for-byte identical.
 
 Enable it in settings with `spinExtension.formatter.enable: true`. Click the status bar indicator ("Spin2 Spaces: 2", "Spin2 Prop Tool", etc.) to switch between spaces, tabs, or elastic tabstop profiles.
-
-See the [Formatter User Guide](Spin2-Formatter-UserGuide.md) for all options and examples.
 
 ## Quick Start
 
