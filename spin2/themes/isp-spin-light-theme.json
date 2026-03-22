@@ -33,7 +33,19 @@
     "list.focusAndSelectionOutline": "#90C2F9",
     "terminal.inactiveSelectionBackground": "#E5EBF1",
     "terminalCursor.foreground": "#333333",
-    "widget.border": "#d4d4d4"
+    "widget.border": "#d4d4d4",
+    "spin2.scopeGuide.level1": "#99883360",
+    "spin2.scopeGuide.level2": "#88448860",
+    "spin2.scopeGuide.level3": "#44669960",
+    "spin2.scopeGuide.level4": "#99554460",
+    "spin2.scopeGuide.level5": "#44884460",
+    "spin2.scopeGuide.level6": "#33777760",
+    "spin2.scopeGuide.activeLevel1": "#998833C0",
+    "spin2.scopeGuide.activeLevel2": "#884488C0",
+    "spin2.scopeGuide.activeLevel3": "#446699C0",
+    "spin2.scopeGuide.activeLevel4": "#995544C0",
+    "spin2.scopeGuide.activeLevel5": "#448844C0",
+    "spin2.scopeGuide.activeLevel6": "#337777C0"
   },
   "tokenColors": [
     {

@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.9.2",
+  "version": "2.10.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -258,6 +258,11 @@
             "minimum": 20,
             "maximum": 80,
             "description": "Adjust the Alpha component of the editor background color [20%-80%] (default is 80%, Uncheck \"Color Editor Background\" to turn off.)"
+          },
+          "spinExtension.scopeGuides.enable": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show color-coded scope nesting guides in PUB/PRI method bodies."
           }
         }
       },
@@ -1155,6 +1160,20 @@
         }
       }
     ],
+    "colors": [
+      { "id": "spin2.scopeGuide.level1", "description": "Scope guide color for nesting level 1", "defaults": { "dark": "#ccaa4440", "light": "#99883360" } },
+      { "id": "spin2.scopeGuide.level2", "description": "Scope guide color for nesting level 2", "defaults": { "dark": "#cc66aa40", "light": "#88448860" } },
+      { "id": "spin2.scopeGuide.level3", "description": "Scope guide color for nesting level 3", "defaults": { "dark": "#6688cc40", "light": "#44669960" } },
+      { "id": "spin2.scopeGuide.level4", "description": "Scope guide color for nesting level 4", "defaults": { "dark": "#cc667740", "light": "#99554460" } },
+      { "id": "spin2.scopeGuide.level5", "description": "Scope guide color for nesting level 5", "defaults": { "dark": "#77bb7740", "light": "#44884460" } },
+      { "id": "spin2.scopeGuide.level6", "description": "Scope guide color for nesting level 6", "defaults": { "dark": "#55aa9940", "light": "#33777760" } },
+      { "id": "spin2.scopeGuide.activeLevel1", "description": "Active scope guide color for level 1", "defaults": { "dark": "#ccaa4480", "light": "#998833C0" } },
+      { "id": "spin2.scopeGuide.activeLevel2", "description": "Active scope guide color for level 2", "defaults": { "dark": "#cc66aa80", "light": "#884488C0" } },
+      { "id": "spin2.scopeGuide.activeLevel3", "description": "Active scope guide color for level 3", "defaults": { "dark": "#6688cc80", "light": "#446699C0" } },
+      { "id": "spin2.scopeGuide.activeLevel4", "description": "Active scope guide color for level 4", "defaults": { "dark": "#cc667780", "light": "#995544C0" } },
+      { "id": "spin2.scopeGuide.activeLevel5", "description": "Active scope guide color for level 5", "defaults": { "dark": "#77bb7780", "light": "#448844C0" } },
+      { "id": "spin2.scopeGuide.activeLevel6", "description": "Active scope guide color for level 6", "defaults": { "dark": "#55aa9980", "light": "#337777C0" } }
+    ],
     "keybindings": [
       {
         "key": "Ctrl+Alt+h",
@@ -1541,11 +1560,13 @@
     "configurationDefaults": {
       "[spin2]": {
         "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",
-        "editor.formatOnSave": false
+        "editor.formatOnSave": false,
+        "editor.guides.indentation": false
       },
       "[spin]": {
         "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",
-        "editor.formatOnSave": false
+        "editor.formatOnSave": false,
+        "editor.guides.indentation": false
       },
       "[p2asm]": {
         "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",

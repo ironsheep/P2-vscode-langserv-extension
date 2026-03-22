@@ -16,6 +16,7 @@ import { DocGenerator } from './providers/spin.document.generate';
 import { ObjectTreeProvider, Dependency } from './spin.object.dependencies';
 import { IncludeDirectoriesProvider } from './providers/spin.includeDirectories.treeView';
 import { RegionColorizer } from './providers/spin.color.regions';
+import { ScopeGuidesProvider } from './providers/spin.scopeGuides';
 import { overtypeBeforePaste, overtypeBeforeType } from './providers/spin.editMode.behavior';
 import { editModeConfiguration, reloadEditModeConfiguration } from './providers/spin.editMode.configuration';
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
@@ -59,6 +60,7 @@ const includeDirsProvider: IncludeDirectoriesProvider = new IncludeDirectoriesPr
 const tabFormatter: Formatter = new Formatter();
 const docGenerator: DocGenerator = new DocGenerator(objTreeProvider);
 const codeBlockColorizer: RegionColorizer = new RegionColorizer();
+const scopeGuidesProvider: ScopeGuidesProvider = new ScopeGuidesProvider();
 const usbDocGenerator: USBDocGenerator = new USBDocGenerator();
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //const forceToolChainConfLoad = toolchainConfiguration; // reference to force load on startup
@@ -230,6 +232,14 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
     vscode.workspace.onDidChangeConfiguration(handleDidChangeConfiguration),
 
+    // Scope guides: cursor and scroll tracking
+    vscode.window.onDidChangeTextEditorSelection((e) => {
+      scopeGuidesProvider.cursorChanged(e.textEditor, e.selections[0].active.line);
+    }),
+    vscode.window.onDidChangeTextEditorVisibleRanges((e) => {
+      scopeGuidesProvider.visibleRangeChanged(e.textEditor);
+    }),
+
     statusCompileDebugBarItem,
     statusDownloadFlashBarItem,
     statusPropPlugBarItem,
@@ -245,6 +255,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
   function handleTextDocumentChanged(changeEvent: vscode.TextDocumentChangeEvent) {
     vscode.window.visibleTextEditors.map((editor) => {
       recolorizeSpinDocumentIfChanged(editor, 'handleTextDocumentChanged', 'Ext-docDidChg');
+      if (editor.document === changeEvent.document) {
+        scopeGuidesProvider.documentChanged(editor);
+      }
     });
     //locateAndConfigurePropPlugSelection(); // BAD!!
     updateStatusBarItems('handleTextDocumentChanged');
@@ -1524,6 +1537,7 @@ function handleTextDocumentClosed(textDocument: vscode.TextDocument) {
       versionCacheByDocument.delete(textDocument.fileName);
     }
     codeBlockColorizer.closedFilespec(textDocument.fileName);
+    scopeGuidesProvider.closedFile(textDocument.fileName);
   }
 }
 
@@ -1542,6 +1556,7 @@ function handleVisibleTextEditorChanged(textEditors: vscode.TextEditor[]) {
     }
     if (spinFilesInActiveEditors == 0) {
       codeBlockColorizer.closedAllFiles();
+      scopeGuidesProvider.closedAllFiles();
       /*  NOTE this double-pumps the SB change!
     } else {
       const editor = vscode.window.activeTextEditor!;
@@ -1702,6 +1717,7 @@ function handleActiveTextEditorChanged(textEditor?: vscode.TextEditor, source: s
 
   if (haveSpin1or2Document) {
     recolorizeSpinDocumentIfChanged(textEditor, 'handleActiveTextEditorChanged', 'Ext-actvEditorChg', true); // true=force the recolor
+    scopeGuidesProvider.activeEditorChanged(textEditor);
 
     // if in overtype mode, set the cursor to secondary style; otherwise, reset to default
     let cursorStyle;
@@ -1782,6 +1798,7 @@ const handleDidChangeConfiguration = async () => {
   vscode.commands.executeCommand('setContext', 'runtime.spin2.elasticTabstops.enabled', tabFormatter.isEnabled());
 
   codeBlockColorizer.updateColorizerConfiguration();
+  scopeGuidesProvider.reloadConfiguration();
   let editModeUpdated: boolean = reloadEditModeConfiguration();
   if (previousInsertModeEnable != tabConfiguration.enable) {
     editModeUpdated = true;

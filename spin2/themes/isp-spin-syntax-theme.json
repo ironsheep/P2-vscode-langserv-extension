@@ -36,6 +36,18 @@
     "terminal.ansiYellow": "#BF8F2F",
     "terminal.ansiBrightYellow": "#BF7F00",
 	"terminalCursor.foreground": "#CCCCCC",
+    "spin2.scopeGuide.level1": "#ccaa4440",
+    "spin2.scopeGuide.level2": "#cc66aa40",
+    "spin2.scopeGuide.level3": "#6688cc40",
+    "spin2.scopeGuide.level4": "#cc667740",
+    "spin2.scopeGuide.level5": "#77bb7740",
+    "spin2.scopeGuide.level6": "#55aa9940",
+    "spin2.scopeGuide.activeLevel1": "#ccaa4480",
+    "spin2.scopeGuide.activeLevel2": "#cc66aa80",
+    "spin2.scopeGuide.activeLevel3": "#6688cc80",
+    "spin2.scopeGuide.activeLevel4": "#cc667780",
+    "spin2.scopeGuide.activeLevel5": "#77bb7780",
+    "spin2.scopeGuide.activeLevel6": "#55aa9980"
   },
   "tokenColors": [
     {
