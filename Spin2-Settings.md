@@ -22,6 +22,7 @@ The Spin2 extension settings are in 7 sections.  If when you get to settings and
 
 - **Color Editor Background** - check this to turn on Propeller Tool coloring (you'll also need to adjust the color theme to make this readable!)
 - **Editor Background Alpha** - if you want to something a bit darker then you can adjust this.
+- **Scope Guides: Enable** - Show color-coded scope nesting guides in PUB/PRI method bodies. Each nesting level gets a distinct color, with the active scope highlighted brighter. Colors can be customized per theme.
 - **Author File Prefix** - Your personal file-name prefix (for example, `isp_`). When set, Rename Symbol will skip files that belong to a different author, protecting objects written by other people. Generally, you don't want to leave this blank if you are using a filenaming conventions for your files. Exception: Leave this blank to rename across all files (but be very careful). See [File Ownership and Safety](Spin2-code-navigation.md#file-ownership-and-safety) for details.
 - **Highlight FlexSpin directives** - This enables support for #if, #else, etc. FlexSpin directives
 - **Max Number of Reported Issues** - This allows you to limit how many messages are shown per file

@@ -240,6 +240,19 @@ To enable this feature:
 3. Optionally adjust the **Editor Background Alpha** to control the intensity
 4. Select one of the "for background Color" themes for best readability
 
+### Scope Nesting Guides
+
+The extension can display color-coded vertical lines in PUB/PRI method bodies that show nesting depth. Each nesting level gets a distinct color, and the scope containing your cursor is highlighted brighter. Scopes end with an L-shaped closer that points to the last line of the block.
+
+Guides continue through blank lines, block comments, and tab characters. Compound statements (`if`/`else`/`elseif`, `case`/`other`, `repeat`/`until`/`while`) are treated as one continuous scope — the guide spans the entire compound without breaking at intermediate keywords.
+
+To enable scope guides:
+
+1. Go to Settings and search for "SpinExt"
+2. Check **Scope Guides: Enable**
+
+The guide colors are defined per theme and can be customized via `workbench.colorCustomizations` using the `spin2.scopeGuide.level1` through `spin2.scopeGuide.level6` color IDs (and `activeLevel1` through `activeLevel6` for the active scope).
+
 ### Color Themes
 
 The extension ships with five color themes tailored for Spin2 development:

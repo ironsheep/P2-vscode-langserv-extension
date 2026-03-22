@@ -74,6 +74,7 @@ Full **language server based** support for Spin2 and Pasm2 on the Parallax Prope
 ### Editor Features
 
 - **Document Formatter** — section-aware source code formatting for `.spin2` files with column alignment (CON, VAR, OBJ, DAT), method body indentation normalization, inline PASM alignment, six independent keyword case controls (`blockNameCase`, `controlFlowCase`, `methodCase`, `typeCase`, `constantCase`, `pasmInstructionCase`), trailing comment alignment, and format-on-save support. Preserves block comments, string literals, debug() content, and preprocessor directives. Status bar indicator shows active whitespace mode; click to switch between spaces, tabs, or elastic tabstop profiles.
+- **Scope Nesting Guides** — color-coded vertical lines in PUB/PRI method bodies showing nesting depth, with L-shaped closers and active-scope highlighting
 - **Screen Coloring** — per-section background coloring à la Parallax Propeller Tool
 - **Elastic Tabstops** — custom tab-stop support per section à la Propeller Tool, with selectable tab sets (`Propeller Tool`, `IronSheep`, or `User1`)
 - **Edit Modes** — Insert, Overtype, and Align modes à la Propeller Tool

@@ -125,6 +125,16 @@ Section-aware code formatting for Spin2 files (disabled by default, enable via `
 - Format-on-save support via `spinExtension.formatter.formatOnSave`
 - Status bar indicator ("Spin2 Spaces: N" / "Spin2 Prop Tool" / "Spin2 IronSheep") — click to switch modes and profiles
 
+## Feature: Scope Nesting Guides
+
+Color-coded vertical lines in PUB/PRI method bodies showing nesting depth (disabled by default, enable via `spinExtension.scopeGuides.enable`):
+
+- 6-level color cycling with distinct hue per nesting depth; active scope (at cursor) renders brighter
+- L-shaped closers at scope end
+- Guides continue through blank lines, block comments, and tab characters; skip inline PASM
+- Compound statement awareness — `if`/`else`/`elseif`, `case`/`other`, `repeat`/`until`/`while` treated as one continuous scope
+- Per-theme guide colors for all 5 shipped themes; customizable via `workbench.colorCustomizations`
+
 ## Feature: Code Folding
 
 Provides Spin specific code folding support
