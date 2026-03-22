@@ -156,7 +156,7 @@ export class ScopeGuidesProvider {
     if (!this.enabled) return;
 
     const doc = editor.document;
-    const tabSize = Number(editor.options.tabSize) || 2;
+    const tabSize = 8; // tab width is always 8
     const scopes = this.getScopes(doc);
 
     if (scopes.length === 0) {
@@ -301,13 +301,28 @@ export class ScopeGuidesProvider {
 
   private parseMethodScopes(doc: vscode.TextDocument): ScopeInfo[] {
     const scopes: ScopeInfo[] = [];
-    const tabSize = Number(vscode.window.activeTextEditor?.options.tabSize) || 2;
+    // Tab width fixed at 8 for tab expansion in computeIndent
+    const tabWidth = 8;
+    // Determine indent step from the active mode:
+    // - Elastic: first PUB/PRI tab stop from the elastic profile
+    // - Spaces: indentSize from formatter settings
+    const elasticConfig = vscode.workspace.getConfiguration('spinExtension.elasticTabstops');
+    const elasticEnabled = elasticConfig.get<boolean>('enable', false);
+    let indentSize: number;
+    if (elasticEnabled) {
+      const choice = elasticConfig.get<string>('choice', 'PropellerTool');
+      const profileStops = vscode.workspace.getConfiguration(`spinExtension.elasticTabstops.blocks.${choice}.pub`);
+      const tabStops = profileStops.get<number[]>('tabStops');
+      indentSize = tabStops && tabStops.length > 0 ? tabStops[0] : 4;
+    } else {
+      indentSize = vscode.workspace.getConfiguration('spinExtension.formatter').get<number>('indentSize', 2);
+    }
 
     // Find PUB/PRI method body ranges
     const methodBodies = this.findMethodBodies(doc);
 
     for (const body of methodBodies) {
-      this.parseBodyScopes(doc, body.startLine, body.endLine, tabSize, scopes);
+      this.parseBodyScopes(doc, body.startLine, body.endLine, tabWidth, indentSize, scopes);
     }
 
     this._logMessage(`parseMethodScopes: ${scopes.length} scopes in ${path.basename(doc.fileName)}`);
@@ -352,7 +367,8 @@ export class ScopeGuidesProvider {
     doc: vscode.TextDocument,
     startLine: number,
     endLine: number,
-    tabSize: number,
+    tabWidth: number,
+    indentSize: number,
     scopes: ScopeInfo[]
   ): void {
     // Build a per-line indent map for code lines.
@@ -392,16 +408,14 @@ export class ScopeGuidesProvider {
       }
       if (inInlinePasm) { lineIndent[idx] = -1; continue; }
 
-      lineIndent[idx] = this.computeIndent(text, tabSize);
+      lineIndent[idx] = this.computeIndent(text, tabWidth);
     }
 
-    // Determine base indent from actual content (minimum indent of code lines).
-    // This is the PUB/PRI body's first indent level (e.g., 2 or 4).
-    let baseIndent = Infinity;
-    for (const indent of lineIndent) {
-      if (indent > 0 && indent < baseIndent) baseIndent = indent;
-    }
-    if (baseIndent === Infinity) return;
+    // Base indent = indentSize from user settings. This is the PUB/PRI body's
+    // first indent level (e.g., 2 or 4). Deriving from content is fragile —
+    // doc comments or misindented lines can be at a different level.
+    const baseIndent = indentSize;
+    if (baseIndent <= 0) return;
 
     // Collect unique indent levels deeper than base
     const indentLevels = new Set<number>();

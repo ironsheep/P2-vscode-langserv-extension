@@ -37,6 +37,7 @@ Scope nesting guides for PUB/PRI method bodies
 - Compound statement awareness — `if`/`else`/`elseif`/`elseifnot`, `case`/`other`, `repeat`/`until`/`while` are treated as one continuous scope
 - Enable via `spinExtension.scopeGuides.enable` (off by default)
 - Disable built-in indent guides for Spin/Spin2 files via `configurationDefaults`
+- Scope guide base indent reads from elastic profile tab stops (elastic mode) or `indentSize` setting (spaces mode)
 
 ## [2.9.2] - 2026-03-22
 
