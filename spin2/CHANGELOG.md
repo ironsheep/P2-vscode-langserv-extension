@@ -24,20 +24,19 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
-## [2.10.0] - 2026-03-22
+## [2.10.1] - 2026-03-22
 
 Scope nesting guides for PUB/PRI method bodies
 
 ### Added
 
-- Color-coded scope nesting guides in PUB/PRI method bodies — vertical lines at indent boundaries show nesting depth with L-shaped closers at scope end
-- 6-level color cycling with distinct hue per nesting depth; active scope (at cursor) renders brighter
-- Per-theme guide colors for all 5 shipped themes (dark, dark-bg, light, light-bg, syntax-only)
-- Guides continue through blank lines and block comments; skip inline PASM (ORG...END)
-- Compound statement awareness — `if`/`else`/`elseif`/`elseifnot`, `case`/`other`, `repeat`/`until`/`while` are treated as one continuous scope
+- Color-coded scope nesting guides in PUB/PRI method bodies with L-shaped closers at scope end
+- 6-level color cycling per nesting depth; active scope (at cursor) renders brighter
+- Per-theme guide colors for all 5 shipped themes
+- Guides continue through blank lines, block comments, and tab characters; skip inline PASM
+- Compound statement awareness — `if`/`else`/`elseif`, `case`/`other`, `repeat`/`until`/`while` treated as one continuous scope
+- Base indent derived from elastic profile (elastic mode) or `indentSize` setting (spaces mode)
 - Enable via `spinExtension.scopeGuides.enable` (off by default)
-- Disable built-in indent guides for Spin/Spin2 files via `configurationDefaults`
-- Scope guide base indent reads from elastic profile tab stops (elastic mode) or `indentSize` setting (spaces mode)
 
 ## [2.9.2] - 2026-03-22
 
