@@ -2,16 +2,16 @@
 ' File is already properly formatted with 2-space indent, correct tabstops
 
 CON
-  _clkfreq  = 10_000_000
+  _CLKFREQ  = 10_000_000
   MAX       = 100
   TIMEOUT   = 5000
 
 VAR
-  long  result
-  byte  flags
+  LONG  result
+  BYTE  flags
 
 OBJ
-  child         : "dummy_child"
+  child   : "dummy_child"
 
 PUB main() | i, temp
   result := 0
@@ -33,5 +33,5 @@ PUB helper(x) : y | scratch
 
 DAT
 
-        mydata          long    0
-        counter         long    0
+  mydata   LONG  0
+  counter  LONG  0

@@ -7,7 +7,7 @@ import { Provider } from '.';
 import { Context } from '../context';
 import { DocumentFindings, IBlockSpan, eBLockType } from '../parser/spin.semantic.findings';
 import { fileSpecFromURI } from '../parser/lang.utils';
-import { ElasticTabstopConfig, DEFAULT_TABSTOPS, buildRegularTabStops, alignContinuationGroups, splitTrailingComment, padToColumn, isFullLineComment, computeBlockCommentColumn } from '../formatter/spin2.formatter.base';
+import { ElasticTabstopConfig, DEFAULT_TABSTOPS, buildRegularTabStops, alignContinuationGroups, splitTrailingComment, padToColumn, isFullLineComment, computeBlockCommentColumn, findCurlyBlockCommentLines } from '../formatter/spin2.formatter.base';
 import { formatConBlock } from '../formatter/spin2.formatter.con';
 import { formatVarBlock } from '../formatter/spin2.formatter.var';
 import { formatObjBlock } from '../formatter/spin2.formatter.obj';
@@ -178,8 +178,11 @@ export default class DocumentFormattingProvider implements Provider {
     // Phase 7: Tab compression (spaces mode only)
     // Elastic mode uses pure spaces — tab characters would corrupt non-8-aligned columns.
     // Spaces mode compresses runs of spaces with tab characters at 8-column boundaries.
+    // Rescan block comment lines from the CURRENT lines — earlier phases may have
+    // added/removed lines, shifting indices so the original findings are stale.
     if (!elasticConfig.enabled) {
-      result = this.convertSpacesToTabs(result, findings, TAB_WIDTH);
+      const blockCommentLines = findCurlyBlockCommentLines(result, 0, result.length - 1);
+      result = this.convertSpacesToTabs(result, blockCommentLines, TAB_WIDTH);
     }
 
     return result;
@@ -512,9 +515,9 @@ export default class DocumentFormattingProvider implements Provider {
     return lines;
   }
 
-  private convertSpacesToTabs(lines: string[], findings: DocumentFindings, tabWidth: number): string[] {
+  private convertSpacesToTabs(lines: string[], blockCommentLines: Set<number>, tabWidth: number): string[] {
     return lines.map((line, idx) => {
-      if (findings.isLineInBlockComment(idx)) {
+      if (blockCommentLines.has(idx)) {
         return line;
       }
       if (line.indexOf(' ') === -1) {

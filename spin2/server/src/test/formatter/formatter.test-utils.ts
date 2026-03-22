@@ -6,7 +6,7 @@
 // formatting pipeline that doesn't require the full LSP server.
 
 import { IBlockSpan, eBLockType } from '../../parser/spin.semantic.findings';
-import { ElasticTabstopConfig, DEFAULT_TABSTOPS, buildRegularTabStops } from '../../formatter/spin2.formatter.base';
+import { ElasticTabstopConfig, DEFAULT_TABSTOPS, buildRegularTabStops, findCurlyBlockCommentLines } from '../../formatter/spin2.formatter.base';
 import { formatConBlock } from '../../formatter/spin2.formatter.con';
 import { formatVarBlock } from '../../formatter/spin2.formatter.var';
 import { formatObjBlock } from '../../formatter/spin2.formatter.obj';
@@ -307,8 +307,10 @@ export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>,
 
   // Phase 7: Tab compression (spaces mode only)
   // Elastic mode uses pure spaces. Spaces mode compresses with tabs at 8-column boundaries.
+  // Rescan block comment lines from current lines — earlier phases may have shifted indices.
   if (!elasticConfig.enabled) {
-    lines = convertSpacesToTabs(lines, findings, TAB_WIDTH);
+    const blockCommentLines = findCurlyBlockCommentLines(lines, 0, lines.length - 1);
+    lines = convertSpacesToTabs(lines, blockCommentLines, TAB_WIDTH);
   }
 
   return lines.join('\n');
@@ -342,9 +344,9 @@ function convertTabsToSpaces(lines: string[], findings: MockDocumentFindings, ta
   });
 }
 
-function convertSpacesToTabs(lines: string[], findings: MockDocumentFindings, tabWidth: number): string[] {
+function convertSpacesToTabs(lines: string[], blockCommentLines: Set<number>, tabWidth: number): string[] {
   return lines.map((line, idx) => {
-    if (findings.isLineInBlockComment(idx)) {
+    if (blockCommentLines.has(idx)) {
       return line;
     }
     // Count leading spaces
