@@ -24,6 +24,19 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.10.3] - 2026-03-23
+
+Formatter comment-spacing fix and expanded regression testing
+
+### Fixed
+
+- BUGFIX: Trailing comment column alignment now preserved when space is inserted after `'` comment markers (CON/DAT/method blocks)
+
+### Added
+
+- Regression fixture `regr-comment-space-alignment` for comment-spacing idempotency
+- Formatter audit of TOF-Sensor (12 files) and uSD-FS (44 files) real-world codebases — all pass
+
 ## [2.10.2] - 2026-03-23
 
 Scope guide fixes for spaces mode with tab compression

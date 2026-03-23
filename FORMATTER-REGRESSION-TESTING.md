@@ -170,18 +170,11 @@ Each `.spin2` file targets a specific formatting feature or known bug:
 
 Each fixture has companion `.bin.GOLD`, `.lst.GOLD`, and `.obj.GOLD` files compiled by PNut on Windows.
 
-**Total**: ~52 targeted fixture files, ~132 GOLD reference files.
+**Total**: ~53 targeted fixture files, ~133 GOLD reference files.
 
 ### 5.2 Production File Tests (`TEST-FORMATTER/`)
 
-Real-world production Spin2 files (driver objects, exerciser programs):
-
-- 18 `.spin2` source files
-- 17 `.bin.GOLD` compiled binaries
-- 18 `.lst.GOLD` compiler listings
-- 18 `.map.GOLD` symbol maps
-
-These files exercise the formatter on code that was not written to test the formatter — they contain the kind of inconsistent formatting, complex object hierarchies, and unusual patterns found in real projects.
+Real-world production Spin2 files (driver objects, exerciser programs) across multiple project directories within `TEST-FORMATTER/`. These files exercise the formatter on code that was not written to test the formatter — they contain the kind of inconsistent formatting, complex object hierarchies, and unusual patterns found in real projects.
 
 ### 5.3 Auto-Discovery
 
@@ -278,10 +271,13 @@ npm run test:server
 
 In addition to the unit test fixtures, the formatter is audited against real-world production codebases. Each file is formatted, recompiled with PNut-TS, and the binary is compared byte-for-byte against the original. Audits run across all whitespace modes (default spaces, 4-space indent, tabs, elastic PropellerTool, elastic IronSheep).
 
-| Test Set | Files | Modes Tested | Status |
-|----------|-------|-------------|--------|
-| `TEST-FORMATTER/p2-HUB75-LED-Matrix-Driver/` | 24 files | 4 modes (96 checks) | All pass |
-| `TEST-FORMATTER/FLASH_FS/` | 16 files | 5 modes (80 checks) | All pass |
+| Test Set | Files | Status |
+|----------|-------|--------|
+| `TEST-FORMATTER/p2-HUB75-LED-Matrix-Driver/` | 24 files | All pass |
+| `TEST-FORMATTER/FLASH_FS/` | 16 files | All pass |
+| `TEST-FORMATTER/P2-mult-servo-exerciser/` | 18 files (17 with GOLD) | All pass |
+| `TEST-FORMATTER/TOF-Sensor/` | 12 files (includes `.dat` file dependency) | All pass |
+| `TEST-FORMATTER/uSD-FS/` | 44 files | All pass |
 
 ---
 
@@ -308,6 +304,7 @@ Each of these bugs has a dedicated fixture file and is documented in Appendix D 
 | D.16 | `{ }` block comment content reformatted | Comment alignment couldn't distinguish `{ }` from `'` groups | `regr-curly-block-comment-preserve` |
 | — | OBJ array declarations rejected | Name regex didn't accept `[count]` suffix | `regr-obj-array-decl` |
 | — | Preprocessor directives indented | No special handling for `#define`, `#ifdef`, etc. | `regr-preprocessor-preserve` |
+| D.17 | Comment spacing destroys column alignment | `normalizeCommentSpacing` reconstructed line with hard-coded 2-space gap instead of preserving formatter-computed gap | `regr-comment-space-alignment` |
 
 ---
 

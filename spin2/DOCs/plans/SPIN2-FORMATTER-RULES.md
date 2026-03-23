@@ -443,3 +443,13 @@ The fix: detect `debug(` and parse with balanced parentheses (tracking strings a
 **Not binary-breaking (alignment only).** The real parser records consecutive `'` comment lines (2+) as "block comments" via `recordComment()`. The formatter's `isLineInBlockComment()` check skipped these, leaving grouped comments unaligned. Single-line comments were aligned correctly but multi-line comment groups were not.
 
 The fix: use `findings.isLineInBlockComment(i) && !trimmed.startsWith("'")` — allow `'`-prefixed lines through even when the parser reports them as block comments. This matches the pattern already used in the method formatter (`spin2.formatter.method.ts` line 266).
+
+### D.17 Comment spacing normalization destroys column alignment (`regr-comment-space-alignment`)
+
+**Not binary-breaking (idempotency).** `normalizeCommentSpacing` in Phase 6 reconstructed lines as `codePart + '  ' + normalized` when inserting a space after `'` comment markers (e.g., `'(20MHz/4)` → `' (20MHz/4)`). Because `splitTrailingComment` trimEnd's the code part, the carefully computed comment column gap set by section formatters (CON/DAT/method) was replaced with a hard-coded 2-space gap. On the second format pass, the space was already present, so the section formatter's alignment survived — producing a different result than the first pass.
+
+Affected CON assignment blocks, DAT data lines, and PUB/PRI method bodies containing comments without space after `'`.
+
+The fix: replace only the comment suffix in-place using `lines[i].substring(0, commentStart) + normalized` where `commentStart = lines[i].length - commentPart.length`. This preserves the gap between code and comment exactly as the section formatter set it.
+
+Discovered via binary audit of `TEST-FORMATTER/TOF-Sensor/` — 3 of 12 files failed Phase 3 (idempotency) with trailing comment columns shifting on second format pass.
