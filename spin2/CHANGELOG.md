@@ -24,18 +24,15 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
-## [2.10.1] - 2026-03-22
+## [2.10.2] - 2026-03-23
 
 Scope nesting guides for PUB/PRI method bodies
 
 ### Added
 
-- Color-coded scope nesting guides in PUB/PRI method bodies with L-shaped closers at scope end
-- 6-level color cycling per nesting depth; active scope (at cursor) renders brighter
-- Per-theme guide colors for all 5 shipped themes
-- Guides continue through blank lines, block comments, and tab characters; skip inline PASM
-- Compound statement awareness — `if`/`else`/`elseif`, `case`/`other`, `repeat`/`until`/`while` treated as one continuous scope
-- Base indent derived from elastic profile (elastic mode) or `indentSize` setting (spaces mode)
+- Color-coded scope nesting guides with L-shaped closers in PUB/PRI method bodies
+- 6-level color cycling; active scope highlights brighter; per-theme colors for all 5 themes
+- Compound statements (`if`/`else`, `case`/`other`, `repeat`/`until`) treated as continuous scopes
 - Enable via `spinExtension.scopeGuides.enable` (off by default)
 
 ## [2.9.2] - 2026-03-22

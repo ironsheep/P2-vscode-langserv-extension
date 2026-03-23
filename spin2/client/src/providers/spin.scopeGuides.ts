@@ -32,8 +32,10 @@ export class ScopeGuidesProvider {
   private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
 
-  // Single decoration type — all styling is per-decoration via renderOptions.before
+  // Single decoration type for before-pseudo-element guides
   private guideDecorationType: vscode.TextEditorDecorationType | undefined;
+  // Lazily created decoration types for guides inside tab characters (gradient-based)
+  private tabGuideTypes = new Map<string, vscode.TextEditorDecorationType>();
   private enabled: boolean = false;
 
   private cacheByFilespec = new Map<string, CachedScopes>();
@@ -68,9 +70,40 @@ export class ScopeGuidesProvider {
     this.guideDecorationType = vscode.window.createTextEditorDecorationType({});
   }
 
+  /** Get or create a decoration type for a guide inside a tab character at the given offset. */
+  private getTabGuideType(offset: number, colorId: string, isCloser: boolean = false): vscode.TextEditorDecorationType {
+    const key = `${offset}:${colorId}:${isCloser ? 'c' : 'v'}`;
+    let dt = this.tabGuideTypes.get(key);
+    if (!dt) {
+      let bgCSS: string;
+      if (!isCloser) {
+        // Vertical line only
+        bgCSS = `background: linear-gradient(to right, transparent ${offset}ch, currentColor ${offset}ch, currentColor calc(${offset}ch + 1px), transparent calc(${offset}ch + 1px))`;
+      } else {
+        // L-shape: vertical line + horizontal line at bottom
+        bgCSS = [
+          `background:`,
+          `linear-gradient(to right, transparent ${offset}ch, currentColor ${offset}ch, currentColor calc(${offset}ch + 1px), transparent calc(${offset}ch + 1px)),`,
+          `linear-gradient(currentColor, currentColor)`,
+          `; background-size: 100% 100%, calc(100% - ${offset}ch) 1px`,
+          `; background-position: 0 0, ${offset}ch calc(100% - 1px)`,
+          `; background-repeat: no-repeat, no-repeat`
+        ].join(' ');
+      }
+      dt = vscode.window.createTextEditorDecorationType({
+        color: new vscode.ThemeColor(colorId),
+        textDecoration: `none; ${bgCSS}`
+      });
+      this.tabGuideTypes.set(key, dt);
+    }
+    return dt;
+  }
+
   private disposeDecorationTypes(): void {
     if (this.guideDecorationType) this.guideDecorationType.dispose();
+    for (const dt of this.tabGuideTypes.values()) dt.dispose();
     this.guideDecorationType = undefined;
+    this.tabGuideTypes.clear();
   }
 
   // ---------------------------------------------------------------------------
@@ -156,7 +189,9 @@ export class ScopeGuidesProvider {
     if (!this.enabled) return;
 
     const doc = editor.document;
-    const tabSize = 8; // tab width is always 8
+    // Tabs are always 8 columns in our model. Tab compression doesn't change
+    // visual positions — it just reduces character count.
+    const tabSize = 8;
     const scopes = this.getScopes(doc);
 
     if (scopes.length === 0) {
@@ -184,11 +219,11 @@ export class ScopeGuidesProvider {
       }
     }
 
-    // Build a single decorations array.
-    // For each guide position, find the character that contains the visual column
-    // and place the decoration there. For blank lines, use a before pseudo-element
-    // with position:absolute to avoid pushing text.
+    // Build decorations. Most guides use the single guideDecorationType with
+    // per-instance renderOptions.before. Guides inside tab characters use
+    // gradient-based decoration types (one per offset+color combination).
     const allDecos: vscode.DecorationOptions[] = [];
+    const tabGuideDecos = new Map<vscode.TextEditorDecorationType, vscode.DecorationOptions[]>();
 
     for (const scope of scopes) {
       // Skip column 0 — no guide at method-body base level
@@ -215,9 +250,28 @@ export class ScopeGuidesProvider {
           if (lineInd <= scope.indentColumn) continue;
         }
         const isLastLine = line === scope.endLine;
-        const borderHide = !isLastLine
-          ? 'border-top: none; border-right: none; border-bottom: none'
-          : 'border-top: none; border-right: none';
+        let borderHide: string;
+        if (!isLastLine) {
+          borderHide = 'border-top: none; border-right: none; border-bottom: none';
+        } else {
+          // L-shaped closer: extend horizontal bar from guide column toward
+          // the first character, stopping 1 space before the next inner guide
+          // (if any) or 1 space before the text.
+          const lineInd = this.computeIndent(lineText, tabSize);
+          let horizEnd = lineInd; // default: up to first character
+
+          // Check for inner scope guides on this line between our column and the text
+          for (const inner of scopes) {
+            if (inner.indentColumn > scope.indentColumn &&
+                inner.indentColumn < lineInd &&
+                line >= inner.startLine && line <= inner.endLine) {
+              horizEnd = Math.min(horizEnd, inner.indentColumn);
+            }
+          }
+
+          const horizWidth = Math.max(1, horizEnd - scope.indentColumn - 1);
+          borderHide = `display: inline-block; width: ${horizWidth}ch; height: 100%; margin-right: -${horizWidth}ch; border-top: none; border-right: none`;
+        }
 
         // Find the character at or containing the visual column
         const mapping = this.findCharAtVisualCol(lineText, scope.indentColumn, tabSize);
@@ -237,33 +291,28 @@ export class ScopeGuidesProvider {
             }
           });
         } else if (mapping.charIdx >= 0 && mapping.offset > 0) {
-          // Visual column falls inside a tab — place at tab char with margin offset
+          // Visual column falls inside a tab character. Use a background
+          // gradient on the tab itself to draw a 1px line at the offset.
+          // Gradient types are per (offset, color) — no text push.
+          const dt = this.getTabGuideType(mapping.offset, colorId, isLastLine);
           const pos = new vscode.Position(line, mapping.charIdx);
-          allDecos.push({
-            range: new vscode.Range(pos, pos),
-            renderOptions: {
-              before: {
-                contentText: '',
-                margin: `0 0 0 ${mapping.offset}ch`,
-                border: '1px solid',
-                borderColor: new vscode.ThemeColor(colorId),
-                textDecoration: `none; ${borderHide}`
-              }
-            }
-          });
+          const endPos = new vscode.Position(line, mapping.charIdx + 1);
+          if (!tabGuideDecos.has(dt)) tabGuideDecos.set(dt, []);
+          tabGuideDecos.get(dt)!.push({ range: new vscode.Range(pos, endPos) });
         } else {
-          // Past end of line (blank or short) — use absolute positioning
+          // Past end of line (blank or short)
           const pos = new vscode.Position(line, Math.max(0, lineText.length));
           const remainingCols = scope.indentColumn - mapping.visualColAtEnd;
           allDecos.push({
             range: new vscode.Range(pos, pos),
             renderOptions: {
               before: {
-                contentText: '',
+                contentText: '\u200B',
+                color: 'transparent',
                 margin: `0 0 0 ${remainingCols}ch`,
                 border: '1px solid',
                 borderColor: new vscode.ThemeColor(colorId),
-                textDecoration: `none; ${borderHide}`
+                textDecoration: `none; font-size: 0; ${borderHide}`
               }
             }
           });
@@ -274,10 +323,23 @@ export class ScopeGuidesProvider {
     if (this.guideDecorationType) {
       editor.setDecorations(this.guideDecorationType, allDecos);
     }
+    // Apply tab gradient decorations (one setDecorations per type)
+    for (const [dt, decos] of tabGuideDecos) {
+      editor.setDecorations(dt, decos);
+    }
+    // Clear any tab guide types that weren't used this cycle
+    for (const [key, dt] of this.tabGuideTypes) {
+      if (!tabGuideDecos.has(dt)) {
+        editor.setDecorations(dt, []);
+      }
+    }
   }
 
   private clearDecorations(editor: vscode.TextEditor): void {
     if (this.guideDecorationType) editor.setDecorations(this.guideDecorationType, []);
+    for (const dt of this.tabGuideTypes.values()) {
+      editor.setDecorations(dt, []);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -301,7 +363,7 @@ export class ScopeGuidesProvider {
 
   private parseMethodScopes(doc: vscode.TextDocument): ScopeInfo[] {
     const scopes: ScopeInfo[] = [];
-    // Tab width fixed at 8 for tab expansion in computeIndent
+    // Tabs are always 8 columns — matches our formatter's tab model
     const tabWidth = 8;
     // Determine indent step from the active mode:
     // - Elastic: first PUB/PRI tab stop from the elastic profile
