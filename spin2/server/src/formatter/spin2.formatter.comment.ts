@@ -453,7 +453,10 @@ export function normalizeCommentSpacing(
     const normalized = commentPart.replace(/^('{1,2})([^'\s])/, '$1 $2');
     if (normalized !== commentPart) {
       if (codePart.length > 0) {
-        lines[i] = codePart + '  ' + normalized;
+        // Replace only the comment suffix in-place so the gap set by
+        // section formatters (CON/DAT/method comment alignment) is preserved.
+        const commentStart = lines[i].length - commentPart.length;
+        lines[i] = lines[i].substring(0, commentStart) + normalized;
       } else {
         // Full-line comment — preserve leading whitespace
         const leadingWs = lines[i].match(/^(\s*)/)?.[1] || '';

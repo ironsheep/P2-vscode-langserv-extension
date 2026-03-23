@@ -1,0 +1,43 @@
+' regr-comment-space-alignment.spin2
+' Regression: normalizeCommentSpacing must not destroy column alignment
+' set by section formatters when inserting a space after the ' comment marker.
+' Covers CON (assignment), DAT (data lines), and PUB (method body) blocks.
+
+CON
+
+  _clkfreq    = 10_000_000
+
+  ' Clock frequency constants — some missing space after '
+  CLK350MHz   = %1_000011_0001000101_1111_10_11 '(20MHz/4) * 70/1 = 350   MHz
+  CLK325MHz   = %1_000011_0001000000_1111_10_11 '(20MHz/4) * 65/1 = 325   MHz
+  CLK250MHz   = %1_000011_0000110001_1111_10_11 '(20MHz/4) * 50/1 = 250   MHz
+  CLK200MHz   = %1_000100_0000110001_1111_10_11 '(20MHz/5) * 50/1 = 200   MHz
+
+  ' Enum — also missing space after '
+  #0, RGBHV, RGBS, RGB_SOG  'SOG = sync on green
+
+VAR
+
+  LONG  cog
+
+DAT
+
+              ' Colour table — mix of with-space and without-space comments
+              long      $00_00_00_00                    ' 0 = black
+              long      $00_00_AA_00                    ' 1 = dark blue
+              long      $55_FF_55_00   '10 = light green
+              long      $55_FF_FF_00   '11 = light cyan
+              long      $FF_55_55_00   '12 = light red
+              long      $FF_FF_FF_00   '15 = white
+
+PUB main() | bStatus, val
+
+  bStatus := readSomething($7FFF, $00)    'status |= WrByte(&(p_dev->platform), 0x7FFF, 0x00)
+  bStatus |= readSomething($0009, $04)                    ' status |= WrByte(&(p_dev->platform), 0x09, 0x04)
+  if bStatus
+    val := 0
+
+PRI readSomething(addr, value) : result
+
+  result := addr + value
+
