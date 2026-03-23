@@ -35,6 +35,15 @@ Scope nesting guides for PUB/PRI method bodies
 - Compound statements (`if`/`else`, `case`/`other`, `repeat`/`until`) treated as continuous scopes
 - Enable via `spinExtension.scopeGuides.enable` (off by default)
 
+## [2.10.1] - 2026-03-22
+
+Scope guide fixes for spaces mode with tab compression
+
+### Fixed
+
+- BUGFIX: Scope guides now render correctly inside tab characters using gradient-based rendering
+- BUGFIX: Base indent derived from elastic profile (elastic mode) or `indentSize` setting (spaces mode)
+
 ## [2.9.2] - 2026-03-22
 
 Simplified tab model and content-driven column alignment
