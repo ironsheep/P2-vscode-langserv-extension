@@ -14,7 +14,13 @@ const MAX_LEVELS = 6;
 
 // Keywords that continue a compound statement (if/else, case/other, repeat/until).
 // A line at the guide column starting with one of these does NOT break the scope group.
-const CONTINUATION_KW_RE = /^(else|elseif|elseifnot|other|until|while)\b/i;
+// Keywords that continue a compound statement (if/else, repeat/until).
+// A line at the guide column starting with one of these does NOT break the scope group.
+// NOTE: OTHER is intentionally excluded — it is a case arm label (default match).
+// At the inner scope, OTHER at guideColumn should close the arm group so each arm
+// gets its own L-shaped closer.  At the outer scope, OTHER is a deep line (indent >
+// guideColumn) so this regex doesn't apply.
+const CONTINUATION_KW_RE = /^(else|elseif|elseifnot|until|while)\b/i;
 
 interface ScopeInfo {
   depth: number; // 1-based nesting depth
@@ -70,28 +76,46 @@ export class ScopeGuidesProvider {
     this.guideDecorationType = vscode.window.createTextEditorDecorationType({});
   }
 
-  /** Get or create a decoration type for a guide inside a tab character at the given offset. */
-  private getTabGuideType(offset: number, colorId: string, isCloser: boolean = false): vscode.TextEditorDecorationType {
-    const key = `${offset}:${colorId}:${isCloser ? 'c' : 'v'}`;
+  /**
+   * Get or create a decoration type that draws multiple guide lines inside a
+   * single tab character.  Each entry in `guides` is { offset, colorId, isCloser }.
+   * A single combined gradient is built so that all lines render without
+   * overwriting each other (multiple decoration types on the same character
+   * would clobber each other's background).  L-shaped closers add a horizontal
+   * bar at the bottom via additional background layers.
+   */
+  private getCombinedTabGuideType(guides: { offset: number; colorId: string; isCloser: boolean }[]): vscode.TextEditorDecorationType {
+    // Sort by offset for canonical key
+    const sorted = [...guides].sort((a, b) => a.offset - b.offset);
+    const key = sorted.map(g => `${g.offset}:${g.colorId}:${g.isCloser ? 'c' : 'v'}`).join('|');
     let dt = this.tabGuideTypes.get(key);
     if (!dt) {
-      let bgCSS: string;
-      if (!isCloser) {
-        // Vertical line only
-        bgCSS = `background: linear-gradient(to right, transparent ${offset}ch, currentColor ${offset}ch, currentColor calc(${offset}ch + 1px), transparent calc(${offset}ch + 1px))`;
-      } else {
-        // L-shape: vertical line + horizontal line at bottom
-        bgCSS = [
-          `background:`,
-          `linear-gradient(to right, transparent ${offset}ch, currentColor ${offset}ch, currentColor calc(${offset}ch + 1px), transparent calc(${offset}ch + 1px)),`,
-          `linear-gradient(currentColor, currentColor)`,
-          `; background-size: 100% 100%, calc(100% - ${offset}ch) 1px`,
-          `; background-position: 0 0, ${offset}ch calc(100% - 1px)`,
-          `; background-repeat: no-repeat, no-repeat`
-        ].join(' ');
+      // Vertical lines: one multi-stop gradient with 1px lines per guide.
+      const stops: string[] = [];
+      for (const g of sorted) {
+        const cssVar = `var(--vscode-${g.colorId.replace(/\./g, '-')})`;
+        stops.push(`transparent ${g.offset}ch`);
+        stops.push(`${cssVar} ${g.offset}ch`);
+        stops.push(`${cssVar} calc(${g.offset}ch + 1px)`);
+        stops.push(`transparent calc(${g.offset}ch + 1px)`);
       }
+
+      // L-shaped closers: each adds a horizontal bar at the bottom
+      const closers = sorted.filter(g => g.isCloser);
+      const bgImages: string[] = [`linear-gradient(to right, ${stops.join(', ')})`];
+      const bgSizes: string[] = ['100% 100%'];
+      const bgPositions: string[] = ['0 0'];
+      for (const c of closers) {
+        const cssVar = `var(--vscode-${c.colorId.replace(/\./g, '-')})`;
+        bgImages.push(`linear-gradient(${cssVar}, ${cssVar})`);
+        bgSizes.push(`calc(100% - ${c.offset}ch) 1px`);
+        bgPositions.push(`${c.offset}ch calc(100% - 1px)`);
+      }
+
+      const bgCSS = closers.length > 0
+        ? `background: ${bgImages.join(', ')}; background-size: ${bgSizes.join(', ')}; background-position: ${bgPositions.join(', ')}; background-repeat: no-repeat`
+        : `background: ${bgImages[0]}`;
       dt = vscode.window.createTextEditorDecorationType({
-        color: new vscode.ThemeColor(colorId),
         textDecoration: `none; ${bgCSS}`
       });
       this.tabGuideTypes.set(key, dt);
@@ -221,9 +245,17 @@ export class ScopeGuidesProvider {
 
     // Build decorations. Most guides use the single guideDecorationType with
     // per-instance renderOptions.before. Guides inside tab characters use
-    // gradient-based decoration types (one per offset+color combination).
+    // gradient-based decoration types — multiple guides inside the same tab
+    // must be combined into a single gradient to avoid clobbering each other.
     const allDecos: vscode.DecorationOptions[] = [];
-    const tabGuideDecos = new Map<vscode.TextEditorDecorationType, vscode.DecorationOptions[]>();
+
+    // Collect tab-interior guides by (line, charIdx) so we can combine them.
+    const tabGuidesByChar = new Map<string, { line: number; charIdx: number; guides: { offset: number; colorId: string; isCloser: boolean }[] }>();
+
+    // Collect blank-line guides by line so we can combine them into a single
+    // gradient (multiple before pseudo-elements on the same empty position
+    // stack margins cumulatively instead of positioning absolutely).
+    const blankLineGuides = new Map<number, { colorId: string; column: number }[]>();
 
     for (const scope of scopes) {
       // Skip column 0 — no guide at method-body base level
@@ -291,39 +323,69 @@ export class ScopeGuidesProvider {
             }
           });
         } else if (mapping.charIdx >= 0 && mapping.offset > 0) {
-          // Visual column falls inside a tab character. Use a background
-          // gradient on the tab itself to draw a 1px line at the offset.
-          // Gradient types are per (offset, color) — no text push.
-          const dt = this.getTabGuideType(mapping.offset, colorId, isLastLine);
-          const pos = new vscode.Position(line, mapping.charIdx);
-          const endPos = new vscode.Position(line, mapping.charIdx + 1);
-          if (!tabGuideDecos.has(dt)) tabGuideDecos.set(dt, []);
-          tabGuideDecos.get(dt)!.push({ range: new vscode.Range(pos, endPos) });
+          // Visual column falls inside a tab character. Collect for combined
+          // gradient — multiple guides in the same tab must share one gradient.
+          const charKey = `${line}:${mapping.charIdx}`;
+          let entry = tabGuidesByChar.get(charKey);
+          if (!entry) {
+            entry = { line, charIdx: mapping.charIdx, guides: [] };
+            tabGuidesByChar.set(charKey, entry);
+          }
+          entry.guides.push({ offset: mapping.offset, colorId, isCloser: isLastLine });
         } else {
-          // Past end of line (blank or short)
-          const pos = new vscode.Position(line, Math.max(0, lineText.length));
-          const remainingCols = scope.indentColumn - mapping.visualColAtEnd;
-          allDecos.push({
-            range: new vscode.Range(pos, pos),
-            renderOptions: {
-              before: {
-                contentText: '\u200B',
-                color: 'transparent',
-                margin: `0 0 0 ${remainingCols}ch`,
-                border: '1px solid',
-                borderColor: new vscode.ThemeColor(colorId),
-                textDecoration: `none; font-size: 0; ${borderHide}`
-              }
-            }
-          });
+          // Past end of line (blank or short) — collect for combined rendering.
+          // Multiple before pseudo-elements on the same empty position stack
+          // margins cumulatively, so we must combine all guides for each blank
+          // line into a single gradient decoration.
+          if (!blankLineGuides.has(line)) blankLineGuides.set(line, []);
+          blankLineGuides.get(line)!.push({ colorId, column: scope.indentColumn });
         }
       }
+    }
+
+    // Build combined tab gradient decorations — one decoration type per
+    // unique set of (offsets + colors) within a tab character.
+    const tabGuideDecos = new Map<vscode.TextEditorDecorationType, vscode.DecorationOptions[]>();
+    for (const entry of tabGuidesByChar.values()) {
+      const dt = this.getCombinedTabGuideType(entry.guides);
+      const pos = new vscode.Position(entry.line, entry.charIdx);
+      const endPos = new vscode.Position(entry.line, entry.charIdx + 1);
+      if (!tabGuideDecos.has(dt)) tabGuideDecos.set(dt, []);
+      tabGuideDecos.get(dt)!.push({ range: new vscode.Range(pos, endPos) });
+    }
+
+    // Build combined blank-line gradient decorations.
+    // Uses a before pseudo-element wide enough to cover all guide columns,
+    // with a multi-stop gradient to draw vertical lines at absolute positions.
+    for (const [line, guides] of blankLineGuides) {
+      const sorted = [...guides].sort((a, b) => a.column - b.column);
+      const maxCol = sorted[sorted.length - 1].column;
+      const stops: string[] = [];
+      for (const g of sorted) {
+        const cssVar = `var(--vscode-${g.colorId.replace(/\./g, '-')})`;
+        stops.push(`transparent ${g.column}ch`);
+        stops.push(`${cssVar} ${g.column}ch`);
+        stops.push(`${cssVar} calc(${g.column}ch + 1px)`);
+        stops.push(`transparent calc(${g.column}ch + 1px)`);
+      }
+      const width = maxCol + 1;
+      const bgCSS = `background: linear-gradient(to right, ${stops.join(', ')}); width: ${width}ch; display: inline-block; height: 100%`;
+      const pos = new vscode.Position(line, 0);
+      allDecos.push({
+        range: new vscode.Range(pos, pos),
+        renderOptions: {
+          before: {
+            contentText: '',
+            textDecoration: `none; ${bgCSS}`
+          }
+        }
+      });
     }
 
     if (this.guideDecorationType) {
       editor.setDecorations(this.guideDecorationType, allDecos);
     }
-    // Apply tab gradient decorations (one setDecorations per type)
+    // Apply combined tab gradient decorations
     for (const [dt, decos] of tabGuideDecos) {
       editor.setDecorations(dt, decos);
     }
@@ -368,6 +430,7 @@ export class ScopeGuidesProvider {
     // Determine indent step from the active mode:
     // - Elastic: first PUB/PRI tab stop from the elastic profile
     // - Spaces: indentSize from formatter settings
+    // The formatter uses the same logic to set method body indentation.
     const elasticConfig = vscode.workspace.getConfiguration('spinExtension.elasticTabstops');
     const elasticEnabled = elasticConfig.get<boolean>('enable', false);
     let indentSize: number;
@@ -459,7 +522,12 @@ export class ScopeGuidesProvider {
         else if (ch === '}' && blockCommentDepth > 0) blockCommentDepth--;
       }
       if (depthAtLineStart > 0) { lineIndent[idx] = -1; continue; }
-      if (trimmed.startsWith('{') || trimmed.startsWith('}')) { lineIndent[idx] = -1; continue; }
+      // Multi-line block comment boundaries: opening { that doesn't close on
+      // the same line, or closing } of a multi-line block.  Single-line
+      // {comment} (depth back to 0) participates in indent analysis so it
+      // can anchor scope guides within case arms whose body is a comment.
+      if (trimmed.startsWith('{') && blockCommentDepth > 0) { lineIndent[idx] = -1; continue; }
+      if (trimmed.startsWith('}') && depthAtLineStart > 0) { lineIndent[idx] = -1; continue; }
 
       // Inline PASM
       if (/^org\b/i.test(trimmed) || /^orgh\b/i.test(trimmed) || /^orgf\b/i.test(trimmed)) {
@@ -500,6 +568,10 @@ export class ScopeGuidesProvider {
 
       let groupFirstDeep = -1;
       let groupLastDeep = -1;
+      // Track blank lines after a scope-boundary line (case/if/repeat/case label).
+      // When a deep line eventually appears, the group starts from the first
+      // pending blank — covering the gap between the opener and the first code.
+      let pendingGapStart = -1;
 
       const emitGroup = () => {
         if (groupFirstDeep >= 0 && groupLastDeep >= groupFirstDeep) {
@@ -513,6 +585,7 @@ export class ScopeGuidesProvider {
         }
         groupFirstDeep = -1;
         groupLastDeep = -1;
+        pendingGapStart = -1;
       };
 
       for (let idx = 0; idx < lineIndent.length; idx++) {
@@ -520,10 +593,21 @@ export class ScopeGuidesProvider {
 
         if (indent >= level) {
           // Deep line — extend or start group
-          if (groupFirstDeep === -1) groupFirstDeep = idx;
+          if (groupFirstDeep === -1) {
+            // Start group from pending gap (blank lines after scope opener)
+            // or from this line if no pending gap.
+            groupFirstDeep = pendingGapStart >= 0 ? pendingGapStart : idx;
+          }
           groupLastDeep = idx;
+          pendingGapStart = -1;
         } else if (indent === -1) {
-          // Blank/comment line — gap, keep going if inside a group
+          // Blank/comment line — gap.
+          // If inside a group, it continues the group.
+          // If no group is open, track as pending gap (may be between
+          // a scope opener and the first deep line).
+          if (groupFirstDeep === -1 && pendingGapStart === -1) {
+            pendingGapStart = idx;
+          }
         } else if (indent <= guideColumn + baseIndent && indent > guideColumn) {
           // Line at intermediate indent (between guide col and target level) — gap
         } else if (indent <= guideColumn) {
@@ -537,6 +621,9 @@ export class ScopeGuidesProvider {
               emitGroup();
             }
           }
+          // This line is a scope boundary — blank lines after it may belong
+          // to the next group. Reset pending gap tracking.
+          pendingGapStart = -1;
         }
       }
       emitGroup();

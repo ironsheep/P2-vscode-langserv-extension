@@ -24,6 +24,25 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.10.4] - 2026-03-24
+
+Scope guide and formatter improvements across elastic and spaces modes
+
+### Fixed
+
+- BUGFIX: Scope guides now render on blank lines within method bodies
+- BUGFIX: Multiple scope guides inside tab characters render correctly
+- BUGFIX: Scope guides on blank lines render at correct column positions
+- BUGFIX: Scope guides match formatter indent when switching between elastic and spaces modes
+- BUGFIX: L-shaped closers render inside tab characters
+- BUGFIX: Inline PASM uses proper assembly column layout in spaces mode
+
+### Changed
+
+- Each case arm (including `OTHER:`) gets its own scope with L-shaped closer
+- Single-line `{comment}` block comments participate in scope guide detection
+- Blank lines after scope openers (`case`, `if`, `repeat`) receive guide lines
+
 ## [2.10.3] - 2026-03-23
 
 Formatter comment-spacing fix and expanded regression testing

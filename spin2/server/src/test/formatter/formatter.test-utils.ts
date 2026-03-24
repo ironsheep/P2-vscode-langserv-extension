@@ -248,6 +248,16 @@ export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>,
   }
 
   // Phase 2-4: Section column alignment and method formatting
+  // Method body indent: elastic mode derives from profile's first PUB tabstop;
+  // spaces mode uses the configured indentSize.
+  let methodIndent = cfg.indentSize;
+  if (elasticConfig.enabled) {
+    const pubStops = elasticConfig.tabStops['pub'] || [];
+    if (pubStops.length > 0) {
+      methodIndent = pubStops[0];
+    }
+  }
+
   const blockSpans: IBlockSpan[] = findings.blockSpans();
   for (const span of blockSpans) {
     switch (span.blockType) {
@@ -265,7 +275,7 @@ export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>,
         break;
       case eBLockType.isPub:
       case eBLockType.isPri:
-        formatMethodBlock(lines, span.startLineIdx, span.endLineIdx, findings, elasticConfig, cfg.indentSize);
+        formatMethodBlock(lines, span.startLineIdx, span.endLineIdx, findings, elasticConfig, methodIndent);
         break;
     }
   }

@@ -190,6 +190,18 @@ export default class DocumentFormattingProvider implements Provider {
 
   private formatSections(lines: string[], findings: DocumentFindings, config: FormatterConfig, elasticConfig: ElasticTabstopConfig): void {
     const blockSpans: IBlockSpan[] = findings.blockSpans();
+
+    // Method body indent step: in elastic mode, derive from the profile's
+    // first PUB tabstop (e.g., IronSheep=4, PropellerTool=2).
+    // In spaces mode, use the user's configured indentSize.
+    let methodIndent = config.indentSize;
+    if (elasticConfig.enabled) {
+      const pubStops = elasticConfig.tabStops['pub'] || [];
+      if (pubStops.length > 0) {
+        methodIndent = pubStops[0];
+      }
+    }
+
     for (const span of blockSpans) {
       switch (span.blockType) {
         case eBLockType.isCon:
@@ -206,7 +218,7 @@ export default class DocumentFormattingProvider implements Provider {
           break;
         case eBLockType.isPub:
         case eBLockType.isPri:
-          formatMethodBlock(lines, span.startLineIdx, span.endLineIdx, findings, elasticConfig, config.indentSize);
+          formatMethodBlock(lines, span.startLineIdx, span.endLineIdx, findings, elasticConfig, methodIndent);
           break;
       }
     }

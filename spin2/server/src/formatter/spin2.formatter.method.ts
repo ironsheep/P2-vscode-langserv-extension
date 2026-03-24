@@ -104,8 +104,10 @@ function formatInlinePasmRegion(
   // Delegate to PASM formatter directly for column alignment.
   // formatDatBlock can't be used here because it looks for ORG...END regions
   // within the range, but the ORG/END keywords are outside this range.
-  const tabStops = elasticConfig.tabStops['dat'] || DEFAULT_TABSTOPS.dat;
-  formatPasmRegionDirect(lines, region.orgLine + 1, region.endLine - 1, findings, tabStops, elasticConfig.commentGap);
+  // Always use DEFAULT_TABSTOPS.dat with tabstop-snapped layout (commentGap=0)
+  // so PASM gets proper assembly column positions regardless of indent mode.
+  const tabStops = DEFAULT_TABSTOPS.dat;
+  formatPasmRegionDirect(lines, region.orgLine + 1, region.endLine - 1, findings, tabStops, 0);
 }
 
 function normalizeIndentation(
