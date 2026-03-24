@@ -267,21 +267,7 @@ npm run test:server
 
 ---
 
-## 10. Real-World Binary Audit
-
-In addition to the unit test fixtures, the formatter is audited against real-world production codebases. Each file is formatted, recompiled with PNut-TS, and the binary is compared byte-for-byte against the original. Audits run across all whitespace modes (default spaces, 4-space indent, tabs, elastic PropellerTool, elastic IronSheep).
-
-| Test Set | Files | Status |
-|----------|-------|--------|
-| `TEST-FORMATTER/p2-HUB75-LED-Matrix-Driver/` | 24 files | All pass |
-| `TEST-FORMATTER/FLASH_FS/` | 16 files | All pass |
-| `TEST-FORMATTER/P2-mult-servo-exerciser/` | 18 files (17 with GOLD) | All pass |
-| `TEST-FORMATTER/TOF-Sensor/` | 12 files (includes `.dat` file dependency) | All pass |
-| `TEST-FORMATTER/uSD-FS/` | 44 files | All pass |
-
----
-
-## 11. Known Regression Cases (Summary)
+## 10. Known Regression Cases (Summary)
 
 Each of these bugs has a dedicated fixture file and is documented in Appendix D of `SPIN2-FORMATTER-RULES.md`:
 
@@ -308,7 +294,7 @@ Each of these bugs has a dedicated fixture file and is documented in Appendix D 
 
 ---
 
-## 12. Why This Approach Works
+## 11. Why This Approach Works
 
 The combination of binary equivalence testing, cross-compiler parity verification, idempotency checks, configuration variant testing, and crash resilience testing provides overlapping safety nets:
 
