@@ -219,6 +219,13 @@ export class SpinCodeUtils {
     return trimmedLine;
   }
 
+  private static readonly docConDirectiveRegEx = /\{\s*Spin2_Doc_CON\s*\}/i;
+
+  public containsDocConDirective(line: string): boolean {
+    // return T/F where T means {Spin2_Doc_CON} was found in given string
+    return SpinCodeUtils.docConDirectiveRegEx.test(line);
+  }
+
   //  borrowed from:
   //     dupe code at server/src/parser/spin.common.ts
   //

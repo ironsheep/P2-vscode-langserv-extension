@@ -1,0 +1,118 @@
+{Spin2_v46}
+'' =================================================================================================
+''
+''   File....... docgen_con_test.spin2
+''   Purpose.... Test file for {Spin2_Doc_CON} documentation generation
+''   Author..... Test Suite
+''   Started.... 2026
+''   Updated.... MAR 2026
+''
+'' =================================================================================================
+
+CON ' error codes
+  ' These are returned by all public methods
+  {Spin2_Doc_CON}
+  SUCCESS           = 0         ' Operation completed successfully
+  E_TIMEOUT         = -1        ' Device didn't respond in time
+  E_NO_RESPONSE     = -2        ' Device not responding
+  E_BAD_RESPONSE    = -3        ' Unexpected response from device
+  E_IO_ERROR        = -7        ' General I/O error
+
+CON ' internal command codes
+  CMD_NONE      = 0
+  CMD_START     = 1
+  CMD_STOP      = 2
+  CMD_READ      = 3
+  CMD_WRITE     = 4
+
+CON ' driver modes
+  {Spin2_Doc_CON}
+  #0, MODE_NONE, MODE_RAW, MODE_FULL
+
+CON ' warning flags
+  { Spin2_Doc_CON }
+  '' Warning flags returned by getWarnings().
+  '' These are bitmask values that can be OR'd together.
+  CW_NONE              = $00    ' No warnings
+  CW_PROBE_FAILED      = $01   ' Probe failed at init
+  CW_FEATURE_SUPPORTED = $02   ' Optional feature confirmed
+
+CON ' conditional feature codes
+  {Spin2_Doc_CON}
+  BASE_CODE         = 100       ' Always present
+#ifdef INCLUDE_ADVANCED
+  ADVANCED_CODE     = 200       ' Only when INCLUDE_ADVANCED is defined
+#endif
+  FINAL_CODE        = 300       ' Always present
+
+#define LOCAL_FEATURE
+
+CON ' locally conditional
+  {Spin2_Doc_CON}
+  ALWAYS_HERE       = 1         ' Unconditional
+#ifdef LOCAL_FEATURE
+  LOCAL_ENABLED     = 2         ' Locally defined, so included
+#endif
+#ifdef EXTERNAL_FEATURE
+  EXTERNAL_ONLY     = 3         ' Not locally defined, so excluded
+#endif
+
+CON ' public structures
+  {Spin2_Doc_CON}
+  '' A 2D point with integer coordinates
+  STRUCT point_t(x, y)
+  '' RGB color with alpha channel
+  STRUCT color_t(BYTE r, BYTE g, BYTE b, BYTE a)
+  STRUCT pixel_t(point_t pos, color_t color)
+
+CON ' internal buffers
+  STRUCT cache_entry_t(BYTE data[512], LONG tag)
+  BUFFER_COUNT = 4
+
+CON ' overridable configuration
+  '' Maximum number of open connections.
+  '' Override in parent OBJ declaration.
+  '' Memory cost: 128 bytes per connection.
+  {Spin2_Doc_CON}
+  MAX_CONNECTIONS = 4           ' Default connection count (user-overridable)
+
+VAR
+  LONG cog_id
+  BYTE buffer[512]
+
+OBJ
+  utils : "some_utils"
+
+PUB null()
+  '' This is not a top-level object
+
+PUB start(pin_base, pin_count) : result
+  '' Start the driver on a new cog
+  ''
+  '' @param pin_base - First pin number
+  '' @param pin_count - Number of pins to use
+  '' @returns result - Cog ID (0-7) on success, -1 on failure
+
+PUB stop()
+  '' Stop the driver and release the cog
+
+PUB read(p_buffer, count) : bytes_read
+  '' Read data from the device
+  ''
+  '' @param p_buffer - Pointer to destination buffer
+  '' @param count - Number of bytes to read
+  '' @returns bytes_read - Actual bytes read (0 at EOF)
+
+PUB getWarnings() : flags
+  '' Get current warning flags (bitmask of CW_* constants)
+  ''
+  '' @returns flags - Bitmask of active warnings
+
+PUB getMode() : mode
+  '' Get current driver mode (MODE_* constant)
+  ''
+  '' @returns mode - Current mode value
+
+PRI internalHelper() | temp
+  ' This is private and should not appear in the doc
+  temp := 0

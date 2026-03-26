@@ -8735,8 +8735,9 @@ export class Spin2DocumentSemanticParser {
     }
   }
 
-  private _parseNestedIndexExpression(indexExpression: string): [number, string[]] {
+  private _parseNestedIndexExpression(indexExpression: string): [number, string[], number[]] {
     const expressionParts: string[] = [];
+    const expressionOffsets: number[] = [];
     let indexExpressions: IIndexedExpression[] = [];
     let lengthRemaining: number = 0;
     let variableName: string = indexExpression.trim();
@@ -8745,6 +8746,7 @@ export class Spin2DocumentSemanticParser {
       indexExpressions = this._getIndexExpressions(variableName);
       // Iterate over all indexes returned
       const subExpressions: string[] = [];
+      const subOffsets: number[] = [];
       const hasBitfieldIndex: boolean = variableName.includes('.[');
       for (let index = 0; index < indexExpressions.length; index++) {
         const indexExpression: IIndexedExpression = indexExpressions[index];
@@ -8763,12 +8765,14 @@ export class Spin2DocumentSemanticParser {
           variableName = adjSymbolName;
         }
         subExpressions.push(indexExpression.expression);
+        subOffsets.push(indexExpression.startOffset);
       }
       lengthRemaining = variableName.length;
       expressionParts.push(variableName, ...subExpressions);
+      expressionOffsets.push(0, ...subOffsets); // 0 for the outer expression (starts at startingOffset)
     }
     this._logSPIN(`  -- prsNstExpPrts() expressionParts=[${expressionParts}](${expressionParts.length})`);
-    return [lengthRemaining, expressionParts];
+    return [lengthRemaining, expressionParts, expressionOffsets];
   }
 
   private _reportSPIN_IndexExpression(
@@ -8784,13 +8788,12 @@ export class Spin2DocumentSemanticParser {
         `- Ln#${lineIdx + 1}: rptSPINIdxExpr() NESTED indexExpression=[${indexExpression}], ofs=(${startingOffset}), line=[${line}](${line.length})`
       );
       // nest expression handling
-      const [lengthRemaining, expressionParts] = this._parseNestedIndexExpression(indexExpression);
-      let nextOffset: number = nameOffset;
+      const [lengthRemaining, expressionParts, expressionOffsets] = this._parseNestedIndexExpression(indexExpression);
       for (let index = 0; index < expressionParts.length; index++) {
         const subExpression: string = expressionParts[index];
-        const subExpressionOffset: number = nextOffset;
+        // compute correct offset: startingOffset is where the outer expression begins in the line
+        const subExpressionOffset: number = nameOffset + expressionOffsets[index];
         startingOffset = this._reportSPIN_IndexExpression(subExpression, lineIdx, subExpressionOffset, line, tokenSet);
-        nextOffset += lengthRemaining; // FIXME: not good for more than one subIndex
       }
       return startingOffset; // no change to offset
     }
@@ -10040,20 +10043,9 @@ export class Spin2DocumentSemanticParser {
     //    count the number of open-close parens and nesting depth
     const bracketResult = this.countPairsAndNesting('[', ']', noStringNoBracketSpaces);
     //   if measure is high just split on expression chars along with brackets and parens
-    let highComplexityStatement: boolean = false;
-    if ((parenResult.pairCount > 2 || bracketResult.pairCount > 2) && (parenResult.maxDepth > 1 || bracketResult.maxDepth > 1)) {
-      this._logMessage(`  -- gnwsplna: high complexity, using regular split`);
-      highComplexityStatement = true;
-    }
-    // first split
+    // first split - always use bracket-aware splitter to preserve long[...], word[...], byte[...] grouping
     let lineParts: string[] | null = null;
-    //let lineParts: string[] | null = noStringNoBracketSpaces.match(/[^ \t\-:,+@()!*=<>&|?\\~^/]+/g);
-    // let lineParts: string[] | null = noStringNoBracketSpaces.match(/[^\-:,+@()!*=<>&|?\\~^/]+/g);
-    if (highComplexityStatement) {
-      lineParts = noStringNoBracketSpaces.match(/[^\-:,+@[\]()!*=<>&|?\\~^/]+/g);
-    } else {
-      lineParts = this._splitOnWhitespaceButNotInBracketsAndPeriods(noStringNoBracketSpaces);
-    }
+    lineParts = this._splitOnWhitespaceButNotInBracketsAndPeriods(noStringNoBracketSpaces);
     if (lineParts === null) {
       lineParts = [];
     }
@@ -10461,20 +10453,20 @@ export class Spin2DocumentSemanticParser {
     // split on whitespace if the whitespace is not before a '[' and if the whitespace is not in-between square brackets
     const result: string[] = [];
     let current = '';
-    let inBrackets = false;
+    let bracketLevel = 0;
 
     for (let i = 0; i < name.length; i++) {
       const char = name[i];
 
       if (char === '[') {
-        inBrackets = true;
+        bracketLevel++;
         current += char;
       } else if (char === ']') {
-        inBrackets = false;
+        bracketLevel = Math.max(0, bracketLevel - 1);
         current += char;
       } else if (/\s/.test(char)) {
         // Only split if not in brackets and next non-whitespace is not '['
-        if (!inBrackets) {
+        if (bracketLevel === 0) {
           // Look ahead to see if next non-whitespace is '['
           let j = i + 1;
           while (j < name.length && /\s/.test(name[j])) j++;

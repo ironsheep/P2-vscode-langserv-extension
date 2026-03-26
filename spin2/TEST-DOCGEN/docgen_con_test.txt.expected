@@ -1,0 +1,150 @@
+ =================================================================================================
+
+   File....... docgen_con_test.spin2
+   Purpose.... Test file for {Spin2_Doc_CON} documentation generation
+   Author..... Test Suite
+   Started.... 2026
+   Updated.... MAR 2026
+
+ =================================================================================================
+
+Object "docgen_con_test" Interface:
+  (Requires Spin2 Language v46)
+
+── Public Constants ──────────────────────────────────────────
+
+  Error Codes:
+    SUCCESS, E_TIMEOUT, E_NO_RESPONSE, E_BAD_RESPONSE, E_IO_ERROR
+  Driver Modes:
+    MODE_NONE, MODE_RAW, MODE_FULL
+  Warning Flags:
+    CW_NONE, CW_PROBE_FAILED, CW_FEATURE_SUPPORTED
+  Conditional Feature Codes:
+    BASE_CODE, FINAL_CODE
+  Locally Conditional:
+    ALWAYS_HERE, LOCAL_ENABLED
+  Overridable Configuration:
+    MAX_CONNECTIONS
+
+── Public Structures ─────────────────────────────────────────
+
+  STRUCT point_t(x, y)
+  STRUCT color_t(BYTE r, BYTE g, BYTE b, BYTE a)
+  STRUCT pixel_t(point_t pos, color_t color)
+
+── Public Methods ────────────────────────────────────────────
+
+PUB null()
+PUB start(pin_base, pin_count) : result
+PUB stop()
+PUB read(p_buffer, count) : bytes_read
+PUB getWarnings() : flags
+PUB getMode() : mode
+
+── Constant Details ──────────────────────────────────────────
+
+Error Codes
+___________
+  SUCCESS       =  0    Operation completed successfully
+  E_TIMEOUT     = -1    Device didn't respond in time
+  E_NO_RESPONSE = -2    Device not responding
+  E_BAD_RESPONSE = -3    Unexpected response from device
+  E_IO_ERROR    = -7    General I/O error
+
+Driver Modes
+____________
+  MODE_NONE = 0
+  MODE_RAW  = 1
+  MODE_FULL = 2
+
+Warning Flags
+_____________
+  Warning flags returned by getWarnings().
+  These are bitmask values that can be OR'd together.
+  CW_NONE              = $00    No warnings
+  CW_PROBE_FAILED      = $01    Probe failed at init
+  CW_FEATURE_SUPPORTED = $02    Optional feature confirmed
+
+Conditional Feature Codes
+_________________________
+  BASE_CODE  = 100    Always present
+  FINAL_CODE = 300    Always present
+
+Locally Conditional
+___________________
+  ALWAYS_HERE   = 1    Unconditional
+  LOCAL_ENABLED = 2    Locally defined, so included
+
+Overridable Configuration
+_________________________
+  Maximum number of open connections.
+  Override in parent OBJ declaration.
+  Memory cost: 128 bytes per connection.
+  MAX_CONNECTIONS = 4    Default connection count (user-overridable)
+
+── Structure Details ─────────────────────────────────────────
+
+STRUCT point_t (8 bytes)
+________________________
+  LONG  x
+  LONG  y
+
+  A 2D point with integer coordinates
+
+STRUCT color_t (4 bytes)
+________________________
+  BYTE  r
+  BYTE  g
+  BYTE  b
+  BYTE  a
+
+  RGB color with alpha channel
+
+STRUCT pixel_t (12 bytes)
+_________________________
+  point_tpos
+  color_tcolor
+
+── Method Details ────────────────────────────────────────────
+
+__________
+PUB null()
+
+ This is not a top-level object
+
+_________________________________________
+PUB start(pin_base, pin_count) : result
+
+ Start the driver on a new cog
+
+ @param pin_base - First pin number
+ @param pin_count - Number of pins to use
+ @returns result - Cog ID (0-7) on success, -1 on failure
+
+__________
+PUB stop()
+
+ Stop the driver and release the cog
+
+____________________________________
+PUB read(p_buffer, count) : bytes_read
+
+ Read data from the device
+
+ @param p_buffer - Pointer to destination buffer
+ @param count - Number of bytes to read
+ @returns bytes_read - Actual bytes read (0 at EOF)
+
+________________________
+PUB getWarnings() : flags
+
+ Get current warning flags (bitmask of CW_* constants)
+
+ @returns flags - Bitmask of active warnings
+
+_____________________
+PUB getMode() : mode
+
+ Get current driver mode (MODE_* constant)
+
+ @returns mode - Current mode value

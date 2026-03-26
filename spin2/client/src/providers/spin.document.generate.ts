@@ -12,6 +12,35 @@ import { isSpin1Document, isSpin2File, isSpin1File } from '../spin.vscode.utils'
 import { SpinCodeUtils, eParseState } from '../spin.code.utils';
 import { ObjectTreeProvider, IObjectDependencyNode } from '../spin.object.dependencies';
 
+// --- Interfaces for documented CON block content ---
+
+interface IDocConstant {
+  name: string;
+  value: string; // raw RHS text: "0", "-1", "$0C", "decod 1"
+  trailingComment: string; // from ' comment on same line
+  docComment: string[]; // from preceding '' lines
+}
+
+interface IDocStructMember {
+  type: string; // "BYTE", "WORD", "LONG", or struct name
+  name: string;
+  arraySize: number; // 0 means not an array
+}
+
+interface IDocStructure {
+  name: string;
+  signature: string; // full STRUCT declaration text
+  members: IDocStructMember[];
+  sizeBytes: number;
+  docComment: string[]; // from preceding '' lines
+}
+
+interface IDocConSection {
+  heading: string; // from CON line comment
+  constants: IDocConstant[];
+  structures: IDocStructure[];
+}
+
 export class DocGenerator {
   private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
   private debugOutputChannel: vscode.OutputChannel | undefined = undefined;
@@ -241,11 +270,37 @@ export class DocGenerator {
         let priorState: eParseState = currState;
 
         let pubsFound: number = 0;
+        const pubSignatures: string[] = [];
 
         let requiredLanguageVersion: number = 0;
+
+        // --- CON documentation collection state ---
+        const docConSections: IDocConSection[] = [];
+        let currentDocConSection: IDocConSection | undefined = undefined;
+        let inConBlock: boolean = true; // compiler defaults to CON at start
+        let conBlockPreamble: boolean = true; // scanning preamble of current CON block
+        let conBlockIsDocumented: boolean = false;
+        let currentConHeading: string = '';
+        let pendingDocComment: string[] = [];
+
+        // --- Preprocessor state tracking ---
+        const definedSymbols: Set<string> = new Set();
+        const preProcDisabledStack: boolean[] = []; // stack of disabled states
+        let preProcLinesDisabled: boolean = false;
+
+        // --- Structure size lookup (for nested structs) ---
+        const structSizeMap: Map<string, number> = new Map();
+
+        // --- Enum tracking ---
+        let enumValue: number = 0;
+        let enumStep: number = 1;
+        let enumInProgress: boolean = false;
+
         //
-        // 1st pass: emit topfile doc comments then list of pub methods
+        // 1st pass: collect top doc comments, PUB signatures, and documented CON block content
         //
+        const topDocLines: string[] = [];
+
         for (let i = 0; i < textEditor.document.lineCount; i++) {
           const line = textEditor.document.lineAt(i);
           const lineNbr = i + 1;
@@ -257,112 +312,391 @@ export class DocGenerator {
             this.logMessage(`+ (DBG) generateDocument() requiredLanguageVersion=(${requiredLanguageVersion}) at Ln#${lineNbr} [${trimmedLine}]`);
           }
 
+          // --- Handle multi-line comment states ---
           if (currState == eParseState.inMultiLineDocComment) {
-            // skip all {{ --- }} multi-line doc comments
-            // in multi-line doc-comment, hunt for end '}}' to exit
             const closingOffset = line.text.indexOf('}}');
             if (closingOffset != -1) {
-              // have close, comment ended
               currState = priorState;
-              //  if last line has additional text write it!
               if (trimmedLine.length > 2 && shouldEmitTopDocComments) {
-                fs.appendFileSync(outFile, trimmedLine + this.endOfLineStr);
+                topDocLines.push(trimmedLine);
               }
             } else {
-              //  if last line has additional text write it!
               if (shouldEmitTopDocComments) {
-                fs.appendFileSync(outFile, trimmedLine + this.endOfLineStr);
+                topDocLines.push(trimmedLine);
               }
             }
             continue;
           } else if (currState == eParseState.inMultiLineComment) {
-            // skip all { --- } multi-line non-doc comments
-            // in multi-line non-doc-comment, hunt for end '}' to exit
             const openingOffset = line.text.indexOf('{');
             const closingOffset = line.text.indexOf('}');
             if (openingOffset != -1 && closingOffset != -1 && openingOffset < closingOffset) {
-              // do nothing with NESTED {cmt} lines
+              // nested {cmt} line — do nothing
             } else if (closingOffset != -1) {
-              // have close, comment ended
               currState = priorState;
             }
-            //  DO NOTHING
             continue;
           }
 
-          const sectionStatus = this.spinCodeUtils.isSectionStartLine(line.text);
-          if (sectionStatus.isSectionStart) {
-            currState = sectionStatus.inProgressStatus;
+          // --- Preprocessor directive handling ---
+          if (trimmedLine.startsWith('#')) {
+            const preProcParts = trimmedLine.split(/[ \t]+/).filter(Boolean);
+            const directive = preProcParts[0].toLowerCase();
+            const symbol = preProcParts.length > 1 ? preProcParts[1] : '';
+            if (directive === '#define' && symbol.length > 0) {
+              if (!preProcLinesDisabled) {
+                definedSymbols.add(symbol.toUpperCase());
+              }
+            } else if (directive === '#ifdef' && symbol.length > 0) {
+              preProcDisabledStack.push(preProcLinesDisabled);
+              if (!preProcLinesDisabled) {
+                preProcLinesDisabled = !definedSymbols.has(symbol.toUpperCase());
+              }
+            } else if (directive === '#ifndef' && symbol.length > 0) {
+              preProcDisabledStack.push(preProcLinesDisabled);
+              if (!preProcLinesDisabled) {
+                preProcLinesDisabled = definedSymbols.has(symbol.toUpperCase());
+              }
+            } else if (directive === '#else') {
+              if (preProcDisabledStack.length > 0) {
+                const parentDisabled = preProcDisabledStack[preProcDisabledStack.length - 1];
+                if (!parentDisabled) {
+                  preProcLinesDisabled = !preProcLinesDisabled;
+                }
+              }
+            } else if (directive === '#endif') {
+              if (preProcDisabledStack.length > 0) {
+                preProcLinesDisabled = preProcDisabledStack.pop()!;
+              }
+            }
+            continue; // preprocessor lines are not content
           }
 
+          // skip lines disabled by preprocessor
+          if (preProcLinesDisabled) {
+            continue;
+          }
+
+          // --- Section start detection ---
+          const sectionStatus = this.spinCodeUtils.isSectionStartLine(line.text);
+          if (sectionStatus.isSectionStart) {
+            // finalize any current documented CON section
+            if (currentDocConSection && conBlockIsDocumented) {
+              if (currentDocConSection.constants.length > 0 || currentDocConSection.structures.length > 0) {
+                docConSections.push(currentDocConSection);
+              }
+            }
+            currentDocConSection = undefined;
+            conBlockIsDocumented = false;
+            conBlockPreamble = false;
+            enumInProgress = false;
+
+            currState = sectionStatus.inProgressStatus;
+            if (currState === eParseState.inCon) {
+              inConBlock = true;
+              conBlockPreamble = true;
+              pendingDocComment = [];
+              currentConHeading = this._extractSectionComment(line.text);
+              currentDocConSection = { heading: currentConHeading, constants: [], structures: [] };
+            } else {
+              inConBlock = false;
+            }
+          }
+
+          // --- Handle comment lines ---
           if (trimmedLine.startsWith('{{')) {
-            // process multi-line doc comment
             const openingOffset = line.text.indexOf('{{');
             const closingOffset = line.text.indexOf('}}', openingOffset + 2);
             if (closingOffset != -1) {
-              // is single line comment, just ignore it
+              // single-line block doc comment — skip
             } else {
-              // is open of multiline comment
               priorState = currState;
               currState = eParseState.inMultiLineDocComment;
-              //  if first line has additional text write it!
               if (trimmedLine.length > 2 && shouldEmitTopDocComments) {
-                fs.appendFileSync(outFile, trimmedLine + this.endOfLineStr);
+                topDocLines.push(trimmedLine);
               }
             }
             continue;
           } else if (trimmedLine.startsWith('{')) {
-            // process possible multi-line non-doc comment
-            // do we have a close on this same line?
+            // check for {Spin2_Doc_CON} directive BEFORE treating as block comment
+            if (inConBlock && conBlockPreamble && this.spinCodeUtils.containsDocConDirective(trimmedLine)) {
+              conBlockIsDocumented = true;
+              this.logMessage(`+ (DBG) generateDocument() Found {Spin2_Doc_CON} at Ln#${lineNbr}`);
+              continue;
+            }
             const openingOffset = line.text.indexOf('{');
             const closingOffset = line.text.indexOf('}', openingOffset + 1);
             if (closingOffset == -1) {
-              // is open of multiline comment
               priorState = currState;
               currState = eParseState.inMultiLineComment;
-              //  DO NOTHING
             }
             continue;
           } else if (trimmedLine.startsWith("''")) {
-            // process single-line doc comment
-            if (trimmedLine.length > 2 && shouldEmitTopDocComments) {
-              // emit comment without leading ''
-              fs.appendFileSync(outFile, trimmedLine.substring(2) + this.endOfLineStr);
+            if (shouldEmitTopDocComments && trimmedLine.length > 2) {
+              topDocLines.push(trimmedLine.substring(2));
             }
+            // collect doc comments for CON content
+            if (inConBlock && conBlockIsDocumented) {
+              const docText = trimmedLine.substring(2).trim();
+              pendingDocComment.push(docText);
+            }
+            continue;
+          } else if (trimmedLine.startsWith("'")) {
+            // single-line non-doc comment — part of preamble
             continue;
           }
 
+          // --- Non-comment, non-directive line = code ---
           if (sectionStatus.isSectionStart && bHuntingForVersion) {
             this.logMessage(`+ (DBG) generateDocument() STOP HUNT at Ln#${lineNbr} [${trimmedLine}]`);
-            bHuntingForVersion = false; // done, we passed the file-top comments. we can no longer search
+            bHuntingForVersion = false;
           }
 
-          if (sectionStatus.isSectionStart && currState == eParseState.inPub) {
-            // have public method report it
-            pubsFound++;
-            if (shouldEmitTopDocComments) {
-              this.logMessage(`+ (DBG) generateDocument() EMIT object header`);
-              fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
-              const introText: string = 'Object "' + objectName + '" Interface:';
-              fs.appendFileSync(outFile, introText + this.endOfLineStr);
-              if (requiredLanguageVersion > 0) {
-                const lanVersionText: string = `  (Requires Spin2 Language v${requiredLanguageVersion})`;
-                fs.appendFileSync(outFile, lanVersionText + this.endOfLineStr);
-              }
-              fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
+          // if we were in the CON preamble, we just hit the first code line
+          if (inConBlock && conBlockPreamble) {
+            conBlockPreamble = false;
+            // check if this code line itself is the directive (edge case: directive on a line that isn't just a comment)
+            if (this.spinCodeUtils.containsDocConDirective(trimmedLine)) {
+              conBlockIsDocumented = true;
+              this.logMessage(`+ (DBG) generateDocument() Found {Spin2_Doc_CON} at first code Ln#${lineNbr}`);
+              // this line is consumed as a directive — but it might also have content, so fall through
+              // actually, {Spin2_Doc_CON} on its own line should be just the directive
+              continue;
             }
-            shouldEmitTopDocComments = false; // no more of these!
-            // emit new PUB prototype (w/o any trailing comment)
+          }
+
+          // --- Collect PUB method signatures ---
+          if (sectionStatus.isSectionStart && currState == eParseState.inPub) {
+            pubsFound++;
+            shouldEmitTopDocComments = false;
             const trimmedNonCommentLine = this.getNonCommentLineRemainder(0, trimmedLine);
-            fs.appendFileSync(outFile, trimmedNonCommentLine + this.endOfLineStr);
+            pubSignatures.push(trimmedNonCommentLine);
+          }
+
+          // --- Collect CON block content for documented sections ---
+          if (inConBlock && conBlockIsDocumented && !sectionStatus.isSectionStart && currentDocConSection) {
+            if (trimmedLine.length === 0) {
+              // blank line resets pending doc comment
+              pendingDocComment = [];
+              continue;
+            }
+            const upperLine = trimmedLine.toUpperCase();
+
+            // check for STRUCT declaration
+            if (upperLine.startsWith('STRUCT ')) {
+              const structInfo = this._parseStructDeclaration(trimmedLine, structSizeMap);
+              if (structInfo) {
+                structInfo.docComment = pendingDocComment.length > 0 ? [...pendingDocComment] : [];
+                currentDocConSection.structures.push(structInfo);
+                structSizeMap.set(structInfo.name.toUpperCase(), structInfo.sizeBytes);
+                this.logMessage(`+ (DBG) generateDocument() CON struct: ${structInfo.name} (${structInfo.sizeBytes} bytes) at Ln#${lineNbr}`);
+              }
+              pendingDocComment = [];
+              continue;
+            }
+
+            // check for enum start: #value or #value[step]
+            if (trimmedLine.startsWith('#')) {
+              const enumMatch = trimmedLine.match(/^#\s*(-?\d+|\$[0-9a-fA-F_]+)\s*(?:\[\s*(\d+)\s*\])?\s*,?\s*(.*)/);
+              if (enumMatch) {
+                enumValue = this._parseNumericValue(enumMatch[1]);
+                enumStep = enumMatch[2] ? parseInt(enumMatch[2]) : 1;
+                enumInProgress = true;
+                // there may be enum names on this same line after the #value,
+                const remainder = enumMatch[3];
+                if (remainder.length > 0) {
+                  const enumResult = this._collectEnumNames(remainder, currentDocConSection, enumValue, enumStep, pendingDocComment);
+                  enumValue = enumResult.nextValue;
+                  enumStep = enumResult.nextStep;
+                  pendingDocComment = [];
+                }
+              }
+              continue;
+            }
+
+            // check for constant assignment: NAME = value
+            const assignMatch = trimmedLine.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)/);
+            if (assignMatch) {
+              enumInProgress = false; // explicit assignment breaks enum sequence
+              const constName = assignMatch[1];
+              let valueAndComment = assignMatch[2];
+              const trailingComment = this._extractTrailingComment(valueAndComment);
+              if (trailingComment !== '') {
+                // remove the trailing comment from the value
+                const commentStart = valueAndComment.indexOf("'");
+                if (commentStart !== -1) {
+                  valueAndComment = valueAndComment.substring(0, commentStart).trim();
+                }
+              }
+              currentDocConSection.constants.push({
+                name: constName,
+                value: valueAndComment.trim(),
+                trailingComment: trailingComment,
+                docComment: pendingDocComment.length > 0 ? [...pendingDocComment] : []
+              });
+              pendingDocComment = [];
+              this.logMessage(`+ (DBG) generateDocument() CON const: ${constName} = ${valueAndComment.trim()} at Ln#${lineNbr}`);
+              continue;
+            }
+
+            // check for enum member names (comma-separated, no =)
+            if (enumInProgress) {
+              const enumResult = this._collectEnumNames(trimmedLine, currentDocConSection, enumValue, enumStep, pendingDocComment);
+              enumValue = enumResult.nextValue;
+              enumStep = enumResult.nextStep;
+              pendingDocComment = [];
+            }
           }
         }
+
+        // finalize last documented CON section if any
+        if (currentDocConSection && conBlockIsDocumented) {
+          if (currentDocConSection.constants.length > 0 || currentDocConSection.structures.length > 0) {
+            docConSections.push(currentDocConSection);
+          }
+        }
+
+        // Separate structures from constant sections for summary output
+        const allDocStructures: IDocStructure[] = [];
+        for (const section of docConSections) {
+          for (const struct of section.structures) {
+            allDocStructures.push(struct);
+          }
+        }
+
         //
-        // 2nd pass: emit list of pub methods with doc comments for each (if any)
+        // EMIT: Write the document
         //
+
+        // --- Top doc comments (file header) ---
+        for (const docLine of topDocLines) {
+          fs.appendFileSync(outFile, docLine + this.endOfLineStr);
+        }
+
+        // --- Object Interface header ---
+        fs.appendFileSync(outFile, '' + this.endOfLineStr);
+        const introText: string = 'Object "' + objectName + '" Interface:';
+        fs.appendFileSync(outFile, introText + this.endOfLineStr);
+        if (requiredLanguageVersion > 0) {
+          const lanVersionText: string = `  (Requires Spin2 Language v${requiredLanguageVersion})`;
+          fs.appendFileSync(outFile, lanVersionText + this.endOfLineStr);
+        }
+        fs.appendFileSync(outFile, '' + this.endOfLineStr);
+
+        // --- Interface Summary: Public Constants ---
+        const hasDocConstants = docConSections.some((s) => s.constants.length > 0);
+        if (hasDocConstants) {
+          fs.appendFileSync(outFile, '── Public Constants ──────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          for (const section of docConSections) {
+            if (section.constants.length > 0) {
+              const heading = section.heading.length > 0 ? this._toTitleCase(section.heading) : 'Constants';
+              const nameList = section.constants.map((c) => c.name).join(', ');
+              fs.appendFileSync(outFile, `  ${heading}:` + this.endOfLineStr);
+              fs.appendFileSync(outFile, `    ${nameList}` + this.endOfLineStr);
+            }
+          }
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+        }
+
+        // --- Interface Summary: Public Structures ---
+        if (allDocStructures.length > 0) {
+          fs.appendFileSync(outFile, '── Public Structures ─────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          for (const struct of allDocStructures) {
+            fs.appendFileSync(outFile, `  ${struct.signature}` + this.endOfLineStr);
+          }
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+        }
+
+        // --- Interface Summary: Public Methods ---
+        if (pubSignatures.length > 0) {
+          fs.appendFileSync(outFile, '── Public Methods ────────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          for (const sig of pubSignatures) {
+            fs.appendFileSync(outFile, sig + this.endOfLineStr);
+          }
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+        }
+
+        // --- Constant Details ---
+        if (hasDocConstants) {
+          fs.appendFileSync(outFile, '── Constant Details ──────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          for (const section of docConSections) {
+            if (section.constants.length > 0) {
+              const heading = section.heading.length > 0 ? this._toTitleCase(section.heading) : 'Constants';
+              const headingUnderline = '_'.repeat(heading.length);
+              fs.appendFileSync(outFile, heading + this.endOfLineStr);
+              fs.appendFileSync(outFile, headingUnderline + this.endOfLineStr);
+              // compute column widths for alignment
+              let maxNameLen = 0;
+              let maxValueLen = 0;
+              for (const c of section.constants) {
+                if (c.name.length > maxNameLen) maxNameLen = c.name.length;
+                if (c.value.length > maxValueLen) maxValueLen = c.value.length;
+              }
+              for (const c of section.constants) {
+                // emit any doc comments above this constant
+                if (c.docComment.length > 0) {
+                  for (const dc of c.docComment) {
+                    fs.appendFileSync(outFile, `  ${dc}` + this.endOfLineStr);
+                  }
+                }
+                const paddedName = c.name.padEnd(maxNameLen);
+                const paddedValue = c.value.padStart(maxValueLen);
+                let line = `  ${paddedName} = ${paddedValue}`;
+                if (c.trailingComment.length > 0) {
+                  line += `    ${c.trailingComment}`;
+                }
+                fs.appendFileSync(outFile, line + this.endOfLineStr);
+              }
+              fs.appendFileSync(outFile, '' + this.endOfLineStr);
+            }
+          }
+        }
+
+        // --- Structure Details ---
+        if (allDocStructures.length > 0) {
+          fs.appendFileSync(outFile, '── Structure Details ─────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          for (const struct of allDocStructures) {
+            const sizeText = `${struct.name} (${struct.sizeBytes} bytes)`;
+            const headerLine = `STRUCT ${sizeText}`;
+            const headingUnderline = '_'.repeat(headerLine.length);
+            fs.appendFileSync(outFile, headerLine + this.endOfLineStr);
+            fs.appendFileSync(outFile, headingUnderline + this.endOfLineStr);
+            for (const member of struct.members) {
+              const typeStr = member.type.padEnd(6);
+              const arrayStr = member.arraySize > 0 ? `[${member.arraySize}]` : '';
+              fs.appendFileSync(outFile, `  ${typeStr}${member.name}${arrayStr}` + this.endOfLineStr);
+            }
+            if (struct.docComment.length > 0) {
+              fs.appendFileSync(outFile, '' + this.endOfLineStr);
+              for (const dc of struct.docComment) {
+                fs.appendFileSync(outFile, `  ${dc}` + this.endOfLineStr);
+              }
+            }
+            fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          }
+        }
+
+        // --- Method Details ---
+        if (pubSignatures.length > 0) {
+          fs.appendFileSync(outFile, '── Method Details ────────────────────────────────────────────' + this.endOfLineStr);
+        }
+
+        //
+        // 2nd pass: emit PUB methods with doc comments for each (if any)
+        //
+        currState = eParseState.inCon;
+        priorState = currState;
         let pubsSoFar: number = 0;
         let emitPubDocComment: boolean = false;
         let emitTrailingDocComment: boolean = false;
+        // reset preprocessor state for 2nd pass
+        preProcLinesDisabled = false;
+        preProcDisabledStack.length = 0;
+
         for (let i = 0; i < textEditor.document.lineCount; i++) {
           const line = textEditor.document.lineAt(i);
           const trimmedLine = line.text.trim();
@@ -469,6 +803,184 @@ export class DocGenerator {
     } else {
       this.logMessage(`+ (DBG) generateDocument() NO active editor.`);
     }
+  }
+
+  // --- Private helpers for CON documentation ---
+
+  private _extractSectionComment(line: string): string {
+    // extract comment text from a section line like "CON ' error codes" or "CON { Motor Constants }"
+    const trimmed = line.trim();
+    // try brace comment first: CON { text }
+    const braceOpen = trimmed.indexOf('{');
+    const braceClose = trimmed.indexOf('}', braceOpen + 1);
+    if (braceOpen !== -1 && braceClose !== -1) {
+      const inner = trimmed.substring(braceOpen + 1, braceClose).trim();
+      // skip if it's a directive like {Spin2_Doc_CON} or {Spin2_v46}
+      if (inner.toLowerCase().startsWith('spin2_')) {
+        // fall through to try tic comment
+      } else {
+        return inner;
+      }
+    }
+    // try tic comment: CON ' text
+    const ticPos = trimmed.indexOf("'");
+    if (ticPos !== -1) {
+      return trimmed.substring(ticPos + 1).trim();
+    }
+    return '';
+  }
+
+  private _extractTrailingComment(valueAndRemainder: string): string {
+    // extract trailing ' comment from a constant value line
+    // be careful not to match ' inside strings
+    const noStrings = this.spinCodeUtils.removeDoubleQuotedStrings(valueAndRemainder, false);
+    const ticPos = noStrings.indexOf("'");
+    if (ticPos !== -1) {
+      return valueAndRemainder.substring(ticPos + 1).trim();
+    }
+    return '';
+  }
+
+  private _parseNumericValue(text: string): number {
+    // parse Spin2 numeric literal: decimal, $hex, %binary, %%quad
+    const trimmed = text.trim().replace(/_/g, '');
+    if (trimmed.startsWith('$')) {
+      return parseInt(trimmed.substring(1), 16);
+    } else if (trimmed.startsWith('%%')) {
+      return parseInt(trimmed.substring(2), 4);
+    } else if (trimmed.startsWith('%')) {
+      return parseInt(trimmed.substring(1), 2);
+    }
+    return parseInt(trimmed, 10);
+  }
+
+  private _collectEnumNames(
+    text: string,
+    section: IDocConSection,
+    startValue: number,
+    step: number,
+    pendingDocComment: string[]
+  ): { nextValue: number; nextStep: number } {
+    // parse comma-separated enum names (may have trailing comment)
+    const noComment = this.spinCodeUtils.getNonCommentLineRemainder(0, text);
+    const trailingComment = this._extractTrailingComment(text);
+    const names = noComment
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !s.startsWith('#'));
+
+    let validCount = 0;
+    for (let idx = 0; idx < names.length; idx++) {
+      const name = names[idx];
+      // skip if it looks like a numeric literal (part of #value)
+      if (/^[0-9$%]/.test(name)) continue;
+      // skip if it has an = (it's an explicit assignment, handled separately)
+      if (name.includes('=')) continue;
+
+      const computedValue = startValue + validCount * step;
+      section.constants.push({
+        name: name,
+        value: computedValue.toString(),
+        trailingComment: idx === names.length - 1 ? trailingComment : '',
+        docComment: validCount === 0 && pendingDocComment.length > 0 ? [...pendingDocComment] : []
+      });
+      validCount++;
+    }
+
+    return { nextValue: startValue + validCount * step, nextStep: step };
+  }
+
+  private _parseStructDeclaration(line: string, structSizeMap: Map<string, number>): IDocStructure | undefined {
+    // parse: STRUCT name(members)
+    const match = line.match(/^STRUCT\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)/i);
+    if (!match) return undefined;
+
+    const name = match[1];
+    const memberText = match[2];
+    const members: IDocStructMember[] = [];
+    let totalSize = 0;
+
+    // split members by comma
+    const memberParts = memberText.split(',').map((s) => s.trim());
+    for (const part of memberParts) {
+      if (part.length === 0) continue;
+      const memberInfo = this._parseStructMember(part, structSizeMap);
+      if (memberInfo) {
+        members.push(memberInfo.member);
+        totalSize += memberInfo.size;
+      }
+    }
+
+    // build signature text from original line (strip trailing comment)
+    const sigLine = this.spinCodeUtils.getNonCommentLineRemainder(0, line).trim();
+
+    return {
+      name: name,
+      signature: sigLine,
+      members: members,
+      sizeBytes: totalSize,
+      docComment: []
+    };
+  }
+
+  private _parseStructMember(
+    memberText: string,
+    structSizeMap: Map<string, number>
+  ): { member: IDocStructMember; size: number } | undefined {
+    // parse a single struct member like "BYTE x", "WORD y[4]", "point a", or "z" (default LONG)
+    const trimmed = memberText.trim();
+    if (trimmed.length === 0) return undefined;
+
+    const tokens = trimmed.split(/\s+/);
+    let typeName: string;
+    let memberName: string;
+
+    const typeKeywords = ['BYTE', 'WORD', 'LONG'];
+    if (tokens.length >= 2 && typeKeywords.includes(tokens[0].toUpperCase())) {
+      typeName = tokens[0].toUpperCase();
+      memberName = tokens[1];
+    } else if (tokens.length >= 2) {
+      // could be nested struct: "point a"
+      typeName = tokens[0];
+      memberName = tokens[1];
+    } else {
+      // single name — default LONG
+      typeName = 'LONG';
+      memberName = tokens[0];
+    }
+
+    // check for array: name[count]
+    let arraySize = 0;
+    const arrayMatch = memberName.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\[(\d+)\]$/);
+    if (arrayMatch) {
+      memberName = arrayMatch[1];
+      arraySize = parseInt(arrayMatch[2]);
+    }
+
+    // compute size
+    let baseSize: number;
+    const upperType = typeName.toUpperCase();
+    if (upperType === 'BYTE') {
+      baseSize = 1;
+    } else if (upperType === 'WORD') {
+      baseSize = 2;
+    } else if (upperType === 'LONG') {
+      baseSize = 4;
+    } else {
+      // nested struct type — look up
+      baseSize = structSizeMap.get(upperType) || 4; // fallback to LONG if unknown
+    }
+
+    const totalSize = arraySize > 0 ? baseSize * arraySize : baseSize;
+
+    return {
+      member: { type: typeName, name: memberName, arraySize: arraySize },
+      size: totalSize
+    };
+  }
+
+  private _toTitleCase(text: string): string {
+    return text.replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   private getNonCommentLineRemainder(offset: number, line: string): string {

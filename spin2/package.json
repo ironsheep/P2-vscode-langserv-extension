@@ -1601,7 +1601,8 @@
     "test:formatter": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/**/*.test.ts' --timeout 60000",
     "test:formatter:gold": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/formatter.gold-equiv.test.ts' --timeout 60000",
     "test:formatter:safety": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/formatter.safety.test.ts' --timeout 120000",
-    "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000"
+    "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000",
+    "test:docgen": "mocha --require ts-node/register client/src/test/docgen.utils.test.ts --timeout 10000"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
