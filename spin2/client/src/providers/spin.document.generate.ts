@@ -450,14 +450,16 @@ export class DocGenerator {
             if (shouldEmitTopDocComments && trimmedLine.length > 2) {
               topDocLines.push(trimmedLine.substring(2));
             }
-            // collect doc comments for CON content
-            if (inConBlock && conBlockIsDocumented) {
-              const docText = trimmedLine.substring(2).trim();
-              pendingDocComment.push(docText);
-            }
             continue;
           } else if (trimmedLine.startsWith("'")) {
-            // single-line non-doc comment — part of preamble
+            // collect non-doc comments within documented CON blocks
+            // (convention: constants/enums/structs use ' not '')
+            if (inConBlock && conBlockIsDocumented) {
+              const cmtText = trimmedLine.substring(1).trim();
+              if (cmtText.length > 0) {
+                pendingDocComment.push(cmtText);
+              }
+            }
             continue;
           }
 

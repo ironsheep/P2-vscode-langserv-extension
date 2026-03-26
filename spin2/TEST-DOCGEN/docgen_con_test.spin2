@@ -31,8 +31,8 @@ CON ' driver modes
 
 CON ' warning flags
   { Spin2_Doc_CON }
-  '' Warning flags returned by getWarnings().
-  '' These are bitmask values that can be OR'd together.
+  ' Warning flags returned by getWarnings().
+  ' These are bitmask values that can be OR'd together.
   CW_NONE              = $00    ' No warnings
   CW_PROBE_FAILED      = $01   ' Probe failed at init
   CW_FEATURE_SUPPORTED = $02   ' Optional feature confirmed
@@ -59,9 +59,9 @@ CON ' locally conditional
 
 CON ' public structures
   {Spin2_Doc_CON}
-  '' A 2D point with integer coordinates
+  ' A 2D point with integer coordinates
   STRUCT point_t(x, y)
-  '' RGB color with alpha channel
+  ' RGB color with alpha channel
   STRUCT color_t(BYTE r, BYTE g, BYTE b, BYTE a)
   STRUCT pixel_t(point_t pos, color_t color)
 
@@ -70,9 +70,9 @@ CON ' internal buffers
   BUFFER_COUNT = 4
 
 CON ' overridable configuration
-  '' Maximum number of open connections.
-  '' Override in parent OBJ declaration.
-  '' Memory cost: 128 bytes per connection.
+  ' Maximum number of open connections.
+  ' Override in parent OBJ declaration.
+  ' Memory cost: 128 bytes per connection.
   {Spin2_Doc_CON}
   MAX_CONNECTIONS = 4           ' Default connection count (user-overridable)
 
