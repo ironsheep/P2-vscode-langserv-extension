@@ -432,11 +432,15 @@ export class DocGenerator {
             }
             continue;
           } else if (trimmedLine.startsWith('{')) {
-            // check for {Spin2_Doc_CON} directive BEFORE treating as block comment
-            if (inConBlock && conBlockPreamble &&
+            // check for {Spin2_Doc_CON} directive anywhere in CON block
+            // (blank lines or comments may precede it)
+            if (inConBlock &&
                 this.spinCodeUtils.containsDocConDirective(trimmedLine)) {
               conBlockIsDocumented = true;
-              this.logMessage(`+ (DBG) generateDocument() Found {Spin2_Doc_CON} at Ln#${lineNbr}`);
+              this.logMessage(
+                `+ (DBG) generateDocument() ` +
+                `Found {Spin2_Doc_CON} at Ln#${lineNbr}`
+              );
               continue;
             }
             const openingOffset = line.text.indexOf('{');
@@ -469,17 +473,9 @@ export class DocGenerator {
             bHuntingForVersion = false;
           }
 
-          // if we were in the CON preamble, we just hit the first code line
+          // if we were in the CON preamble, first code line ends it
           if (inConBlock && conBlockPreamble) {
             conBlockPreamble = false;
-            // check if this code line itself is the directive (edge case: directive on a line that isn't just a comment)
-            if (this.spinCodeUtils.containsDocConDirective(trimmedLine)) {
-              conBlockIsDocumented = true;
-              this.logMessage(`+ (DBG) generateDocument() Found {Spin2_Doc_CON} at first code Ln#${lineNbr}`);
-              // this line is consumed as a directive — but it might also have content, so fall through
-              // actually, {Spin2_Doc_CON} on its own line should be just the directive
-              continue;
-            }
           }
 
           // --- Collect PUB method signatures ---
