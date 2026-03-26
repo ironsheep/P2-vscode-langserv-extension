@@ -381,7 +381,10 @@ export class DocGenerator {
           if (sectionStatus.isSectionStart) {
             // finalize any current documented CON section
             if (currentDocConSection && conBlockIsDocumented) {
-              if (currentDocConSection.constants.length > 0 || currentDocConSection.structures.length > 0) {
+              const hasContent =
+                currentDocConSection.constants.length > 0 ||
+                currentDocConSection.structures.length > 0;
+              if (hasContent) {
                 docConSections.push(currentDocConSection);
               }
             }
@@ -396,7 +399,19 @@ export class DocGenerator {
               conBlockPreamble = true;
               pendingDocComment = [];
               currentConHeading = this._extractSectionComment(line.text);
-              currentDocConSection = { heading: currentConHeading, constants: [], structures: [] };
+              currentDocConSection = {
+                heading: currentConHeading,
+                constants: [],
+                structures: []
+              };
+              // detect {Spin2_Doc_CON} on the CON keyword line itself
+              if (this.spinCodeUtils.containsDocConDirective(line.text)) {
+                conBlockIsDocumented = true;
+                this.logMessage(
+                  `+ (DBG) generateDocument() ` +
+                  `Found {Spin2_Doc_CON} on CON line at Ln#${lineNbr}`
+                );
+              }
             } else {
               inConBlock = false;
             }
@@ -418,7 +433,8 @@ export class DocGenerator {
             continue;
           } else if (trimmedLine.startsWith('{')) {
             // check for {Spin2_Doc_CON} directive BEFORE treating as block comment
-            if (inConBlock && conBlockPreamble && this.spinCodeUtils.containsDocConDirective(trimmedLine)) {
+            if (inConBlock && conBlockPreamble &&
+                this.spinCodeUtils.containsDocConDirective(trimmedLine)) {
               conBlockIsDocumented = true;
               this.logMessage(`+ (DBG) generateDocument() Found {Spin2_Doc_CON} at Ln#${lineNbr}`);
               continue;
@@ -473,7 +489,9 @@ export class DocGenerator {
           }
 
           // --- Collect CON block content for documented sections ---
-          if (inConBlock && conBlockIsDocumented && !sectionStatus.isSectionStart && currentDocConSection) {
+          if (inConBlock && conBlockIsDocumented &&
+              !sectionStatus.isSectionStart &&
+              currentDocConSection) {
             if (trimmedLine.length === 0) {
               // blank line resets pending doc comment
               pendingDocComment = [];
@@ -496,7 +514,9 @@ export class DocGenerator {
 
             // check for enum start: #value or #value[step]
             if (trimmedLine.startsWith('#')) {
-              const enumMatch = trimmedLine.match(/^#\s*(-?\d+|\$[0-9a-fA-F_]+)\s*(?:\[\s*(\d+)\s*\])?\s*,?\s*(.*)/);
+              const enumRegEx =
+                /^#\s*(-?\d+|\$[0-9a-fA-F_]+)\s*(?:\[\s*(\d+)\s*\])?\s*,?\s*(.*)/;
+              const enumMatch = trimmedLine.match(enumRegEx);
               if (enumMatch) {
                 enumValue = this._parseNumericValue(enumMatch[1]);
                 enumStep = enumMatch[2] ? parseInt(enumMatch[2]) : 1;
@@ -504,7 +524,10 @@ export class DocGenerator {
                 // there may be enum names on this same line after the #value,
                 const remainder = enumMatch[3];
                 if (remainder.length > 0) {
-                  const enumResult = this._collectEnumNames(remainder, currentDocConSection, enumValue, enumStep, pendingDocComment);
+                  const enumResult = this._collectEnumNames(
+                    remainder, currentDocConSection,
+                    enumValue, enumStep, pendingDocComment
+                  );
                   enumValue = enumResult.nextValue;
                   enumStep = enumResult.nextStep;
                   pendingDocComment = [];
@@ -540,7 +563,10 @@ export class DocGenerator {
 
             // check for enum member names (comma-separated, no =)
             if (enumInProgress) {
-              const enumResult = this._collectEnumNames(trimmedLine, currentDocConSection, enumValue, enumStep, pendingDocComment);
+              const enumResult = this._collectEnumNames(
+                trimmedLine, currentDocConSection,
+                enumValue, enumStep, pendingDocComment
+              );
               enumValue = enumResult.nextValue;
               enumStep = enumResult.nextStep;
               pendingDocComment = [];
@@ -550,7 +576,10 @@ export class DocGenerator {
 
         // finalize last documented CON section if any
         if (currentDocConSection && conBlockIsDocumented) {
-          if (currentDocConSection.constants.length > 0 || currentDocConSection.structures.length > 0) {
+          const hasContent =
+            currentDocConSection.constants.length > 0 ||
+            currentDocConSection.structures.length > 0;
+          if (hasContent) {
             docConSections.push(currentDocConSection);
           }
         }
@@ -585,11 +614,13 @@ export class DocGenerator {
         // --- Interface Summary: Public Constants ---
         const hasDocConstants = docConSections.some((s) => s.constants.length > 0);
         if (hasDocConstants) {
-          fs.appendFileSync(outFile, '── Public Constants ──────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, this._sectionHeader('Public Constants') + this.endOfLineStr);
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
           for (const section of docConSections) {
             if (section.constants.length > 0) {
-              const heading = section.heading.length > 0 ? this._toTitleCase(section.heading) : 'Constants';
+              const heading = section.heading.length > 0
+                ? this._toTitleCase(section.heading)
+                : 'Constants';
               const nameList = section.constants.map((c) => c.name).join(', ');
               fs.appendFileSync(outFile, `  ${heading}:` + this.endOfLineStr);
               fs.appendFileSync(outFile, `    ${nameList}` + this.endOfLineStr);
@@ -600,7 +631,7 @@ export class DocGenerator {
 
         // --- Interface Summary: Public Structures ---
         if (allDocStructures.length > 0) {
-          fs.appendFileSync(outFile, '── Public Structures ─────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, this._sectionHeader('Public Structures') + this.endOfLineStr);
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
           for (const struct of allDocStructures) {
             fs.appendFileSync(outFile, `  ${struct.signature}` + this.endOfLineStr);
@@ -610,7 +641,7 @@ export class DocGenerator {
 
         // --- Interface Summary: Public Methods ---
         if (pubSignatures.length > 0) {
-          fs.appendFileSync(outFile, '── Public Methods ────────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, this._sectionHeader('Public Methods') + this.endOfLineStr);
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
           for (const sig of pubSignatures) {
             fs.appendFileSync(outFile, sig + this.endOfLineStr);
@@ -620,11 +651,13 @@ export class DocGenerator {
 
         // --- Constant Details ---
         if (hasDocConstants) {
-          fs.appendFileSync(outFile, '── Constant Details ──────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, this._sectionHeader('Constant Details') + this.endOfLineStr);
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
           for (const section of docConSections) {
             if (section.constants.length > 0) {
-              const heading = section.heading.length > 0 ? this._toTitleCase(section.heading) : 'Constants';
+              const heading = section.heading.length > 0
+                ? this._toTitleCase(section.heading)
+                : 'Constants';
               const headingUnderline = '_'.repeat(heading.length);
               fs.appendFileSync(outFile, heading + this.endOfLineStr);
               fs.appendFileSync(outFile, headingUnderline + this.endOfLineStr);
@@ -657,7 +690,7 @@ export class DocGenerator {
 
         // --- Structure Details ---
         if (allDocStructures.length > 0) {
-          fs.appendFileSync(outFile, '── Structure Details ─────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, this._sectionHeader('Structure Details') + this.endOfLineStr);
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
           for (const struct of allDocStructures) {
             const sizeText = `${struct.name} (${struct.sizeBytes} bytes)`;
@@ -682,7 +715,7 @@ export class DocGenerator {
 
         // --- Method Details ---
         if (pubSignatures.length > 0) {
-          fs.appendFileSync(outFile, '── Method Details ────────────────────────────────────────────' + this.endOfLineStr);
+          fs.appendFileSync(outFile, this._sectionHeader('Method Details') + this.endOfLineStr);
         }
 
         //
@@ -693,6 +726,7 @@ export class DocGenerator {
         let pubsSoFar: number = 0;
         let emitPubDocComment: boolean = false;
         let emitTrailingDocComment: boolean = false;
+        let trailingBlankLineEmitted: boolean = false;
         // reset preprocessor state for 2nd pass
         preProcLinesDisabled = false;
         preProcDisabledStack.length = 0;
@@ -791,9 +825,13 @@ export class DocGenerator {
               emitTrailingDocComment = true;
               emitPubDocComment = false;
             }
-          } else if (sectionStatus.isSectionStart && currState != eParseState.inPub && emitTrailingDocComment) {
-            // emit blank line just before we do final doc comment at end of file
+          } else if (sectionStatus.isSectionStart &&
+              currState != eParseState.inPub &&
+              emitTrailingDocComment &&
+              !trailingBlankLineEmitted) {
+            // emit blank line just before we do final doc comment at end of file (once only)
             fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
+            trailingBlankLineEmitted = true;
           }
         }
         fs.closeSync(outFile);
@@ -807,8 +845,15 @@ export class DocGenerator {
 
   // --- Private helpers for CON documentation ---
 
+  private static readonly docConDirectiveInTextRegEx = /\{\s*Spin2_Doc_CON\s*\}/gi;
+
+  private _stripDocConDirective(text: string): string {
+    return text.replace(DocGenerator.docConDirectiveInTextRegEx, '').trim();
+  }
+
   private _extractSectionComment(line: string): string {
-    // extract comment text from a section line like "CON ' error codes" or "CON { Motor Constants }"
+    // extract comment text from a section line like:
+    //   "CON ' error codes" or "CON { Motor Constants }"
     const trimmed = line.trim();
     // try brace comment first: CON { text }
     const braceOpen = trimmed.indexOf('{');
@@ -819,13 +864,15 @@ export class DocGenerator {
       if (inner.toLowerCase().startsWith('spin2_')) {
         // fall through to try tic comment
       } else {
-        return inner;
+        return this._stripDocConDirective(inner);
       }
     }
     // try tic comment: CON ' text
     const ticPos = trimmed.indexOf("'");
     if (ticPos !== -1) {
-      return trimmed.substring(ticPos + 1).trim();
+      return this._stripDocConDirective(
+        trimmed.substring(ticPos + 1).trim()
+      );
     }
     return '';
   }
@@ -833,10 +880,15 @@ export class DocGenerator {
   private _extractTrailingComment(valueAndRemainder: string): string {
     // extract trailing ' comment from a constant value line
     // be careful not to match ' inside strings
-    const noStrings = this.spinCodeUtils.removeDoubleQuotedStrings(valueAndRemainder, false);
+    const noStrings = this.spinCodeUtils.removeDoubleQuotedStrings(
+      valueAndRemainder,
+      false
+    );
     const ticPos = noStrings.indexOf("'");
     if (ticPos !== -1) {
-      return valueAndRemainder.substring(ticPos + 1).trim();
+      return this._stripDocConDirective(
+        valueAndRemainder.substring(ticPos + 1).trim()
+      );
     }
     return '';
   }
@@ -890,7 +942,10 @@ export class DocGenerator {
     return { nextValue: startValue + validCount * step, nextStep: step };
   }
 
-  private _parseStructDeclaration(line: string, structSizeMap: Map<string, number>): IDocStructure | undefined {
+  private _parseStructDeclaration(
+    line: string,
+    structSizeMap: Map<string, number>
+  ): IDocStructure | undefined {
     // parse: STRUCT name(members)
     const match = line.match(/^STRUCT\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)/i);
     if (!match) return undefined;
@@ -981,6 +1036,11 @@ export class DocGenerator {
 
   private _toTitleCase(text: string): string {
     return text.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  private _sectionHeader(title: string): string {
+    const rule = '─'.repeat(60 - title.length);
+    return `── ${title} ${rule}`;
   }
 
   private getNonCommentLineRemainder(offset: number, line: string): string {
