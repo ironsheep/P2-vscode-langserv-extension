@@ -3442,6 +3442,10 @@ export class OutLineSymbol {
     return this.name;
   }
 
+  public setLabel(label: string): void {
+    this.name = label;
+  }
+
   public get description(): string {
     return this.extraInfo;
   }

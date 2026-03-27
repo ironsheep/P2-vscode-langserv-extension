@@ -22,6 +22,35 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.10.6] - 2026-03-27
+
+Outline separators, dependency tree fixes, and formatter improvements
+
+### Added
+
+- **Outline separators**: Block declaration lines with `' ---` comment
+  patterns (three or more dashes) render as horizontal rules in the
+  Outline view with the comment text centered in the separator
+
+### Changed
+
+- Generated interface documents list all public constants in a single
+  flat list instead of repeating CON-line headings in the summary
+
+### Fixed
+
+- BUGFIX: Object dependency tree now respects `#ifdef`/`#ifndef`
+  conditional compilation - objects in disabled blocks no longer appear
+- BUGFIX: Generated interface documents now skip PUB methods inside
+  disabled `#ifdef`/`#ifndef` blocks
+- BUGFIX: Formatter no longer right-aligns comments on block
+  declaration lines (CON/VAR/OBJ/DAT/PUB/PRI) with neighboring code
+  comments
+- BUGFIX: Formatter collapses extra whitespace before comments on
+  block declaration lines to a single space
+- BUGFIX: Formatter now indents STRUCT continuation lines under the
+  opening STRUCT declaration in CON blocks
+
 ## [2.10.5] - 2026-03-27
 
 Document generation enhancements and preprocessor nesting fixes
@@ -29,7 +58,7 @@ Document generation enhancements and preprocessor nesting fixes
 ### Added
 
 - **`{Spin2_Doc_CON}` directive**: Mark CON blocks for inclusion in
-  generated interface documents — constants, enumerations, and
+  generated interface documents - constants, enumerations, and
   structures with descriptions, computed values, and sizes
 - **Feature flag reporting**: Generated documents show which
   optional `#ifdef` features are active
@@ -38,10 +67,10 @@ Document generation enhancements and preprocessor nesting fixes
 ### Fixed
 
 - BUGFIX: `long[addr + array[index] + offset]` now tokenizes
-  correctly — nested brackets no longer break expression grouping
+  correctly - nested brackets no longer break expression grouping
   or prevent inner names from being highlighted
 - BUGFIX: Nested `#ifdef`/`#ifndef`/`#else`/`#endif` blocks now
-  gray out correctly — inner blocks stay disabled when the
+  gray out correctly - inner blocks stay disabled when the
   enclosing block is disabled
 
 ## [2.10.4] - 2026-03-24
@@ -74,7 +103,7 @@ Formatter comment-spacing fix and expanded regression testing
 ### Added
 
 - Regression fixture `regr-comment-space-alignment` for comment-spacing idempotency
-- Formatter audit of TOF-Sensor (12 files) and uSD-FS (44 files) real-world codebases — all pass
+- Formatter audit of TOF-Sensor (12 files) and uSD-FS (44 files) real-world codebases - all pass
 
 ## [2.10.2] - 2026-03-23
 
@@ -96,7 +125,7 @@ Scope nesting guides for PUB/PRI method bodies
 - 6-level color cycling per nesting depth; active scope (at cursor) renders brighter
 - Per-theme guide colors for all 5 shipped themes
 - Guides continue through blank lines, block comments, and tab characters; skip inline PASM
-- Compound statement awareness — `if`/`else`/`elseif`, `case`/`other`, `repeat`/`until`/`while` treated as one continuous scope
+- Compound statement awareness - `if`/`else`/`elseif`, `case`/`other`, `repeat`/`until`/`while` treated as one continuous scope
 - Base indent derived from elastic profile (elastic mode) or `indentSize` setting (spaces mode)
 - Enable via `spinExtension.scopeGuides.enable` (off by default)
 
@@ -106,7 +135,7 @@ Simplified tab model and content-driven column alignment
 
 ### Changed
 
-- **BREAKING**: Remove `tabsToSpaces` and `tabWidth` settings — tabs are now fixed at 8 columns
+- **BREAKING**: Remove `tabsToSpaces` and `tabWidth` settings - tabs are now fixed at 8 columns
 - Two formatting modes: Spaces (indentSize grid with tab compression) or Elastic (profile-defined columns, pure spaces)
 - Indent size choices expanded to 1–8
 
@@ -114,7 +143,7 @@ Simplified tab model and content-driven column alignment
 
 - Vertical alignment of `...` line-continuation markers within consecutive groups
 - Content-driven trailing comment alignment (2×indentSize past widest code line)
-- Content-driven PASM column layout — label/condition/mnemonic/operand/effect columns adapt to actual content widths
+- Content-driven PASM column layout - label/condition/mnemonic/operand/effect columns adapt to actual content widths
 - Unified comment columns across consecutive small same-type blocks (under 15 lines) to prevent jagged alignment
 - Switching formatter modes via the status bar immediately reformats the active document
 
@@ -132,7 +161,7 @@ Formatter default adjustments, and documentation updates
 - Change default `methodCase` from `lowercase` to `preserve`
 - Change default `typeCase` from `lowercase` to `uppercase`
 - Change default `constantCase` from `preserve` to `uppercase`
-- Clarify blank line setting descriptions — `maxConsecutiveBlankLines` applies within section bodies only and is independent of `blankLinesBetweenSections` and `blankLinesBetweenMethods`
+- Clarify blank line setting descriptions - `maxConsecutiveBlankLines` applies within section bodies only and is independent of `blankLinesBetweenSections` and `blankLinesBetweenMethods`
 
 ### Fixed
 

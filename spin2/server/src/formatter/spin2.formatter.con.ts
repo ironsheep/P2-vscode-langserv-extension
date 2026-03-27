@@ -48,16 +48,20 @@ export function formatConBlock(
   // Collect assignment lines for alignment
   const assignments: ConAssignment[] = [];
   const assignmentLineIndices: Set<number> = new Set();
+  let inStructContinuation: boolean = false;
 
   for (let i = startLine; i <= endLine; i++) {
     const line = lines[i];
     if (findings.isLineInBlockComment(i)) {
+      inStructContinuation = false;
       continue;
     }
     if (line.trim().length === 0) {
+      inStructContinuation = false;
       continue;
     }
     if (isColumnZero(line) && isFullLineComment(line)) {
+      inStructContinuation = false;
       continue; // column-0 comments are never touched
     }
     if (isFullLineComment(line)) {
@@ -68,6 +72,7 @@ export function formatConBlock(
 
     // Skip the CON keyword line itself
     if (/^con\b/i.test(trimmed)) {
+      inStructContinuation = false;
       continue;
     }
 
@@ -76,9 +81,26 @@ export function formatConBlock(
       continue;
     }
 
+    const indentW = tabStops.length > 0 ? tabStops[0] : 2;
+
+    // Handle STRUCT declarations and their continuation lines
+    if (/^struct\b/i.test(trimmed)) {
+      lines[i] = ' '.repeat(indentW) + trimmed;
+      // Check if this STRUCT line continues (has ... before optional comment)
+      const [codePart] = splitTrailingComment(line);
+      inStructContinuation = codePart.trimEnd().endsWith('...');
+      continue;
+    }
+    if (inStructContinuation) {
+      // Indent continuation lines at double the block indent
+      lines[i] = ' '.repeat(indentW * 2) + trimmed;
+      const [codePart] = splitTrailingComment(lines[i]);
+      inStructContinuation = codePart.trimEnd().endsWith('...');
+      continue;
+    }
+
     // Detect enum lines: start with # or are comma-separated without =
     if (isEnumLine(trimmed)) {
-      const indentW = tabStops.length > 0 ? tabStops[0] : 2;
       lines[i] = formatEnumLine(line, tabStops, indentW);
       continue;
     }

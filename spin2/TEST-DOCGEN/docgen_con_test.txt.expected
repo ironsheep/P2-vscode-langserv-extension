@@ -13,18 +13,9 @@ Object "docgen_con_test" Interface:
 
 ── Public Constants ──────────────────────────────────────────
 
-  Error Codes:
-    SUCCESS, E_TIMEOUT, E_NO_RESPONSE, E_BAD_RESPONSE, E_IO_ERROR
-  Driver Modes:
-    MODE_NONE, MODE_RAW, MODE_FULL
-  Warning Flags:
-    CW_NONE, CW_PROBE_FAILED, CW_FEATURE_SUPPORTED
-  Conditional Feature Codes:
-    BASE_CODE, FINAL_CODE
-  Locally Conditional:
-    ALWAYS_HERE, LOCAL_ENABLED
-  Overridable Configuration:
-    MAX_CONNECTIONS
+  SUCCESS, E_TIMEOUT, E_NO_RESPONSE, E_BAD_RESPONSE, E_IO_ERROR, MODE_NONE,
+  MODE_RAW, MODE_FULL, CW_NONE, CW_PROBE_FAILED, CW_FEATURE_SUPPORTED,
+  BASE_CODE, FINAL_CODE, ALWAYS_HERE, LOCAL_ENABLED, MAX_CONNECTIONS
 
 ── Public Structures ─────────────────────────────────────────
 

@@ -499,7 +499,7 @@ export class Spin1DocumentSemanticParser {
           this._getDAT_Declaration(0, lineNbr, line);
         } else if (currState == eParseState.inObj) {
           // process an object line
-          if (trimmedNonCommentLine.length > 3) {
+          if (trimmedNonCommentLine.length > 3 && !this.semanticFindings.preProcIsLineDisabled(lineNbr)) {
             this._getOBJ_Declaration(3, lineNbr, line);
           }
         } else if (currState == eParseState.inVar) {
@@ -544,7 +544,7 @@ export class Spin1DocumentSemanticParser {
         }
       } else if (currState == eParseState.inObj) {
         // process an object declaration line
-        if (bHaveLineToProcess) {
+        if (bHaveLineToProcess && !this.semanticFindings.preProcIsLineDisabled(lineNbr)) {
           this._getOBJ_Declaration(0, lineNbr, line);
         }
       } else if (currState == eParseState.inDatPAsm) {

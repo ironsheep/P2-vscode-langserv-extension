@@ -154,6 +154,9 @@ export default class DocumentFormattingProvider implements Provider {
     // Phase 2b: Merge comment columns across consecutive small same-type blocks
     this.mergeSmallBlockComments(result, findings, elasticConfig);
 
+    // Phase 2c: Normalize whitespace on block keyword lines (CON/VAR/OBJ/DAT/PUB/PRI)
+    this.normalizeBlockKeywordComments(result, findings);
+
     // Phase 6: Case normalization and comment spacing
     this.formatCaseAndComments(result, findings, config);
 
@@ -281,6 +284,7 @@ export default class DocumentFormattingProvider implements Provider {
       const line = lines[i];
       if (line.trim().length === 0) continue;
       if (isFullLineComment(line)) continue;
+      if (/^(con|var|obj|dat|pub|pri)\b/i.test(line.trimStart())) continue;
 
       const [codePart, commentPart] = splitTrailingComment(line);
       if (commentPart.length > 0) {
@@ -297,6 +301,18 @@ export default class DocumentFormattingProvider implements Provider {
 
     for (const entry of entries) {
       lines[entry.lineIdx] = padToColumn(entry.codePart, commentCol) + entry.commentPart;
+    }
+  }
+
+  /** Collapse extra whitespace before trailing comments on block keyword lines. */
+  private normalizeBlockKeywordComments(lines: string[], findings: DocumentFindings): void {
+    for (let i = 0; i < lines.length; i++) {
+      if (findings.isLineInBlockComment(i)) continue;
+      const trimmed = lines[i].trimStart();
+      if (!/^(con|var|obj|dat|pub|pri)\b/i.test(trimmed)) continue;
+      const [codePart, commentPart] = splitTrailingComment(lines[i]);
+      if (commentPart.length === 0) continue;
+      lines[i] = codePart.trimEnd() + ' ' + commentPart;
     }
   }
 

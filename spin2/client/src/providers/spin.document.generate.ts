@@ -637,19 +637,14 @@ export class DocGenerator {
         if (hasDocConstants) {
           fs.appendFileSync(outFile, this._sectionHeader('Public Constants') + this.endOfLineStr);
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          const allConstNames: string[] = [];
           for (const section of docConSections) {
-            if (section.constants.length > 0) {
-              const heading = section.heading.length > 0
-                ? this._toTitleCase(section.heading)
-                : 'Constants';
-              const nameList = section.constants
-                .map((c) => c.name).join(', ');
-              fs.appendFileSync(outFile,
-                `  ${heading}:` + this.endOfLineStr);
-              this._emitWrapped(outFile,
-                `    ${nameList}`, '    ');
+            for (const c of section.constants) {
+              allConstNames.push(c.name);
             }
           }
+          this._emitWrapped(outFile,
+            `  ${allConstNames.join(', ')}`, '  ');
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
         }
 
@@ -804,6 +799,41 @@ export class DocGenerator {
               currState = priorState;
             }
             //  DO NOTHING
+            continue;
+          }
+
+          // --- Preprocessor directive handling (2nd pass) ---
+          if (trimmedLine.startsWith('#')) {
+            const preProcParts = trimmedLine.split(/[ \t]+/).filter(Boolean);
+            const directive = preProcParts[0].toLowerCase();
+            const symbol = preProcParts.length > 1 ? preProcParts[1] : '';
+            if (directive === '#ifdef' && symbol.length > 0) {
+              preProcDisabledStack.push(preProcLinesDisabled);
+              if (!preProcLinesDisabled) {
+                preProcLinesDisabled = !definedSymbols.has(symbol.toUpperCase());
+              }
+            } else if (directive === '#ifndef' && symbol.length > 0) {
+              preProcDisabledStack.push(preProcLinesDisabled);
+              if (!preProcLinesDisabled) {
+                preProcLinesDisabled = definedSymbols.has(symbol.toUpperCase());
+              }
+            } else if (directive === '#else') {
+              if (preProcDisabledStack.length > 0) {
+                const parentDisabled = preProcDisabledStack[preProcDisabledStack.length - 1];
+                if (!parentDisabled) {
+                  preProcLinesDisabled = !preProcLinesDisabled;
+                }
+              }
+            } else if (directive === '#endif') {
+              if (preProcDisabledStack.length > 0) {
+                preProcLinesDisabled = preProcDisabledStack.pop()!;
+              }
+            }
+            continue;
+          }
+
+          // skip lines disabled by preprocessor
+          if (preProcLinesDisabled) {
             continue;
           }
 

@@ -996,7 +996,7 @@ export class Spin2DocumentSemanticParser {
           const lineToParse: string = bHaveLineSetToProcess ? continuedLineSet.line : nonCommentLine;
           const lineNumber: number = bHaveLineSetToProcess ? continuedLineSet.lineStartIdx + 1 : lineNbr;
           this._logState(`- pre-scan Ln#${lineNumber} OBJ line=[${lineToParse}](${nonCommentLength})`);
-          if (nonCommentLength > 3) {
+          if (nonCommentLength > 3 && !this.semanticFindings.preProcIsLineDisabled(lineNumber)) {
             this._getOBJ_Declaration(3, lineNumber, lineToParse);
           }
         } else if (currState === eParseState.inVar) {
@@ -1071,7 +1071,7 @@ export class Spin2DocumentSemanticParser {
         const lineToParse: string = bHaveLineSetToProcess ? continuedLineSet.line : nonCommentLine;
         const lineNumber: number = bHaveLineSetToProcess ? continuedLineSet.lineStartIdx + 1 : lineNbr;
         this._logState(`- pre-scan Ln#${lineNumber} OBJ line=[${lineToParse}](${nonCommentLength})`);
-        if (nonCommentLength > 0) {
+        if (nonCommentLength > 0 && !this.semanticFindings.preProcIsLineDisabled(lineNumber)) {
           this._getOBJ_Declaration(0, lineNumber, lineToParse);
         }
       } else if (currState === eParseState.inPAsmInline) {

@@ -23,6 +23,8 @@ export class Spin1DocumentSymbolParser {
   private parseUtils: Spin1ParseUtils = new Spin1ParseUtils();
   private containerDocSymbol: OutLineSymbol | undefined = undefined;
   private symbolsFound: DocumentFindings | undefined = undefined;
+  private currentContainerIsSeparator: boolean = false;
+  private currentSeparatorText: string = '';
 
   public constructor(protected readonly ctx: Context) {
     this.extensionUtils = new ExtensionUtils(ctx, this.isDebugLogEnabled);
@@ -180,8 +182,24 @@ export class Spin1DocumentSymbolParser {
           } else if (linePrefix == 'OBJ') {
             blockSymbolKind = lsp.SymbolKind.Class;
           }
-          const blockSymbol: OutLineSymbol = new OutLineSymbol(linePrefix + ' ' + sectionComment, '', blockSymbolKind, lineRange);
-          this.setContainerSymbol(blockSymbol);
+          // Check for separator comment pattern: ' ---<text>
+          let blockLabel: string;
+          const separatorText = sectionComment.length > 0 ? this._parseSeparatorComment(sectionComment) : undefined;
+          if (separatorText !== undefined) {
+            // Build with block prefix; finalization strips it for empty blocks
+            blockLabel = this._buildSeparatorLabel(separatorText, linePrefix);
+          } else {
+            blockLabel = linePrefix + ' ' + sectionComment;
+          }
+          const blockSymbol: OutLineSymbol = new OutLineSymbol(blockLabel, '', blockSymbolKind, lineRange);
+          this.setContainerSymbol(blockSymbol); // finalizes PREVIOUS container with old state
+          // Now set separator state for the NEW container
+          if (separatorText !== undefined) {
+            this.currentContainerIsSeparator = true;
+            this.currentSeparatorText = separatorText;
+          } else {
+            this.currentContainerIsSeparator = false;
+          }
           // HANDLE label declaration on DAT line!
           if (linePrefix == 'DAT') {
             const lineParts: string[] = nonCommentLine.split(/[ \t]/).filter(Boolean);
@@ -280,6 +298,7 @@ export class Spin1DocumentSymbolParser {
     }
     // if we have one last unpushed, push it
     if (this.containerDocSymbol) {
+      this._finalizeContainerSeparator();
       this.symbolsFound.setOutlineSymbol(this.containerDocSymbol);
       this.containerDocSymbol = undefined;
     }
@@ -288,10 +307,51 @@ export class Spin1DocumentSymbolParser {
   private setContainerSymbol(newSymbol: OutLineSymbol): void {
     // report symbol, possible container symbol, then start a new container
     if (this.containerDocSymbol && this.symbolsFound) {
+      this._finalizeContainerSeparator();
       // WARNING this.symbolsFound by compiler could be undefined - but ats runtime is always set up by calling routine! (so we can wrap this safely without further care)
       this.symbolsFound.setOutlineSymbol(this.containerDocSymbol);
     }
     this.containerDocSymbol = newSymbol;
+  }
+
+  private static readonly SEPARATOR_CHAR = '\u2500'; // ─
+  private static readonly SEPARATOR_VISUAL_WIDTH = 50; // target width in visual units
+
+  private _parseSeparatorComment(comment: string): string | undefined {
+    // Detect comment pattern: ' followed by at least 3 dashes, then optional text
+    const match = comment.match(/^'\s*-{3,}\s*(.*)/);
+    if (!match) return undefined;
+    return match[1].replace(/-+\s*$/, '').trim();
+  }
+
+  private _buildSeparatorLabel(text: string, blockPrefix?: string): string {
+    // Each ─ renders ~2x wider than a normal char in the outline panel,
+    // so count each separator char as 2 visual units.
+    const sc = Spin1DocumentSymbolParser.SEPARATOR_CHAR;
+    const vw = Spin1DocumentSymbolParser.SEPARATOR_VISUAL_WIDTH;
+    const prefix = blockPrefix ? blockPrefix + ' ' : '';
+    const prefixVW = prefix.length; // all regular chars
+    if (text.length === 0) {
+      const fillCount = Math.max(2, Math.floor((vw - prefixVW) / 2));
+      return prefix + sc.repeat(fillCount);
+    }
+    const leaderCount = 3;
+    const textPart = ` ${text} `;
+    const usedVW = prefixVW + leaderCount * 2 + textPart.length;
+    const fillCount = Math.max(1, Math.floor((vw - usedVW) / 2));
+    return prefix + sc.repeat(leaderCount) + textPart + sc.repeat(fillCount);
+  }
+
+  private _finalizeContainerSeparator(): void {
+    if (this.containerDocSymbol && this.currentContainerIsSeparator) {
+      if (!this.containerDocSymbol.hasChildren) {
+        // Empty separator block: rebuild label without block ID
+        this.containerDocSymbol.setLabel(
+          this._buildSeparatorLabel(this.currentSeparatorText)
+        );
+      }
+      this.currentContainerIsSeparator = false;
+    }
   }
 
   private _logMessage(message: string): void {

@@ -96,6 +96,11 @@ export class Spin2ObjectReferenceParser {
 
     const tokenSet: IParsedToken[] = [];
 
+    // --- Preprocessor state tracking ---
+    const definedSymbols: Set<string> = new Set();
+    const preProcDisabledStack: boolean[] = [];
+    let preProcLinesDisabled: boolean = false;
+
     // ==============================================================================
     // prepass to find PRI/PUB method, OBJ names, and VAR/DAT names
     //
@@ -155,7 +160,51 @@ export class Spin2ObjectReferenceParser {
       } else if (trimmedLine.length == 0) {
         // a blank line clears pending single line comments
         continue;
-      } else if (trimmedLine.startsWith('{{')) {
+      }
+
+      // --- Preprocessor directive handling ---
+      if (trimmedLine.startsWith('#')) {
+        const preProcParts = trimmedLine.split(/[ \t]+/).filter(Boolean);
+        const directive = preProcParts[0].toLowerCase();
+        const symbol = preProcParts.length > 1 ? preProcParts[1] : '';
+        if (directive === '#define' && symbol.length > 0) {
+          if (!preProcLinesDisabled) {
+            definedSymbols.add(symbol.toUpperCase());
+          }
+        } else if (directive === '#ifdef' && symbol.length > 0) {
+          preProcDisabledStack.push(preProcLinesDisabled);
+          if (!preProcLinesDisabled) {
+            preProcLinesDisabled = !definedSymbols.has(symbol.toUpperCase());
+          }
+        } else if (directive === '#ifndef' && symbol.length > 0) {
+          preProcDisabledStack.push(preProcLinesDisabled);
+          if (!preProcLinesDisabled) {
+            preProcLinesDisabled = definedSymbols.has(symbol.toUpperCase());
+          }
+        } else if (directive === '#else') {
+          if (preProcDisabledStack.length > 0) {
+            const parentDisabled = preProcDisabledStack[preProcDisabledStack.length - 1];
+            if (!parentDisabled) {
+              preProcLinesDisabled = !preProcLinesDisabled;
+            }
+          }
+        } else if (directive === '#endif') {
+          if (preProcDisabledStack.length > 0) {
+            preProcLinesDisabled = preProcDisabledStack.pop()!;
+          }
+        }
+        // #include is handled below (only when not disabled)
+        if (directive !== '#include') {
+          continue;
+        }
+      }
+
+      // skip lines disabled by preprocessor
+      if (preProcLinesDisabled) {
+        continue;
+      }
+
+      if (trimmedLine.startsWith('{{')) {
         // process multi-line doc comment
         const openingOffset = line.indexOf('{{');
         const closingOffset = line.indexOf('}}', openingOffset + 2);
