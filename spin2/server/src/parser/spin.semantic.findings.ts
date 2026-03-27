@@ -475,33 +475,47 @@ export class DocumentFindings {
         this.isLineEnabled[this.preProcNestDepth]
       }), at ln#${lineNbr}`
     );
-    if (!this.inPreProcIfStatement || (this.inPreProcIfStatement = true && this.isLineEnabled[this.preProcNestDepth] == true)) {
+    if (!this.inPreProcIfStatement || (this.inPreProcIfStatement == true && this.isLineEnabled[this.preProcNestDepth] == true)) {
       this.definePreProcSymbol(symbolName);
     }
   }
 
+  private _isParentEnabled(): boolean {
+    // check if the enclosing (parent) nesting level is enabled
+    // depth 0 = not in any #ifdef, always enabled
+    // depth 1+ = check parent at depth-1
+    if (this.preProcNestDepth <= 1) {
+      return this.isLineEnabled[0]; // ground state, always true
+    }
+    return this.isLineEnabled[this.preProcNestDepth - 1] !== false;
+  }
+
   public preProcRecordConditionChange(directive: ePreprocessState, symbolName: string = '', line: string, lineNbr: number) {
     // handle preprocessor state transition
-    this._logMessage(`* [PreProc] rcdCondChg() [${ePreprocessState[directive]}], symbol=[${symbolName}], ln#${lineNbr}`);
+    // depth is 1-based: 0 = outside all #ifdef, 1 = first #ifdef, etc.
+    this._logMessage(
+      `* [PreProc] rcdCondChg() ` +
+      `[${ePreprocessState[directive]}], ` +
+      `symbol=[${symbolName}], ln#${lineNbr}`
+    );
     const startInPreProc: boolean = this.inPreProcIfStatement;
     switch (directive) {
       case ePreprocessState.PPS_IFDEF:
         {
-          // if symbol is defined, enable lines after this one, else disable lines after this one
-          // ensure we are nesting if already in ifdef
-          const priorDepth: number = this.preProcNestDepth;
-          this.preProcNestDepth = this.inPreProcIfStatement ? this.preProcNestDepth + 1 : 0;
+          // always increment depth for each new #ifdef
+          this.preProcNestDepth++;
           this.inPreProcIfStatement = true;
-          // at new depth?, initialize it!
-          if (priorDepth != this.preProcNestDepth) {
-            this.isLineEnabled[this.preProcNestDepth] = true;
-            this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
-          }
+          // initialize state at new depth
+          this.isLineEnabled[this.preProcNestDepth] = true;
+          this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
           this._logMessage(
-            `* [PreProc]   IFDEF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`
+            `* [PreProc]   IFDEF nestDepth=(${this.preProcNestDepth}), ` +
+            `from ln#${lineNbr}`
           );
-          // now handle ifdef
-          if (this.isPreProcSymbolDefined(symbolName)) {
+          // if parent is disabled, child is always disabled
+          if (!this._isParentEnabled()) {
+            this.preProcDisableLinesFrom(line, lineNbr + 1);
+          } else if (this.isPreProcSymbolDefined(symbolName)) {
             this.preProcEnableLinesFrom(line, lineNbr);
           } else {
             this.preProcDisableLinesFrom(line, lineNbr + 1);
@@ -510,19 +524,18 @@ export class DocumentFindings {
         break;
       case ePreprocessState.PPS_IFNDEF:
         {
-          // ensure we are nesting if already in ifdef
-          const priorDepth: number = this.preProcNestDepth;
-          this.preProcNestDepth = this.inPreProcIfStatement ? this.preProcNestDepth + 1 : 0;
+          this.preProcNestDepth++;
           this.inPreProcIfStatement = true;
-          if (priorDepth != this.preProcNestDepth) {
-            this.isLineEnabled[this.preProcNestDepth] = true;
-            this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
-          }
+          this.isLineEnabled[this.preProcNestDepth] = true;
+          this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
           this._logMessage(
-            `* [PreProc]   IFNDEF nestDepth=(${this.preProcNestDepth}), isPreProcIf=(${this.inPreProcIfStatement}), from ln#${lineNbr}`
+            `* [PreProc]   IFNDEF nestDepth=(${this.preProcNestDepth}), ` +
+            `from ln#${lineNbr}`
           );
-          // now handle ifndef
-          if (!this.isPreProcSymbolDefined(symbolName)) {
+          // if parent is disabled, child is always disabled
+          if (!this._isParentEnabled()) {
+            this.preProcDisableLinesFrom(line, lineNbr + 1);
+          } else if (!this.isPreProcSymbolDefined(symbolName)) {
             this.preProcEnableLinesFrom(line, lineNbr);
           } else {
             this.preProcDisableLinesFrom(line, lineNbr + 1);
@@ -531,34 +544,43 @@ export class DocumentFindings {
         break;
       case ePreprocessState.PPS_ENDIF:
         this.preProcEnableLinesFrom(line, lineNbr);
-        this.preProcNestDepth = this.preProcNestDepth > 0 ? this.preProcNestDepth - 1 : 0;
-        this.inPreProcIfStatement = this.preProcNestDepth > 0 ? true : false;
-        this.isLineEnabled[this.preProcNestDepth] = true; // TODO: is this a BUG???!!!
+        this.preProcNestDepth = this.preProcNestDepth > 0
+          ? this.preProcNestDepth - 1 : 0;
+        this.inPreProcIfStatement = this.preProcNestDepth > 0;
+        // do NOT force parent enabled — preserve parent state
         this._logMessage(
-          `* [PreProc]   ENDIF nestDepth=(${this.preProcNestDepth}), inPreProcStmnt=(${this.inPreProcIfStatement}), from ln#${lineNbr}`
+          `* [PreProc]   ENDIF nestDepth=(${this.preProcNestDepth}), ` +
+          `inPreProcStmnt=(${this.inPreProcIfStatement}), ` +
+          `from ln#${lineNbr}`
         );
         break;
       case ePreprocessState.PPS_ELSE:
-        // invert current enable state
-        this.preProcInvertEnableLinesFrom(line, lineNbr);
-        break;
-      case ePreprocessState.PPS_ELSEIFDEF:
-        // end prior
-        // start new ifdef
-        if (this.isPreProcSymbolDefined(symbolName)) {
-          // is defined, set new enable state
-          this.preProcEnableLinesFrom(line, lineNbr);
-        } else {
-          // NOT defined so just invert state
+        // invert enable state, but only if parent is enabled
+        if (this._isParentEnabled()) {
           this.preProcInvertEnableLinesFrom(line, lineNbr);
         }
+        // if parent is disabled, stay disabled (no change)
+        break;
+      case ePreprocessState.PPS_ELSEIFDEF:
+        // only evaluate if parent is enabled
+        if (this._isParentEnabled()) {
+          if (this.isPreProcSymbolDefined(symbolName)) {
+            this.preProcEnableLinesFrom(line, lineNbr);
+          } else {
+            this.preProcInvertEnableLinesFrom(line, lineNbr);
+          }
+        }
+        // if parent is disabled, stay disabled (no change)
         break;
 
       default:
         break;
     }
     if (startInPreProc != this.inPreProcIfStatement) {
-      this._logMessage(`* [PreProc]   inPreProcIfStatement:(${startInPreProc}) -> (${this.inPreProcIfStatement})`);
+      this._logMessage(
+        `* [PreProc]   inPreProcIfStatement:` +
+        `(${startInPreProc}) -> (${this.inPreProcIfStatement})`
+      );
     }
   }
 

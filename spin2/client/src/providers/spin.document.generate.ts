@@ -285,7 +285,8 @@ export class DocGenerator {
 
         // --- Preprocessor state tracking ---
         const definedSymbols: Set<string> = new Set();
-        const preProcDisabledStack: boolean[] = []; // stack of disabled states
+        const referencedSymbols: Set<string> = new Set();
+        const preProcDisabledStack: boolean[] = [];
         let preProcLinesDisabled: boolean = false;
 
         // --- Structure size lookup (for nested structs) ---
@@ -347,11 +348,13 @@ export class DocGenerator {
                 definedSymbols.add(symbol.toUpperCase());
               }
             } else if (directive === '#ifdef' && symbol.length > 0) {
+              referencedSymbols.add(symbol.toUpperCase());
               preProcDisabledStack.push(preProcLinesDisabled);
               if (!preProcLinesDisabled) {
                 preProcLinesDisabled = !definedSymbols.has(symbol.toUpperCase());
               }
             } else if (directive === '#ifndef' && symbol.length > 0) {
+              referencedSymbols.add(symbol.toUpperCase());
               preProcDisabledStack.push(preProcLinesDisabled);
               if (!preProcLinesDisabled) {
                 preProcLinesDisabled = definedSymbols.has(symbol.toUpperCase());
@@ -596,7 +599,7 @@ export class DocGenerator {
 
         // --- Top doc comments (file header) ---
         for (const docLine of topDocLines) {
-          fs.appendFileSync(outFile, docLine + this.endOfLineStr);
+          this._emitWrapped(outFile, docLine, '  ');
         }
 
         // --- Object Interface header ---
@@ -604,8 +607,28 @@ export class DocGenerator {
         const introText: string = 'Object "' + objectName + '" Interface:';
         fs.appendFileSync(outFile, introText + this.endOfLineStr);
         if (requiredLanguageVersion > 0) {
-          const lanVersionText: string = `  (Requires Spin2 Language v${requiredLanguageVersion})`;
-          fs.appendFileSync(outFile, lanVersionText + this.endOfLineStr);
+          const lanVersionText =
+            `  (Requires Spin2 Language v${requiredLanguageVersion})`;
+          fs.appendFileSync(outFile,
+            lanVersionText + this.endOfLineStr);
+        }
+        // show which external feature flags are active
+        // external = referenced in #ifdef/#ifndef
+        // active = also locally #define'd (e.g., cascaded)
+        if (referencedSymbols.size > 0) {
+          const activeFeatures = [...referencedSymbols]
+            .filter((s) => definedSymbols.has(s))
+            .sort();
+          if (activeFeatures.length > 0) {
+            const defList = activeFeatures.join(', ');
+            this._emitWrapped(outFile,
+              `  (Active features: ${defList})`,
+              '    ');
+          } else {
+            fs.appendFileSync(outFile,
+              '  (No optional features active)' +
+              this.endOfLineStr);
+          }
         }
         fs.appendFileSync(outFile, '' + this.endOfLineStr);
 
@@ -619,9 +642,12 @@ export class DocGenerator {
               const heading = section.heading.length > 0
                 ? this._toTitleCase(section.heading)
                 : 'Constants';
-              const nameList = section.constants.map((c) => c.name).join(', ');
-              fs.appendFileSync(outFile, `  ${heading}:` + this.endOfLineStr);
-              fs.appendFileSync(outFile, `    ${nameList}` + this.endOfLineStr);
+              const nameList = section.constants
+                .map((c) => c.name).join(', ');
+              fs.appendFileSync(outFile,
+                `  ${heading}:` + this.endOfLineStr);
+              this._emitWrapped(outFile,
+                `    ${nameList}`, '    ');
             }
           }
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
@@ -649,6 +675,8 @@ export class DocGenerator {
 
         // --- Constant Details ---
         if (hasDocConstants) {
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
           fs.appendFileSync(outFile, this._sectionHeader('Constant Details') + this.endOfLineStr);
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
           for (const section of docConSections) {
@@ -666,20 +694,25 @@ export class DocGenerator {
                 if (c.name.length > maxNameLen) maxNameLen = c.name.length;
                 if (c.value.length > maxValueLen) maxValueLen = c.value.length;
               }
+              // compute indent for wrapped comment continuation
+              const cmtIndent = ' '.repeat(
+                2 + maxNameLen + 3 + maxValueLen + 4
+              );
               for (const c of section.constants) {
                 // emit any doc comments above this constant
                 if (c.docComment.length > 0) {
                   for (const dc of c.docComment) {
-                    fs.appendFileSync(outFile, `  ${dc}` + this.endOfLineStr);
+                    this._emitWrapped(outFile,
+                      `  ${dc}`, '  ');
                   }
                 }
                 const paddedName = c.name.padEnd(maxNameLen);
                 const paddedValue = c.value.padStart(maxValueLen);
-                let line = `  ${paddedName} = ${paddedValue}`;
+                let constLine = `  ${paddedName} = ${paddedValue}`;
                 if (c.trailingComment.length > 0) {
-                  line += `    ${c.trailingComment}`;
+                  constLine += `    ${c.trailingComment}`;
                 }
-                fs.appendFileSync(outFile, line + this.endOfLineStr);
+                this._emitWrapped(outFile, constLine, cmtIndent);
               }
               fs.appendFileSync(outFile, '' + this.endOfLineStr);
             }
@@ -688,6 +721,8 @@ export class DocGenerator {
 
         // --- Structure Details ---
         if (allDocStructures.length > 0) {
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
           fs.appendFileSync(outFile, this._sectionHeader('Structure Details') + this.endOfLineStr);
           fs.appendFileSync(outFile, '' + this.endOfLineStr);
           for (const struct of allDocStructures) {
@@ -696,16 +731,20 @@ export class DocGenerator {
             const headingUnderline = '_'.repeat(headerLine.length);
             fs.appendFileSync(outFile, headerLine + this.endOfLineStr);
             fs.appendFileSync(outFile, headingUnderline + this.endOfLineStr);
+            if (struct.docComment.length > 0) {
+              for (const dc of struct.docComment) {
+                this._emitWrapped(outFile, `  ${dc}`, '  ');
+              }
+              fs.appendFileSync(outFile, '' + this.endOfLineStr);
+            }
+            fs.appendFileSync(outFile,
+              `  STRUCT ${struct.name} Members:` + this.endOfLineStr);
             for (const member of struct.members) {
               const typeStr = member.type.padEnd(6);
-              const arrayStr = member.arraySize > 0 ? `[${member.arraySize}]` : '';
-              fs.appendFileSync(outFile, `  ${typeStr}${member.name}${arrayStr}` + this.endOfLineStr);
-            }
-            if (struct.docComment.length > 0) {
-              fs.appendFileSync(outFile, '' + this.endOfLineStr);
-              for (const dc of struct.docComment) {
-                fs.appendFileSync(outFile, `  ${dc}` + this.endOfLineStr);
-              }
+              const arrayStr = member.arraySize > 0
+                ? `[${member.arraySize}]` : '';
+              fs.appendFileSync(outFile,
+                `    ${typeStr}${member.name}${arrayStr}` + this.endOfLineStr);
             }
             fs.appendFileSync(outFile, '' + this.endOfLineStr);
           }
@@ -713,6 +752,8 @@ export class DocGenerator {
 
         // --- Method Details ---
         if (pubSignatures.length > 0) {
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
+          fs.appendFileSync(outFile, '' + this.endOfLineStr);
           fs.appendFileSync(outFile, this._sectionHeader('Method Details') + this.endOfLineStr);
         }
 
@@ -724,7 +765,6 @@ export class DocGenerator {
         let pubsSoFar: number = 0;
         let emitPubDocComment: boolean = false;
         let emitTrailingDocComment: boolean = false;
-        let trailingBlankLineEmitted: boolean = false;
         // reset preprocessor state for 2nd pass
         preProcLinesDisabled = false;
         preProcDisabledStack.length = 0;
@@ -742,12 +782,14 @@ export class DocGenerator {
               currState = priorState;
               //  if last line has additional text write it!
               if (trimmedLine.length > 2 && (emitTrailingDocComment || emitPubDocComment)) {
-                fs.appendFileSync(outFile, line.text.substring(2).trimEnd() + this.endOfLineStr);
+                this._emitWrapped(outFile,
+                  line.text.substring(2).trimEnd(), ' ');
               }
             } else {
               //  if last line has additional text write it!
               if (emitTrailingDocComment || emitPubDocComment) {
-                fs.appendFileSync(outFile, line.text.trimEnd() + this.endOfLineStr);
+                this._emitWrapped(outFile,
+                  line.text.trimEnd(), ' ');
               }
             }
             continue;
@@ -781,7 +823,8 @@ export class DocGenerator {
               currState = eParseState.inMultiLineDocComment;
               //  if first line has additional text write it!
               if (trimmedLine.length > 2 && (emitTrailingDocComment || emitPubDocComment)) {
-                fs.appendFileSync(outFile, line.text.trimEnd() + this.endOfLineStr);
+                this._emitWrapped(outFile,
+                  line.text.trimEnd(), ' ');
               }
             }
             continue;
@@ -801,7 +844,8 @@ export class DocGenerator {
             // process single-line doc comment
             if (trimmedLine.length > 2 && (emitTrailingDocComment || emitPubDocComment)) {
               // emit comment without leading ''
-              fs.appendFileSync(outFile, trimmedLine.substring(2) + this.endOfLineStr);
+              this._emitWrapped(outFile,
+                trimmedLine.substring(2), ' ');
             }
           } else if (sectionStatus.isSectionStart && currState == eParseState.inPri) {
             emitPubDocComment = false;
@@ -823,13 +867,6 @@ export class DocGenerator {
               emitTrailingDocComment = true;
               emitPubDocComment = false;
             }
-          } else if (sectionStatus.isSectionStart &&
-              currState != eParseState.inPub &&
-              emitTrailingDocComment &&
-              !trailingBlankLineEmitted) {
-            // emit blank line just before we do final doc comment at end of file (once only)
-            fs.appendFileSync(outFile, '' + this.endOfLineStr); // blank line
-            trailingBlankLineEmitted = true;
           }
         }
         fs.closeSync(outFile);
@@ -1036,9 +1073,50 @@ export class DocGenerator {
     return text.replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
+  private static readonly MAX_LINE_WIDTH = 100;
+
   private _sectionHeader(title: string): string {
     const rule = '─'.repeat(60 - title.length);
     return `── ${title} ${rule}`;
+  }
+
+  private _wrapLine(
+    text: string,
+    indent: string,
+    maxWidth: number = DocGenerator.MAX_LINE_WIDTH
+  ): string[] {
+    // wrap text at word boundaries to fit within maxWidth
+    if (text.length <= maxWidth) {
+      return [text];
+    }
+    const lines: string[] = [];
+    let remaining = text;
+    while (remaining.length > maxWidth) {
+      // find last space at or before maxWidth
+      let breakAt = remaining.lastIndexOf(' ', maxWidth);
+      if (breakAt <= indent.length) {
+        // no good break point — find first space after maxWidth
+        breakAt = remaining.indexOf(' ', maxWidth);
+        if (breakAt === -1) {
+          break; // no break possible, emit as-is
+        }
+      }
+      lines.push(remaining.substring(0, breakAt));
+      remaining = indent + remaining.substring(breakAt + 1);
+    }
+    lines.push(remaining);
+    return lines;
+  }
+
+  private _emitWrapped(
+    outFile: number,
+    text: string,
+    indent: string
+  ): void {
+    const lines = this._wrapLine(text, indent);
+    for (const line of lines) {
+      fs.appendFileSync(outFile, line + this.endOfLineStr);
+    }
   }
 
   private getNonCommentLineRemainder(offset: number, line: string): string {
