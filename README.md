@@ -67,7 +67,7 @@ Full **language server based** support for Spin2 and Pasm2 on the Parallax Prope
 ### Code Generation
 
 - **Doc-Comment Generation** (`Ctrl+Alt+C`) — insert a documentation comment template below a PUB or PRI method
-- **Object Public Interface Documentation** (`Ctrl+Alt+D`) — generate a public interface document, displayed in a side panel
+- **Object Public Interface Documentation** (`Ctrl+Alt+D`) — generate a public interface document with PUB methods, constants, and structures (mark CON blocks with `{Spin2_Doc_CON}` to include them), displayed in a side panel
 - **Object Hierarchy Report** (`Ctrl+Alt+R`) — generate a project hierarchy report, displayed in a side panel
 - **Project Archive** — generate a ZIP archive containing all source files needed to compile the top-level file, with a `_README_.txt` showing the project name, timestamp, and object hierarchy tree (command: "Spin2: Archive Project")
 

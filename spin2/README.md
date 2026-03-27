@@ -154,6 +154,8 @@ The extension offers Quick Fix lightbulb actions for common issues:
 
 Upon pressing Ctrl+Alt+d (control alt document) the editor will now generate a `{filename}.txt` document file (for your `{filename}.spin2` or `{filename}.spin` file) and open it up to the right side of your editor window. The generator extracts all PUB methods and their doc-comments along with file-top and file-bottom doc-comments.
 
+**New in v2.10.5:** Place a `{Spin2_Doc_CON}` directive inside a CON block to include its constants and structures in the generated document. The directive can appear anywhere in the block before the first constant. Use `'` (non-doc) comments to describe constants and structures — these are included in the generated output. Constants gated by `#ifdef` for undefined symbols are excluded. The document also shows active optional feature flags and computes structure sizes.
+
 This document is nearly the same as that produced by **Propeller Tool** except the compiler is not being run so the document does not contain information about the size of compiled object.
 
 ```

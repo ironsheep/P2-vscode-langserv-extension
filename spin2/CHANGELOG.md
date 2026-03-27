@@ -9,8 +9,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 ### Near-term
 
 - Work on fixes to any reported issues
-- Add Constants to OBJ Interface Documentation
-- Add Structures to OBJ Interface Documentation
 - Continue spin2 code formatter improvements
 
 ### Longer-term
@@ -23,6 +21,54 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 ## [Unreleased]
 
 _No unreleased changes at this time._
+
+## [2.10.5] - 2026-03-27
+
+Document generation, semantic highlighting, and preprocessor fixes
+
+### Added
+
+- Add `{Spin2_Doc_CON}` directive for documenting public constants
+  and structures in generated interface documents
+- Generate constant details with column-aligned values and
+  trailing comment descriptions
+- Generate structure details with member types, sizes, and
+  `STRUCT name Members:` layout
+- Compute and display structure sizes in bytes (no padding per
+  Spin2 spec)
+- Track and display active/inactive feature flags in document header
+- Collect `'` (non-doc) comments as descriptions for constants,
+  enums, and structures in documented CON blocks
+- Respect `#ifdef`/`#endif` preprocessor state when collecting
+  constants — skip content gated by undefined symbols
+- Compute enum values from `#value[step]` declarations
+- Wrap generated document lines at column 100
+- Add 24 unit tests for `{Spin2_Doc_CON}` directive detection
+  and parsing utilities (`npm run test:docgen`)
+
+### Fixed
+
+- BUGFIX: Fix `long[a + b[handle] + c]` nested bracket tokenization —
+  `_splitOnWhitespaceButNotInBrackets` used a boolean instead of a
+  nesting counter, causing inner `]` to break the outer expression
+- BUGFIX: Fix nested index expression offset tracking —
+  `_parseNestedIndexExpression` discarded sub-expression offsets,
+  preventing inner bracket contents from being tokenized
+- BUGFIX: Fix high-complexity line splitter destroying `long[...]`
+  grouping — regex split on `[`/`]` characters when bracket count
+  exceeded 2, causing `long` to be classified as `function` (yellow)
+  instead of `operator` (violet)
+- BUGFIX: Fix `#ifdef` nesting depth tracking — change from 0-based
+  to 1-based so inner `#endif` cannot lose outer `#ifdef` context
+- BUGFIX: Fix nested `#ifdef` ignoring disabled parent — add parent
+  enable check so child blocks stay disabled when enclosing block
+  is disabled
+- BUGFIX: Fix `#endif` unconditionally enabling parent level —
+  remove forced re-enable that broke outer disabled state
+- BUGFIX: Fix `#else`/`#elseifdef` ignoring parent state — both now
+  check parent before inverting
+- BUGFIX: Fix assignment-in-condition (`=` vs `==`) in
+  `preProcRecordConditionalSymbol`
 
 ## [2.10.4] - 2026-03-24
 
