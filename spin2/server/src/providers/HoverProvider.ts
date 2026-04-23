@@ -688,6 +688,7 @@ export default class HoverProvider implements Provider {
     }
 
     // If direct didn't work, objRef may be a struct member not a variable — walk the chain
+    let targetBitfieldName: string | undefined = undefined;
     if (!targetStructDefn || !targetMember) {
       const lineText = DocumentLineAt(document, position).trimEnd();
       const dottedPath = this._extractDottedPath(lineText, position.character);
@@ -710,11 +711,25 @@ export default class HoverProvider implements Provider {
       if (!currentStructDefn) {
         return undefined;
       }
+      // v54: a nameless-sole-member struct surfaces its member's bitfields directly via the instance,
+      // so seed lastMember with the synthetic nameless member.
+      let lastMember: RememberedStructureMember | undefined = currentStructDefn.isNameless ? currentStructDefn.namelessMember : undefined;
 
       for (let i = 1; i < dottedPath.length; i++) {
         const segmentName = dottedPath[i];
         const member = currentStructDefn.memberNamed(segmentName);
         if (!member) {
+          // v54: may be a bitfield of the previously-colored member
+          if (lastMember && lastMember.hasBitfieldNamed(segmentName)) {
+            if (segmentName.toLowerCase() === searchWord.toLowerCase()) {
+              targetStructDefn = currentStructDefn;
+              targetMember = lastMember;
+              targetBitfieldName = segmentName;
+              break;
+            }
+            // bitfield refs terminate descent
+            return undefined;
+          }
           return undefined;
         }
 
@@ -725,13 +740,15 @@ export default class HoverProvider implements Provider {
         }
 
         if (!member.isStructure) {
-          return undefined;
+          lastMember = member;
+          continue;
         }
 
         currentStructDefn = this._getStructDefn(member.structName, symbolsFound);
         if (!currentStructDefn) {
           return undefined;
         }
+        lastMember = currentStructDefn.isNameless ? currentStructDefn.namelessMember : undefined;
       }
     }
 
@@ -755,6 +772,17 @@ export default class HoverProvider implements Provider {
     let memberDesc = `Member \`${targetMember.name}\` of struct \`${targetStructDefn.name}\` — type: ${typeDesc}`;
     if (targetMember.instanceCount > 1) {
       memberDesc += `[${targetMember.instanceCount}]`;
+    }
+    // v54: if this resolved to a bitfield of the member, describe the bitfield instead.
+    if (targetBitfieldName !== undefined) {
+      const bf = targetMember.getBitfield(targetBitfieldName);
+      if (bf !== undefined) {
+        const range: string = bf.lowBit === bf.highBit ? `bit ${bf.highBit}` : `bits ${bf.highBit}..${bf.lowBit}`;
+        const memberRef: string = targetMember.isNameless
+          ? `struct \`${targetStructDefn.name}\``
+          : `member \`${targetMember.name}\` of struct \`${targetStructDefn.name}\``;
+        memberDesc = `Bitfield \`${bf.name}\` on ${memberRef} — ${range} of ${typeDesc}`;
+      }
     }
     defInfo.doc = memberDesc;
 

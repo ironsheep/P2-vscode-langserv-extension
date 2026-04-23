@@ -610,4 +610,37 @@ describe('Spin2 Grammar Coverage Tests', function() {
       assert.ok(hasScope(result, 'constant.numeric'), 'Should recognize numeric constant in CON block');
     });
   });
+
+  describe('v54 STRUCT bitfield syntax', () => {
+    it('should scope .name[bit] bitfield names in CON block', () => {
+      const conResult = tokenizeLine('CON');
+      const conState = conResult.ruleStack;
+      const result = tokenizeLine('  STRUCT PIN_STATE_T(LONG flags.input[0].output[1])', conState);
+      assert.ok(
+        hasScope(result, 'variable.other.struct.bitfield.spin2'),
+        `Expected bitfield name scope, got: ${JSON.stringify(getAllScopes(result))}`
+      );
+    });
+
+    it('should scope .name[upper..lower] range bitfield in CON block', () => {
+      const conResult = tokenizeLine('CON');
+      const conState = conResult.ruleStack;
+      const result = tokenizeLine('  STRUCT PIN_STATE_T(LONG flags.drive[3..2].value[31..24])', conState);
+      assert.ok(
+        hasScope(result, 'variable.other.struct.bitfield.spin2'),
+        `Expected bitfield name scope on range form, got: ${JSON.stringify(getAllScopes(result))}`
+      );
+      assert.ok(hasScope(result, 'keyword.operator.range.spin2'), `Expected range operator scope, got: ${JSON.stringify(getAllScopes(result))}`);
+    });
+
+    it('should scope nameless sole-member bitfield chain', () => {
+      const conResult = tokenizeLine('CON');
+      const conState = conResult.ruleStack;
+      const result = tokenizeLine('  STRUCT IO_T(LONG.ready[0].counter[31..8])', conState);
+      assert.ok(
+        hasScope(result, 'variable.other.struct.bitfield.spin2'),
+        `Expected bitfield name scope on nameless form, got: ${JSON.stringify(getAllScopes(result))}`
+      );
+    });
+  });
 });

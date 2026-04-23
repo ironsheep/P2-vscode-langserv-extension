@@ -12,6 +12,7 @@ import {
   RememberedToken,
   RememberedStructure,
   RememberedStructureMember,
+  IStructBitfield,
   eBLockType
 } from '../parser/spin.semantic.findings';
 import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
@@ -137,8 +138,27 @@ export default class CompletionProvider implements Provider {
       const resolvedStruct = this._resolveStructChain(dottedParts, lineIdx);
       if (resolvedStruct) {
         this._logMessage(`+ Cmp: resolved struct [${resolvedStruct.name}] with ${resolvedStruct.members.length} members`);
+        // v54: nameless-sole-member struct — offer that member's bitfields, not a synthetic member.
+        if (resolvedStruct.isNameless) {
+          const sole = resolvedStruct.namelessMember;
+          if (sole) {
+            for (const bf of sole.bitfields) {
+              items.push(this._bitfieldToCompletionItem(bf));
+            }
+            return items;
+          }
+        }
         for (const member of resolvedStruct.members) {
           items.push(this._structMemberToCompletionItem(member));
+        }
+        return items;
+      }
+      // v54: the chain may have descended into a BYTE/WORD/LONG member that carries bitfields;
+      // offer those bitfields as completion items.
+      const bitfieldsForChain = this._resolveBitfieldChain(dottedParts, lineIdx);
+      if (bitfieldsForChain && bitfieldsForChain.length > 0) {
+        for (const bf of bitfieldsForChain) {
+          items.push(this._bitfieldToCompletionItem(bf));
         }
         return items;
       }
@@ -267,6 +287,34 @@ export default class CompletionProvider implements Provider {
       currStructure = nextStruct;
     }
     return currStructure;
+  }
+
+  private _resolveBitfieldChain(parts: string[], lineIdx: number): IStructBitfield[] | undefined {
+    // v54: if the chain's last segment names a BYTE/WORD/LONG member of an enclosing struct,
+    //      return that member's bitfields for completion.
+    if (parts.length < 2) {
+      return undefined;
+    }
+    const memberName = parts[parts.length - 1];
+    const structChain = parts.slice(0, parts.length - 1);
+    const resolvedStruct = this._resolveStructChain(structChain, lineIdx);
+    if (!resolvedStruct) {
+      return undefined;
+    }
+    const member = resolvedStruct.memberNamed(memberName);
+    if (!member || member.isStructure) {
+      return undefined;
+    }
+    return member.bitfields;
+  }
+
+  private _bitfieldToCompletionItem(bf: IStructBitfield): lsp.CompletionItem {
+    const rangeText: string = bf.lowBit === bf.highBit ? `bit ${bf.highBit}` : `bits ${bf.highBit}..${bf.lowBit}`;
+    return {
+      label: bf.name,
+      kind: lsp.CompletionItemKind.Field,
+      detail: `bitfield (${rangeText})`
+    };
   }
 
   private _getStructDefn(structTypeName: string): RememberedStructure | undefined {

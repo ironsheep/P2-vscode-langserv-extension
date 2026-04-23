@@ -8,6 +8,7 @@ tree.out
 console.out
 PLAN-*.md
 PUNCHLIST-*.md
+TEST-DOCGEN/**
 **/.history
 .devcontainer/**
 scripts/**

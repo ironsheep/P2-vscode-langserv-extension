@@ -209,10 +209,24 @@ export default class DefinitionProvider implements Provider {
     }
 
     // Walk from segment 1 to the target segment (which is the one the cursor is on)
+    // v54: seed lastMember from the nameless sole member of a nameless struct so the first
+    // chain segment can resolve as a bitfield of that member.
+    let lastMember = currentStructDefn.isNameless ? currentStructDefn.namelessMember : undefined;
     for (let i = 1; i < dottedPath.length; i++) {
       const segmentName = dottedPath[i];
       const member = currentStructDefn.memberNamed(segmentName);
       if (!member) {
+        // v54: segment may be a bitfield of the previously-colored member
+        if (lastMember && lastMember.hasBitfieldNamed(segmentName) && segmentName.toLowerCase() === fieldName.toLowerCase()) {
+          this._logMessage(
+            `+ Defn: _resolveStructField() resolved bitfield [${dottedPath.slice(0, i + 1).join('.')}] -> struct [${currentStructDefn.name}] at Ln#${currentStructDefn.lineIndex}`
+          );
+          return {
+            uri: symbolsFound.uri,
+            objectName: 'top',
+            position: { line: currentStructDefn.lineIndex, character: currentStructDefn.charOffset }
+          };
+        }
         this._logMessage(`+ Defn: _resolveStructField() member [${segmentName}] not found in struct [${currentStructDefn.name}]`);
         return undefined;
       }
@@ -231,8 +245,8 @@ export default class DefinitionProvider implements Provider {
 
       // Not the target — this member must be a struct type to continue the chain
       if (!member.isStructure) {
-        this._logMessage(`+ Defn: _resolveStructField() member [${segmentName}] is not a struct type, cannot continue chain`);
-        return undefined;
+        lastMember = member;
+        continue;
       }
 
       // Resolve the member's struct type for the next iteration
@@ -241,6 +255,7 @@ export default class DefinitionProvider implements Provider {
         this._logMessage(`+ Defn: _resolveStructField() struct type [${member.structName}] for member [${segmentName}] not found`);
         return undefined;
       }
+      lastMember = currentStructDefn.isNameless ? currentStructDefn.namelessMember : undefined;
     }
 
     return undefined;
@@ -269,7 +284,11 @@ export default class DefinitionProvider implements Provider {
       return undefined;
     }
 
-    if (!structDefn.hasMemberNamed(fieldName)) {
+    // v54: also accept bitfield names on the nameless-sole-member form (`io.ready` style),
+    // where the instance's dotted access surfaces the sole member's bitfields directly.
+    const isDirectMember: boolean = structDefn.hasMemberNamed(fieldName);
+    const isBitfieldOfNameless: boolean = !isDirectMember && structDefn.hasBitfieldNamed(fieldName);
+    if (!isDirectMember && !isBitfieldOfNameless) {
       this._logMessage(`+ Defn: _resolveStructField() field [${fieldName}] not found in struct [${structTypeName}]`);
       return undefined;
     }

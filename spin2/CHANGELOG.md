@@ -22,6 +22,20 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.11.0] - 2026-04-23
+
+PNut v54 STRUCT bitfield support
+
+### Added
+
+- Add PNut v54 STRUCT bitfield support: named bitfields on BYTE/WORD/LONG struct members (`STRUCT pin_t(LONG flags.input[0].drive[3..2].value[31..24])`) and nameless sole-member structs (`STRUCT io_t(LONG.ready[0].counter[31..8])`).
+- Add diagnostic warning when STRUCT bitfield syntax is used without the `{Spin2_v54}` directive to declare intent.
+- Add error diagnostics for invalid bitfield declarations: bit number exceeds member-type boundary, `lower > upper` in range form, bitfields on STRUCT-typed members, and nameless members declared with a count or alongside other members.
+
+### Changed
+
+- Extend the Spin2 formatter to canonicalize `[upper .. lower]` bitfield ranges to `[upper..lower]` (no inner spaces) in STRUCT declarations and their continuation lines.
+
 ## [2.10.6] - 2026-03-27
 
 Outline separators, dependency tree fixes, and formatter improvements

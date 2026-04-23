@@ -215,6 +215,120 @@ describe('RememberedStructure: members accessor', function () {
 });
 
 // ============================================================================
+//  PNut v54: STRUCT bitfields — named and nameless forms
+// ============================================================================
+
+describe('RememberedStructure: v54 named bitfields on BYTE/WORD/LONG members', function () {
+  it('should parse a LONG member with a chain of single-bit and range bitfields', function () {
+    const findings = parseFixture('completion-bitfields.spin2');
+    const pinState = findings.getStructure('PIN_STATE_T');
+    assert.ok(pinState, 'PIN_STATE_T structure should exist with {Spin2_v54}');
+    const members = pinState.members;
+    assert.strictEqual(members.length, 1, `Expected 1 member in PIN_STATE_T, got ${members.length}`);
+    const flags = members[0];
+    assert.strictEqual(flags.name, 'flags', `Expected member name 'flags', got '${flags.name}'`);
+    assert.strictEqual(flags.isNameless, false, 'flags should not be nameless');
+    assert.ok(flags.hasBitfields, 'flags should carry bitfields');
+    assert.strictEqual(flags.bitfields.length, 4, `Expected 4 bitfields, got ${flags.bitfields.length}`);
+  });
+
+  it('should capture correct bit ranges for each bitfield', function () {
+    const findings = parseFixture('completion-bitfields.spin2');
+    const pinState = findings.getStructure('PIN_STATE_T');
+    assert.ok(pinState);
+    const flags = pinState.members[0];
+    const input = flags.getBitfield('input');
+    assert.ok(input, 'input bitfield should exist');
+    assert.strictEqual(input.lowBit, 0);
+    assert.strictEqual(input.highBit, 0);
+
+    const drive = flags.getBitfield('drive');
+    assert.ok(drive, 'drive bitfield should exist');
+    assert.strictEqual(drive.lowBit, 2);
+    assert.strictEqual(drive.highBit, 3);
+
+    const value = flags.getBitfield('value');
+    assert.ok(value, 'value bitfield should exist');
+    assert.strictEqual(value.lowBit, 24);
+    assert.strictEqual(value.highBit, 31);
+  });
+
+  it('should answer hasBitfieldNamed case-insensitively', function () {
+    const findings = parseFixture('completion-bitfields.spin2');
+    const pinState = findings.getStructure('PIN_STATE_T');
+    assert.ok(pinState);
+    const flags = pinState.members[0];
+    assert.ok(flags.hasBitfieldNamed('input'));
+    assert.ok(flags.hasBitfieldNamed('INPUT'));
+    assert.ok(!flags.hasBitfieldNamed('nonesuch'));
+  });
+});
+
+describe('RememberedStructure: v54 nameless sole BYTE/WORD/LONG member', function () {
+  it('should flag a nameless member and expose it via namelessMember', function () {
+    const findings = parseFixture('completion-bitfields.spin2');
+    const ioStruct = findings.getStructure('IO_T');
+    assert.ok(ioStruct, 'IO_T structure should exist');
+    assert.strictEqual(ioStruct.isNameless, true, 'IO_T should be isNameless');
+    const sole = ioStruct.namelessMember;
+    assert.ok(sole, 'namelessMember should be defined');
+    assert.strictEqual(sole.isNameless, true);
+    assert.strictEqual(sole.typeString, 'MT_Long');
+  });
+
+  it("should expose the sole member's bitfields via struct-level helper", function () {
+    const findings = parseFixture('completion-bitfields.spin2');
+    const ioStruct = findings.getStructure('IO_T');
+    assert.ok(ioStruct);
+    assert.ok(ioStruct.hasBitfieldNamed('ready'), 'IO_T should report ready as a bitfield');
+    assert.ok(ioStruct.hasBitfieldNamed('counter'), 'IO_T should report counter as a bitfield');
+    const sole = ioStruct.namelessMember;
+    assert.ok(sole, 'namelessMember should be defined');
+    const counter = sole.getBitfield('counter');
+    assert.ok(counter);
+    assert.strictEqual(counter.lowBit, 8);
+    assert.strictEqual(counter.highBit, 31);
+  });
+
+  it('should bind io.ready as a bitfield reference on the struct instance', function () {
+    const findings = parseFixture('completion-bitfields.spin2');
+    const ioInstanceType = findings.getTypeForStructureInstance('io');
+    assert.ok(ioInstanceType, 'io instance should be known');
+    assert.strictEqual(ioInstanceType.toUpperCase(), 'IO_T');
+  });
+});
+
+describe('v54 bitfield tokens: independence of coloring at use site vs. member', function () {
+  it('should emit the bitfield modifier on a use-site bitfield token', function () {
+    const findings = parseFixture('completion-bitfields.spin2');
+    const tokens = findings.allSemanticTokens();
+    // In PUB Main, "pin.flags.input" resolves to three segments: instance, member, bitfield.
+    // The bitfield segment should carry the 'bitfield' modifier so themes can target it
+    // without affecting regular struct-member tokens.
+    const bitfieldTokens = tokens.filter(
+      (t) => t.ptTokenType === 'variable' && t.ptTokenModifiers.includes('bitfield') && !t.ptTokenModifiers.includes('declaration')
+    );
+    assert.ok(bitfieldTokens.length > 0, 'Expected at least one use-site token carrying the bitfield modifier');
+  });
+
+  it('should emit the bitfield modifier (plus declaration) on decl-site bitfield names', function () {
+    const findings = parseFixture('completion-bitfields.spin2');
+    const tokens = findings.allSemanticTokens();
+    const declBitfields = tokens.filter(
+      (t) => t.ptTokenType === 'variable' && t.ptTokenModifiers.includes('bitfield') && t.ptTokenModifiers.includes('declaration')
+    );
+    assert.ok(declBitfields.length > 0, 'Expected at least one decl-site bitfield token with bitfield+declaration modifiers');
+  });
+
+  it('should not mark regular (non-bitfield) struct members with the bitfield modifier', function () {
+    const findings = parseFixture('completion-basic.spin2');
+    const tokens = findings.allSemanticTokens();
+    const strayBitfield = tokens.filter((t) => t.ptTokenModifiers.includes('bitfield'));
+    assert.strictEqual(strayBitfield.length, 0, 'Plain struct members (no bitfields) must not carry the bitfield modifier');
+  });
+});
+
+// ============================================================================
 //  Tests for built-in method lookup (Spin2ParseUtils)
 // ============================================================================
 

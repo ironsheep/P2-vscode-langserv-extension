@@ -17,3 +17,4 @@ Each file covers the new language features introduced in a specific PNut release
 | V52 | v52 | MOVBYTS, ENDIANL, ENDIANW, NEXT/QUIT level, DEBUG_END_SESSION |
 | V52A | v52a | MOVBYTS spin2 function, enhanced DEBUG statements |
 | V53 | v53 | OFFSETOF(struct.member) |
+| V54 | v54 | STRUCT named bitfields on BYTE/WORD/LONG members, nameless sole-member structs |

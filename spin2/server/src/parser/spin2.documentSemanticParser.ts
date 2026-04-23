@@ -16,7 +16,9 @@ import {
   eDefinitionType,
   ePreprocessState,
   IStructMember,
+  IStructBitfield,
   RememberedStructure,
+  RememberedStructureMember,
   IDocumentLinkInfo,
   TokenSet
 } from './spin.semantic.findings';
@@ -2271,6 +2273,26 @@ export class Spin2DocumentSemanticParser {
               if (!structDeclaration.isValidStatus) {
                 this._logCON(`  -- GetCDLMulti() ERROR unknown=[${conDeclarationLine}]`);
               } else {
+                // emit any bitfield-related diagnostics collected during parse
+                this._emitStructDeclDiagnostics(multiLineSet, currSingleLineOffset, structDeclaration.diagnostics);
+                // v54 intent-warning when bitfield syntax is seen without {Spin2_v54}
+                if (structDeclaration.hasBitfields && !this.parseUtils.requestedSpinVersion(54)) {
+                  const bfIdx: number = conDeclarationLine.search(/\.\w+\[/);
+                  if (bfIdx >= 0) {
+                    const bfSpan: Position = multiLineSet.locateSymbol(conDeclarationLine, currSingleLineOffset);
+                    const bfLineIdx: number = bfSpan.line;
+                    const bfStart: number = bfSpan.character + bfIdx;
+                    this.semanticFindings.pushDiagnosticMessage(
+                      bfLineIdx,
+                      bfStart,
+                      bfStart + 1,
+                      eSeverity.Warning,
+                      `P2 Spin STRUCT bitfield syntax — add {Spin2_v54} directive to declare intent (PNut v54+)`,
+                      'spin2-needs-version',
+                      { requiredVersion: 54 }
+                    );
+                  }
+                }
                 const structName: string = structDeclaration.structName;
                 let symbolPosition: Position = multiLineSet.locateSymbol(structName, currSingleLineOffset);
                 //let nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
@@ -3264,6 +3286,8 @@ export class Spin2DocumentSemanticParser {
             this._logCON(`  -- rptCDLMulti() struct Line=[${conDeclarationLine}][${index}]`);
             const structDeclaration = this.parseStructDeclaration(conDeclarationLine);
             const statementPosition: Position = multiLineSet.locateSymbol(conDeclarationLine, 0);
+            // NOTE: diagnostics + v54 warning are emitted by _getCON_DeclarationMultiLine on the discovery pass;
+            // the reporting pass only emits tokens.
             if (structDeclaration.isValidStatus) {
               // color 'STRUCT' keyword
               // this is a constant declaration!
@@ -3327,20 +3351,22 @@ export class Spin2DocumentSemanticParser {
                   }, typeStr);
                   currPartOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition) + typeStr.length;
                 }
-                //   color member name
+                //   color member name (nameless members skip this step)
                 const memberName: string = member.name;
-                symbolPosition = multiLineSet.locateSymbol(memberName, currPartOffset);
-                lineIdx = symbolPosition.line;
-                nameOffset = symbolPosition.character;
-                this._logCON(`  -- rptCDLMulti() memberName=[${memberName}], ofs=(${nameOffset})`);
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: memberName.length,
-                  ptTokenType: 'variable',
-                  ptTokenModifiers: ['readonly', 'declaration']
-                }, memberName);
-                currPartOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition) + memberName.length;
+                if (!member.isNameless && memberName.length > 0) {
+                  symbolPosition = multiLineSet.locateSymbol(memberName, currPartOffset);
+                  lineIdx = symbolPosition.line;
+                  nameOffset = symbolPosition.character;
+                  this._logCON(`  -- rptCDLMulti() memberName=[${memberName}], ofs=(${nameOffset})`);
+                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: memberName.length,
+                    ptTokenType: 'variable',
+                    ptTokenModifiers: ['readonly', 'declaration']
+                  }, memberName);
+                  currPartOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition) + memberName.length;
+                }
                 // OPTIONALLY color index name
                 if (haveIndexName) {
                   // XYZZY lookup and color named index
@@ -3372,6 +3398,50 @@ export class Spin2DocumentSemanticParser {
                       ptTokenType: 'variable',
                       ptTokenModifiers: ['illegalUse']
                     }, indexName);
+                  }
+                }
+                // v54: emit tokens for each bitfield in the chain
+                if (member.bitfields !== undefined && member.bitfields.length > 0) {
+                  for (const bf of member.bitfields) {
+                    // locate ".name" — use the bitfield name to find it
+                    const bfSymPos: Position = multiLineSet.locateSymbol(bf.name, currPartOffset);
+                    if (bfSymPos.character >= 0) {
+                      this._recordToken(tokenSet, multiLineSet.lineAt(bfSymPos.line), {
+                        line: bfSymPos.line,
+                        startCharacter: bfSymPos.character,
+                        length: bf.name.length,
+                        ptTokenType: 'variable',
+                        ptTokenModifiers: ['readonly', 'declaration', 'bitfield']
+                      }, bf.name);
+                      currPartOffset = multiLineSet.offsetIntoLineForPosition(bfSymPos) + bf.name.length;
+                    }
+                    // color the bit number(s) inside [...]
+                    const highStr: string = String(bf.highBit);
+                    const highPos: Position = multiLineSet.locateSymbol(highStr, currPartOffset);
+                    if (highPos.character >= 0) {
+                      this._recordToken(tokenSet, multiLineSet.lineAt(highPos.line), {
+                        line: highPos.line,
+                        startCharacter: highPos.character,
+                        length: highStr.length,
+                        ptTokenType: 'number',
+                        ptTokenModifiers: []
+                      });
+                      currPartOffset = multiLineSet.offsetIntoLineForPosition(highPos) + highStr.length;
+                    }
+                    if (bf.lowBit !== bf.highBit) {
+                      const lowStr: string = String(bf.lowBit);
+                      const lowPos: Position = multiLineSet.locateSymbol(lowStr, currPartOffset);
+                      if (lowPos.character >= 0) {
+                        this._recordToken(tokenSet, multiLineSet.lineAt(lowPos.line), {
+                          line: lowPos.line,
+                          startCharacter: lowPos.character,
+                          length: lowStr.length,
+                          ptTokenType: 'number',
+                          ptTokenModifiers: []
+                        });
+                        currPartOffset = multiLineSet.offsetIntoLineForPosition(lowPos) + lowStr.length;
+                      }
+                    }
                   }
                 }
               }
@@ -3766,7 +3836,13 @@ export class Spin2DocumentSemanticParser {
     return enumDeclStatus;
   }
 
-  private parseStructDeclaration(structLine: string): { isValidStatus: boolean; structName: string; members: IStructMember[] } {
+  private parseStructDeclaration(structLine: string): {
+    isValidStatus: boolean;
+    structName: string;
+    members: IStructMember[];
+    hasBitfields: boolean;
+    diagnostics: Array<{ message: string; severity: eSeverity; spanText: string }>;
+  } {
     const structRegex = /STRUCT\s+(\w+)\s*\(([^)]+)\)/i; // Matches STRUCT name(member1, member2, ...)
     const structAsgnRegex = /STRUCT\s+(\w+)\s*=\s*(\w+)/i; // Matches STRUCT name = structName
     const reducedWhiteSpace: string = structLine.replace(/\s+/g, ' ').trim(); // Remove extra whitespace
@@ -3775,29 +3851,143 @@ export class Spin2DocumentSemanticParser {
     let isValidStatus: boolean = false;
     let structName: string = ''; // The name of the structure
     let members: IStructMember[] = []; // The raw members string (e.g., "LONG x, LONG y[10]")
+    let hasBitfields: boolean = false;
+    const diagnostics: Array<{ message: string; severity: eSeverity; spanText: string }> = [];
 
     if (match) {
       isValidStatus = true;
       structName = match[1]; // The name of the structure
       const membersRaw = match[2]; // The raw members string (e.g., "LONG x, LONG y[10]")
-      //this._logMessage(` -- ParsStruDecl() nm=[${structName}], mbrsRaw=[${membersRaw}] match=[${match}](${match.length})`);
 
-      // Split members and parse each one
-      members = membersRaw.split(',').map((member) => {
-        const memberParts = member.trim().match(/(?:(\w+)\s+)?(\w+)(?:\s*\[(\w+)\])?/); // Matches {type} name [arraySize]
-        if (!memberParts || memberParts.length < 3) {
-          this._logMessage(`Invalid member declaration: ${member}`);
-          return { name: '', type: '', arraySize: 0 }; // Invalid member, return EMPTY
+      // v54: member declarations can carry a bitfield-chain tail like .name[N] or .name[upper..lower]
+      // member syntax we accept:
+      //   {type} name {[count]} {.bf[bit]}... {.bf[upper..lower]}...    (named member, v45+; bitfields v54+)
+      //   {BYTE|WORD|LONG}       {.bf[bit]}... {.bf[upper..lower]}...   (nameless sole member, v54+)
+      // Type can be BYTE/WORD/LONG or a user-declared STRUCT type name.
+
+      const memberRegex = /^\s*(\w+)(?:\s+(\w+))?(?:\s*\[([^\]]+)\])?\s*((?:\.\w+\[[^\]]+\])*)\s*$/;
+      const bitfieldRegex = /\.(\w+)\[\s*(\d+)(?:\s*\.\.\s*(\d+))?\s*\]/g;
+
+      const rawMembers: string[] = membersRaw.split(',');
+      members = rawMembers.map((rawMember) => {
+        const member = rawMember.trim();
+        const memberParts = member.match(memberRegex);
+        if (!memberParts) {
+          this._logMessage(`Invalid member declaration: [${member}]`);
+          return { name: '', type: '', arraySize: 0 };
         }
-        //this._logMessage(` -- ParsStruDecl() memberParts=[${memberParts}](${memberParts.length})`);
+        const firstTok: string = memberParts[1];
+        const secondTok: string | undefined = memberParts[2];
+        const arraySizeRaw: string | undefined = memberParts[3];
+        const bitfieldTail: string | undefined = memberParts[4];
 
-        const [, type = 'LONG', name, arraySize] = memberParts; // Default type is LONG if not specified
-        return {
-          name,
-          type,
-          arraySize: /^-?\d+(\.\d+)?$/.test(arraySize) ? parseInt(arraySize, 10) : arraySize // Default array size is 1 if not specified
-        };
+        // Disambiguate: "LONG foo" vs. "LONG" (nameless) vs. "POINT a" (user struct type)
+        const firstIsBWL: boolean = /^(BYTE|WORD|LONG)$/i.test(firstTok);
+        let type: string;
+        let name: string;
+        let isNameless: boolean = false;
+        if (firstIsBWL && secondTok === undefined) {
+          // nameless member: `LONG.bf[...]` or plain `LONG`
+          type = firstTok.toUpperCase();
+          name = '';
+          isNameless = true;
+        } else if (secondTok === undefined) {
+          // single-token must be a bare member name (default type LONG)
+          type = 'LONG';
+          name = firstTok;
+        } else {
+          type = firstTok;
+          name = secondTok;
+        }
+
+        const arraySize: number | string = arraySizeRaw === undefined
+          ? 1
+          : (/^-?\d+$/.test(arraySizeRaw) ? parseInt(arraySizeRaw, 10) : arraySizeRaw);
+
+        // Parse any bitfield chain
+        const bitfields: IStructBitfield[] = [];
+        if (bitfieldTail && bitfieldTail.length > 0) {
+          hasBitfields = true;
+          bitfieldRegex.lastIndex = 0;
+          let bfMatch: RegExpExecArray | null;
+          while ((bfMatch = bitfieldRegex.exec(bitfieldTail)) !== null) {
+            const bfName: string = bfMatch[1];
+            const firstBit: number = parseInt(bfMatch[2], 10);
+            const secondBit: number | undefined = bfMatch[3] !== undefined ? parseInt(bfMatch[3], 10) : undefined;
+            let lowBit: number;
+            let highBit: number;
+            if (secondBit === undefined) {
+              lowBit = firstBit;
+              highBit = firstBit;
+            } else {
+              // syntax is [upper..lower] — first number is upper, second is lower
+              highBit = firstBit;
+              lowBit = secondBit;
+            }
+            // validation: lower > upper
+            if (lowBit > highBit) {
+              diagnostics.push({
+                message: `P2 Spin STRUCT bitfield [${bfName}]: lower bit number cannot exceed upper bit number`,
+                severity: eSeverity.Error,
+                spanText: bfMatch[0]
+              });
+            }
+            // validation: bit range exceeds member-type boundary
+            const typeUpper: string = type.toUpperCase();
+            let maxBit: number = -1;
+            if (typeUpper === 'BYTE') {
+              maxBit = 7;
+            } else if (typeUpper === 'WORD') {
+              maxBit = 15;
+            } else if (typeUpper === 'LONG') {
+              maxBit = 31;
+            }
+            if (maxBit >= 0 && highBit > maxBit) {
+              diagnostics.push({
+                message: `P2 Spin STRUCT bitfield [${bfName}]: bit number exceeds ${typeUpper} boundary (max ${maxBit})`,
+                severity: eSeverity.Error,
+                spanText: bfMatch[0]
+              });
+            }
+            bitfields.push({ name: bfName, lowBit, highBit });
+          }
+          // validation: bitfields only allowed on BYTE/WORD/LONG members
+          if (!/^(BYTE|WORD|LONG)$/i.test(type)) {
+            diagnostics.push({
+              message: `P2 Spin STRUCT bitfields are only allowed for BYTE/WORD/LONG members (member type [${type}])`,
+              severity: eSeverity.Error,
+              spanText: bitfieldTail.trim()
+            });
+          }
+        }
+
+        return { name, type, arraySize, bitfields, isNameless };
       });
+
+      // validation: nameless member must be the sole member and cannot have [count]
+      const namelessCount: number = members.filter((m) => m.isNameless === true).length;
+      if (namelessCount > 0 && members.length > 1) {
+        diagnostics.push({
+          message: `P2 Spin STRUCT nameless BYTE/WORD/LONG member must be the only member`,
+          severity: eSeverity.Error,
+          spanText: membersRaw
+        });
+      }
+      for (const m of members) {
+        if (m.isNameless && typeof m.arraySize === 'number' && m.arraySize > 1) {
+          diagnostics.push({
+            message: `P2 Spin STRUCT nameless member cannot have an instance count`,
+            severity: eSeverity.Error,
+            spanText: `[${m.arraySize}]`
+          });
+        } else if (m.isNameless && typeof m.arraySize === 'string') {
+          diagnostics.push({
+            message: `P2 Spin STRUCT nameless member cannot have an instance count`,
+            severity: eSeverity.Error,
+            spanText: `[${m.arraySize}]`
+          });
+        }
+      }
     } else if (assignMatch && assignMatch.length >= 3) {
       const lineParts: string[] = structLine.split(/[ \t=]/).filter(Boolean);
       this._logMessage(` -- ParsStruDecl() ASSIGNMENT lineParts=[${lineParts}](${lineParts.length})`);
@@ -3810,7 +4000,7 @@ export class Spin2DocumentSemanticParser {
       members = [{ name: memberName, type: 'STRUCT', arraySize: 1 }]; // Assign the struct to another struct
     }
     this._logMessage(` -- ParsStruDecl() results isValid=(${isValidStatus}), name=[${structName}] ${JSON.stringify(members, null, 2)}`);
-    return { isValidStatus, structName, members };
+    return { isValidStatus, structName, members, hasBitfields, diagnostics };
   }
 
   private _reportDAT_DeclarationLine(lineIdx: number, startingOffset: number, line: string): IParsedToken[] {
@@ -8214,6 +8404,20 @@ export class Spin2DocumentSemanticParser {
     return this.parseUtils.isStorageType(possibleType) || this.semanticFindings.isStructure(possibleType);
   }
 
+  private _emitStructDeclDiagnostics(
+    multiLineSet: ContinuedLines,
+    searchStartOffset: number,
+    diagnostics: Array<{ message: string; severity: eSeverity; spanText: string }>
+  ): void {
+    for (const diag of diagnostics) {
+      // locate the offending span on the (possibly continued) source line
+      const pos: Position = multiLineSet.locateSymbol(diag.spanText, searchStartOffset);
+      const startChar: number = pos.character;
+      const endChar: number = startChar + diag.spanText.length;
+      this.semanticFindings.pushDiagnosticMessage(pos.line, startChar, endChar, diag.severity, diag.message);
+    }
+  }
+
   private _emitVersionHintDiagnostic(lineIdx: number, startChar: number, endChar: number, requiredVersion: number, featureDescription: string): void {
     // emit version hint with code action data so quick fix can insert/update version directive
     this._logMessage(`  -- _emitVersionHint() Ln#${lineIdx + 1} v${requiredVersion} [${featureDescription}] chars(${startChar}-${endChar})`);
@@ -9086,6 +9290,9 @@ export class Spin2DocumentSemanticParser {
             } else {
               this._logSPIN(`  -- rptStruRef() TOP is [${topStructure.toString()}]`);
               let currStructure: RememberedStructure = topStructure;
+              // v54: if the current structure is nameless (sole BYTE/WORD/LONG member),
+              // the first referenced name is a bitfield of that member, not a member.
+              let lastMember: RememberedStructureMember | undefined = currStructure.isNameless ? currStructure.namelessMember : undefined;
               for (let index = 0; index < memberNameSet.length; index++) {
                 // record member name coloring
                 let memberName: string = memberNameSet[index];
@@ -9123,12 +9330,21 @@ export class Spin2DocumentSemanticParser {
                 let mbrTokenType = referenceDetails !== undefined ? referenceDetails.type : '';
                 let mbrTokenModifiers = referenceDetails !== undefined ? referenceDetails.modifiers : [];
                 const hasMemberName: boolean = currStructure.hasMemberNamed(memberName);
-                if (!hasMemberName) {
+                // v54: if not a direct member, check if previous member has a bitfield with this name
+                const asBitfieldOfLast: boolean = !hasMemberName && lastMember !== undefined && lastMember.hasBitfieldNamed(memberName);
+                if (asBitfieldOfLast) {
+                  // bitfield reference — dedicated 'bitfield' modifier so themes can color it
+                  // independently from regular struct members. With no theme rule targeting
+                  // 'bitfield', the base 'variable'+'readonly' styling applies, keeping it
+                  // the same color as members by default.
+                  mbrTokenType = 'variable';
+                  mbrTokenModifiers = ['readonly', 'bitfield'];
+                } else if (!hasMemberName) {
                   mbrTokenType = 'variable';
                   mbrTokenModifiers = ['illegalUse'];
                 }
                 this._logMessage(
-                  `  -- rptStruRef() memberName=[${memberName}](${memberName.length}), ofs=(${nameOffset}) of [${currStructure.name}], isPresent=(${hasMemberName}) - [${mbrTokenType}][${mbrTokenModifiers}]`
+                  `  -- rptStruRef() memberName=[${memberName}](${memberName.length}), ofs=(${nameOffset}) of [${currStructure.name}], isPresent=(${hasMemberName}), isBitfield=(${asBitfieldOfLast}) - [${mbrTokenType}][${mbrTokenModifiers}]`
                 );
                 this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, memberName.length, mbrTokenType, mbrTokenModifiers, memberName);
                 // skip to next member name
@@ -9158,10 +9374,19 @@ export class Spin2DocumentSemanticParser {
                     }
                     if (tmpStructure !== undefined) {
                       currStructure = tmpStructure;
+                      // descended into a new struct — reset bitfield context to its nameless member if any
+                      lastMember = currStructure.isNameless ? currStructure.namelessMember : undefined;
                     } else {
                       this._logMessage(`  -- rptStruRef() ERROR: no member structure info for [${memberName}]`);
                     }
                   }
+                } else if (hasMemberName) {
+                  // track just-colored member so a trailing segment can match its bitfields
+                  lastMember = currStructure.memberNamed(memberName);
+                }
+                // if we just colored a bitfield segment, there are no further segments to resolve
+                if (asBitfieldOfLast) {
+                  lastMember = undefined;
                 }
               }
             }

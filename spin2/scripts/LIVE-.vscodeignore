@@ -8,6 +8,7 @@
 node_modules/**
 scripts/**
 TEST-P2-TERM/**
+TEST-DOCGEN/**
 server/**
 !server/out/server.js
 client/**

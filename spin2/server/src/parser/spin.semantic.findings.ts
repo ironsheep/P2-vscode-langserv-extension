@@ -2819,10 +2819,18 @@ export class NameScopedTokenSet {
 
 // ----------------------------------------------------------------------------
 //   CLASS RememberedStructure
+export interface IStructBitfield {
+  name: string;
+  lowBit: number;
+  highBit: number;
+}
+
 export interface IStructMember {
   name: string;
   type: string;
   arraySize: number | string;
+  bitfields?: IStructBitfield[];
+  isNameless?: boolean;
 }
 
 enum eMemberType {
@@ -2838,12 +2846,23 @@ export class RememberedStructureMember {
   private _name: string;
   private _structName: string;
   private _instanceCount: number;
+  private _bitfields: IStructBitfield[];
+  private _isNameless: boolean;
 
-  constructor(name: string, type: eMemberType, count: number, structName: string = '') {
+  constructor(
+    name: string,
+    type: eMemberType,
+    count: number,
+    structName: string = '',
+    bitfields: IStructBitfield[] = [],
+    isNameless: boolean = false
+  ) {
     this._name = name;
     this._type = type;
     this._instanceCount = count;
     this._structName = structName;
+    this._bitfields = bitfields;
+    this._isNameless = isNameless;
   }
 
   get name(): string {
@@ -2868,6 +2887,38 @@ export class RememberedStructureMember {
   get structName(): string {
     return this._structName;
   }
+
+  get isNameless(): boolean {
+    return this._isNameless;
+  }
+
+  get bitfields(): IStructBitfield[] {
+    return this._bitfields;
+  }
+
+  get hasBitfields(): boolean {
+    return this._bitfields.length > 0;
+  }
+
+  public hasBitfieldNamed(name: string): boolean {
+    const nameKey = name.toUpperCase();
+    for (const bf of this._bitfields) {
+      if (bf.name.toUpperCase() === nameKey) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public getBitfield(name: string): IStructBitfield | undefined {
+    const nameKey = name.toUpperCase();
+    for (const bf of this._bitfields) {
+      if (bf.name.toUpperCase() === nameKey) {
+        return bf;
+      }
+    }
+    return undefined;
+  }
 }
 
 export class RememberedStructure {
@@ -2889,7 +2940,16 @@ export class RememberedStructure {
         memberInfo.arraySize = 1;
       }
       const memberInstances: number = typeof memberInfo.arraySize === `number` ? memberInfo.arraySize : -1;
-      const member: RememberedStructureMember = new RememberedStructureMember(memberName, memberType, memberInstances, structName);
+      const bitfields: IStructBitfield[] = memberInfo.bitfields ? memberInfo.bitfields : [];
+      const isNameless: boolean = memberInfo.isNameless === true;
+      const member: RememberedStructureMember = new RememberedStructureMember(
+        memberName,
+        memberType,
+        memberInstances,
+        structName,
+        bitfields,
+        isNameless
+      );
       this._members.push(member);
     }
   }
@@ -2963,12 +3023,36 @@ export class RememberedStructure {
     return desiredMember;
   }
 
+  get isNameless(): boolean {
+    // structure has a single nameless BYTE/WORD/LONG member
+    return this._members.length == 1 && this._members[0].isNameless;
+  }
+
+  get namelessMember(): RememberedStructureMember | undefined {
+    // return the sole nameless member, if any
+    if (this.isNameless) {
+      return this._members[0];
+    }
+    return undefined;
+  }
+
+  public hasBitfieldNamed(name: string): boolean {
+    // for nameless-member structs: does the sole member have this bitfield?
+    const soleMember = this.namelessMember;
+    if (soleMember !== undefined) {
+      return soleMember.hasBitfieldNamed(name);
+    }
+    return false;
+  }
+
   public toString(): string {
     let desiredString: string = `STRUCT ${this._name} (`;
     for (let idx = 0; idx < this._members.length; idx++) {
       const member: RememberedStructureMember = this._members[idx];
       if (member.type == eMemberType.MT_Structure) {
         desiredString += `${member.typeString}(${member.structName}) ${member.name}`;
+      } else if (member.isNameless) {
+        desiredString += `${member.typeString}`;
       } else {
         desiredString += `${member.typeString} ${member.name}`;
       }
@@ -2976,6 +3060,13 @@ export class RememberedStructure {
         desiredString += `[${member.instanceCount}]`;
       } else if (member.instanceCount < 0) {
         desiredString += `[namedIndex]`;
+      }
+      for (const bf of member.bitfields) {
+        if (bf.lowBit === bf.highBit) {
+          desiredString += `.${bf.name}[${bf.highBit}]`;
+        } else {
+          desiredString += `.${bf.name}[${bf.highBit}..${bf.lowBit}]`;
+        }
       }
       if (idx < this._members.length - 1) {
         desiredString += ', ';

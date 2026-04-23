@@ -1,0 +1,35 @@
+{Spin2_v54}
+' Test fixture: completion-bitfields.spin2
+' Purpose: Exercise PNut v54 STRUCT bitfield declarations (named + nameless forms).
+
+CON
+
+  ' Named member with bitfield chain: pin.flags.input, pin.flags.drive, pin.flags.value
+  STRUCT PIN_STATE_T(LONG flags.input[0].output[1].drive[3..2].value[31..24])
+
+  ' Nameless sole member with bitfield chain: io.ready, io.mode, io.counter
+  STRUCT IO_T(LONG.ready[0].error[1].mode[3..2].counter[31..8])
+
+VAR
+
+  PIN_STATE_T  pin
+  IO_T         io
+
+PUB Main() | snapshot
+
+  pin.flags.input  := 1
+  pin.flags.output := 0
+  pin.flags.drive  := %10
+  pin.flags.value  := $FF
+
+  if pin.flags.input and not pin.flags.output
+    snapshot := pin.flags.value
+
+  pin.flags := 0
+
+  io.ready   := 1
+  io.mode    := %10
+  io.counter := 100_000
+
+  if io.error
+    io := 0

@@ -85,15 +85,15 @@ export function formatConBlock(
 
     // Handle STRUCT declarations and their continuation lines
     if (/^struct\b/i.test(trimmed)) {
-      lines[i] = ' '.repeat(indentW) + trimmed;
+      lines[i] = ' '.repeat(indentW) + canonicalizeStructBitfieldRanges(trimmed);
       // Check if this STRUCT line continues (has ... before optional comment)
-      const [codePart] = splitTrailingComment(line);
+      const [codePart] = splitTrailingComment(lines[i]);
       inStructContinuation = codePart.trimEnd().endsWith('...');
       continue;
     }
     if (inStructContinuation) {
       // Indent continuation lines at double the block indent
-      lines[i] = ' '.repeat(indentW * 2) + trimmed;
+      lines[i] = ' '.repeat(indentW * 2) + canonicalizeStructBitfieldRanges(trimmed);
       const [codePart] = splitTrailingComment(lines[i]);
       inStructContinuation = codePart.trimEnd().endsWith('...');
       continue;
@@ -167,6 +167,17 @@ export function formatConBlock(
     if (isColumnZero(lines[i])) continue;
     lines[i] = ' '.repeat(indentWidth) + trimmed;
   }
+}
+
+function canonicalizeStructBitfieldRanges(text: string): string {
+  // v54: normalize spacing inside STRUCT bitfield range brackets
+  //   [ 31 .. 24 ]  →  [31..24]
+  // The range form is unambiguously a bitfield descriptor (ranges don't appear in array counts).
+  // Single-bit `[N]` and array-count `[N]` forms are left untouched to avoid affecting
+  // non-bitfield bracket usage elsewhere.
+  const [codePart, commentPart] = splitTrailingComment(text);
+  const normalized = codePart.replace(/\[\s*(\d+)\s*\.\.\s*(\d+)\s*\]/g, '[$1..$2]');
+  return commentPart.length > 0 ? normalized + commentPart : normalized;
 }
 
 function isEnumLine(trimmed: string): boolean {

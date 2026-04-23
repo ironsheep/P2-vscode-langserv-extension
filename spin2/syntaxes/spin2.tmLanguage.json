@@ -138,6 +138,9 @@
           "include": "#string"
         },
         {
+          "include": "#spin2_struct_bitfield"
+        },
+        {
           "include": "#number"
         },
         {
@@ -172,6 +175,9 @@
         },
         {
           "include": "#string"
+        },
+        {
+          "include": "#spin2_struct_bitfield"
         },
         {
           "include": "#number"
@@ -715,6 +721,23 @@
     "pasm_field_operations": {
       "name": "keyword.operator.field.spin2",
       "match": "(?i)\\b(ADDBITS|ADDPINS)\\b"
+    },
+    "spin2_struct_bitfield": {
+      "match": "\\.([A-Za-z_]\\w*)\\s*\\[\\s*(\\d+)(?:\\s*(\\.\\.)\\s*(\\d+))?\\s*\\]",
+      "captures": {
+        "1": {
+          "name": "variable.other.struct.bitfield.spin2"
+        },
+        "2": {
+          "name": "constant.numeric.decimal.spin2"
+        },
+        "3": {
+          "name": "keyword.operator.range.spin2"
+        },
+        "4": {
+          "name": "constant.numeric.decimal.spin2"
+        }
+      }
     },
     "spin2_float_conversions": {
       "name": "keyword.operator.float.spin2",

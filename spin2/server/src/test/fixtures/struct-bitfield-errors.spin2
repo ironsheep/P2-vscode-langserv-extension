@@ -1,0 +1,21 @@
+{Spin2_v54}
+' Test fixture: struct-bitfield-errors.spin2
+' Purpose: Trigger v54 STRUCT bitfield validation diagnostics.
+
+CON
+
+  ' bit number exceeds BYTE boundary (8 > 7)
+  STRUCT BAD_BYTE_T(BYTE flags.big[8])
+
+  ' lower > upper in range
+  STRUCT BAD_RANGE_T(LONG flags.inverted[4..10])
+
+  ' bitfield on STRUCT-typed member is not allowed
+  STRUCT INNER_T(LONG value)
+  STRUCT BAD_INNER_T(INNER_T child.bogus[0])
+
+  ' bit exceeds WORD boundary (16 > 15)
+  STRUCT BAD_WORD_T(WORD flags.over[16])
+
+  ' nameless with multiple members — not allowed
+  STRUCT BAD_NAMELESS_T(LONG, WORD something)

@@ -254,7 +254,7 @@ Built-in compile, download, and serial communication support for P1 and P2 hardw
 
 ## Spin2 Language Version Support
 
-This extension tracks the evolving Spin2/PASM2 language as new PNut compiler versions add features. Currently supported through PNut v53, including structures, preprocessor directives, math functions, and more. See [REF-LangUpdates](REF-LangUpdates/README.md) for details on each version's additions.
+This extension tracks the evolving Spin2/PASM2 language as new PNut compiler versions add features. Currently supported through PNut v54, including structures with named and nameless bitfields, preprocessor directives, math functions, and more. See [REF-LangUpdates](REF-LangUpdates/README.md) for details on each version's additions.
 
 ## Possible Conflicts with other VSCode Extensions
 
