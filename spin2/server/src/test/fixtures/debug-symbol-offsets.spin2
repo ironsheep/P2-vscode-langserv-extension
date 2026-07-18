@@ -1,0 +1,36 @@
+'' Fixture for debug.symbol-offsets.test.ts
+''
+'' Each DEBUG() line below is a REGRESSION CASE for a class of bug where the
+'' parser tokenized correctly but then located the token at the wrong offset --
+'' painting a semantic token onto string content, onto a substring of an earlier
+'' word, or onto an earlier occurrence of a repeated word.
+''
+'' Do NOT reformat or reflow these lines: the tests assert exact character
+'' offsets against them.
+
+CON
+
+  MAX_READS = 10
+
+PUB main() | reading, temp, duty, encVal
+
+  reading := 0
+  temp := 0
+  duty := 0
+  encVal := 0
+
+  ' case 1: the word "Reading" in the message must NOT be mistaken for the
+  '   variable [reading] in the `() substitution (case-insensitive match hazard)
+  DEBUG(`TERM Status SIZE 40 8)
+  DEBUG(`Status 'Reading: `(reading)' 13)
+
+  ' case 2: COLOR must not be found inside the tail of the earlier BACKCOLOR,
+  '   and each repeated WHITE must resolve to its own position
+  DEBUG(`TERM Panel SIZE 40 8 BACKCOLOR WHITE COLOR BLACK WHITE WHITE BLUE WHITE GREEN WHITE RED)
+
+  ' case 3: "Temp" inside the word "Temperature" must not be mistaken for the
+  '   variable [temp]; also exercises numeric params ahead of the string
+  DEBUG(`Status 0 4 'Temperature: `(temp) C')
+
+  ' case 4: two substitutions in one string, each with leading message text
+  DEBUG(`Status 'FwdEnc=`(encVal), dty=`(duty)' 10)
