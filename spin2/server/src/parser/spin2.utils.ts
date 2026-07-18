@@ -3099,13 +3099,26 @@ export class Spin2ParseUtils {
   };
 
   private _tableSpinEnhancements_v52: { [Identifier: string]: TMethodTuple } = {
-    endianl: ['ENDIANL(LongValue) : ReversedLong', 'Return reverse-endian long value.', ['LongValue - a 32-bit long value'], ['ReversedLong - the value with bytes in reversed order']],
-    endianw: ['ENDIANW(WordValue) : ReversedWord', 'Return reverse-endian word value.', ['WordValue - a 16-bit word value'], ['ReversedWord - the value with bytes in reversed order']]
+    endianl: [
+      'ENDIANL(LongValue) : ReversedLong',
+      'Return reverse-endian long value.',
+      ['LongValue - a 32-bit long value'],
+      ['ReversedLong - the value with bytes in reversed order']
+    ],
+    endianw: [
+      'ENDIANW(WordValue) : ReversedWord',
+      'Return reverse-endian word value.',
+      ['WordValue - a 16-bit word value'],
+      ['ReversedWord - the value with bytes in reversed order']
+    ]
   };
 
   private _tableSpinEnhancements_v53: { [Identifier: string]: string[] } = {
     // used in DAT, VAR, PUB, and PRI blocks
-    offsetof: ['OFFSETOF(struct_name{[index]}{.member{[index]}...})', 'returns the byte offset of a member within a structure definition. Evaluated at compile time.']
+    offsetof: [
+      'OFFSETOF(struct_name{[index]}{.member{[index]}...})',
+      'returns the byte offset of a member within a structure definition. Evaluated at compile time.'
+    ]
   };
 
   private _tableSpinIndexValueMethods: { [Identifier: string]: string[] } = {
@@ -4322,7 +4335,10 @@ export class Spin2ParseUtils {
       signature: 'BACKCOLOR color',
       description: 'RUNTIME sense: sets the TEXT background color only.<br>Distinct from the config-time `BACKCOLOR`, which is the canvas fill.'
     },
-    update: { signature: 'UPDATE', description: 'RUNTIME sense: flush buffered output to the canvas (only meaningful when the window was created with `UPDATE`).' },
+    update: {
+      signature: 'UPDATE',
+      description: 'RUNTIME sense: flush buffered output to the canvas (only meaningful when the window was created with `UPDATE`).'
+    },
     save: {
       signature: "SAVE {WINDOW} 'filename'",
       description:
@@ -4481,6 +4497,477 @@ export class Spin2ParseUtils {
     }
   };
 
+  // Sample-PACKING modes, accepted on the create line by the PDM-family displays
+  //  (LOGIC SCOPE SCOPE_XY FFT SPECTRO). These are a DIFFERENT family from PLOT's
+  //  packed COLOR modes above -- do not spread the two into the same display type.
+  private _tableDebugPackedModes: TDebugDirectiveTable = {
+    longs_1bit: {
+      signature: 'LONGS_1BIT',
+      description:
+        'Sample packing: 32 x 1-bit sub-samples per LONG.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    longs_2bit: {
+      signature: 'LONGS_2BIT',
+      description:
+        'Sample packing: 16 x 2-bit sub-samples per LONG.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    longs_4bit: {
+      signature: 'LONGS_4BIT',
+      description:
+        'Sample packing: 8 x 4-bit sub-samples per LONG.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    longs_8bit: {
+      signature: 'LONGS_8BIT',
+      description:
+        'Sample packing: 4 x 8-bit sub-samples per LONG.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    longs_16bit: {
+      signature: 'LONGS_16BIT',
+      description:
+        'Sample packing: 2 x 16-bit sub-samples per LONG.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    words_1bit: {
+      signature: 'WORDS_1BIT',
+      description:
+        'Sample packing: 16 x 1-bit sub-samples per WORD.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    words_2bit: {
+      signature: 'WORDS_2BIT',
+      description:
+        'Sample packing: 8 x 2-bit sub-samples per WORD.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    words_4bit: {
+      signature: 'WORDS_4BIT',
+      description:
+        'Sample packing: 4 x 4-bit sub-samples per WORD.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    words_8bit: {
+      signature: 'WORDS_8BIT',
+      description:
+        'Sample packing: 2 x 8-bit sub-samples per WORD.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    bytes_1bit: {
+      signature: 'BYTES_1BIT',
+      description:
+        'Sample packing: 8 x 1-bit sub-samples per BYTE.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    bytes_2bit: {
+      signature: 'BYTES_2BIT',
+      description:
+        'Sample packing: 4 x 2-bit sub-samples per BYTE.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    },
+    bytes_4bit: {
+      signature: 'BYTES_4BIT',
+      description:
+        'Sample packing: 2 x 4-bit sub-samples per BYTE.<br>Omit every packing mode and the stream is UNPACKED -- one full 32-bit sample per long.'
+    }
+  };
+
+  private _tableDebugDirectivesLogicConfig: TDebugDirectiveTable = {
+    ...this._tableDebugPackedModes,
+    samples: {
+      signature: 'SAMPLES n',
+      description:
+        'Number of samples displayed across the window.<br>Range `4`..`2047`, default `32`.<br>**A single integer only** -- LOGIC has NO `{first last}` two-value form; that shape belongs to FFT/SPECTRO.<br>Also sets the initial `HOLDOFF` value.'
+    },
+    spacing: {
+      signature: 'SPACING n',
+      description:
+        '**HORIZONTAL** pixel spacing between successive samples -- the X-axis time base.<br>Range `1`..`32`, default `8`.<br>This is NOT vertical channel spacing: the per-channel vertical pitch is fixed at the font cell height and cannot be changed.'
+    },
+    rate: {
+      signature: 'RATE n',
+      description:
+        'Draw-rate divisor -- draw every Nth qualifying sample.<br>Range `1`..`2048`, default `1`.<br>This is NOT a sample rate; it only thins what gets drawn.'
+    },
+    dotsize: {
+      signature: 'DOTSIZE n',
+      description:
+        'Sample dot diameter, a single scalar.<br>Range `0`..`32`, default `0` = no dots -- dots are OFF unless you ask for them.<br>A single scalar only: LOGIC has NO `x {y}` two-axis form; that shape belongs to PLOT/BITMAP/SPECTRO.'
+    },
+    linesize: { signature: 'LINESIZE n', description: 'Waveform line thickness in pixels.<br>Range `1`..`32`, default `3`.' },
+    textsize: { signature: 'TEXTSIZE n', description: 'Label font point size.<br>Range `6`..`200`, default `10`.' },
+    color: {
+      signature: 'COLOR back grid',
+      description:
+        'Background color then grid color, in that order -- each a named color or an RGB24 value.<br>Defaults: background black `$000000`, grid gray `$404040`.<br>Trace colors are NOT set here; each belongs to its channel-definition string.'
+    },
+    range: {
+      signature: 'RANGE',
+      description:
+        'Modifier inside a channel-definition string.<br>With a channel count `>= 2`, RANGE makes those bits ONE multi-bit bus value drawn as an analog-style waveform, instead of that many independent single-bit traces.<br>The bus is shown as a raw value only -- there is NO protocol decoding of any kind.'
+    },
+    alt: {
+      signature: 'ALT',
+      description: 'Optional modifier on a packing mode -- bit-reverses each sub-unit on unpack.<br>May be combined with `SIGNED`.'
+    },
+    signed: {
+      signature: 'SIGNED',
+      description: 'Optional modifier on a packing mode -- sign-extends each sub-sample on unpack.<br>May be combined with `ALT`.'
+    }
+  };
+
+  private _tableDebugDirectivesLogicFeed: TDebugDirectiveTable = {
+    trigger: {
+      signature: 'TRIGGER mask match {offset}',
+      description:
+        'Mask/match trigger. The compare is `((sample XOR match) AND mask) == 0` -- bits OUTSIDE the mask are DONT-CARES, and `match` is compared only on the masked bits. (The AND-form `(sample AND mask) == match` is equivalent only when `match` is a subset of `mask` -- do not rely on it.)<br>**EDGE-armed, not a level match:** the window arms on a NON-matching sample, then fires on the next sample that matches. A stream already sitting in the match state never fires until it leaves and re-enters.<br>`offset` `0`..`SAMPLES-1`, default `SAMPLES/2`, positions the trigger within the capture.<br>Re-issuing TRIGGER resets the armed state.<br>Single mask/match compare only -- NOT an I2C/SPI/UART decoder, edge-sequence, or glitch engine.'
+    },
+    holdoff: {
+      signature: 'HOLDOFF n',
+      description:
+        'Minimum number of samples between triggers.<br>Range `2`..`2048`; the initial value is whatever `SAMPLES` was at configure time, NOT a fixed constant.<br>Supplying a count sets the holdoff AND resets its counter to 0.<br>**A bare `HOLDOFF` with no count is a silent no-op** -- it leaves both the holdoff and its counter unchanged.'
+    },
+    clear: {
+      signature: 'CLEAR',
+      description:
+        'Clear the display AND reset the sample-population and rate counters.<br>More than a visual wipe: it restarts the capture accounting.'
+    },
+    save: {
+      signature: "SAVE {WINDOW} 'filename'",
+      description:
+        'Write a `.bmp` of the display area -- or of the ENTIRE window if `WINDOW` is given -- to `<filename>.bmp`.<br>An `l t w h` region variant selects a sub-rectangle.<br>`filename` is REQUIRED. Use SINGLE quotes: a double-quoted argument is silently ignored with no compile error.'
+    }
+  };
+
+  private _tableDebugDirectivesScopeConfig: TDebugDirectiveTable = {
+    ...this._tableDebugPackedModes,
+    size: { signature: 'SIZE width height', description: 'Window size in PIXELS.<br>Each of `width` and `height` is `32`..`2048`, default 256x256.' },
+    samples: {
+      signature: 'SAMPLES n',
+      description:
+        'Horizontal resolution -- the number of sample columns across the window.<br>Range `16`..`2048`, default `256`.<br>Also sets two runtime defaults: `HOLDOFF` defaults to `SAMPLES`, and the `TRIGGER` offset defaults to `SAMPLES/2`.'
+    },
+    rate: { signature: 'RATE n', description: 'Draw-rate divisor.<br>Range `1`..`2048`, default `1`.' },
+    dotsize: {
+      signature: 'DOTSIZE n',
+      description:
+        'Sample dot diameter in pixels.<br>Range `0`..`32`, **default `0` -- dots are OFF by default**; the trace is drawn as lines via `LINESIZE`.<br>TRAP: if BOTH `DOTSIZE` and `LINESIZE` are 0, DOTSIZE is forced to 1 so something is still drawn.'
+    },
+    linesize: {
+      signature: 'LINESIZE n',
+      description:
+        'Trace line thickness in pixels.<br>Range `0`..`32`, default `3` (lines on).<br>Set 0 for a dots-only display -- but then give a non-zero `DOTSIZE`, or DOTSIZE is forced to 1.'
+    },
+    textsize: { signature: 'TEXTSIZE n', description: 'Label font point size.<br>Range `6`..`200`, default `10`.' },
+    color: {
+      signature: 'COLOR back grid',
+      description:
+        'Window background color and grid color (named color or RGB24).<br>Defaults: background black, grid `$404040`.<br>TRAP: this is NOT the trace color. Per-channel trace color is the LAST field of each channel-definition string.'
+    }
+  };
+
+  private _tableDebugDirectivesScopeFeed: TDebugDirectiveTable = {
+    trigger: {
+      signature: 'TRIGGER channel {AUTO | arm fire} {offset}',
+      description:
+        'Level-based arm/fire trigger.<br>`channel` `-1`..`7`; `-1` = free-run (no trigger).<br>`AUTO` auto-computes the arm and fire levels, or give explicit `arm` and `fire` thresholds.<br>`offset` `0`..`SAMPLES-1`, default `SAMPLES/2`.<br>**TRAP -- the offset mapping is counter-intuitive:** it is counted back from the NEWEST sample at the RIGHT edge (the trace runs oldest-left to newest-right). `offset 0` puts the trigger at the RIGHT edge, showing the lead-up TO it (pre-trigger view); `offset SAMPLES-1` puts it at the LEFT edge, showing what happens AFTER it; `SAMPLES/2` centers it.<br>Level arm/fire ONLY -- no edge, window, or external trigger, and no Auto/Normal/Single mode selector.'
+    },
+    holdoff: {
+      signature: 'HOLDOFF n',
+      description:
+        'Minimum number of samples between successive triggers.<br>Range `2`..`2048`, default `SAMPLES` -- the default depends on the create-line `SAMPLES` value, not a fixed number.'
+    },
+    auto: {
+      signature: 'AUTO',
+      description:
+        "Two distinct meanings depending on where it appears.<br>CHANNEL-DEF sense: `'label' AUTO` selects auto-ranging for that channel, in place of an explicit `lo hi` pair.<br>RUNTIME sense: `TRIGGER channel AUTO` auto-computes the arm and fire levels, in place of explicit `arm fire` thresholds."
+    },
+    clear: {
+      signature: 'CLEAR',
+      description:
+        'Clear the bitmap AND reset the sample and rate counters.<br>More than a repaint -- the sample position restarts from the beginning.'
+    },
+    save: {
+      signature: "SAVE {WINDOW} 'filename'",
+      description:
+        'Write a `.bmp` of the display area to `<filename>.bmp`.<br>Add `WINDOW` to capture the entire window instead of just the display area.<br>`filename` is REQUIRED. Use SINGLE quotes: a double-quoted argument is silently ignored with no compile error.'
+    }
+  };
+
+  private _tableDebugDirectivesScopeXyConfig: TDebugDirectiveTable = {
+    ...this._tableDebugPackedModes,
+    size: {
+      signature: 'SIZE n',
+      description:
+        "Display size -- **a SINGLE value here, unlike SCOPE's two-value `SIZE w h`**: the SCOPE_XY window is always SQUARE.<br>Effective width = height = `n*2` pixels, clamped `32`..`2048`, so `SIZE 128` gives a 256px window.<br>Default 256x256 when omitted."
+    },
+    range: {
+      signature: 'RANGE n',
+      description:
+        'Coordinate extent of the plot.<br>Range `1`..`$7FFFFFFF`, default `$7FFFFFFF`.<br>Cartesian mode: `+-n` on BOTH axes. Polar mode: `0`..`n` radius.<br>Scale = width/2/RANGE.<br>There is NO auto-ranging in SCOPE_XY -- you must set RANGE yourself.'
+    },
+    samples: {
+      signature: 'SAMPLES n',
+      description:
+        '**Persistence / fade control -- NOT a time-buffer depth as in SCOPE.**<br>Range `0`..`2048`, default `256`.<br>`SAMPLES 0` = persistent accumulating display with no buffer: points build up indefinitely, which is what you want for a complete Lissajous or phase figure.<br>`SAMPLES n` (n > 0) = circular buffer of n pairs per trace forming a fading trail; older points decay by `opa = 255 - k*255/n`.'
+    },
+    rate: { signature: 'RATE n', description: 'Display-update divisor: only every nth sample set is drawn.<br>Range `1`..`2048`, default `1`.' },
+    dotsize: {
+      signature: 'DOTSIZE n',
+      description:
+        'Dot diameter in pixels.<br>Range `2`..`20`, default `6`.<br>SCOPE_XY plots DOTS only -- there is no `LINESIZE` and no stroked traces.'
+    },
+    textsize: { signature: 'TEXTSIZE n', description: 'Trace-label font point size.<br>Range `6`..`200`, default `10`.' },
+    color: { signature: 'COLOR back grid', description: 'Window background and grid colors (RGB24).<br>Defaults: background `BLACK`, grid `GRAY`.' },
+    polar: {
+      signature: 'POLAR {twopi {theta}}',
+      description:
+        'Enable polar `(rho, theta)` mode -- incoming pairs become radius/angle instead of X/Y, and `RANGE` then means a `0`..`n` radius.<br>`twopi` = units in a full circle. **`0` and `-1` are NOT equivalent:** 0 means `+$100000000` (counter-clockwise winding), -1 means `-$100000000` (clockwise). Any other value is literal, e.g. `POLAR 360` for degrees.<br>`theta` = optional angular offset applied to every sample.'
+    },
+    logscale: {
+      signature: 'LOGSCALE',
+      description:
+        'Apply log scaling to both axes, or to the radius in polar mode.<br>Default is linear. Takes no arguments -- presence alone enables it.'
+    }
+  };
+
+  private _tableDebugDirectivesScopeXyFeed: TDebugDirectiveTable = {
+    clear: {
+      signature: 'CLEAR',
+      description:
+        'Clear the bitmap AND reset the sample and rate counters.<br>Accumulated persistence/fade history and the `RATE` divisor phase are discarded too.'
+    },
+    save: {
+      signature: "SAVE {WINDOW} 'filename'",
+      description:
+        'Write a `.bmp` of the display area -- or of the ENTIRE window if `WINDOW` is given -- to `<filename>.bmp`.<br>`filename` is REQUIRED and single-quoted; the `.bmp` extension is appended for you.'
+    }
+  };
+
+  private _tableDebugDirectivesFftConfig: TDebugDirectiveTable = {
+    ...this._tableDebugPackedModes,
+    samples: {
+      signature: 'SAMPLES n {first last}',
+      description:
+        'FFT size `n` -- a power of two, `4`..`2048` (default `512`). **The maximum is 2048; there is no 4096.**<br>**A non-power-of-two is truncated DOWN to the next lower power of two, never rounded up: `SAMPLES 1000` gives 512, NOT 1024.**<br>Optional `first`/`last` select the displayed bin range -- the only form of zoom: `first` `0`..`n/2-2` (default 0), `last` `first+1`..`n/2-1` (default `n/2-1`).<br>The window function is a FIXED Hanning and is not selectable.'
+    },
+    rate: {
+      signature: 'RATE n',
+      description:
+        'Redraw every `n` new sample sets, `1`..`2048`.<br>**Default is not 1 -- it is the current `SAMPLES` value.**<br>Drawing begins only once the SAMPLES buffer has filled.'
+    },
+    size: {
+      signature: 'SIZE width height',
+      description: 'Plot-area size in pixels.<br>Each of `width` and `height` is `32`..`2048`, default 256x256.'
+    },
+    dotsize: { signature: 'DOTSIZE n', description: 'Bin dot diameter in pixels.<br>Range `0`..`32`, default `0` (no dots).' },
+    linesize: {
+      signature: 'LINESIZE n',
+      description:
+        'Trace line width, `-32`..`32` (default `3`).<br>**Positive = polyline thickness; `0` = no line; NEGATIVE = vertical filled bars of width `|n|`** -- bar-mode spectra are selected by making this negative.'
+    },
+    textsize: { signature: 'TEXTSIZE n', description: 'Label font point size.<br>Range `6`..`200`, default `10`.' },
+    color: {
+      signature: 'COLOR back grid',
+      description:
+        'Window background and grid colors (named color or RGB24; defaults black, gray).<br>This sets the window chrome ONLY -- trace color is not set here. Each channel takes its color from the trailing `color` field of its channel-definition string.'
+    },
+    logscale: {
+      signature: 'LOGSCALE',
+      description:
+        'Plot the log of power instead of linear power.<br>**This is log of arbitrary power units, NOT calibrated dB** -- there is no dB or power-spectral-density normalization in the P2 FFT.'
+    }
+  };
+
+  private _tableDebugDirectivesFftFeed: TDebugDirectiveTable = {
+    clear: {
+      signature: 'CLEAR',
+      description:
+        'Erase the display AND reset the sample and rate counters.<br>More than a repaint: after CLEAR the FFT will not redraw until a fresh `SAMPLES` buffer has been accumulated.'
+    },
+    save: {
+      signature: "SAVE {WINDOW} 'filename'",
+      description:
+        'Write a `.bmp` of the display area -- or of the entire window if `WINDOW` is given -- to `<filename>.bmp`.<br>`filename` is REQUIRED. Use SINGLE quotes: a double-quoted argument is silently ignored with no compile error.'
+    }
+  };
+
+  private _tableDebugDirectivesSpectroConfig: TDebugDirectiveTable = {
+    ...this._tableDebugPackedModes,
+    // SPECTRO accepts a RESTRICTED set of intensity modes -- the LUT/RGB color modes
+    //  that PLOT takes are REJECTED here, so those are deliberately NOT spread in.
+    luma8: {
+      signature: 'LUMA8',
+      description:
+        'SPECTRO intensity mode: 8-bit luminance.<br>One of the SIX modes SPECTRO accepts; the LUT/RGB8/RGB16/RGB24/HSV8 modes are REJECTED.'
+    },
+    luma8w: { signature: 'LUMA8W', description: 'SPECTRO intensity mode: 8-bit luminance, WORD-packed.<br>One of the SIX modes SPECTRO accepts.' },
+    luma8x: {
+      signature: 'LUMA8X',
+      description:
+        'SPECTRO intensity mode: 8-bit luminance, LONG-packed.<br>**The default** when no mode is given. One of the SIX modes SPECTRO accepts.'
+    },
+    hsv16: { signature: 'HSV16', description: 'SPECTRO intensity mode: 16-bit HSV, giving phase coloring.<br>One of the SIX modes SPECTRO accepts.' },
+    hsv16w: { signature: 'HSV16W', description: 'SPECTRO intensity mode: 16-bit HSV, WORD-packed.<br>One of the SIX modes SPECTRO accepts.' },
+    hsv16x: { signature: 'HSV16X', description: 'SPECTRO intensity mode: 16-bit HSV, LONG-packed.<br>One of the SIX modes SPECTRO accepts.' },
+    samples: {
+      signature: 'SAMPLES n {first last}',
+      description:
+        'FFT size in points.<br>`n` is clamped to `4`..`2048` and SNAPPED to a power of two -- any in-range value is accepted and rounded, so an exact power of two is not required.<br>Default `512`.<br>Optional `first`/`last` select a displayed bin range over the SNAPPED size: `first` `0`..`n/2-2`, `last` `first+1`..`n/2-1`.'
+    },
+    depth: { signature: 'DEPTH n', description: 'Number of time-history lines retained -- the spectrogram time depth.<br>Range `1`..`2048`.' },
+    mag: { signature: 'MAG n', description: 'Magnitude multiplier of `2^n` -- NOT a direct multiplier.<br>Range `0`..`11`, default `0` (2^0 = x1).' },
+    range: { signature: 'RANGE n', description: 'Full-scale magnitude value.<br>Range `1`..`$7FFFFFFF`, default `$7FFFFFFF` (full scale).' },
+    rate: {
+      signature: 'RATE n',
+      description:
+        'Samples per display update.<br>Range `1`..`2048`.<br>**Default is `SAMPLES/8`, not 1** -- the default tracks the FFT size, so changing `SAMPLES` silently changes the update rate.'
+    },
+    trace: {
+      signature: 'TRACE n',
+      description:
+        'Scroll-direction / static control, as a `0`..`15` **bitfield** -- NOT a trace index.<br>Bits 0-2 = scroll direction (0..7), bit 3 = scroll enable. Default `$F` (scrolling, direction 7).<br>**TRACE also decides the AXES.** The width/height swap fires only when `(TRACE AND $4) == 0`, so only traces 0-3 put FREQUENCY on X with time running horizontally. Traces 4-15 -- including the default `$F` -- do NOT swap: TIME is on X and FREQUENCY on Y.'
+    },
+    dotsize: { signature: 'DOTSIZE x {y}', description: 'Cell size in pixels; each of `x` and `y` is `1`..`16`.<br>Default 1,1.' },
+    logscale: { signature: 'LOGSCALE', description: 'Use log-magnitude intensity instead of linear.' }
+  };
+
+  private _tableDebugDirectivesSpectroFeed: TDebugDirectiveTable = {
+    clear: {
+      signature: 'CLEAR',
+      description: 'Clear the bitmap AND reset the sample counter, the rate counter, and the trace (scroll) position.<br>Not just the pixels.'
+    },
+    save: {
+      signature: "SAVE {WINDOW} 'filename'",
+      description:
+        'Write a `.bmp` of the display area -- or of the entire window if `WINDOW` is given -- to `<filename>.bmp`.<br>**The filename is REQUIRED and must be LAST:** a bare `SAVE` writes NOTHING, silently, and any keyword placed after SAVE is consumed and discarded.'
+    }
+  };
+
+  private _tableDebugDirectivesMidiConfig: TDebugDirectiveTable = {
+    size: {
+      signature: 'SIZE n',
+      description:
+        'Key-size scalar for the drawn piano keyboard.<br>Range `1`..`50`, default `4`.<br>**This is NOT a pixel dimension** -- the drawn key size is `8 + n*4` pixels, so `SIZE 4` yields 24-pixel keys, not 4.'
+    },
+    range: {
+      signature: 'RANGE firstKey lastKey',
+      description:
+        'MIDI note range displayed on the keyboard.<br>Each value `0`..`127`, default `21 108` (the 88-key piano range).<br>`lastKey` is clamped to be `>=` `firstKey`.<br>The display always tracks all 128 key velocities internally; RANGE only limits what is DRAWN.'
+    },
+    channel: {
+      signature: 'CHANNEL n',
+      description:
+        'MIDI channel to display.<br>Range `0`..`15`, default `0`.<br>**An exact channel filter -- not a mask, and not an all-channels mode.** `CHANNEL 0` shows channel 0 only; there is no value that displays every channel.'
+    },
+    color: {
+      signature: 'COLOR onWhite onBlack',
+      description:
+        'Lit-key colors for white keys and black keys.<br>Defaults `CYAN` (white keys) and `MAGENTA` (black keys).<br>**COLOR sets only the HUE; the note VELOCITY sets the fill HEIGHT.** There is no velocity color gradient -- the hue is fixed per key type regardless of how hard the note is struck.'
+    },
+    hidexy: {
+      signature: 'HIDEXY',
+      description:
+        '**Not accepted by MIDI.** Unlike every other DEBUG display type, MIDI rejects `HIDEXY` -- it has no XY/cursor readout to suppress.<br>Documented here so its absence is not mistaken for an oversight.'
+    }
+  };
+
+  private _tableDebugDirectivesMidiFeed: TDebugDirectiveTable = {
+    clear: {
+      signature: 'CLEAR',
+      description:
+        'Clear the keyboard: reset **all 128 key velocities** to 0 and redraw.<br>This releases EVERY key -- including notes outside the displayed `RANGE` and on channels other than the configured `CHANNEL`.'
+    },
+    save: {
+      signature: "SAVE {WINDOW} 'filename'",
+      description:
+        'Write a `.bmp` of the display area to `<filename>.bmp`.<br>Add the optional `WINDOW` keyword to capture the entire window instead of just the display area.<br>`filename` is REQUIRED. Use SINGLE quotes: a double-quoted argument is silently ignored with no compile error.'
+    }
+  };
+
+  // BITMAP is the one display type taking BOTH families: packed COLOR modes (how a
+  //  sample becomes a color) and sample PACKING modes (how samples are extracted).
+  private _tableDebugDirectivesBitmapConfig: TDebugDirectiveTable = {
+    ...this._tableDebugColorModes,
+    ...this._tableDebugPackedModes,
+    size: {
+      signature: 'SIZE w h',
+      description:
+        'Logical bitmap dimensions in PIXELS.<br>`w` and `h` are each `1`..`2048`, default 256x256.<br>Note the lower bound differs from PLOT, whose SIZE starts at 32.<br>This is the pixel canvas, NOT the on-screen client size -- the window is `w*x` by `h*y` after `DOTSIZE` magnification.'
+    },
+    dotsize: {
+      signature: 'DOTSIZE x {y}',
+      description:
+        'Integer pixel magnification, each `1`..`256` (default 1x1).<br>X and Y magnify INDEPENDENTLY, but `y` is OPTIONAL: omit it and `y` copies `x`, so `DOTSIZE 8` is 8x8, not 8x1.<br>Client size = `w*x` by `h*y`.<br>This is the only scaling available -- there is NO zoom and NO pan.'
+    },
+    sparse: {
+      signature: 'SPARSE color',
+      description:
+        'Sparse mode: each magnified pixel is drawn as a ROUND DOT on a SOLID BACKGROUND FILL of `color` (named color or RGB24). `-1` turns it off.<br>**It is NOT a grid, border, or outline** -- `color` fills the whole block BEHIND the dot.<br>**Gated on magnification:** sparse rendering requires `DOTSIZE >= 4`. At DOTSIZE 3 or less it silently does not engage.<br>Renders far more slowly than the 1:1 path -- keep the logical canvas small.'
+    },
+    lutcolors: {
+      signature: 'LUTCOLORS c0 .. cN',
+      description:
+        'Load up to 256 RGB24 palette entries. LUT color modes only.<br>**The LUT is ZERO-INITIALIZED:** until LUTCOLORS loads it, every entry is `$000000`, so a LUT mode with no LUTCOLORS renders a uniformly BLACK picture -- not random garbage, and not an error. Load the palette BEFORE feeding LUT-mode pixel data.<br>CONFIG sense: the initial palette.'
+    },
+    trace: {
+      signature: 'TRACE n',
+      description:
+        'Scan/scroll control as a `0`..`15` BITFIELD, not an enumeration (default `0`).<br>Bits 0-2 select the scan pattern (0..7); bit 3 enables scroll.<br>The pixel stream order follows the selected scan pattern -- there is no column-major buffer formula. Use `SET` for random access.'
+    },
+    rate: {
+      signature: 'RATE n',
+      description:
+        'Pixels accepted per display refresh (default `0`).<br>CONFIG sense: `-1` is SUBSTITUTED with `w*h` (refresh once per whole frame), and `0` is substituted with the width (h-scan) or the height (v-scan).<br>**This substitution is create-line behavior ONLY** -- the runtime `RATE` does not do it, and -1/0 there freeze the display.'
+    },
+    alt: {
+      signature: 'ALT',
+      description: 'Optional modifier on a packing mode -- bit-reverses each sub-unit on unpack.<br>May be combined with `SIGNED`.'
+    },
+    signed: {
+      signature: 'SIGNED',
+      description: 'Optional modifier on a packing mode -- samples are treated as signed.<br>May be combined with `ALT`.'
+    },
+    update: {
+      signature: 'UPDATE',
+      description:
+        'CONFIG sense: select MANUAL-refresh mode. Output ACCUMULATES off-screen and nothing appears until a runtime `UPDATE` is sent.<br>Once in this mode `SAVE` captures the FRONT buffer -- the frame currently shown, not the one you have been drawing. Send a runtime UPDATE before SAVE.'
+    }
+  };
+
+  private _tableDebugDirectivesBitmapFeed: TDebugDirectiveTable = {
+    lutcolors: {
+      signature: 'LUTCOLORS c0 .. cN',
+      description: 'RUNTIME sense: replace the palette mid-stream (LUT color modes only).<br>Already-plotted pixels re-map to the new palette.'
+    },
+    trace: {
+      signature: 'TRACE n',
+      description:
+        'RUNTIME sense: change the scan pattern / scroll bit mid-stream. Same `0`..`15` bitfield as the config form (bits 0-2 = pattern, bit 3 = scroll).<br>**Side effect: it RESETS the pixel position.** Feeding continues from the start of the scan, not from where you were.'
+    },
+    rate: {
+      signature: 'RATE n',
+      description:
+        'RUNTIME sense: change pixels-per-refresh mid-stream.<br>**TRAP -- the create-line substitution does NOT happen at runtime.** A runtime `RATE -1` (or `RATE 0`) is stored as-is, and the refresh counter fires on an EQUALITY test against an ever-increasing count, so it can never match: auto-refresh FREEZES. Pixels keep arriving and the display silently stops updating -- not an error, and not reported.<br>A runtime RATE with any positive count resumes refreshing.'
+    },
+    set: {
+      signature: 'SET x y',
+      description:
+        'Random-access pixel position. `x` is `0`..`w-1`, `y` is `0`..`h-1`.<br>**CANCELS scroll** -- after SET, scrolling is off until re-enabled via `TRACE` bit 3.'
+    },
+    scroll: {
+      signature: 'SCROLL x y',
+      description:
+        'Shift the existing bitmap. `x` ranges `-w`..`w` (positive = right), `y` ranges `-h`..`h` (positive = down).<br>The vacated area is filled with the background color, not left as-is.'
+    },
+    clear: {
+      signature: 'CLEAR',
+      description:
+        'Fill the bitmap with the background color, **reset the trace position**, and refresh.<br>The refresh is suppressed if the window was created with `UPDATE` (manual-refresh) mode.'
+    },
+    update: {
+      signature: 'UPDATE',
+      description:
+        'RUNTIME sense: force a canvas refresh.<br>Required in manual-refresh mode (window created with `UPDATE`) -- without it nothing you feed ever becomes visible.<br>Also send it before `SAVE` in that mode, or SAVE files the PREVIOUS frame.'
+    },
+    save: {
+      signature: "SAVE {WINDOW | l t w h} 'filename'",
+      description:
+        "Write the bitmap to `<filename>.bmp`.<br>**The filename is REQUIRED in every form and must come LAST.** A bare `SAVE` writes NOTHING, silently, and a keyword placed after SAVE is consumed and discarded -- `` `Win SAVE CLEAR `` writes no file AND loses the CLEAR.<br>**Prefer the plain `SAVE 'filename'` form:** it renders from the window's own bitmap, capturing exactly that window -- no chrome, nothing overlapping it.<br>The other two forms capture the SCREEN: `SAVE WINDOW` grabs the window's screen rectangle (frame included, occlusion-vulnerable), and the `l t w h` form grabs an arbitrary SCREEN region. Those are SCREEN coordinates, NOT the window's `POS` coordinate space -- never compute a SAVE region from a window's POS.<br>In `UPDATE` mode SAVE captures the FRONT buffer, the frame currently shown."
+    }
+  };
+
   private _tableDebugColorNames: { [Identifier: string]: TDebugDirective } = {
     black: { signature: 'BLACK', description: 'Named color. BLACK and WHITE do NOT take a brightness nibble.' },
     white: { signature: 'WHITE', description: 'Named color. BLACK and WHITE do NOT take a brightness nibble.' },
@@ -4505,12 +4992,18 @@ export class Spin2ParseUtils {
   //  MUST be declared AFTER the tables it references: class fields initialize in
   //  declaration order, so an earlier position would capture `undefined`.
   //
-  //  Of the nine DEBUG display types (TERM LOGIC SCOPE SCOPE_XY FFT SPECTRO PLOT
-  //  BITMAP MIDI), TERM and PLOT are populated so far; the rest fall through to
-  //  the shared + color tables until their own tables land.
+  //  All NINE DEBUG display types are populated. The keys must match the lower-cased
+  //  names in _tableDebugDisplayTypes -- note `scope_xy` carries its underscore.
   private _debugDirectivesByDisplayType: { [Identifier: string]: TDebugDisplayDirectives } = {
     term: { config: this._tableDebugDirectivesTermConfig, feed: this._tableDebugDirectivesTermFeed },
-    plot: { config: this._tableDebugDirectivesPlotConfig, feed: this._tableDebugDirectivesPlotFeed }
+    plot: { config: this._tableDebugDirectivesPlotConfig, feed: this._tableDebugDirectivesPlotFeed },
+    logic: { config: this._tableDebugDirectivesLogicConfig, feed: this._tableDebugDirectivesLogicFeed },
+    scope: { config: this._tableDebugDirectivesScopeConfig, feed: this._tableDebugDirectivesScopeFeed },
+    scope_xy: { config: this._tableDebugDirectivesScopeXyConfig, feed: this._tableDebugDirectivesScopeXyFeed },
+    fft: { config: this._tableDebugDirectivesFftConfig, feed: this._tableDebugDirectivesFftFeed },
+    spectro: { config: this._tableDebugDirectivesSpectroConfig, feed: this._tableDebugDirectivesSpectroFeed },
+    bitmap: { config: this._tableDebugDirectivesBitmapConfig, feed: this._tableDebugDirectivesBitmapFeed },
+    midi: { config: this._tableDebugDirectivesMidiConfig, feed: this._tableDebugDirectivesMidiFeed }
   };
 
   /**
@@ -4549,7 +5042,9 @@ export class Spin2ParseUtils {
       desiredDocText.signature = entry.signature;
       desiredDocText.description = entry.description;
     }
-    this._logMessage(`sp2u: - docTextForDebugDirective([${name}], type=[${displayTypeName}], isDecl=${isDeclaration}) -> found=${desiredDocText.found}`);
+    this._logMessage(
+      `sp2u: - docTextForDebugDirective([${name}], type=[${displayTypeName}], isDecl=${isDeclaration}) -> found=${desiredDocText.found}`
+    );
     return desiredDocText;
   }
 

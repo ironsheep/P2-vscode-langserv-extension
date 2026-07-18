@@ -1,0 +1,51 @@
+'' Fixture for debug.display-types.test.ts
+''
+'' Covers the seven DEBUG display types added after TERM and PLOT: LOGIC, SCOPE,
+'' SCOPE_XY, FFT, SPECTRO, BITMAP, MIDI.
+''
+'' The point of the fixture is CROSS-TYPE DIVERGENCE. Several directive words
+'' appear on many display types with genuinely different meanings, and the whole
+'' reason for a per-type table is that a single shared doc would be wrong:
+''
+''   SAMPLES  LOGIC   = sample count across the window
+''            SCOPE_XY= persistence / fade depth (0 = accumulate forever)
+''            FFT     = FFT size, truncated DOWN to a power of two
+''   RANGE    SCOPE_XY= coordinate extent      SPECTRO = full-scale magnitude
+''            MIDI    = note range             LOGIC   = channel-def modifier
+''   TRACE    SPECTRO = scroll + AXIS SWAP     BITMAP  = scan pattern
+''   RATE     SPECTRO = default SAMPLES/8      BITMAP  = runtime freeze trap
+''   SIZE     MIDI    = key scalar, not pixels
+''
+'' Do NOT reformat these lines: the tests locate words by exact offset and rely
+'' on each tested word appearing only ONCE on its line.
+
+CON
+
+PUB main() | v
+
+  v := 0
+
+  ' -- LOGIC --
+  DEBUG(`LOGIC Bus SAMPLES 64 SPACING 8 DOTSIZE 0 LONGS_1BIT)
+  DEBUG(`Bus TRIGGER $FF $A0 32)
+  DEBUG(`Bus HOLDOFF 4)
+
+  ' -- SCOPE --
+  DEBUG(`SCOPE Wave SIZE 256 256 SAMPLES 256 LINESIZE 3)
+  DEBUG(`Wave TRIGGER 0 AUTO 128)
+
+  ' -- SCOPE_XY --
+  DEBUG(`SCOPE_XY Phase SIZE 128 RANGE 1000 SAMPLES 0 POLAR 360)
+
+  ' -- FFT --
+  DEBUG(`FFT Spec SAMPLES 1000 LINESIZE -4 LOGSCALE)
+
+  ' -- SPECTRO --
+  DEBUG(`SPECTRO Fall DEPTH 256 MAG 4 TRACE $F RATE 64 HSV16X)
+
+  ' -- BITMAP --
+  DEBUG(`BITMAP Pix SIZE 64 64 DOTSIZE 8 SPARSE -1 TRACE 0 RATE -1 LUTCOLORS $FF0000)
+  DEBUG(`Pix RATE 0 SET 4 4 SCROLL 1 0)
+
+  ' -- MIDI --
+  DEBUG(`MIDI Keys SIZE 4 RANGE 21 108 CHANNEL 0 HIDEXY)
