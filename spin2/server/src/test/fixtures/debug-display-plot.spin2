@@ -1,0 +1,35 @@
+'' Fixture for debug.display-plot.test.ts
+''
+'' PLOT is the second DEBUG display type populated (after TERM) and the largest.
+'' It is also the type that PROVES the per-type registry earns its keep: several
+'' directive names mean different things on PLOT than on TERM.
+''
+'' The TERM line below is deliberately present so the divergence can be asserted
+'' side by side in one fixture.
+''
+'' Do NOT reformat these lines: the tests locate words by exact offset, and rely
+'' on each tested word appearing only ONCE on its line.
+
+CON
+
+PUB main() | x
+
+  x := 0
+
+  ' PLOT config -- SIZE here is in PIXELS
+  DEBUG(`PLOT Canvas POS 100 50 SIZE 256 256 DOTSIZE 2 BACKCOLOR BLACK UPDATE)
+
+  ' TERM config -- SIZE here is in CHARACTERS (same word, different display type)
+  DEBUG(`TERM Panel SIZE 40 8)
+
+  ' PLOT update -- pen state and geometry
+  DEBUG(`Canvas SET 10 10 LINE 200 200 LINESIZE 3)
+  DEBUG(`Canvas COLOR RED OPACITY 128 CIRCLE 80)
+  DEBUG(`Canvas CARTESIAN 0 0 PRECISE)
+  DEBUG(`Canvas OBOX 60 40 8 8 2)
+
+  ' PLOT update -- color mode, text, sprites, window
+  DEBUG(`Canvas RGB24 TEXTSTYLE 2)
+  DEBUG(`Canvas SPRITEDEF 0 2 2 0 1 1 0 $00000000 $FFFF0000)
+  DEBUG(`Canvas SAVE WINDOW 'shot')
+  DEBUG(`Canvas CLOSE)

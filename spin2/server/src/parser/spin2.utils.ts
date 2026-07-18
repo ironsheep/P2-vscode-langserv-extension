@@ -4331,6 +4331,156 @@ export class Spin2ParseUtils {
     clear: { signature: 'CLEAR', description: 'Clear the window and home the cursor to (0,0).' }
   };
 
+  // Packed-data color modes, accepted by PLOT (and later BITMAP) in BOTH the config and
+  //  the update phase -- spread into each of those tables rather than duplicated.
+  private _tableDebugColorModes: TDebugDirectiveTable = {
+    lut1: { signature: 'LUT1', description: 'Color mode: 1 bit per pixel, indexed through `LUTCOLORS`.' },
+    lut2: { signature: 'LUT2', description: 'Color mode: 2 bits per pixel, indexed through `LUTCOLORS`.' },
+    lut4: { signature: 'LUT4', description: 'Color mode: 4 bits per pixel, indexed through `LUTCOLORS`.' },
+    lut8: { signature: 'LUT8', description: 'Color mode: 8 bits per pixel, indexed through `LUTCOLORS`.' },
+    luma8: { signature: 'LUMA8', description: 'Color mode: 8-bit luminance.<br>`LUMA8W` and `LUMA8X` are the word/long-packed variants.' },
+    luma8w: { signature: 'LUMA8W', description: 'Color mode: 8-bit luminance, WORD-packed.' },
+    luma8x: { signature: 'LUMA8X', description: 'Color mode: 8-bit luminance, LONG-packed.' },
+    hsv8: { signature: 'HSV8', description: 'Color mode: 8-bit hue/saturation/value.<br>`HSV8W` and `HSV8X` are the word/long-packed variants.' },
+    hsv8w: { signature: 'HSV8W', description: 'Color mode: 8-bit HSV, WORD-packed.' },
+    hsv8x: { signature: 'HSV8X', description: 'Color mode: 8-bit HSV, LONG-packed.' },
+    rgbi8: { signature: 'RGBI8', description: 'Color mode: 8-bit RGB + intensity.<br>`RGBI8W` and `RGBI8X` are the word/long-packed variants.' },
+    rgbi8w: { signature: 'RGBI8W', description: 'Color mode: 8-bit RGB + intensity, WORD-packed.' },
+    rgbi8x: { signature: 'RGBI8X', description: 'Color mode: 8-bit RGB + intensity, LONG-packed.' },
+    rgb8: { signature: 'RGB8', description: 'Color mode: 8-bit RGB (3:3:2).' },
+    hsv16: { signature: 'HSV16', description: 'Color mode: 16-bit HSV.<br>`HSV16W` and `HSV16X` are the word/long-packed variants.' },
+    hsv16w: { signature: 'HSV16W', description: 'Color mode: 16-bit HSV, WORD-packed.' },
+    hsv16x: { signature: 'HSV16X', description: 'Color mode: 16-bit HSV, LONG-packed.' },
+    rgb16: { signature: 'RGB16', description: 'Color mode: 16-bit RGB (5:6:5).' },
+    rgb24: { signature: 'RGB24', description: 'Color mode: 24-bit RGB, one `$RRGGBB` long per pixel.' }
+  };
+
+  private _tableDebugDirectivesPlotConfig: TDebugDirectiveTable = {
+    ...this._tableDebugColorModes,
+    size: {
+      signature: 'SIZE width height',
+      description:
+        'Canvas size in **PIXELS**.<br>Each 32..2048 (default 256x256).<br>Contrast `TERM`, whose SIZE is in CHARACTERS -- the two displays do NOT share units.'
+    },
+    dotsize: {
+      signature: 'DOTSIZE x {y}',
+      description:
+        'Pixel scale, each axis 1..256 (default 1x1; `y` copies `x` when omitted).<br>ALSO the divisor applied to reported `PC_MOUSE` cursor coordinates -- change DOTSIZE and the coordinates you read back change with it.'
+    },
+    lutcolors: {
+      signature: 'LUTCOLORS rgb24...',
+      description: 'Palette for the LUT color modes.<br>Up to 256 longs -- supply as many as the selected LUT mode actually uses.'
+    },
+    backcolor: { signature: 'BACKCOLOR color', description: 'Canvas background color (default `BLACK`).' },
+    update: {
+      signature: 'UPDATE',
+      description:
+        'CONFIG sense: enable buffered / manual-refresh mode.<br>Drawing accumulates in `Bitmap[0]` and reaches the screen only when a runtime `UPDATE` flushes it.'
+    }
+  };
+
+  private _tableDebugDirectivesPlotFeed: TDebugDirectiveTable = {
+    ...this._tableDebugColorModes,
+    // ---- color / pen state ----
+    color: {
+      signature: 'COLOR (value | named {brightness})',
+      description:
+        'Drawing color: an RGB value, or a named color (`BLACK WHITE ORANGE BLUE GREEN CYAN RED MAGENTA YELLOW GRAY`) with an optional 0..15 brightness nibble on all but BLACK/WHITE.<br>A COLOR issued immediately before a `TEXT` directive also sets the TEXT color.'
+    },
+    opacity: {
+      signature: 'OPACITY n',
+      description:
+        'Alpha for subsequent drawing, 0..255 (default 255 = most opaque).<br>TRAP: this is NOT a saturating clamp -- the value is truncated to a byte on store, so it WRAPS mod 256. `OPACITY 256` becomes 0 = FULLY TRANSPARENT, so reaching past the top of the range for "more opaque" makes everything you draw next invisible; `OPACITY 300` becomes 44.<br>The wrap belongs to this directive: the inline opacity argument on `DOT`/`LINE`/shape directives takes a different parse path -- do not assume it behaves the same.'
+    },
+    precise: {
+      signature: 'PRECISE',
+      description:
+        'TOGGLE sub-pixel coordinates -- 8.8 fixed-point, coordinates shifted `<<8`.<br>Starts OFF at window creation, and each `PRECISE` flips it. It is not a set-on directive.'
+    },
+    linesize: { signature: 'LINESIZE n', description: 'Stroke width for subsequent strokes.' },
+    lutcolors: { signature: 'LUTCOLORS rgb24...', description: 'RUNTIME sense: replace the LUT palette (up to 256 longs).' },
+    backcolor: { signature: 'BACKCOLOR color', description: 'RUNTIME sense: set the background color used by `CLEAR`.' },
+    // ---- geometry ----
+    origin: { signature: 'ORIGIN {x y}', description: 'Set the drawing origin.<br>With no arguments, uses the current position.' },
+    set: { signature: 'SET x y', description: 'Set the current pen position.<br>Polar-converted when `POLAR` is active.' },
+    dot: {
+      signature: 'DOT {linesize {opacity}}',
+      description: 'Plot a dot at the current position (defaults to the current LINESIZE / OPACITY).<br>Does NOT advance the current position.'
+    },
+    line: {
+      signature: 'LINE x y {linesize {opacity}}',
+      description: 'Line from the current position to `x,y`.<br>ADVANCES the current position to the destination -- unlike `DOT`.'
+    },
+    circle: {
+      signature: 'CIRCLE width {linesize {opacity}}',
+      description: 'Circle CENTERED on the current position.<br>`linesize` 0 draws it FILLED.'
+    },
+    oval: {
+      signature: 'OVAL width height {linesize {opacity}}',
+      description: 'Ellipse CENTERED on the current position.<br>`linesize` 0 draws it FILLED.'
+    },
+    box: {
+      signature: 'BOX width height {linesize {opacity}}',
+      description: 'Rectangle CENTERED on the current position.<br>`linesize` 0 draws it FILLED.'
+    },
+    obox: {
+      signature: 'OBOX width height xradius yradius {linesize {opacity}}',
+      description:
+        'ROUNDED rectangle -- corner radii `xradius`/`yradius` -- centered on the current position.<br>Rounded, NOT merely outlined: `linesize` 0 draws it filled, same as `BOX`.'
+    },
+    polar: {
+      signature: 'POLAR {twopi {theta}}',
+      description:
+        'Interpret subsequent coordinates as POLAR (rho, theta).<br>`twopi` = full-circle units (default `$100000000`): 0 means +$100000000 (default, counter-clockwise), -1 means -$100000000 (clockwise) -- 0 and -1 are NOT equivalent. Any other value is taken literally, so 360 gives degrees.<br>theta=0 points EAST (+x); positive `twopi` increases theta counter-clockwise. `theta` is an angular offset (default 0).'
+    },
+    cartesian: {
+      signature: 'CARTESIAN {flipy {flipx}}',
+      description:
+        'Interpret coordinates as CARTESIAN, with optional axis-flip flags (0 or 1).<br>DEFAULT orientation (both flags 0, the state at window creation) is origin BOTTOM-LEFT, x rightward, y UPWARD -- the mathematical convention, NOT the screen convention.<br>`flipy` 1 selects Y-DOWN (screen-native, origin top-left); `flipx` 1 makes x increase leftward.'
+    },
+    // ---- text ----
+    text: {
+      signature: "TEXT {size {style {angle}}} 'string'",
+      description:
+        'Draw text at the current position.<br>The optional inline size/style/angle override `TEXTSIZE`/`TEXTSTYLE`/`TEXTANGLE` for this string only.'
+    },
+    textsize: { signature: 'TEXTSIZE n', description: 'Label font point size (clamped 6..200).' },
+    textstyle: {
+      signature: 'TEXTSTYLE n',
+      description:
+        'Style byte 0..255: weight bits0-1, italic bit2, underline bit3, horizontal-align bits4-5, vertical-align bits6-7.<br>Align is per-axis: horizontal %10=right, %11=left; vertical %10=top, %11=bottom (%00/%01 center on both).<br>TRAP: the weight field selects a NOMINAL weight (0=thin, 1=normal, 2=bold, 3=heavy) that the DEBUG font does not render as a progression -- `$00` looks identical to the `$01` default, and `$02`/`$03` render with slightly LESS ink, not more. Do not rely on it to bolden text.'
+    },
+    textangle: { signature: 'TEXTANGLE n', description: 'Text rotation: degrees 0..359 in Cartesian, or 0..twopi in polar.' },
+    // ---- bitmap layers / sprites ----
+    layer: { signature: "LAYER n 'file.bmp'", description: 'Load a BMP into layer buffer `n` (1..8).<br>The `.bmp` file must already exist.' },
+    crop: {
+      signature: 'CROP layer (AUTO x y | left top width height {x y})',
+      description: 'Copy a region of a layer to the canvas.<br>With no arguments, blits the full layer at 0,0.'
+    },
+    spritedef: {
+      signature: 'SPRITEDEF id xsize ysize pixels... colors...',
+      description:
+        'Define a sprite: `id` 0..255; `xsize`,`ysize` 1..32 each; then `xsize*ysize` palette-index bytes (0..255); then the palette colors those indices reference, as `$AARRGGBB` longs.<br>Up to 256 colors -- the parser reads colors until the message ENDS, so supply only as many as your indices actually use.'
+    },
+    sprite: {
+      signature: 'SPRITE id {orientation {scale {opacity}}}',
+      description:
+        'Render a defined sprite at the current position.<br>`id` 0..255; `orientation` 0..7 (default 0); `scale` 1..64 (default 1); `opacity` 0..255 (defaults to the current OPACITY).'
+    },
+    // ---- window ----
+    clear: { signature: 'CLEAR', description: 'Clear the canvas to the background color.' },
+    update: {
+      signature: 'UPDATE',
+      description:
+        'RUNTIME sense: copy the accumulated buffer (`Bitmap[0]`) to the screen.<br>Only meaningful when the window was created with `UPDATE`.'
+    },
+    save: {
+      signature: "SAVE {WINDOW | l t w h} 'filename'",
+      description:
+        "Write a `.bmp` of the canvas to `<filename>.bmp`.<br>`SAVE l t w h 'name'` writes a DESKTOP region instead; `SAVE WINDOW 'name'` writes the whole window.<br>`filename` is REQUIRED and must be LAST: a bare `SAVE` writes nothing, silently. The extension is appended for you -- give the base name only."
+    }
+  };
+
   private _tableDebugColorNames: { [Identifier: string]: TDebugDirective } = {
     black: { signature: 'BLACK', description: 'Named color. BLACK and WHITE do NOT take a brightness nibble.' },
     white: { signature: 'WHITE', description: 'Named color. BLACK and WHITE do NOT take a brightness nibble.' },
@@ -4356,10 +4506,11 @@ export class Spin2ParseUtils {
   //  declaration order, so an earlier position would capture `undefined`.
   //
   //  Of the nine DEBUG display types (TERM LOGIC SCOPE SCOPE_XY FFT SPECTRO PLOT
-  //  BITMAP MIDI), only TERM is populated so far; the rest fall through to the
-  //  shared + color tables until their own tables land.
+  //  BITMAP MIDI), TERM and PLOT are populated so far; the rest fall through to
+  //  the shared + color tables until their own tables land.
   private _debugDirectivesByDisplayType: { [Identifier: string]: TDebugDisplayDirectives } = {
-    term: { config: this._tableDebugDirectivesTermConfig, feed: this._tableDebugDirectivesTermFeed }
+    term: { config: this._tableDebugDirectivesTermConfig, feed: this._tableDebugDirectivesTermFeed },
+    plot: { config: this._tableDebugDirectivesPlotConfig, feed: this._tableDebugDirectivesPlotFeed }
   };
 
   /**
