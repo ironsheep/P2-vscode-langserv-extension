@@ -4257,7 +4257,7 @@ export class Spin2ParseUtils {
     title: {
       signature: "TITLE 'string'",
       description:
-        'Window title-bar text. Text uses SINGLE quotes -- a double-quoted argument is silently ignored with no compile error.<br>Default caption is `&lt;name&gt; - &lt;TYPE&gt;`.'
+        'Window title-bar text. Text uses SINGLE quotes -- a double-quoted argument is silently ignored with no compile error.<br>Default caption is `<name> - <TYPE>`.'
     },
     pos: {
       signature: 'POS left top',
@@ -4273,6 +4273,11 @@ export class Spin2ParseUtils {
       signature: 'CLOSE',
       description:
         'Close (free) this named window, reclaiming one of the 32 display slots.<br>Command ONLY -- takes no arguments. Accepts more than one window name in a message. UPDATE-FIRST / CLOSE-SECOND: the rest of the message runs before the close, so ``` `Win SAVE `shot` CLOSE ``` saves and *then* closes.<br>Distinct from `DEBUG(DEBUG_END_SESSION)`, which ends the whole DEBUG session.'
+    },
+    window: {
+      signature: "SAVE WINDOW 'filename'",
+      description:
+        'MODIFIER of `SAVE` -- not a directive on its own.<br>Without it `SAVE` writes only the DISPLAY AREA; with it the ENTIRE window (frame and title bar included) is written.<br>Must sit between `SAVE` and the filename, which stays LAST.'
     },
     pc_key: { signature: 'PC_KEY', description: 'Transmit the latched host keypress back to the P2 as one LONG (0 if none), then clear it.' },
     pc_mouse: {
@@ -4314,7 +4319,7 @@ export class Spin2ParseUtils {
     save: {
       signature: "SAVE {WINDOW} 'filename'",
       description:
-        'Write a `.bmp` of the display area -- or of the ENTIRE window if `WINDOW` is given -- to `&lt;filename&gt;.bmp`.<br>`filename` is REQUIRED and must be LAST: a bare `SAVE` writes nothing, silently. The extension is appended for you -- give the base name only.'
+        'Write a `.bmp` of the display area -- or of the ENTIRE window if `WINDOW` is given -- to `<filename>.bmp`.<br>`filename` is REQUIRED and must be LAST: a bare `SAVE` writes nothing, silently. The extension is appended for you -- give the base name only.'
     },
     clear: { signature: 'CLEAR', description: 'Clear the window and home the cursor to (0,0).' }
   };

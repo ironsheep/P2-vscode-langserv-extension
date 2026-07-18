@@ -1,0 +1,19 @@
+'' Fixture for debug.directive-doctext.test.ts
+''
+'' Exercises DEBUG display directives whose documentation text contains angle
+'' brackets -- the case that regressed into visible `&lt;` / `&gt;` in hover.
+''
+'' Do NOT reformat these lines: the tests locate words by exact offset.
+
+CON
+
+PUB main()
+
+  ' TITLE's doc text describes the default caption as `<name> - <TYPE>`
+  DEBUG(`TERM Panel TITLE 'My Window' SIZE 40 8)
+
+  ' SAVE's doc text describes the output file as `<filename>.bmp`
+  DEBUG(`Panel SAVE 'shot')
+
+  ' WINDOW is a MODIFIER of SAVE -- it must hover as such, not fall through silently
+  DEBUG(`Panel SAVE WINDOW 'full')
