@@ -308,7 +308,9 @@ export class SpinControlFlowTracker {
 
 export class ContinuedLines {
   private rawLines: string[] = [];
-  private rawNoDoubleQuoteLines: string[] = [];
+  // symbol-search copies of rawLines: quoted text is blanked (length-preserving) so a
+  // symbol lookup can never land on a word that is only part of a string. Used by locateSymbol().
+  private rawNoStringLines: string[] = [];
   private rawLineIdxs: number[] = [];
   private singleLine: string = '';
   private haveAllLines: boolean = false;
@@ -327,7 +329,7 @@ export class ContinuedLines {
     //this._logMessage(`    --- ContLn: Clear()`);
     this.rawLineIdxs = [];
     this.rawLines = [];
-    this.rawNoDoubleQuoteLines = [];
+    this.rawNoStringLines = [];
     this.singleLine = '';
     this.haveAllLines = false;
     this.isActive = false;
@@ -337,11 +339,8 @@ export class ContinuedLines {
     if (this.haveAllLines == false) {
       this.rawLines.push(nextLine);
       this.rawLineIdxs.push(lineIdx);
-      if (nextLine.split('"').length >= 3) {
-        this.rawNoDoubleQuoteLines.push(this.removeDoubleQuotedStrings(nextLine));
-      } else {
-        this.rawNoDoubleQuoteLines.push(nextLine);
-      }
+      const noDblQuoteLine: string = nextLine.split('"').length >= 3 ? this.removeDoubleQuotedStrings(nextLine) : nextLine;
+      this.rawNoStringLines.push(this._blankDebugDisplayText(noDblQuoteLine));
       if (!this.isActive) {
         this.isActive = true;
       }
@@ -464,6 +463,59 @@ export class ContinuedLines {
     return desiredOffset;
   }
 
+  private _blankDebugDisplayText(line: string): string {
+    // Within a DEBUG() statement a single-quoted run is DISPLAY TEXT, not a comment.
+    // Blank that text so a symbol lookup can't match a word that is merely part of the
+    // displayed message. Ex: debug(`Status 'Reading: `(reading)' 13) - the word 'Reading'
+    // in the message must NOT be found when locating the variable [reading].
+    //  - blanking is LENGTH-PRESERVING so every caller's offsets stay valid
+    //  - value substitutions - `(expr), `$(expr), `uhex_(expr), ... - are PRESERVED,
+    //    since those hold real symbols we do want to find
+    // Outside a DEBUG() statement a single quote starts a comment, so we leave those alone.
+    if (!/\bdebug\s*[[(]/i.test(line)) {
+      return line;
+    }
+    const chars: string[] = line.split('');
+    const ticEscapeRegex: RegExp = /^`(?:[a-zA-Z_]\w*)?[#$%]?\(/;
+    let openQuoteOffset: number = line.indexOf("'");
+    while (openQuoteOffset !== -1) {
+      const closeQuoteOffset: number = line.indexOf("'", openQuoteOffset + 1);
+      if (closeQuoteOffset === -1) {
+        break; // unterminated string, leave the remainder untouched
+      }
+      for (let index = openQuoteOffset + 1; index < closeQuoteOffset; index++) {
+        const escapeMatch: RegExpExecArray | null = ticEscapeRegex.exec(line.substring(index));
+        if (escapeMatch !== null) {
+          // skip over the whole substitution, keeping its expression intact
+          const closeParenOffset: number = this._findBalancedCloseParen(line, index + escapeMatch[0].length - 1);
+          if (closeParenOffset === -1 || closeParenOffset >= closeQuoteOffset) {
+            break; // malformed substitution, stop blanking this string
+          }
+          index = closeParenOffset;
+          continue;
+        }
+        chars[index] = '#';
+      }
+      openQuoteOffset = line.indexOf("'", closeQuoteOffset + 1);
+    }
+    return chars.join('');
+  }
+
+  private _findBalancedCloseParen(line: string, openParenOffset: number): number {
+    let depth: number = 1;
+    for (let index = openParenOffset + 1; index < line.length; index++) {
+      if (line[index] === '(') {
+        depth++;
+      } else if (line[index] === ')') {
+        depth--;
+        if (depth === 0) {
+          return index;
+        }
+      }
+    }
+    return -1; // not found
+  }
+
   public locateSymbol(symbolName: string, offset: number): Position {
     // locate raw line containing symbol (the symbol will NOT span lines)
     let rawIdx: number = 0;
@@ -527,9 +579,9 @@ export class ContinuedLines {
       this._logMessage(`    --- ContLn: ERROR locateSymbol([${symbolName}], ofs=(${offset})) - math when off of end of lineSet`);
     } else {
       const lineIdx: number = this.rawLineIdxs[rawIdx];
-      const searchLine: string = symbolName.includes('"') ? this.rawLines[rawIdx] : this.rawNoDoubleQuoteLines[rawIdx];
+      const searchLine: string = symbolName.includes('"') ? this.rawLines[rawIdx] : this.rawNoStringLines[rawIdx];
       const leadingWhiteLength: number = rawIdx > 0 ? this._skipWhite(searchLine, 0) : 0;
-      // NEVER look within double-quoted strings
+      // NEVER look within double-quoted strings -or- DEBUG() single-quoted display text
       const symbolOffset: number = searchLine.toUpperCase().indexOf(symbolName.toUpperCase(), leadingWhiteLength + remainingOffset);
       /*/
       this._logMessage(
