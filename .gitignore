@@ -13,6 +13,11 @@ __pycache__/
 # claude
 .claude/
 updClaude
+.mcp.json
+.todo-mcp/
+
+# Dev container local mounts (gitignored - host-specific)
+spin2/.devcontainer/docker-compose.override.yml
 
 # Distribution / packaging
 .Python
