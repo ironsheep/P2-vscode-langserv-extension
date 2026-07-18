@@ -20,6 +20,9 @@ export const displayEnumByTypeName = new Map<string, eDebugDisplayType>([
 // this is how we decribe our methods with parameters in our tables...
 type TMethodTuple = readonly [signature: string, description: string, parameters: string[], returns?: string[] | undefined];
 
+// documentation for one DEBUG display directive / color name (see docTextForDebugDirective)
+type TDebugDirective = { signature: string; description: string };
+
 export enum eSearchFilterType {
   Unknown = 0,
   FT_NO_PREFERENCE,
@@ -4237,6 +4240,144 @@ export class Spin2ParseUtils {
     bitmap:
       'PDM, Bitmap, 1..2048 x 1..2048 pixels, 1/2/4/8/16/32-bit pixels with 19 color systems, 15 direction/autoscroll modes, independent X and Y pixel size of 1..256'
   };
+
+  // ----------------------------------------------------------------------------
+  // DEBUG display DIRECTIVE documentation (hover)
+  //
+  // A directive's meaning depends on BOTH the display type AND whether it appears in a
+  //  window-CREATION message (config) or a window-UPDATE message (feed):
+  //    - on TERM, SIZE is in CHARACTERS; on PLOT it is in PIXELS
+  //    - on TERM, BACKCOLOR is the canvas fill at config time but the TEXT background at runtime
+  //  So lookup is keyed [displayType][config|feed], falling back to the shared table.
+  //
+  // Source: P2 Knowledge Base (PNut/Spin2 v55 DebugDisplayUnit.pas + Spin2 Lang Ref v51a)
+  // ----------------------------------------------------------------------------
+
+  private _tableDebugDirectivesShared: { [Identifier: string]: TDebugDirective } = {
+    title: {
+      signature: "TITLE 'string'",
+      description:
+        'Window title-bar text. Text uses SINGLE quotes -- a double-quoted argument is silently ignored with no compile error.<br>Default caption is `&lt;name&gt; - &lt;TYPE&gt;`.'
+    },
+    pos: {
+      signature: 'POS left top',
+      description:
+        'OPTIONAL window screen offset, in pixels.<br>Omit POS and the *display host* places the window -- where it lands is TOOL-dependent, not a P2 behavior: some hosts auto-arrange so windows do not overlap, others stack every window at the same origin (hiding all but one). Supply POS explicitly whenever layout matters.'
+    },
+    hidexy: {
+      signature: 'HIDEXY',
+      description: 'Hide the on-screen coordinate readout.<br>Does NOT disable `PC_MOUSE` reporting -- the values still come back to the P2.'
+    },
+    clear: { signature: 'CLEAR', description: 'Clear the window contents.' },
+    close: {
+      signature: 'CLOSE',
+      description:
+        'Close (free) this named window, reclaiming one of the 32 display slots.<br>Command ONLY -- takes no arguments. Accepts more than one window name in a message. UPDATE-FIRST / CLOSE-SECOND: the rest of the message runs before the close, so ``` `Win SAVE `shot` CLOSE ``` saves and *then* closes.<br>Distinct from `DEBUG(DEBUG_END_SESSION)`, which ends the whole DEBUG session.'
+    },
+    pc_key: { signature: 'PC_KEY', description: 'Transmit the latched host keypress back to the P2 as one LONG (0 if none), then clear it.' },
+    pc_mouse: {
+      signature: 'PC_MOUSE',
+      description:
+        'Transmit host mouse state back to the P2 as a LONG pair: position + wheel + L/M/R buttons, then the RGB under the cursor.<br>Off-text-area sentinel is `$03FFFFFF` / `$FFFFFFFF`.'
+    }
+  };
+
+  private _tableDebugDirectivesTermConfig: { [Identifier: string]: TDebugDirective } = {
+    size: {
+      signature: 'SIZE cols rows',
+      description:
+        'Terminal size in **CHARACTERS** (columns x rows) -- **not pixels**. A common source of error.<br>`cols` 1..256 (default 40), `rows` 1..256 (default 20).'
+    },
+    textsize: { signature: 'TEXTSIZE n', description: 'Font point size.<br>`n` 6..200 (default 10).' },
+    color: {
+      signature: 'COLOR c0 .. c7',
+      description:
+        'Up to 8 RGB24 values = **4 text/background pairs** (pair0=c0,c1 ... pair3=c6,c7), selected at runtime by control codes 4..7.<br>Default pairs: ORANGE/BLACK, BLACK/ORANGE, GREEN/BLACK, BLACK/GREEN.<br>CAUTION: the defaults are palette literals -- default green is `$00FF00`, default orange is `$FF7F00`. The typeable `GREEN` keyword is COMPUTED and resolves to `$09FF09` at its default brightness, which is NOT the same value. To reproduce a default exactly, write the `$RRGGBB` literal.'
+    },
+    backcolor: {
+      signature: 'BACKCOLOR color',
+      description:
+        'CONFIG sense: the canvas fill color used for clear and scroll.<br>Distinct from the runtime `BACKCOLOR`, which sets the TEXT background.'
+    },
+    update: {
+      signature: 'UPDATE',
+      description: 'CONFIG sense: enable buffered mode -- output accumulates and is shown only when a runtime `UPDATE` flushes it.'
+    }
+  };
+
+  private _tableDebugDirectivesTermFeed: { [Identifier: string]: TDebugDirective } = {
+    backcolor: {
+      signature: 'BACKCOLOR color',
+      description: 'RUNTIME sense: sets the TEXT background color only.<br>Distinct from the config-time `BACKCOLOR`, which is the canvas fill.'
+    },
+    update: { signature: 'UPDATE', description: 'RUNTIME sense: flush buffered output to the canvas (only meaningful when the window was created with `UPDATE`).' },
+    save: {
+      signature: "SAVE {WINDOW} 'filename'",
+      description:
+        'Write a `.bmp` of the display area -- or of the ENTIRE window if `WINDOW` is given -- to `&lt;filename&gt;.bmp`.<br>`filename` is REQUIRED and must be LAST: a bare `SAVE` writes nothing, silently. The extension is appended for you -- give the base name only.'
+    },
+    clear: { signature: 'CLEAR', description: 'Clear the window and home the cursor to (0,0).' }
+  };
+
+  private _tableDebugColorNames: { [Identifier: string]: TDebugDirective } = {
+    black: { signature: 'BLACK', description: 'Named color. BLACK and WHITE do NOT take a brightness nibble.' },
+    white: { signature: 'WHITE', description: 'Named color. BLACK and WHITE do NOT take a brightness nibble.' },
+    orange: { signature: 'ORANGE {brightness}', description: 'Named color, optional brightness nibble 0..15.' },
+    blue: { signature: 'BLUE {brightness}', description: 'Named color, optional brightness nibble 0..15.' },
+    green: {
+      signature: 'GREEN {brightness}',
+      description:
+        'Named color, optional brightness nibble 0..15.<br>NOTE: the typeable `GREEN` is COMPUTED and resolves to `$09FF09` at its default brightness -- this is NOT the palette green (`$00FF00`) used as a TERM default. There is no typeable `LIME`.'
+    },
+    cyan: { signature: 'CYAN {brightness}', description: 'Named color, optional brightness nibble 0..15.' },
+    red: { signature: 'RED {brightness}', description: 'Named color, optional brightness nibble 0..15.' },
+    magenta: { signature: 'MAGENTA {brightness}', description: 'Named color, optional brightness nibble 0..15.' },
+    yellow: { signature: 'YELLOW {brightness}', description: 'Named color, optional brightness nibble 0..15.' },
+    gray: { signature: 'GRAY {brightness}', description: 'Named color, optional brightness nibble 0..15. `GREY` is accepted too.' },
+    grey: { signature: 'GREY {brightness}', description: 'Named color, optional brightness nibble 0..15. `GRAY` is accepted too.' }
+  };
+
+  /**
+   * Documentation for a DEBUG display directive or color name, resolved in the context of the
+   *  display type and whether we are in a window-creation (config) or window-update (feed) message.
+   * @param name - the directive/color word being hovered
+   * @param displayTypeName - display type name (ex: 'TERM'); empty when not yet known
+   * @param isDeclaration - true when this is a window-CREATION message
+   * @returns IBuiltinDescription - found=false when we have nothing for this word
+   */
+  public docTextForDebugDirective(name: string, displayTypeName: string, isDeclaration: boolean): IBuiltinDescription {
+    const nameKey: string = name.toLowerCase();
+    const typeKey: string = displayTypeName.toLowerCase();
+    const desiredDocText: IBuiltinDescription = { found: false, type: eBuiltInType.Unknown, category: '', description: '', signature: '' };
+
+    // per display-type, per context (config vs feed) -- these win over the shared table
+    let typeTable: { [Identifier: string]: TDebugDirective } | undefined = undefined;
+    if (typeKey === 'term') {
+      typeTable = isDeclaration ? this._tableDebugDirectivesTermConfig : this._tableDebugDirectivesTermFeed;
+    }
+
+    let entry: TDebugDirective | undefined = typeTable ? typeTable[nameKey] : undefined;
+    let categoryText: string = '';
+    if (entry !== undefined) {
+      categoryText = `DEBUG ${displayTypeName.toUpperCase()} ${isDeclaration ? 'config' : 'update'} directive`;
+    } else if (nameKey in this._tableDebugDirectivesShared) {
+      entry = this._tableDebugDirectivesShared[nameKey];
+      categoryText = displayTypeName.length > 0 ? `DEBUG ${displayTypeName.toUpperCase()} directive` : 'DEBUG display directive';
+    } else if (nameKey in this._tableDebugColorNames) {
+      entry = this._tableDebugColorNames[nameKey];
+      categoryText = 'DEBUG display color';
+    }
+
+    if (entry !== undefined) {
+      desiredDocText.found = true;
+      desiredDocText.type = eBuiltInType.BIT_DEBUG_SYMBOL;
+      desiredDocText.category = categoryText;
+      desiredDocText.signature = entry.signature;
+      desiredDocText.description = entry.description;
+    }
+    this._logMessage(`sp2u: - docTextForDebugDirective([${name}], type=[${displayTypeName}], isDecl=${isDeclaration}) -> found=${desiredDocText.found}`);
+    return desiredDocText;
+  }
 
   public isDebugDisplayType(name: string): boolean {
     const nameKey: string = name.toLowerCase();

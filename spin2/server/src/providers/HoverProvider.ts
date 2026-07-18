@@ -15,7 +15,7 @@ import { IDefinitionInfo, ExtensionUtils } from '../parser/spin.extension.utils'
 import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
 import { Spin2ParseUtils, eSearchFilterType } from '../parser/spin2.utils';
 import { Spin1ParseUtils } from '../parser/spin1.utils';
-import { eBuiltInType, isMaskedDebugMethodCall, isMethodCall } from '../parser/spin.common';
+import { eBuiltInType, IBuiltinDescription, isMaskedDebugMethodCall, isMethodCall } from '../parser/spin.common';
 import { isSpin1File, fileSpecFromURI } from '../parser/lang.utils';
 
 export default class HoverProvider implements Provider {
@@ -196,6 +196,35 @@ export default class HoverProvider implements Provider {
     return this.getSymbolDetails(document, sourcePosition, objectRef, hoverSource, bMethodCall, bMaskedMethodCall, inPasmCodeStatus);
   }
 
+  /**
+   * Determine the DEBUG display context for a back-tic debug statement.
+   *  A directive means different things per display type and per message kind, so hover needs both:
+   *    debug(`TERM Panel SIZE 40 8)  -> type TERM, isDeclaration=true   (window CREATION)
+   *    debug(`Panel CLEAR)           -> type TERM, isDeclaration=false  (window UPDATE, type from registry)
+   * @param sourceLine - the (trimmed) debug statement line
+   * @param symbolsSet - findings holding the userName -> displayType registry
+   * @returns display type name ('' when unknown) and whether this is a creation message
+   */
+  private _debugDisplayContextForLine(sourceLine: string, symbolsSet: DocumentFindings): [string, boolean] {
+    let displayTypeName: string = '';
+    let isDeclaration: boolean = false;
+    // first word after the back-tic is either a display TYPE (creation) or a user window NAME (update)
+    const ticNameMatch: RegExpMatchArray | null = sourceLine.match(/debug\s*(?:\[[^\]]*\])?\s*\(\s*`+\s*([a-zA-Z_]\w*)/i);
+    if (ticNameMatch !== null) {
+      const firstName: string = ticNameMatch[1];
+      if (this.parseUtils instanceof Spin2ParseUtils && this.parseUtils.isDebugDisplayType(firstName)) {
+        displayTypeName = firstName;
+        isDeclaration = true;
+      } else if (symbolsSet.isKnownDebugDisplay(firstName)) {
+        const displayInfo = symbolsSet.getDebugDisplayInfoForUserName(firstName);
+        displayTypeName = displayInfo.displayTypeString;
+        isDeclaration = false;
+      }
+    }
+    this._logMessage(`+ Hvr: _debugDisplayContextForLine() -> type=[${displayTypeName}], isDecl=(${isDeclaration})`);
+    return [displayTypeName, isDeclaration];
+  }
+
   private _objectNameFromDeclaration(line: string): string {
     let desiredString: string = '';
     // parse object declaration forms:
@@ -310,11 +339,22 @@ export default class HoverProvider implements Provider {
       if (isMaskedMethodCall) {
         filterType = eSearchFilterType.FT_METHOD_MASK;
       }
-      const builtInFindings = isDebugLine
-        ? this.parseUtils.docTextForDebugBuiltIn(searchWord, filterType)
-        : this.parseUtils instanceof Spin2ParseUtils
-          ? (this.parseUtils as Spin2ParseUtils).docTextForBuiltIn(searchWord, filterType, inPasmCode)
-          : this.parseUtils.docTextForBuiltIn(searchWord);
+      // On a back-tic debug statement, a display DIRECTIVE or color name is resolved in the context
+      //  of the display type + message kind. This must be tried BEFORE the general built-in tables:
+      //  words like COLOR/SIZE/UPDATE also exist as ordinary built-ins, and here the display meaning
+      //  is the correct one.
+      let builtInFindings: IBuiltinDescription = { found: false, type: eBuiltInType.Unknown, category: '', description: '', signature: '' };
+      if (isDebugLine && this.parseUtils instanceof Spin2ParseUtils) {
+        const [displayTypeName, isDeclaration] = this._debugDisplayContextForLine(sourceLine, symbolsSet);
+        builtInFindings = (this.parseUtils as Spin2ParseUtils).docTextForDebugDirective(searchWord, displayTypeName, isDeclaration);
+      }
+      if (!builtInFindings.found) {
+        builtInFindings = isDebugLine
+          ? this.parseUtils.docTextForDebugBuiltIn(searchWord, filterType)
+          : this.parseUtils instanceof Spin2ParseUtils
+            ? (this.parseUtils as Spin2ParseUtils).docTextForBuiltIn(searchWord, filterType, inPasmCode)
+            : this.parseUtils.docTextForBuiltIn(searchWord);
+      }
       if (!builtInFindings.found) {
         this._logMessage(`+ Hvr: built-in=[${searchWord}], NOT found!`);
       } else {
