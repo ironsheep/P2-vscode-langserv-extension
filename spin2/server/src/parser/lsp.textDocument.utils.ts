@@ -9,7 +9,11 @@ export function GetWordRangeAtPosition(lineText: string, position: lsp.Position,
   let startIndex: number = position.character;
   let endIndex: number = position.character;
   const wordEndCharacterSetP1: string = '"\'[](){}<> |^&@\t,+-*/\\=';
-  const wordEndCharacterSetP2: string = '"\'[](){}<> |^&#@\t,+-*/\\=:';
+  // NOTE: P2 includes the back-tic: it introduces a DEBUG display command - debug(`TERM MyWin ...) -
+  //  and is never part of an identifier. Without it the tic is swallowed into the word (tmpWord=[`TERM]),
+  //  which adjustWordPosition() then rejects for not starting with a letter, so hover/goto silently
+  //  returned nothing for EVERY tic-adjacent name: display types and feed-message window names.
+  const wordEndCharacterSetP2: string = '"\'[](){}<> |^&#@\t,+-*/\\=:`';
   const checkCharSet: string = isSpin1File ? wordEndCharacterSetP1 : wordEndCharacterSetP2;
 
   // back up to start of word, mark start
