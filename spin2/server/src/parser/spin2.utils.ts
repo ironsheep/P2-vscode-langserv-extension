@@ -4365,7 +4365,7 @@ export class Spin2ParseUtils {
 
   // Debug Display: TERM feed
   public isDebugTermFeedParam(name: string): boolean {
-    const debugTermFeedTypes: string[] = ['clear', 'update', 'save', 'close', 'backcolor'];
+    const debugTermFeedTypes: string[] = ['clear', 'update', 'save', 'window', 'close', 'backcolor'];
     const bTermFeedParamStatus: boolean = debugTermFeedTypes.indexOf(name.toLowerCase()) != -1;
     return bTermFeedParamStatus;
   }
