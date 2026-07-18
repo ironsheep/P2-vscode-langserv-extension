@@ -1928,6 +1928,11 @@ export class Spin1DocumentSemanticParser {
 
       const lineParts: string[] = this.parseUtils.getNonWhiteDataInitLineParts(dataValueInitStr);
       const argumentStartIndex: number = lineParts.length > 0 && this.parseUtils.isDatStorageType(lineParts[0]) ? 1 : 0;
+      // NEVER locate a name within a double-quoted string: {lineParts} is already string-safe, so
+      //  locate offsets in a masked copy too, else a name can resolve to a word that is only part
+      //  of a string constant. Ex: byte 0, "count", count - would find [count] inside the string.
+      //  Masking is length-preserving, so offsets found here apply directly to {line}.
+      const nameSearchLine: string = this.parseUtils.removeDoubleQuotedStrings(line);
       this._logDAT(`  -- lineParts=[${lineParts}], argumentStartIndex=[${argumentStartIndex}]`);
 
       // process remainder of line
@@ -1956,7 +1961,7 @@ export class Spin1DocumentSemanticParser {
               this._logDAT(`  -- possibleName=[${possibleName}]`);
             }
             // does name contain a namespace reference?
-            nameOffset = line.indexOf(possibleName, currentOffset);
+            nameOffset = nameSearchLine.indexOf(possibleName, currentOffset);
             if (possibleName.includes('.') && this._isPossibleObjectReference(possibleName)) {
               const bHaveObjReference = this._reportObjectReference(possibleName, lineIdx, nameOffset, line, tokenSet);
               if (bHaveObjReference) {
@@ -1977,7 +1982,7 @@ export class Spin1DocumentSemanticParser {
             }
             namePart = possibleNameSet[0];
             const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + refChar + possibleNameSet[1];
-            nameOffset = line.indexOf(searchString, currentOffset);
+            nameOffset = nameSearchLine.indexOf(searchString, currentOffset);
             let referenceDetails: RememberedToken | undefined = undefined;
             if (allowLocal && this.semanticFindings.isLocalToken(namePart)) {
               referenceDetails = this.semanticFindings.getLocalTokenForLine(namePart, lineNbr);
@@ -2927,6 +2932,11 @@ export class Spin1DocumentSemanticParser {
       const lineInfo: IFilteredStrings = this._getNonWhiteSpinLineParts(preCleanAssignmentRHSStr);
       const possNames: string[] = lineInfo.lineParts;
       const nonStringAssignmentRHSStr: string = lineInfo.lineNoQuotes;
+      // NEVER locate a name within a double-quoted string: {possNames} is already string-safe, so
+      //  locate offsets in a masked copy too, else a name can resolve to a word that is only part
+      //  of a string constant. Ex: result := "count" + count - would find [count] inside the string.
+      //  Masking is length-preserving, so offsets found here apply directly to {line}.
+      const nameSearchLine: string = this.parseUtils.removeDoubleQuotedStrings(line);
       this._logSPIN('  -- possNames=[' + possNames + ']');
       let nameOffset: number = 0;
       let nameLen: number = 0;
@@ -2942,7 +2952,7 @@ export class Spin1DocumentSemanticParser {
           // EXCEPTION processing for P2 use of inline pasm
           //  in P1 remind us that it's illegal
           if (possibleName.toLowerCase() === 'org' || possibleName.toLowerCase() === 'org') {
-            nameOffset = line.indexOf(possibleName, 0);
+            nameOffset = nameSearchLine.indexOf(possibleName, 0);
             this._logSPIN('  --  SPIN ILLEGAL in-line use name=[' + possibleName + '](' + (nameOffset + 1) + ')');
             this._recordToken(tokenSet, line, {
               line: lineIdx,
@@ -2963,7 +2973,7 @@ export class Spin1DocumentSemanticParser {
 
           // does name contain a namespace reference?
           if (this._isPossibleObjectReference(possibleName)) {
-            nameOffset = line.indexOf(possibleName, currentOffset);
+            nameOffset = nameSearchLine.indexOf(possibleName, currentOffset);
             const bHaveObjReference = this._reportObjectReference(possibleName, lineIdx, nameOffset, line, tokenSet);
             if (bHaveObjReference) {
               currentOffset = nameOffset + possibleName.length;
@@ -2983,7 +2993,7 @@ export class Spin1DocumentSemanticParser {
           }
           const namePart = possibleNameSet[0];
           const searchString: string = possibleNameSet.length == 1 ? possibleNameSet[0] : possibleNameSet[0] + refChar + possibleNameSet[1];
-          nameOffset = line.indexOf(searchString, currentOffset);
+          nameOffset = nameSearchLine.indexOf(searchString, currentOffset);
           nameLen = namePart.length;
           this._logSPIN('  --  SPIN RHS  nonStringAssignmentRHSStr=[' + nonStringAssignmentRHSStr + ']');
           this._logSPIN('  --  SPIN RHS   searchString=[' + searchString + '], namePart=[' + namePart + ']');
