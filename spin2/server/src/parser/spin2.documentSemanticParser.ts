@@ -7497,6 +7497,11 @@ export class Spin2DocumentSemanticParser {
                 ptTokenType: 'setupParameter',
                 ptTokenModifiers: ['reference', 'defaultLibrary']
               });
+              // MUST advance past this name: the next lookup starts here, so leaving the offset
+              //  behind lets a later name match earlier text. Ex: COLOR would be found inside
+              //  the tail of an earlier BACKCOLOR, and a repeated color name would keep
+              //  re-matching its own first occurrence.
+              currSingleLineOffset = nameOffset + newParameter.length;
             } else {
               const bIsColorName: boolean = this.parseUtils.isDebugColorName(newParameter);
               if (bIsColorName) {
@@ -7508,6 +7513,7 @@ export class Spin2DocumentSemanticParser {
                   ptTokenType: 'colorName',
                   ptTokenModifiers: ['reference', 'defaultLibrary']
                 });
+                currSingleLineOffset = nameOffset + newParameter.length; // MUST advance - see note above
               } else {
                 let bHaveObjReference: boolean = false;
                 let bHaveStructureReference: boolean = false;
@@ -7813,6 +7819,8 @@ export class Spin2DocumentSemanticParser {
                   ptTokenType: 'feedParameter',
                   ptTokenModifiers: ['reference', 'defaultLibrary']
                 });
+                // MUST advance past this name - see note in the instantiation loop above
+                currSingleLineOffset = nameOffset + newParameter.length;
               } else {
                 const bIsColorName: boolean = this.parseUtils.isDebugColorName(newParameter);
                 if (bIsColorName) {
@@ -7824,6 +7832,7 @@ export class Spin2DocumentSemanticParser {
                     ptTokenType: 'colorName',
                     ptTokenModifiers: ['reference', 'defaultLibrary']
                   });
+                  currSingleLineOffset = nameOffset + newParameter.length; // MUST advance - see note above
                 } else {
                   // unknown parameter, is known symbol?
                   let referenceDetails: RememberedToken | undefined = undefined;
