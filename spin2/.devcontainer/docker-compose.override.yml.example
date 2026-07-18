@@ -1,0 +1,21 @@
+# =============================================================
+# Local mounts override (NOT committed to git)
+# =============================================================
+# Copy this file to docker-compose.override.yml and customize
+# the paths below for your machine.
+#
+# If docker-compose.override.yml doesn't exist, an empty one is
+# auto-created so the container still starts without errors.
+# =============================================================
+services:
+  dev:
+    volumes:
+      # Claude Code configuration (authentication, settings, history)
+      # NOTE: target must match remoteUser (devcontainer.json -> remoteUser: "node")
+      # - ${HOME}/.claude:/home/node/.claude
+      # Container tools (MCP servers: todo-mcp, p2kb-mcp, image-tools-mcp)
+      # - /path/to/container-tools:/opt/container-tools
+      # Git configuration (user identity, aliases, credential helpers)
+      # - ${HOME}/.gitconfig:/home/node/.gitconfig:ro
+      # SSH keys for git operations inside the container (read-only)
+      # - ${HOME}/.ssh:/tmp/.ssh:ro
