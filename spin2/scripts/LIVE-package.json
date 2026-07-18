@@ -51,6 +51,10 @@
         "title": "Spin2: Generate hierarchy documentation file from spin source"
       },
       {
+        "command": "spinExtension.generate.project.archive",
+        "title": "Spin2: Archive Project"
+      },
+      {
         "command": "spinExtension.generate.usb.documentation.file",
         "title": "Spin2: Generate USB findings report"
       },
@@ -234,6 +238,11 @@
             "default": "",
             "description": "Your author file prefix (e.g., 'isp_'). Used by Rename Symbol to identify files you own. Files with a different prefix are excluded from rename operations."
           },
+          "spinExtension.ServerBehavior.reportUnusedVariables": {
+            "type": "boolean",
+            "default": true,
+            "description": "Report warnings for unused parameters, return values, and local variables in PUB/PRI methods."
+          },
           "spinExtension.ClientBehavior.colorEditorBackground": {
             "type": "boolean",
             "default": false,
@@ -245,6 +254,11 @@
             "minimum": 20,
             "maximum": 80,
             "description": "Adjust the Alpha component of the editor background color [20%-80%] (default is 80%, Uncheck \"Color Editor Background\" to turn off.)"
+          },
+          "spinExtension.scopeGuides.enable": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show color-coded scope nesting guides in PUB/PRI method bodies."
           }
         }
       },
@@ -792,6 +806,10 @@
           "spin2.optionsBinaryFname": {
             "type": "string",
             "description": "The name of the binary file to be downloaded. (Content varies by compiler.)"
+          },
+          "spin2.fDirSource": {
+            "type": "string",
+            "description": "Directory containing the source file being compiled. Used as the working directory for build tasks, enabling subfolder project layouts."
           }
         }
       },
@@ -839,6 +857,174 @@
             "description": "Directories to exclude from include path discovery. Each entry is a relative path from the workspace root. The directory and all its subdirectories will be excluded from scanning."
           }
         }
+      },
+      {
+        "title": "Spin2 Document Formatter",
+        "properties": {
+          "spinExtension.formatter.enable": {
+            "type": "boolean",
+            "default": false,
+            "scope": "resource",
+            "description": "Enable the Spin2 document formatter. When disabled, format document requests are ignored."
+          },
+          "spinExtension.formatter.formatOnSave": {
+            "type": "boolean",
+            "default": false,
+            "scope": "resource",
+            "description": "Automatically format Spin2 documents when saving. Requires spinExtension.formatter.enable to also be true."
+          },
+          "spinExtension.formatter.trimTrailingWhitespace": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "Remove trailing whitespace from all lines (except inside block comments)."
+          },
+          "spinExtension.formatter.insertFinalNewline": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "Ensure the file ends with exactly one newline character."
+          },
+          "spinExtension.formatter.maxConsecutiveBlankLines": {
+            "type": "number",
+            "default": 1,
+            "minimum": 0,
+            "scope": "resource",
+            "description": "Maximum consecutive blank lines allowed within a section body (e.g., inside a PUB method or a CON block). Does not affect blank lines between sections or methods — those are controlled by their own settings."
+          },
+          "spinExtension.formatter.blankLinesBetweenSections": {
+            "type": "number",
+            "default": 1,
+            "minimum": 0,
+            "scope": "resource",
+            "description": "Blank lines inserted between different major sections (e.g., CON→VAR, DAT→PUB). Independent of Max Consecutive Blank Lines."
+          },
+          "spinExtension.formatter.blankLinesBetweenMethods": {
+            "type": "number",
+            "default": 2,
+            "minimum": 0,
+            "scope": "resource",
+            "description": "Blank lines inserted between consecutive PUB/PRI methods. Independent of Max Consecutive Blank Lines."
+          },
+          "spinExtension.formatter.indentSize": {
+            "type": "number",
+            "default": 2,
+            "minimum": 1,
+            "maximum": 8,
+            "scope": "resource",
+            "description": "Spaces per indent level for column alignment and PUB/PRI method body indentation."
+          },
+          "spinExtension.formatter.blockNameCase": {
+            "type": "string",
+            "default": "uppercase",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize section keywords (CON, VAR, OBJ, DAT, PUB, PRI) to the specified case."
+          },
+          "spinExtension.formatter.controlFlowCase": {
+            "type": "string",
+            "default": "preserve",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize control flow keywords (if, else, repeat, case, return, abort, etc.) to the specified case."
+          },
+          "spinExtension.formatter.methodCase": {
+            "type": "string",
+            "default": "preserve",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize built-in methods and constants (cogspin, pinwrite, debug, true, false, etc.) to the specified case."
+          },
+          "spinExtension.formatter.typeCase": {
+            "type": "string",
+            "default": "uppercase",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize type keywords (BYTE, WORD, LONG, STRUCT) to the specified case."
+          },
+          "spinExtension.formatter.constantCase": {
+            "type": "string",
+            "default": "uppercase",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize user-defined CON constant names to the specified case."
+          },
+          "spinExtension.formatter.pasmInstructionCase": {
+            "type": "string",
+            "default": "preserve",
+            "enum": ["uppercase", "lowercase", "preserve"],
+            "scope": "resource",
+            "description": "Normalize PASM instruction mnemonics to the specified case."
+          },
+          "spinExtension.formatter.spaceAfterCommentStart": {
+            "type": "boolean",
+            "default": true,
+            "scope": "resource",
+            "description": "Ensure a space after comment opener (' text vs 'text)."
+          }
+        }
+      }
+    ],
+    "colors": [
+      {
+        "id": "spin2.scopeGuide.level1",
+        "description": "Scope guide color for nesting level 1",
+        "defaults": { "dark": "#ccaa4440", "light": "#99883360" }
+      },
+      {
+        "id": "spin2.scopeGuide.level2",
+        "description": "Scope guide color for nesting level 2",
+        "defaults": { "dark": "#cc66aa40", "light": "#88448860" }
+      },
+      {
+        "id": "spin2.scopeGuide.level3",
+        "description": "Scope guide color for nesting level 3",
+        "defaults": { "dark": "#6688cc40", "light": "#44669960" }
+      },
+      {
+        "id": "spin2.scopeGuide.level4",
+        "description": "Scope guide color for nesting level 4",
+        "defaults": { "dark": "#cc667740", "light": "#99554460" }
+      },
+      {
+        "id": "spin2.scopeGuide.level5",
+        "description": "Scope guide color for nesting level 5",
+        "defaults": { "dark": "#77bb7740", "light": "#44884460" }
+      },
+      {
+        "id": "spin2.scopeGuide.level6",
+        "description": "Scope guide color for nesting level 6",
+        "defaults": { "dark": "#55aa9940", "light": "#33777760" }
+      },
+      {
+        "id": "spin2.scopeGuide.activeLevel1",
+        "description": "Active scope guide color for level 1",
+        "defaults": { "dark": "#ccaa4480", "light": "#998833C0" }
+      },
+      {
+        "id": "spin2.scopeGuide.activeLevel2",
+        "description": "Active scope guide color for level 2",
+        "defaults": { "dark": "#cc66aa80", "light": "#884488C0" }
+      },
+      {
+        "id": "spin2.scopeGuide.activeLevel3",
+        "description": "Active scope guide color for level 3",
+        "defaults": { "dark": "#6688cc80", "light": "#446699C0" }
+      },
+      {
+        "id": "spin2.scopeGuide.activeLevel4",
+        "description": "Active scope guide color for level 4",
+        "defaults": { "dark": "#cc667780", "light": "#995544C0" }
+      },
+      {
+        "id": "spin2.scopeGuide.activeLevel5",
+        "description": "Active scope guide color for level 5",
+        "defaults": { "dark": "#77bb7780", "light": "#448844C0" }
+      },
+      {
+        "id": "spin2.scopeGuide.activeLevel6",
+        "description": "Active scope guide color for level 6",
+        "defaults": { "dark": "#55aa9980", "light": "#337777C0" }
       }
     ],
     "keybindings": [
@@ -1199,7 +1385,23 @@
         "view": "spinExtension.includeDirectories",
         "contents": "No Spin2 include directories configured. Open a workspace with .spin2 files to auto-discover include directories."
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "[spin2]": {
+        "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",
+        "editor.formatOnSave": false,
+        "editor.guides.indentation": false
+      },
+      "[spin]": {
+        "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",
+        "editor.formatOnSave": false,
+        "editor.guides.indentation": false
+      },
+      "[p2asm]": {
+        "editor.defaultFormatter": "IronSheepProductionsLLC.spin2",
+        "editor.formatOnSave": false
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run prebuild && npm run esbuild-base -- --minify",
@@ -1216,18 +1418,23 @@
     "pretest": "npm run compile && npm run lint",
     "test-compile": "tsc -p ./",
     "test": "sh ./scripts/e2e.sh",
-    "test:grammar": "npm run compile && mocha --require ts-node/register client/src/test/grammar.*.test.ts --timeout 30000",
-    "test:grammar:spin2": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin2.test.ts --timeout 30000",
-    "test:grammar:spin1": "npm run compile && mocha --require ts-node/register client/src/test/grammar.spin1.test.ts --timeout 30000",
+    "test:grammar": "npm run compile && mocha client/out/test/grammar.*.test.js --timeout 30000",
+    "test:grammar:spin2": "npm run compile && mocha client/out/test/grammar.spin2.test.js --timeout 30000",
+    "test:grammar:spin1": "npm run compile && mocha client/out/test/grammar.spin1.test.js --timeout 30000",
     "test:all": "npm run test && npm run test:grammar",
     "coverage:grammar": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin2.tmLanguage.json client/src/test/grammar.spin2.test.ts --output coverage-spin2.txt",
     "coverage:grammar:spin1": "npm run compile && node client/out/test/grammar-coverage.js syntaxes/spin1.tmLanguage.json client/src/test/grammar.spin1.test.ts --output coverage-spin1.txt",
     "clean": "rm -rf ./client/out && rm -rf ./server/out && rm -rf ./client/prebuilds && rm -rf ./out",
     "posttest": "npm run clean",
-    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 10000",
-    "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000"
+    "test:server": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/**/*.test.ts' --timeout 30000",
+    "test:formatter": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/**/*.test.ts' --timeout 60000",
+    "test:formatter:gold": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/formatter.gold-equiv.test.ts' --timeout 60000",
+    "test:formatter:safety": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/formatter.safety.test.ts' --timeout 120000",
+    "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000",
+    "test:docgen": "mocha --require ts-node/register client/src/test/docgen.utils.test.ts --timeout 10000"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.15.32",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
@@ -1245,5 +1452,8 @@
     "typescript": "^5.1.3",
     "vscode-oniguruma": "^2.0.1",
     "vscode-textmate": "^9.2.1"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16"
   }
 }
