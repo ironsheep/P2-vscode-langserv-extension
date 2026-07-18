@@ -22,6 +22,48 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.12.0] - 2026-07-18
+
+DEBUG display hover documentation for all nine display types
+
+### Added
+
+- **DEBUG display directive hover**: directives in a back-tic DEBUG
+  statement now carry documentation for all nine display types (TERM,
+  PLOT, LOGIC, SCOPE, SCOPE_XY, FFT, SPECTRO, BITMAP, MIDI), sourced
+  from the P2 Knowledge Base
+- Directive lookup is display-type aware and separates the
+  window-creation sense from the window-update sense, so `SIZE`,
+  `BACKCOLOR` and `UPDATE` each document the meaning that applies where
+  the cursor sits - `SIZE` is characters on TERM but pixels on PLOT,
+  and `BACKCOLOR` is the canvas fill at creation but the text
+  background at runtime
+- Hover for the packed color modes (`LUT1` through `RGB24`) accepted by
+  PLOT and BITMAP, and for the sample packing modes (`LONGS_1BIT`
+  through `BYTES_4BIT`) accepted by the PDM displays
+- Hover for the named DEBUG colors, including the optional 0..15
+  brightness nibble
+- Hover for `WINDOW`, the `SAVE` modifier that captures the whole
+  window rather than just the display area
+- `window` added to the recognized DEBUG TERM feed parameters
+
+### Fixed
+
+- BUGFIX: Hover now resolves DEBUG display names that sit next to the
+  back-tic, covering both the display type in a declaration and the
+  window name in an update message
+- BUGFIX: A DEBUG window named after a Spin2 built-in now resolves to
+  the window at the window-name position, and the hover notes the
+  shadowing
+- BUGFIX: DEBUG directive hover no longer renders HTML entities in
+  place of angle brackets
+- BUGFIX: Symbol lookup no longer lands inside DEBUG() display text
+- BUGFIX: Symbol lookup in P1 files no longer lands inside
+  double-quoted strings
+- BUGFIX: DEBUG display parameters no longer re-match earlier text on
+  the same line, so a repeated color name, or a name contained in an
+  earlier word, is highlighted at its own position
+
 ## [2.11.0] - 2026-04-23
 
 PNut v54 STRUCT bitfield support
