@@ -225,6 +225,38 @@ export default class HoverProvider implements Provider {
     return [displayTypeName, isDeclaration];
   }
 
+  /**
+   * Locate the WINDOW-NAME position in a back-tic debug statement. This is the ONLY
+   *  position at which a user window name is in scope; the same word later on the line
+   *  is a directive or a parameter. The position differs by message kind:
+   *
+   *    UPDATE       debug(`Panel CLEAR)      -> the name IS tic-adjacent
+   *    DECLARATION  debug(`TERM Panel ...)   -> the tic-adjacent word is the display
+   *                                             TYPE; the window name follows it
+   * @param lineText - the line, as offsets are returned against it
+   * @returns [name, startOffset], or ['', -1] when the line has no back-tic window name
+   */
+  private _debugDisplayNameRange(lineText: string): [string, number] {
+    const ticNameMatch: RegExpMatchArray | null = lineText.match(/debug\s*(?:\[[^\]]*\])?\s*\(\s*`+\s*([a-zA-Z_]\w*)/i);
+    if (ticNameMatch === null || ticNameMatch.index === undefined) {
+      return ['', -1];
+    }
+    const firstName: string = ticNameMatch[1];
+    const firstOffset: number = ticNameMatch.index + ticNameMatch[0].length - firstName.length;
+    const isDeclaration: boolean = this.parseUtils instanceof Spin2ParseUtils && this.parseUtils.isDebugDisplayType(firstName);
+    if (!isDeclaration) {
+      return [firstName, firstOffset]; // update message: the first name is the window
+    }
+    // declaration: step past the display TYPE to the user window name
+    const afterType: string = lineText.substring(firstOffset + firstName.length);
+    const nameMatch: RegExpMatchArray | null = afterType.match(/^\s+([a-zA-Z_]\w*)/);
+    if (nameMatch === null) {
+      return ['', -1];
+    }
+    const name: string = nameMatch[1];
+    return [name, firstOffset + firstName.length + nameMatch[0].length - name.length];
+  }
+
   private _objectNameFromDeclaration(line: string): string {
     let desiredString: string = '';
     // parse object declaration forms:
@@ -314,20 +346,18 @@ export default class HoverProvider implements Provider {
         }
       }
 
-      let sourceLineRaw = DocumentLineAt(document, position);
+      // the line under the CURSOR -- keep it, since sourceLineRaw may be swapped for a
+      //  declaration line below, after which offsets no longer align with position.character
+      const positionLineRaw: string = DocumentLineAt(document, position);
+      let sourceLineRaw = positionLineRaw;
       const tmpDeclarationLine: string | undefined = symbolsSet.getDeclarationLine(position.line);
       if (isObjectReference && tmpDeclarationLine) {
         sourceLineRaw = tmpDeclarationLine;
       }
       const sourceLine = sourceLineRaw.trim();
-      let cursorCharPosn = position.character;
-      do {
-        const char: string = sourceLineRaw.substring(cursorCharPosn, cursorCharPosn);
-        if (char == ' ' || char == '\t') {
-          break;
-        }
-        cursorCharPosn--;
-      } while (cursorCharPosn > 0);
+      // NOTE: a back-up-to-word-start loop lived here. It was dead in two ways: its test used
+      //  substring(n, n) which is ALWAYS '' (so it never broke on whitespace and always ran to 0),
+      //  and its result was never read afterward. Word extraction is done by adjustWordPosition().
       const isSignatureLine: boolean = sourceLine.toLowerCase().startsWith('pub') || sourceLine.toLowerCase().startsWith('pri');
       // ensure we don't recognize debug() in spin1 files!
       const isDebugLine: boolean = this.haveSpin1File
@@ -373,6 +403,28 @@ export default class HoverProvider implements Provider {
           this._logMessage(`+ Hvr: debug token=[${searchWord}], NOT found!`);
         } else {
           this._logMessage(`+ Hvr: debug token=[${searchWord}], Found!`);
+        }
+      }
+      // A user may name a debug window after a Spin2 built-in (ex: `debug(`TERM FIELD ...)`).
+      //  At the WINDOW-NAME position the window is what the name denotes, so the display registry
+      //  outranks the built-in table there -- and we note the collision in the hover so the user
+      //  learns they have shadowed a keyword.
+      //
+      //  The position test is REQUIRED, not a refinement. Display-name lookup is case-insensitive,
+      //  so without it a window named `Clear` captures the CLEAR *directive* everywhere it appears
+      //  (ex: `debug(`Panel CLEAR)`), silently eating the directive hovers. Off the window-name
+      //  position the built-in/directive still wins -- the window name is not in scope there.
+      let shadowedBuiltInName: string = '';
+      if (bFoundDebugToken && builtInFindings.found) {
+        const [ticName, ticNameOffset] = this._debugDisplayNameRange(positionLineRaw);
+        const atWindowNamePosition: boolean =
+          ticNameOffset >= 0 && position.character >= ticNameOffset && position.character < ticNameOffset + ticName.length;
+        if (atWindowNamePosition) {
+          shadowedBuiltInName = searchWord;
+          this._logMessage(`+ Hvr: debug display [${searchWord}] SHADOWS built-in - preferring the window`);
+          builtInFindings = { found: false, type: eBuiltInType.Unknown, category: '', description: '', signature: '' };
+        } else {
+          this._logMessage(`+ Hvr: [${searchWord}] matches a window name but is NOT at the name position - keeping built-in`);
         }
       }
       if ((bFoundParseToken || bFoundDebugToken) && !builtInFindings.found) {
@@ -447,6 +499,10 @@ export default class HoverProvider implements Provider {
           //if (!isSignatureLine) {
           // TODO: remove NOT USING THIS  mdLines.push(`Custom Method: User defined<br>`);
           //}
+        }
+        if (shadowedBuiltInName.length > 0) {
+          // tell the user their window name collides with a language built-in - they may not know
+          mdLines.push(`**NOTE:** this window name shadows the Spin2 built-in \`${shadowedBuiltInName}\`.<br>`);
         }
         if (
           (tokenFindings.interpretation.includes('32-bit constant') && !tokenFindings.relatedObjectName) ||

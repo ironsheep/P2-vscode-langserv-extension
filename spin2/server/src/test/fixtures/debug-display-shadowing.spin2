@@ -1,0 +1,38 @@
+'' Fixture for debug.display-shadowing.test.ts
+''
+'' Covers the PRECEDENCE question left open by 883a6b7: a DEBUG display window
+'' whose user name collides with a Spin2 built-in or with a display directive.
+''
+'' Two rules are in tension, and each wins in a different position:
+''
+''   1. at the WINDOW-NAME position (first name after the back-tic), the window
+''      wins -- that is what the name denotes there
+''   2. ANYWHERE ELSE on the line, the built-in / directive still wins -- the
+''      window name is not in scope at that position
+''
+'' Do NOT reformat these lines: the tests locate words by exact offset.
+
+CON
+
+PUB main() | value
+
+  value := 0
+
+  ' -- case 1: window named after a Spin2 built-in (FIELD) --------------------
+  '   hovering FIELD in either position below must describe the WINDOW
+  DEBUG(`TERM FIELD SIZE 40 8)
+  DEBUG(`FIELD 'val=`(value)' 13)
+
+  ' -- case 2: window named after a shared display directive (CLEAR) ----------
+  DEBUG(`TERM CLEAR SIZE 40 8)
+
+  ' -- case 3: the REGRESSION GUARD ------------------------------------------
+  '   CLEAR here is the shared display DIRECTIVE on Panel's update line, NOT a
+  '   reference to the window named CLEAR declared above. A precedence rule that
+  '   ignores position would wrongly describe the window here.
+  DEBUG(`TERM Panel SIZE 40 8)
+  DEBUG(`Panel CLEAR)
+
+  ' -- case 4: an ordinary window name, no collision at all -------------------
+  DEBUG(`TERM Status SIZE 40 8)
+  DEBUG(`Status 'ok' 13)
