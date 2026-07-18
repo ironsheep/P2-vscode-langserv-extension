@@ -1,0 +1,234 @@
+{Spin2_v54}
+''
+'' v54 Regression Test: Struct Bitfields and Nameless Members
+''
+'' v54 Features Tested:
+''   1. Single-bit bitfields on LONG member      (.name[N])
+''   2. Single-bit bitfields on WORD member
+''   3. Single-bit bitfields on BYTE member
+''   4. Multi-bit bitfield ranges                (.name[upper..lower])
+''   5. Chained bitfields on a single member     (.a[0].b[1].c[7..2])
+''   6. Nameless single-LONG struct              STRUCT s(LONG.bit[0])
+''   7. Nameless single-WORD struct
+''   8. Nameless single-BYTE struct
+''   9. Nameless struct with chained bitfields
+''  10. Whole-member assignment alongside bitfields
+''  11. Whole-struct assignment (named and nameless)
+''  12. Bitfields in VAR context
+''  13. Bitfields at byte/word/long boundaries   (bit 7 / 15 / 31)
+''  14. Struct array with bitfield members
+''
+
+CON
+
+  _CLKFREQ  = 160_000_000
+
+  ' Named-member struct with single-bit bitfields on LONG
+  STRUCT long_flags_t(LONG flags.ready[0].error[1].busy[2].done[31])
+
+  ' Named-member struct with a multi-bit bitfield range
+  STRUCT long_mixed_t(LONG flags.mode[1..0].count[15..8].high[31..24])
+
+  ' Bitfields on WORD member
+  STRUCT word_flags_t(WORD w.low[0].mid[7..4].high[15])
+
+  ' Bitfields on BYTE member
+  STRUCT byte_flags_t(BYTE b.bit0[0].bit7[7].nib[3..0])
+
+  ' Nameless single LONG
+  STRUCT io_long_t(LONG.ready[0].error[1].mode[3..2].counter[31..8])
+
+  ' Nameless single WORD
+  STRUCT io_word_t(WORD.enable[0].span[7..4].flag[15])
+
+  ' Nameless single BYTE
+  STRUCT io_byte_t(BYTE.on[0].nib[7..4])
+
+  ' Mixed struct with bitfielded and plain members, and an array
+  STRUCT device_t(BYTE id, LONG status.ready[0].error[1].count[15..8], WORD index)
+
+  ' Struct array of bitfield-carrying structs
+  STRUCT bank_t(long_flags_t channels[4])
+
+VAR
+
+  LONG  results[80]
+  LONG  result_idx
+
+  ' VAR context usage
+    long_flags_t  vf
+    long_mixed_t  vm
+    word_flags_t  wv
+    byte_flags_t  bv
+    io_long_t     iol
+    io_word_t     iow
+    io_byte_t     iob
+    device_t      dev
+    bank_t        bank
+
+PUB main()
+
+  result_idx := 0
+
+  test_single_bit_long_bitfields()
+  test_multi_bit_long_bitfields()
+  test_word_bitfields()
+  test_byte_bitfields()
+  test_nameless_long()
+  test_nameless_word()
+  test_nameless_byte()
+  test_mixed_member_struct()
+  test_struct_ar_with_bitfields()
+  test_whole_mbr_n_struct_assgn()
+  test_boundary_bits()
+
+  ' Prevent program from falling off the end
+  repeat
+
+PRI store(v)
+
+  results[result_idx++] := v
+
+PRI test_single_bit_long_bitfields()
+
+  vf.flags := 0
+  vf.flags.ready := 1
+  vf.flags.error := 0
+  vf.flags.busy  := 1
+  vf.flags.done  := 1
+
+  store(vf.flags)                                       ' expect: $80000005  (bits 0,2,31 set)
+  store(vf.flags.ready)                                 ' expect: 1
+  store(vf.flags.error)                                 ' expect: 0
+  store(vf.flags.busy)                                  ' expect: 1
+  store(vf.flags.done)                                  ' expect: 1
+
+PRI test_multi_bit_long_bitfields()
+
+  vm.flags := 0
+  vm.flags.mode  := %11
+  vm.flags.count := $A5
+  vm.flags.high  := $7E
+
+  store(vm.flags)                                       ' expect: bits 31..24 = $7E, 15..8 = $A5, 1..0 = %11
+  store(vm.flags.mode)                                  ' expect: 3
+  store(vm.flags.count)                                 ' expect: $A5
+  store(vm.flags.high)                                  ' expect: $7E
+
+PRI test_word_bitfields()
+
+  wv.w := 0
+  wv.w.low  := 1
+  wv.w.mid  := %1010
+  wv.w.high := 1
+
+  store(wv.w)                                           ' expect: bit 0, bits 7..4 = %1010, bit 15
+  store(wv.w.low)                                       ' expect: 1
+  store(wv.w.mid)                                       ' expect: %1010
+  store(wv.w.high)                                      ' expect: 1
+
+PRI test_byte_bitfields()
+
+  bv.b := 0
+  bv.b.bit0 := 1
+  bv.b.bit7 := 1
+  bv.b.nib  := %1001
+
+  store(bv.b)                                           ' expect: bit 0, bit 7, bits 3..0 = %1001 → $89
+  store(bv.b.bit0)                                      ' expect: 1
+  store(bv.b.bit7)                                      ' expect: 1
+  store(bv.b.nib)                                       ' expect: %1001
+
+PRI test_nameless_long()
+
+  iol := 0
+  iol.ready   := 1
+  iol.error   := 0
+  iol.mode    := %10
+  iol.counter := $12_3456
+
+  store(iol)                                            ' expect: bits 31..8 = $123456, 3..2 = %10, 0 = 1
+  store(iol.ready)                                      ' expect: 1
+  store(iol.error)                                      ' expect: 0
+  store(iol.mode)                                       ' expect: 2
+  store(iol.counter)                                    ' expect: $123456
+
+PRI test_nameless_word()
+
+  iow := 0
+  iow.enable := 1
+  iow.span   := %1100
+  iow.flag   := 1
+
+  store(iow)                                            ' expect: bit 0, bits 7..4 = %1100, bit 15
+  store(iow.enable)                                     ' expect: 1
+  store(iow.span)                                       ' expect: %1100
+  store(iow.flag)                                       ' expect: 1
+
+PRI test_nameless_byte()
+
+  iob := 0
+  iob.on  := 1
+  iob.nib := %1010
+
+  store(iob)                                            ' expect: bit 0 + bits 7..4 = %1010 → $A1
+  store(iob.on)                                         ' expect: 1
+  store(iob.nib)                                        ' expect: %1010
+
+PRI test_mixed_member_struct()
+
+  dev.id    := $42
+  dev.index := $1234
+  dev.status := 0
+  dev.status.ready := 1
+  dev.status.error := 0
+  dev.status.count := $AB
+
+  store(dev.id)                                         ' expect: $42
+  store(dev.index)                                      ' expect: $1234
+  store(dev.status)                                     ' expect: bits 15..8 = $AB, bit 0 set
+  store(dev.status.ready)                               ' expect: 1
+  store(dev.status.error)                               ' expect: 0
+  store(dev.status.count)                               ' expect: $AB
+
+PRI test_struct_ar_with_bitfields() | i
+
+  repeat i from 0 to 3
+    bank.channels[i].flags := 0
+    bank.channels[i].flags.ready := 1
+    bank.channels[i].flags.busy  := (i & 1)
+    bank.channels[i].flags.done  := (i == 3) ? 1 : 0
+
+  repeat i from 0 to 3
+    store(bank.channels[i].flags)
+    store(bank.channels[i].flags.ready)
+    store(bank.channels[i].flags.busy)
+    store(bank.channels[i].flags.done)
+
+PRI test_whole_mbr_n_struct_assgn() | snapshot
+
+  vf.flags := $FFFF_FFFF                                ' whole-member assign (not through bitfield)
+  store(vf.flags.ready)                                 ' expect: 1
+  store(vf.flags.done)                                  ' expect: 1
+
+  vf := vm                                              ' whole-struct assignment (different struct types,
+  ' both backed by a single LONG — identical size)
+  store(vf.flags)                                       ' expect: whatever vm.flags contained last
+
+  iol := 0                                              ' nameless-member whole-struct assignment
+  store(iol.ready)                                      ' expect: 0
+
+PRI test_boundary_bits()
+' Single bit at the very top of each member type
+
+  bv.b := 0
+  bv.b.bit7 := 1                                        ' bit 7 of BYTE — legal boundary
+  store(bv.b)                                           ' expect: $80
+
+  wv.w := 0
+  wv.w.high := 1                                        ' bit 15 of WORD — legal boundary
+  store(wv.w)                                           ' expect: $8000
+
+  vf.flags := 0
+  vf.flags.done := 1                                    ' bit 31 of LONG — legal boundary
+  store(vf.flags)                                       ' expect: $80000000

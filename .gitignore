@@ -19,6 +19,14 @@ updClaude
 # Dev container local mounts (gitignored - host-specific)
 spin2/.devcontainer/docker-compose.override.yml
 
+# VSCode workspace settings — the extension writes machine-specific values here
+# (serialPort, toolchain paths, localIncludes). Use settings.json.example instead.
+spin2/.vscode/settings.json
+
+# Formatter test scratch dirs (fs.mkdtempSync in the gold-equiv/safety suites).
+# Normally cleaned up; an interrupted run leaves one behind.
+spin2/server/src/test/formatter/fixtures/.tmp-*/
+
 # Distribution / packaging
 .Python
 build/

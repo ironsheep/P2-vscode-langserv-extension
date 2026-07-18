@@ -1,0 +1,48 @@
+// =============================================================
+// Workspace settings template (NOT the live file)
+// =============================================================
+// Copy this to .vscode/settings.json to pick up the shared editor
+// conventions for this project. The live settings.json is gitignored
+// because this extension WRITES to it at runtime.
+//
+// Specifically, toolchain discovery stores machine-specific values there
+// that must never be committed:
+//
+//   spin2.serialPort          - PropPlug device ID, differs per machine/plug
+//   spin2.fSpecCompiler       - absolute path to your pnut-ts binary
+//   spin2.fSpecLoader         - absolute path to your pnut-term-ts binary
+//   spin2.fDirSource          - absolute path to your working test dir
+//   spin2.optionsBinaryFname  - transient, whatever you last built
+//   spin2.localIncludes       - large auto-generated block ("auto": true);
+//                               the extension regenerates it, so it is churn
+//
+// Let the extension write those itself. Keep this template limited to
+// settings a contributor on any machine would want.
+// =============================================================
+{
+  "editor.insertSpaces": false,
+  "typescript.tsc.autoDetect": "off",
+  "typescript.referencesCodeLens.enabled": false,
+  "typescript.preferences.quoteStyle": "single",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": false,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.history": true,
+    "**/package-lock.json": false,
+    "**/node_modules": false,
+    "**/out": false
+  },
+  "cSpell.enableFiletypes": ["!json", "!typescript"],
+  "cSpell.words": ["FTDI"],
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  }
+}

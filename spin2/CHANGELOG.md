@@ -55,8 +55,6 @@ DEBUG display hover documentation for all nine display types
 - BUGFIX: A DEBUG window named after a Spin2 built-in now resolves to
   the window at the window-name position, and the hover notes the
   shadowing
-- BUGFIX: DEBUG directive hover no longer renders HTML entities in
-  place of angle brackets
 - BUGFIX: Symbol lookup no longer lands inside DEBUG() display text
 - BUGFIX: Symbol lookup in P1 files no longer lands inside
   double-quoted strings
