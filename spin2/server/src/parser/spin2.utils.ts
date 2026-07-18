@@ -23,6 +23,13 @@ type TMethodTuple = readonly [signature: string, description: string, parameters
 // documentation for one DEBUG display directive / color name (see docTextForDebugDirective)
 type TDebugDirective = { signature: string; description: string };
 
+// one lookup table of directives, keyed by lower-cased directive name
+type TDebugDirectiveTable = { [Identifier: string]: TDebugDirective };
+
+// a display type's two directive sets: window-CREATION (config) and window-UPDATE (feed).
+//  Either may be omitted while a type is still being populated.
+type TDebugDisplayDirectives = { config?: TDebugDirectiveTable; feed?: TDebugDirectiveTable };
+
 export enum eSearchFilterType {
   Unknown = 0,
   FT_NO_PREFERENCE,
@@ -4342,6 +4349,19 @@ export class Spin2ParseUtils {
     grey: { signature: 'GREY {brightness}', description: 'Named color, optional brightness nibble 0..15. `GRAY` is accepted too.' }
   };
 
+  // Per-display-type directive registry. Adding a display type is purely ADDITIVE:
+  //  author its config/feed tables above and register them here -- no dispatch change.
+  //
+  //  MUST be declared AFTER the tables it references: class fields initialize in
+  //  declaration order, so an earlier position would capture `undefined`.
+  //
+  //  Of the nine DEBUG display types (TERM LOGIC SCOPE SCOPE_XY FFT SPECTRO PLOT
+  //  BITMAP MIDI), only TERM is populated so far; the rest fall through to the
+  //  shared + color tables until their own tables land.
+  private _debugDirectivesByDisplayType: { [Identifier: string]: TDebugDisplayDirectives } = {
+    term: { config: this._tableDebugDirectivesTermConfig, feed: this._tableDebugDirectivesTermFeed }
+  };
+
   /**
    * Documentation for a DEBUG display directive or color name, resolved in the context of the
    *  display type and whether we are in a window-creation (config) or window-update (feed) message.
@@ -4356,10 +4376,8 @@ export class Spin2ParseUtils {
     const desiredDocText: IBuiltinDescription = { found: false, type: eBuiltInType.Unknown, category: '', description: '', signature: '' };
 
     // per display-type, per context (config vs feed) -- these win over the shared table
-    let typeTable: { [Identifier: string]: TDebugDirective } | undefined = undefined;
-    if (typeKey === 'term') {
-      typeTable = isDeclaration ? this._tableDebugDirectivesTermConfig : this._tableDebugDirectivesTermFeed;
-    }
+    const typeDirectives: TDebugDisplayDirectives | undefined = this._debugDirectivesByDisplayType[typeKey];
+    const typeTable: TDebugDirectiveTable | undefined = typeDirectives ? (isDeclaration ? typeDirectives.config : typeDirectives.feed) : undefined;
 
     let entry: TDebugDirective | undefined = typeTable ? typeTable[nameKey] : undefined;
     let categoryText: string = '';

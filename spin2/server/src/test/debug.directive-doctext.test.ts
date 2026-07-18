@@ -33,20 +33,51 @@ import HoverProvider from '../providers/HoverProvider';
 const FIXTURES_DIR = path.join(__dirname, '..', '..', 'src', 'test', 'fixtures');
 const FIXTURE = 'debug-directive-doctext.spin2';
 
-// every doc table feeding docTextForDebugDirective()
-const DIRECTIVE_TABLES: string[] = [
-  '_tableDebugDirectivesShared',
-  '_tableDebugDirectivesTermConfig',
-  '_tableDebugDirectivesTermFeed',
-  '_tableDebugColorNames'
-];
-
 // entities that must never appear pre-encoded in doc text
 const ENTITY_RE = /&(lt|gt|amp|quot|#\d+);/;
 
 interface IDirectiveEntry {
   signature: string;
   description: string;
+}
+type TDirectiveTable = Record<string, IDirectiveEntry>;
+interface IDisplayDirectiveSets {
+  config?: TDirectiveTable;
+  feed?: TDirectiveTable;
+}
+
+/**
+ * Every doc table feeding docTextForDebugDirective(), as [label, table] pairs.
+ *
+ * The per-type tables are read from the _debugDirectivesByDisplayType REGISTRY
+ * rather than a hardcoded list, so each display type added there is scanned
+ * automatically -- the guard grows with the content instead of going stale.
+ */
+function allDirectiveTables(): Array<[string, TDirectiveTable]> {
+  const utils = new Spin2ParseUtils();
+  // tables are a private implementation detail; reach them deliberately
+  const priv = utils as unknown as Record<string, unknown>;
+
+  const shared = priv['_tableDebugDirectivesShared'] as TDirectiveTable | undefined;
+  const colors = priv['_tableDebugColorNames'] as TDirectiveTable | undefined;
+  const registry = priv['_debugDirectivesByDisplayType'] as Record<string, IDisplayDirectiveSets> | undefined;
+  assert.ok(shared, 'expected _tableDebugDirectivesShared -- was it renamed?');
+  assert.ok(colors, 'expected _tableDebugColorNames -- was it renamed?');
+  assert.ok(registry, 'expected _debugDirectivesByDisplayType -- was it renamed?');
+
+  const tables: Array<[string, TDirectiveTable]> = [
+    ['shared', shared],
+    ['colorNames', colors]
+  ];
+  for (const [typeName, sets] of Object.entries(registry)) {
+    if (sets.config) {
+      tables.push([`${typeName}.config`, sets.config]);
+    }
+    if (sets.feed) {
+      tables.push([`${typeName}.feed`, sets.feed]);
+    }
+  }
+  return tables;
 }
 
 let fixtureLines: string[] = [];
@@ -95,14 +126,8 @@ describe('DEBUG directive doc text (no raw HTML entities)', function () {
 
   // ---- the guard: scan every table entry ----------------------------------
 
-  DIRECTIVE_TABLES.forEach(function (tableName) {
+  allDirectiveTables().forEach(function ([tableName, table]) {
     it(`${tableName} has no pre-encoded HTML entities`, function () {
-      const utils = new Spin2ParseUtils();
-      // tables are private implementation detail; reach them deliberately so this
-      //  guard keeps working as new display types are populated
-      const table = (utils as unknown as Record<string, Record<string, IDirectiveEntry>>)[tableName];
-      assert.ok(table, `expected table [${tableName}] to exist -- was it renamed?`);
-
       const offenders: string[] = [];
       for (const [key, entry] of Object.entries(table)) {
         if (ENTITY_RE.test(entry.description)) {
@@ -127,6 +152,14 @@ describe('DEBUG directive doc text (no raw HTML entities)', function () {
     assert.ok(text.length > 0, 'expected a hover for the TITLE directive, got nothing');
     assert.ok(!ENTITY_RE.test(text), `rendered hover must not contain raw entities, got:\n${text}`);
     assert.ok(text.includes('<name> - <TYPE>'), `expected the literal default-caption text, got:\n${text}`);
+  });
+
+  // ---- registry dispatch: the per-type tables are still reachable ---------
+
+  it('resolves a TERM CONFIG directive through the registry (SIZE is in CHARACTERS)', async function () {
+    const text = await hoverTextAt('DEBUG(`TERM Panel TITLE', 'SIZE');
+    assert.ok(text.length > 0, 'expected a hover for the SIZE config directive, got nothing');
+    assert.ok(/CHARACTERS/i.test(text), `expected the TERM CONFIG sense of SIZE, got:\n${text}`);
   });
 
   it('WINDOW resolves as the SAVE modifier, not nothing', async function () {
