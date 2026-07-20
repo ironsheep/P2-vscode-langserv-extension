@@ -34,4 +34,15 @@ USER node
 RUN curl -fsSL https://claude.ai/install.sh | bash \
     && grep -q '\.local/bin' ~/.bashrc 2>/dev/null \
        || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+
+# --- shell environment: aliases (incl. myclaude), vi mode, dircolors --------
+# Baked into the image so it survives a rebuild. Deliberately NOT `cat`-ed from
+# /workspaces/<project> in postCreateCommand like most of the fleet does: this
+# container mounts the REPO ROOT rather than spin2/, so a workspace-path-coupled
+# copy breaks here -- which is exactly how the alias went missing after the
+# 2026-07-18 compose migration. The file lives in .devcontainer/ because that is
+# the only directory inside this image's build context.
+COPY --chown=node:node bashrc /tmp/project-bashrc
+RUN cat /tmp/project-bashrc >> /home/node/.bashrc \
+    && rm /tmp/project-bashrc
 USER root
