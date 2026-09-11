@@ -7,6 +7,13 @@
   // the spin2/ subfolder as the workspace, unchanged from how it has always been.
   "workspaceFolder": "/workspaces/P2-vscode-langserv-extension/spin2",
   "containerEnv": {
+    // Relocates git's GLOBAL config away from ~/.gitconfig, which the Dev Containers
+    // extension copies from the macOS host at EVERY container start and which therefore
+    // outranked (system < global) the identity baked into /etc/gitconfig. The copy also
+    // carries filter.lfs/filter.media at required=true with neither binary installed --
+    // a measured hard checkout failure. Set here, not in .bashrc, so it reaches every
+    // process rather than only login shells. Full reasoning: .devcontainer/Dockerfile.
+    "GIT_CONFIG_GLOBAL": "/home/node/.config/git/config",
     "LANG": "en_US.UTF-8",
     "LC_ALL": "en_US.UTF-8",
     // Relocates Claude's .claude.json (account binding, folder-trust, per-project
