@@ -1,9 +1,11 @@
+# Pinned to the project name the Dev Containers extension already derived (from
+# the local workspace folder, spin2/), so existing named volumes keep their data.
+name: spin2_devcontainer
+
 services:
   dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    # Name the built image so Docker reuses the cached layers across rebuilds.
+    # Built by devcontainer.json's initializeCommand, not by a `build:` section
+    # here (the reason is with that command).
     image: spin2-langserv-dev:local
     volumes:
       # Mount the REPO ROOT, not just spin2/, so .git is visible inside the
@@ -11,8 +13,6 @@ services:
       # spin2/ as the workspace folder — nothing is reorganized, the mount is
       # simply wider than the folder you work in.
       - ../..:/workspaces/P2-vscode-langserv-extension:cached
-      # Persist todo-mcp task data across container rebuilds.
-      - todo-mcp-data:/home/node/.local/share/todo-mcp
     ports:
       # Host-side ports are unique fleet-wide (PNut-TS holds 5001/9125,
       # PNut-Term-TS 5003/9124, PNut-Term-TS-MASTER 5002/9123).
@@ -21,8 +21,5 @@ services:
       - "9126:9123"
     command: sleep infinity
     # Note: postCreateCommand, extensions, and settings are handled in
-    # devcontainer.json, not here. Tooling (pnut-ts, Claude CLI, vsce) is
-    # baked into the image via Dockerfile.
-
-volumes:
-  todo-mcp-data:
+    # devcontainer.json, not here. Tooling (pnut-ts, vsce) is baked into the
+    # image via Dockerfile.

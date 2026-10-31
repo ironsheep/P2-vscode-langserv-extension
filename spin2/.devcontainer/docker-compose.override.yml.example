@@ -1,20 +1,20 @@
 # =============================================================
-# Local mounts override (NOT committed to git)
+# Local override (NOT committed to git)
 # =============================================================
 # Copy this file to docker-compose.override.yml and customize
-# the paths below for your machine.
+# it for your machine.
 #
 # If docker-compose.override.yml doesn't exist, an empty one is
 # auto-created so the container still starts without errors.
+#
+# Local image additions: if .devcontainer/Dockerfile.local-additions
+# exists, initializeCommand writes .devcontainer/Dockerfile.local
+# (the public Dockerfile with the additions appended) and builds
+# the image from it instead of from the public Dockerfile.
 # =============================================================
 services:
   dev:
     volumes:
-      # Claude Code configuration (authentication, settings, history)
-      # NOTE: target must match remoteUser (devcontainer.json -> remoteUser: "node")
-      # - ${HOME}/.claude:/home/node/.claude
-      # Container tools (MCP servers: todo-mcp, p2kb-mcp, image-tools-mcp)
-      # - /path/to/container-tools:/opt/container-tools
       # Git identity is BAKED into /etc/gitconfig by the Dockerfile.
       # Do NOT bind-mount ~/.gitconfig here: a single-FILE mount pins an inode
       # and goes stale the moment macOS rewrites the file by rename. Retired

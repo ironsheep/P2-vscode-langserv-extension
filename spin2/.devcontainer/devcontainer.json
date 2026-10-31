@@ -15,15 +15,21 @@
     // process rather than only login shells. Full reasoning: .devcontainer/Dockerfile.
     "GIT_CONFIG_GLOBAL": "/home/node/.config/git/config",
     "LANG": "en_US.UTF-8",
-    "LC_ALL": "en_US.UTF-8",
-    // Relocates Claude's .claude.json (account binding, folder-trust, per-project
-    // MCP approvals) INSIDE the mounted .claude directory, where atomic writes
-    // persist across rebuilds. Never bind-mount ~/.claude.json as a single file.
-    "CLAUDE_CONFIG_DIR": "/home/node/.claude"
+    "LC_ALL": "en_US.UTF-8"
   },
   "remoteUser": "node",
-  "initializeCommand": "test -f .devcontainer/docker-compose.override.yml || echo 'services: {}' > .devcontainer/docker-compose.override.yml",
-  "postCreateCommand": "sudo mkdir -p /Users/stephen && sudo ln -sfn /opt/container-tools /Users/stephen/container-tools; sudo chown -R node:node /home/node/.local 2>/dev/null || true; mkdir -p ~/.ssh && cp /tmp/.ssh/* ~/.ssh/ 2>/dev/null; chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_* 2>/dev/null; chmod 644 ~/.ssh/*.pub 2>/dev/null; sed -i -e 's#/Users/stephen/\\.ssh/#/home/node/.ssh/#g' -e 's|^\\([[:space:]]*\\)UseKeychain|\\1#UseKeychain|' ~/.ssh/config 2>/dev/null || true; npm install; export PATH=\"$HOME/.local/bin:$PATH\"; claude --update || true;",
+  // Runs on the host before every open and rebuild:
+  //   1. creates an empty local override if there is none, so the container always starts;
+  //   2. if local image additions exist, writes Dockerfile.local = this Dockerfile + them
+  //      (both local files are gitignored);
+  //   3. builds the image the compose file names. Built here, not by a compose `build:`,
+  //      because the Dev Containers extension builds a compose service from a generated
+  //      Dockerfile in the macOS temp folder, which buildx >= 0.37.2 refuses to read
+  //      ("additional privileges requested: --allow=fs.read=..."). An image-only service
+  //      is used as-is. Cached layers make this about a second when nothing changed; to
+  //      force a fresh build, run the same `docker build` with --no-cache.
+  "initializeCommand": "test -f .devcontainer/docker-compose.override.yml || echo 'services: {}' > .devcontainer/docker-compose.override.yml; DF=Dockerfile; if [ -f .devcontainer/Dockerfile.local-additions ]; then cat .devcontainer/Dockerfile .devcontainer/Dockerfile.local-additions > .devcontainer/Dockerfile.local; DF=Dockerfile.local; fi; docker build -f .devcontainer/$DF --build-arg LOCAL_USER=node -t spin2-langserv-dev:local .devcontainer",
+  "postCreateCommand": "sudo chown -R node:node /home/node/.local 2>/dev/null || true; mkdir -p ~/.ssh && cp /tmp/.ssh/* ~/.ssh/ 2>/dev/null; chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_* 2>/dev/null; chmod 644 ~/.ssh/*.pub 2>/dev/null; sed -i -e 's#/Users/stephen/\\.ssh/#/home/node/.ssh/#g' -e 's|^\\([[:space:]]*\\)UseKeychain|\\1#UseKeychain|' ~/.ssh/config 2>/dev/null || true; npm install;",
   "customizations": {
     "vscode": {
       "extensions": [

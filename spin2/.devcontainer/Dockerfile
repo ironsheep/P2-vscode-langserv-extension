@@ -1,8 +1,8 @@
 # Derived dev image for the Spin2 Language Server extension.
 #
 # Bakes the network-heavy installs that previously ran in postCreateCommand on
-# EVERY container create (pnut-ts compiler + Claude CLI + vsce) into cached
-# layers, so rebuilds are cheap and offline.
+# EVERY container create (pnut-ts compiler + vsce) into cached layers, so
+# rebuilds are cheap and offline.
 #
 # EARNED DIVERGENCE (DEVCONTAINER-STANDARD.md Rule 0): the fleet standard base
 # is javascript-node:24-bookworm, but this project pins @types/node ^22 and
@@ -33,7 +33,7 @@ RUN git config --system --add safe.directory '/workspaces/*'
 # which produces a NEW inode, leaving the container's mount pointed at the old
 # unlinked one. The container then reads frozen content until it is recreated.
 # That is the "stale .gitconfig" failure; it stranded the fleet on 2026-08-28 and
-# cleared only on reboot. The other host mounts (.ssh, .claude, container-tools)
+# cleared only on reboot. The other host mounts (.ssh and the local override's)
 # are DIRECTORIES and are immune, because each lookup inside them resolves fresh.
 # .gitconfig was the fleet's only single-file mount. Retired 2026-09-10.
 #
@@ -136,13 +136,6 @@ RUN cd /tmp/pnut \
 # --- vsce, for packaging the .vsix (was: sudo npm i -g in postCreate) --------
 RUN npm install -g @vscode/vsce
 
-# --- Claude CLI (was: curl | bash in postCreateCommand) ----------------------
-# Installed as the `node` user so it lands in /home/node/.local/bin.
-USER node
-RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && grep -q '\.local/bin' ~/.bashrc 2>/dev/null \
-       || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-
 # --- shell environment: aliases (incl. myclaude), vi mode, dircolors --------
 # Baked into the image so it survives a rebuild. Deliberately NOT `cat`-ed from
 # /workspaces/<project> in postCreateCommand like most of the fleet does: this
@@ -153,4 +146,3 @@ RUN curl -fsSL https://claude.ai/install.sh | bash \
 COPY --chown=node:node bashrc /tmp/project-bashrc
 RUN cat /tmp/project-bashrc >> /home/node/.bashrc \
     && rm /tmp/project-bashrc
-USER root

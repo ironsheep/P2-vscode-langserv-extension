@@ -18,6 +18,8 @@ updClaude
 
 # Dev container local mounts (gitignored - host-specific)
 spin2/.devcontainer/docker-compose.override.yml
+spin2/.devcontainer/Dockerfile.local
+spin2/.devcontainer/Dockerfile.local-additions
 
 # VSCode workspace settings — the extension writes machine-specific values here
 # (serialPort, toolchain paths, localIncludes). Use settings.json.example instead.
