@@ -136,7 +136,7 @@ RUN cd /tmp/pnut \
 # --- vsce, for packaging the .vsix (was: sudo npm i -g in postCreate) --------
 RUN npm install -g @vscode/vsce
 
-# --- shell environment: aliases (incl. myclaude), vi mode, dircolors --------
+# --- shell environment: aliases, vi mode, dircolors -------------------------
 # Baked into the image so it survives a rebuild. Deliberately NOT `cat`-ed from
 # /workspaces/<project> in postCreateCommand like most of the fleet does: this
 # container mounts the REPO ROOT rather than spin2/, so a workspace-path-coupled
