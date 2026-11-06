@@ -13,6 +13,7 @@ import {
   buildRegularTabStops,
   alignContinuationGroups,
   splitTrailingComment,
+  findLineTextRegions,
   padToColumn,
   isFullLineComment,
   computeBlockCommentColumn,
@@ -35,7 +36,7 @@ import {
 // Tab characters are always 8 columns wide — this is not configurable.
 const TAB_WIDTH = 8;
 
-interface FormatterConfig {
+export interface FormatterConfig {
   enable: boolean;
   trimTrailingWhitespace: boolean;
   insertFinalNewline: boolean;
@@ -152,7 +153,7 @@ export default class DocumentFormattingProvider implements Provider {
     return { enabled: true, tabStops, commentGap: 0 };
   }
 
-  private formatLines(lines: string[], findings: DocumentFindings, config: FormatterConfig, elasticConfig: ElasticTabstopConfig): string[] {
+  public formatLines(lines: string[], findings: DocumentFindings, config: FormatterConfig, elasticConfig: ElasticTabstopConfig): string[] {
     let result: string[] = [...lines];
 
     // Phase 1a: Tab-to-space conversion (tabs are always 8 columns wide)
@@ -254,11 +255,21 @@ export default class DocumentFormattingProvider implements Provider {
     const SMALL_BLOCK_THRESHOLD = 15;
     const blockSpans: IBlockSpan[] = findings.blockSpans();
 
+    // Size counts non-blank lines. Formatting adds and removes blank lines, so counting them
+    // would let a block cross the threshold between one format and the next.
+    const blockSize = (span: IBlockSpan): number => {
+      let nonBlankLines = 0;
+      for (let i = span.startLineIdx; i <= span.endLineIdx; i++) {
+        if (lines[i].trim().length > 0) nonBlankLines++;
+      }
+      return nonBlankLines;
+    };
+
     // Find runs of consecutive same-type small blocks
     let runStart = 0;
     while (runStart < blockSpans.length) {
       const runType = blockSpans[runStart].blockType;
-      const runSize = blockSpans[runStart].endLineIdx - blockSpans[runStart].startLineIdx + 1;
+      const runSize = blockSize(blockSpans[runStart]);
 
       // Skip PUB/PRI — methods have their own comment alignment
       if (runType === eBLockType.isPub || runType === eBLockType.isPri || runSize > SMALL_BLOCK_THRESHOLD) {
@@ -271,7 +282,7 @@ export default class DocumentFormattingProvider implements Provider {
       while (
         runEnd + 1 < blockSpans.length &&
         blockSpans[runEnd + 1].blockType === runType &&
-        blockSpans[runEnd + 1].endLineIdx - blockSpans[runEnd + 1].startLineIdx + 1 <= SMALL_BLOCK_THRESHOLD
+        blockSize(blockSpans[runEnd + 1]) <= SMALL_BLOCK_THRESHOLD
       ) {
         runEnd++;
       }
@@ -359,24 +370,33 @@ export default class DocumentFormattingProvider implements Provider {
       }
     }
     // Comment spacing across entire file
-    normalizeCommentSpacing(lines, 0, lines.length - 1, findings, config.spaceAfterCommentStart);
+    normalizeCommentSpacing(lines, 0, lines.length - 1, config.spaceAfterCommentStart);
   }
 
   private convertTabsToSpaces(lines: string[], findings: DocumentFindings, tabWidth: number): string[] {
+    let openDebugDepth = 0;
     return lines.map((line, idx) => {
       if (findings.isLineInBlockComment(idx)) {
         return line;
       }
+      const regions = findLineTextRegions(line, openDebugDepth);
+      openDebugDepth = regions.openDebugDepth;
       if (line.indexOf('\t') === -1) {
         return line;
       }
-      // tab-stop-aware expansion
+      // Column-0 comments are file headers and banners: never reformatted.
+      if (line[0] === "'") {
+        return line;
+      }
+      // tab-stop-aware expansion, leaving tabs in compiled text as they are
+      const { literal } = regions;
       let result = '';
       let column = 0;
-      for (const ch of line) {
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
         if (ch === '\t') {
           const spaces = tabWidth - (column % tabWidth);
-          result += ' '.repeat(spaces);
+          result += literal[i] ? ch : ' '.repeat(spaces);
           column += spaces;
         } else {
           result += ch;
@@ -564,48 +584,57 @@ export default class DocumentFormattingProvider implements Provider {
   }
 
   private convertSpacesToTabs(lines: string[], blockCommentLines: Set<number>, tabWidth: number): string[] {
+    let openDebugDepth = 0;
     return lines.map((line, idx) => {
       if (blockCommentLines.has(idx)) {
         return line;
       }
+      const regions = findLineTextRegions(line, openDebugDepth);
+      openDebugDepth = regions.openDebugDepth;
       if (line.indexOf(' ') === -1) {
         return line;
       }
-      // Convert all runs of spaces to tabs + remainder spaces, not just leading.
-      // Walk the line tracking the column position so tab stops are computed correctly.
+      // Convert runs of spaces in code to tabs + remainder spaces. Strings, debug() calls
+      // and comment text keep their whitespace: the first two are compiled, the last is the
+      // author's. Walk the line tracking the column position so tab stops are computed
+      // correctly, including past tabs that are already there (comment groups skip expansion).
+      const { literal, commentStart } = regions;
       let result = '';
       let i = 0;
       let column = 0;
-      while (i < line.length) {
-        if (line[i] === ' ') {
+      while (i < commentStart) {
+        if (line[i] === ' ' && !literal[i]) {
           // Collect the full run of consecutive spaces
           const runStart = column;
           let runSpaces = 0;
-          while (i < line.length && line[i] === ' ') {
+          while (i < commentStart && line[i] === ' ' && !literal[i]) {
             i++;
             runSpaces++;
           }
           const runEnd = runStart + runSpaces;
-          // Replace with tabs that snap to tab-stop boundaries, plus remainder spaces
+          // Replace with tabs that snap to tab-stop boundaries, plus remainder spaces,
+          // but only when that makes the line shorter.
+          let compressed = '';
           let pos = runStart;
           while (pos < runEnd) {
             const nextStop = (Math.floor(pos / tabWidth) + 1) * tabWidth;
             if (nextStop <= runEnd) {
-              result += '\t';
+              compressed += '\t';
               pos = nextStop;
             } else {
-              result += ' '.repeat(runEnd - pos);
+              compressed += ' '.repeat(runEnd - pos);
               pos = runEnd;
             }
           }
+          result += compressed.length < runSpaces ? compressed : ' '.repeat(runSpaces);
           column = runEnd;
         } else {
+          column = line[i] === '\t' ? (Math.floor(column / tabWidth) + 1) * tabWidth : column + 1;
           result += line[i];
           i++;
-          column++;
         }
       }
-      return result;
+      return result + line.substring(commentStart);
     });
   }
 }

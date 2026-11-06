@@ -23,15 +23,15 @@ These rules apply regardless of whether elastic tabstops are enabled or disabled
 
 The formatter applies rules in this order:
 
-1. **Tab-to-space conversion** — All tab characters expanded to equivalent spaces (tab width is fixed at 8). This is always done first so all internal alignment math uses spaces.
+1. **Tab-to-space conversion** — Tab characters expanded to equivalent spaces (tab width is fixed at 8), except in the untouchable content below. This is always done first so all internal alignment math uses spaces.
 2. **Trailing whitespace trimming** — `trimEnd()` on all non-block-comment lines (when `trimTrailingWhitespace` is true).
 3. **Section column alignment** — Per-section formatters for CON, VAR, OBJ, DAT, PUB/PRI. In non-elastic mode, uses content-driven column layout with `indentSize` gaps. In elastic mode, uses profile-defined tabstop arrays.
-4. **Small-block comment merging** — Consecutive same-type blocks under 15 lines share a unified trailing comment column, preventing jagged comments across small blocks.
+4. **Small-block comment merging** — Consecutive same-type blocks of at most 15 non-blank lines share a unified trailing comment column, preventing jagged comments across small blocks.
 5. **Case normalization & comment spacing** — Keyword case, PASM case, space-after-comment-start.
 6. **Line-continuation alignment** — `...` markers within consecutive continuation groups are vertically aligned.
 7. **Blank line normalization** — Excess consecutive blank lines removed; section/method boundaries get configured blank-line counts.
 8. **Final newline** — File ends with exactly one newline (when `insertFinalNewline` is true).
-9. **Tab compression** (non-elastic only) — Runs of spaces are compressed with tab characters at 8-column boundaries. Elastic mode uses pure spaces (no tabs) to preserve non-8-aligned column positions.
+9. **Tab compression** (non-elastic only) — Runs of spaces in code are compressed with tab characters at 8-column boundaries, only when that makes the run shorter. A single space never becomes a tab. Strings, `debug()` calls and comment text are left as written. Elastic mode uses pure spaces (no tabs) to preserve non-8-aligned column positions.
 
 ### 1.3 Untouchable Content
 
@@ -40,8 +40,10 @@ These are NEVER modified by any formatting rule:
 - **Block comments** (`{ }` and `{{ }}`): Once a block comment opens, everything until the matching close is skipped entirely. Interior is user-formatted.
 - **Column-0 full-line comments**: Comments starting at column 0 (`'...` or `''...`) are never reformatted. These are file headers, section banners, dividers.
 - **Blank lines**: Preserved in place (only excess consecutive blanks are removed).
-- **debug() call arguments**: Inside `debug(...)`, keyword case normalization is suppressed because the compiler handles type keywords differently inside debug (case changes to LONG/BYTE/WORD can produce different binaries).
+- **Strings**: The compiler stores string text, so spaces and tabs inside `"..."` are data.
+- **debug() call arguments**: Inside `debug(...)`, keyword case normalization is suppressed because the compiler handles type keywords differently inside debug (case changes to LONG/BYTE/WORD can produce different binaries). Whitespace is preserved too, on `...` continuation lines as well, except for those lines' indent: the compiler stores an expression's source text so `debug(udec(a + b))` can print `a + b = 3`.
 - **Backtick expressions**: Inside backtick display specs (`` `scope ``, `` `bitmap ``), all content is preserved.
+- **Comment text**: Whitespace after a comment's `'` stays as written by tab compression. Tab expansion still applies to comments not starting in column 0, unless the parser groups them as a block comment.
 
 ### 1.4 Minimum Column Gap
 
@@ -71,7 +73,7 @@ In every section, trailing comments (`' ...`) are vertically aligned within thei
 
 ### 1.6a Small-Block Comment Merging
 
-When consecutive same-type blocks (e.g., CON, CON, CON) each have fewer than 15 lines, their trailing comment columns are unified across the entire run. This prevents jagged comment alignment across small blocks. Large blocks (15+ lines) keep independent comment columns. PUB/PRI blocks are excluded (they have their own method-level comment alignment).
+When consecutive same-type blocks (e.g., CON, CON, CON) each have at most 15 non-blank lines, their trailing comment columns are unified across the entire run. This prevents jagged comment alignment across small blocks. Larger blocks keep independent comment columns. Blank lines do not count, because formatting adds and removes them and a block must not cross the threshold between one format and the next. PUB/PRI blocks are excluded (they have their own method-level comment alignment).
 
 ### 1.6b Line-Continuation Alignment
 
@@ -84,7 +86,7 @@ Groups of consecutive lines ending with `...` (line-continuation markers) are ve
 
 ### 1.7 Comment Spacing
 
-When `spaceAfterCommentStart` is true (default), ensure a space after `'` or `''`:
+When `spaceAfterCommentStart` is true (default), ensure a space after `'` or `''`, except on column-0 comments (see 1.3):
 - `'text` → `' text`
 - `''text` → `'' text`
 
@@ -138,12 +140,12 @@ When `spinExtension.elasticTabstops.enable` is false (or not configured), the fo
 
 **Enum detection**: Lines starting with `#`, or lines without `=` that contain comma-separated identifiers.
 
-**Example** (default CON stops `[2, 8, 16, 18, 32, 56, 78, 80]`):
+**Example**:
 ```spin2
 CON
-  MAX_SERVOS  = 6
-  DEFAULT_POS = 1500
-  PIN_LED     = 56
+  MAX_SERVOS   = 6
+  DEFAULT_POS  = 1500
+  PIN_LED      = 56
 
   #0, STATE_IDLE, STATE_RUN, STATE_STOP
 ```
@@ -153,7 +155,7 @@ CON
 **Lines**: `TYPE name, name[count], ...`
 
 - Types (`BYTE`, `WORD`, `LONG`) indented at the first tabstop (col 2).
-- Types are **uppercased** in the output.
+- Type case follows `typeCase` (default uppercase).
 - Name column snapped to next tabstop after (indent + longest type width).
 - Comma spacing normalized to single space after comma.
 - Trailing comments aligned per block.
@@ -176,11 +178,11 @@ VAR
 - Trailing comments aligned per block.
 - Name validation: must match identifier pattern `[A-Z_][A-Z0-9_]*`.
 
-**Example** (default OBJ stops `[2, 8, 16, 18, 32, 56, 80]`):
+**Example** (`indentSize=2`):
 ```spin2
 OBJ
-  servo   : "servo_driver"
-  display : "ssd1306"
+  servo     : "servo_driver"
+  display   : "ssd1306"
 ```
 
 ### 2.4 DAT Section — Data Lines
@@ -231,7 +233,7 @@ DAT
 - Mnemonic column: snapped to `tabStops[1]` (or next stop past longest condition).
 - Operand/effects/comment columns: snapped to successive tabstops.
 
-**Data lines within ORG regions**: Handled as PASM lines (type keyword appears in the mnemonic slot).
+**Data lines within ORG regions**: Aligned separately from instructions, so a long data label does not push the instruction columns out (see D.14).
 
 ### 2.6 PUB/PRI Method Rules
 
@@ -244,7 +246,7 @@ DAT
 
 **Inline PASM (ORG...END within a method):**
 - Content between ORG and END is stripped to column 0.
-- Delegated to the DAT formatter for 6-column PASM alignment.
+- Delegated to the DAT formatter for 6-column PASM alignment, always on the default DAT tabstops rather than content-driven or profile columns.
 - ORG/END keyword lines remain at the method's indent level.
 
 **Full-line comment alignment (after first code line only):**
@@ -295,7 +297,7 @@ If a section's tabstop array is not configured, it falls back to the PropellerTo
 
 ### 3.2 What Does NOT Change
 
-**Method indentation** (`indentSize × level`) does **not** use the tabstop array in either mode. PUB/PRI nesting levels are always expressed as fixed multiples of `indentSize`. The tabstop array is only used for trailing comment alignment and column snapping within methods.
+**Method indentation** is a fixed step per nesting level in both modes. In spaces mode the step is `indentSize`. In elastic mode it is the profile's first PUB/PRI tabstop (IronSheep 2, PropellerTool 4), and the other tabstops are used for trailing comment alignment.
 
 ### 3.3 Per-Section Tabstop Selection
 
@@ -404,9 +406,9 @@ The regex `/^('{1,2})(\S)/` backtracks: it first matches `''`, sees a space (fai
 
 `case_fast` has identical block structure to `case`. If `org` doesn't participate in indent normalization (D.2), it can land at the case match level and confuse the compiler. This fixture verifies `case_fast` specifically since it's a separate keyword with the same risk.
 
-### D.10 GOLD files must be compiled with PNut on Windows
+### D.10 Binary parity compares the original and the formatted source, same compiler (retired: GOLD files)
 
-The `.bin.GOLD` files checked into the repo must be compiled by PNut (the Windows Propeller 2 compiler), not pnut-ts. The test suite verifies cross-compiler parity (pnut-ts output == PNut output). Using pnut-ts for GOLD files defeats this check. New regression fixtures need Windows-compiled GOLD files before binary parity tests pass.
+Until 2026-11 the tests compared against stored `.bin.GOLD` binaries built by PNut on Windows. The v55 interpreter image grew by 68 bytes, so every binary comparison failed on size before comparing any bytes, with no change to the formatter. The GOLD files are gone. Sources are the only saved input: each test compiles the original and the formatted text with the installed compiler and requires identical bytes. Whether pnut-ts matches PNut is checked by the PNut-TS project's own regression suite.
 
 ### D.11 Mixed tab/space indent within a method changes nesting (`isp_hub75_display_bmp`)
 
@@ -453,3 +455,23 @@ Affected CON assignment blocks, DAT data lines, and PUB/PRI method bodies contai
 The fix: replace only the comment suffix in-place using `lines[i].substring(0, commentStart) + normalized` where `commentStart = lines[i].length - commentPart.length`. This preserves the gap between code and comment exactly as the section formatter set it.
 
 Discovered via binary audit of `TEST-FORMATTER/TOF-Sensor/` — 3 of 12 files failed Phase 3 (idempotency) with trailing comment columns shifting on second format pass.
+
+### D.18 Whitespace conversion must leave compiled text alone (`regr-literal-text-whitespace`)
+
+**Binary-breaking.** Tab compression converted every run of spaces on a line, and tab expansion every tab. Three kinds of text reach the binary with their whitespace: `"..."` strings, debug backtick text, and `debug()` expressions, whose source text the compiler stores so `debug(udec(a + b))` can print `a + b = 3`. The last two only reach it when compiling with `-d`.
+
+Case normalization had the same gap with its own copy of the scan: in `debug("a", udec(index), "b")` it treated the text before each `"` as code, so a constant named `INDEX` recased the expression between the strings, in both whitespace modes. Found only by compiling `TEST-FORMATTER/TOF-Sensor/isp_vl53l5cx.spin2` with `-d`.
+
+The fix: `findLineTextRegions()` is the one definition of that text. Both conversions and case normalization skip what it marks. A `debug()` call continued with `...` stays protected on the next line, except for its indent, which the compiler ignores.
+
+The test suite missed this for its whole life for two reasons: it ran a copy of the pipeline whose compression only touched leading spaces, and it compiled most fixtures without `-d`. Every formatter test now runs the shipped provider, and binary parity compiles both with and without `-d`. Found by running the shipped formatter over `TEST-FORMATTER`: 62 of 153 files changed binary without `-d`.
+
+### D.19 Tab compression miscounted columns on comment lines (`regr-comment-text-whitespace`)
+
+**Not binary-breaking (idempotency).** The parser reports `''` doc comments and consecutive `'` lines as block comments, so tab expansion skipped them, but tab compression uses a `{ }`-only scan and did not. Compression then counted each existing tab as one column and placed new tabs by that wrong count, so a second format changed the text again (`''<TAB><TAB> -- Copyright` became `''<TAB><TAB> --<TAB>Copyright`). 140 of 153 `TEST-FORMATTER` files were affected.
+
+The fix: compression stops at the start of a comment and counts existing tabs correctly, and expansion leaves column-0 comments alone, as section 1.3 requires.
+
+### D.20 Small-block merging counted blank lines (`align-con-enums` with `blank-lines-3`)
+
+**Not binary-breaking (idempotency).** A block's size for comment merging included its blank lines. When formatting added blank lines, a 15-line block became 16, so the second format skipped the merge and moved its trailing comments. Size now counts non-blank lines only.

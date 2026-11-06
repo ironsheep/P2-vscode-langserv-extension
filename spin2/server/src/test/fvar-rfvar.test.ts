@@ -5,18 +5,16 @@
 //
 // Flags and clocks are checked against P2KB (p2kbPasm2Rfvar, p2kbPasm2Rfvars, p2kbPasm2Fvar):
 //   RFVAR  C = always 0, RFVARS C = MSB of the value, both Z = (result == 0), both 2 clocks.
-// The byte test compiles the fixture because the bytes are defined by the compiler. It needs
-//   pnut-ts 1.55.10 or later, as older compilers reject every non-negative FVARS value.
+// The binary test needs pnut-ts 1.55.10 or later, as older compilers reject every
+//   non-negative FVARS value. On an older compiler it fails rather than skips.
 
 import * as assert from 'assert';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
-import { execFileSync } from 'child_process';
 import { DiagnosticSeverity, Position } from 'vscode-languageserver-types';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { createTestContext } from './testContext';
-import { formatSpin2Text } from './formatter/formatter.test-utils';
+import { assertFormattingPreservesBinary, formatSpin2Text } from './formatter/formatter.test-utils';
 import { DocumentFindings } from '../parser/spin.semantic.findings';
 import { ProcessedDocument } from '../DocumentProcessor';
 import { Spin2DocumentSymbolParser } from '../parser/spin2.documentSymbolParser';
@@ -25,46 +23,6 @@ import { Spin2ParseUtils } from '../parser/spin2.utils';
 import HoverProvider from '../providers/HoverProvider';
 
 const FIXTURE_PATH = path.join(__dirname, '..', '..', 'src', 'test', 'fixtures', 'fvar-rfvar.spin2');
-const MARKER = Buffer.from('0DF0FECA', 'hex'); // $CAFE_F00D, little-endian
-
-// expected bytes between the two markers, in fixture order
-const EXPECTED_BYTES = [
-  '7F 80 01 AC 02 F0 A2 04 FF FF FF FF', // table
-  '7F C0 00 E4 00 E8 07 D4 7D 80 80 80 80', // dlt
-  '01 AC 02 02 D4 7D 03', // mixed
-  'AC 02 90', // trail: the override covers one item, so 400 is a truncated byte
-  'AC 02 AC 02' // named: 300 under both forms
-].join(' ');
-
-function pnutTsVersion(): number[] | undefined {
-  try {
-    const match = execFileSync('pnut-ts', ['--version'], { encoding: 'utf-8' }).match(/(\d+)\.(\d+)\.(\d+)/);
-    return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function compiledDataBytes(source: string): string {
-  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fvar-rfvar-'));
-  try {
-    const srcName = 'fvar.spin2';
-    fs.writeFileSync(path.join(workDir, srcName), source);
-    execFileSync('pnut-ts', [srcName], { cwd: workDir, stdio: 'pipe' });
-    const binary = fs.readFileSync(path.join(workDir, 'fvar.bin'));
-    const start = binary.indexOf(MARKER);
-    const end = binary.indexOf(MARKER, start + MARKER.length);
-    assert.ok(start >= 0 && end > start, 'expected two markers in the compiled binary');
-    return binary
-      .subarray(start + MARKER.length, end)
-      .toString('hex')
-      .toUpperCase()
-      .match(/../g)!
-      .join(' ');
-  } finally {
-    fs.rmSync(workDir, { recursive: true, force: true });
-  }
-}
 
 describe('FVAR/FVARS and RFVAR/RFVARS', function () {
   let content = '';
@@ -189,23 +147,12 @@ describe('FVAR/FVARS and RFVAR/RFVARS', function () {
     });
   });
 
-  describe('compiled bytes', function () {
-    before(function () {
-      const version = pnutTsVersion();
-      const numericVersion = version ? version[0] * 1_000_000 + version[1] * 1_000 + version[2] : 0;
-      if (numericVersion < 1_055_010) {
-        this.skip();
-      }
-    });
-
-    it('the fixture compiles to the documented bytes', function () {
-      assert.strictEqual(compiledDataBytes(content), EXPECTED_BYTES);
-    });
-
-    it('the formatter keeps the bytes and is idempotent', function () {
+  describe('formatting', function () {
+    it('keeps the compiled binary and is idempotent', function () {
       const once = formatSpin2Text(content);
       assert.strictEqual(formatSpin2Text(once), once, 'formatter should be idempotent');
-      assert.strictEqual(compiledDataBytes(once), EXPECTED_BYTES);
+      const fixture = { name: 'fvar-rfvar', spin2Path: FIXTURE_PATH };
+      assertFormattingPreservesBinary(fixture, once, 'Formatted FVAR fixture');
     });
   });
 });

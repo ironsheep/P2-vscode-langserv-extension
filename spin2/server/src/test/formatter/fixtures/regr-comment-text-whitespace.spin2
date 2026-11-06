@@ -1,0 +1,26 @@
+'' =====================================================================
+''   File....  regr-comment-text-whitespace.spin2
+''		 -- Copyright (c) 2022 Iron Sheep Productions, LLC
+''                 -- Copyright (c) 2023 Iron Sheep Productions, LLC
+'' =====================================================================
+
+'		 -- plain comment with tabs and many Words to reach Tab stops
+'                  -- plain comment with spaces and many Words to reach Tab stops
+
+'*								      *
+'  cid	    sd.cid_t							' CID register from card
+
+CON
+  _clkfreq = 10_000_000             ' trailing comment with   words and      gaps here
+
+PUB main() | value
+'' doc comment			with tabs
+''    doc comment       with spaces
+
+  value := 1                        ' trailing	comment with a tab
+  '	createFileNew()	fails if the file already exists.
+  '   <= 8GB:	8 sectors (4KB clusters)
+  repeat 2
+    ' deleteFile() before createFileNew() makes this re-runnable.
+    '	deleteFile() before createFileNew() makes this re-runnable.
+    value++

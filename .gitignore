@@ -25,7 +25,7 @@ spin2/.devcontainer/Dockerfile.local-additions
 # (serialPort, toolchain paths, localIncludes). Use settings.json.example instead.
 spin2/.vscode/settings.json
 
-# Formatter test scratch dirs (fs.mkdtempSync in the gold-equiv/safety suites).
+# Formatter test scratch dirs (fs.mkdtempSync in the binary-parity/safety suites).
 # Normally cleaned up; an interrupted run leaves one behind.
 spin2/server/src/test/formatter/fixtures/.tmp-*/
 
@@ -201,6 +201,8 @@ node_modules
 *-REF*
 *.REF*
 *-NEW*
+# case-insensitive matching on macOS makes the rule above catch this fixture
+!spin2/server/src/test/formatter/fixtures/ws-final-newline.spin2
 
 regex-workspace.txt
 alias.sh

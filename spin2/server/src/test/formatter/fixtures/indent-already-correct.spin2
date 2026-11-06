@@ -3,12 +3,12 @@
 
 CON
   _CLKFREQ  = 10_000_000
-  MAX       = 100
+  MAX	    = 100
   TIMEOUT   = 5000
 
 VAR
-  LONG  result
-  BYTE  flags
+  LONG	result
+  BYTE	flags
 
 OBJ
   child   : "dummy_child"

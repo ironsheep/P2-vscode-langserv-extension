@@ -1,0 +1,40 @@
+' Regression: whitespace inside strings and debug backtick text is compiled, so the
+' formatter must leave it alone even where it lands on an 8-column tab stop.
+
+CON
+  _clkfreq = 10_000_000
+  LIMIT = 4         ' trailing comment after code
+
+VAR
+  long total
+
+PUB main() | s
+  s := string("abcdef          ghi")
+  s := string("abc def")
+  s := string("one	tab inside")
+  s := string("it's   not a comment")      ' but this is a comment
+  debug("value is          here")
+  debug(`scope a pos 100 0 size 800 600 linesize 6)  ' display setup
+  debug(`bitmap f title 'a   title' pos 370 690 trace 2 rgb16)
+  debug(`a tab	inside `(s) more   text)
+  debug(udec(s), "   and   text", udec(total))
+  debug(uhex_long(long[@total + s * 4]), uhex_byte(byte[@total + s *   3 + 0]), udec(total    +    s))
+  debug(udec(total	+ s))
+  debug(udec(s), ...
+        udec(total    +    s), ...
+        udec(s))
+  debug(udec(total + ...
+        s))
+  s := 1 + ...
+       2
+  debug("first ", udec(limit), " then ", udec(limit + 1), " last", sdec_long(long[@total]))
+  debug(udec(s), ...
+        udec(limit), sdec_long(long[@total]))
+
+DAT
+msg     byte    "padded          text", 0
+tabbed  byte    "with	tab", 0
+quote   byte    "it's   here", 0            ' trailing comment
+        org
+        debug(uhex_long(reg1    +    1))
+reg1    long    0

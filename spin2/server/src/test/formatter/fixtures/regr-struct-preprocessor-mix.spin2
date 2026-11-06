@@ -1,0 +1,33 @@
+{Spin2_v45}
+' Regression: STRUCT definitions and preprocessor directives between ordinary code.
+' Every line of each kind has to survive formatting with the program's meaning intact.
+
+#define FAST_BLINK
+
+CON
+  _clkfreq = 10_000_000
+  STRUCT point(LONG x, LONG y)
+  STRUCT line_seg(point start, point finish, BYTE weight)
+#ifdef FAST_BLINK
+  BLINK_MS = 100
+#else
+  BLINK_MS = 500
+#endif
+
+VAR
+  point here
+  line_seg path[2]
+
+PUB main() | point spot
+  spot.x := 1
+  spot.y := 2
+  here := spot
+  path[0].start := here
+#ifdef FAST_BLINK
+  path[0].weight := 3
+#else
+  path[0].weight := 4
+#endif
+  repeat 2
+        pintoggle(56)
+        waitms(BLINK_MS)

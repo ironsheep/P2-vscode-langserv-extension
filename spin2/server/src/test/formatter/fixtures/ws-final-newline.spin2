@@ -1,0 +1,14 @@
+' ws-final-newline.spin2 — Test: missing final newline and extra trailing newlines
+' This file intentionally has no final newline
+
+CON
+  _clkfreq = 10_000_000
+  MAX_COUNT = 50
+
+VAR
+  LONG  counter
+
+PUB main() | i
+  repeat i from 0 to MAX_COUNT
+    counter := i
+  counter := 0

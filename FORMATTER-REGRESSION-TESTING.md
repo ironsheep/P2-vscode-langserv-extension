@@ -22,16 +22,17 @@ Text comparison ("does the formatted file look right?") is subjective and fragil
 
 This is why we chose **compile-and-compare** over text-based golden-file comparison. A text comparison can tell you the formatter produced expected output for one input, but cannot tell you whether a new formatting rule accidentally changed a computed address or string literal.
 
-### 2.2 Cross-Compiler Parity Catches Platform Bugs
+### 2.2 One Compiler, Sources as the Only Saved Input
 
-We maintain two independent compilers in the testing loop:
+Each test compiles the original source and the formatted source with the installed PNut-TS, then compares the two binaries. No compiled output is stored between runs. Because both binaries come from the same compiler in the same run, a difference can only come from the formatting, and a new compiler release cannot make a test stale.
 
-- **PNut** — the official Parallax compiler, Windows-only
-- **PNut-TS** — the cross-platform TypeScript port
+Every comparison runs twice, without `-d` and with `-d`. Debug text and the source text of `debug()` expressions only reach the binary with `-d`, so a change to them is invisible without it.
 
-The `.bin.GOLD` reference files are compiled with PNut on Windows. The test suite compiles with PNut-TS. Phase 1 of our tests verifies that PNut-TS and PNut produce identical binaries *before* any formatting occurs. This catches cross-compiler drift early, before it can confuse formatter testing.
+Every test formats through the shipped pipeline: the real parsers feed the real `DocumentFormattingProvider`, so the tests cannot drift from what users run.
 
-If we used PNut-TS for both GOLD files and test compilation, a bug in PNut-TS that produces incorrect output would go undetected — both sides would agree on the wrong answer.
+Whether PNut-TS matches PNut is not tested here. The PNut-TS project's regression suite compares its output byte for byte against Windows PNut.
+
+The suite used to compare against stored `.bin.GOLD` binaries built by PNut. When the v55 interpreter image grew by 68 bytes, every binary comparison failed on size before comparing any bytes, even though the formatter had not changed. That design was retired in 2026-11.
 
 ### 2.3 Idempotency Prevents Format-on-Save Thrashing
 
@@ -39,27 +40,19 @@ If a formatter is not idempotent (formatting a file twice produces different out
 
 ---
 
-## 3. The Four-Phase Test Suite
+## 3. The Three-Phase Test Suite
 
-The primary test suite (`formatter.gold-equiv.test.ts`) runs four phases against every fixture that has a `.bin.GOLD` file:
+The primary test suite (`formatter.binary-parity.test.ts`) runs three phases. The binary phases run against every fixture that compiles:
 
-### Phase 1: Compiler Parity (PNut-TS vs PNut GOLD)
+### Phase 1: Format + Recompile (The Critical Safety Test)
 
-**What**: Compile the original `.spin2` fixture with PNut-TS. Compare the output `.bin` byte-for-byte against the `.bin.GOLD` (compiled by PNut on Windows).
+**What**: Compile the original `.spin2` source with PNut-TS. Format it, compile the formatted text with PNut-TS, and compare the two binaries.
 
-**Why**: Establishes that the compilers agree on the unmodified source. If this phase fails, the problem is compiler divergence, not the formatter. This phase isolates compiler bugs from formatter bugs.
+**Why**: This is the most important test. If the formatter changes semantics — incorrect indentation that moves code into a different block, keyword case changes inside strings, altered operator spacing — the binary will differ. A passing Phase 1 proves the formatter is semantically safe for that input.
 
-**Failure meaning**: PNut-TS produces different output than PNut for this file. This must be investigated and resolved before formatter testing is meaningful.
+**Failure meaning**: The formatter changed the program's behavior. The assertion message reads: `FORMATTER CHANGED SEMANTICS`. This is a critical bug. If the original source fails to compile, the test fails and says so.
 
-### Phase 2: Format + Recompile (The Critical Safety Test)
-
-**What**: Read the original `.spin2` source, format it, write the formatted text to a temp file, compile with PNut-TS, and compare the resulting `.bin` to `.bin.GOLD`.
-
-**Why**: This is the most important test. If the formatter changes semantics — incorrect indentation that moves code into a different block, keyword case changes inside strings, altered operator spacing — the binary will differ. A passing Phase 2 proves the formatter is semantically safe for that input.
-
-**Failure meaning**: The formatter changed the program's behavior. The assertion message reads: `FORMATTER CHANGED SEMANTICS`. This is a critical bug.
-
-### Phase 3: Idempotency (Format Twice = Same Output)
+### Phase 2: Idempotency (Format Twice = Same Output)
 
 **What**: Format the original source once (pass 1), format the result again (pass 2), compare the text of pass 1 and pass 2 line-by-line.
 
@@ -67,13 +60,13 @@ The primary test suite (`formatter.gold-equiv.test.ts`) runs four phases against
 
 **Failure meaning**: The formatter is unstable. Something in the formatting pipeline produces output that is re-interpreted differently on the next pass. Common causes: a rule that shifts a comment that another rule then shifts back, or alignment math that rounds differently based on starting column.
 
-**Note**: Phase 3 runs against ALL fixtures (even those without `.bin.GOLD`), since idempotency testing doesn't require compilation.
+**Note**: Phase 2 runs against ALL fixtures (even those that do not compile), since idempotency testing doesn't require compilation.
 
-### Phase 4: Double-Format + Recompile
+### Phase 3: Double-Format + Recompile
 
-**What**: Format twice (ensuring the idempotent state), compile the double-formatted file, and compare to `.bin.GOLD`.
+**What**: Format twice (ensuring the idempotent state), compile the double-formatted file, and compare to the compiled original.
 
-**Why**: Catches a subtle class of bugs where the first format pass produces semantically correct but unstable output. The second pass "fixes" the instability but introduces a semantic change. Phase 2 alone wouldn't catch this because it only formats once. Phase 3 alone wouldn't catch it because text comparison can't detect semantic changes.
+**Why**: Catches a subtle class of bugs where the first format pass produces semantically correct but unstable output. The second pass "fixes" the instability but introduces a semantic change. Phase 1 alone wouldn't catch this because it only formats once. Phase 2 alone wouldn't catch it because text comparison can't detect semantic changes.
 
 **Failure meaning**: The formatter is unstable AND the instability affects compiled output. The assertion reads: `FORMATTER IS UNSTABLE`.
 
@@ -81,7 +74,7 @@ The primary test suite (`formatter.gold-equiv.test.ts`) runs four phases against
 
 ## 4. The Safety Test Suite
 
-The secondary test suite (`formatter.safety.test.ts`) complements the gold-standard tests with broader coverage:
+The secondary test suite (`formatter.safety.test.ts`) complements the binary parity tests with broader coverage:
 
 ### 4.1 Configuration Variation Testing
 
@@ -108,7 +101,7 @@ The formatter has 16+ configuration settings. Each setting must produce stable, 
 
 For each variant, two tests run:
 1. **Idempotency** — format twice with that config, results must match
-2. **Binary parity** — format with that config, recompile, binary must match GOLD
+2. **Binary parity** — format with that config, recompile, binary must match the compiled original
 
 This catches bugs where a specific configuration combination produces unstable or semantically incorrect output.
 
@@ -118,7 +111,7 @@ A chained test that formats the same fixture through five different whitespace m
 
 `tabs-8 → spaces-2 → spaces-4 → elastic-IronSheep → elastic-PropellerTool`
 
-After each step, the formatted file is compiled and compared to `.bin.GOLD`. This proves that switching between tab modes, indent sizes, and elastic tabstop profiles never changes the compiled output. The chain also exercises round-tripping: spaces → tabs → spaces.
+After each step, the formatted file is compiled and compared to the compiled original. This proves that switching between tab modes, indent sizes, and elastic tabstop profiles never changes the compiled output. The chain also exercises round-tripping: spaces → tabs → spaces.
 
 ### 4.3 Crash Resilience
 
@@ -168,9 +161,7 @@ Each `.spin2` file targets a specific formatting feature or known bug:
 | `edge-*` | Edge cases | `edge-dat-local-labels.spin2` |
 | `inline-pasm-*` | Inline PASM within methods | `inline-pasm-multi-region.spin2` |
 
-Each fixture has companion `.bin.GOLD`, `.lst.GOLD`, and `.obj.GOLD` files compiled by PNut on Windows.
-
-**Total**: ~53 targeted fixture files, ~133 GOLD reference files.
+**Total**: 54 fixture files. Two column-alignment reproducers, `regr-dat-data-instr-columns` (D.14) and `regr-pasm-label-detection` (D.12), do not compile, so they run in the idempotency tests only. They are named in `FORMAT_ONLY_FIXTURES` in `formatter.test-utils.ts`. Any other fixture that fails to compile fails its tests.
 
 ### 5.2 Production File Tests (`TEST-FORMATTER/`)
 
@@ -178,18 +169,7 @@ Real-world production Spin2 files (driver objects, exerciser programs) across mu
 
 ### 5.3 Auto-Discovery
 
-The test runner automatically discovers fixtures:
-
-```typescript
-// Phase 1-4: Only run for fixtures that have a .bin.GOLD companion
-const goldPath = path.join(FIXTURES_DIR, `${base}.bin.GOLD`);
-if (fs.existsSync(goldPath)) { /* include in gold-standard tests */ }
-
-// Phase 3 (idempotency): Run for ALL .spin2 fixtures
-const files = fs.readdirSync(FIXTURES_DIR).filter(f => f.endsWith('.spin2'));
-```
-
-No test registration is needed. Drop a `.spin2` file and its `.bin.GOLD` into the fixtures directory and it automatically participates in all four phases.
+The test runner automatically discovers every `.spin2` file in the fixtures directory. No test registration is needed. Drop a `.spin2` file in and it automatically participates in all three phases.
 
 ---
 
@@ -208,28 +188,7 @@ This architecture was chosen deliberately:
 
 ---
 
-## 7. GOLD File Requirements
-
-### Why PNut on Windows?
-
-The `.bin.GOLD` files **must** be compiled by PNut (the official Parallax compiler) on Windows, not by PNut-TS. This is a deliberate design decision:
-
-- **PNut** is the reference compiler. If PNut and PNut-TS disagree, PNut is correct.
-- **Phase 1** verifies cross-compiler parity. If GOLD files were compiled by PNut-TS, Phase 1 would always pass trivially (comparing PNut-TS output to itself) and compiler divergence would go undetected.
-- When PNut-TS fixes a bug, the GOLD files don't need to change — they represent the correct output, not "whatever PNut-TS produces."
-
-### Creating New GOLD Files
-
-1. Write the `.spin2` fixture file
-2. Open it in PNut on Windows
-3. Compile (produces `.bin`, `.lst`, `.obj`, `.map`)
-4. Rename with `.GOLD` suffix: `mytest.bin` → `mytest.bin.GOLD`
-5. Copy GOLD files to the fixtures directory
-6. Commit both the `.spin2` source and all `.GOLD` files
-
----
-
-## 8. Adding a New Regression Test
+## 7. Adding a New Regression Test
 
 When a formatter bug is found:
 
@@ -237,37 +196,31 @@ When a formatter bug is found:
 
 2. **Document the bug** — Add a comment at the top of the fixture explaining what it tests and why. Add an entry to Appendix D of `SPIN2-FORMATTER-RULES.md`.
 
-3. **Compile GOLD files on Windows** — Use PNut to create `.bin.GOLD`, `.lst.GOLD`, `.obj.GOLD`.
+3. **Fix the bug** — Implement the fix in the formatter source.
 
-4. **Fix the bug** — Implement the fix in the formatter source.
+4. **Run the test suite** — `npm run test:formatter:binary` and `npm run test:formatter:safety`, one at a time. Your new fixture is auto-discovered.
 
-5. **Run the test suite** — `npm run test:formatter:gold` and `npm run test:formatter:safety`. Your new fixture is auto-discovered.
-
-6. **Verify all four phases pass** for the new fixture AND all existing fixtures.
+5. **Verify all three phases pass** for the new fixture AND all existing fixtures.
 
 ---
 
-## 9. Running the Tests
+## 8. Running the Tests
 
 ```bash
-# Run only gold-standard binary equivalence tests (requires pnut-ts)
-npm run test:formatter:gold        # timeout: 60s
+# Run only the binary equivalence tests (requires pnut-ts)
+npm run test:formatter:binary      # timeout: 60s
 
 # Run safety tests (config variants, crash resilience, real-world files)
 npm run test:formatter:safety      # timeout: 120s
-
-# Run both test suites
-npm run test:formatter             # timeout: 60s
-
-# Run all server-side tests (includes formatter tests)
-npm run test:server
 ```
 
-**Prerequisite**: PNut-TS must be installed and on the PATH for binary equivalence tests. Phases 1, 2, and 4 are skipped if PNut-TS is not available. Phase 3 (idempotency) always runs.
+Run one test file at a time. A full-suite run can lock up the machine, so avoid `npm run test:formatter` and `npm run test:server`.
+
+**Prerequisite**: PNut-TS must be installed and on the PATH for binary equivalence tests. Phases 1 and 3 are skipped if PNut-TS is not available. Phase 2 (idempotency) always runs.
 
 ---
 
-## 10. Known Regression Cases (Summary)
+## 9. Known Regression Cases (Summary)
 
 Each of these bugs has a dedicated fixture file and is documented in Appendix D of `SPIN2-FORMATTER-RULES.md`:
 
@@ -281,7 +234,7 @@ Each of these bugs has a dedicated fixture file and is documented in Appendix D 
 | D.6 | `''` doc comments split incorrectly | Regex matched second `'` as content | (code fix) |
 | D.8 | PASM mnemonics changed inside DAT strings | PASM case normalizer didn't skip string content | `regr-pasm-case-strings` |
 | D.9 | CASE_FAST inline PASM indent broken | Same as D.2 but for `case_fast` blocks | `regr-casefast-org-indent` |
-| D.10 | GOLD files compiled with wrong tool | Process rule: must use PNut on Windows | (process) |
+| D.10 | Stored PNut binaries failed every test when the compiler changed | Tests depended on a saved compiled binary; retired for same-compiler comparison | (process) |
 | D.11 | Mixed tab/space indent changes nesting | Stack won't pop below base; indent below base pushed as deeper level | `regr-mixed-tab-space-indent` |
 | D.12 | PASM labels misidentified as mnemonics | No known instruction set for label-vs-mnemonic detection | `regr-pasm-label-detection` |
 | D.13 | `debug()` calls inflate PASM column widths | String whitespace splits mnemonic token | `regr-debug-pasm-columns` |
@@ -291,15 +244,19 @@ Each of these bugs has a dedicated fixture file and is documented in Appendix D 
 | — | OBJ array declarations rejected | Name regex didn't accept `[count]` suffix | `regr-obj-array-decl` |
 | — | Preprocessor directives indented | No special handling for `#define`, `#ifdef`, etc. | `regr-preprocessor-preserve` |
 | D.17 | Comment spacing destroys column alignment | `normalizeCommentSpacing` reconstructed line with hard-coded 2-space gap instead of preserving formatter-computed gap | `regr-comment-space-alignment` |
+| D.18 | Whitespace and case changed inside strings, debug text and `debug()` expressions | Tab conversion had no awareness of compiled text, and case normalization lost track of `debug()` at a string | `regr-literal-text-whitespace` |
+| D.19 | Comment text changed on every format | Tab compression miscounted columns past existing tabs on parser-grouped comments | `regr-comment-text-whitespace` |
+| D.20 | Trailing comments moved on the second format | Small-block size counted blank lines that formatting adds | `align-con-enums` with `blank-lines-3` |
 
 ---
 
-## 11. Why This Approach Works
+## 10. Why This Approach Works
 
-The combination of binary equivalence testing, cross-compiler parity verification, idempotency checks, configuration variant testing, and crash resilience testing provides overlapping safety nets:
+The combination of binary equivalence testing, idempotency checks, configuration variant testing, and crash resilience testing provides overlapping safety nets:
 
 - **Binary equivalence** catches any semantic change, no matter how subtle
-- **Cross-compiler parity** prevents GOLD file contamination
+- **Expected output** (`formatter.expected-output.test.ts`, `formatter.literal-text.test.ts`) catches a phase or setting that stops doing its job, which binary equivalence cannot: a formatter that changes nothing passes it
+- **Language server entry** (`formatter.lsp-entry.test.ts`) covers the `enable` switch, file types, settings read from the client and the returned edit
 - **Idempotency** prevents format-on-save loops
 - **Config variants** ensure no combination of settings produces broken output
 - **Cross-config chaining** verifies round-tripping between tab modes

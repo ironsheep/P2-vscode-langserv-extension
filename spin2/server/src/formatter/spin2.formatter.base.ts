@@ -83,22 +83,46 @@ export function getLineWidth(tabStops: number[]): number {
   return 80; // fallback
 }
 
+/** Where a line's literal text and trailing comment are. */
+export interface LineTextRegions {
+  /** literal[i] is true when line[i] is part of a string or inside a debug() call. */
+  literal: boolean[];
+  /** Index of the ' that starts a trailing comment, or the line length when there is none. */
+  commentStart: number;
+  /** Depth of a debug() call this line leaves open with `...`, for scanning the next line. */
+  openDebugDepth: number;
+}
+
+const DEBUG_CALL_OPEN_RE = /(^|[^\w.])debug\s*(\[[^\]]*\]\s*)?$/i;
+
 /**
- * Split a line into code portion and trailing comment.
- * Handles: ' comment, '' doc comment
+ * Find the text in a line that whitespace rewriting must not touch.
+ * The compiler stores strings, debug backtick text and the source text of debug()
+ * expressions (debug(udec(a + b)) prints "a + b = 3"), so their whitespace is data.
+ * Only a continuation line's indent is free to change.
  * Does NOT treat ' inside strings or debug backtick expressions as comments.
  * In Spin2, debug(`widget 'title' ...) uses ' as a title delimiter inside
  * backtick expressions — these must not be mistaken for line comments.
- * Returns [codePart, commentPart] where commentPart includes the ' character.
- * If no trailing comment, commentPart is empty string.
+ *
+ * @param line - the line to scan
+ * @param openDebugDepth - openDebugDepth from the previous line, when scanning a whole file
  */
-export function splitTrailingComment(line: string): [string, string] {
+export function findLineTextRegions(line: string, openDebugDepth: number = 0): LineTextRegions {
+  const literal: boolean[] = new Array(line.length).fill(false);
   let inDoubleQuote = false;
   let inBacktick = false;
   let parenDepth = 0;
+  let debugDepth = openDebugDepth;
+  let atIndent = true;
+  let commentStart = line.length;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
+    if (atIndent && (ch === ' ' || ch === '\t')) {
+      continue;
+    }
+    atIndent = false;
     if (inBacktick) {
+      literal[i] = true;
       // Inside a backtick expression: track parens to find the enclosing close-paren.
       // Paren depth starts at 0 when entering backtick mode; nested ( ) pairs within
       // the expression are balanced.  The ) that closes the enclosing debug() call
@@ -110,30 +134,63 @@ export function splitTrailingComment(line: string): [string, string] {
         if (parenDepth < 0) {
           inBacktick = false;
           parenDepth = 0;
+          debugDepth = Math.max(0, debugDepth - 1);
         }
       }
       // ' inside backtick is a title delimiter, not a comment
       continue;
     }
     if (ch === '"') {
+      literal[i] = true;
       inDoubleQuote = !inDoubleQuote;
       continue;
     }
-    if (inDoubleQuote) continue;
+    if (inDoubleQuote) {
+      literal[i] = true;
+      continue;
+    }
     if (ch === '`') {
       // Start of a backtick expression (debug widget syntax)
+      literal[i] = true;
       inBacktick = true;
       parenDepth = 0;
       continue;
     }
     if (ch === "'") {
-      // found a comment start — return code trimmed of trailing space, and the comment
-      const codePart = line.substring(0, i).trimEnd();
-      const commentPart = line.substring(i);
-      return [codePart, commentPart];
+      commentStart = i;
+      break;
+    }
+    if (debugDepth > 0) {
+      literal[i] = true;
+      if (ch === '(') {
+        debugDepth++;
+      } else if (ch === ')') {
+        debugDepth--;
+      }
+    } else if (ch === '(' && DEBUG_CALL_OPEN_RE.test(line.substring(0, i))) {
+      debugDepth = 1;
     }
   }
-  return [line, ''];
+  const code = line.substring(0, commentStart).trim();
+  if (code.length === 0) {
+    return { literal, commentStart, openDebugDepth };
+  }
+  return { literal, commentStart, openDebugDepth: code.endsWith('...') ? debugDepth : 0 };
+}
+
+/**
+ * Split a line into code portion and trailing comment.
+ * Handles: ' comment, '' doc comment
+ * Returns [codePart, commentPart] where commentPart includes the ' character.
+ * If no trailing comment, commentPart is empty string.
+ */
+export function splitTrailingComment(line: string): [string, string] {
+  const { commentStart } = findLineTextRegions(line);
+  if (commentStart === line.length) {
+    return [line, ''];
+  }
+  // found a comment start — return code trimmed of trailing space, and the comment
+  return [line.substring(0, commentStart).trimEnd(), line.substring(commentStart)];
 }
 
 /**

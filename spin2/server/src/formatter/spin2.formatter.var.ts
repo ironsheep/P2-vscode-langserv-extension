@@ -129,7 +129,8 @@ function parseVarLine(line: string, lineIdx: number): VarLine | null {
     return null;
   }
 
-  const type = typeMatch[1].toUpperCase();
+  // Case is left to the typeCase setting
+  const type = typeMatch[1];
   const rest = trimmed.substring(typeMatch[0].length).trim();
   // Normalize spacing in the names portion: single space after comma
   const names = rest.replace(/\s*,\s*/g, ', ');

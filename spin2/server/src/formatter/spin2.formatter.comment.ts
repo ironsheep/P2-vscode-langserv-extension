@@ -6,7 +6,14 @@
 // - PASM instruction case normalization
 // - Space after comment opener (' text vs 'text)
 
-import { splitTrailingComment, isFullLineComment, isColumnZero, isPreprocessorLine } from './spin2.formatter.base';
+import {
+  findCurlyBlockCommentLines,
+  findLineTextRegions,
+  splitTrailingComment,
+  isFullLineComment,
+  isColumnZero,
+  isPreprocessorLine
+} from './spin2.formatter.base';
 import { DocumentFindings, eBLockType } from '../parser/spin.semantic.findings';
 
 // Block section keywords
@@ -189,16 +196,19 @@ export function normalizeMethodBlockCase(
 
   if (sets.length === 0) return;
 
+  let openDebugDepth = 0;
   for (let i = startLine; i <= endLine; i++) {
     if (findings.isLineInBlockComment(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
     if (isPreprocessorLine(lines[i])) continue;
 
+    const regions = findLineTextRegions(lines[i], openDebugDepth);
+    openDebugDepth = regions.openDebugDepth;
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;
     for (const { words, targetCase } of sets) {
-      normalized = normalizeWordsInCode(normalized, words, targetCase);
+      normalized = normalizeWordsInCode(normalized, regions.literal, words, targetCase);
     }
     if (commentPart.length > 0) {
       const originalGapStart = codePart.length;
@@ -248,16 +258,19 @@ export function normalizeDatBlockCase(
 
   if (sets.length === 0) return;
 
+  let openDebugDepth = 0;
   for (let i = startLine; i <= endLine; i++) {
     if (findings.isLineInBlockComment(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (isFullLineComment(lines[i])) continue;
     if (isPreprocessorLine(lines[i])) continue;
 
+    const regions = findLineTextRegions(lines[i], openDebugDepth);
+    openDebugDepth = regions.openDebugDepth;
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;
     for (const { words, targetCase } of sets) {
-      normalized = normalizeWordsInCode(normalized, words, targetCase);
+      normalized = normalizeWordsInCode(normalized, regions.literal, words, targetCase);
     }
     if (commentPart.length > 0) {
       const originalGapStart = codePart.length;
@@ -297,16 +310,19 @@ export function normalizeNonCodeBlockCase(
 
   if (sets.length === 0) return;
 
+  let openDebugDepth = 0;
   for (let i = startLine; i <= endLine; i++) {
     if (findings.isLineInBlockComment(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
     if (isPreprocessorLine(lines[i])) continue;
 
+    const regions = findLineTextRegions(lines[i], openDebugDepth);
+    openDebugDepth = regions.openDebugDepth;
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;
     for (const { words, targetCase } of sets) {
-      normalized = normalizeWordsInCode(normalized, words, targetCase);
+      normalized = normalizeWordsInCode(normalized, regions.literal, words, targetCase);
     }
     if (commentPart.length > 0) {
       const originalGapStart = codePart.length;
@@ -327,134 +343,34 @@ export function normalizeNonCodeBlockCase(
   }
 }
 
-function normalizeWordsInCode(code: string, wordSet: Set<string>, targetCase: string): string {
-  // Replace words that match the set with the target case, preserving non-word characters.
-  //
-  // Three types of regions are preserved (no keyword normalization):
-  //   1. Double-quoted strings — user text, not code keywords
-  //   2. Backtick expressions (debug widget syntax) — display text, not compiled code
-  //   3. debug() call arguments — the compiler handles keywords specially inside debug()
-  //      and case changes to type keywords (LONG/BYTE/WORD) can produce different binaries
-  //
-  // Strategy: split the code into normalizable and preserved segments, then rejoin.
-  const segments: { text: string; preserve: boolean }[] = [];
-  let inDebugCall = false;
-  let inBacktick = false;
-  let inString = false;
-  let parenDepth = 0;
-  let segStart = 0;
-
-  for (let i = 0; i < code.length; i++) {
-    const ch = code[i];
-
-    // Track double-quoted strings — preserve their content
-    if (inString) {
-      if (ch === '"') {
-        segments.push({ text: code.substring(segStart, i + 1), preserve: true });
-        segStart = i + 1;
-        inString = false;
-      }
-      continue;
+/**
+ * Replace words that match the set with the target case, skipping literal text:
+ * strings, debug backtick text and debug() arguments, all of which the compiler stores.
+ * The word debug itself is code and is normalized.
+ *
+ * @param code - the line's code, a prefix of the line that literal was computed from
+ * @param literal - from findLineTextRegions(); case changes keep every index valid
+ */
+function normalizeWordsInCode(code: string, literal: boolean[], wordSet: Set<string>, targetCase: string): string {
+  return code.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (match: string, _word: string, offset: number) => {
+    if (literal[offset] || !wordSet.has(match.toLowerCase())) {
+      return match;
     }
-    if (ch === '"' && !inBacktick) {
-      segments.push({ text: code.substring(segStart, i), preserve: false });
-      segStart = i;
-      inString = true;
-      continue;
-    }
-
-    if (inBacktick) {
-      // Inside backtick expression: track parens to find enclosing close-paren
-      if (ch === '(') {
-        parenDepth++;
-      } else if (ch === ')') {
-        parenDepth--;
-        if (parenDepth < 0) {
-          segments.push({ text: code.substring(segStart, i), preserve: true });
-          segStart = i;
-          inBacktick = false;
-          inDebugCall = false;
-          parenDepth = 0;
-        }
-      }
-      continue;
-    }
-
-    if (inDebugCall) {
-      // Inside debug() call: track parens to find matching close-paren
-      if (ch === '`') {
-        inBacktick = true;
-        continue;
-      }
-      if (ch === '(') {
-        parenDepth++;
-      } else if (ch === ')') {
-        parenDepth--;
-        if (parenDepth < 0) {
-          // End of debug() call
-          segments.push({ text: code.substring(segStart, i), preserve: true });
-          segStart = i;
-          inDebugCall = false;
-          parenDepth = 0;
-        }
-      }
-      continue;
-    }
-
-    // Outside protected regions: detect debug( and backtick starts
-    if (ch === '`') {
-      segments.push({ text: code.substring(segStart, i), preserve: false });
-      segStart = i;
-      inBacktick = true;
-      parenDepth = 0;
-      continue;
-    }
-
-    if (ch === '(') {
-      // Check if the preceding word is "debug" (case-insensitive)
-      const preceding = code.substring(Math.max(0, i - 5), i);
-      if (/debug$/i.test(preceding)) {
-        // Include "debug(" in the preserved segment so "debug" itself gets normalized
-        // by the preceding non-preserved segment, but the arguments are preserved.
-        // First, flush the segment up to (but not including) the open paren.
-        segments.push({ text: code.substring(segStart, i + 1), preserve: false });
-        segStart = i + 1;
-        inDebugCall = true;
-        parenDepth = 0;
-      }
-    }
-  }
-  // Final segment
-  segments.push({ text: code.substring(segStart), preserve: inBacktick || inDebugCall });
-
-  // Normalize only non-preserved segments
-  return segments
-    .map((seg) => {
-      if (seg.preserve) return seg.text;
-      return seg.text.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (match) => {
-        if (wordSet.has(match.toLowerCase())) {
-          return targetCase === 'lowercase' ? match.toLowerCase() : match.toUpperCase();
-        }
-        return match;
-      });
-    })
-    .join('');
+    return targetCase === 'lowercase' ? match.toLowerCase() : match.toUpperCase();
+  });
 }
 
 /**
  * Ensure a space after comment opener (' text vs 'text).
  */
-export function normalizeCommentSpacing(
-  lines: string[],
-  startLine: number,
-  endLine: number,
-  findings: DocumentFindings,
-  spaceAfterCommentStart: boolean
-): void {
+export function normalizeCommentSpacing(lines: string[], startLine: number, endLine: number, spaceAfterCommentStart: boolean): void {
   if (!spaceAfterCommentStart) return;
 
+  // The parser's block comments include ' groups and '' lines, which this rule does cover.
+  const curlyBlockCommentLines = findCurlyBlockCommentLines(lines, startLine, endLine);
   for (let i = startLine; i <= endLine; i++) {
-    if (findings.isLineInBlockComment(i)) continue;
+    if (curlyBlockCommentLines.has(i)) continue;
+    if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     if (commentPart.length === 0) continue;
@@ -486,12 +402,19 @@ export function extractConConstants(lines: string[], blockSpans: { startLineIdx:
   for (const span of blockSpans) {
     if (span.blockType !== eBLockType.isCon) continue;
 
+    let inStruct = false;
     for (let i = span.startLineIdx; i <= span.endLineIdx; i++) {
       const line = lines[i];
       const trimmed = line.trim();
       // Skip empty lines, comments, and the CON keyword itself
       if (trimmed.length === 0) continue;
       if (trimmed.startsWith("'") || trimmed.startsWith('{')) continue;
+      if (isPreprocessorLine(line)) continue;
+      // A STRUCT line, continued or not, declares a type and members: no constants
+      if (inStruct || /^(con\s+)?struct\b/i.test(trimmed)) {
+        inStruct = splitTrailingComment(line)[0].trimEnd().endsWith('...');
+        continue;
+      }
       if (/^con\b/i.test(trimmed)) {
         // CON keyword line — may have inline assignments like "CON  NAME = value"
         const afterKw = trimmed.substring(3).trim();
