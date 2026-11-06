@@ -7,13 +7,30 @@ import { Provider } from '.';
 import { Context } from '../context';
 import { DocumentFindings, IBlockSpan, eBLockType } from '../parser/spin.semantic.findings';
 import { fileSpecFromURI } from '../parser/lang.utils';
-import { ElasticTabstopConfig, DEFAULT_TABSTOPS, buildRegularTabStops, alignContinuationGroups, splitTrailingComment, padToColumn, isFullLineComment, computeBlockCommentColumn, findCurlyBlockCommentLines } from '../formatter/spin2.formatter.base';
+import {
+  ElasticTabstopConfig,
+  DEFAULT_TABSTOPS,
+  buildRegularTabStops,
+  alignContinuationGroups,
+  splitTrailingComment,
+  padToColumn,
+  isFullLineComment,
+  computeBlockCommentColumn,
+  findCurlyBlockCommentLines
+} from '../formatter/spin2.formatter.base';
 import { formatConBlock } from '../formatter/spin2.formatter.con';
 import { formatVarBlock } from '../formatter/spin2.formatter.var';
 import { formatObjBlock } from '../formatter/spin2.formatter.obj';
 import { formatDatBlock } from '../formatter/spin2.formatter.dat';
 import { formatMethodBlock } from '../formatter/spin2.formatter.method';
-import { CaseConfig, normalizeMethodBlockCase, normalizeDatBlockCase, normalizeNonCodeBlockCase, normalizeCommentSpacing, extractConConstants } from '../formatter/spin2.formatter.comment';
+import {
+  CaseConfig,
+  normalizeMethodBlockCase,
+  normalizeDatBlockCase,
+  normalizeNonCodeBlockCase,
+  normalizeCommentSpacing,
+  extractConConstants
+} from '../formatter/spin2.formatter.comment';
 
 // Tab characters are always 8 columns wide — this is not configurable.
 const TAB_WIDTH = 8;
@@ -251,9 +268,11 @@ export default class DocumentFormattingProvider implements Provider {
 
       // Extend the run: consecutive same-type blocks, each under threshold
       let runEnd = runStart;
-      while (runEnd + 1 < blockSpans.length &&
-             blockSpans[runEnd + 1].blockType === runType &&
-             blockSpans[runEnd + 1].endLineIdx - blockSpans[runEnd + 1].startLineIdx + 1 <= SMALL_BLOCK_THRESHOLD) {
+      while (
+        runEnd + 1 < blockSpans.length &&
+        blockSpans[runEnd + 1].blockType === runType &&
+        blockSpans[runEnd + 1].endLineIdx - blockSpans[runEnd + 1].startLineIdx + 1 <= SMALL_BLOCK_THRESHOLD
+      ) {
         runEnd++;
       }
 

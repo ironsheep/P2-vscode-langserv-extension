@@ -213,12 +213,7 @@ export default class CodeActionProvider implements Provider {
         isPreferred: true,
         edit: {
           changes: {
-            [uri]: [
-              lsp.TextEdit.insert(
-                lsp.Position.create(insertLine, 0),
-                `${directiveText}\n\n`
-              )
-            ]
+            [uri]: [lsp.TextEdit.insert(lsp.Position.create(insertLine, 0), `${directiveText}\n\n`)]
           }
         }
       });
@@ -268,10 +263,13 @@ export default class CodeActionProvider implements Provider {
     }
 
     // Parse comma-separated items
-    const items = sectionText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    const items = sectionText
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
 
     // Find the item containing our symbol (last word, strip array brackets)
-    const targetIdx = items.findIndex(item => {
+    const targetIdx = items.findIndex((item) => {
       const words = item.trim().split(/\s+/);
       const lastWord = words[words.length - 1];
       return lastWord.replace(/\[.*\]$/, '') === symbolName;
@@ -298,10 +296,7 @@ export default class CodeActionProvider implements Provider {
           isPreferred: true,
           edit: {
             changes: {
-              [uri]: [lsp.TextEdit.replace(
-                lsp.Range.create(lineIdx, 0, lineIdx, line.length),
-                commentOutLine
-              )]
+              [uri]: [lsp.TextEdit.replace(lsp.Range.create(lineIdx, 0, lineIdx, line.length), commentOutLine)]
             }
           }
         });
@@ -344,10 +339,7 @@ export default class CodeActionProvider implements Provider {
       isPreferred: !usedInComments,
       edit: {
         changes: {
-          [uri]: [lsp.TextEdit.replace(
-            lsp.Range.create(lineIdx, 0, lineIdx, line.length),
-            newLine
-          )]
+          [uri]: [lsp.TextEdit.replace(lsp.Range.create(lineIdx, 0, lineIdx, line.length), newLine)]
         }
       }
     });
@@ -460,10 +452,7 @@ export default class CodeActionProvider implements Provider {
         isPreferred: true,
         edit: {
           changes: {
-            [uri]: [lsp.TextEdit.replace(
-              lsp.Range.create(lineIdx, 0, lineIdx + 1, 0),
-              ''
-            )]
+            [uri]: [lsp.TextEdit.replace(lsp.Range.create(lineIdx, 0, lineIdx + 1, 0), '')]
           }
         }
       });
@@ -507,12 +496,12 @@ export default class CodeActionProvider implements Provider {
     }
 
     // Find the target variable (strip array brackets for matching)
-    const targetIdx = parsed.findIndex(p => {
+    const targetIdx = parsed.findIndex((p) => {
       const baseName = p.name.replace(/\[.*\]$/, '');
       return baseName.toLowerCase() === symbolName.toLowerCase();
     });
     if (targetIdx < 0) {
-      this._logMessage(`CodeAction: couldn't find VAR '${symbolName}' in segments [${parsed.map(p => p.raw).join(', ')}]`);
+      this._logMessage(`CodeAction: couldn't find VAR '${symbolName}' in segments [${parsed.map((p) => p.raw).join(', ')}]`);
       return;
     }
 
@@ -526,10 +515,7 @@ export default class CodeActionProvider implements Provider {
         isPreferred: true,
         edit: {
           changes: {
-            [uri]: [lsp.TextEdit.replace(
-              lsp.Range.create(lineIdx, 0, lineIdx + 1, 0),
-              ''
-            )]
+            [uri]: [lsp.TextEdit.replace(lsp.Range.create(lineIdx, 0, lineIdx + 1, 0), '')]
           }
         }
       });
@@ -545,7 +531,7 @@ export default class CodeActionProvider implements Provider {
     parsed.splice(targetIdx, 1);
 
     // Rebuild the line
-    const rebuiltSegments = parsed.map(p => p.type.length > 0 ? `${p.type}  ${p.name}` : p.name);
+    const rebuiltSegments = parsed.map((p) => (p.type.length > 0 ? `${p.type}  ${p.name}` : p.name));
     let newLine = indent + rebuiltSegments.join(', ');
     if (commentPart.length > 0) {
       newLine = newLine.trimEnd() + '  ' + commentPart.trimStart();
@@ -559,10 +545,7 @@ export default class CodeActionProvider implements Provider {
       isPreferred: true,
       edit: {
         changes: {
-          [uri]: [lsp.TextEdit.replace(
-            lsp.Range.create(lineIdx, 0, lineIdx, line.length),
-            newLine
-          )]
+          [uri]: [lsp.TextEdit.replace(lsp.Range.create(lineIdx, 0, lineIdx, line.length), newLine)]
         }
       }
     });

@@ -97,11 +97,7 @@ export class GrammarCoverageAnalyzer {
   }
 
   private extractCaptureNames(pattern: any): void {
-    const captureGroups = [
-      pattern.captures,
-      pattern.beginCaptures,
-      pattern.endCaptures
-    ];
+    const captureGroups = [pattern.captures, pattern.beginCaptures, pattern.endCaptures];
 
     for (const captures of captureGroups) {
       if (captures) {
@@ -162,9 +158,7 @@ export class GrammarCoverageAnalyzer {
 
     const totalPatterns = this.allPatternNames.size;
     const coveredPatterns = testedPatterns.size;
-    const coveragePercentage = totalPatterns > 0
-      ? (coveredPatterns / totalPatterns) * 100
-      : 0;
+    const coveragePercentage = totalPatterns > 0 ? (coveredPatterns / totalPatterns) * 100 : 0;
 
     // Categorize patterns
     const patternsByCategory = this.categorizePatterns(testedPatterns);
@@ -240,8 +234,7 @@ export class GrammarCoverageAnalyzer {
     lines.push('-'.repeat(80));
     lines.push('');
 
-    const sortedCategories = Array.from(report.patternsByCategory.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]));
+    const sortedCategories = Array.from(report.patternsByCategory.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
     for (const [category, stats] of sortedCategories) {
       const percentage = stats.total > 0 ? (stats.covered / stats.total) * 100 : 0;
@@ -327,11 +320,7 @@ export class GrammarCoverageAnalyzer {
 /**
  * Main function to run coverage analysis
  */
-export function runCoverageAnalysis(
-  grammarPath: string,
-  testFiles: string[],
-  outputPath?: string
-): void {
+export function runCoverageAnalysis(grammarPath: string, testFiles: string[], outputPath?: string): void {
   const analyzer = new GrammarCoverageAnalyzer(grammarPath);
   const report = analyzer.analyzeCoverage(testFiles);
   const reportText = analyzer.generateReport(report);

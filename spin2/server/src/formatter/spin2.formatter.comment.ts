@@ -10,16 +10,29 @@ import { splitTrailingComment, isFullLineComment, isColumnZero, isPreprocessorLi
 import { DocumentFindings, eBLockType } from '../parser/spin.semantic.findings';
 
 // Block section keywords
-const BLOCK_NAME_KEYWORDS = new Set([
-  'con', 'var', 'obj', 'dat', 'pub', 'pri'
-]);
+const BLOCK_NAME_KEYWORDS = new Set(['con', 'var', 'obj', 'dat', 'pub', 'pri']);
 
 // Control flow keywords
 const CONTROL_FLOW_KEYWORDS = new Set([
-  'if', 'ifnot', 'elseif', 'elseifnot', 'else',
-  'case', 'case_fast', 'other',
-  'repeat', 'from', 'to', 'step', 'while', 'until', 'with',
-  'next', 'quit', 'return', 'abort'
+  'if',
+  'ifnot',
+  'elseif',
+  'elseifnot',
+  'else',
+  'case',
+  'case_fast',
+  'other',
+  'repeat',
+  'from',
+  'to',
+  'step',
+  'while',
+  'until',
+  'with',
+  'next',
+  'quit',
+  'return',
+  'abort'
 ]);
 
 // Full set of built-in methods, constants, and registers (from spin2.utils.ts).
@@ -93,9 +106,7 @@ const METHOD_KEYWORDS = new Set(
 );
 
 // Type keywords
-const TYPE_KEYWORDS = new Set([
-  'byte', 'word', 'long', 'struct', 'fvar', 'fvars'
-]);
+const TYPE_KEYWORDS = new Set(['byte', 'word', 'long', 'struct', 'fvar', 'fvars']);
 
 // Full P2 PASM instruction set + assembler directives (from spin2.utils.ts isP2AsmInstruction).
 // Used for pasmInstructionCase normalization.
@@ -133,11 +144,11 @@ const PASM_INSTRUCTIONS = new Set(
  * Case normalization configuration for the 6 granular controls.
  */
 export interface CaseConfig {
-  blockNameCase: string;       // 'lowercase' | 'uppercase' | 'preserve'
-  controlFlowCase: string;     // 'lowercase' | 'uppercase' | 'preserve'
-  methodCase: string;          // 'lowercase' | 'uppercase' | 'preserve'
-  typeCase: string;            // 'lowercase' | 'uppercase' | 'preserve'
-  constantCase: string;        // 'lowercase' | 'uppercase' | 'preserve'
+  blockNameCase: string; // 'lowercase' | 'uppercase' | 'preserve'
+  controlFlowCase: string; // 'lowercase' | 'uppercase' | 'preserve'
+  methodCase: string; // 'lowercase' | 'uppercase' | 'preserve'
+  typeCase: string; // 'lowercase' | 'uppercase' | 'preserve'
+  constantCase: string; // 'lowercase' | 'uppercase' | 'preserve'
   pasmInstructionCase: string; // 'lowercase' | 'uppercase' | 'preserve'
 }
 

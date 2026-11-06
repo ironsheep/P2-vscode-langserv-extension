@@ -186,7 +186,9 @@ export default class TextDocumentSyncProvider implements Provider {
           this.ctx.parserConfig.includeDirectoryDiscoveryEnabled = newEnabled;
           configChanged = true;
         }
-        this.ctx.logger.log(`  DBG --  ctx.parserConfig.includeDirectoryDiscoveryEnabled=(${this.ctx.parserConfig.includeDirectoryDiscoveryEnabled})`);
+        this.ctx.logger.log(
+          `  DBG --  ctx.parserConfig.includeDirectoryDiscoveryEnabled=(${this.ctx.parserConfig.includeDirectoryDiscoveryEnabled})`
+        );
       }
     });
     // fetch per-folder local include settings
@@ -210,7 +212,9 @@ export default class TextDocumentSyncProvider implements Provider {
             this.ctx.parserConfig.excludeIncludeDirectories = newExcludes;
             configChanged = true;
           }
-          this.ctx.logger.log(`  DBG --  ctx.parserConfig.excludeIncludeDirectories=(${JSON.stringify(this.ctx.parserConfig.excludeIncludeDirectories)})`);
+          this.ctx.logger.log(
+            `  DBG --  ctx.parserConfig.excludeIncludeDirectories=(${JSON.stringify(this.ctx.parserConfig.excludeIncludeDirectories)})`
+          );
         }
       });
     return configChanged;

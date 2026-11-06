@@ -183,7 +183,9 @@ export class IncludeDiscovery {
       }
       this.ctx.logger.log(`TRC: IncludeDiscovery.runDiscovery() DONE, ${Object.keys(discoveredIncludes).length} folder entries (CHANGED)`);
     } else {
-      this.ctx.logger.log(`TRC: IncludeDiscovery.runDiscovery() DONE, ${Object.keys(discoveredIncludes).length} folder entries (unchanged, no notification sent)`);
+      this.ctx.logger.log(
+        `TRC: IncludeDiscovery.runDiscovery() DONE, ${Object.keys(discoveredIncludes).length} folder entries (unchanged, no notification sent)`
+      );
     }
   }
 

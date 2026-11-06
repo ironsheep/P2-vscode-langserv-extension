@@ -4,7 +4,16 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Context, ServerBehaviorConfiguration, EditorConfiguration } from '../context';
 
-import { DocumentFindings, RememberedComment, eCommentType, RememberedToken, eBLockType, eSeverity, eDefinitionType, TokenSet } from './spin.semantic.findings';
+import {
+  DocumentFindings,
+  RememberedComment,
+  eCommentType,
+  RememberedToken,
+  eBLockType,
+  eSeverity,
+  eDefinitionType,
+  TokenSet
+} from './spin.semantic.findings';
 import { Spin1ParseUtils } from './spin1.utils';
 import { isSpin1File } from './lang.utils';
 import { eParseState, SpinControlFlowTracker, ICurrControlSpan } from './spin.common';
@@ -1532,13 +1541,18 @@ export class Spin1DocumentSemanticParser {
               // record a constant declaration!
               const updatedModificationSet: string[] =
                 directive.toLowerCase() == '#define' ? referenceDetails.modifiersWith('declaration') : referenceDetails.modifiers;
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: symbolName.length,
-                ptTokenType: referenceDetails.type,
-                ptTokenModifiers: updatedModificationSet
-              }, symbolName);
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: symbolName.length,
+                  ptTokenType: referenceDetails.type,
+                  ptTokenModifiers: updatedModificationSet
+                },
+                symbolName
+              );
             } else if (this.parseUtils.isFlexspinReservedWord(symbolName)) {
               // record a constant reference
               this._recordToken(tokenSet, line, {
@@ -1646,22 +1660,32 @@ export class Spin1DocumentSemanticParser {
           if (referenceDetails !== undefined) {
             // this is a constant declaration!
             const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: lhsConstantName.length,
-              ptTokenType: referenceDetails.type,
-              ptTokenModifiers: modifiersWDecl
-            }, lhsConstantName);
+            this._recordToken(
+              tokenSet,
+              line,
+              {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: lhsConstantName.length,
+                ptTokenType: referenceDetails.type,
+                ptTokenModifiers: modifiersWDecl
+              },
+              lhsConstantName
+            );
           } else {
             this._logCON('  --  CON ERROR[CODE] missed recording declaration! name=[' + lhsConstantName + ']');
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: nameOffset,
-              length: lhsConstantName.length,
-              ptTokenType: 'variable',
-              ptTokenModifiers: ['readonly', 'missingDeclaration']
-            }, lhsConstantName);
+            this._recordToken(
+              tokenSet,
+              line,
+              {
+                line: lineIdx,
+                startCharacter: nameOffset,
+                length: lhsConstantName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['readonly', 'missingDeclaration']
+              },
+              lhsConstantName
+            );
             this.semanticFindings.pushDiagnosticMessage(
               lineIdx,
               nameOffset,
@@ -1714,13 +1738,18 @@ export class Spin1DocumentSemanticParser {
               }
               if (referenceDetails !== undefined) {
                 // this is a constant reference!
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: namePart.length,
-                  ptTokenType: referenceDetails.type,
-                  ptTokenModifiers: referenceDetails.modifiers
-                }, namePart);
+                this._recordToken(
+                  tokenSet,
+                  line,
+                  {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: namePart.length,
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: referenceDetails.modifiers
+                  },
+                  namePart
+                );
               } else {
                 if (
                   !this.parseUtils.isSpinReservedWord(namePart) &&
@@ -1730,13 +1759,18 @@ export class Spin1DocumentSemanticParser {
                   !this.parseUtils.isP1AsmReservedWord(namePart)
                 ) {
                   this._logCON('  --  CON MISSING name=[' + namePart + ']');
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: namePart.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['readonly', 'missingDeclaration']
-                  }, namePart);
+                  this._recordToken(
+                    tokenSet,
+                    line,
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: namePart.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['readonly', 'missingDeclaration']
+                    },
+                    namePart
+                  );
                   this.semanticFindings.pushDiagnosticMessage(
                     lineIdx,
                     nameOffset,
@@ -1773,26 +1807,36 @@ export class Spin1DocumentSemanticParser {
                 this._logCON('  -- GLBL enumConstant=[' + enumConstant + ']');
                 // our enum name can have a step offset
                 nameOffset = line.indexOf(enumExistingName, currentOffset);
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: enumExistingName.length,
-                  ptTokenType: 'enumMember',
-                  ptTokenModifiers: ['readonly']
-                }, enumExistingName);
+                this._recordToken(
+                  tokenSet,
+                  line,
+                  {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: enumExistingName.length,
+                    ptTokenType: 'enumMember',
+                    ptTokenModifiers: ['readonly']
+                  },
+                  enumExistingName
+                );
               }
             }
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON('  -- GLBL enumConstant=[' + enumConstant + ']');
               // our enum name can have a step offset
               nameOffset = line.indexOf(enumConstant, currentOffset);
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: enumConstant.length,
-                ptTokenType: 'enumMember',
-                ptTokenModifiers: ['declaration', 'readonly']
-              }, enumConstant);
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: enumConstant.length,
+                  ptTokenType: 'enumMember',
+                  ptTokenModifiers: ['declaration', 'readonly']
+                },
+                enumConstant
+              );
             }
             currentOffset = nameOffset + enumConstant.length;
           }
@@ -3121,13 +3165,18 @@ export class Spin1DocumentSemanticParser {
       const objectName = lineParts[0];
       // object name token must be offset into full line for token
       const nameOffset: number = line.indexOf(objectName, currentOffset);
-      this._recordToken(tokenSet, line, {
-        line: lineIdx,
-        startCharacter: nameOffset,
-        length: objectName.length,
-        ptTokenType: 'namespace',
-        ptTokenModifiers: ['declaration']
-      }, objectName);
+      this._recordToken(
+        tokenSet,
+        line,
+        {
+          line: lineIdx,
+          startCharacter: nameOffset,
+          length: objectName.length,
+          ptTokenType: 'namespace',
+          ptTokenModifiers: ['declaration']
+        },
+        objectName
+      );
       // record document link for the quoted filename (e.g., objName : "filename")
       const quoteStartIdx: number = line.indexOf('"', currentOffset);
       if (quoteStartIdx != -1) {
@@ -3170,37 +3219,52 @@ export class Spin1DocumentSemanticParser {
                 if (referenceDetails !== undefined) {
                   //const updatedModificationSet: string[] = this._modifiersWithout(referenceDetails.modifiers, "declaration");
                   this._logOBJ('  --  FOUND OBJ global name=[' + nameReference + ']');
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: nameReference.length,
-                    ptTokenType: referenceDetails.type,
-                    ptTokenModifiers: referenceDetails.modifiers
-                  }, nameReference);
+                  this._recordToken(
+                    tokenSet,
+                    line,
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: nameReference.length,
+                      ptTokenType: referenceDetails.type,
+                      ptTokenModifiers: referenceDetails.modifiers
+                    },
+                    nameReference
+                  );
                 }
               } else {
                 // have possible dotted reference with name in other object. if has to be a constant
                 if (!hasOpenParen) {
                   this._logOBJ('  --  OBJ Constant in external object name=[' + nameReference + ']');
                   const nameOffset = line.indexOf(nameReference, currentOffset);
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: nameReference.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['readonly']
-                  }, nameReference);
+                  this._recordToken(
+                    tokenSet,
+                    line,
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: nameReference.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['readonly']
+                    },
+                    nameReference
+                  );
                 }
                 // we don't have name registered so just mark it
                 else if (!this.parseUtils.isSpinReservedWord(nameReference) && !this.parseUtils.isBuiltinReservedWord(nameReference)) {
                   this._logOBJ('  --  OBJ MISSING name=[' + nameReference + ']');
-                  this._recordToken(tokenSet, line, {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: nameReference.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['missingDeclaration']
-                  }, nameReference);
+                  this._recordToken(
+                    tokenSet,
+                    line,
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: nameReference.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['missingDeclaration']
+                    },
+                    nameReference
+                  );
                   this.semanticFindings.pushDiagnosticMessage(
                     lineIdx,
                     nameOffset,
@@ -3255,22 +3319,32 @@ export class Spin1DocumentSemanticParser {
             }
             if (referenceDetails !== undefined) {
               this._logVAR('  -- GLBL found rvdl newName=[' + newName + ']');
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: newName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['declaration', 'instance']
-              }, newName);
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: newName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['declaration', 'instance']
+                },
+                newName
+              );
             } else {
               this._logVAR('  --  VAR Add MISSING name=[' + newName + ']');
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: newName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['missingDeclaration']
-              }, newName);
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: newName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['missingDeclaration']
+                },
+                newName
+              );
               this.semanticFindings.pushDiagnosticMessage(
                 lineIdx,
                 nameOffset,
@@ -3310,24 +3384,34 @@ export class Spin1DocumentSemanticParser {
                   nameOffset = line.indexOf(searchString, currentOffset);
                   if (referenceDetails !== undefined) {
                     this._logVAR('  --  FOUND VAR global name=[' + namePart + ']');
-                    this._recordToken(tokenSet, line, {
-                      line: lineIdx,
-                      startCharacter: nameOffset,
-                      length: namePart.length,
-                      ptTokenType: referenceDetails.type,
-                      ptTokenModifiers: referenceDetails.modifiers
-                    }, namePart);
+                    this._recordToken(
+                      tokenSet,
+                      line,
+                      {
+                        line: lineIdx,
+                        startCharacter: nameOffset,
+                        length: namePart.length,
+                        ptTokenType: referenceDetails.type,
+                        ptTokenModifiers: referenceDetails.modifiers
+                      },
+                      namePart
+                    );
                   } else {
                     // we don't have name registered so just mark it
                     if (!this.parseUtils.isSpinReservedWord(namePart) && !this.parseUtils.isBuiltinReservedWord(namePart)) {
                       this._logVAR('  --  VAR Add MISSING name=[' + namePart + ']');
-                      this._recordToken(tokenSet, line, {
-                        line: lineIdx,
-                        startCharacter: nameOffset,
-                        length: namePart.length,
-                        ptTokenType: 'variable',
-                        ptTokenModifiers: ['missingDeclaration']
-                      }, namePart);
+                      this._recordToken(
+                        tokenSet,
+                        line,
+                        {
+                          line: lineIdx,
+                          startCharacter: nameOffset,
+                          length: namePart.length,
+                          ptTokenType: 'variable',
+                          ptTokenModifiers: ['missingDeclaration']
+                        },
+                        namePart
+                      );
                       this.semanticFindings.pushDiagnosticMessage(
                         lineIdx,
                         nameOffset,
@@ -3350,13 +3434,18 @@ export class Spin1DocumentSemanticParser {
         if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/)) {
           this._logVAR(`  -- GLBL rvdl2 newName=[${newName}]`);
           const nameOffset: number = line.indexOf(newName, currentOffset);
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: nameOffset,
-            length: newName.length,
-            ptTokenType: 'variable',
-            ptTokenModifiers: ['declaration', 'instance']
-          }, newName);
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: nameOffset,
+              length: newName.length,
+              ptTokenType: 'variable',
+              ptTokenModifiers: ['declaration', 'instance']
+            },
+            newName
+          );
         }
       }
     }
@@ -3396,13 +3485,18 @@ export class Spin1DocumentSemanticParser {
         if (referenceDetails !== undefined) {
           //this._logPASM('  --  Debug() colorize name=[' + newParameter + ']');
           bGeneratedReference = true;
-          this._recordToken(tokenSet, line, {
-            line: lineIdx,
-            startCharacter: symbolOffset,
-            length: objInstanceName.length,
-            ptTokenType: referenceDetails.type,
-            ptTokenModifiers: referenceDetails.modifiers
-          }, objInstanceName);
+          this._recordToken(
+            tokenSet,
+            line,
+            {
+              line: lineIdx,
+              startCharacter: symbolOffset,
+              length: objInstanceName.length,
+              ptTokenType: referenceDetails.type,
+              ptTokenModifiers: referenceDetails.modifiers
+            },
+            objInstanceName
+          );
           if (possibleNameSet.length > 1) {
             // we have .constant namespace suffix
             // determine if this is method has '(' or constant name
@@ -3427,21 +3521,31 @@ export class Spin1DocumentSemanticParser {
               const haveExpectedType: boolean = referenceTypeID === tokenTypeID;
               if (haveExpectedType) {
                 this._logMessage(`  --  rObjRef rhs constant=[${objReferencedName}], ofs=(${referenceOffset}) (${tokenTypeID})`);
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: referenceOffset,
-                  length: objReferencedName.length,
-                  ptTokenType: tokenTypeID,
-                  ptTokenModifiers: tokenModifiers
-                }, objReferencedName);
+                this._recordToken(
+                  tokenSet,
+                  line,
+                  {
+                    line: lineIdx,
+                    startCharacter: referenceOffset,
+                    length: objReferencedName.length,
+                    ptTokenType: tokenTypeID,
+                    ptTokenModifiers: tokenModifiers
+                  },
+                  objReferencedName
+                );
               } else {
-                this._recordToken(tokenSet, line, {
-                  line: lineIdx,
-                  startCharacter: referenceOffset,
-                  length: objReferencedName.length,
-                  ptTokenType: tokenTypeID,
-                  ptTokenModifiers: ['illegalUse']
-                }, objReferencedName);
+                this._recordToken(
+                  tokenSet,
+                  line,
+                  {
+                    line: lineIdx,
+                    startCharacter: referenceOffset,
+                    length: objReferencedName.length,
+                    ptTokenType: tokenTypeID,
+                    ptTokenModifiers: ['illegalUse']
+                  },
+                  objReferencedName
+                );
                 const expectedType: string = isMethod ? 'METHOD Name' : 'Constant Name';
                 const recievedType: string = isMethod ? 'Constant Name' : 'METHOD Name';
                 const joinString: string = isMethod ? '.' : '#';
@@ -3455,13 +3559,18 @@ export class Spin1DocumentSemanticParser {
               }
             } else {
               this._logMessage(`  --  rObjRef Error refPart=[${objReferencedName}], ofs=(${referenceOffset})`);
-              this._recordToken(tokenSet, line, {
-                line: lineIdx,
-                startCharacter: referenceOffset,
-                length: objReferencedName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['illegalUse']
-              }, objReferencedName);
+              this._recordToken(
+                tokenSet,
+                line,
+                {
+                  line: lineIdx,
+                  startCharacter: referenceOffset,
+                  length: objReferencedName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['illegalUse']
+                },
+                objReferencedName
+              );
               const refType: string = isMethod ? 'Method' : 'Constant';
               const adjustedName: string = isMethod ? `${objReferencedName}()` : objReferencedName;
               this.semanticFindings.pushDiagnosticMessage(
@@ -3496,13 +3605,18 @@ export class Spin1DocumentSemanticParser {
               isMethod = true;
             }
             this._logMessage('  --  rObjRef MISSING instance declaration=[' + objInstanceName + ']');
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: symbolOffset,
-              length: objInstanceName.length,
-              ptTokenType: 'variable',
-              ptTokenModifiers: ['missingDeclaration']
-            }, objInstanceName);
+            this._recordToken(
+              tokenSet,
+              line,
+              {
+                line: lineIdx,
+                startCharacter: symbolOffset,
+                length: objInstanceName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['missingDeclaration']
+              },
+              objInstanceName
+            );
             this.semanticFindings.pushDiagnosticMessage(
               lineIdx,
               symbolOffset,
@@ -3511,13 +3625,18 @@ export class Spin1DocumentSemanticParser {
               `P1 Spin Missing object instance declaration [${objInstanceName}]`
             );
             this._logMessage('  --  rObjRef Error refPart=[' + referencePart + '](' + (referenceOffset + 1) + ')');
-            this._recordToken(tokenSet, line, {
-              line: lineIdx,
-              startCharacter: referenceOffset,
-              length: referencePart.length,
-              ptTokenType: 'variable',
-              ptTokenModifiers: ['illegalUse']
-            }, referencePart);
+            this._recordToken(
+              tokenSet,
+              line,
+              {
+                line: lineIdx,
+                startCharacter: referenceOffset,
+                length: referencePart.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['illegalUse']
+              },
+              referencePart
+            );
             const refType: string = isMethod ? 'Method' : 'Constant';
             const adjustedName: string = isMethod ? `${referencePart}()` : referencePart;
             this.semanticFindings.pushDiagnosticMessage(
@@ -3566,7 +3685,19 @@ export class Spin1DocumentSemanticParser {
 
   private _isTrackableTokenType(tokenType: string): boolean {
     // token types worth tracking for code navigation (includes built-in operators/functions for Find All References)
-    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType', 'function', 'operator', 'label'].includes(tokenType);
+    return [
+      'variable',
+      'method',
+      'enumMember',
+      'parameter',
+      'returnValue',
+      'macro',
+      'namespace',
+      'storageType',
+      'function',
+      'operator',
+      'label'
+    ].includes(tokenType);
   }
 
   private _isBuiltinName(name: string, tokenType: string): boolean {

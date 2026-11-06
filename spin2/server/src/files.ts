@@ -54,7 +54,9 @@ export function resolveReferencedIncludes(includedFiles: string[], rootDirSpec: 
   //const roots = ctx.workspaceFolders.map((f) => URI.parse(f.uri).fsPath);
   //const rootDir = ctx.workspaceFolders[0];
   const matchedFiles: string[] = [];
-  ctx.logger.log(`TRC: resolveReferencedIncludes(includedFiles=[${includedFiles}], rootDirSpec=[${rootDirSpec}], additionalDirs=[${additionalDirs}])`);
+  ctx.logger.log(
+    `TRC: resolveReferencedIncludes(includedFiles=[${includedFiles}], rootDirSpec=[${rootDirSpec}], additionalDirs=[${additionalDirs}])`
+  );
 
   // Build ordered list of directories to search: rootDir first, then additional include dirs
   const searchDirs: string[] = [rootDirSpec, ...additionalDirs];
@@ -204,7 +206,12 @@ export function fileInDirExists(dirSpec: string, fileName: string, ctx: Context 
   return existsStatus;
 }
 
-export function fileInDirOrIncludeDirsExists(dirSpec: string, fileName: string, includeDirs: string[], ctx: Context | undefined = undefined): boolean {
+export function fileInDirOrIncludeDirsExists(
+  dirSpec: string,
+  fileName: string,
+  includeDirs: string[],
+  ctx: Context | undefined = undefined
+): boolean {
   // Check current directory first
   if (fileInDirExists(dirSpec, fileName, ctx)) {
     return true;

@@ -148,6 +148,10 @@ describe('Regression: block comment closing brace in CON section (ret_val_check.
     // code after the "}" and fall through to CON processing which generated this error.
     const diagnostics = findings.allDiagnosticMessages(100);
     const braceAssignmentErrors = diagnostics.filter((d) => d.message.includes("Missing '=' part of assignment [}]"));
-    assert.strictEqual(braceAssignmentErrors.length, 0, `Should not have "Missing '=' part of assignment [}]" error but found ${braceAssignmentErrors.length}`);
+    assert.strictEqual(
+      braceAssignmentErrors.length,
+      0,
+      `Should not have "Missing '=' part of assignment [}]" error but found ${braceAssignmentErrors.length}`
+    );
   });
 });

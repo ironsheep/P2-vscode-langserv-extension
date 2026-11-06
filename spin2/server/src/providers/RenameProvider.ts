@@ -67,9 +67,7 @@ export default class RenameProvider implements Provider {
     const refs = documentFindings.getReferencesForToken(wordUnderCursor);
     const cursorRef = refs.find(
       (r) =>
-        r.line === params.position.line &&
-        r.startCharacter <= params.position.character &&
-        r.startCharacter + r.length >= params.position.character
+        r.line === params.position.line && r.startCharacter <= params.position.character && r.startCharacter + r.length >= params.position.character
     );
     if (cursorRef) {
       return {
@@ -195,11 +193,7 @@ export default class RenameProvider implements Provider {
     return true;
   }
 
-  private _symbolAtLocation(
-    document: lsp.TextDocument,
-    position: lsp.Position,
-    symbolsFound: DocumentFindings
-  ): FindingsAtPostion | undefined {
+  private _symbolAtLocation(document: lsp.TextDocument, position: lsp.Position, symbolsFound: DocumentFindings): FindingsAtPostion | undefined {
     const isPositionInBlockComment: boolean = symbolsFound.isLineInBlockComment(position.line);
     const inPasmCodeStatus: boolean = symbolsFound.isLineInPasmCode(position.line);
     const adjustedPos = this.extensionUtils.adjustWordPosition(document, position, position, isPositionInBlockComment, inPasmCodeStatus);

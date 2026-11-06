@@ -58,11 +58,7 @@ function getRealWorldFiles(): { name: string; spin2Path: string }[] {
   if (!fs.existsSync(REALWORLD_DIR)) return results;
 
   // Pick a small set of standalone files from various directories
-  const candidates = [
-    'LoaderTesting/blink.spin2',
-    'LoaderTesting/blink_single.spin2',
-    'LoaderTesting/blink_pasm.spin2'
-  ];
+  const candidates = ['LoaderTesting/blink.spin2', 'LoaderTesting/blink_single.spin2', 'LoaderTesting/blink_pasm.spin2'];
 
   for (const candidate of candidates) {
     const fullPath = path.join(REALWORLD_DIR, candidate);
@@ -194,9 +190,7 @@ describe('Formatter: Safety tests', function () {
     });
 
     // Only test configs that are purely cosmetic (don't affect compilation)
-    const safeConfigs = CONFIG_VARIANTS.filter(
-      (v) => !['no-tab-conversion'].includes(v.name)
-    );
+    const safeConfigs = CONFIG_VARIANTS.filter((v) => !['no-tab-conversion'].includes(v.name));
 
     for (const variant of safeConfigs) {
       describe(`config: ${variant.name}`, function () {
@@ -236,10 +230,7 @@ describe('Formatter: Safety tests', function () {
                 gold.length,
                 `Binary size mismatch with ${variant.name}: actual=${actual.length} vs GOLD=${gold.length}`
               );
-              assert.ok(
-                actual.equals(gold),
-                `Config ${variant.name} changes binary — FORMATTER BROKE SEMANTICS`
-              );
+              assert.ok(actual.equals(gold), `Config ${variant.name} changes binary — FORMATTER BROKE SEMANTICS`);
             } finally {
               fs.rmSync(tmpDir, { recursive: true, force: true });
             }
@@ -389,10 +380,7 @@ describe('Formatter: Safety tests', function () {
             const binPath = fmtFile.replace('.spin2', '.bin');
             assert.ok(fs.existsSync(binPath), 'Formatted file should produce a binary');
             const fmtBin = fs.readFileSync(binPath);
-            assert.ok(
-              origBin!.equals(fmtBin),
-              `Real-world file ${file.name}: formatting changed binary output`
-            );
+            assert.ok(origBin!.equals(fmtBin), `Real-world file ${file.name}: formatting changed binary output`);
           } catch (e: any) {
             const stderr = e.stderr ? e.stderr.toString() : '';
             assert.fail(`Formatted real-world file ${file.name} failed to compile: ${stderr}`);
@@ -476,15 +464,8 @@ describe('Formatter: Safety tests', function () {
             assert.ok(fs.existsSync(binFile), `After ${cc.name}: no binary produced`);
 
             const actual = fs.readFileSync(binFile);
-            assert.strictEqual(
-              actual.length,
-              gold.length,
-              `After ${cc.name}: binary size mismatch: actual=${actual.length} vs GOLD=${gold.length}`
-            );
-            assert.ok(
-              actual.equals(gold),
-              `After ${cc.name}: binary content differs from GOLD`
-            );
+            assert.strictEqual(actual.length, gold.length, `After ${cc.name}: binary size mismatch: actual=${actual.length} vs GOLD=${gold.length}`);
+            assert.ok(actual.equals(gold), `After ${cc.name}: binary content differs from GOLD`);
           } finally {
             fs.rmSync(tmpDir, { recursive: true, force: true });
           }

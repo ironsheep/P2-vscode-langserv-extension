@@ -169,11 +169,16 @@ export function findCurlyBlockCommentLines(lines: string[], startLine: number, e
     let inString = false;
     for (let j = 0; j < line.length; j++) {
       const ch = line[j];
-      if (depth === 0 && ch === '"') { inString = !inString; continue; }
+      if (depth === 0 && ch === '"') {
+        inString = !inString;
+        continue;
+      }
       if (inString) continue;
       if (depth === 0 && ch === "'") break;
-      if (ch === '{') { if (depth === 0) blockStartLine = i; depth++; }
-      else if (ch === '}' && depth > 0) {
+      if (ch === '{') {
+        if (depth === 0) blockStartLine = i;
+        depth++;
+      } else if (ch === '}' && depth > 0) {
         depth--;
         if (depth === 0) {
           for (let k = blockStartLine; k <= i; k++) result.add(k);

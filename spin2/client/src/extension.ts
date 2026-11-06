@@ -22,7 +22,15 @@ import { editModeConfiguration, reloadEditModeConfiguration } from './providers/
 import { tabConfiguration } from './providers/spin.tabFormatter.configuration';
 import { getMode, resetModes, toggleMode, toggleMode2State, eEditMode, modeName } from './providers/spin.editMode.mode';
 import { createStatusBarInsertModeItem, updateStatusBarInsertModeItem } from './providers/spin.editMode.statusBarItem';
-import { activeSpin1or2Filespec, findDebugBaud, isSpin2Document, isSpin2File, isSpin1or2File, isSpinOrPasmDocument, isSpinOrPasmFile } from './spin.vscode.utils';
+import {
+  activeSpin1or2Filespec,
+  findDebugBaud,
+  isSpin2Document,
+  isSpin2File,
+  isSpin1or2File,
+  isSpinOrPasmDocument,
+  isSpinOrPasmFile
+} from './spin.vscode.utils';
 import { USBDocGenerator } from './providers/usb.document.generate';
 import { isMac, isWindows, locateExe, locateFileByPattern, locateNonExe, platform } from './fileUtils';
 import { IUsbSerialDevice, UsbSerial } from './usb.serial';
@@ -212,10 +220,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
   // Register 'type' and 'paste' overrides separately — these can throw if another extension
   // (e.g. Vim) already registered them.  Isolate so a failure doesn't kill the rest of activation.
   try {
-    context.subscriptions.push(
-      vscode.commands.registerCommand('type', typeCommand),
-      vscode.commands.registerCommand('paste', pasteCommand)
-    );
+    context.subscriptions.push(vscode.commands.registerCommand('type', typeCommand), vscode.commands.registerCommand('paste', pasteCommand));
   } catch (err) {
     typeOverrideAvailable = false;
     logExtensionMessage(`WARN: Could not register type/paste overrides (another extension may own them): ${err}`);
@@ -1177,7 +1182,7 @@ async function locateTools(): Promise<void> {
       logExtensionMessage(`* TOOL: Found PNut exe [${pnutExeFound}] but pnut_shell.bat is missing`);
       await vscode.window.showWarningMessage(
         `Found PNut executable [${path.basename(pnutExeFound)}] but pnut_shell.bat is required for the extension to function. ` +
-        `Please ensure pnut_shell.bat is in the same directory as your PNut executable.`
+          `Please ensure pnut_shell.bat is in the same directory as your PNut executable.`
       );
     }
   }
@@ -1446,26 +1451,29 @@ export function activate(context: vscode.ExtensionContext) {
         logExtensionMessage(`* Client started, connecting ObjectTreeProvider to language client`);
         objTreeProvider.setLanguageClient(client);
         // Listen for include directory discovery results from server
-        client.onNotification('spin/discoveredIncludesChanged', async (params: { localIncludes: Record<string, { auto: boolean; dirs: string[] }> }) => {
-          logExtensionMessage(`* spin/discoveredIncludesChanged received, has localIncludes=${!!params.localIncludes}`);
-          if (params.localIncludes) {
-            const keys = Object.keys(params.localIncludes);
-            logExtensionMessage(`* REPLACING localIncludes with ${keys.length} folder entries: [${keys.join(', ')}]`);
-            for (const key of keys) {
-              logExtensionMessage(`*   folder=[${key}] auto=${params.localIncludes[key].auto} dirs=[${params.localIncludes[key].dirs.join(', ')}]`);
+        client.onNotification(
+          'spin/discoveredIncludesChanged',
+          async (params: { localIncludes: Record<string, { auto: boolean; dirs: string[] }> }) => {
+            logExtensionMessage(`* spin/discoveredIncludesChanged received, has localIncludes=${!!params.localIncludes}`);
+            if (params.localIncludes) {
+              const keys = Object.keys(params.localIncludes);
+              logExtensionMessage(`* REPLACING localIncludes with ${keys.length} folder entries: [${keys.join(', ')}]`);
+              for (const key of keys) {
+                logExtensionMessage(`*   folder=[${key}] auto=${params.localIncludes[key].auto} dirs=[${params.localIncludes[key].dirs.join(', ')}]`);
+              }
+              // Suppress config-change-driven refreshes while we save programmatically
+              includeDirsProvider.suppressConfigRefresh(true);
+              try {
+                await vscode.workspace.getConfiguration('spin2').update('localIncludes', params.localIncludes, vscode.ConfigurationTarget.Workspace);
+                logExtensionMessage(`* localIncludes saved to workspace settings, refreshing tree`);
+              } finally {
+                includeDirsProvider.suppressConfigRefresh(false);
+              }
+              includeDirsProvider.refresh();
+              logExtensionMessage(`* tree refresh triggered`);
             }
-            // Suppress config-change-driven refreshes while we save programmatically
-            includeDirsProvider.suppressConfigRefresh(true);
-            try {
-              await vscode.workspace.getConfiguration('spin2').update('localIncludes', params.localIncludes, vscode.ConfigurationTarget.Workspace);
-              logExtensionMessage(`* localIncludes saved to workspace settings, refreshing tree`);
-            } finally {
-              includeDirsProvider.suppressConfigRefresh(false);
-            }
-            includeDirsProvider.refresh();
-            logExtensionMessage(`* tree refresh triggered`);
           }
-        });
+        );
       })
       .catch((err) => {
         logExtensionMessage(`* client.start() FAILED: ${err}`);
@@ -1505,10 +1513,9 @@ async function formatSpin2OnSave(document: vscode.TextDocument): Promise<vscode.
         insertSpaces: true
       }
     };
-    const result = await client.sendRequest<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }[] | null>(
-      'textDocument/formatting',
-      params
-    );
+    const result = await client.sendRequest<
+      { range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }[] | null
+    >('textDocument/formatting', params);
     if (!result) {
       return [];
     }

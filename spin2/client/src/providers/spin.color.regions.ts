@@ -345,7 +345,6 @@ export class RegionColorizer {
             // ORG, ORGF, ORGH
             const nonStringLine: string = this.spinCodeUtils.removeDoubleQuotedStrings(trimmedNonCommentLine);
             if (nonStringLine.toUpperCase().includes('ORG')) {
-
               currState = eParseState.inDatPAsm;
               continue;
             }
@@ -366,7 +365,6 @@ export class RegionColorizer {
               // ORG, ORGF, ORGH
               const nonStringLine: string = this.spinCodeUtils.removeDoubleQuotedStrings(trimmedLine);
               if (nonStringLine.toUpperCase().includes('ORG')) {
-  
                 currState = eParseState.inDatPAsm;
                 continue;
               }

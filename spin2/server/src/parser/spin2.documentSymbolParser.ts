@@ -390,9 +390,7 @@ export class Spin2DocumentSymbolParser {
     if (this.containerDocSymbol && this.currentContainerIsSeparator) {
       if (!this.containerDocSymbol.hasChildren) {
         // Empty separator block: rebuild label without block ID
-        this.containerDocSymbol.setLabel(
-          this._buildSeparatorLabel(this.currentSeparatorText)
-        );
+        this.containerDocSymbol.setLabel(this._buildSeparatorLabel(this.currentSeparatorText));
       }
       this.currentContainerIsSeparator = false;
     }

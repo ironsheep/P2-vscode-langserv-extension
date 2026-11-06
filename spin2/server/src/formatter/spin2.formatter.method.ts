@@ -88,12 +88,7 @@ function isInlinePasmBoundary(lineIdx: number, regions: InlinePasmRegion[]): boo
 
 // findNearestCodeIndent removed — org/end always use method base indent (level 1)
 
-function formatInlinePasmRegion(
-  lines: string[],
-  region: InlinePasmRegion,
-  findings: DocumentFindings,
-  elasticConfig: ElasticTabstopConfig
-): void {
+function formatInlinePasmRegion(lines: string[], region: InlinePasmRegion, findings: DocumentFindings, elasticConfig: ElasticTabstopConfig): void {
   // Content between ORG and END drops to column 0 (like DAT PASM)
   for (let i = region.orgLine + 1; i < region.endLine; i++) {
     if (findings.isLineInBlockComment(i)) continue;
@@ -193,13 +188,7 @@ function normalizeIndentation(
   }
 }
 
-function detectIndentStep(
-  lines: string[],
-  startLine: number,
-  endLine: number,
-  inlinePasm: InlinePasmRegion[],
-  findings: DocumentFindings
-): number {
+function detectIndentStep(lines: string[], startLine: number, endLine: number, inlinePasm: InlinePasmRegion[], findings: DocumentFindings): number {
   // Find the smallest non-zero indentation difference between adjacent code lines
   const indents: number[] = [];
   for (let i = startLine; i <= endLine; i++) {
@@ -291,13 +280,7 @@ function alignFullLineComments(
   }
 }
 
-function findFirstCodeLine(
-  lines: string[],
-  fromLine: number,
-  endLine: number,
-  findings: DocumentFindings,
-  inlinePasm: InlinePasmRegion[]
-): number {
+function findFirstCodeLine(lines: string[], fromLine: number, endLine: number, findings: DocumentFindings, inlinePasm: InlinePasmRegion[]): number {
   for (let i = fromLine; i <= endLine; i++) {
     if (isInInlinePasmContent(i, inlinePasm)) continue;
     if (isInlinePasmBoundary(i, inlinePasm)) continue;

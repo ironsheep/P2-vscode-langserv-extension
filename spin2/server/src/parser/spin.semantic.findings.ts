@@ -493,11 +493,7 @@ export class DocumentFindings {
   public preProcRecordConditionChange(directive: ePreprocessState, symbolName: string = '', line: string, lineNbr: number) {
     // handle preprocessor state transition
     // depth is 1-based: 0 = outside all #ifdef, 1 = first #ifdef, etc.
-    this._logMessage(
-      `* [PreProc] rcdCondChg() ` +
-      `[${ePreprocessState[directive]}], ` +
-      `symbol=[${symbolName}], ln#${lineNbr}`
-    );
+    this._logMessage(`* [PreProc] rcdCondChg() ` + `[${ePreprocessState[directive]}], ` + `symbol=[${symbolName}], ln#${lineNbr}`);
     const startInPreProc: boolean = this.inPreProcIfStatement;
     switch (directive) {
       case ePreprocessState.PPS_IFDEF:
@@ -508,10 +504,7 @@ export class DocumentFindings {
           // initialize state at new depth
           this.isLineEnabled[this.preProcNestDepth] = true;
           this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
-          this._logMessage(
-            `* [PreProc]   IFDEF nestDepth=(${this.preProcNestDepth}), ` +
-            `from ln#${lineNbr}`
-          );
+          this._logMessage(`* [PreProc]   IFDEF nestDepth=(${this.preProcNestDepth}), ` + `from ln#${lineNbr}`);
           // if parent is disabled, child is always disabled
           if (!this._isParentEnabled()) {
             this.preProcDisableLinesFrom(line, lineNbr + 1);
@@ -528,10 +521,7 @@ export class DocumentFindings {
           this.inPreProcIfStatement = true;
           this.isLineEnabled[this.preProcNestDepth] = true;
           this.startingDisabledLineNbr[this.preProcNestDepth] = -1;
-          this._logMessage(
-            `* [PreProc]   IFNDEF nestDepth=(${this.preProcNestDepth}), ` +
-            `from ln#${lineNbr}`
-          );
+          this._logMessage(`* [PreProc]   IFNDEF nestDepth=(${this.preProcNestDepth}), ` + `from ln#${lineNbr}`);
           // if parent is disabled, child is always disabled
           if (!this._isParentEnabled()) {
             this.preProcDisableLinesFrom(line, lineNbr + 1);
@@ -544,14 +534,11 @@ export class DocumentFindings {
         break;
       case ePreprocessState.PPS_ENDIF:
         this.preProcEnableLinesFrom(line, lineNbr);
-        this.preProcNestDepth = this.preProcNestDepth > 0
-          ? this.preProcNestDepth - 1 : 0;
+        this.preProcNestDepth = this.preProcNestDepth > 0 ? this.preProcNestDepth - 1 : 0;
         this.inPreProcIfStatement = this.preProcNestDepth > 0;
         // do NOT force parent enabled — preserve parent state
         this._logMessage(
-          `* [PreProc]   ENDIF nestDepth=(${this.preProcNestDepth}), ` +
-          `inPreProcStmnt=(${this.inPreProcIfStatement}), ` +
-          `from ln#${lineNbr}`
+          `* [PreProc]   ENDIF nestDepth=(${this.preProcNestDepth}), ` + `inPreProcStmnt=(${this.inPreProcIfStatement}), ` + `from ln#${lineNbr}`
         );
         break;
       case ePreprocessState.PPS_ELSE:
@@ -577,10 +564,7 @@ export class DocumentFindings {
         break;
     }
     if (startInPreProc != this.inPreProcIfStatement) {
-      this._logMessage(
-        `* [PreProc]   inPreProcIfStatement:` +
-        `(${startInPreProc}) -> (${this.inPreProcIfStatement})`
-      );
+      this._logMessage(`* [PreProc]   inPreProcIfStatement:` + `(${startInPreProc}) -> (${this.inPreProcIfStatement})`);
     }
   }
 
@@ -758,7 +742,15 @@ export class DocumentFindings {
     return reducedSet;
   }
 
-  public pushDiagnosticMessage(lineIdx: number, startChar: number, endChar: number, severity: eSeverity, message: string, code?: string, data?: unknown): void {
+  public pushDiagnosticMessage(
+    lineIdx: number,
+    startChar: number,
+    endChar: number,
+    severity: eSeverity,
+    message: string,
+    code?: string,
+    data?: unknown
+  ): void {
     // record a new diagnostic message
     // NEW if is for disabled line, ignore it!
     const lineNbr: number = lineIdx + 1;

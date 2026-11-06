@@ -79,11 +79,7 @@ export default class DocumentHighlightProvider implements Provider {
     };
   }
 
-  private _symbolAtLocation(
-    document: lsp.TextDocument,
-    position: lsp.Position,
-    symbolsFound: DocumentFindings
-  ): FindingsAtPostion | undefined {
+  private _symbolAtLocation(document: lsp.TextDocument, position: lsp.Position, symbolsFound: DocumentFindings): FindingsAtPostion | undefined {
     const isPositionInBlockComment: boolean = symbolsFound.isLineInBlockComment(position.line);
     const inPasmCodeStatus: boolean = symbolsFound.isLineInPasmCode(position.line);
     const adjustedPos = this.extensionUtils.adjustWordPosition(document, position, position, isPositionInBlockComment, inPasmCodeStatus);

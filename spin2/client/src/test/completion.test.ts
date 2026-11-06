@@ -36,11 +36,7 @@ suite('Should do completion', () => {
   });
 });
 
-async function testCompletionContains(
-  docUri: vscode.Uri,
-  position: vscode.Position,
-  expectedLabels: string[]
-): Promise<void> {
+async function testCompletionContains(docUri: vscode.Uri, position: vscode.Position, expectedLabels: string[]): Promise<void> {
   await activate(docUri);
 
   const actualCompletionList = (await vscode.commands.executeCommand(
@@ -50,7 +46,7 @@ async function testCompletionContains(
   )) as vscode.CompletionList;
 
   const actualLabels: string[] = actualCompletionList.items.map((item) => {
-    return typeof item.label === 'string' ? item.label.toLowerCase() : (item.label as any).label?.toLowerCase() ?? '';
+    return typeof item.label === 'string' ? item.label.toLowerCase() : ((item.label as any).label?.toLowerCase() ?? '');
   });
 
   for (const expected of expectedLabels) {

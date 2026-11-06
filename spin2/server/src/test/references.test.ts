@@ -98,10 +98,18 @@ describe('DocumentFindings reference index API (unit tests)', function () {
     const findings = new DocumentFindings('file:///test.spin2');
 
     findings.recordTokenReference('myVar', {
-      line: 5, startCharacter: 2, length: 5, isDeclaration: true, scope: ''
+      line: 5,
+      startCharacter: 2,
+      length: 5,
+      isDeclaration: true,
+      scope: ''
     });
     findings.recordTokenReference('myVar', {
-      line: 10, startCharacter: 8, length: 5, isDeclaration: false, scope: ''
+      line: 10,
+      startCharacter: 8,
+      length: 5,
+      isDeclaration: false,
+      scope: ''
     });
 
     const refs = findings.getReferencesForToken('myVar');
@@ -116,7 +124,11 @@ describe('DocumentFindings reference index API (unit tests)', function () {
     const findings = new DocumentFindings('file:///test.spin2');
 
     findings.recordTokenReference('MyVar', {
-      line: 5, startCharacter: 2, length: 5, isDeclaration: true, scope: ''
+      line: 5,
+      startCharacter: 2,
+      length: 5,
+      isDeclaration: true,
+      scope: ''
     });
 
     assert.strictEqual(findings.getReferencesForToken('myvar').length, 1);
@@ -128,13 +140,25 @@ describe('DocumentFindings reference index API (unit tests)', function () {
     const findings = new DocumentFindings('file:///test.spin2');
 
     findings.recordTokenReference('localVar', {
-      line: 10, startCharacter: 4, length: 8, isDeclaration: true, scope: 'MethodA'
+      line: 10,
+      startCharacter: 4,
+      length: 8,
+      isDeclaration: true,
+      scope: 'MethodA'
     });
     findings.recordTokenReference('localVar', {
-      line: 15, startCharacter: 4, length: 8, isDeclaration: false, scope: 'MethodA'
+      line: 15,
+      startCharacter: 4,
+      length: 8,
+      isDeclaration: false,
+      scope: 'MethodA'
     });
     findings.recordTokenReference('localVar', {
-      line: 25, startCharacter: 4, length: 8, isDeclaration: true, scope: 'MethodB'
+      line: 25,
+      startCharacter: 4,
+      length: 8,
+      isDeclaration: true,
+      scope: 'MethodB'
     });
 
     const allRefs = findings.getReferencesForToken('localVar');
@@ -157,10 +181,18 @@ describe('DocumentFindings reference index API (unit tests)', function () {
     const findings = new DocumentFindings('file:///test.spin2');
 
     findings.recordTokenReference('varA', {
-      line: 1, startCharacter: 0, length: 4, isDeclaration: true, scope: ''
+      line: 1,
+      startCharacter: 0,
+      length: 4,
+      isDeclaration: true,
+      scope: ''
     });
     findings.recordTokenReference('varB', {
-      line: 2, startCharacter: 0, length: 4, isDeclaration: true, scope: ''
+      line: 2,
+      startCharacter: 0,
+      length: 4,
+      isDeclaration: true,
+      scope: ''
     });
 
     assert.strictEqual(findings.tokenReferenceCount, 2);
@@ -173,7 +205,11 @@ describe('DocumentFindings reference index API (unit tests)', function () {
     const findings = new DocumentFindings('file:///test.spin2');
 
     findings.recordTokenReference('myVar', {
-      line: 5, startCharacter: 2, length: 5, isDeclaration: true, scope: ''
+      line: 5,
+      startCharacter: 2,
+      length: 5,
+      isDeclaration: true,
+      scope: ''
     });
 
     assert.strictEqual(findings.tokenReferenceCount, 1);
@@ -186,7 +222,11 @@ describe('DocumentFindings reference index API (unit tests)', function () {
     const findings = new DocumentFindings('file:///test.spin2');
 
     findings.recordTokenReference('', {
-      line: 5, startCharacter: 2, length: 0, isDeclaration: false, scope: ''
+      line: 5,
+      startCharacter: 2,
+      length: 0,
+      isDeclaration: false,
+      scope: ''
     });
 
     assert.strictEqual(findings.tokenReferenceCount, 0);
@@ -198,12 +238,18 @@ describe('Document link tracking (unit tests)', function () {
     const findings = new DocumentFindings('file:///test.spin2');
 
     findings.recordDocumentLink({
-      line: 5, startCharacter: 15, endCharacter: 30,
-      targetFilename: 'child_object', isInclude: false
+      line: 5,
+      startCharacter: 15,
+      endCharacter: 30,
+      targetFilename: 'child_object',
+      isInclude: false
     });
     findings.recordDocumentLink({
-      line: 8, startCharacter: 10, endCharacter: 25,
-      targetFilename: 'utility.spin2', isInclude: true
+      line: 8,
+      startCharacter: 10,
+      endCharacter: 25,
+      targetFilename: 'utility.spin2',
+      isInclude: true
     });
 
     const links = findings.getDocumentLinks();
@@ -218,8 +264,11 @@ describe('Document link tracking (unit tests)', function () {
     const findings = new DocumentFindings('file:///test.spin2');
 
     findings.recordDocumentLink({
-      line: 5, startCharacter: 15, endCharacter: 30,
-      targetFilename: 'child_object', isInclude: false
+      line: 5,
+      startCharacter: 15,
+      endCharacter: 30,
+      targetFilename: 'child_object',
+      isInclude: false
     });
 
     assert.strictEqual(findings.getDocumentLinks().length, 1);
@@ -369,8 +418,7 @@ describe('Integration: cross-object reference recording', function () {
     const compoundRefs = findings.getReferencesForToken('serial.fstr0');
     assert.strictEqual(compoundRefs.length, 0, `serial.fstr0 should NOT be a reference key, but got ${compoundRefs.length} refs`);
     // Also verify hasTokenReferences for the compound name
-    assert.strictEqual(findings.hasTokenReferences('serial.fstr0'), false,
-      'hasTokenReferences(serial.fstr0) should be false');
+    assert.strictEqual(findings.hasTokenReferences('serial.fstr0'), false, 'hasTokenReferences(serial.fstr0) should be false');
   });
 
   it('should simulate ReferencesProvider cross-object flow correctly', function () {
@@ -386,8 +434,7 @@ describe('Integration: cross-object reference recording', function () {
     // In the live extension, this iterates ctx.docsByFSpec which contains multiple documents.
     // Here we only have one document. Check if fstr0 references exist in it.
     const refs = findings.getReferencesForToken(tokenName);
-    assert.ok(refs.length >= 1,
-      `_collectCrossObjectReferences should find fstr0 in current document, got ${refs.length} refs`);
+    assert.ok(refs.length >= 1, `_collectCrossObjectReferences should find fstr0 in current document, got ${refs.length} refs`);
 
     // Step 3: Simulate _addReferencesToResults
     let resultCount = 0;
@@ -397,7 +444,6 @@ describe('Integration: cross-object reference recording', function () {
       }
       resultCount++;
     }
-    assert.ok(resultCount >= 1,
-      `After filtering, should have at least 1 result for fstr0, got ${resultCount}`);
+    assert.ok(resultCount >= 1, `After filtering, should have at least 1 result for fstr0, got ${resultCount}`);
   });
 });

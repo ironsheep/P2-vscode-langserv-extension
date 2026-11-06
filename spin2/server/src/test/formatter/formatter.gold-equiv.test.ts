@@ -104,11 +104,7 @@ describe('Formatter: Gold-standard binary equivalence', function () {
         try {
           const actual = compileFixture(fixture.spin2Path, tmpDir, fixture.useDebug);
           const gold = fs.readFileSync(fixture.goldPath);
-          assert.strictEqual(
-            actual.length,
-            gold.length,
-            `Binary size mismatch: PNut-TS=${actual.length} vs GOLD=${gold.length}`
-          );
+          assert.strictEqual(actual.length, gold.length, `Binary size mismatch: PNut-TS=${actual.length} vs GOLD=${gold.length}`);
           assert.ok(actual.equals(gold), 'Binary content does not match GOLD');
         } finally {
           fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -164,15 +160,8 @@ describe('Formatter: Gold-standard binary equivalence', function () {
 
           const actual = fs.readFileSync(binFile);
           const gold = fs.readFileSync(fixture.goldPath);
-          assert.strictEqual(
-            actual.length,
-            gold.length,
-            `Binary size mismatch after formatting: actual=${actual.length} vs GOLD=${gold.length}`
-          );
-          assert.ok(
-            actual.equals(gold),
-            'Formatted file produces different binary than GOLD — FORMATTER CHANGED SEMANTICS'
-          );
+          assert.strictEqual(actual.length, gold.length, `Binary size mismatch after formatting: actual=${actual.length} vs GOLD=${gold.length}`);
+          assert.ok(actual.equals(gold), 'Formatted file produces different binary than GOLD — FORMATTER CHANGED SEMANTICS');
         } finally {
           fs.rmSync(tmpDir, { recursive: true, force: true });
         }
@@ -265,15 +254,8 @@ describe('Formatter: Gold-standard binary equivalence', function () {
 
           const actual = fs.readFileSync(binFile);
           const gold = fs.readFileSync(fixture.goldPath);
-          assert.strictEqual(
-            actual.length,
-            gold.length,
-            `Binary size mismatch after double-format: actual=${actual.length} vs GOLD=${gold.length}`
-          );
-          assert.ok(
-            actual.equals(gold),
-            'Double-formatted file produces different binary than GOLD — FORMATTER IS UNSTABLE'
-          );
+          assert.strictEqual(actual.length, gold.length, `Binary size mismatch after double-format: actual=${actual.length} vs GOLD=${gold.length}`);
+          assert.ok(actual.equals(gold), 'Double-formatted file produces different binary than GOLD — FORMATTER IS UNSTABLE');
         } finally {
           fs.rmSync(tmpDir, { recursive: true, force: true });
         }

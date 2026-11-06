@@ -119,17 +119,10 @@ export default class ReferencesProvider implements Provider {
   }
 
   private _findReferenceAtPosition(refs: ITokenReference[], position: lsp.Position): ITokenReference | undefined {
-    return refs.find(
-      (r) => r.line === position.line && position.character >= r.startCharacter && position.character < r.startCharacter + r.length
-    );
+    return refs.find((r) => r.line === position.line && position.character >= r.startCharacter && position.character < r.startCharacter + r.length);
   }
 
-  private _collectCrossObjectReferences(
-    objectRef: string,
-    tokenName: string,
-    includeDeclaration: boolean,
-    results: Location[]
-  ): void {
+  private _collectCrossObjectReferences(objectRef: string, tokenName: string, includeDeclaration: boolean, results: Location[]): void {
     // Find the object's document via namespace resolution
     this._logMessage(`+ Refs: crossObj: objectRef=[${objectRef}], tokenName=[${tokenName}], docCount=(${this.ctx.docsByFSpec.size})`);
     for (const [_fSpec, processedDoc] of this.ctx.docsByFSpec) {
@@ -171,11 +164,7 @@ export default class ReferencesProvider implements Provider {
     }
   }
 
-  private _symbolAtLocation(
-    document: lsp.TextDocument,
-    position: lsp.Position,
-    symbolsFound: DocumentFindings
-  ): FindingsAtPostion | undefined {
+  private _symbolAtLocation(document: lsp.TextDocument, position: lsp.Position, symbolsFound: DocumentFindings): FindingsAtPostion | undefined {
     this._logMessage(`+ Refs: symbolAtLocation() ENTRY`);
     const isPositionInBlockComment: boolean = symbolsFound.isLineInBlockComment(position.line);
     const inPasmCodeStatus: boolean = symbolsFound.isLineInPasmCode(position.line);

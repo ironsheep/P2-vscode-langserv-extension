@@ -207,7 +207,13 @@ export class Spin2DocumentSemanticParser {
     // not a structure type or instance - emit error
     const diagCharOffset = sizeofCharOffset;
     const diagEndChar = sizeofCharOffset + sizeofLength + closeParenIdx + 1;
-    this.semanticFindings.pushDiagnosticMessage(lineIndex, diagCharOffset, diagEndChar, eSeverity.Error, `Invalid use of SIZEOF: '${argName}' is not a structure type or structure instance`);
+    this.semanticFindings.pushDiagnosticMessage(
+      lineIndex,
+      diagCharOffset,
+      diagEndChar,
+      eSeverity.Error,
+      `Invalid use of SIZEOF: '${argName}' is not a structure type or structure instance`
+    );
   }
 
   private _validateOffsetofArgument(methodFollowString: string, lineIndex: number, offsetofCharOffset: number, offsetofLength: number): void {
@@ -248,7 +254,13 @@ export class Spin2DocumentSemanticParser {
     // not a structure type - emit error
     const diagCharOffset = offsetofCharOffset;
     const diagEndChar = offsetofCharOffset + offsetofLength + closeParenIdx + 1;
-    this.semanticFindings.pushDiagnosticMessage(lineIndex, diagCharOffset, diagEndChar, eSeverity.Error, `Invalid use of OFFSETOF: '${baseName}' is not a structure type`);
+    this.semanticFindings.pushDiagnosticMessage(
+      lineIndex,
+      diagCharOffset,
+      diagEndChar,
+      eSeverity.Error,
+      `Invalid use of OFFSETOF: '${baseName}' is not a structure type`
+    );
   }
 
   private _reportUnusedLocalVariables(): void {
@@ -407,9 +419,7 @@ export class Spin2DocumentSemanticParser {
       const bHaveEmptyLine: boolean = trimmedLine.length === 0;
       // strip comments before checking for debug() to prevent false matches from debug() in comments
       const lineWithoutInlineComments: string = !bHaveEmptyLine ? this.parseUtils.getLineWithoutInlineComments(line) : '';
-      const lineWithoutComments: string = !bHaveEmptyLine
-        ? this.parseUtils.getRemainderWOutTrailingComment(0, lineWithoutInlineComments)
-        : '';
+      const lineWithoutComments: string = !bHaveEmptyLine ? this.parseUtils.getRemainderWOutTrailingComment(0, lineWithoutInlineComments) : '';
       const isDebugLine: boolean = !bHaveEmptyLine && !trimmedLine.startsWith("'") ? haveDebugLine(lineWithoutComments) : false;
 
       // New PNut/Propeller Tool directive support: {Spin2_v##}
@@ -1214,9 +1224,7 @@ export class Spin2DocumentSemanticParser {
       const bHaveEmptyLine: boolean = trimmedLine.length === 0;
       // strip comments before checking for debug() to prevent false matches from debug() in comments
       const lineWithoutInlineComments: string = !bHaveEmptyLine ? this.parseUtils.getLineWithoutInlineComments(line) : '';
-      const lineWithoutComments: string = !bHaveEmptyLine
-        ? this.parseUtils.getRemainderWOutTrailingComment(0, lineWithoutInlineComments)
-        : '';
+      const lineWithoutComments: string = !bHaveEmptyLine ? this.parseUtils.getRemainderWOutTrailingComment(0, lineWithoutInlineComments) : '';
       const isDebugLine: boolean = !bHaveEmptyLine && !trimmedLine.startsWith("'") ? haveDebugLine(lineWithoutComments) : false;
 
       let nonCommentLine: string;
@@ -2078,7 +2086,11 @@ export class Spin2DocumentSemanticParser {
             this.semanticFindings.preProcRecordConditionalSymbol(exportedSymbol, line, lineNbr);
             this.semanticFindings.recordExportedDefine(exportedSymbol);
             this.semanticFindings.recordDeclarationLine(line, lineNbr);
-            this.semanticFindings.setGlobalToken(exportedSymbol, new RememberedToken('variable', lineNbr - 1, 0, ['readonly']), this._declarationComment());
+            this.semanticFindings.setGlobalToken(
+              exportedSymbol,
+              new RememberedToken('variable', lineNbr - 1, 0, ['readonly']),
+              this._declarationComment()
+            );
           }
         }
       } else if (this.parseUtils.isFlexspinPreprocessorDirective(directive)) {
@@ -2469,7 +2481,7 @@ export class Spin2DocumentSemanticParser {
       this._logDAT(
         `   -- GetDatDecl baseIndex=[${baseIndex}], nameIndex=[${nameIndex}], typeIndex=[${typeIndex}], haveLabel=(${haveLabel}), dataType=[${dataType}]`
       );
-      const haveStorageType: boolean = dataType ? (this.isStorageType(dataType) || isExternalObjectType) : false;
+      const haveStorageType: boolean = dataType ? this.isStorageType(dataType) || isExternalObjectType : false;
       const isNamedDataDeclarationLine: boolean = haveLabel && haveStorageType ? true : false;
       const isDataDeclarationLine: boolean = haveStorageType ? true : false;
 
@@ -2940,7 +2952,12 @@ export class Spin2DocumentSemanticParser {
         // if type, flag if not B/W/L align type or structure type
         const isExternalObjectType: boolean = typeName.includes('.');
         if (typeName.length > 0) {
-          if (!this.isStorageType(typeName) && !this.parseUtils.isAlignType(typeName) && !isExternalObjectType && !this.semanticFindings.isStructure(typeName)) {
+          if (
+            !this.isStorageType(typeName) &&
+            !this.parseUtils.isAlignType(typeName) &&
+            !isExternalObjectType &&
+            !this.semanticFindings.isStructure(typeName)
+          ) {
             const nameOffset = line.indexOf(typeName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
             this.semanticFindings.pushDiagnosticMessage(
               lineNbr - 1,
@@ -2951,7 +2968,7 @@ export class Spin2DocumentSemanticParser {
             );
           }
         }
-        const isStructureType: boolean = typeName.length > 0 ? (this.semanticFindings.isStructure(typeName) || isExternalObjectType) : false;
+        const isStructureType: boolean = typeName.length > 0 ? this.semanticFindings.isStructure(typeName) || isExternalObjectType : false;
         if (this.parseUtils.isValidSpinSymbolName(varName)) {
           this._logVAR(`  -- getVarDecl  newName=[${varName}]`);
           const nameOffset = line.indexOf(varName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
@@ -3236,13 +3253,18 @@ export class Spin2DocumentSemanticParser {
               lineIdx = symbolPosition.line;
               nameOffset = symbolPosition.character;
               this._logCON(`  -- rptCDLMulti() structName=[${structDeclaration.structName}], ofs=(${nameOffset})`);
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: symbolName.length,
-                ptTokenType: 'storageType',
-                ptTokenModifiers: ['readonly', 'declaration']
-              }, symbolName);
+              this._recordToken(
+                tokenSet,
+                multiLineSet.lineAt(symbolPosition.line),
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: symbolName.length,
+                  ptTokenType: 'storageType',
+                  ptTokenModifiers: ['readonly', 'declaration']
+                },
+                symbolName
+              );
               // color name at RHS of assignment
               const rhsName: string = structDeclaration.members[0].name;
               symbolPosition = multiLineSet.locateSymbol(rhsName, nameOffset + symbolName.length);
@@ -3273,13 +3295,18 @@ export class Spin2DocumentSemanticParser {
               }
               if (referenceDetails !== undefined) {
                 this._logSPIN(`  --  rptCDLMulti() lcl-idx rhsName=[${rhsName}], ofs=(${nameOffset})`);
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: lineIdx,
-                  startCharacter: nameOffset,
-                  length: rhsName.length,
-                  ptTokenType: referenceDetails.type,
-                  ptTokenModifiers: referenceDetails.modifiers
-                }, rhsName);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: lineIdx,
+                    startCharacter: nameOffset,
+                    length: rhsName.length,
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: referenceDetails.modifiers
+                  },
+                  rhsName
+                );
               }
             }
           } else if (isStructDecl) {
@@ -3312,13 +3339,18 @@ export class Spin2DocumentSemanticParser {
               lineIdx = symbolPosition.line;
               nameOffset = symbolPosition.character;
               this._logCON(`  -- rptCDLMulti() structName=[${symbolName}], ofs=(${nameOffset})`);
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: lineIdx,
-                startCharacter: nameOffset,
-                length: symbolName.length,
-                ptTokenType: 'storageType',
-                ptTokenModifiers: ['readonly', 'declaration']
-              }, symbolName);
+              this._recordToken(
+                tokenSet,
+                multiLineSet.lineAt(symbolPosition.line),
+                {
+                  line: lineIdx,
+                  startCharacter: nameOffset,
+                  length: symbolName.length,
+                  ptTokenType: 'storageType',
+                  ptTokenModifiers: ['readonly', 'declaration']
+                },
+                symbolName
+              );
               // for each member...
               let currPartOffset: number = multiLineSet.offsetIntoLineForPosition(symbolPosition) + symbolName.length;
               for (let index = 0; index < structDeclaration.members.length; index++) {
@@ -3342,13 +3374,18 @@ export class Spin2DocumentSemanticParser {
                 this._logCON(`  -- rptCDLMulti() memberType=[${typeStr}], ofs=(${nameOffset})`);
                 if (nameOffset !== -1) {
                   // OPTIONALLY color member type
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: typeStr.length,
-                    ptTokenType: 'storageType',
-                    ptTokenModifiers: []
-                  }, typeStr);
+                  this._recordToken(
+                    tokenSet,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: typeStr.length,
+                      ptTokenType: 'storageType',
+                      ptTokenModifiers: []
+                    },
+                    typeStr
+                  );
                   currPartOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition) + typeStr.length;
                 }
                 //   color member name (nameless members skip this step)
@@ -3358,13 +3395,18 @@ export class Spin2DocumentSemanticParser {
                   lineIdx = symbolPosition.line;
                   nameOffset = symbolPosition.character;
                   this._logCON(`  -- rptCDLMulti() memberName=[${memberName}], ofs=(${nameOffset})`);
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: lineIdx,
-                    startCharacter: nameOffset,
-                    length: memberName.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['readonly', 'declaration']
-                  }, memberName);
+                  this._recordToken(
+                    tokenSet,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    {
+                      line: lineIdx,
+                      startCharacter: nameOffset,
+                      length: memberName.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['readonly', 'declaration']
+                    },
+                    memberName
+                  );
                   currPartOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition) + memberName.length;
                 }
                 // OPTIONALLY color index name
@@ -3382,22 +3424,32 @@ export class Spin2DocumentSemanticParser {
                   if (referenceDetails !== undefined) {
                     // this is a constant declaration!
                     const modifiersWDecl: string[] = referenceDetails.modifiersWithout('declaration');
-                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                      line: symbolPosition.line,
-                      startCharacter: symbolPosition.character,
-                      length: indexName.length,
-                      ptTokenType: referenceDetails.type,
-                      ptTokenModifiers: modifiersWDecl
-                    }, indexName);
+                    this._recordToken(
+                      tokenSet,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: indexName.length,
+                        ptTokenType: referenceDetails.type,
+                        ptTokenModifiers: modifiersWDecl
+                      },
+                      indexName
+                    );
                   } else {
                     this._logCON('  --  CON ERROR[CODE] missed recording declaration! name=[' + indexName + ']');
-                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                      line: symbolPosition.line,
-                      startCharacter: symbolPosition.character,
-                      length: indexName.length,
-                      ptTokenType: 'variable',
-                      ptTokenModifiers: ['illegalUse']
-                    }, indexName);
+                    this._recordToken(
+                      tokenSet,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: indexName.length,
+                        ptTokenType: 'variable',
+                        ptTokenModifiers: ['illegalUse']
+                      },
+                      indexName
+                    );
                   }
                 }
                 // v54: emit tokens for each bitfield in the chain
@@ -3406,13 +3458,18 @@ export class Spin2DocumentSemanticParser {
                     // locate ".name" — use the bitfield name to find it
                     const bfSymPos: Position = multiLineSet.locateSymbol(bf.name, currPartOffset);
                     if (bfSymPos.character >= 0) {
-                      this._recordToken(tokenSet, multiLineSet.lineAt(bfSymPos.line), {
-                        line: bfSymPos.line,
-                        startCharacter: bfSymPos.character,
-                        length: bf.name.length,
-                        ptTokenType: 'variable',
-                        ptTokenModifiers: ['readonly', 'declaration', 'bitfield']
-                      }, bf.name);
+                      this._recordToken(
+                        tokenSet,
+                        multiLineSet.lineAt(bfSymPos.line),
+                        {
+                          line: bfSymPos.line,
+                          startCharacter: bfSymPos.character,
+                          length: bf.name.length,
+                          ptTokenType: 'variable',
+                          ptTokenModifiers: ['readonly', 'declaration', 'bitfield']
+                        },
+                        bf.name
+                      );
                       currPartOffset = multiLineSet.offsetIntoLineForPosition(bfSymPos) + bf.name.length;
                     }
                     // color the bit number(s) inside [...]
@@ -3466,23 +3523,33 @@ export class Spin2DocumentSemanticParser {
             if (referenceDetails !== undefined) {
               // this is a constant declaration!
               const modifiersWDecl: string[] = referenceDetails.modifiersWith('declaration');
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: symbolPosition.line,
-                startCharacter: symbolPosition.character,
-                length: lhsConstantName.length,
-                ptTokenType: referenceDetails.type,
-                ptTokenModifiers: modifiersWDecl
-              }, lhsConstantName);
+              this._recordToken(
+                tokenSet,
+                multiLineSet.lineAt(symbolPosition.line),
+                {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: lhsConstantName.length,
+                  ptTokenType: referenceDetails.type,
+                  ptTokenModifiers: modifiersWDecl
+                },
+                lhsConstantName
+              );
               currSingleLineOffset += lhsConstantName.length; // skip past the name
             } else {
               this._logCON('  --  CON ERROR[CODE] missed recording declaration! name=[' + lhsConstantName + ']');
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: symbolPosition.line,
-                startCharacter: symbolPosition.character,
-                length: lhsConstantName.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['illegalUse']
-              }, lhsConstantName);
+              this._recordToken(
+                tokenSet,
+                multiLineSet.lineAt(symbolPosition.line),
+                {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: lhsConstantName.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['illegalUse']
+                },
+                lhsConstantName
+              );
               if (this.parseUtils.isP1AsmVariable(lhsConstantName)) {
                 this.semanticFindings.pushDiagnosticMessage(
                   symbolPosition.line,
@@ -3556,23 +3623,33 @@ export class Spin2DocumentSemanticParser {
                 this._logCON(`  -- namePart=[${namePart}], ofs=(${nameOffset})`);
                 // register constants in CON are new...  highlight them if new version
                 if (this.parseUtils.isSpinRegister(namePart)) {
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: symbolPosition.character,
-                    length: namePart.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['readonly']
-                  }, namePart);
+                  this._recordToken(
+                    tokenSet,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: namePart.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['readonly']
+                    },
+                    namePart
+                  );
                   continue;
                 }
                 if (this.parseUtils.isSpinBuiltInVariable(namePart)) {
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: symbolPosition.character,
-                    length: namePart.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['builtin', 'readonly']
-                  }, namePart);
+                  this._recordToken(
+                    tokenSet,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: namePart.length,
+                      ptTokenType: 'variable',
+                      ptTokenModifiers: ['builtin', 'readonly']
+                    },
+                    namePart
+                  );
                   continue;
                 }
                 if (this.parseUtils.isUnaryOperator(namePart) || this.parseUtils.isBinaryOperator(namePart)) {
@@ -3591,25 +3668,35 @@ export class Spin2DocumentSemanticParser {
                 }
                 if (referenceDetails !== undefined) {
                   // this is a constant reference!
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: symbolPosition.character,
-                    length: namePart.length,
-                    ptTokenType: referenceDetails.type,
-                    ptTokenModifiers: referenceDetails.modifiers
-                  }, namePart);
+                  this._recordToken(
+                    tokenSet,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: namePart.length,
+                      ptTokenType: referenceDetails.type,
+                      ptTokenModifiers: referenceDetails.modifiers
+                    },
+                    namePart
+                  );
                 } else {
                   const methodFollowString: string = multiLineSet.lineAt(symbolPosition.line).substring(symbolPosition.character + namePart.length);
                   this._logSPIN(`  --  CON func Paren chk nm=[${namePart}] methodFollowString=[${methodFollowString}](${methodFollowString.length})`);
                   if (this.parseUtils.isFloatConversion(namePart) && !isMethodCall(methodFollowString)) {
                     this._logCON(`  --  CON MISSING parens=[${namePart}]`);
-                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                      line: symbolPosition.line,
-                      startCharacter: symbolPosition.character,
-                      length: namePart.length,
-                      ptTokenType: 'method',
-                      ptTokenModifiers: ['builtin', 'missingDeclaration']
-                    }, namePart);
+                    this._recordToken(
+                      tokenSet,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namePart.length,
+                        ptTokenType: 'method',
+                        ptTokenModifiers: ['builtin', 'missingDeclaration']
+                      },
+                      namePart
+                    );
                     this.semanticFindings.pushDiagnosticMessage(
                       symbolPosition.line,
                       symbolPosition.character,
@@ -3619,13 +3706,18 @@ export class Spin2DocumentSemanticParser {
                     );
                   } else if (this.parseUtils.isFloatConversion(namePart) && isMethodCallEmptyParens(methodFollowString)) {
                     this._logCON(`  --  CON EMPTY parens=[${namePart}]`);
-                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                      line: symbolPosition.line,
-                      startCharacter: symbolPosition.character,
-                      length: namePart.length,
-                      ptTokenType: 'method',
-                      ptTokenModifiers: ['builtin', 'missingDeclaration']
-                    }, namePart);
+                    this._recordToken(
+                      tokenSet,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namePart.length,
+                        ptTokenType: 'method',
+                        ptTokenModifiers: ['builtin', 'missingDeclaration']
+                      },
+                      namePart
+                    );
                     this.semanticFindings.pushDiagnosticMessage(
                       symbolPosition.line,
                       symbolPosition.character,
@@ -3649,13 +3741,18 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isUnaryOperator(namePart)
                   ) {
                     this._logCON('  --  CON MISSING name=[' + namePart + ']');
-                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                      line: symbolPosition.line,
-                      startCharacter: symbolPosition.character,
-                      length: namePart.length,
-                      ptTokenType: 'variable',
-                      ptTokenModifiers: ['illegalUse']
-                    }, namePart);
+                    this._recordToken(
+                      tokenSet,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      {
+                        line: symbolPosition.line,
+                        startCharacter: symbolPosition.character,
+                        length: namePart.length,
+                        ptTokenType: 'variable',
+                        ptTokenModifiers: ['illegalUse']
+                      },
+                      namePart
+                    );
                     if (this.parseUtils.isP1AsmVariable(namePart)) {
                       this.semanticFindings.pushDiagnosticMessage(
                         symbolPosition.line,
@@ -3683,13 +3780,18 @@ export class Spin2DocumentSemanticParser {
                       !this.parseUtils.isSpinNumericSymbols(namePart)
                     ) {
                       this._logCON('  --  CON MISSING declaration=[' + namePart + ']');
-                      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                        line: symbolPosition.line,
-                        startCharacter: symbolPosition.character,
-                        length: namePart.length,
-                        ptTokenType: 'variable',
-                        ptTokenModifiers: ['missingDeclaration']
-                      }, namePart);
+                      this._recordToken(
+                        tokenSet,
+                        multiLineSet.lineAt(symbolPosition.line),
+                        {
+                          line: symbolPosition.line,
+                          startCharacter: symbolPosition.character,
+                          length: namePart.length,
+                          ptTokenType: 'variable',
+                          ptTokenModifiers: ['missingDeclaration']
+                        },
+                        namePart
+                      );
                       this.semanticFindings.pushDiagnosticMessage(
                         symbolPosition.line,
                         symbolPosition.character,
@@ -3737,13 +3839,18 @@ export class Spin2DocumentSemanticParser {
               //nameOffset = line.indexOf(enumExistingName, currSingleLineOffset);
               const symbolPosition: Position = multiLineSet.locateSymbol(enumExistingName, currSingleLineOffset);
               nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: symbolPosition.line,
-                startCharacter: nameOffset,
-                length: enumExistingName.length,
-                ptTokenType: 'enumMember',
-                ptTokenModifiers: ['readonly']
-              }, enumExistingName);
+              this._recordToken(
+                tokenSet,
+                multiLineSet.lineAt(symbolPosition.line),
+                {
+                  line: symbolPosition.line,
+                  startCharacter: nameOffset,
+                  length: enumExistingName.length,
+                  ptTokenType: 'enumMember',
+                  ptTokenModifiers: ['readonly']
+                },
+                enumExistingName
+              );
             }
             currSingleLineOffset = nameOffset + enumExistingName.length;
           }
@@ -3759,24 +3866,34 @@ export class Spin2DocumentSemanticParser {
               this._logCON('  -- B GLBLMulti enumConstant=[' + enumConstant + ']');
               // our enum name can have a step offset
               //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: symbolPosition.line,
-                startCharacter: symbolPosition.character,
-                length: enumConstant.length,
-                ptTokenType: 'enumMember',
-                ptTokenModifiers: ['declaration', 'readonly']
-              }, enumConstant);
+              this._recordToken(
+                tokenSet,
+                multiLineSet.lineAt(symbolPosition.line),
+                {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: enumConstant.length,
+                  ptTokenType: 'enumMember',
+                  ptTokenModifiers: ['declaration', 'readonly']
+                },
+                enumConstant
+              );
             } else if (isDisAllowedP1AsmVariable) {
               // our SPIN1 name
               this._logCON('  -- B GLBL bad SPIN1=[' + enumConstant + ']');
               //nameOffset = line.indexOf(enumConstant, currSingleLineOffset);
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: symbolPosition.line,
-                startCharacter: symbolPosition.character,
-                length: enumConstant.length,
-                ptTokenType: 'variable',
-                ptTokenModifiers: ['illegalUse']
-              }, enumConstant);
+              this._recordToken(
+                tokenSet,
+                multiLineSet.lineAt(symbolPosition.line),
+                {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: enumConstant.length,
+                  ptTokenType: 'variable',
+                  ptTokenModifiers: ['illegalUse']
+                },
+                enumConstant
+              );
               this.semanticFindings.pushDiagnosticMessage(
                 symbolPosition.line,
                 symbolPosition.character,
@@ -3900,9 +4017,7 @@ export class Spin2DocumentSemanticParser {
           name = secondTok;
         }
 
-        const arraySize: number | string = arraySizeRaw === undefined
-          ? 1
-          : (/^-?\d+$/.test(arraySizeRaw) ? parseInt(arraySizeRaw, 10) : arraySizeRaw);
+        const arraySize: number | string = arraySizeRaw === undefined ? 1 : /^-?\d+$/.test(arraySizeRaw) ? parseInt(arraySizeRaw, 10) : arraySizeRaw;
 
         // Parse any bitfield chain
         const bitfields: IStructBitfield[] = [];
@@ -4316,7 +4431,16 @@ export class Spin2DocumentSemanticParser {
               }
             }
             if (referenceDetails !== undefined) {
-              this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePartLength, referenceDetails.type, referenceDetails.modifiers, namePart);
+              this._createAndRecordToken(
+                tokenSet,
+                line,
+                lineIdx,
+                nameOffset,
+                namePartLength,
+                referenceDetails.type,
+                referenceDetails.modifiers,
+                namePart
+              );
             } else {
               if (
                 !this.parseUtils.isP2AsmReservedWord(namePart) &&
@@ -4347,7 +4471,13 @@ export class Spin2DocumentSemanticParser {
                 // check if this is a version-gated keyword
                 const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
                 if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
-                  this._emitVersionHintDiagnostic(lineIdx, nameOffset, nameOffset + namePartLength, requiredVersion, `built-in keyword [${namePart}]`);
+                  this._emitVersionHintDiagnostic(
+                    lineIdx,
+                    nameOffset,
+                    nameOffset + namePartLength,
+                    requiredVersion,
+                    `built-in keyword [${namePart}]`
+                  );
                 }
               }
             }
@@ -4600,7 +4730,16 @@ export class Spin2DocumentSemanticParser {
                 }
                 if (referenceDetails !== undefined) {
                   this._logPASM(`  --  rDatPAsm() name=[${namePart}](${nameOffset})`);
-                  this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, referenceDetails.type, referenceDetails.modifiers, namePart);
+                  this._createAndRecordToken(
+                    tokenSet,
+                    line,
+                    lineIdx,
+                    nameOffset,
+                    namePart.length,
+                    referenceDetails.type,
+                    referenceDetails.modifiers,
+                    namePart
+                  );
                 } else if (this.parseUtils.isVersionAddedMethod(namePart)) {
                   this._logMessage(`  -- rDatPAsm()  ver added method=[${namePart}], ofs=(${nameOffset})`);
                   this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, 'operator', ['builtin']);
@@ -4781,25 +4920,35 @@ export class Spin2DocumentSemanticParser {
     this._logSPIN(`  -- rptPubPriSig() methodName=[${methodName}], startNameOffset=(${startNameOffset}), bHaveSpin2Method=(${bHaveSpin2Method})`);
     if (bHaveSpin2Method) {
       const declModifiers: string[] = isPrivate ? ['declaration', 'static'] : ['declaration'];
-      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-        line: symbolPosition.line,
-        startCharacter: symbolPosition.character,
-        length: methodName.length,
-        ptTokenType: 'method',
-        ptTokenModifiers: declModifiers
-      }, methodName);
+      this._recordToken(
+        tokenSet,
+        multiLineSet.lineAt(symbolPosition.line),
+        {
+          line: symbolPosition.line,
+          startCharacter: symbolPosition.character,
+          length: methodName.length,
+          ptTokenType: 'method',
+          ptTokenModifiers: declModifiers
+        },
+        methodName
+      );
     } else {
       // have a P1 style method declaration, flag it!
       const declModifiers: string[] = isPrivate ? ['declaration', 'static', 'illegalUse'] : ['declaration', 'illegalUse'];
       symbolPosition = multiLineSet.locateSymbol(methodName, currSingleLineOffset);
       nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
-      this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-        line: symbolPosition.line,
-        startCharacter: symbolPosition.character,
-        length: methodName.length,
-        ptTokenType: 'method',
-        ptTokenModifiers: declModifiers
-      }, methodName);
+      this._recordToken(
+        tokenSet,
+        multiLineSet.lineAt(symbolPosition.line),
+        {
+          line: symbolPosition.line,
+          startCharacter: symbolPosition.character,
+          length: methodName.length,
+          ptTokenType: 'method',
+          ptTokenModifiers: declModifiers
+        },
+        methodName
+      );
       const methodPrefix: string = isPrivate ? 'PRI' : 'PUB';
       this.semanticFindings.pushDiagnosticMessage(
         symbolPosition.line,
@@ -4901,25 +5050,35 @@ export class Spin2DocumentSemanticParser {
                   (this.parseUtils.isStorageType(typeName) && !isPtr) ||
                   allowedPtrRef
                 ) {
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: symbolPosition.character,
-                    length: typeName.length,
-                    ptTokenType: 'storageType',
-                    ptTokenModifiers: []
-                  }, !this.parseUtils.isStorageType(typeName) ? typeName : undefined);
+                  this._recordToken(
+                    tokenSet,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    {
+                      line: symbolPosition.line,
+                      startCharacter: symbolPosition.character,
+                      length: typeName.length,
+                      ptTokenType: 'storageType',
+                      ptTokenModifiers: []
+                    },
+                    !this.parseUtils.isStorageType(typeName) ? typeName : undefined
+                  );
                   structureType = typeName;
                 } else if (!this.parseUtils.isStorageType(typeName)) {
                   // bad type name, show error
                   const adjNameOffset = isPtr ? nameOffset - 1 : nameOffset;
                   const adjNameLength = isPtr ? typeName.length + 1 : typeName.length;
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: adjNameOffset,
-                    length: adjNameLength,
-                    ptTokenType: 'parameter',
-                    ptTokenModifiers: ['illegalUse']
-                  }, typeName);
+                  this._recordToken(
+                    tokenSet,
+                    multiLineSet.lineAt(symbolPosition.line),
+                    {
+                      line: symbolPosition.line,
+                      startCharacter: adjNameOffset,
+                      length: adjNameLength,
+                      ptTokenType: 'parameter',
+                      ptTokenModifiers: ['illegalUse']
+                    },
+                    typeName
+                  );
                   let errorMsg = `P2 Spin parameter type [${typeName}] Bad storage Type (not BYTE, WORD, LONG)`;
                   if (this.parseUtils.requestedSpinVersion(49)) {
                     errorMsg = `P2 Spin parameter type [${typeName}] Bad storage Type (not {^}BYTE, {^}WORD, {^}LONG, or ^structure)`;
@@ -4934,13 +5093,31 @@ export class Spin2DocumentSemanticParser {
                   // emit version hint for structure/pointer types that need a version directive
                   if (typeName.includes('.') && !this.parseUtils.requestedSpinVersion(49)) {
                     // external object structure type (e.g., dfs.vbr_t) needs v49
-                    this._emitVersionHintDiagnostic(symbolPosition.line, adjNameOffset, adjNameOffset + adjNameLength, 49, `external object structure parameter type [${typeName}]`);
+                    this._emitVersionHintDiagnostic(
+                      symbolPosition.line,
+                      adjNameOffset,
+                      adjNameOffset + adjNameLength,
+                      49,
+                      `external object structure parameter type [${typeName}]`
+                    );
                   } else if (this.semanticFindings.isStructure(typeName) && !this.parseUtils.requestedSpinVersion(45)) {
                     // local structure type needs v45
-                    this._emitVersionHintDiagnostic(symbolPosition.line, adjNameOffset, adjNameOffset + adjNameLength, 45, `structure parameter type [${typeName}]`);
+                    this._emitVersionHintDiagnostic(
+                      symbolPosition.line,
+                      adjNameOffset,
+                      adjNameOffset + adjNameLength,
+                      45,
+                      `structure parameter type [${typeName}]`
+                    );
                   } else if (isPtr && !this.parseUtils.requestedSpinVersion(45)) {
                     // pointer type needs v45
-                    this._emitVersionHintDiagnostic(symbolPosition.line, adjNameOffset, adjNameOffset + adjNameLength, 45, `pointer parameter type [${typeName}]`);
+                    this._emitVersionHintDiagnostic(
+                      symbolPosition.line,
+                      adjNameOffset,
+                      adjNameOffset + adjNameLength,
+                      45,
+                      `pointer parameter type [${typeName}]`
+                    );
                   }
                 }
               }
@@ -4952,13 +5129,18 @@ export class Spin2DocumentSemanticParser {
           this._logSPIN(`  -- rptPubPriSig() paramName=[${paramName}], ofs=(${nameOffset})`);
           // check to see if param name is hiding global variable
           if (this._hidesGlobalVariable(paramName)) {
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: paramName.length,
-              ptTokenType: 'parameter',
-              ptTokenModifiers: ['illegalUse']
-            }, paramName);
+            this._recordToken(
+              tokenSet,
+              multiLineSet.lineAt(symbolPosition.line),
+              {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: paramName.length,
+                ptTokenType: 'parameter',
+                ptTokenModifiers: ['illegalUse']
+              },
+              paramName
+            );
             this.semanticFindings.pushDiagnosticMessage(
               symbolPosition.line,
               symbolPosition.character,
@@ -4967,13 +5149,18 @@ export class Spin2DocumentSemanticParser {
               `P2 Spin parameter [${paramName}] hides global variable of same name`
             );
           } else {
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: paramName.length,
-              ptTokenType: 'parameter',
-              ptTokenModifiers: ['declaration', 'readonly', 'local']
-            }, paramName);
+            this._recordToken(
+              tokenSet,
+              multiLineSet.lineAt(symbolPosition.line),
+              {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: paramName.length,
+                ptTokenType: 'parameter',
+                ptTokenModifiers: ['declaration', 'readonly', 'local']
+              },
+              paramName
+            );
           }
           // remember so we can ID references
           const struTypeStr: string = structureType.length > 0 ? ` type (${structureType})` : '';
@@ -5087,23 +5274,33 @@ export class Spin2DocumentSemanticParser {
                 allowedPtrRef
               ) {
                 // have structure pointer type
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: typeName.length,
-                  ptTokenType: 'storageType',
-                  ptTokenModifiers: []
-                }, !this.parseUtils.isStorageType(typeName) ? typeName : undefined);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: typeName.length,
+                    ptTokenType: 'storageType',
+                    ptTokenModifiers: []
+                  },
+                  !this.parseUtils.isStorageType(typeName) ? typeName : undefined
+                );
                 varNameOffset += typeName.length;
                 structureType = typeName;
               } else if (!this.parseUtils.isStorageType(typeName)) {
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: typeName.length,
-                  ptTokenType: 'parameter',
-                  ptTokenModifiers: ['illegalUse']
-                }, typeName);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: typeName.length,
+                    ptTokenType: 'parameter',
+                    ptTokenModifiers: ['illegalUse']
+                  },
+                  typeName
+                );
                 let errorMsg = `P2 Spin return-value type [${typeName}] Bad storage Type (not BYTE, WORD, LONG)`;
                 if (this.parseUtils.requestedSpinVersion(49)) {
                   errorMsg = `P2 Spin return-value type [${typeName}] Bad storage Type (not {^}BYTE, {^}WORD, {^}LONG, or ^structure)`;
@@ -5117,9 +5314,21 @@ export class Spin2DocumentSemanticParser {
                 );
                 // check if this is a structure type that just needs a version directive
                 if (typeName.includes('.') && !this.parseUtils.requestedSpinVersion(49)) {
-                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + typeName.length, 49, `external object structure type [${typeName}] as return value`);
+                  this._emitVersionHintDiagnostic(
+                    symbolPosition.line,
+                    symbolPosition.character,
+                    symbolPosition.character + typeName.length,
+                    49,
+                    `external object structure type [${typeName}] as return value`
+                  );
                 } else if (this.semanticFindings.isStructure(typeName) && !this.parseUtils.requestedSpinVersion(45)) {
-                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + typeName.length, 45, `structure type [${typeName}] as return value`);
+                  this._emitVersionHintDiagnostic(
+                    symbolPosition.line,
+                    symbolPosition.character,
+                    symbolPosition.character + typeName.length,
+                    45,
+                    `structure type [${typeName}] as return value`
+                  );
                 }
               }
             }
@@ -5128,13 +5337,18 @@ export class Spin2DocumentSemanticParser {
           symbolPosition = multiLineSet.locateSymbol(returnValueName, varNameOffset);
           nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
           if (this._hidesGlobalVariable(returnValueName)) {
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: returnValueName.length,
-              ptTokenType: 'returnValue',
-              ptTokenModifiers: ['illegalUse']
-            }, returnValueName);
+            this._recordToken(
+              tokenSet,
+              multiLineSet.lineAt(symbolPosition.line),
+              {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: returnValueName.length,
+                ptTokenType: 'returnValue',
+                ptTokenModifiers: ['illegalUse']
+              },
+              returnValueName
+            );
             this.semanticFindings.pushDiagnosticMessage(
               symbolPosition.line,
               symbolPosition.character,
@@ -5143,13 +5357,18 @@ export class Spin2DocumentSemanticParser {
               `P2 Spin return variable [${returnValueName}] hides global variable of same name`
             );
           } else {
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: returnValueName.length,
-              ptTokenType: 'returnValue',
-              ptTokenModifiers: ['declaration', 'local']
-            }, returnValueName);
+            this._recordToken(
+              tokenSet,
+              multiLineSet.lineAt(symbolPosition.line),
+              {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: returnValueName.length,
+                ptTokenType: 'returnValue',
+                ptTokenModifiers: ['declaration', 'local']
+              },
+              returnValueName
+            );
           }
           const struTypeStr: string = structureType.length > 0 ? ` type (${structureType})` : '';
           this._logMessage(`  -- rptPubPriSig() remember local retValue [${returnValueName}]${struTypeStr} for method [${methodName}]`);
@@ -5325,13 +5544,18 @@ export class Spin2DocumentSemanticParser {
                 allowedPtrRef
               ) {
                 this._logMessage(`  -- rptPubPriSig() have Storage type! localName=[${storageType}], ofs=(${nameOffset})`);
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: storageType.length,
-                  ptTokenType: 'storageType',
-                  ptTokenModifiers: []
-                }, !this.parseUtils.isStorageType(storageType) ? storageType : undefined);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: storageType.length,
+                    ptTokenType: 'storageType',
+                    ptTokenModifiers: []
+                  },
+                  !this.parseUtils.isStorageType(storageType) ? storageType : undefined
+                );
                 nameOffset += storageType.length;
                 if (allowedStructRef && this.semanticFindings.isStructure(storageType)) {
                   // at v45, we allow structures as types for local vars!
@@ -5339,13 +5563,18 @@ export class Spin2DocumentSemanticParser {
                 }
               } else if (!this.parseUtils.isStorageType(storageType) && !this.parseUtils.isAlignType(storageType)) {
                 this._logMessage(`  -- have unknown Storage type! localName=[${storageType}], ofs=(${nameOffset})`);
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: storageType.length,
-                  ptTokenType: 'parameter',
-                  ptTokenModifiers: ['illegalUse']
-                }, storageType);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: storageType.length,
+                    ptTokenType: 'parameter',
+                    ptTokenModifiers: ['illegalUse']
+                  },
+                  storageType
+                );
                 let errorMsg = `P2 Spin local var align/storage [${storageType}] Bad Type (not ALIGNW, ALIGNL, BYTE, WORD, or LONG)`;
                 if (this.parseUtils.requestedSpinVersion(49)) {
                   errorMsg = `P2 Spin local var align/storage [${storageType}] Bad Type (not {^}BYTE, {^}WORD, {^}LONG, or {^}structure)`;
@@ -5361,9 +5590,21 @@ export class Spin2DocumentSemanticParser {
                 );
                 // check if this is a structure type that just needs a version directive
                 if (storageType.includes('.') && !this.parseUtils.requestedSpinVersion(49)) {
-                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + storageType.length, 49, `external object structure type [${storageType}] as local variable type`);
+                  this._emitVersionHintDiagnostic(
+                    symbolPosition.line,
+                    symbolPosition.character,
+                    symbolPosition.character + storageType.length,
+                    49,
+                    `external object structure type [${storageType}] as local variable type`
+                  );
                 } else if (this.semanticFindings.isStructure(storageType) && !this.parseUtils.requestedSpinVersion(45)) {
-                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + storageType.length, 45, `structure type [${storageType}] as local variable type`);
+                  this._emitVersionHintDiagnostic(
+                    symbolPosition.line,
+                    symbolPosition.character,
+                    symbolPosition.character + storageType.length,
+                    45,
+                    `structure type [${storageType}] as local variable type`
+                  );
                 }
               }
             }
@@ -5377,13 +5618,18 @@ export class Spin2DocumentSemanticParser {
           // have name
           // check to see if local name is hiding global variable
           if (this._hidesGlobalVariable(localVarName)) {
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: localVarName.length,
-              ptTokenType: 'variable',
-              ptTokenModifiers: ['illegalUse']
-            }, localVarName);
+            this._recordToken(
+              tokenSet,
+              multiLineSet.lineAt(symbolPosition.line),
+              {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: localVarName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['illegalUse']
+              },
+              localVarName
+            );
             this.semanticFindings.pushDiagnosticMessage(
               symbolPosition.line,
               symbolPosition.character,
@@ -5393,13 +5639,18 @@ export class Spin2DocumentSemanticParser {
             );
             currSingleLineOffset = nameOffset + localVarName.length;
           } else {
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: localVarName.length,
-              ptTokenType: 'variable',
-              ptTokenModifiers: ['declaration', 'local']
-            }, localVarName);
+            this._recordToken(
+              tokenSet,
+              multiLineSet.lineAt(symbolPosition.line),
+              {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: localVarName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['declaration', 'local']
+              },
+              localVarName
+            );
             currSingleLineOffset = nameOffset + localVarName.length;
           }
           const struTypeStr: string = structureType.length > 0 ? ` type (${structureType})` : '';
@@ -5692,13 +5943,18 @@ export class Spin2DocumentSemanticParser {
             // have structure type?
             if (this.semanticFindings.isStructure(cleanedVariableName)) {
               this._logSPIN(`  -- rptSPIN() STRUCT storageType=[${cleanedVariableName}]`);
-              this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                line: symbolPosition.line,
-                startCharacter: symbolPosition.character,
-                length: cleanedVariableName.length,
-                ptTokenType: 'storageType',
-                ptTokenModifiers: []
-              }, cleanedVariableName);
+              this._recordToken(
+                tokenSet,
+                multiLineSet.lineAt(symbolPosition.line),
+                {
+                  line: symbolPosition.line,
+                  startCharacter: symbolPosition.character,
+                  length: cleanedVariableName.length,
+                  ptTokenType: 'storageType',
+                  ptTokenModifiers: []
+                },
+                cleanedVariableName
+              );
               currSingleLineOffset = nameOffset + cleanedVariableName.length;
             }
             // does name contain a namespace reference?
@@ -5770,13 +6026,18 @@ export class Spin2DocumentSemanticParser {
               }
               if (referenceDetails !== undefined) {
                 this._logSPIN(`  -- rptSPIN() LHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: namePart.length,
-                  ptTokenType: referenceDetails.type,
-                  ptTokenModifiers: referenceDetails.modifiers
-                }, namePart);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: namePart.length,
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: referenceDetails.modifiers
+                  },
+                  namePart
+                );
                 currSingleLineOffset = nameOffset + namePart.length;
                 if (indexExpressions.length > 0) {
                   // XYZZY
@@ -5857,39 +6118,62 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isDebugControlSymbol(namePart) &&
                     !this.parseUtils.isDebugInvocation(namePart)
                   ) {
-                  // NO DEBUG FOR ELSE, most of spin control elements come through here!
-                  //else {
-                  //    this._logSPIN('  -- UNKNOWN?? name=[' + namePart + '] - name-get-breakage??');
-                  //}
-                  this._logSPIN(`  -- rptSPIN() MISSING rhs name=[${namePart}]`);
-                  this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                    line: symbolPosition.line,
-                    startCharacter: nameOffset,
-                    length: namePart.length,
-                    ptTokenType: 'variable',
-                    ptTokenModifiers: ['missingDeclaration']
-                  }, namePart);
-                  this.semanticFindings.pushDiagnosticMessage(
-                    symbolPosition.line,
-                    symbolPosition.character,
-                    symbolPosition.character + namePart.length,
-                    eSeverity.Error,
-                    `P2 Spin mC missing declaration [${namePart}]`
-                  );
-                  // check if this is a version-gated keyword
-                  const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
-                  if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
-                    this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, requiredVersion, `built-in keyword [${namePart}]`);
-                  }
-                  // check if this is a potential structure reference (dotted name without version directive)
-                  if (namePart.includes('.')) {
-                    if (!this.parseUtils.requestedSpinVersion(44)) {
-                      this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, 44, `potential structure reference [${namePart}]`);
-                    } else if (!this.parseUtils.requestedSpinVersion(49)) {
-                      // v44+ active but dotted name still unresolved — likely needs v49 for external object structure types
-                      this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, 49, `potential external object structure reference [${namePart}]`);
+                    // NO DEBUG FOR ELSE, most of spin control elements come through here!
+                    //else {
+                    //    this._logSPIN('  -- UNKNOWN?? name=[' + namePart + '] - name-get-breakage??');
+                    //}
+                    this._logSPIN(`  -- rptSPIN() MISSING rhs name=[${namePart}]`);
+                    this._recordToken(
+                      tokenSet,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      {
+                        line: symbolPosition.line,
+                        startCharacter: nameOffset,
+                        length: namePart.length,
+                        ptTokenType: 'variable',
+                        ptTokenModifiers: ['missingDeclaration']
+                      },
+                      namePart
+                    );
+                    this.semanticFindings.pushDiagnosticMessage(
+                      symbolPosition.line,
+                      symbolPosition.character,
+                      symbolPosition.character + namePart.length,
+                      eSeverity.Error,
+                      `P2 Spin mC missing declaration [${namePart}]`
+                    );
+                    // check if this is a version-gated keyword
+                    const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
+                    if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
+                      this._emitVersionHintDiagnostic(
+                        symbolPosition.line,
+                        symbolPosition.character,
+                        symbolPosition.character + namePart.length,
+                        requiredVersion,
+                        `built-in keyword [${namePart}]`
+                      );
                     }
-                  }
+                    // check if this is a potential structure reference (dotted name without version directive)
+                    if (namePart.includes('.')) {
+                      if (!this.parseUtils.requestedSpinVersion(44)) {
+                        this._emitVersionHintDiagnostic(
+                          symbolPosition.line,
+                          symbolPosition.character,
+                          symbolPosition.character + namePart.length,
+                          44,
+                          `potential structure reference [${namePart}]`
+                        );
+                      } else if (!this.parseUtils.requestedSpinVersion(49)) {
+                        // v44+ active but dotted name still unresolved — likely needs v49 for external object structure types
+                        this._emitVersionHintDiagnostic(
+                          symbolPosition.line,
+                          symbolPosition.character,
+                          symbolPosition.character + namePart.length,
+                          49,
+                          `potential external object structure reference [${namePart}]`
+                        );
+                      }
+                    }
                   }
                 }
                 currSingleLineOffset = nameOffset + namePart.length;
@@ -6398,13 +6682,18 @@ export class Spin2DocumentSemanticParser {
               if (referenceDetails !== undefined) {
                 this._logSPIN(`  -- rptSPIN() Bm RHS name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
                 const symbolRefType: string = isStructureType ? 'storageType' : referenceDetails.type;
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: namePart.length,
-                  ptTokenType: symbolRefType,
-                  ptTokenModifiers: referenceDetails.modifiers
-                }, namePart);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: namePart.length,
+                    ptTokenType: symbolRefType,
+                    ptTokenModifiers: referenceDetails.modifiers
+                  },
+                  namePart
+                );
               } else {
                 if (this.parseUtils.isTaskReservedSymbol(namePart) || this.parseUtils.isTaskReservedRegisterName(namePart)) {
                   this._logSPIN(`  --  override with constant coloring name=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
@@ -6517,66 +6806,89 @@ export class Spin2DocumentSemanticParser {
                       !(bIsDebugLine && debugCallOffset !== -1 && nameOffset >= debugCallOffset + assignmentStringOffset) &&
                       !this.parseUtils.isDebugInvocation(namePart)
                     ) {
-                    // NO DEBUG FOR ELSE, most of spin control elements come through here!
-                    //else {
-                    //    this._logSPIN('  -- UNKNOWN?? name=[' + namePart + '] - name-get-breakage??');
-                    //}
+                      // NO DEBUG FOR ELSE, most of spin control elements come through here!
+                      //else {
+                      //    this._logSPIN('  -- UNKNOWN?? name=[' + namePart + '] - name-get-breakage??');
+                      //}
 
-                    this._logSPIN(`  -- rptSPIN() MISSING rhs name=[${namePart}]`);
-                    this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                      line: symbolPosition.line,
-                      startCharacter: symbolPosition.character,
-                      length: namePart.length,
-                      ptTokenType: 'variable',
-                      ptTokenModifiers: ['missingDeclaration']
-                    }, namePart);
-                    if (this.parseUtils.isP1SpinMethod(namePart)) {
-                      this.semanticFindings.pushDiagnosticMessage(
-                        symbolPosition.line,
-                        symbolPosition.character,
-                        symbolPosition.character + namePart.length,
-                        eSeverity.Error,
-                        `P1 Spin method [${namePart}()] not allowed in P2 Spin`
+                      this._logSPIN(`  -- rptSPIN() MISSING rhs name=[${namePart}]`);
+                      this._recordToken(
+                        tokenSet,
+                        multiLineSet.lineAt(symbolPosition.line),
+                        {
+                          line: symbolPosition.line,
+                          startCharacter: symbolPosition.character,
+                          length: namePart.length,
+                          ptTokenType: 'variable',
+                          ptTokenModifiers: ['missingDeclaration']
+                        },
+                        namePart
                       );
-                    } else if (this.parseUtils.isP1AsmVariable(namePart)) {
-                      this.semanticFindings.pushDiagnosticMessage(
-                        symbolPosition.line,
-                        symbolPosition.character,
-                        symbolPosition.character + namePart.length,
-                        eSeverity.Error,
-                        `P1 Pasm reserved word [${namePart}] not allowed in P2 Spin`
-                      );
-                    } else if (this.parseUtils.isP1SpinVariable(namePart)) {
-                      this.semanticFindings.pushDiagnosticMessage(
-                        symbolPosition.line,
-                        symbolPosition.character,
-                        symbolPosition.character + namePart.length,
-                        eSeverity.Error,
-                        `P1 Spin variable [${namePart}] not allowed in P2 Spin`
-                      );
-                    } else {
-                      this.semanticFindings.pushDiagnosticMessage(
-                        symbolPosition.line,
-                        symbolPosition.character,
-                        symbolPosition.character + namePart.length,
-                        eSeverity.Error,
-                        `P2 Spin mE missing declaration [${namePart}]`
-                      );
-                      // check if this is a version-gated keyword
-                      const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
-                      if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
-                        this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, requiredVersion, `built-in keyword [${namePart}]`);
-                      }
-                      // check if this is a potential structure reference (dotted name without version directive)
-                      if (namePart.includes('.')) {
-                        if (!this.parseUtils.requestedSpinVersion(44)) {
-                          this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, 44, `potential structure reference [${namePart}]`);
-                        } else if (!this.parseUtils.requestedSpinVersion(49)) {
-                          // v44+ active but dotted name still unresolved — likely needs v49 for external object structure types
-                          this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + namePart.length, 49, `potential external object structure reference [${namePart}]`);
+                      if (this.parseUtils.isP1SpinMethod(namePart)) {
+                        this.semanticFindings.pushDiagnosticMessage(
+                          symbolPosition.line,
+                          symbolPosition.character,
+                          symbolPosition.character + namePart.length,
+                          eSeverity.Error,
+                          `P1 Spin method [${namePart}()] not allowed in P2 Spin`
+                        );
+                      } else if (this.parseUtils.isP1AsmVariable(namePart)) {
+                        this.semanticFindings.pushDiagnosticMessage(
+                          symbolPosition.line,
+                          symbolPosition.character,
+                          symbolPosition.character + namePart.length,
+                          eSeverity.Error,
+                          `P1 Pasm reserved word [${namePart}] not allowed in P2 Spin`
+                        );
+                      } else if (this.parseUtils.isP1SpinVariable(namePart)) {
+                        this.semanticFindings.pushDiagnosticMessage(
+                          symbolPosition.line,
+                          symbolPosition.character,
+                          symbolPosition.character + namePart.length,
+                          eSeverity.Error,
+                          `P1 Spin variable [${namePart}] not allowed in P2 Spin`
+                        );
+                      } else {
+                        this.semanticFindings.pushDiagnosticMessage(
+                          symbolPosition.line,
+                          symbolPosition.character,
+                          symbolPosition.character + namePart.length,
+                          eSeverity.Error,
+                          `P2 Spin mE missing declaration [${namePart}]`
+                        );
+                        // check if this is a version-gated keyword
+                        const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
+                        if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
+                          this._emitVersionHintDiagnostic(
+                            symbolPosition.line,
+                            symbolPosition.character,
+                            symbolPosition.character + namePart.length,
+                            requiredVersion,
+                            `built-in keyword [${namePart}]`
+                          );
+                        }
+                        // check if this is a potential structure reference (dotted name without version directive)
+                        if (namePart.includes('.')) {
+                          if (!this.parseUtils.requestedSpinVersion(44)) {
+                            this._emitVersionHintDiagnostic(
+                              symbolPosition.line,
+                              symbolPosition.character,
+                              symbolPosition.character + namePart.length,
+                              44,
+                              `potential structure reference [${namePart}]`
+                            );
+                          } else if (!this.parseUtils.requestedSpinVersion(49)) {
+                            // v44+ active but dotted name still unresolved — likely needs v49 for external object structure types
+                            this._emitVersionHintDiagnostic(
+                              symbolPosition.line,
+                              symbolPosition.character,
+                              symbolPosition.character + namePart.length,
+                              49,
+                              `potential external object structure reference [${namePart}]`
+                            );
+                          }
                         }
                       }
-                    }
                     }
                   }
                 }
@@ -6590,13 +6902,18 @@ export class Spin2DocumentSemanticParser {
             symbolPosition = multiLineSet.locateSymbol(namePart, currSingleLineOffset);
             nameOffset = multiLineSet.offsetIntoLineForPosition(symbolPosition);
             this._logSPIN(`  -- rptSPIN() rhs namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset})`);
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: namePart.length,
-              ptTokenType: 'method',
-              ptTokenModifiers: []
-            }, namePart);
+            this._recordToken(
+              tokenSet,
+              multiLineSet.lineAt(symbolPosition.line),
+              {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: namePart.length,
+                ptTokenType: 'method',
+                ptTokenModifiers: []
+              },
+              namePart
+            );
           }
 
           if (possStorageType.length > 0) {
@@ -6846,7 +7163,15 @@ export class Spin2DocumentSemanticParser {
                       const builtinInfo = this._classifyBuiltinName(namePart);
                       if (builtinInfo) {
                         this._logPASM(`  -- rptSPINPAsm() builtin=[${namePart}]`);
-                        this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, builtinInfo.tokenType, builtinInfo.modifiers);
+                        this._createAndRecordToken(
+                          tokenSet,
+                          line,
+                          lineIdx,
+                          nameOffset,
+                          namePart.length,
+                          builtinInfo.tokenType,
+                          builtinInfo.modifiers
+                        );
                       } else if (
                         !this.parseUtils.isSpinReservedWord(namePart) &&
                         !this.parseUtils.isBuiltinStreamerReservedWord(namePart) &&
@@ -6867,7 +7192,13 @@ export class Spin2DocumentSemanticParser {
                         // check if this is a version-gated keyword
                         const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(namePart);
                         if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
-                          this._emitVersionHintDiagnostic(lineIdx, nameOffset, nameOffset + namePart.length, requiredVersion, `built-in keyword [${namePart}]`);
+                          this._emitVersionHintDiagnostic(
+                            lineIdx,
+                            nameOffset,
+                            nameOffset + namePart.length,
+                            requiredVersion,
+                            `built-in keyword [${namePart}]`
+                          );
                         }
                       } else if (this.parseUtils.isIllegalInlinePAsmDirective(namePart)) {
                         this._logPASM('  -- rptSPINPAsm() ERROR[CODE] illegal name=[' + namePart + ']');
@@ -7025,18 +7356,18 @@ export class Spin2DocumentSemanticParser {
                     !this.parseUtils.isBuiltinStreamerReservedWord(nameReference) &&
                     !this.parseUtils.isDebugMethod(nameReference)
                   ) {
-                  // we don't have name registered so just mark it
-                  this._logOBJ('  --  OBJ MISSING name=[' + nameReference + ']');
-                  this._recordTokenWithDiagnostic(
-                    tokenSet,
-                    multiLineSet.lineAt(symbolPosition.line),
-                    symbolPosition.line,
-                    symbolPosition.character,
-                    nameReference.length,
-                    'variable',
-                    ['missingDeclaration'],
-                    `P2 Spin OBJ mA  issing declaration [${nameReference}]`
-                  );
+                    // we don't have name registered so just mark it
+                    this._logOBJ('  --  OBJ MISSING name=[' + nameReference + ']');
+                    this._recordTokenWithDiagnostic(
+                      tokenSet,
+                      multiLineSet.lineAt(symbolPosition.line),
+                      symbolPosition.line,
+                      symbolPosition.character,
+                      nameReference.length,
+                      'variable',
+                      ['missingDeclaration'],
+                      `P2 Spin OBJ mA  issing declaration [${nameReference}]`
+                    );
                   }
                 }
               }
@@ -7076,13 +7407,18 @@ export class Spin2DocumentSemanticParser {
             : false;
           if (!bHaveObjReference) {
             this._logOBJ(`  --  OBJ MISSING name=[${overideName}]`);
-            this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-              line: symbolPosition.line,
-              startCharacter: symbolPosition.character,
-              length: overideName.length,
-              ptTokenType: 'variable',
-              ptTokenModifiers: ['missingDeclaration']
-            }, overideName);
+            this._recordToken(
+              tokenSet,
+              multiLineSet.lineAt(symbolPosition.line),
+              {
+                line: symbolPosition.line,
+                startCharacter: symbolPosition.character,
+                length: overideName.length,
+                ptTokenType: 'variable',
+                ptTokenModifiers: ['missingDeclaration']
+              },
+              overideName
+            );
             this.semanticFindings.pushDiagnosticMessage(
               symbolPosition.line,
               symbolPosition.character,
@@ -7122,13 +7458,18 @@ export class Spin2DocumentSemanticParser {
               if (referenceDetails !== undefined) {
                 //const updatedModificationSet: string[] = this._modifiersWithout(referenceDetails.modifiers, "declaration");
                 this._logOBJ('  --  FOUND global name=[' + overideValue + ']');
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: overideValue.length,
-                  ptTokenType: referenceDetails.type,
-                  ptTokenModifiers: referenceDetails.modifiers
-                }, overideValue);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: overideValue.length,
+                    ptTokenType: referenceDetails.type,
+                    ptTokenModifiers: referenceDetails.modifiers
+                  },
+                  overideValue
+                );
               } else if (this.parseUtils.isP2AsmReservedWord(overideValue)) {
                 this._logOBJ('  --  FOUND built-in constant=[' + overideValue + ']');
                 this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
@@ -7141,13 +7482,18 @@ export class Spin2DocumentSemanticParser {
               } else {
                 // if (!this.parseUtils.isP2AsmReservedWord(overideValue)) {
                 this._logOBJ('  --  OBJ MISSING RHS name=[' + overideValue + ']');
-                this._recordToken(tokenSet, multiLineSet.lineAt(symbolPosition.line), {
-                  line: symbolPosition.line,
-                  startCharacter: symbolPosition.character,
-                  length: overideValue.length,
-                  ptTokenType: 'variable',
-                  ptTokenModifiers: ['missingDeclaration']
-                }, overideValue);
+                this._recordToken(
+                  tokenSet,
+                  multiLineSet.lineAt(symbolPosition.line),
+                  {
+                    line: symbolPosition.line,
+                    startCharacter: symbolPosition.character,
+                    length: overideValue.length,
+                    ptTokenType: 'variable',
+                    ptTokenModifiers: ['missingDeclaration']
+                  },
+                  overideValue
+                );
                 this.semanticFindings.pushDiagnosticMessage(
                   symbolPosition.line,
                   symbolPosition.character,
@@ -7158,7 +7504,13 @@ export class Spin2DocumentSemanticParser {
                 // check if this is a version-gated keyword
                 const requiredVersion: number = this.parseUtils.versionRequiredForKeyword(overideValue);
                 if (requiredVersion > 0 && !this.parseUtils.requestedSpinVersion(requiredVersion)) {
-                  this._emitVersionHintDiagnostic(symbolPosition.line, symbolPosition.character, symbolPosition.character + overideValue.length, requiredVersion, `built-in keyword [${overideValue}]`);
+                  this._emitVersionHintDiagnostic(
+                    symbolPosition.line,
+                    symbolPosition.character,
+                    symbolPosition.character + overideValue.length,
+                    requiredVersion,
+                    `built-in keyword [${overideValue}]`
+                  );
                 }
               }
             }
@@ -7908,9 +8260,7 @@ export class Spin2DocumentSemanticParser {
             if (linePart.includes('[') && linePart.includes(']')) {
               // bracket expression is already complete (e.g., name[0].namefield) - keep as-is
               newIndexedExpr = linePart;
-              this._logDEBUG(
-                `  -- rDbgStM() --- COMPLETE linePart=[${linePart}](${linePart.length})`
-              );
+              this._logDEBUG(`  -- rDbgStM() --- COMPLETE linePart=[${linePart}](${linePart.length})`);
               tmpLineParts.push(linePart);
             } else if (linePart.includes('[')) {
               // partial bracket expression (e.g., name[i split across parts) - rebuild from line
@@ -8455,7 +8805,8 @@ export class Spin2DocumentSemanticParser {
         `  -- isStruRef() hasDot=(${hasSymbolDotSymbol}), hasIndex=(${hasSymbolDotIndexedSymbol}), nameParts=[${nameParts}](${nameParts.length})`
       );
       const instanceName = nameParts.length > 0 ? nameParts[0] : '';
-      let isStructureRef: boolean = instanceName.length > 0 && (this.semanticFindings.isStructureInstance(instanceName) || this.semanticFindings.isStructure(instanceName));
+      let isStructureRef: boolean =
+        instanceName.length > 0 && (this.semanticFindings.isStructureInstance(instanceName) || this.semanticFindings.isStructure(instanceName));
       // if lineIdx !== -1 then we need to check for instance part being a structure type local variable
       if (isStructureRef === false && lineIdx !== -1 && instanceName.length > 0) {
         // see if instance name is a local variable.
@@ -8482,7 +8833,8 @@ export class Spin2DocumentSemanticParser {
       if (dottedSymbolRegex.test(possibleRef) || dottedIndexedSymbolRegex.test(possibleRef)) {
         const nameParts: string[] = possibleRef.split(/[.[\]]/).filter(Boolean);
         const instanceName = nameParts.length > 0 ? nameParts[0] : '';
-        let isStructureRef: boolean = instanceName.length > 0 && (this.semanticFindings.isStructureInstance(instanceName) || this.semanticFindings.isStructure(instanceName));
+        let isStructureRef: boolean =
+          instanceName.length > 0 && (this.semanticFindings.isStructureInstance(instanceName) || this.semanticFindings.isStructure(instanceName));
         if (isStructureRef === false && instanceName.length > 0) {
           const referenceDetails: RememberedToken | undefined = this.semanticFindings.getLocalTokenForLine(instanceName, lineIdx + 1);
           if (referenceDetails !== undefined) {
@@ -8757,9 +9109,18 @@ export class Spin2DocumentSemanticParser {
                 nameSpaceFindings !== undefined && this.parseUtils.requestedSpinVersion(45) ? nameSpaceFindings.isStructure(refPart) : false;
               // check if structure recognition is blocked only by missing version directive
               const isStructureWithoutVersion: boolean =
-                !isStructure && nameSpaceFindings !== undefined && !this.parseUtils.requestedSpinVersion(45) && nameSpaceFindings.isStructure(refPart);
+                !isStructure &&
+                nameSpaceFindings !== undefined &&
+                !this.parseUtils.requestedSpinVersion(45) &&
+                nameSpaceFindings.isStructure(refPart);
               if (isStructureWithoutVersion) {
-                this._emitVersionHintDiagnostic(lineIdx, referenceOffset, referenceOffset + refPart.length, 45, `object structure reference [${objInstanceName}.${refPart}]`);
+                this._emitVersionHintDiagnostic(
+                  lineIdx,
+                  referenceOffset,
+                  referenceOffset + refPart.length,
+                  45,
+                  `object structure reference [${objInstanceName}.${refPart}]`
+                );
                 isStructure = true; // treat as structure to prevent false error
               }
               this._logMessage(
@@ -8779,7 +9140,16 @@ export class Spin2DocumentSemanticParser {
                 const structurePart: string = possibleNameSet[1];
                 const structureOffset: number = line.indexOf(structurePart, matchOffset + possibleNameSet[0].length);
                 this._logMessage(`  --  rObjRef rhs struct=[${structurePart}], ofs=(${structureOffset})`);
-                this._createAndRecordToken(tokenSet, line, lineIdx, structureOffset, structurePart.length, 'storageType', ['readonly'], structurePart);
+                this._createAndRecordToken(
+                  tokenSet,
+                  line,
+                  lineIdx,
+                  structureOffset,
+                  structurePart.length,
+                  'storageType',
+                  ['readonly'],
+                  structurePart
+                );
                 // we a referenceing a structure from a child object. Let's record that structure type as known for future lookups
                 const structureFindings: RememberedStructure | undefined = nameSpaceFindings?.getStructure(refPart);
                 //this._logMessage(`  --  rObjRef structureFindings[${refPart}]=[${JSON.stringify(structureFindings, null, 2)}]`);
@@ -9109,7 +9479,16 @@ export class Spin2DocumentSemanticParser {
             this._logSPIN(`  -- rptSPINIdxExpr() B namePart=[${namePart}](${namePart.length}), ofs=(${nameOffset}), lineIdx=(${lineIdx})`);
             if (referenceDetails !== undefined && paramIsSymbolName) {
               this._logSPIN(`  -- rptSPINIdxExpr() index is symbol=[${namePart}]`);
-              this._createAndRecordToken(tokenSet, line, lineIdx, nameOffset, namePart.length, referenceDetails.type, referenceDetails.modifiers, namePart);
+              this._createAndRecordToken(
+                tokenSet,
+                line,
+                lineIdx,
+                nameOffset,
+                namePart.length,
+                referenceDetails.type,
+                referenceDetails.modifiers,
+                namePart
+              );
               nameOffset += namePart.length;
             } else {
               const builtinInfo = this._classifyBuiltinName(namePart);
@@ -9126,19 +9505,19 @@ export class Spin2DocumentSemanticParser {
                 this._logSPIN(`  -- rptSPINIdxExpr() index is reserved word=[${namePart}]`);
                 nameOffset += namePart.length;
               } else {
-              // handle unknown-name case -OR- invalid symbol name
-              this._logSPIN(`  -- rptSPINIdxExpr() index is unknown=[${namePart}]`);
-              this._recordTokenWithDiagnostic(
-                tokenSet,
-                line,
-                lineIdx,
-                nameOffset,
-                namePart.length,
-                'setupParameter',
-                ['illegalUse'],
-                `P2 Spin struct index unknown name [${namePart}]`
-              );
-              nameOffset += namePart.length;
+                // handle unknown-name case -OR- invalid symbol name
+                this._logSPIN(`  -- rptSPINIdxExpr() index is unknown=[${namePart}]`);
+                this._recordTokenWithDiagnostic(
+                  tokenSet,
+                  line,
+                  lineIdx,
+                  nameOffset,
+                  namePart.length,
+                  'setupParameter',
+                  ['illegalUse'],
+                  `P2 Spin struct index unknown name [${namePart}]`
+                );
+                nameOffset += namePart.length;
               }
             }
           }
@@ -9204,7 +9583,10 @@ export class Spin2DocumentSemanticParser {
             `  --  rptStruRef() ERROR structInstanceName=[{undefined}], dotRef=[${dotRef}], structRefParts=[${structRefParts}](${structRefParts.length})`
           );
         }
-        let isStructureRef: boolean = structInstanceName !== undefined ? (this.semanticFindings.isStructureInstance(structInstanceName) || this.semanticFindings.isStructure(structInstanceName)) : false;
+        let isStructureRef: boolean =
+          structInstanceName !== undefined
+            ? this.semanticFindings.isStructureInstance(structInstanceName) || this.semanticFindings.isStructure(structInstanceName)
+            : false;
         // not yet known as ref then we need to check for instance part being a structure type local variable
         if (isStructureRef === false && structInstanceName.length > 0) {
           // see if instance name is a local variable.
@@ -9817,7 +10199,19 @@ export class Spin2DocumentSemanticParser {
 
   private _isTrackableTokenType(tokenType: string): boolean {
     // token types worth tracking for code navigation (includes built-in operators/functions for Find All References)
-    return ['variable', 'method', 'enumMember', 'parameter', 'returnValue', 'macro', 'namespace', 'storageType', 'function', 'operator', 'label'].includes(tokenType);
+    return [
+      'variable',
+      'method',
+      'enumMember',
+      'parameter',
+      'returnValue',
+      'macro',
+      'namespace',
+      'storageType',
+      'function',
+      'operator',
+      'label'
+    ].includes(tokenType);
   }
 
   private _isBuiltinName(name: string, tokenType: string): boolean {

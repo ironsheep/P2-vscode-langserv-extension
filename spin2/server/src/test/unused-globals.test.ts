@@ -120,7 +120,7 @@ describe('Unused global variable detection: DAT variables', function () {
   it('should NOT warn for DAT code labels', function () {
     const findings = parseFixture('unused-globals.spin2');
     const diags = getDiagnosticMessages(findings);
-    const warning = findWarningCI(diags, "datLabel");
+    const warning = findWarningCI(diags, 'datLabel');
     assert.strictEqual(warning, undefined, 'DAT code labels should never be flagged');
   });
 });
@@ -134,9 +134,7 @@ describe('Unused global variable detection: CON exclusion', function () {
     const findings = parseFixture('unused-globals.spin2');
     const diags = getDiagnosticMessages(findings);
     // MAX_COUNT is used, but verify CON constants never get "VAR variable" or "DAT variable" labels
-    const conWarning = diags.find(
-      (d) => d.severity === DiagnosticSeverity.Warning && /MAX_COUNT/.test(d.message) && /variable/.test(d.message)
-    );
+    const conWarning = diags.find((d) => d.severity === DiagnosticSeverity.Warning && /MAX_COUNT/.test(d.message) && /variable/.test(d.message));
     assert.strictEqual(conWarning, undefined, 'CON constants should never be flagged as unused variables');
   });
 });
@@ -149,9 +147,7 @@ describe('Unused global variable detection: setting toggle', function () {
   it('should suppress all warnings when reportUnusedVariables is false', function () {
     const findings = parseFixture('unused-globals.spin2', false);
     const diags = getDiagnosticMessages(findings);
-    const unusedVarWarnings = diags.filter(
-      (d) => d.severity === DiagnosticSeverity.Warning && /is declared but never used/.test(d.message)
-    );
+    const unusedVarWarnings = diags.filter((d) => d.severity === DiagnosticSeverity.Warning && /is declared but never used/.test(d.message));
     assert.strictEqual(unusedVarWarnings.length, 0, 'No unused warnings should appear when setting is off');
   });
 });

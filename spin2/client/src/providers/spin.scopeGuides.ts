@@ -87,7 +87,7 @@ export class ScopeGuidesProvider {
   private getCombinedTabGuideType(guides: { offset: number; colorId: string; isCloser: boolean }[]): vscode.TextEditorDecorationType {
     // Sort by offset for canonical key
     const sorted = [...guides].sort((a, b) => a.offset - b.offset);
-    const key = sorted.map(g => `${g.offset}:${g.colorId}:${g.isCloser ? 'c' : 'v'}`).join('|');
+    const key = sorted.map((g) => `${g.offset}:${g.colorId}:${g.isCloser ? 'c' : 'v'}`).join('|');
     let dt = this.tabGuideTypes.get(key);
     if (!dt) {
       // Vertical lines: one multi-stop gradient with 1px lines per guide.
@@ -101,7 +101,7 @@ export class ScopeGuidesProvider {
       }
 
       // L-shaped closers: each adds a horizontal bar at the bottom
-      const closers = sorted.filter(g => g.isCloser);
+      const closers = sorted.filter((g) => g.isCloser);
       const bgImages: string[] = [`linear-gradient(to right, ${stops.join(', ')})`];
       const bgSizes: string[] = ['100% 100%'];
       const bgPositions: string[] = ['0 0'];
@@ -112,9 +112,10 @@ export class ScopeGuidesProvider {
         bgPositions.push(`${c.offset}ch calc(100% - 1px)`);
       }
 
-      const bgCSS = closers.length > 0
-        ? `background: ${bgImages.join(', ')}; background-size: ${bgSizes.join(', ')}; background-position: ${bgPositions.join(', ')}; background-repeat: no-repeat`
-        : `background: ${bgImages[0]}`;
+      const bgCSS =
+        closers.length > 0
+          ? `background: ${bgImages.join(', ')}; background-size: ${bgSizes.join(', ')}; background-position: ${bgPositions.join(', ')}; background-repeat: no-repeat`
+          : `background: ${bgImages[0]}`;
       dt = vscode.window.createTextEditorDecorationType({
         textDecoration: `none; ${bgCSS}`
       });
@@ -262,7 +263,8 @@ export class ScopeGuidesProvider {
       if (scope.indentColumn === 0) continue;
 
       const levelIdx = (scope.depth - 1) % MAX_LEVELS;
-      const isActive = activeScope !== undefined &&
+      const isActive =
+        activeScope !== undefined &&
         scope.startLine === activeScope.startLine &&
         scope.endLine === activeScope.endLine &&
         scope.depth === activeScope.depth;
@@ -294,9 +296,7 @@ export class ScopeGuidesProvider {
 
           // Check for inner scope guides on this line between our column and the text
           for (const inner of scopes) {
-            if (inner.indentColumn > scope.indentColumn &&
-                inner.indentColumn < lineInd &&
-                line >= inner.startLine && line <= inner.endLine) {
+            if (inner.indentColumn > scope.indentColumn && inner.indentColumn < lineInd && line >= inner.startLine && line <= inner.endLine) {
               horizEnd = Math.min(horizEnd, inner.indentColumn);
             }
           }
@@ -508,35 +508,57 @@ export class ScopeGuidesProvider {
       const trimmed = text.trimStart();
       const idx = i - startLine;
 
-      if (trimmed.length === 0) { lineIndent[idx] = -1; continue; }
+      if (trimmed.length === 0) {
+        lineIndent[idx] = -1;
+        continue;
+      }
 
       // Track block comment depth
       const depthAtLineStart = blockCommentDepth;
       let inString = false;
       for (let ci = 0; ci < trimmed.length; ci++) {
         const ch = trimmed[ci];
-        if (blockCommentDepth === 0 && ch === '"') { inString = !inString; continue; }
+        if (blockCommentDepth === 0 && ch === '"') {
+          inString = !inString;
+          continue;
+        }
         if (inString) continue;
         if (blockCommentDepth === 0 && ch === "'") break;
         if (ch === '{') blockCommentDepth++;
         else if (ch === '}' && blockCommentDepth > 0) blockCommentDepth--;
       }
-      if (depthAtLineStart > 0) { lineIndent[idx] = -1; continue; }
+      if (depthAtLineStart > 0) {
+        lineIndent[idx] = -1;
+        continue;
+      }
       // Multi-line block comment boundaries: opening { that doesn't close on
       // the same line, or closing } of a multi-line block.  Single-line
       // {comment} (depth back to 0) participates in indent analysis so it
       // can anchor scope guides within case arms whose body is a comment.
-      if (trimmed.startsWith('{') && blockCommentDepth > 0) { lineIndent[idx] = -1; continue; }
-      if (trimmed.startsWith('}') && depthAtLineStart > 0) { lineIndent[idx] = -1; continue; }
+      if (trimmed.startsWith('{') && blockCommentDepth > 0) {
+        lineIndent[idx] = -1;
+        continue;
+      }
+      if (trimmed.startsWith('}') && depthAtLineStart > 0) {
+        lineIndent[idx] = -1;
+        continue;
+      }
 
       // Inline PASM
       if (/^org\b/i.test(trimmed) || /^orgh\b/i.test(trimmed) || /^orgf\b/i.test(trimmed)) {
-        inInlinePasm = true; lineIndent[idx] = -1; continue;
+        inInlinePasm = true;
+        lineIndent[idx] = -1;
+        continue;
       }
       if (inInlinePasm && /^end\b/i.test(trimmed)) {
-        inInlinePasm = false; lineIndent[idx] = -1; continue;
+        inInlinePasm = false;
+        lineIndent[idx] = -1;
+        continue;
       }
-      if (inInlinePasm) { lineIndent[idx] = -1; continue; }
+      if (inInlinePasm) {
+        lineIndent[idx] = -1;
+        continue;
+      }
 
       lineIndent[idx] = this.computeIndent(text, tabWidth);
     }
@@ -669,5 +691,4 @@ export class ScopeGuidesProvider {
     }
     return col;
   }
-
 }

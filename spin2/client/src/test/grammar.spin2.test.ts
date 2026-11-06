@@ -19,22 +19,24 @@ import * as oniguruma from 'vscode-oniguruma';
  * - Special constants and functions
  */
 
-describe('Spin2 Grammar Coverage Tests', function() {
+describe('Spin2 Grammar Coverage Tests', function () {
   let registry: vsctm.Registry;
   let grammar: vsctm.IGrammar | null;
 
-  before(async function() {
+  before(async function () {
     this.timeout(30000);
 
     try {
       // Initialize Oniguruma WASM
-      const wasmBin = fs.readFileSync(
-        path.join(__dirname, '../../../node_modules/vscode-oniguruma/release/onig.wasm')
-      ).buffer;
+      const wasmBin = fs.readFileSync(path.join(__dirname, '../../../node_modules/vscode-oniguruma/release/onig.wasm')).buffer;
       const vscodeOnigurumaLib = oniguruma.loadWASM(wasmBin).then(() => {
         return {
-          createOnigScanner(patterns: string[]) { return new oniguruma.OnigScanner(patterns); },
-          createOnigString(s: string) { return new oniguruma.OnigString(s); }
+          createOnigScanner(patterns: string[]) {
+            return new oniguruma.OnigScanner(patterns);
+          },
+          createOnigString(s: string) {
+            return new oniguruma.OnigString(s);
+          }
         };
       });
 
@@ -42,10 +44,7 @@ describe('Spin2 Grammar Coverage Tests', function() {
       registry = new vsctm.Registry({
         onigLib: vscodeOnigurumaLib,
         loadGrammar: async (scopeName: string) => {
-          const grammarPath = path.join(
-            __dirname,
-            '../../../syntaxes/spin2.tmLanguage.json'
-          );
+          const grammarPath = path.join(__dirname, '../../../syntaxes/spin2.tmLanguage.json');
           const grammarContent = fs.readFileSync(grammarPath, 'utf8');
           return vsctm.parseRawGrammar(grammarContent, grammarPath);
         }
@@ -74,16 +73,14 @@ describe('Spin2 Grammar Coverage Tests', function() {
    * Helper to check if any token contains the expected scope
    */
   function hasScope(result: vsctm.ITokenizeLineResult, expectedScope: string): boolean {
-    return result.tokens.some(token =>
-      token.scopes.some(scope => scope.includes(expectedScope))
-    );
+    return result.tokens.some((token) => token.scopes.some((scope) => scope.includes(expectedScope)));
   }
 
   /**
    * Helper to get all scopes for debugging
    */
   function getAllScopes(result: vsctm.ITokenizeLineResult): string[] {
-    return result.tokens.flatMap(token => token.scopes);
+    return result.tokens.flatMap((token) => token.scopes);
   }
 
   /**
@@ -148,27 +145,27 @@ describe('Spin2 Grammar Coverage Tests', function() {
     });
 
     it('should tokenize block comments', () => {
-      let result = tokenizeLine("{ block comment }");
+      const result = tokenizeLine('{ block comment }');
       assert.ok(hasScope(result, 'comment.block'), 'Should have comment.block scope');
     });
 
     it('should tokenize multi-line block comments', () => {
       let ruleStack = vsctm.INITIAL;
 
-      let result = tokenizeLine("{ Start of comment", ruleStack);
+      let result = tokenizeLine('{ Start of comment', ruleStack);
       assert.ok(hasScope(result, 'comment.block'), 'Line 1 should have comment.block');
       ruleStack = result.ruleStack;
 
-      result = tokenizeLine("  middle line", ruleStack);
+      result = tokenizeLine('  middle line', ruleStack);
       assert.ok(hasScope(result, 'comment.block'), 'Line 2 should have comment.block');
       ruleStack = result.ruleStack;
 
-      result = tokenizeLine("  end }", ruleStack);
+      result = tokenizeLine('  end }', ruleStack);
       assert.ok(hasScope(result, 'comment.block'), 'Line 3 should have comment.block');
     });
 
     it('should tokenize documentation comments (block)', () => {
-      const result = tokenizeLine("{{ Documentation }}");
+      const result = tokenizeLine('{{ Documentation }}');
       assert.ok(hasScope(result, 'comment.block.documentation'), 'Should have documentation scope');
     });
 
@@ -296,13 +293,28 @@ describe('Spin2 Grammar Coverage Tests', function() {
 
   describe('Control Flow Keywords Coverage', () => {
     const controlFlowKeywords = [
-      'IF', 'IFNOT', 'ELSE', 'ELSEIF', 'ELSEIFNOT',
-      'CASE', 'CASE_FAST', 'OTHER',
-      'REPEAT', 'WITH', 'FROM', 'TO', 'STEP', 'UNTIL', 'WHILE',
-      'NEXT', 'QUIT', 'RETURN', 'ABORT'
+      'IF',
+      'IFNOT',
+      'ELSE',
+      'ELSEIF',
+      'ELSEIFNOT',
+      'CASE',
+      'CASE_FAST',
+      'OTHER',
+      'REPEAT',
+      'WITH',
+      'FROM',
+      'TO',
+      'STEP',
+      'UNTIL',
+      'WHILE',
+      'NEXT',
+      'QUIT',
+      'RETURN',
+      'ABORT'
     ];
 
-    controlFlowKeywords.forEach(keyword => {
+    controlFlowKeywords.forEach((keyword) => {
       it(`should tokenize ${keyword} keyword`, () => {
         const pubState = enterPubContext();
         const result = tokenizeLine(`  ${keyword}`, pubState);
@@ -312,11 +324,9 @@ describe('Spin2 Grammar Coverage Tests', function() {
   });
 
   describe('Built-in Constants Coverage', () => {
-    const constants = [
-      'TRUE', 'FALSE', 'POSX', 'NEGX', 'PI'
-    ];
+    const constants = ['TRUE', 'FALSE', 'POSX', 'NEGX', 'PI'];
 
-    constants.forEach(constant => {
+    constants.forEach((constant) => {
       it(`should tokenize ${constant} constant`, () => {
         const result = tokenizeLine(constant);
         assert.ok(hasScope(result, 'constant.language'), `Should recognize ${constant}`);
@@ -326,34 +336,41 @@ describe('Spin2 Grammar Coverage Tests', function() {
 
   describe('Configuration Constants Coverage', () => {
     const configConstants = [
-      'CHIPVER', 'CLKMODE', '_CLKMODE', 'CLKFREQ', '_CLKFREQ',
-      'CLKSET', '_XINFREQ', '_STACK', '_FREE',
-      'RCFAST', 'RCSLOW', 'XINPUT',
-      'XTAL1', 'XTAL2', 'XTAL3',
-      'PLL1X', 'PLL2X', 'PLL4X', 'PLL8X', 'PLL16X'
+      'CHIPVER',
+      'CLKMODE',
+      '_CLKMODE',
+      'CLKFREQ',
+      '_CLKFREQ',
+      'CLKSET',
+      '_XINFREQ',
+      '_STACK',
+      '_FREE',
+      'RCFAST',
+      'RCSLOW',
+      'XINPUT',
+      'XTAL1',
+      'XTAL2',
+      'XTAL3',
+      'PLL1X',
+      'PLL2X',
+      'PLL4X',
+      'PLL8X',
+      'PLL16X'
     ];
 
-    configConstants.forEach(constant => {
+    configConstants.forEach((constant) => {
       it(`should tokenize ${constant} configuration constant`, () => {
         const result = tokenizeLine(constant);
-        assert.ok(
-          hasScope(result, 'keyword.control.configuration') ||
-          hasScope(result, 'constant.language'),
-          `Should recognize ${constant}`
-        );
+        assert.ok(hasScope(result, 'keyword.control.configuration') || hasScope(result, 'constant.language'), `Should recognize ${constant}`);
       });
     });
   });
 
   describe('Operators Coverage', () => {
     describe('Unary Operators', () => {
-      const unaryOps = [
-        '!!', 'NOT', '!', '-',
-        'ABS', 'FABS', 'ENCOD', 'DECOD', 'BMASK', 'ONES',
-        'SQRT', 'FSQRT', 'QLOG', 'QEXP'
-      ];
+      const unaryOps = ['!!', 'NOT', '!', '-', 'ABS', 'FABS', 'ENCOD', 'DECOD', 'BMASK', 'ONES', 'SQRT', 'FSQRT', 'QLOG', 'QEXP'];
 
-      unaryOps.forEach(op => {
+      unaryOps.forEach((op) => {
         it(`should tokenize unary operator ${op}`, () => {
           const result = tokenizeLine(`${op} value`);
           assert.ok(hasScope(result, 'keyword.operator'), `Should recognize ${op}`);
@@ -362,13 +379,9 @@ describe('Spin2 Grammar Coverage Tests', function() {
     });
 
     describe('Binary Operators', () => {
-      const binaryOps = [
-        'SAR', 'ROR', 'ROL', 'REV', 'ZEROX', 'SIGNX',
-        'SCA', 'SCAS', 'FRAC',
-        'AND', 'OR', 'XOR'
-      ];
+      const binaryOps = ['SAR', 'ROR', 'ROL', 'REV', 'ZEROX', 'SIGNX', 'SCA', 'SCAS', 'FRAC', 'AND', 'OR', 'XOR'];
 
-      binaryOps.forEach(op => {
+      binaryOps.forEach((op) => {
         it(`should tokenize binary operator ${op}`, () => {
           const pubState = enterPubContext();
           const result = tokenizeLine(`  a ${op} b`, pubState);
@@ -381,7 +394,7 @@ describe('Spin2 Grammar Coverage Tests', function() {
   describe('Storage Types Coverage', () => {
     const storageTypes = ['BYTE', 'WORD', 'LONG', 'BYTEFIT', 'WORDFIT'];
 
-    storageTypes.forEach(type => {
+    storageTypes.forEach((type) => {
       it(`should tokenize ${type} storage type`, () => {
         const pubState = enterPubContext();
         const result = tokenizeLine(`  ${type}`, pubState);
@@ -424,11 +437,9 @@ describe('Spin2 Grammar Coverage Tests', function() {
 
   describe('Built-in Functions Coverage', () => {
     describe('COG Functions', () => {
-      const cogFunctions = [
-        'COGCHK', 'COGID', 'COGINIT', 'COGSPIN', 'COGSTOP'
-      ];
+      const cogFunctions = ['COGCHK', 'COGID', 'COGINIT', 'COGSPIN', 'COGSTOP'];
 
-      cogFunctions.forEach(func => {
+      cogFunctions.forEach((func) => {
         it(`should tokenize ${func} function`, () => {
           const pubState = enterPubContext();
           const result = tokenizeLine(`  ${func}`, pubState);
@@ -439,13 +450,29 @@ describe('Spin2 Grammar Coverage Tests', function() {
 
     describe('PIN Functions', () => {
       const pinFunctions = [
-        'PINW', 'PINWRITE', 'PINL', 'PINLOW', 'PINH', 'PINHIGH',
-        'PINT', 'PINTOGGLE', 'PINF', 'PINFLOAT', 'PINR', 'PINREAD',
-        'PINSTART', 'PINCLEAR', 'WRPIN', 'WXPIN', 'WYPIN',
-        'AKPIN', 'RDPIN', 'RQPIN'
+        'PINW',
+        'PINWRITE',
+        'PINL',
+        'PINLOW',
+        'PINH',
+        'PINHIGH',
+        'PINT',
+        'PINTOGGLE',
+        'PINF',
+        'PINFLOAT',
+        'PINR',
+        'PINREAD',
+        'PINSTART',
+        'PINCLEAR',
+        'WRPIN',
+        'WXPIN',
+        'WYPIN',
+        'AKPIN',
+        'RDPIN',
+        'RQPIN'
       ];
 
-      pinFunctions.forEach(func => {
+      pinFunctions.forEach((func) => {
         it(`should tokenize ${func} function`, () => {
           const pubState = enterPubContext();
           const result = tokenizeLine(`  ${func}`, pubState);
@@ -455,12 +482,9 @@ describe('Spin2 Grammar Coverage Tests', function() {
     });
 
     describe('Memory Functions', () => {
-      const memFunctions = [
-        'BYTEMOVE', 'BYTEFILL', 'WORDMOVE', 'WORDFILL',
-        'LONGMOVE', 'LONGFILL', 'GETREGS', 'SETREGS'
-      ];
+      const memFunctions = ['BYTEMOVE', 'BYTEFILL', 'WORDMOVE', 'WORDFILL', 'LONGMOVE', 'LONGFILL', 'GETREGS', 'SETREGS'];
 
-      memFunctions.forEach(func => {
+      memFunctions.forEach((func) => {
         it(`should tokenize ${func} function`, () => {
           const pubState = enterPubContext();
           const result = tokenizeLine(`  ${func}`, pubState);
@@ -470,12 +494,9 @@ describe('Spin2 Grammar Coverage Tests', function() {
     });
 
     describe('Timing Functions', () => {
-      const timingFunctions = [
-        'GETCT', 'POLLCT', 'WAITCT', 'GETMS', 'GETSEC',
-        'WAITMS', 'WAITUS'
-      ];
+      const timingFunctions = ['GETCT', 'POLLCT', 'WAITCT', 'GETMS', 'GETSEC', 'WAITMS', 'WAITUS'];
 
-      timingFunctions.forEach(func => {
+      timingFunctions.forEach((func) => {
         it(`should tokenize ${func} function`, () => {
           const pubState = enterPubContext();
           const result = tokenizeLine(`  ${func}`, pubState);
@@ -488,14 +509,33 @@ describe('Spin2 Grammar Coverage Tests', function() {
   describe('PASM Instructions Coverage', () => {
     describe('Branch Instructions', () => {
       const branchInstructions = [
-        'CALL', 'CALLA', 'CALLB', 'CALLD', 'CALLPA', 'CALLPB',
-        'RET', 'RETA', 'RETB',
-        'JMP', 'JMPREL', 'JNINT', 'JINT',
-        'TJZ', 'TJNZ', 'TJF', 'TJNF', 'TJS', 'TJNS', 'TJV',
-        'DJZ', 'DJNZ', 'DJF', 'DJNF'
+        'CALL',
+        'CALLA',
+        'CALLB',
+        'CALLD',
+        'CALLPA',
+        'CALLPB',
+        'RET',
+        'RETA',
+        'RETB',
+        'JMP',
+        'JMPREL',
+        'JNINT',
+        'JINT',
+        'TJZ',
+        'TJNZ',
+        'TJF',
+        'TJNF',
+        'TJS',
+        'TJNS',
+        'TJV',
+        'DJZ',
+        'DJNZ',
+        'DJF',
+        'DJNF'
       ];
 
-      branchInstructions.forEach(instr => {
+      branchInstructions.forEach((instr) => {
         it(`should tokenize PASM ${instr} instruction`, () => {
           const datState = enterDatContext();
           const result = tokenizeLine(`  ${instr}  dest, source`, datState);
@@ -506,15 +546,35 @@ describe('Spin2 Grammar Coverage Tests', function() {
 
     describe('Math/Logic Instructions', () => {
       const mathInstructions = [
-        'ADD', 'ADDS', 'ADDX', 'ADDSX',
-        'SUB', 'SUBS', 'SUBX', 'SUBSX',
-        'MUL', 'MULS',
-        'AND', 'ANDN', 'OR', 'XOR', 'NOT',
-        'ABS', 'NEG', 'NEGC', 'NEGNC', 'NEGZ', 'NEGNZ',
-        'SHL', 'SHR', 'SAR', 'ROR', 'ROL'
+        'ADD',
+        'ADDS',
+        'ADDX',
+        'ADDSX',
+        'SUB',
+        'SUBS',
+        'SUBX',
+        'SUBSX',
+        'MUL',
+        'MULS',
+        'AND',
+        'ANDN',
+        'OR',
+        'XOR',
+        'NOT',
+        'ABS',
+        'NEG',
+        'NEGC',
+        'NEGNC',
+        'NEGZ',
+        'NEGNZ',
+        'SHL',
+        'SHR',
+        'SAR',
+        'ROR',
+        'ROL'
       ];
 
-      mathInstructions.forEach(instr => {
+      mathInstructions.forEach((instr) => {
         it(`should tokenize PASM ${instr} instruction`, () => {
           const datState = enterDatContext();
           const result = tokenizeLine(`  ${instr}  dest, source`, datState);
@@ -524,13 +584,9 @@ describe('Spin2 Grammar Coverage Tests', function() {
     });
 
     describe('Hub RAM Instructions', () => {
-      const hubInstructions = [
-        'RDBYTE', 'RDWORD', 'RDLONG',
-        'WRBYTE', 'WRWORD', 'WRLONG', 'WMLONG',
-        'POPA', 'POPB', 'PUSHA', 'PUSHB'
-      ];
+      const hubInstructions = ['RDBYTE', 'RDWORD', 'RDLONG', 'WRBYTE', 'WRWORD', 'WRLONG', 'WMLONG', 'POPA', 'POPB', 'PUSHA', 'PUSHB'];
 
-      hubInstructions.forEach(instr => {
+      hubInstructions.forEach((instr) => {
         it(`should tokenize PASM ${instr} instruction`, () => {
           const datState = enterDatContext();
           const result = tokenizeLine(`  ${instr}  dest, source`, datState);
@@ -542,14 +598,33 @@ describe('Spin2 Grammar Coverage Tests', function() {
 
   describe('COG Register Names Coverage', () => {
     const cogRegisters = [
-      'PR0', 'PR1', 'PR2', 'PR3', 'PR4', 'PR5', 'PR6', 'PR7',
-      'IJMP1', 'IJMP2', 'IJMP3',
-      'IRET1', 'IRET2', 'IRET3',
-      'PA', 'PB', 'PTRA', 'PTRB',
-      'DIRA', 'DIRB', 'INA', 'INB', 'OUTA', 'OUTB'
+      'PR0',
+      'PR1',
+      'PR2',
+      'PR3',
+      'PR4',
+      'PR5',
+      'PR6',
+      'PR7',
+      'IJMP1',
+      'IJMP2',
+      'IJMP3',
+      'IRET1',
+      'IRET2',
+      'IRET3',
+      'PA',
+      'PB',
+      'PTRA',
+      'PTRB',
+      'DIRA',
+      'DIRB',
+      'INA',
+      'INB',
+      'OUTA',
+      'OUTB'
     ];
 
-    cogRegisters.forEach(reg => {
+    cogRegisters.forEach((reg) => {
       it(`should tokenize ${reg} register name`, () => {
         const datState = enterDatContext();
         const result = tokenizeLine(`  ${reg}`, datState);
@@ -610,8 +685,8 @@ describe('Spin2 Grammar Coverage Tests', function() {
 
   describe('Edge Cases and Complex Constructs', () => {
     it('should handle nested block comments', () => {
-      let ruleStack = vsctm.INITIAL;
-      let result = tokenizeLine('{ outer { inner } still in comment }', ruleStack);
+      const ruleStack = vsctm.INITIAL;
+      const result = tokenizeLine('{ outer { inner } still in comment }', ruleStack);
       assert.ok(hasScope(result, 'comment.block'), 'Should handle nested comments');
     });
 

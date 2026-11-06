@@ -12,7 +12,14 @@ import { formatVarBlock } from '../../formatter/spin2.formatter.var';
 import { formatObjBlock } from '../../formatter/spin2.formatter.obj';
 import { formatDatBlock } from '../../formatter/spin2.formatter.dat';
 import { formatMethodBlock } from '../../formatter/spin2.formatter.method';
-import { CaseConfig, normalizeMethodBlockCase, normalizeDatBlockCase, normalizeNonCodeBlockCase, normalizeCommentSpacing, extractConConstants } from '../../formatter/spin2.formatter.comment';
+import {
+  CaseConfig,
+  normalizeMethodBlockCase,
+  normalizeDatBlockCase,
+  normalizeNonCodeBlockCase,
+  normalizeCommentSpacing,
+  extractConConstants
+} from '../../formatter/spin2.formatter.comment';
 
 // ---------------------------------------------------------------------------
 //  Formatter configuration (mirrors DocumentFormattingProvider's config)
@@ -232,7 +239,11 @@ export function scanBlockComments(lines: string[]): Set<number> {
  */
 export function formatSpin2Text(text: string, config?: Partial<FormatterConfig>, elastic?: ElasticTabstopConfig): string {
   const cfg: FormatterConfig = { ...DEFAULT_FORMATTER_CONFIG, ...config };
-  const elasticConfig: ElasticTabstopConfig = elastic || { enabled: false, tabStops: buildRegularTabStops(cfg.indentSize), commentGap: 2 * cfg.indentSize };
+  const elasticConfig: ElasticTabstopConfig = elastic || {
+    enabled: false,
+    tabStops: buildRegularTabStops(cfg.indentSize),
+    commentGap: 2 * cfg.indentSize
+  };
 
   let lines = text.split(/\r?\n/);
 

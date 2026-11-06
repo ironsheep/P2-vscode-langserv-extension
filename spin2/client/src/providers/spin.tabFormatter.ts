@@ -894,57 +894,56 @@ export class Formatter {
     }
     if (text.indexOf(' ') !== -1) undoStop = true;
 
-    editor
-      .edit(
-        (edit) => {
-          editor.selections = editor.selections.map((selection) => {
-            this.logMessage(
-              `* alnBT enabled=[${this.enable}], text=[${text}], selection(isSingle-[${selection.isSingleLine}] isEmpty-[${selection.isEmpty}] s,e-[${selection.start.line}:${selection.start.character} - ${selection.end.line}:${selection.end.character}] activ-[${selection.active.character}] anchor-[${selection.anchor.character}])`
-            );
-            const cursorPosition = selection.start;
-            const lineEndPosition = editor.document.lineAt(cursorPosition).range.end;
-            const typeSel = selection;
+    editor.edit(
+      (edit) => {
+        editor.selections = editor.selections.map((selection) => {
+          this.logMessage(
+            `* alnBT enabled=[${this.enable}], text=[${text}], selection(isSingle-[${selection.isSingleLine}] isEmpty-[${selection.isEmpty}] s,e-[${selection.start.line}:${selection.start.character} - ${selection.end.line}:${selection.end.character}] activ-[${selection.active.character}] anchor-[${selection.anchor.character}])`
+          );
+          const cursorPosition = selection.start;
+          const lineEndPosition = editor.document.lineAt(cursorPosition).range.end;
+          const typeSel = selection;
 
-            // handle alignment
-            if (typeSel.isSingleLine) {
-              const typeSize: number = editor.document.offsetAt(typeSel.end) - editor.document.offsetAt(typeSel.start);
-              if (typeSize > 1) undoStop = true;
-              if (typeSize != text.length) {
-                const spaceDiff: number = text.length - typeSize;
-                let currWord: vscode.Range | undefined = editor.document.getWordRangeAtPosition(typeSel.end, this.alignWordExpr);
-                if (!currWord) currWord = editor.document.getWordRangeAtPosition(typeSel.end.translate(0, +1), this.alignWordExpr);
-                let spacesAfter: vscode.Range | undefined = undefined;
-                if (currWord && !currWord.end.isEqual(lineEndPosition)) {
-                  spacesAfter = editor.document.getWordRangeAtPosition(currWord.end, / {2,}/);
-                } else if (!typeSel.end.isEqual(lineEndPosition)) {
-                  if (editor.document.getText(new vscode.Range(typeSel.end, typeSel.end.translate(0, +2))) === '  ') {
-                    spacesAfter = editor.document.getWordRangeAtPosition(typeSel.end, / {2,}/);
-                  }
-                }
-                if (spacesAfter && typeSize < text.length) {
-                  // remove spaces if possible
-                  const spaceCount: number = editor.document.offsetAt(spacesAfter.end) - editor.document.offsetAt(spacesAfter.start);
-                  edit.delete(new vscode.Range(spacesAfter.end.translate(0, -Math.min(spaceDiff, spaceCount - 1)), spacesAfter.end));
-                } else if (spacesAfter && typeSize > text.length) {
-                  // Add spaces
-                  edit.insert(spacesAfter.end, ' '.repeat(typeSize - text.length));
+          // handle alignment
+          if (typeSel.isSingleLine) {
+            const typeSize: number = editor.document.offsetAt(typeSel.end) - editor.document.offsetAt(typeSel.start);
+            if (typeSize > 1) undoStop = true;
+            if (typeSize != text.length) {
+              const spaceDiff: number = text.length - typeSize;
+              let currWord: vscode.Range | undefined = editor.document.getWordRangeAtPosition(typeSel.end, this.alignWordExpr);
+              if (!currWord) currWord = editor.document.getWordRangeAtPosition(typeSel.end.translate(0, +1), this.alignWordExpr);
+              let spacesAfter: vscode.Range | undefined = undefined;
+              if (currWord && !currWord.end.isEqual(lineEndPosition)) {
+                spacesAfter = editor.document.getWordRangeAtPosition(currWord.end, / {2,}/);
+              } else if (!typeSel.end.isEqual(lineEndPosition)) {
+                if (editor.document.getText(new vscode.Range(typeSel.end, typeSel.end.translate(0, +2))) === '  ') {
+                  spacesAfter = editor.document.getWordRangeAtPosition(typeSel.end, / {2,}/);
                 }
               }
-            } else {
-              undoStop = true;
+              if (spacesAfter && typeSize < text.length) {
+                // remove spaces if possible
+                const spaceCount: number = editor.document.offsetAt(spacesAfter.end) - editor.document.offsetAt(spacesAfter.start);
+                edit.delete(new vscode.Range(spacesAfter.end.translate(0, -Math.min(spaceDiff, spaceCount - 1)), spacesAfter.end));
+              } else if (spacesAfter && typeSize > text.length) {
+                // Add spaces
+                edit.insert(spacesAfter.end, ' '.repeat(typeSize - text.length));
+              }
             }
-            if (typeSel.isEmpty) {
-              edit.insert(typeSel.end, text);
-            } else {
-              edit.replace(typeSel, text);
-            }
-            // VSCode adjusts this selection by the edit deltas after the callback returns,
-            // so using the pre-edit position is correct here.
-            return new vscode.Selection(typeSel.end, typeSel.end);
-          });
-        },
-        { undoStopAfter: undoStop, undoStopBefore: false }
-      );
+          } else {
+            undoStop = true;
+          }
+          if (typeSel.isEmpty) {
+            edit.insert(typeSel.end, text);
+          } else {
+            edit.replace(typeSel, text);
+          }
+          // VSCode adjusts this selection by the edit deltas after the callback returns,
+          // so using the pre-edit position is correct here.
+          return new vscode.Selection(typeSel.end, typeSel.end);
+        });
+      },
+      { undoStopAfter: undoStop, undoStopBefore: false }
+    );
   }
 
   /**

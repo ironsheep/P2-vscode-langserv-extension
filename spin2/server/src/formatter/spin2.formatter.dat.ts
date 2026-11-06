@@ -259,14 +259,10 @@ function formatPasmRegion(
     condCol = defaultCondCol;
 
     const condEnd = maxCondWidth > 0 ? condCol + maxCondWidth : 0;
-    instrMnemCol = condEnd >= defaultMnemCol
-      ? snapToNextTabstop(condEnd, tabStops)
-      : defaultMnemCol;
+    instrMnemCol = condEnd >= defaultMnemCol ? snapToNextTabstop(condEnd, tabStops) : defaultMnemCol;
     instrOperandCol = snapToNextTabstop(instrMnemCol + maxInstrMnemWidth, tabStops);
 
-    dataMnemCol = maxDataLabelWidth >= defaultMnemCol
-      ? snapToNextTabstop(maxDataLabelWidth, tabStops)
-      : defaultMnemCol;
+    dataMnemCol = maxDataLabelWidth >= defaultMnemCol ? snapToNextTabstop(maxDataLabelWidth, tabStops) : defaultMnemCol;
     dataValueCol = snapToNextTabstop(dataMnemCol + maxDataTypeWidth, tabStops);
 
     const operandEndCols: number[] = [];
@@ -476,18 +472,31 @@ function parsePasmLine(line: string, lineIdx: number): PasmLine | null {
           if (btParenDepth < 0) {
             inBacktick = false;
             depth--;
-            if (depth === 0) { endIdx = j; break; }
+            if (depth === 0) {
+              endIdx = j;
+              break;
+            }
           }
         }
         continue;
       }
-      if (ch === '"') { inStr = !inStr; continue; }
+      if (ch === '"') {
+        inStr = !inStr;
+        continue;
+      }
       if (inStr) continue;
-      if (ch === '`') { inBacktick = true; btParenDepth = 0; continue; }
+      if (ch === '`') {
+        inBacktick = true;
+        btParenDepth = 0;
+        continue;
+      }
       if (ch === '(') depth++;
       else if (ch === ')') {
         depth--;
-        if (depth === 0) { endIdx = j; break; }
+        if (depth === 0) {
+          endIdx = j;
+          break;
+        }
       }
     }
     mnemonic = endIdx >= 0 ? trimmedRemaining.substring(0, endIdx + 1) : trimmedRemaining;
@@ -571,9 +580,7 @@ function formatDatDataLines(
     valueCol = maxTypeWidth > 0 ? typeCol + maxTypeWidth + gap : typeCol;
   } else {
     // Elastic: tabstop-snapped layout
-    typeCol = maxLabelWidth > 0
-      ? snapToNextTabstop(labelIndent + maxLabelWidth, tabStops)
-      : (tabStops.length > 1 ? tabStops[1] : 14);
+    typeCol = maxLabelWidth > 0 ? snapToNextTabstop(labelIndent + maxLabelWidth, tabStops) : tabStops.length > 1 ? tabStops[1] : 14;
     valueCol = snapToNextTabstop(typeCol + maxTypeWidth, tabStops);
   }
 
