@@ -86,6 +86,26 @@ export interface IBuiltinDescription {
   aliases?: string[];
 }
 
+/**
+ * Find {name} in {line} at or after {fromOffset}, skipping any match that is only part of a
+ * longer identifier: in "LONG_B, B" the name B is at 10, not at 7 inside LONG_B.
+ * @returns the offset of the match, or -1 when there is none
+ */
+export function indexOfWholeName(line: string, name: string, fromOffset: number = 0): number {
+  if (name.length == 0) {
+    return -1;
+  }
+  const isIdentifierChar = (char: string | undefined): boolean => char !== undefined && /[a-zA-Z0-9_]/.test(char);
+  let offset: number = line.indexOf(name, fromOffset);
+  while (offset != -1) {
+    if (!isIdentifierChar(line[offset - 1]) && !isIdentifierChar(line[offset + name.length])) {
+      return offset;
+    }
+    offset = line.indexOf(name, offset + 1);
+  }
+  return -1;
+}
+
 export function haveDebugLine(line: string, startsWith: boolean = false, ctx: Context | undefined = undefined): boolean {
   const debugStatementOpenRegEx = /(?<![a-zA-Z0-9_])debug\s*(\[[a-zA-Z0-9_]+\])?\(/i; // case-insensitive debug() but allowing whitespace before '('
   const debugStatementOpenStartRegEx = /^\s*debug\s*(\[[a-zA-Z0-9_]+\])?\(/i; // case-insensitive debug() at start of line but allowing whitespace before '('

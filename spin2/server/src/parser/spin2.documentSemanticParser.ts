@@ -33,9 +33,10 @@ import {
   isMethodCall,
   containsSpinLanguageSpec,
   versionFromSpinLanguageSpec,
-  isMethodCallEmptyParens
+  isMethodCallEmptyParens,
+  indexOfWholeName
 } from './spin.common';
-import { fileInDirExists, fileInDirOrIncludeDirsExists } from '../files';
+import { fileInDirOrIncludeDirsExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
 
 // ----------------------------------------------------------------------------
@@ -2206,7 +2207,7 @@ export class Spin2DocumentSemanticParser {
           for (let index = 0; index < statements.length; index++) {
             const conDeclarationLine: string = statements[index].trim();
             this._logCON(`  -- GetCDLMulti() conDeclarationLine=[${conDeclarationLine}][${index}]`);
-            currSingleLineOffset = multiLineSet.line.indexOf(conDeclarationLine, 0);
+            currSingleLineOffset = indexOfWholeName(multiLineSet.line, conDeclarationLine, 0);
             const isAssignment: boolean = conDeclarationLine.indexOf('=') !== -1;
             const structMatch: RegExpMatchArray | null = nonCommentConstantLine.toUpperCase().match(/\bSTRUCT\b/);
             const hasStructKeyword: boolean = structMatch !== null;

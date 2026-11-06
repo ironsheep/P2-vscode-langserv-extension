@@ -8,7 +8,7 @@ import { Context, ServerBehaviorConfiguration } from '../context';
 import { DocumentFindings, RememberedToken } from './spin.semantic.findings';
 import { Spin2ParseUtils } from './spin2.utils';
 import { isSpin1File } from './lang.utils';
-import { eParseState } from './spin.common';
+import { eParseState, indexOfWholeName } from './spin.common';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
 import path = require('path');
 
@@ -324,7 +324,10 @@ export class Spin2ObjectReferenceParser {
       for (let index = 0; index < statements.length; index++) {
         const conDeclarationLine: string = statements[index].trim();
         this._logCON('  -- conDeclarationLine=[' + conDeclarationLine + ']');
-        currentOffset = line.indexOf(conDeclarationLine, currentOffset);
+        const statementOffset: number = indexOfWholeName(line, conDeclarationLine, currentOffset);
+        if (statementOffset != -1) {
+          currentOffset = statementOffset;
+        }
         const assignmentOffset: number = conDeclarationLine.indexOf('=');
         if (assignmentOffset != -1) {
           // recognize constant name getting initialized via assignment
@@ -363,6 +366,7 @@ export class Spin2ObjectReferenceParser {
           // recognize enum values getting initialized
           const lineParts: string[] = conDeclarationLine.split(/[ \t,]/).filter(Boolean);
           //this._logCON('  -- lineParts=[' + lineParts + ']');
+          let enumSearchOffset: number = currentOffset;
           for (let index = 0; index < lineParts.length; index++) {
             let enumConstant: string = lineParts[index];
             // our enum name can have a step offset
@@ -373,11 +377,16 @@ export class Spin2ObjectReferenceParser {
             }
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON('  -- GLBL enumConstant=[' + enumConstant + ']');
-              const nameOffset = line.indexOf(enumConstant, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+              const nameOffset = indexOfWholeName(line, enumConstant, enumSearchOffset);
               this.semanticFindings.setGlobalToken(enumConstant, new RememberedToken('enumMember', lineNbr - 1, nameOffset, ['readonly']), undefined);
+              if (nameOffset != -1) {
+                // step past the whole item, so a later name can't match inside its [step offset]
+                enumSearchOffset = nameOffset + lineParts[index].length;
+              }
             }
           }
         }
+        currentOffset += conDeclarationLine.length;
       }
     }
   }

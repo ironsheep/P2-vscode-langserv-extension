@@ -16,7 +16,7 @@ import {
 } from './spin.semantic.findings';
 import { Spin1ParseUtils } from './spin1.utils';
 import { isSpin1File } from './lang.utils';
-import { eParseState, SpinControlFlowTracker, ICurrControlSpan } from './spin.common';
+import { eParseState, SpinControlFlowTracker, ICurrControlSpan, indexOfWholeName } from './spin.common';
 import { fileInDirExists } from '../files';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
 
@@ -987,7 +987,7 @@ export class Spin1DocumentSemanticParser {
           for (let index = 0; index < statements.length; index++) {
             const conDeclarationLine: string = statements[index].trim();
             this._logCON('  -- GetCONDecl conDeclarationLine=[' + conDeclarationLine + ']');
-            currentOffset = line.indexOf(conDeclarationLine, 0);
+            currentOffset = indexOfWholeName(line, conDeclarationLine, 0);
             const assignmentOffset: number = conDeclarationLine.indexOf('=');
             if (assignmentOffset != -1) {
               // recognize constant name getting initialized via assignment
@@ -998,7 +998,7 @@ export class Spin1DocumentSemanticParser {
               if (newName !== undefined && newName.charAt(0).match(/[a-zA-Z_]/)) {
                 this._logCON('  -- GLBL GetCONDecl newName=[' + newName + ']');
                 // remember this object name so we can annotate a call to it
-                const nameOffset = line.indexOf(newName, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+                const nameOffset = indexOfWholeName(line, newName, currentOffset);
                 this.semanticFindings.recordDeclarationLine(line, lineNbr);
                 this.semanticFindings.setGlobalToken(
                   newName,
@@ -1022,13 +1022,17 @@ export class Spin1DocumentSemanticParser {
             }
             if (enumConstant.charAt(0).match(/[a-zA-Z_]/)) {
               this._logCON('  -- GLBL enumConstant=[' + enumConstant + ']');
-              const nameOffset = line.indexOf(enumConstant, currentOffset); // FIXME: UNDONE, do we have to dial this in?
+              const nameOffset = indexOfWholeName(line, enumConstant, currentOffset);
               this.semanticFindings.recordDeclarationLine(line, lineNbr);
               this.semanticFindings.setGlobalToken(
                 enumConstant,
                 new RememberedToken('enumMember', lineNbr - 1, nameOffset, ['readonly']),
                 this._declarationComment()
               );
+              if (nameOffset != -1) {
+                // step past the whole item, so a later name can't match inside its [step offset]
+                currentOffset = nameOffset + lineParts[index].length;
+              }
             }
           }
         }
