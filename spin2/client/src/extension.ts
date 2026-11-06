@@ -6,7 +6,6 @@
 // src/extensions.ts
 /* eslint-disable no-console */ // allow console writes from this file
 import * as path from 'path';
-import * as fs from 'fs';
 import * as vscode from 'vscode';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
@@ -53,7 +52,6 @@ import {
 } from './providers/spin.toolChain.configuration';
 
 let client: LanguageClient;
-let spin2Context: vscode.ExtensionContext;
 
 enum eConfigSection {
   CS_USER,
@@ -665,16 +663,6 @@ function registerCommands(context: vscode.ExtensionContext): void {
     if (taskTerminal) {
       taskTerminal.show();
     }
-  }
-
-  function currenWorkingDir(): string {
-    const textEditor = vscode.window.activeTextEditor;
-    let desiredFolder: string = '';
-    if (textEditor) {
-      const currentlyOpenTabfilePath = textEditor.document.uri.fsPath;
-      desiredFolder = path.dirname(currentlyOpenTabfilePath);
-    }
-    return desiredFolder;
   }
 
   //*/
@@ -1390,9 +1378,6 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   try {
-    // preserve our extension context
-    spin2Context = context;
-
     // Let's get the client, later we'll start it
     client = getSetupExtensionClient(context);
 

@@ -10,7 +10,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { createTestContext } from './testContext';
-import { DocumentFindings, ITokenReference, IDocumentLinkInfo } from '../parser/spin.semantic.findings';
+import { DocumentFindings } from '../parser/spin.semantic.findings';
 import { Spin2DocumentSymbolParser } from '../parser/spin2.documentSymbolParser';
 import { Spin2DocumentSemanticParser } from '../parser/spin2.documentSemanticParser';
 
@@ -426,7 +426,6 @@ describe('Integration: cross-object reference recording', function () {
     const findings = parseFixture('references-crossobj.spin2');
 
     // Step 1: Simulate _symbolAtLocation returning objectRef='serial', tokenName='fstr0'
-    const objectRef = 'serial';
     const tokenName = 'fstr0';
     const includeDeclaration = true;
 

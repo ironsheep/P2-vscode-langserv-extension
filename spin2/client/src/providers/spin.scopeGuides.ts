@@ -390,7 +390,7 @@ export class ScopeGuidesProvider {
       editor.setDecorations(dt, decos);
     }
     // Clear any tab guide types that weren't used this cycle
-    for (const [key, dt] of this.tabGuideTypes) {
+    for (const dt of this.tabGuideTypes.values()) {
       if (!tabGuideDecos.has(dt)) {
         editor.setDecorations(dt, []);
       }

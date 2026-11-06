@@ -8,7 +8,6 @@ import { DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver-
 import { DocumentFindings } from '../parser/spin.semantic.findings';
 import { fileSpecFromURI } from '../parser/lang.utils';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
-import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
 import { FindingsAtPostion } from './DefinitionProvider';
 
 export default class DocumentHighlightProvider implements Provider {

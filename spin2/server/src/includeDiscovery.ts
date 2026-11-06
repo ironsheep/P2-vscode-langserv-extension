@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { Context, ILocalIncludeEntry, LocalIncludesByFolder } from './context';
+import { Context, LocalIncludesByFolder } from './context';
 import { isSpinExt } from './files';
 
 interface IFileCatalogEntry {

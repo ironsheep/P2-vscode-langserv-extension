@@ -23,7 +23,7 @@ export async function activate(docUri: vscode.Uri): Promise<void> {
     editor = await vscode.window.showTextDocument(doc);
     await sleep(2000); // Wait for server activation
   } catch (e) {
-    console.error(e);
+    process.stderr.write(`${e instanceof Error ? e.stack : String(e)}\n`);
   }
 }
 
@@ -43,27 +43,27 @@ export async function setTestContent(content: string): Promise<boolean> {
   return editor.edit((eb) => eb.replace(all, content));
 }
 
-export function isArray(possArray: any): boolean {
-  return !!possArray && possArray.constructor === Array;
+export function isArray(possArray: unknown): boolean {
+  return !!possArray && (possArray as object).constructor === Array;
 }
 
-export function isString(possString: any): boolean {
-  return !!possString && possString.constructor === String;
+export function isString(possString: unknown): boolean {
+  return !!possString && (possString as object).constructor === String;
 }
 
-export function isNumber(possNumber: any): boolean {
-  return !!possNumber && possNumber.constructor === Number;
+export function isNumber(possNumber: unknown): boolean {
+  return !!possNumber && (possNumber as object).constructor === Number;
 }
 
-export function isMap(possMap: any): boolean {
-  return !!possMap && possMap.constructor === Map;
+export function isMap(possMap: unknown): boolean {
+  return !!possMap && (possMap as object).constructor === Map;
 }
 
-export function isHash(possHash: any): boolean {
-  return !!possHash && possHash.constructor === Object;
+export function isHash(possHash: unknown): boolean {
+  return !!possHash && (possHash as object).constructor === Object;
 }
 
-export function showObject(responseObject: any, level: number = 0, idString: string = undefined): string {
+export function showObject(responseObject: unknown, level: number = 0, idString: string = undefined): string {
   const answerStrings: string[] = [];
   const padding: string = ' '.repeat(level * 2);
   const bIsTopeLevel: boolean = idString === undefined;
@@ -75,11 +75,11 @@ export function showObject(responseObject: any, level: number = 0, idString: str
     answerStrings.push(`${padding}   - [${idString}] ${typeString}:`);
   }
   if (isArray(responseObject)) {
-    answerStrings.push(describeArray(responseObject, level + 1));
+    answerStrings.push(describeArray(responseObject as [], level + 1));
   } else if (isMap(responseObject)) {
-    answerStrings.push(describeMap(responseObject, level + 1));
+    answerStrings.push(describeMap(responseObject as Map<unknown, unknown>, level + 1));
   } else if (isHash(responseObject)) {
-    answerStrings.push(describeHash(responseObject, level + 1));
+    answerStrings.push(describeHash(responseObject as Record<string, unknown>, level + 1));
   } else {
     answerStrings.push(JSON.stringify(responseObject));
   }
@@ -89,7 +89,7 @@ export function showObject(responseObject: any, level: number = 0, idString: str
   return answerStrings.join('\n');
 }
 
-function objectTypeString(possObject: any): string {
+function objectTypeString(possObject: unknown): string {
   let typeString: string = isArray(possObject) ? 'array[]' : 'object??';
   if (isMap(possObject)) {
     typeString = 'map<k,v>';
@@ -113,22 +113,20 @@ function describeArray(array: [], level: number): string {
   }
   return answerStrings.join('\n');
 }
-function describeMap(mapObject: Map<any, any>, level: number): string {
+function describeMap(mapObject: Map<unknown, unknown>, level: number): string {
   const answerStrings: string[] = [];
   const padding = ' '.repeat(level * 2);
   answerStrings.push(`${padding} - Map of ${mapObject.size} objects`);
   return answerStrings.join('\n');
 }
-function describeHash(hashObject: {}, level: number): string {
+function describeHash(hashObject: Record<string, unknown>, level: number): string {
   const answerStrings: string[] = [];
   const padding = ' '.repeat(level * 2);
-  let keyCount = 0;
   for (const key in hashObject) {
-    keyCount++;
     const value = hashObject[key];
     const typeString: string = objectTypeString(value);
     if (isArray(value)) {
-      answerStrings.push(`${padding}  -- key [${key}] of [${typeString}] w/${value.length} Entries`);
+      answerStrings.push(`${padding}  -- key [${key}] of [${typeString}] w/${(value as unknown[]).length} Entries`);
       answerStrings.push(showObject(value, level + 1, key));
     } else if (isHash(value)) {
       answerStrings.push(showObject(value, level + 1, key));

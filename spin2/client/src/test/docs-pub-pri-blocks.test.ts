@@ -9,7 +9,6 @@ import { SemanticTokens } from 'vscode-languageclient/node';
 
 suite('Should do Spin2 PUB/PRI Highlight display', () => {
   const docSpin2Uri = getDocUri('docs-pub-pri-blocks.spin2');
-  type numberMap = { [key: string]: number };
   test('Get PUB/PRI SemanticTokens from spin2 file', async () => {
     await testSemanticTokens(docSpin2Uri, { data: [] });
   });
@@ -22,13 +21,14 @@ async function testSemanticTokens(docUri: vscode.Uri, expectedSemanticTokenList:
   const actualSemanticTokenList = (await vscode.commands.executeCommand('vscode.provideDocumentSemanticTokens', docUri)) as SemanticTokens;
   //console.log(`spin2-actualSemanticTokenList is ${JSON.stringify(actualSemanticTokenList)})`);
   //console.log(`spin2-actualSemanticTokenList is ${JSON.stringify(actualSemanticTokenList)})`);
-  console.log(`* EXPECT expectedSemanticTokenList is [${showObject(expectedSemanticTokenList)}]`);
-  console.log(`* ACTUAL actualSemanticTokenList is [${showObject(actualSemanticTokenList)}]`);
+  process.stdout.write(`* EXPECT expectedSemanticTokenList is [${showObject(expectedSemanticTokenList)}]\n`);
+  process.stdout.write(`* ACTUAL actualSemanticTokenList is [${showObject(actualSemanticTokenList)}]\n`);
 
   const expectedValueSet = expectedSemanticTokenList['data'];
   const actualValueSet = actualSemanticTokenList['data'];
   //assert.ok(expectedValueSet.length == actualValueSet.length);
   expectedValueSet.forEach((expectedItem, i) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const actualItem = actualValueSet[i];
     //assert.equal(actualItem, expectedItem);
   });

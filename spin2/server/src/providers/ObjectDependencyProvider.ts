@@ -7,7 +7,7 @@ import * as path from 'path';
 import { Provider } from '.';
 import { Context } from '../context';
 import { DocumentFindings } from '../parser/spin.semantic.findings';
-import { fileSpecFromURI, isSpinFile } from '../parser/lang.utils';
+import { fileSpecFromURI } from '../parser/lang.utils';
 import { resolveReferencedIncludes } from '../files';
 import { IncludeDiscovery } from '../includeDiscovery';
 

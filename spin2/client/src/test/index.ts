@@ -35,7 +35,7 @@ export function run(): Promise<void> {
           }
         });
       } catch (err) {
-        console.error(err);
+        process.stderr.write(`${err instanceof Error ? err.stack : String(err)}\n`);
         reject(err);
       }
     });

@@ -10,14 +10,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { createTestContext } from './testContext';
-import {
-  DocumentFindings,
-  RememberedToken,
-  RememberedStructure,
-  RememberedStructureMember,
-  eBLockType,
-  RememberedTokenDeclarationInfo
-} from '../parser/spin.semantic.findings';
+import { DocumentFindings, RememberedToken, RememberedStructureMember, eBLockType } from '../parser/spin.semantic.findings';
 import { Spin2DocumentSymbolParser } from '../parser/spin2.documentSymbolParser';
 import { Spin2DocumentSemanticParser } from '../parser/spin2.documentSemanticParser';
 import { Spin2ParseUtils } from '../parser/spin2.utils';

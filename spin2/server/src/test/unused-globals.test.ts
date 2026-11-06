@@ -44,11 +44,6 @@ function getDiagnosticMessages(findings: DocumentFindings): Diagnostic[] {
   return findings.allDiagnosticMessages(200);
 }
 
-function findWarning(diags: Diagnostic[], pattern: RegExp): Diagnostic | undefined {
-  // use case-insensitive matching since token names are stored lowercase in TokenSet
-  return diags.find((d) => d.severity === DiagnosticSeverity.Warning && pattern.test(d.message));
-}
-
 function findWarningCI(diags: Diagnostic[], namePattern: string): Diagnostic | undefined {
   const re = new RegExp(namePattern, 'i');
   return diags.find((d) => d.severity === DiagnosticSeverity.Warning && re.test(d.message));

@@ -450,13 +450,6 @@ export default class HoverProvider implements Provider {
         const typeString: string = tokenFindings.interpretation;
 
         //let docRootCommentMD: string = `(*${scopeString}* ${typeString}) **${nameString}**`; // parsedFindings
-        let typeInterpWName: string = `(${scopeString} ${typeString}) ${nameString}`; // better formatting of interp
-        let typeInterp: string = `(${scopeString} ${typeString})`; // better formatting of interp
-        if (scopeString.length == 0) {
-          //docRootCommentMD = `(${typeString}) **${nameString}**`;
-          typeInterpWName = `(${typeString}) ${nameString}`; // better formatting of interp
-          typeInterp = `(${typeString})`;
-        }
         const desiredLine: Position = Position.create(tokenFindings.declarationLineIdx, 0);
         const lineText: string | undefined = tokenFindings.declarationLine;
         const declLine: string = lineText ? lineText : DocumentLineAt(document, desiredLine).trim(); // declaration line

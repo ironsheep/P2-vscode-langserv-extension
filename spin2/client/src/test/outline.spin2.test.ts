@@ -276,8 +276,8 @@ async function testDocumentSymbols(docUri: vscode.Uri, expectedDocumentSymbolsLi
 
   // Executing the command `vscode.executeCompletionItemProvider` to simulate triggering completion
   const actualDocumentSymbolsList = (await vscode.commands.executeCommand('vscode.executeDocumentSymbolProvider', docUri)) as Array<DocumentSymbol>;
-  console.log(`spin2-actualCompletionList is ${showObject(actualDocumentSymbolsList)})`);
-  console.log(`spin2-expectedDocumentSymbolsList is ${showObject(expectedDocumentSymbolsList)})`);
+  process.stdout.write(`spin2-actualCompletionList is ${showObject(actualDocumentSymbolsList)})\n`);
+  process.stdout.write(`spin2-expectedDocumentSymbolsList is ${showObject(expectedDocumentSymbolsList)})\n`);
 
   assert.strictEqual(actualDocumentSymbolsList.length, expectedDocumentSymbolsList.length);
   expectedDocumentSymbolsList.forEach((expectedItem, i) => {

@@ -46,7 +46,7 @@ async function testCompletionContains(docUri: vscode.Uri, position: vscode.Posit
   )) as vscode.CompletionList;
 
   const actualLabels: string[] = actualCompletionList.items.map((item) => {
-    return typeof item.label === 'string' ? item.label.toLowerCase() : ((item.label as any).label?.toLowerCase() ?? '');
+    return typeof item.label === 'string' ? item.label.toLowerCase() : ((item.label as vscode.CompletionItemLabel).label?.toLowerCase() ?? '');
   });
 
   for (const expected of expectedLabels) {

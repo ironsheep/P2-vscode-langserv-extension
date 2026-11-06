@@ -385,6 +385,7 @@ export default class CompletionProvider implements Provider {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private _addSpin2BuiltInCompletions(items: lsp.CompletionItem[], inPasmCode: boolean): void {
     const pu = this.parseUtils as Spin2ParseUtils;
     // add built-in methods
@@ -553,6 +554,7 @@ export default class CompletionProvider implements Provider {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private _addSpin1BuiltInCompletions(items: lsp.CompletionItem[], _inPasmCode: boolean): void {
     const pu = this.parseUtils as Spin1ParseUtils;
     // add a curated set of Spin1 built-in names

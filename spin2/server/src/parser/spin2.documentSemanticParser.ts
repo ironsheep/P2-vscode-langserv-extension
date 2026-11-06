@@ -19,7 +19,6 @@ import {
   IStructBitfield,
   RememberedStructure,
   RememberedStructureMember,
-  IDocumentLinkInfo,
   TokenSet
 } from './spin.semantic.findings';
 import { Spin2ParseUtils } from './spin2.utils';
@@ -228,7 +227,7 @@ export class Spin2DocumentSemanticParser {
       return; // empty parens, let other validation handle it
     }
     // extract the base struct name (part before any '.' or '[')
-    const baseName = fullArg.split(/[.\[]/)[0].trim();
+    const baseName = fullArg.split(/[.[]/)[0].trim();
     if (baseName.length === 0) {
       return;
     }
@@ -239,7 +238,7 @@ export class Spin2DocumentSemanticParser {
     // check if base name is an external object struct type (e.g., cfg.DATA_CFGx.member)
     if (baseName.includes('.') || (fullArg.includes('.') && this.semanticFindings.isNameSpace(baseName))) {
       // could be obj.structType.member — check the second part
-      const dotParts = fullArg.split(/[.\[]/);
+      const dotParts = fullArg.split(/[.[]/);
       if (dotParts.length >= 2) {
         const objName = dotParts[0].trim();
         const structName = dotParts[1].trim();
@@ -8060,7 +8059,6 @@ export class Spin2DocumentSemanticParser {
               }
               // handle dotted reference
               if (newParameter.includes('.')) {
-                let bFoundObjRef: boolean = false;
                 if (this._isPossibleObjectReference(newParameter)) {
                   // go register object reference!
                   const bHaveObjReference: boolean = this._reportObjectReference(
@@ -8071,7 +8069,6 @@ export class Spin2DocumentSemanticParser {
                     tokenSet
                   );
                   if (bHaveObjReference) {
-                    bFoundObjRef = true;
                     currSingleLineOffset = nameOffset + newParameter.length;
                     continue;
                   }
@@ -8419,7 +8416,6 @@ export class Spin2DocumentSemanticParser {
           }
           // if [...] in name then put aside index expression and report it separately
           let indexExpressions: IIndexedExpression[] = [];
-          let isIndexOverride: boolean = false;
           if (newParameter.includes('[') && newParameter.includes(']')) {
             // yes remove index elemeents from name
             indexExpressions = this._getIndexExpressions(newParameter);
@@ -8438,7 +8434,6 @@ export class Spin2DocumentSemanticParser {
                 }
                 this._logSPIN(`  -- rDbgStM() newParameter=[${newParameter}](${newParameter.length}) -> [${adjSymbolName}](${adjSymbolName.length})`);
                 newParameter = adjSymbolName;
-                isIndexOverride = true; // set flag to true so we don't report index expression
               }
             }
           }
@@ -9371,7 +9366,7 @@ export class Spin2DocumentSemanticParser {
         `- Ln#${lineIdx + 1}: rptSPINIdxExpr() NESTED indexExpression=[${indexExpression}], ofs=(${startingOffset}), line=[${line}](${line.length})`
       );
       // nest expression handling
-      const [lengthRemaining, expressionParts, expressionOffsets] = this._parseNestedIndexExpression(indexExpression);
+      const [, expressionParts, expressionOffsets] = this._parseNestedIndexExpression(indexExpression);
       for (let index = 0; index < expressionParts.length; index++) {
         const subExpression: string = expressionParts[index];
         // compute correct offset: startingOffset is where the outer expression begins in the line
@@ -10667,9 +10662,9 @@ export class Spin2DocumentSemanticParser {
     const noStringNoBracketSpaces: string = noStringsLine;
     //  as complexity measure :
     //    count the number of open-close brackets and nesting depth
-    const parenResult = this.countPairsAndNesting('(', ')', noStringNoBracketSpaces);
+    this.countPairsAndNesting('(', ')', noStringNoBracketSpaces);
     //    count the number of open-close parens and nesting depth
-    const bracketResult = this.countPairsAndNesting('[', ']', noStringNoBracketSpaces);
+    this.countPairsAndNesting('[', ']', noStringNoBracketSpaces);
     //   if measure is high just split on expression chars along with brackets and parens
     // first split - always use bracket-aware splitter to preserve long[...], word[...], byte[...] grouping
     let lineParts: string[] | null = null;

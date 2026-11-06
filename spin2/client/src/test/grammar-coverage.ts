@@ -6,10 +6,13 @@
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
 
 interface GrammarRepository {
-  [key: string]: any;
+  [key: string]: GrammarPattern;
+}
+
+interface GrammarCaptures {
+  [key: string]: GrammarPattern;
 }
 
 interface GrammarPattern {
@@ -19,9 +22,9 @@ interface GrammarPattern {
   end?: string;
   include?: string;
   patterns?: GrammarPattern[];
-  captures?: any;
-  beginCaptures?: any;
-  endCaptures?: any;
+  captures?: GrammarCaptures;
+  beginCaptures?: GrammarCaptures;
+  endCaptures?: GrammarCaptures;
 }
 
 interface GrammarDefinition {
@@ -96,7 +99,7 @@ export class GrammarCoverageAnalyzer {
     }
   }
 
-  private extractCaptureNames(pattern: any): void {
+  private extractCaptureNames(pattern: GrammarPattern): void {
     const captureGroups = [pattern.captures, pattern.beginCaptures, pattern.endCaptures];
 
     for (const captures of captureGroups) {
@@ -325,11 +328,11 @@ export function runCoverageAnalysis(grammarPath: string, testFiles: string[], ou
   const report = analyzer.analyzeCoverage(testFiles);
   const reportText = analyzer.generateReport(report);
 
-  console.log(reportText);
+  process.stdout.write(reportText + '\n');
 
   if (outputPath) {
     fs.writeFileSync(outputPath, reportText);
-    console.log(`Report written to: ${outputPath}`);
+    process.stdout.write(`Report written to: ${outputPath}\n`);
   }
 }
 
@@ -338,7 +341,7 @@ if (require.main === module) {
   const args = process.argv.slice(2);
 
   if (args.length < 2) {
-    console.log('Usage: node grammar-coverage.js <grammar.json> <test1.ts> [test2.ts ...] [--output report.txt]');
+    process.stdout.write('Usage: node grammar-coverage.js <grammar.json> <test1.ts> [test2.ts ...] [--output report.txt]\n');
     process.exit(1);
   }
 

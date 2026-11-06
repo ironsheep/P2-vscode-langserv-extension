@@ -25,7 +25,7 @@ export default class WorkspaceSymbolProvider implements Provider {
 
     this._logMessage(`+ WkSym: query=[${query}]`);
 
-    for (const [_fSpec, processedDoc] of this.ctx.docsByFSpec) {
+    for (const processedDoc of this.ctx.docsByFSpec.values()) {
       const findings: DocumentFindings | undefined = processedDoc.parseResult;
       if (!findings) {
         continue;

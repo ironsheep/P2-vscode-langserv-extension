@@ -5,7 +5,6 @@ import * as lsp from 'vscode-languageserver';
 import { Provider } from '.';
 import { Context } from '../context';
 import { fileSpecFromURI } from '../parser/lang.utils';
-import { DocumentFindings, eBLockType } from '../parser/spin.semantic.findings';
 
 export default class CodeActionProvider implements Provider {
   private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit

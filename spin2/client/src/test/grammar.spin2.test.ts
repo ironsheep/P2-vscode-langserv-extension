@@ -43,6 +43,7 @@ describe('Spin2 Grammar Coverage Tests', function () {
       // Create registry
       registry = new vsctm.Registry({
         onigLib: vscodeOnigurumaLib,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         loadGrammar: async (scopeName: string) => {
           const grammarPath = path.join(__dirname, '../../../syntaxes/spin2.tmLanguage.json');
           const grammarContent = fs.readFileSync(grammarPath, 'utf8');
@@ -54,7 +55,7 @@ describe('Spin2 Grammar Coverage Tests', function () {
       grammar = await registry.loadGrammar('source.spin2');
       assert.ok(grammar, 'Grammar should be loaded');
     } catch (error) {
-      console.error('Failed to initialize grammar:', error);
+      process.stderr.write(`Failed to initialize grammar: ${error instanceof Error ? error.stack : String(error)}\n`);
       throw error;
     }
   });

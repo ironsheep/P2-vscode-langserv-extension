@@ -523,6 +523,7 @@ export default class DocumentFormattingProvider implements Provider {
     return result;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private getDesiredBlanksAt(_lineIdx: number, _blockSpans: IBlockSpan[], _config: FormatterConfig): number | undefined {
     // Check if this blank line is between two block spans.
     // We use getDesiredBlanksBeforeLine instead when we encounter the non-blank line.

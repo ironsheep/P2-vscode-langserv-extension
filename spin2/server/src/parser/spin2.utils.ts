@@ -264,7 +264,6 @@ export class Spin2ParseUtils {
     //this._logMessage(`- RQS line [${line}]`);
     let trimmedLine: string = line;
     const chrSingleQuote: string = "'";
-    const chrCloseParen: string = ')';
     // skip past tic-open pairs and their closes
     let nextTicEscape: number = this._nextTicEscape(trimmedLine, 0);
     let quoteStartOffset: number = trimmedLine.indexOf(chrSingleQuote, 0);
@@ -824,7 +823,6 @@ export class Spin2ParseUtils {
   }
 
   public removeDoubleQuotedStrings(line: string, preservePacked: boolean = false): string {
-    let didRemove: boolean = false;
     let trimmedLine: string = line;
     const doubleQuote: string = '"';
     let packedLongOffset: number = preservePacked == true ? trimmedLine.indexOf('%"') : -1;
@@ -844,7 +842,6 @@ export class Spin2ParseUtils {
       if (quoteEndOffset === -1) break;
 
       const badElement = trimmedLine.substring(quoteStartOffset, quoteEndOffset + 1);
-      didRemove = true;
       trimmedLine = trimmedLine.substring(0, quoteStartOffset) + '#'.repeat(badElement.length) + trimmedLine.substring(quoteEndOffset + 1);
 
       // Update packedLongOffset for next search
@@ -867,7 +864,6 @@ export class Spin2ParseUtils {
         if (braceEndOffset != -1) {
           const badElement = trimmedLine.substring(braceStartOffset, braceEndOffset + 1);
           trimmedLine = trimmedLine.replace(badElement, ' '.repeat(badElement.length));
-          didRemove = true;
         } else {
           break; // we don't handle a single brace (of multi-line)
         }
@@ -3289,6 +3285,7 @@ export class Spin2ParseUtils {
     return 0;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private _docTextForSpinBuiltInMethod(name: string, typeFilter: eSearchFilterType = eSearchFilterType.FT_NO_PREFERENCE): IBuiltinDescription {
     const nameKey: string = name.toLowerCase();
     const desiredDocText: IBuiltinDescription = {

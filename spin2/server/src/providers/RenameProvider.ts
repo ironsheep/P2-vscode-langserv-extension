@@ -4,11 +4,10 @@
 import * as lsp from 'vscode-languageserver';
 import { Provider } from '.';
 import { Context } from '../context';
-import { Location, WorkspaceEdit, TextEdit } from 'vscode-languageserver-types';
-import { DocumentFindings, ITokenReference } from '../parser/spin.semantic.findings';
-import { fileSpecFromURI, isSpin1File } from '../parser/lang.utils';
+import { WorkspaceEdit, TextEdit } from 'vscode-languageserver-types';
+import { DocumentFindings } from '../parser/spin.semantic.findings';
+import { fileSpecFromURI } from '../parser/lang.utils';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
-import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
 import { FindingsAtPostion } from './DefinitionProvider';
 import * as path from 'path';
 

@@ -88,6 +88,7 @@ function isInlinePasmBoundary(lineIdx: number, regions: InlinePasmRegion[]): boo
 
 // findNearestCodeIndent removed — org/end always use method base indent (level 1)
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatInlinePasmRegion(lines: string[], region: InlinePasmRegion, findings: DocumentFindings, elasticConfig: ElasticTabstopConfig): void {
   // Content between ORG and END drops to column 0 (like DAT PASM)
   for (let i = region.orgLine + 1; i < region.endLine; i++) {
@@ -186,35 +187,6 @@ function normalizeIndentation(
     const targetCol = indentSize * level;
     lines[cl.lineIdx] = ' '.repeat(targetCol) + lines[cl.lineIdx].trimStart();
   }
-}
-
-function detectIndentStep(lines: string[], startLine: number, endLine: number, inlinePasm: InlinePasmRegion[], findings: DocumentFindings): number {
-  // Find the smallest non-zero indentation difference between adjacent code lines
-  const indents: number[] = [];
-  for (let i = startLine; i <= endLine; i++) {
-    if (isInInlinePasmContent(i, inlinePasm)) continue;
-    if (isInlinePasmBoundary(i, inlinePasm)) continue;
-    if (findings.isLineInBlockComment(i)) continue;
-    const trimmed = lines[i].trim();
-    if (trimmed.length === 0) continue;
-    // Skip all full-line comments — their indent is not meaningful for step detection
-    if (isFullLineComment(lines[i])) continue;
-    indents.push(getIndentColumns(lines[i]));
-  }
-
-  if (indents.length < 2) return 2; // default
-
-  // Find smallest positive difference
-  let minDiff = Infinity;
-  const uniqueIndents = [...new Set(indents)].sort((a, b) => a - b);
-  for (let i = 1; i < uniqueIndents.length; i++) {
-    const diff = uniqueIndents[i] - uniqueIndents[i - 1];
-    if (diff > 0 && diff < minDiff) {
-      minDiff = diff;
-    }
-  }
-
-  return minDiff === Infinity ? 2 : minDiff;
 }
 
 function getIndentColumns(line: string): number {

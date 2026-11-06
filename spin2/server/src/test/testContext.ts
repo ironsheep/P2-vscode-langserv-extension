@@ -10,7 +10,7 @@ import { ProcessedDocumentByFSpec, DocumentFindingsByFSpec, TopDocsByFSpec } fro
 
 // Minimal mock that satisfies the lsp.Connection interface used by our codebase.
 // Only connection.console.log/warn/error and connection.sendRequest are called.
-function createMockConnection(): any {
+function createMockConnection(): Context['connection'] {
   const noOp = () => {};
   return {
     console: {
@@ -39,17 +39,17 @@ function createMockConnection(): any {
     onPrepareRename: noOp,
     onTypeDefinition: noOp,
     listen: noOp
-  };
+  } as unknown as Context['connection'];
 }
 
-function createMockLogger(): any {
+function createMockLogger(): Context['logger'] {
   const noOp = () => {};
   return {
     log: noOp,
     warn: noOp,
     error: noOp,
     info: noOp
-  };
+  } as unknown as Context['logger'];
 }
 
 export function createTestContext(overrides?: Partial<Context>): Context {

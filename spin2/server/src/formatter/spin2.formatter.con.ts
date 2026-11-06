@@ -12,7 +12,6 @@ import {
   isColumnZero,
   isPreprocessorLine,
   findCurlyBlockCommentLines,
-  snapToNextTabstop,
   computeBlockCommentColumn,
   padToColumn,
   DEFAULT_TABSTOPS,

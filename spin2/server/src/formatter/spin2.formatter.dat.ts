@@ -167,6 +167,7 @@ function formatPasmRegion(
   endLine: number,
   findings: DocumentFindings,
   tabStops: number[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isInlinePasm: boolean = false,
   commentGap: number = 0
 ): void {

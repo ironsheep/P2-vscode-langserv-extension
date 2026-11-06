@@ -8,7 +8,6 @@ import { Location } from 'vscode-languageserver-types';
 import { DocumentFindings } from '../parser/spin.semantic.findings';
 import { fileSpecFromURI, isSpin1File } from '../parser/lang.utils';
 import { ExtensionUtils } from '../parser/spin.extension.utils';
-import { DocumentLineAt } from '../parser/lsp.textDocument.utils';
 
 export default class TypeDefinitionProvider implements Provider {
   private isDebugLogEnabled: boolean = false; // WARNING (REMOVE BEFORE FLIGHT)- change to 'false' - disable before commit
