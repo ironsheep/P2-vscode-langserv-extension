@@ -22,6 +22,53 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.12.1] - 2026-11-06
+
+FVAR and FVARS support in DAT data, with PASM2 FIFO hover and CON
+Go to Definition fixes, and formatter fixes that stop it changing
+compiled strings and debug text
+
+### Added
+
+- `FVAR` and `FVARS` highlight as storage types in DAT data and inline
+  PASM, with hover documentation giving each one's range and its
+  matching read instruction
+- The formatter's `typeCase` setting applies to `FVAR` and `FVARS`
+
+### Fixed
+
+- BUGFIX: Go to Definition now lands on a CON constant's own column
+  when its name also appears inside an earlier name on the same line,
+  such as `B` in `LONG_B, B`
+- BUGFIX: Hover for `RFVAR` and `RFVARS` now describes the
+  variable-length format and the correct C flag: always 0 for `RFVAR`,
+  and the MSB of the result for `RFVARS`
+- BUGFIX: Hover for `RFBYTE`, `RFWORD`, `RFLONG`, `RFVAR` and `RFVARS`
+  now gives their timing as 2 clocks
+- BUGFIX: The formatter no longer changes compiled text. Since 2.10.0,
+  with elastic tabstops off, it could replace spaces with tabs inside
+  strings, debug display text and `debug()` expressions, and it expanded
+  tabs inside them in every mode. Case settings could also change a
+  `debug()` expression between two strings or on a continued line. Files
+  formatted by those versions may still hold such a change, so check
+  string and debug output if a program's text looks wrong
+- BUGFIX: The formatter no longer rewrites comment text. Spaces inside a
+  comment stay spaces, and comments starting in column 0 are left exactly
+  as written, so repeated format-on-save no longer keeps changing them
+- BUGFIX: With elastic tabstops off, the formatter only writes a tab
+  when that makes the line shorter, so a single space between words
+  stays a space. Existing formatted files change once more on their
+  next format
+- BUGFIX: The `constantCase` setting no longer changes `STRUCT` type
+  names, type keywords or other words it mistook for constants
+- BUGFIX: `typeCase` set to `preserve` now keeps the case of types in VAR
+  blocks
+- BUGFIX: `spaceAfterCommentStart` now applies to `''` comments and
+  groups of `'` comments that are indented, and no longer changes
+  comments starting in column 0
+- BUGFIX: Trailing comments in a block near 15 lines no longer move on
+  the second format when formatting adds blank lines
+
 ## [2.12.0] - 2026-07-18
 
 DEBUG display hover documentation for all nine display types
