@@ -286,11 +286,29 @@ export class Pasm2DocUtils {
     fblock: ['Hub FIFO', 'FBLOCK {#}D,{#}S', 'Set hub FIFO block: address=D, count=S', '', '', '2'],
     getptr: ['Hub FIFO', 'GETPTR D', 'Get hub FIFO read pointer into D', '', '', '2'],
     rdfast: ['Hub FIFO', 'RDFAST {#}D,{#}S', 'Start FIFO read: count=D, address=S', '', '', '2'],
-    rfbyte: ['Hub FIFO', 'RFBYTE D {WC,WZ,WCZ}', 'Read FIFO byte into D[7:0]', 'MSB of byte', 'Result == 0', '2+'],
-    rflong: ['Hub FIFO', 'RFLONG D {WC,WZ,WCZ}', 'Read FIFO long into D', 'MSB of long', 'Result == 0', '2+'],
-    rfvar: ['Hub FIFO', 'RFVAR D {WC,WZ,WCZ}', 'Read FIFO variable-length field (1-4 bytes) into D', 'More bytes follow', 'Result == 0', '2+'],
-    rfvars: ['Hub FIFO', 'RFVARS D {WC,WZ,WCZ}', 'Read FIFO signed variable-length field into D', 'More bytes follow', 'Result == 0', '2+'],
-    rfword: ['Hub FIFO', 'RFWORD D {WC,WZ,WCZ}', 'Read FIFO word into D[15:0]', 'MSB of word', 'Result == 0', '2+'],
+    rfbyte: ['Hub FIFO', 'RFBYTE D {WC,WZ,WCZ}', 'Read FIFO byte into D[7:0]', 'MSB of byte', 'Result == 0', '2'],
+    rflong: ['Hub FIFO', 'RFLONG D {WC,WZ,WCZ}', 'Read FIFO long into D', 'MSB of long', 'Result == 0', '2'],
+    rfvar: [
+      'Hub FIFO',
+      'RFVAR D {WC,WZ,WCZ}',
+      'Read a variable-length unsigned value (1-4 bytes, up to 29 bits) from the hub FIFO into D, zero-extended. ' +
+        'Each byte carries 7 bits, LSB first; bit 7 = more bytes follow; a 4th byte carries 8 bits. ' +
+        'Use after RDFAST; not in hub-exec. Data is produced by the DAT directive FVAR.',
+      'Always cleared to 0',
+      'Result == 0',
+      '2'
+    ],
+    rfvars: [
+      'Hub FIFO',
+      'RFVARS D {WC,WZ,WCZ}',
+      'Read a variable-length signed value (1-4 bytes) from the hub FIFO into D. ' +
+        'Same bytes as RFVAR, but the top bit of the last byte read (bit 6/13/20/28) is sign-extended into D. ' +
+        'Range -$1000_0000..$0FFF_FFFF. Use after RDFAST; not in hub-exec. Data is produced by the DAT directive FVARS.',
+      'MSB of result (set if value is negative)',
+      'Result == 0',
+      '2'
+    ],
+    rfword: ['Hub FIFO', 'RFWORD D {WC,WZ,WCZ}', 'Read FIFO word into D[15:0]', 'MSB of word', 'Result == 0', '2'],
     wfbyte: ['Hub FIFO', 'WFBYTE {#}D', 'Write byte D[7:0] to FIFO', '', '', '2+'],
     wflong: ['Hub FIFO', 'WFLONG {#}D', 'Write long D to FIFO', '', '', '2+'],
     wfword: ['Hub FIFO', 'WFWORD {#}D', 'Write word D[15:0] to FIFO', '', '', '2+'],

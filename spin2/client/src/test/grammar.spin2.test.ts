@@ -388,6 +388,38 @@ describe('Spin2 Grammar Coverage Tests', function() {
         assert.ok(hasScope(result, 'storage.type'), `Should recognize ${type}`);
       });
     });
+
+    describe('FVAR/FVARS per-item overrides', () => {
+      function scopesOfWord(line: string, word: string, state: vsctm.StateStack): string[] {
+        const result = tokenizeLine(line, state);
+        const start = line.indexOf(word);
+        const token = result.tokens.find((t) => t.startIndex <= start && start < t.endIndex);
+        assert.ok(token, `expected a token covering [${word}]`);
+        return token.scopes;
+      }
+
+      ['FVAR', 'FVARS', 'fvar', 'fvars'].forEach((word) => {
+        it(`should tokenize ${word} as a storage type on a DAT data line`, () => {
+          const scopes = scopesOfWord(`table   byte    ${word} 300`, word, enterDatContext());
+          assert.ok(scopes.includes('storage.type.pasm2'), `Should recognize ${word}, got: ${scopes.join(', ')}`);
+        });
+      });
+
+      it('should tokenize a later FVARS in a mixed data list', () => {
+        const scopes = scopesOfWord('mixed   byte    1, FVAR 300, 2, FVARS -300, 3', 'FVARS', enterDatContext());
+        assert.ok(scopes.includes('storage.type.pasm2'), `Should recognize FVARS, got: ${scopes.join(', ')}`);
+      });
+
+      it('should not treat a longer name containing FVAR as a storage type', () => {
+        const scopes = scopesOfWord('table   byte    FVARIANT', 'FVARIANT', enterDatContext());
+        assert.ok(!scopes.includes('storage.type.pasm2'), `FVARIANT is not a keyword, got: ${scopes.join(', ')}`);
+      });
+
+      it('should not recognize FVAR in Spin code', () => {
+        const scopes = scopesOfWord('  x := FVAR', 'FVAR', enterPubContext());
+        assert.ok(!scopes.some((s) => s.startsWith('storage.type')), `FVAR is DAT-only, got: ${scopes.join(', ')}`);
+      });
+    });
   });
 
   describe('Built-in Functions Coverage', () => {

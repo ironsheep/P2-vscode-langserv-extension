@@ -1,0 +1,28 @@
+' Fixture for server/src/test/fvar-rfvar.test.ts
+'  The longs named marker1/marker2 bracket the variable-length data so the test
+'  can find those bytes in the compiled binary. Do not put data between them
+'  without updating the expected bytes in the test.
+
+CON
+  _clkfreq = 200_000_000
+  someValue = 300
+
+PUB main() : first, second | p
+  p := @marker1
+  org
+                rdfast  #0, p
+                rfvar   first
+                rfvars  second
+                rfbyte  first
+                rfword  first
+                rflong  first
+  end
+
+DAT
+marker1 long    $CAFE_F00D
+table   byte    FVAR 127, FVAR 128, FVAR 300, FVAR 70_000, FVAR $1FFF_FFFF
+dlt     byte    FVARS -1, FVARS 64, FVARS 100, FVARS 1000, FVARS -300, FVARS -$1000_0000
+mixed   byte    1, FVAR 300, 2, FVARS -300, 3
+trail   byte    FVAR 300, 400
+named   long    FVAR someValue, FVARS someValue
+marker2 long    $CAFE_F00D

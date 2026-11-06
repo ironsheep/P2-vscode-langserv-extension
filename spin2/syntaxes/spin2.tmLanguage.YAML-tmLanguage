@@ -235,7 +235,7 @@ repository:
       - name: storage.modifier.pasm2
         match: '(?i)\b(ORG(F|H)?|FIT|DITTO)\b'
       - name: storage.type.pasm2
-        match: '(?i)\b(BYTE|WORD|(BYTE|WORD)FIT|LONG|RES)\b'
+        match: '(?i)\b(BYTE|WORD|(BYTE|WORD)FIT|LONG|RES|FVARS?)\b'
       - name: keyword.pasm.instruction.branch.pasm2
         match: '(?i)\b((CALL|RET)(A|B)?|CALL(D|PA|PB)|DJ(N?F|N?Z)|SKIP|(SKIP|EXEC)F|IJN?Z|JMP(REL)?|REP|RESI(0|1|2|3)|RETI(0|1|2|3)|TJ(N?F|N?S|N?Z|V))\b'
       - name: keyword.pasm.instruction.colorspace.pasm2

@@ -4196,7 +4196,19 @@ export class Spin2ParseUtils {
 
   private _tableSpinStorageSpecials: { [Identifier: string]: string[] } = {
     res: ['RES n', "reserve n register(s), advance cog address by n, don't advance hub address"],
-    file: ['FileDat  FILE "Filename"', 'include binary file, "FileDat" is a BYTE symbol that points to file']
+    file: ['FileDat  FILE "Filename"', 'include binary file, "FileDat" is a BYTE symbol that points to file'],
+    // FVAR/FVARS are documented here but deliberately NOT in isStorageType(): they override the size of one
+    //  item after BYTE/WORD/LONG and never start a data declaration themselves
+    fvar: [
+      'BYTE|WORD|LONG FVAR value',
+      'DAT data, after BYTE/WORD/LONG: emit the next value as a 1-4 byte variable-length integer readable by RFVAR. ' +
+        'Applies to one item only and ignores the size of the line. Range 0..$1FFF_FFFF'
+    ],
+    fvars: [
+      'BYTE|WORD|LONG FVARS value',
+      'DAT data, after BYTE/WORD/LONG: emit the next value as a 1-4 byte signed variable-length integer readable by RFVARS. ' +
+        'Applies to one item only and ignores the size of the line. Range -$1000_0000..$0FFF_FFFF'
+    ]
   };
 
   private _tableSpinAlignment: { [Identifier: string]: string } = {

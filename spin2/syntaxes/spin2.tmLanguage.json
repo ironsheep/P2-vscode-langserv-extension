@@ -507,7 +507,7 @@
         },
         {
           "name": "storage.type.pasm2",
-          "match": "(?i)\\b(BYTE|WORD|(BYTE|WORD)FIT|LONG|RES)\\b"
+          "match": "(?i)\\b(BYTE|WORD|(BYTE|WORD)FIT|LONG|RES|FVARS?)\\b"
         },
         {
           "name": "keyword.pasm.instruction.branch.pasm2",
