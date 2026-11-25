@@ -168,7 +168,8 @@ export function normalizeMethodBlockCase(
   endLine: number,
   findings: DocumentFindings,
   caseConfig: CaseConfig,
-  conConstants?: Set<string>
+  conConstants?: Set<string>,
+  curlyDepths?: number[]
 ): void {
   // Apply each non-preserve word set in order.
   // PASM instructions are included because PUB/PRI blocks can contain
@@ -203,7 +204,8 @@ export function normalizeMethodBlockCase(
     if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
     if (isPreprocessorLine(lines[i])) continue;
 
-    const regions = findLineTextRegions(lines[i], openDebugDepth);
+    // curlyDepths: whether the line begins inside a { } comment, whose text is the author's
+    const regions = findLineTextRegions(lines[i], openDebugDepth, curlyDepths ? curlyDepths[i] : 0);
     openDebugDepth = regions.openDebugDepth;
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;
@@ -238,7 +240,8 @@ export function normalizeDatBlockCase(
   endLine: number,
   findings: DocumentFindings,
   caseConfig: CaseConfig,
-  conConstants?: Set<string>
+  conConstants?: Set<string>,
+  curlyDepths?: number[]
 ): void {
   // In DAT blocks, apply PASM instructions, block names, and type keywords
   const sets: { words: Set<string>; targetCase: string }[] = [];
@@ -265,7 +268,8 @@ export function normalizeDatBlockCase(
     if (isFullLineComment(lines[i])) continue;
     if (isPreprocessorLine(lines[i])) continue;
 
-    const regions = findLineTextRegions(lines[i], openDebugDepth);
+    // curlyDepths: whether the line begins inside a { } comment, whose text is the author's
+    const regions = findLineTextRegions(lines[i], openDebugDepth, curlyDepths ? curlyDepths[i] : 0);
     openDebugDepth = regions.openDebugDepth;
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;
@@ -294,7 +298,8 @@ export function normalizeNonCodeBlockCase(
   endLine: number,
   findings: DocumentFindings,
   caseConfig: CaseConfig,
-  conConstants?: Set<string>
+  conConstants?: Set<string>,
+  curlyDepths?: number[]
 ): void {
   const sets: { words: Set<string>; targetCase: string }[] = [];
 
@@ -317,7 +322,8 @@ export function normalizeNonCodeBlockCase(
     if (isColumnZero(lines[i]) && isFullLineComment(lines[i])) continue;
     if (isPreprocessorLine(lines[i])) continue;
 
-    const regions = findLineTextRegions(lines[i], openDebugDepth);
+    // curlyDepths: whether the line begins inside a { } comment, whose text is the author's
+    const regions = findLineTextRegions(lines[i], openDebugDepth, curlyDepths ? curlyDepths[i] : 0);
     openDebugDepth = regions.openDebugDepth;
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     let normalized = codePart;

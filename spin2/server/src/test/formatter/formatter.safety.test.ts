@@ -11,7 +11,14 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
-import { assertFormattingPreservesBinary, formatSpin2Text, FormatterConfig, getBinaryParityFixtures, originalCompiles } from './formatter.test-utils';
+import {
+  assertBlockDepthsPreserved,
+  assertFormattingPreservesBinary,
+  formatSpin2Text,
+  FormatterConfig,
+  getBinaryParityFixtures,
+  originalCompiles
+} from './formatter.test-utils';
 import { ElasticTabstopConfig } from '../../formatter/spin2.formatter.base';
 
 const FIXTURES_DIR = path.resolve(__dirname, 'fixtures');
@@ -360,6 +367,29 @@ describe('Formatter: Safety tests', function () {
         for (const cc of crossConfigs) {
           currentText = formatSpin2Text(currentText, cc.config, cc.elastic);
           assertFormattingPreservesBinary(fixture, currentText, `After ${cc.name}`);
+        }
+      });
+    }
+  });
+
+  // =========================================================================
+  //  Block depth: Spin2 decides blocks by indentation, so every statement must
+  //  stay as deep as it was. This does not depend on a fixture happening to
+  //  compile to different bytes: a moved line that the compiler reads the same
+  //  way only by luck is still caught.
+  // =========================================================================
+  describe('Block depth preserved under every config', function () {
+    const depthConfigs: { name: string; config: Partial<FormatterConfig>; elastic?: ElasticTabstopConfig }[] = [
+      ...CONFIG_VARIANTS,
+      { name: 'elastic-IronSheep', config: { indentSize: 2 }, elastic: { enabled: true, tabStops: IRONSHEEP_TABSTOPS, commentGap: 0 } },
+      { name: 'elastic-PropellerTool', config: { indentSize: 4 }, elastic: { enabled: true, tabStops: PROPELLERTOOL_TABSTOPS, commentGap: 0 } }
+    ];
+
+    for (const fixture of fixtures) {
+      it(`${fixture.name}: every statement keeps its block depth`, function () {
+        const text = fs.readFileSync(fixture.spin2Path, 'utf-8');
+        for (const dc of depthConfigs) {
+          assertBlockDepthsPreserved(text, formatSpin2Text(text, dc.config, dc.elastic), `Config ${dc.name}`);
         }
       });
     }

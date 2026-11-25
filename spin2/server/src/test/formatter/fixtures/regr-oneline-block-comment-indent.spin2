@@ -1,0 +1,74 @@
+' regr-oneline-block-comment-indent.spin2
+' Regression: a one-line { } comment at column 0 inside a method is not code.
+' Counted as code, {$flexspin #endif} reset the indent base and moved the code after
+' it into different blocks: the ORG/END pair out of the inner else, and the final
+' assignment from method level into the outer else.
+
+CON
+  E_NOT_READY = -1
+  SUCCESS = 0
+
+VAR
+  long  ready, lastStatus, sampleHi, sampleLo
+
+{$flexspin
+VAR
+  long  m_hi, m_lo        ' flexspin-only copies
+}
+
+PUB main() | hi, lo
+  ready := 1
+  hi, lo := read_id()
+
+PUB read_id() : hi, lo | status
+'' Returns a 64-bit id, or 0,0 when not ready
+
+  hi := lo := 0
+  ifnot ready
+    status := E_NOT_READY
+  else
+
+    repeat while ready == 0
+
+    ifnot ready
+      status := E_NOT_READY
+    else
+      status := SUCCESS
+      sampleHi := $0102_0304
+{$flexspin
+#ifdef __FLEXSPIN__
+      m_hi := sampleHi
+      hi := m_hi
+#else
+}
+      hi := sampleHi
+{$flexspin #endif}
+
+      ' swap the byte order
+      org
+                movbyts     hi, #%%0123
+                movbyts     lo, #%%0123
+      end
+
+    status := status + 0
+
+  lastStatus := status
+
+PRI plain_comment(a) : b
+  if a
+    b := 1
+{ a plain one-line comment }
+    b := 2
+  b := 3
+
+PRI send_value(value, count)
+              org
+                mov         value, value
+              end
+{$flexspin
+#ifdef __FLEXSPIN__
+  sampleLo := value
+#else
+}
+  sampleLo := value + count
+{$flexspin #endif}

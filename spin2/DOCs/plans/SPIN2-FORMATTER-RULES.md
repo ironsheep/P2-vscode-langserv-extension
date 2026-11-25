@@ -24,7 +24,7 @@ These rules apply regardless of whether elastic tabstops are enabled or disabled
 The formatter applies rules in this order:
 
 1. **Tab-to-space conversion** — Tab characters expanded to equivalent spaces (tab width is fixed at 8), except in the untouchable content below. This is always done first so all internal alignment math uses spaces.
-2. **Trailing whitespace trimming** — `trimEnd()` on all non-block-comment lines (when `trimTrailingWhitespace` is true).
+2. **Trailing whitespace trimming** — `trimEnd()` on all non-block-comment lines (when `trimTrailingWhitespace` is true). When it is false, every line keeps its trailing whitespace exactly as written, in every section.
 3. **Section column alignment** — Per-section formatters for CON, VAR, OBJ, DAT, PUB/PRI. In non-elastic mode, uses content-driven column layout with `indentSize` gaps. In elastic mode, uses profile-defined tabstop arrays.
 4. **Small-block comment merging** — Consecutive same-type blocks of at most 15 non-blank lines share a unified trailing comment column, preventing jagged comments across small blocks.
 5. **Case normalization & comment spacing** — Keyword case, PASM case, space-after-comment-start.
@@ -475,3 +475,28 @@ The fix: compression stops at the start of a comment and counts existing tabs co
 ### D.20 Small-block merging counted blank lines (`align-con-enums` with `blank-lines-3`)
 
 **Not binary-breaking (idempotency).** A block's size for comment merging included its blank lines. When formatting added blank lines, a 15-line block became 16, so the second format skipped the merge and moved its trailing comments. Size now counts non-blank lines only.
+
+### D.21 Statement starts decided from the parser's comment report (`regr-oneline-block-comment-indent`, `regr-comment-continued-statement`)
+
+**Binary-breaking.** `normalizeIndentation` decided which lines were code with the parser's `isLineInBlockComment()` and took each code line's depth from its first non-blank column. The parser's report does not match what the compiler skips, and the first non-blank column is not always where the compiler reads depth from. Four shapes went wrong:
+
+1. **A one-line `{ }` comment** is not reported, so it was taken for code at its column. The FlexSpin idiom puts `{$flexspin #endif}` at column 0, below the method's base indent, so the D.11 rule reset the base to 0, and every line after it up to the end of the method was re-leveled against that base. In the reported file an `ORG`/`END` pair moved out of an inner `else` (col 6 → 4), and the method's last line moved from method level into the outer `else` (col 2 → 4), so it no longer ran on every path.
+2. **A statement continued through `{ }` comments**, each closing at the start of the next line (`id := init(cog, { the cog` / `}   @display, { ...`), has `}` at column 0 on every continued line. Those lines are not reported either, so they reset the base the same way. Found in `TEST-FORMATTER` (`p2textdrv.spin2`), where it moved `setFont(...)` a level deeper; harmless there only because the line before opened no block.
+3. **A statement after the `}` closing a multi-line comment** (`{ note` / `}   b := 3`) *is* reported, as part of the comment, so it was skipped and kept its column while the code around it moved, putting it inside the `if` above it.
+4. **A statement behind a one-line comment** (`{x} b := 3`) was leveled by the column of `{`. The compiler reads the column of `b`.
+
+Verified against pnut-ts: a `{ }` comment is skipped whole, line breaks included, and a statement's depth is the column of its first code character. `{` opens a comment anywhere except inside a `"..."` string and inside a backtick debug string, which runs to the `)` closing `debug(`; in plain `debug()` arguments it does open one.
+
+The fix: `findStatementStarts()` scans the method the way the compiler does and returns, for each line on which a statement starts, the column of its first code character. Lines with no statement start (comments, and lines continuing a statement through a comment) carry no depth and are left as written (1.3). A statement is moved by resizing only whitespace: the line's indent, carrying a comment in front of the statement with it, or, on a line that begins inside a comment, the gap after its closing `}`. When a target column cannot be reached that way, the method's indentation is left exactly as written. The first-code-line and next-code-line searches use the same scan.
+
+Binary parity could not catch this without a fixture holding the trigger. The safety suite now also checks block depth: every statement in every method, under every config, must keep its depth relative to the lines around it, computed independently of the formatter from the same compiler rules. It catches a moved line even when the bytes happen to match, and it is what found shape 2.
+
+Also fixed alongside: a full-line comment above an inline `ORG` aligned to the code after `END`, because the next-code-line search skipped `ORG`. It now lines up with `ORG` (2.6, D.2).
+
+### D.22 `{ }` comment text on code lines was rewritten (`TEST-FORMATTER` `p2textdrv.spin2`)
+
+**Not binary-breaking.** Three passes treated `{ }` comment text on a code line as code:
+
+- `findLineTextRegions()` knew strings, backtick text and `debug()` arguments but not `{ }` comments, so case settings recased words in them ("the cogid to use" became "THE cogid TO use"), and a `'` inside one (`{ it's }`) was taken for the start of the trailing comment. It now marks `{ }` comment text literal, starts no comment at a `'` inside one, and carries an open comment from line to line (`openCurlyDepth`). Passes that skip lines get each line's starting depth from `curlyDepthAtLineStarts()`.
+- The parser took a `{` inside debug backtick text for the start of a comment running to the next `}`, even into the next method, so the formatter skipped every line up to there. pnut-ts opens no comment there. `blankBracesInBacktickText()` now hides those braces, keeping the line length, from the parser's comment detection in `removeQuotedStrings()`, `getLineWithoutInlineComments()` and `_removeAllCommentParts()`.
+- With `trimTrailingWhitespace` off, the CON, VAR, OBJ and DAT formatters rebuilt their lines and dropped the trailing whitespace, and tab compression could turn what was kept into a tab. It is now recorded after tab expansion, restored after the in-place phases, and never compressed.

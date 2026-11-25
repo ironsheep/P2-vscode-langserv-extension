@@ -162,3 +162,127 @@ export function assertFormattingPreservesBinary(fixture: BinaryParityFixture, fo
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+//  Block depth: Spin2 decides blocks by indentation
+// ---------------------------------------------------------------------------
+
+export interface CodeLineDepth {
+  lineNumber: number; // 1-based, in the text it came from
+  code: string; // the line's code, comments removed
+  depth: number;
+}
+
+/**
+ * The block depth of every statement line in each PUB/PRI body, read the way the
+ * compiler reads indentation: tabs reach the next 8-column stop, and a line is inside
+ * the block of the nearest shallower line above it, and a statement's column is that of
+ * its first code character, after any { } comment in front of it. Comments ({ } of any
+ * length and '), blank lines, preprocessor lines, inline PASM between ORG and END,
+ * continuation lines after `...`, and lines that continue a statement through a { }
+ * comment spanning the line break carry no depth and are left out. ORG and END lines
+ * are statements.
+ * Deliberately written apart from the formatter's own code so it cannot share its
+ * blind spots.
+ */
+export function spinBlockDepths(text: string): CodeLineDepth[] {
+  const result: CodeLineDepth[] = [];
+  let curlyDepth = 0;
+  let inMethod = false;
+  let inInlinePasm = false;
+  let continued = false;
+  let indentStack: number[] = [];
+
+  let statementOpen = false; // a statement continues through a { } comment's line break
+
+  text.split(/\r?\n/).forEach((rawLine, idx) => {
+    // Expand tabs, then blank out comments, keeping columns. A { } comment does not open
+    // inside a "..." string or inside a backtick debug string, which runs to the ) that
+    // closes debug( (checked against pnut-ts).
+    let line = '';
+    for (const ch of rawLine) {
+      line += ch === '\t' ? ' '.repeat(8 - (line.length % 8)) : ch;
+    }
+    const startsInComment = curlyDepth > 0;
+    let code = '';
+    let inString = false;
+    let inBacktick = false;
+    let parens = 0;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inString || inBacktick) {
+        if (inString && ch === '"') inString = false;
+        if (inBacktick && ch === '(') parens++;
+        if (inBacktick && ch === ')' && --parens < 0) inBacktick = false;
+        code += ch;
+        continue;
+      }
+      if (curlyDepth === 0 && ch === "'") break;
+      if (ch === '{') curlyDepth++;
+      code += curlyDepth > 0 ? ' ' : ch;
+      if (ch === '}' && curlyDepth > 0) curlyDepth--;
+      if (curlyDepth === 0 && ch === '"') inString = true;
+      if (curlyDepth === 0 && ch === '`') {
+        inBacktick = true;
+        parens = 0;
+      }
+    }
+    const statement = code.trim();
+    // A line break ends the statement only outside a { } comment.
+    const continuesThroughComment = startsInComment && statementOpen;
+    if (!startsInComment) statementOpen = false;
+    if (statement.length > 0) statementOpen = true;
+    if (statement.length === 0) return;
+    if (continuesThroughComment) return; // part of the statement on an earlier line
+    if (statement.startsWith('#')) return; // preprocessor
+
+    const indent = code.length - code.trimStart().length;
+    if (indent === 0 && /^(con|var|obj|dat|pub|pri)\b/i.test(statement)) {
+      inMethod = /^(pub|pri)\b/i.test(statement);
+      inInlinePasm = false;
+      continued = false;
+      indentStack = [];
+      return;
+    }
+    if (!inMethod) return;
+
+    const wasContinued = continued;
+    continued = statement.endsWith('...');
+    if (wasContinued) return;
+
+    const isOrg = /^(org|orgh)\b/i.test(statement);
+    const isEnd = /^end\b/i.test(statement);
+    if (inInlinePasm && !isEnd) return;
+    if (isOrg) inInlinePasm = true;
+    if (isEnd) inInlinePasm = false;
+
+    while (indentStack.length > 0 && indentStack[indentStack.length - 1] >= indent) {
+      indentStack.pop();
+    }
+    result.push({ lineNumber: idx + 1, code: statement, depth: indentStack.length });
+    indentStack.push(indent);
+  });
+  return result;
+}
+
+/**
+ * Require every statement line in every method to keep its block depth: the same
+ * statements, in the same order, each as deep as before. A formatter may change how
+ * wide a level is, never which block a line belongs to.
+ */
+export function assertBlockDepthsPreserved(originalText: string, formattedText: string, label: string): void {
+  const before = spinBlockDepths(originalText);
+  const after = spinBlockDepths(formattedText);
+  assert.strictEqual(after.length, before.length, `${label}: statement count changed: original=${before.length} formatted=${after.length}`);
+  // Spacing and letter case inside a statement may change; the statement may not.
+  const sameStatement = (a: string, b: string): boolean => a.replace(/\s+/g, '').toLowerCase() === b.replace(/\s+/g, '').toLowerCase();
+  for (let i = 0; i < before.length; i++) {
+    if (after[i].depth !== before[i].depth || !sameStatement(after[i].code, before[i].code)) {
+      assert.fail(
+        `${label}: block depth changed\n` +
+          `  original  line ${before[i].lineNumber}, depth ${before[i].depth}: ${before[i].code}\n` +
+          `  formatted line ${after[i].lineNumber}, depth ${after[i].depth}: ${after[i].code}`
+      );
+    }
+  }
+}

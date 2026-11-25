@@ -14,6 +14,7 @@ import {
   alignContinuationGroups,
   splitTrailingComment,
   findLineTextRegions,
+  curlyDepthAtLineStarts,
   padToColumn,
   isFullLineComment,
   computeBlockCommentColumn,
@@ -160,6 +161,9 @@ export default class DocumentFormattingProvider implements Provider {
     result = this.convertTabsToSpaces(result, findings, TAB_WIDTH);
 
     // Phase 1b: Trailing whitespace trimming
+    // When off, the whitespace is put back after the section formatters, which rebuild
+    // CON, VAR, OBJ and DAT lines from their parts and would drop it.
+    const keptTrailingWhitespace: string[] = config.trimTrailingWhitespace ? [] : result.map((line) => /\s*$/.exec(line)![0]);
     if (config.trimTrailingWhitespace) {
       result = this.trimTrailingWhitespace(result, findings);
     }
@@ -181,6 +185,17 @@ export default class DocumentFormattingProvider implements Provider {
     // Phase 5: Align `...` line-continuation markers vertically within groups
     const defaultStops = elasticConfig.tabStops['pub'] || elasticConfig.tabStops['con'] || [];
     alignContinuationGroups(result, elasticConfig.commentGap, defaultStops);
+
+    // Phase 1b, continued: restore trailing whitespace the in-place phases dropped. Line
+    // indices still match the input here; the blank-line phases below change them.
+    if (!config.trimTrailingWhitespace) {
+      for (let i = 0; i < result.length; i++) {
+        const trailing = keptTrailingWhitespace[i];
+        if (trailing.length > 0 && !result[i].endsWith(trailing)) {
+          result[i] = result[i].trimEnd() + trailing;
+        }
+      }
+    }
 
     // Phase 1c: Blank line normalization (after section formatting to preserve line indices)
     result = this.normalizeBlankLines(result, findings, config);
@@ -360,13 +375,18 @@ export default class DocumentFormattingProvider implements Provider {
     // Extract CON constants for constantCase normalization
     const conConstants = extractConConstants(lines, blockSpans);
 
+    // Lines that begin inside a { } comment the parser does not report, such as a call
+    // continued through comments closing at the start of each next line: their comment
+    // text must keep its case (1.3).
+    const curlyDepths = curlyDepthAtLineStarts(lines);
+
     for (const span of blockSpans) {
       if (span.blockType === eBLockType.isPub || span.blockType === eBLockType.isPri) {
-        normalizeMethodBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
+        normalizeMethodBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants, curlyDepths);
       } else if (span.blockType === eBLockType.isDat) {
-        normalizeDatBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
+        normalizeDatBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants, curlyDepths);
       } else {
-        normalizeNonCodeBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants);
+        normalizeNonCodeBlockCase(lines, span.startLineIdx, span.endLineIdx, findings, caseConfig, conConstants, curlyDepths);
       }
     }
     // Comment spacing across entire file
@@ -375,12 +395,15 @@ export default class DocumentFormattingProvider implements Provider {
 
   private convertTabsToSpaces(lines: string[], findings: DocumentFindings, tabWidth: number): string[] {
     let openDebugDepth = 0;
+    let openCurlyDepth = 0;
     return lines.map((line, idx) => {
+      // scan every line, so a { } comment open across lines is known on the next one
+      const regions = findLineTextRegions(line, openDebugDepth, openCurlyDepth);
+      openDebugDepth = regions.openDebugDepth;
+      openCurlyDepth = regions.openCurlyDepth;
       if (findings.isLineInBlockComment(idx)) {
         return line;
       }
-      const regions = findLineTextRegions(line, openDebugDepth);
-      openDebugDepth = regions.openDebugDepth;
       if (line.indexOf('\t') === -1) {
         return line;
       }
@@ -585,12 +608,15 @@ export default class DocumentFormattingProvider implements Provider {
 
   private convertSpacesToTabs(lines: string[], blockCommentLines: Set<number>, tabWidth: number): string[] {
     let openDebugDepth = 0;
+    let openCurlyDepth = 0;
     return lines.map((line, idx) => {
+      // scan every line, so a { } comment open across lines is known on the next one
+      const regions = findLineTextRegions(line, openDebugDepth, openCurlyDepth);
+      openDebugDepth = regions.openDebugDepth;
+      openCurlyDepth = regions.openCurlyDepth;
       if (blockCommentLines.has(idx)) {
         return line;
       }
-      const regions = findLineTextRegions(line, openDebugDepth);
-      openDebugDepth = regions.openDebugDepth;
       if (line.indexOf(' ') === -1) {
         return line;
       }
@@ -599,15 +625,17 @@ export default class DocumentFormattingProvider implements Provider {
       // author's. Walk the line tracking the column position so tab stops are computed
       // correctly, including past tabs that are already there (comment groups skip expansion).
       const { literal, commentStart } = regions;
+      // Trailing whitespace is only here when trimTrailingWhitespace is off, which keeps it as written.
+      const end = Math.min(commentStart, line.trimEnd().length);
       let result = '';
       let i = 0;
       let column = 0;
-      while (i < commentStart) {
+      while (i < end) {
         if (line[i] === ' ' && !literal[i]) {
           // Collect the full run of consecutive spaces
           const runStart = column;
           let runSpaces = 0;
-          while (i < commentStart && line[i] === ' ' && !literal[i]) {
+          while (i < end && line[i] === ' ' && !literal[i]) {
             i++;
             runSpaces++;
           }
@@ -634,7 +662,7 @@ export default class DocumentFormattingProvider implements Provider {
           i++;
         }
       }
-      return result + line.substring(commentStart);
+      return result + line.substring(end);
     });
   }
 }

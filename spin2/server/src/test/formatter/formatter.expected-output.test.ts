@@ -79,6 +79,15 @@ describe('Formatter: expected output', function () {
     it('leaves it on method lines when trimTrailingWhitespace is false', function () {
       assert.ok(formatSpin2Text('PUB main() | a\n  a := 1   \n', { trimTrailingWhitespace: false }).includes('  a := 1   \n'));
     });
+
+    it('leaves it on CON, VAR, OBJ and DAT lines when trimTrailingWhitespace is false', function () {
+      const source = 'CON\n  ALPHA = 1   \nVAR\n  LONG b   \nOBJ\n  c : "dummy_child"   \nDAT\n  x LONG 0   \nPUB main()\n';
+      const formatted = formatSpin2Text(source, { trimTrailingWhitespace: false }).split('\n');
+      for (const content of [/ALPHA/, /LONG\s+b/, /dummy_child/, /x\s+LONG/]) {
+        const line = formatted.find((l) => content.test(l));
+        assert.ok(line !== undefined && line.endsWith('   '), `trailing whitespace changed on ${JSON.stringify(line)} (${content})`);
+      }
+    });
   });
 
   describe('CON (2.1)', function () {
@@ -166,6 +175,64 @@ describe('Formatter: expected output', function () {
 
     it('keeps inline PASM ORG and END at the method indent, with PASM on the default DAT stops', function () {
       assertLines('PUB main() | a\n      org\n loop mov a, #1\n      end\n', ['  org', 'loop          mov       a, #1', '  end']);
+    });
+
+    it('leaves a one-line { } comment alone and out of the nesting (1.3)', function () {
+      const body = ['  if a', '    a := 1', '{ plain one-liner }', '    a := 2', '{$flexspin #endif}', '    a := 3', '  a := 4'];
+      assertLines(['PUB go() | a', ...body, ''].join('\n'), body);
+    });
+
+    it('keeps ORG, END and the code after a {$flexspin} block in their blocks', function () {
+      const source = [
+        'PUB id() : hi | status, ok',
+        '  ifnot ok',
+        '    status := 1',
+        '  else',
+        '    ifnot ok',
+        '      status := 1',
+        '    else',
+        '      status := 0',
+        '{$flexspin',
+        '#ifdef __FLEXSPIN__',
+        '      hi := 1',
+        '#else',
+        '}',
+        '      hi := 2',
+        '{$flexspin #endif}',
+        '      org',
+        '                movbyts     hi, #%%0123',
+        '      end',
+        '    status := status + 1',
+        '  ok := status',
+        ''
+      ].join('\n');
+      assertLines(source, ['      hi := 2', '{$flexspin #endif}', '      org']);
+      assertLines(source, ['      end', '    status := status + 1', '  ok := status']);
+    });
+
+    it('keeps a call continued through { } comments as one statement (1.3)', function () {
+      const continued = ['}             2,     { second', '}             3      { third', '}             )'];
+      const source = ['PUB go(x) | v', '    if x', '        v := add3(1,  { first', ...continued, '    x := v', ''].join('\n');
+      assertLines(source, ['  if x', '    v := add3(1,  { first', ...continued, '  x := v']);
+    });
+
+    it('levels a statement that follows the } closing a multi-line comment', function () {
+      const source = 'PUB go(x) | a\n    if x\n        a := 1\n{ a note\n}   x := a\n';
+      assertLines(source, ['  if x', '    a := 1', '{ a note', '} x := a']);
+    });
+
+    it('takes a statement depth from its first code, not from a { } comment in front of it', function () {
+      const source = 'PUB go(x) | a\n    if x\n        a := 1\n    {x} x := 3\n    a := 2\n';
+      assertLines(source, ['  if x', '    a := 1', '{x} x := 3', '  a := 2']);
+    });
+
+    it('leaves a method as written when a statement after a } cannot reach its column', function () {
+      const body = ['    if x', '        { note', '        } a := 1', '    x := a'];
+      assertLines(['PUB go(x) | a', ...body, ''].join('\n'), body);
+    });
+
+    it('lines a full-line comment above ORG up with ORG', function () {
+      assertLines("PUB main() | a\n  if a\n      ' swap\n      org\n        mov a, #1\n      end\n  a := 2\n", ['  if a', "    ' swap", '    org']);
     });
   });
 
@@ -355,6 +422,32 @@ describe('Formatter: expected output', function () {
     it('leaves a { } block comment alone', function () {
       const block = '{\n   con   long    if\n\t\ttabbed   text   \n}\n';
       assert.ok(formatSpin2Text(`${block}CON\n  A = 1\n`, { blockNameCase: 'uppercase' }).startsWith(block));
+    });
+
+    it('leaves words inside a { } comment on a code line in their case', function () {
+      // the code's if takes controlFlowCase; the comment's words do not
+      assertLines('PUB main() | a\n  if a { if long }\n    a := 1\n', ['  IF a { if long }'], {
+        controlFlowCase: 'uppercase',
+        typeCase: 'uppercase'
+      });
+    });
+
+    it('leaves words inside { } comments that span lines in their case', function () {
+      const continued = ['}               2,       { if the long one', '}               3)       { the last'];
+      const method2 = ['PRI add3(a, b, c) : r', '  r := a', ''];
+      const source = ['PUB main() | v', '  v := add3(1,       { the first long', ...continued, '}', '', ...method2].join('\n');
+      assertLines(source, ['  v := add3(1,       { the first long', ...continued], { controlFlowCase: 'uppercase', typeCase: 'uppercase' });
+    });
+
+    it('does not take a quote inside a { } comment for a comment start', function () {
+      // trailing comment 2 x indentSize past the code (1.6), the { } comment counted as code
+      assertLines("PUB main() | a\n  a := 1 { it's }  ' note\n  a := 22\n", ["  a := 1 { it's }    ' note"]);
+    });
+
+    it('formats the code after a { inside a backtick debug string, which is not a comment', function () {
+      const source = 'PUB main(x)\n    if x\n        debug(`term t pos 1 { left)\n    x := 4\n\nPRI more(x)\n    x := 5 { c }\n';
+      assertLines(source, ['  if x', '    debug(`term t pos 1 { left)', '  x := 4']);
+      assertLines(source, ['PRI more(x)', '  x := 5 { c }']);
     });
 
     it('leaves preprocessor lines alone', function () {

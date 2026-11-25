@@ -91,6 +91,8 @@ export interface LineTextRegions {
   commentStart: number;
   /** Depth of a debug() call this line leaves open with `...`, for scanning the next line. */
   openDebugDepth: number;
+  /** Depth of a { } comment this line leaves open, for scanning the next line. */
+  openCurlyDepth: number;
 }
 
 const DEBUG_CALL_OPEN_RE = /(^|[^\w.])debug\s*(\[[^\]]*\]\s*)?$/i;
@@ -103,24 +105,39 @@ const DEBUG_CALL_OPEN_RE = /(^|[^\w.])debug\s*(\[[^\]]*\]\s*)?$/i;
  * Does NOT treat ' inside strings or debug backtick expressions as comments.
  * In Spin2, debug(`widget 'title' ...) uses ' as a title delimiter inside
  * backtick expressions — these must not be mistaken for line comments.
+ * { } comment text is the author's (1.3), so it is marked literal too, and a ' inside
+ * it starts no comment. A { opens a comment anywhere but in a string or in backtick
+ * text, including in debug() arguments (checked against pnut-ts).
  *
  * @param line - the line to scan
  * @param openDebugDepth - openDebugDepth from the previous line, when scanning a whole file
+ * @param openCurlyDepth - openCurlyDepth from the previous line, when scanning a whole file
  */
-export function findLineTextRegions(line: string, openDebugDepth: number = 0): LineTextRegions {
+export function findLineTextRegions(line: string, openDebugDepth: number = 0, openCurlyDepth: number = 0): LineTextRegions {
   const literal: boolean[] = new Array(line.length).fill(false);
   let inDoubleQuote = false;
   let inBacktick = false;
   let parenDepth = 0;
   let debugDepth = openDebugDepth;
+  let curlyDepth = openCurlyDepth;
   let atIndent = true;
   let commentStart = line.length;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
-    if (atIndent && (ch === ' ' || ch === '\t')) {
+    // a line's indent is free to change, unless the line begins inside a comment
+    if (atIndent && curlyDepth === 0 && (ch === ' ' || ch === '\t')) {
       continue;
     }
     atIndent = false;
+    if (curlyDepth > 0) {
+      literal[i] = true;
+      if (ch === '{') {
+        curlyDepth++;
+      } else if (ch === '}') {
+        curlyDepth--;
+      }
+      continue;
+    }
     if (inBacktick) {
       literal[i] = true;
       // Inside a backtick expression: track parens to find the enclosing close-paren.
@@ -156,6 +173,11 @@ export function findLineTextRegions(line: string, openDebugDepth: number = 0): L
       parenDepth = 0;
       continue;
     }
+    if (ch === '{') {
+      literal[i] = true;
+      curlyDepth = 1;
+      continue;
+    }
     if (ch === "'") {
       commentStart = i;
       break;
@@ -173,9 +195,28 @@ export function findLineTextRegions(line: string, openDebugDepth: number = 0): L
   }
   const code = line.substring(0, commentStart).trim();
   if (code.length === 0) {
-    return { literal, commentStart, openDebugDepth };
+    return { literal, commentStart, openDebugDepth, openCurlyDepth: curlyDepth };
   }
-  return { literal, commentStart, openDebugDepth: code.endsWith('...') ? debugDepth : 0 };
+  return { literal, commentStart, openDebugDepth: code.endsWith('...') ? debugDepth : 0, openCurlyDepth: curlyDepth };
+}
+
+/**
+ * The { } comment depth at the start of each line: 0 when the line begins outside a
+ * comment. For passes that skip lines but must still know whether a line begins inside
+ * a comment, e.g. a statement continued through comments that close at the start of
+ * each next line.
+ */
+export function curlyDepthAtLineStarts(lines: string[]): number[] {
+  const depths: number[] = new Array(lines.length).fill(0);
+  let debugDepth = 0;
+  let curlyDepth = 0;
+  for (let i = 0; i < lines.length; i++) {
+    depths[i] = curlyDepth;
+    const regions = findLineTextRegions(lines[i], debugDepth, curlyDepth);
+    debugDepth = regions.openDebugDepth;
+    curlyDepth = regions.openCurlyDepth;
+  }
+  return depths;
 }
 
 /**
@@ -255,6 +296,118 @@ export function findCurlyBlockCommentLines(lines: string[], startLine: number, e
 export function isPreprocessorLine(line: string): boolean {
   const trimmed = line.trimStart();
   return /^#(define|ifdef|ifndef|else|elseifdef|elseifndef|endif|undef|pragma|include|error|warn)\b/i.test(trimmed);
+}
+
+/**
+ * Where a statement starts on a line, as the compiler reads it.
+ * - `column`: visual column (tabs at 8-column stops) of the statement's first code
+ *   character. The compiler takes the statement's block depth from this column, not
+ *   from a { } comment in front of it.
+ * - `codeStart`: string index of that character.
+ * - `startsInComment`: the line begins inside a { } comment opened on an earlier line.
+ *   Its lead-in up to `tailEnd` (just past the closing }) is comment text; only the
+ *   whitespace from `tailEnd` to `codeStart` may change.
+ */
+export interface StatementStart {
+  column: number;
+  codeStart: number;
+  startsInComment: boolean;
+  tailEnd: number;
+}
+
+/**
+ * Find every line in the range on which a statement starts. A line is left out when it
+ * holds no code (blank, ' comment, { } comment, a line inside a { } comment) or when it
+ * only continues a statement through a { } comment that spans the line break:
+ *     id := init(cog,        { the cog to use
+ *     }          @display)   { the display
+ * The compiler skips a { } comment whole, line breaks included, so the second line is
+ * part of the first statement and carries no block depth. But in
+ *     { note
+ *     }   b := 3
+ * nothing came before the comment, so `b := 3` starts a statement at the column of `b`.
+ *
+ * Verified with pnut-ts: { } opens a comment anywhere except inside a "..." string and
+ * inside a backtick debug string, which runs to the ) that closes the debug( call; a '
+ * inside a backtick string does not start a comment either.
+ * The parser's isLineInBlockComment() cannot stand in for this: it does not report
+ * one-line { } comments or comment-continued lines, and it does report the closing line
+ * of a multi-line comment even when a statement follows the }.
+ */
+export function findStatementStarts(lines: string[], startLine: number, endLine: number): Map<number, StatementStart> {
+  const result = new Map<number, StatementStart>();
+  let depth = 0;
+  let logicalLineHasCode = false;
+  for (let i = startLine; i <= endLine; i++) {
+    const line = lines[i];
+    const startsInComment = depth > 0;
+    if (!startsInComment) logicalLineHasCode = false;
+    let tailEnd = 0;
+    let inString = false;
+    let inBacktick = false;
+    let parenDepth = 0;
+    let column = 0;
+    for (let j = 0; j < line.length; j++) {
+      const ch = line[j];
+      const charColumn = column;
+      column = ch === '\t' ? column + 8 - (column % 8) : column + 1;
+      if (inString) {
+        if (ch === '"') inString = false;
+        continue;
+      }
+      if (inBacktick) {
+        if (ch === '(') {
+          parenDepth++;
+        } else if (ch === ')' && --parenDepth < 0) {
+          inBacktick = false;
+        }
+        continue;
+      }
+      if (ch === '{') {
+        depth++;
+        continue;
+      }
+      if (depth > 0) {
+        if (ch === '}') {
+          depth--;
+          // the last comment close before the statement bounds the editable whitespace
+          if (depth === 0 && startsInComment && !result.has(i)) tailEnd = j + 1;
+        }
+        continue;
+      }
+      if (ch === "'") break;
+      if (ch === ' ' || ch === '\t') continue;
+      // code
+      if (!logicalLineHasCode && !result.has(i)) {
+        result.set(i, { column: charColumn, codeStart: j, startsInComment, tailEnd });
+      }
+      logicalLineHasCode = true;
+      if (ch === '"') {
+        inString = true;
+      } else if (ch === '`') {
+        inBacktick = true;
+        parenDepth = 0;
+      }
+    }
+  }
+  return result;
+}
+
+/** Expand tabs in `text` to spaces, given the visual column `text` starts at. */
+export function expandTabsFromColumn(text: string, startColumn: number): string {
+  let out = '';
+  let col = startColumn;
+  for (const ch of text) {
+    if (ch === '\t') {
+      const width = 8 - (col % 8);
+      out += ' '.repeat(width);
+      col += width;
+    } else {
+      out += ch;
+      col++;
+    }
+  }
+  return out;
 }
 
 /**

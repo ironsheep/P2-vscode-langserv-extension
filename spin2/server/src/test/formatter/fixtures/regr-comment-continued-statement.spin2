@@ -1,0 +1,60 @@
+' regr-comment-continued-statement.spin2
+' Regression: { } comments around statements in a method. The compiler skips a { }
+' comment whole, line breaks included, and takes a statement's block depth from the
+' column of its first code character. Each case sits after an IF, where a wrong depth
+' moves a line into or out of the IF and changes the binary.
+
+CON
+  FONT_H = 16
+
+VAR
+  long  shown, total
+
+PUB main() | x
+  x := 0
+  continued_call(x)
+  closing_line_statement(x)
+  leading_comment(x)
+  backtick_brace(x)
+  too_narrow_tail(x)
+
+PRI add3(a, b, c) : r
+  r := a + b + c
+
+PRI continued_call(x) | v
+' a call continued through comments: the } lines continue the call, not statements
+    if x
+        v := add3(1,        { first value
+}                 2,        { second value
+}                 FONT_H    { third value
+}                 )
+    total := v
+
+PRI closing_line_statement(x) | a
+' a statement after the } that closes a multi-line comment
+    if x
+        a := 1
+{ a note
+  over two lines
+}   total := a
+
+PRI leading_comment(x) | a
+' a one-line comment in front of a statement: depth comes from the statement
+    if x
+        a := 1
+    {x} total := 3
+    shown := a
+
+PRI too_narrow_tail(x) | a
+' the statement cannot reach its target column without editing comment text
+    if x
+        { note
+        } a := 1
+    total := a
+
+PRI backtick_brace(x)
+' a { inside a backtick debug string is not a comment (kept last: the parser once
+' took it for one running to the next }, and skipped every line up to there)
+    if x
+        debug(`term t pos 1 { left)
+    total := 4

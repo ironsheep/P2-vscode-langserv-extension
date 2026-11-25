@@ -12,6 +12,9 @@ import {
   isFullLineComment,
   isColumnZero,
   isPreprocessorLine,
+  findStatementStarts,
+  StatementStart,
+  expandTabsFromColumn,
   findCurlyBlockCommentLines,
   computeBlockCommentColumn,
   padToColumn,
@@ -51,14 +54,30 @@ export function formatMethodBlock(
     formatInlinePasmRegion(lines, region, findings, elasticConfig);
   }
 
+  // Which lines start a statement, and at what column, is decided the way the compiler
+  // decides it (findStatementStarts), not from the parser's block-comment report. A
+  // one-line { } comment such as {$flexspin #endif}, or a line continuing a statement
+  // through a { } comment, taken as code at its column, reset the indent base and moved
+  // the code after it into a different block (D.21).
   // Normalize indentation for Spin2 code lines (not inline PASM content)
-  normalizeIndentation(lines, startLine, endLine, findings, tabStops, indentSize, inlinePasm);
+  normalizeIndentation(lines, startLine, endLine, indentSize, inlinePasm, findStatementStarts(lines, startLine, endLine));
+
+  // Columns moved: find the statement starts again for the comment passes.
+  const statements = findStatementStarts(lines, startLine, endLine);
 
   // Align indented full-line comments to the indent of the next code line below
-  alignFullLineComments(lines, startLine, endLine, findings, inlinePasm);
+  alignFullLineComments(lines, startLine, endLine, inlinePasm, statements);
 
   // Align trailing comments within the method
-  alignMethodComments(lines, startLine, endLine, findings, tabStops, inlinePasm, elasticConfig.commentGap);
+  alignMethodComments(lines, startLine, endLine, findings, tabStops, inlinePasm, elasticConfig.commentGap, statements);
+}
+
+/** Lines on which a statement starts, from findStatementStarts(). */
+type Statements = Map<number, StatementStart>;
+
+/** True when a statement starts on the line and it takes part in block structure. */
+function isStatementLine(lines: string[], lineIdx: number, statements: Statements): boolean {
+  return statements.has(lineIdx) && !isPreprocessorLine(lines[lineIdx]);
 }
 
 function findInlinePasmRegions(lines: string[], startLine: number, endLine: number): InlinePasmRegion[] {
@@ -110,10 +129,9 @@ function normalizeIndentation(
   lines: string[],
   startLine: number,
   endLine: number,
-  findings: DocumentFindings,
-  tabStops: number[],
   indentSize: number,
-  inlinePasm: InlinePasmRegion[]
+  inlinePasm: InlinePasmRegion[],
+  statements: Statements
 ): void {
   // Derive nesting levels from line-to-line indent changes using a stack.
   // This correctly handles files with mixed indent widths (e.g., some methods
@@ -126,14 +144,13 @@ function normalizeIndentation(
   // ORG/END boundary lines participate in indent normalization (they are at the
   // enclosing code's nesting level), but PASM content between them is skipped.
   const codeLines: { lineIdx: number; indent: number }[] = [];
+  // A line that starts no statement (blank, comment, or continuing a statement through a
+  // { } comment) carries no depth and keeps its text as written (1.3). A statement's
+  // depth comes from the column of its first code character.
   for (let i = startLine + 1; i <= endLine; i++) {
     if (isInInlinePasmContent(i, inlinePasm)) continue;
-    if (findings.isLineInBlockComment(i)) continue;
-    const line = lines[i];
-    if (line.trim().length === 0) continue;
-    if (isFullLineComment(line)) continue;
-    if (isPreprocessorLine(line)) continue;
-    codeLines.push({ lineIdx: i, indent: getIndentColumns(line) });
+    if (!isStatementLine(lines, i, statements)) continue;
+    codeLines.push({ lineIdx: i, indent: statements.get(i)!.column });
   }
 
   if (codeLines.length === 0) return;
@@ -182,11 +199,44 @@ function normalizeIndentation(
   }
 
   // Apply: level 1 → indentSize * 1, level 2 → indentSize * 2, etc.
+  // The statement's first code character goes to the target column:
+  // - after a comment's closing } at the start of the line, only the whitespace between
+  //   the } and the statement can change;
+  // - otherwise the whole line moves, a { } comment in front of the statement with it.
+  // When the target cannot be reached that way, the method cannot be re-expressed without
+  // moving a statement to another depth, so its indentation is left exactly as written.
+  const newLines: Map<number, string> = new Map();
   for (const cl of codeLines) {
     const level = lineLevels.get(cl.lineIdx) || 1;
     const targetCol = indentSize * level;
-    lines[cl.lineIdx] = ' '.repeat(targetCol) + lines[cl.lineIdx].trimStart();
+    const line = lines[cl.lineIdx];
+    const stmt = statements.get(cl.lineIdx)!;
+    if (stmt.startsInComment) {
+      const tailCol = visualColumn(line, stmt.tailEnd);
+      if (targetCol < tailCol) return;
+      newLines.set(cl.lineIdx, line.substring(0, stmt.tailEnd) + ' '.repeat(targetCol - tailCol) + line.substring(stmt.codeStart));
+    } else {
+      const leadCol = getIndentColumns(line);
+      const newLeadCol = leadCol + (targetCol - stmt.column);
+      if (newLeadCol < 0) return;
+      const textStart = line.length - line.trimStart().length;
+      // a comment in front of the statement keeps its width wherever it moves to
+      const prefix = expandTabsFromColumn(line.substring(textStart, stmt.codeStart), leadCol);
+      newLines.set(cl.lineIdx, ' '.repeat(newLeadCol) + prefix + line.substring(stmt.codeStart));
+    }
   }
+  for (const [lineIdx, newLine] of newLines) {
+    lines[lineIdx] = newLine;
+  }
+}
+
+/** The visual column at string index `index`, tabs at 8-column stops. */
+function visualColumn(line: string, index: number): number {
+  let col = 0;
+  for (let i = 0; i < index && i < line.length; i++) {
+    col = line[i] === '\t' ? col + 8 - (col % 8) : col + 1;
+  }
+  return col;
 }
 
 function getIndentColumns(line: string): number {
@@ -199,18 +249,12 @@ function getIndentColumns(line: string): number {
   return col;
 }
 
-function alignFullLineComments(
-  lines: string[],
-  startLine: number,
-  endLine: number,
-  findings: DocumentFindings,
-  inlinePasm: InlinePasmRegion[]
-): void {
+function alignFullLineComments(lines: string[], startLine: number, endLine: number, inlinePasm: InlinePasmRegion[], statements: Statements): void {
   // Find the first actual code line in the method body.  Everything before it
   // is method documentation ('' doc blocks for PUB, ' description blocks for
   // PRI, local variable descriptions, blank lines).  Doc comments ('') should
   // be at column 0; other comments before code are left alone.
-  const firstCodeLine = findFirstCodeLine(lines, startLine + 1, endLine, findings, inlinePasm);
+  const firstCodeLine = findFirstCodeLine(lines, startLine + 1, endLine, inlinePasm, statements);
 
   // Move accidentally-indented method comments (' and '') to column 0.
   // All comment lines between the PUB/PRI declaration and the first code line
@@ -245,41 +289,30 @@ function alignFullLineComments(
 
     // All other full-line comments after the first code line are treated as
     // commented-out code and aligned to the next code line below.
-    const nextIndent = findNextCodeLineIndent(lines, i + 1, endLine, findings, inlinePasm);
+    const nextIndent = findNextCodeLineIndent(lines, i + 1, endLine, inlinePasm, statements);
     if (nextIndent >= 0) {
       lines[i] = ' '.repeat(nextIndent) + lines[i].trimStart();
     }
   }
 }
 
-function findFirstCodeLine(lines: string[], fromLine: number, endLine: number, findings: DocumentFindings, inlinePasm: InlinePasmRegion[]): number {
+function findFirstCodeLine(lines: string[], fromLine: number, endLine: number, inlinePasm: InlinePasmRegion[], statements: Statements): number {
   for (let i = fromLine; i <= endLine; i++) {
     if (isInInlinePasmContent(i, inlinePasm)) continue;
     if (isInlinePasmBoundary(i, inlinePasm)) continue;
-    if (findings.isLineInBlockComment(i)) continue;
-    const trimmed = lines[i].trim();
-    if (trimmed.length === 0) continue;
-    if (isFullLineComment(lines[i])) continue;
+    if (!statements.has(i)) continue;
     return i;
   }
   return -1;
 }
 
-function findNextCodeLineIndent(
-  lines: string[],
-  fromLine: number,
-  endLine: number,
-  findings: DocumentFindings,
-  inlinePasm: InlinePasmRegion[]
-): number {
+function findNextCodeLineIndent(lines: string[], fromLine: number, endLine: number, inlinePasm: InlinePasmRegion[], statements: Statements): number {
   for (let i = fromLine; i <= endLine; i++) {
+    // ORG and END are code at the enclosing statement's level (D.2), so a comment
+    // above ORG lines up with ORG, not with the code after END.
     if (isInInlinePasmContent(i, inlinePasm)) continue;
-    if (isInlinePasmBoundary(i, inlinePasm)) continue;
-    if (findings.isLineInBlockComment(i)) continue;
-    const trimmed = lines[i].trim();
-    if (trimmed.length === 0) continue;
-    if (isFullLineComment(lines[i])) continue; // skip other comments too
-    return getIndentColumns(lines[i]);
+    if (!isStatementLine(lines, i, statements)) continue;
+    return statements.get(i)!.column;
   }
   return -1; // no code line found below
 }
@@ -291,7 +324,8 @@ function alignMethodComments(
   findings: DocumentFindings,
   tabStops: number[],
   inlinePasm: InlinePasmRegion[],
-  commentGap: number
+  commentGap: number,
+  statements: Statements
 ): void {
   // Collect content end columns for all lines with trailing comments
   const linesWithComments: { lineIdx: number; codePart: string; commentPart: string }[] = [];
@@ -303,6 +337,9 @@ function alignMethodComments(
     if (findings.isLineInBlockComment(i)) continue;
     if (lines[i].trim().length === 0) continue;
     if (isFullLineComment(lines[i])) continue;
+    // No statement on the line, or one after comment text the ' search could misread
+    const stmt = statements.get(i);
+    if (stmt === undefined || stmt.startsInComment) continue;
 
     const [codePart, commentPart] = splitTrailingComment(lines[i]);
     if (commentPart.length > 0) {

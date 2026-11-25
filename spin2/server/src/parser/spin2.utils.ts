@@ -230,10 +230,50 @@ export class Spin2ParseUtils {
     return lineParts == null ? [] : lineParts;
   }
 
+  /**
+   * Replace each { and } inside debug backtick text with a space, keeping the line's
+   * length. pnut-ts does not open a { } comment there: the backtick text runs to the )
+   * that closes the debug( call, and it is data. Taken for a comment, an unpaired {
+   * there opened a block comment that ran to the next } in the file.
+   */
+  public blankBracesInBacktickText(line: string): string {
+    if (line.indexOf('`') === -1) {
+      return line;
+    }
+    let result: string = '';
+    let inDoubleQuote: boolean = false;
+    let inBacktick: boolean = false;
+    let parenDepth: number = 0;
+    let braceDepth: number = 0;
+    for (const ch of line) {
+      if (inBacktick) {
+        if (ch === '(') {
+          parenDepth++;
+        } else if (ch === ')' && --parenDepth < 0) {
+          inBacktick = false;
+        }
+        result += ch === '{' || ch === '}' ? ' ' : ch;
+        continue;
+      }
+      if (braceDepth === 0 && ch === '"') {
+        inDoubleQuote = !inDoubleQuote;
+      } else if (!inDoubleQuote && ch === '{') {
+        braceDepth++;
+      } else if (!inDoubleQuote && ch === '}' && braceDepth > 0) {
+        braceDepth--;
+      } else if (!inDoubleQuote && braceDepth === 0 && ch === '`') {
+        inBacktick = true;
+        parenDepth = 0;
+      }
+      result += ch;
+    }
+    return result;
+  }
+
   public removeQuotedStrings(line: string): string {
     let nonSglStringLine: string = line;
     if (line !== undefined && line.length > 3) {
-      const nonDblStringLine: string = this.removeDoubleQuotedStrings(line);
+      const nonDblStringLine: string = this.removeDoubleQuotedStrings(this.blankBracesInBacktickText(line));
       nonSglStringLine = this.removeDebugSingleQuotedStrings(nonDblStringLine);
       if (line.length > 0 && line !== nonSglStringLine) {
         this._logMessage(`  -- rmvQS()             Line=[${line}](${line.length})`);
@@ -550,7 +590,9 @@ export class Spin2ParseUtils {
       // if we have quoted string hide them for now...
       const startDoubleQuoteOffset: number = cleanedLine.indexOf('"');
       const KEEP_PACKED_CONSTANTS: boolean = true;
-      const checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, KEEP_PACKED_CONSTANTS) : cleanedLine;
+      // braces in debug backtick text are data, not a comment (see blankBracesInBacktickText)
+      const braceCheckLine: string = this.blankBracesInBacktickText(cleanedLine);
+      const checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(braceCheckLine, KEEP_PACKED_CONSTANTS) : braceCheckLine;
 
       //   REPLACE {{...}} when found, all occurrences
       //do {
@@ -637,7 +679,9 @@ export class Spin2ParseUtils {
       // if we have quoted string hide them for now...
       const startDoubleQuoteOffset: number = cleanedLine.indexOf('"');
       const KEEP_PACKED_CONSTANTS: boolean = true;
-      const checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(cleanedLine, KEEP_PACKED_CONSTANTS) : cleanedLine;
+      // braces in debug backtick text are data, not a comment (see blankBracesInBacktickText)
+      const braceCheckLine: string = this.blankBracesInBacktickText(cleanedLine);
+      const checkLine: string = startDoubleQuoteOffset != -1 ? this.removeDoubleQuotedStrings(braceCheckLine, KEEP_PACKED_CONSTANTS) : braceCheckLine;
 
       //   REPLACE ^...}} when NO {{ before it on start of line (unless there's an earlier ' comment)
       const tickOffset: number = checkLine.indexOf("'", startingOffset);
