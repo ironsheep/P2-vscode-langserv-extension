@@ -22,6 +22,49 @@ Check [Keep a Changelog](http://keepachangelog.com/) for reminders on how to str
 
 _No unreleased changes at this time._
 
+## [2.12.2] - 2026-11-25
+
+Formatter fixes: `{ }` comments in a method no longer move code into a
+different block, and comment text and trailing whitespace are left as
+written
+
+### Fixed
+
+- BUGFIX: The formatter no longer changes which block a method's code
+  belongs to after a one-line `{ }` comment at column 0, such as
+  `{$flexspin #endif}`. It counted the comment as code, so the lines
+  after it, up to the end of the method, were re-indented against the
+  wrong base and could move into or out of an `if`/`else`, changing
+  what the program does. Files formatted by earlier versions that use
+  any of the comment patterns in this release inside a method should be
+  checked, or compiled before and after formatting to compare
+- BUGFIX: The formatter no longer does the same after a statement that
+  is continued through `{ }` comments, with each comment closing at the
+  start of the next line. Those `}` lines are part of the statement and
+  are left as written
+- BUGFIX: A statement that follows the `}` closing a multi-line comment
+  is now indented with the code around it instead of being left behind
+  when the code around it moves
+- BUGFIX: A statement with a `{ }` comment in front of it, such as
+  `{x} a := 1`, is now indented by where the statement starts, which is
+  where the compiler reads its block from, not by where the comment
+  starts
+- BUGFIX: A full-line comment just above an inline `ORG` now lines up
+  with the `ORG` instead of with the code after `END`
+- BUGFIX: A `{` inside debug backtick text, such as
+  ``debug(`term t pos 1 { left)``, no longer starts a comment. The
+  language server took it for a `{ }` comment running to the next `}`
+  in the file, even into the next method, and the formatter skipped
+  every line up to there
+- BUGFIX: The formatter's case settings no longer change words inside
+  `{ }` comments on code lines, including comments that continue across
+  lines
+- BUGFIX: A `'` inside a `{ }` comment on a code line no longer counts
+  as the start of a trailing comment when comments are aligned
+- BUGFIX: `trimTrailingWhitespace` set to false now keeps trailing
+  whitespace exactly as written on CON, VAR, OBJ and DAT lines as well
+  as in methods
+
 ## [2.12.1] - 2026-11-06
 
 FVAR and FVARS support in DAT data, with PASM2 FIFO hover and CON

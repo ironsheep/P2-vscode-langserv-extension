@@ -5,7 +5,7 @@
   "icon": "images/Propeller.ico",
   "author": "IronSheep",
   "license": "MIT",
-  "version": "2.12.1",
+  "version": "2.12.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/ironsheep/P2-vscode-langserv-extension"
@@ -1430,6 +1430,7 @@
     "test:formatter": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/**/*.test.ts' --timeout 60000",
     "test:formatter:binary": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/formatter.binary-parity.test.ts' --timeout 60000",
     "test:formatter:safety": "cd server && npx mocha --require ts-node/register --project tsconfig.test.json 'src/test/formatter/formatter.safety.test.ts' --timeout 120000",
+    "test:formatter:corpus": "cd server && npx ts-node -T --project tsconfig.test.json ../scripts/formatter-corpus-check.ts",
     "test:tabutils": "mocha --require ts-node/register client/src/test/tabFormatter.utils.test.ts --timeout 10000",
     "test:docgen": "mocha --require ts-node/register client/src/test/docgen.utils.test.ts --timeout 10000"
   },
